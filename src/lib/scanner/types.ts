@@ -22,6 +22,7 @@ export interface TokenInterface {
     readonly literal: any;
     readonly start: MarkerInterface;
     readonly end: MarkerInterface;
+    toString: () => string;
 }
 
 export interface MarkerInterface {

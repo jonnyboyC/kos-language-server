@@ -1,5 +1,5 @@
 import { TokenType } from './tokentypes';
-import { TokenMap, ParseResult } from './types';
+import { TokenMap, ParseResult, TokenInterface, ParseErrorInterface } from './types';
 import { Token, Marker } from './token';
 import { WhiteSpace } from './whitespace';
 import { ParseError } from './parseError'
@@ -21,10 +21,10 @@ export class Scanner {
     }
 
     // scan all available tokesn
-    public ScanToken(): Token[] | ParseError[] {
+    public ScanToken(): TokenInterface[] | ParseError[] {
         // create arrays for valid tokens and encountered errors
-        const tokens: Token[] = [];
-        const errors: ParseError[] = [];
+        const tokens: TokenInterface[] = [];
+        const errors: ParseErrorInterface[] = [];
 
         // begin scanning
         while (!this.isAtEnd()) 
@@ -45,7 +45,7 @@ export class Scanner {
         }
 
         // if errors return errors instead
-        if (errors) {
+        if (errors.length !== 0) {
             return errors;
         }
         return tokens;

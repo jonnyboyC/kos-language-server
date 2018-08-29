@@ -26,9 +26,9 @@ test('scan all', (t) => {
         const scanner = new Scanner(kosFile);
         const result = scanner.ScanToken();
 
-        console.log(result);
-        console.log('---------------------');
         if (result[0].tag === 'token') {
+            console.log('---------------------');
+            console.log(result.map(r => r.toString()));
             t.deepEqual(true, true);
         } else {
             t.deepEqual(true, true);
