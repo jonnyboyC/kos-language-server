@@ -100,7 +100,7 @@ export class Scanner {
                 } else if (this.isAlpha(c)) {
                     return this.identifier();
                 }
-                return this.generateError("Unexpected symbol, uncountered")
+                return this.generateError(`Unexpected symbol, uncountered ${this._source.substr(this._current - this._start)}`)
         }
     }
 
