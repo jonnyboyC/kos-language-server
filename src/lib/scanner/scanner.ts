@@ -1,8 +1,8 @@
 import { TokenType } from './tokentypes';
-import { TokenMap, ParseResult, TokenInterface, ParseErrorInterface } from './types';
+import { TokenMap, ScanResult, TokenInterface, SyntaxErrorInterface } from './types';
 import { Token, Marker } from './token';
 import { WhiteSpace } from './whitespace';
-import { ParseError } from './parseError'
+import { SyntaxError } from './syntaxError'
 
 export class Scanner {
     private readonly _source: string
@@ -21,10 +21,10 @@ export class Scanner {
     }
 
     // scan all available tokesn
-    public ScanToken(): TokenInterface[] | ParseError[] {
+    public ScanToken(): TokenInterface[] | SyntaxError[] {
         // create arrays for valid tokens and encountered errors
         const tokens: TokenInterface[] = [];
-        const errors: ParseErrorInterface[] = [];
+        const errors: SyntaxErrorInterface[] = [];
 
         // begin scanning
         while (!this.isAtEnd()) 
@@ -36,7 +36,7 @@ export class Scanner {
                 case 'token':
                     tokens.push(result);
                     break;
-                case 'error':
+                case 'syntaxError':
                     errors.push(result);
                     break;
                 case 'whitespace':
@@ -51,7 +51,7 @@ export class Scanner {
         return tokens;
     }
 
-    private scanToken(): ParseResult {
+    private scanToken(): ScanResult {
         let c = this.advance();
         switch (c)
         {
@@ -108,6 +108,11 @@ export class Scanner {
     private identifier(): Token {
         while (this.isAlphaNumeric(this.peek())) this.advance();
 
+        // if "." immediatily followed by alpha numeri
+        if (this.peek() === '.' && this.isAlphaNumeric(this.peekNext())) {
+            return this.fileIdentifier()
+        }
+
         const text = this._source.substr(this._start, this._current - this._start);
         if (keywords.hasOwnProperty(text)) {
             return this.generateToken(keywords[text]);
@@ -116,8 +121,18 @@ export class Scanner {
         }
     }
 
+    // extract a file identifier
+    private fileIdentifier(): Token {
+        while (this.peek() === '.' && this.isAlphaNumeric(this.peekNext())) {
+            this.advance();
+            while (this.isAlphaNumeric(this.peek())) this.advance();
+        }
+
+        return this.generateToken(TokenType.FileIdentifier);
+    }
+
     // extract string
-    private string(): ParseResult {
+    private string(): ScanResult {
         // while closing " not found increment new lines
         while (this.peek() !== '"' && !this.isAtEnd()) {
             if (this.peek() === '\n') this._currentLine++;
@@ -136,19 +151,38 @@ export class Scanner {
     }
 
     // extract number
-    private number(): ParseResult {
+    private number(): ScanResult {
         this.advanceNumber();
 
-        // if . not found number is an integar
-        if (this.peek() !== '.') {
+        // if . and e not found number is an integar
+        if (this.peek() !== '.' || this.peek() !== 'e') {
             const intString = this.numberString();
             const int = parseInt(intString);
             return this.generateToken(TokenType.Integer, int);
         }
 
-        // continue parsing float
+        // continue parsing decimal places if they exist
         if (this.peek() == '.' && this.isDigit(this.peekNext())) 
         {
+            this.advance();
+            this.advanceNumber();
+        }
+
+        // parse exponent
+        if (this.peek() == 'e') {
+
+            // parse optional exponent sign
+            const next = this.peekNext();
+            if (next === '+' || next === '-') {
+                this.advance();
+            }
+
+            // unsure number follows exponent
+            if (!this.isDigit(this.peekNext())) {
+                return this.generateError('Expected number following exponet e');
+            }
+
+            // advance exponent number
             this.advance();
             this.advanceNumber();
         }
@@ -185,8 +219,8 @@ export class Scanner {
         );
     }
 
-    private generateError(message: string): ParseError {
-        return new ParseError(
+    private generateError(message: string): SyntaxError {
+        return new SyntaxError(
             message,
             new Marker(this._start, this._startLine),
             new Marker(this._current, this._currentLine)

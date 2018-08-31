@@ -1,0 +1,165 @@
+// program
+program -> declaration*
+
+// declarations
+declaration -> ( instruction
+    | scopedVariableDeclaration
+    | functionDeclaration
+    | parameterDeclaration
+)
+
+scopedVariableDeclaration -> scope? variableDeclaration
+parameterDeclaration -> scope? "parameter" parameters "."
+functionDeclaration -> scope? "function" instructionBlock "."?
+
+// declaration components
+scope -> "declare"? ("local" | "global")?
+parameters -> parameter ("," parameters)? 
+    | defaultParameters
+defaultParameters -> defaultParameter ("," defaultParameters)?
+
+parameter -> ( idenitifer | defaultParameter )
+defaultParameter -> idenitifer ( "to" | "is" ) expression
+
+// instructions
+instruction -> ( instructionBlock
+    | identifierInstruction
+    | commandinstruction
+    | commandExpressioninstruction
+    | unbindInstruction
+    | set
+    | lock
+    | lazyGlobal
+    | if
+    | until
+    | from
+    | when
+    | break
+    | return
+    | switch
+    | for
+    | on
+    | unlock
+    | toggle
+    | wait
+    | log
+    | copy
+    | rename
+    | delete
+    | run
+    | runPath
+    | runOncePath
+    | compile
+    | list
+    | reboot
+    | shutdown
+    | unset
+    | empty
+)
+
+// directive
+lazyGlobal -> "@" "lazyglobal" onOff "."
+
+// block
+instructionBlock -> "{" instruction* "}"
+
+// control flow
+if -> "if" expression instruction "."? ("else" instruction "."?)? 
+until -> "until" expression instruction "."?
+from -> "from" instructionBlock "until" expression instructionBlock "do" instruction
+when -> "when" expression "then" instruction "."?
+break -> "break" "."
+return -> "return" expression? "."
+for -> "for" idenitifer "in" variableIdentifier instruction "."?
+on -> "on" variableIdentifier instruction
+wait -> "wait" "until"? expression "."
+
+// variables
+lock -> "lock" idenitifer "to" expression "."
+set -> "set" idenitifer ( "to" | "is" ) expression "."
+unbindInstruction -> ( "unset" | "unlock" ) ( "all" | idenitifer ) "."
+
+// io
+copy -> "copy" expression ( "to" | "from" ) expression "."
+switch -> "switch" "to" expression "."
+log -> "log" expression "to" expression "."
+rename -> "rename" ioIdentifier expression "to" expression "."
+delete -> "delete" expression ("from" expression)? "."
+compile -> "compile" expression ("to" expression)? "."
+run -> "run" "once"? ( string | fileIdentifier ) ("(" arguments ")")? "." // on??
+runPath -> "runPath" "(" expression ("," arguments)? ")" "."
+runOncePath -> "runOncePath" "(" expression ("," arguments)? ")" "."
+print -> "print" expression ("at" "(" expression "," expression ")")?
+
+// misc
+toggle -> "toggle" variableIdentifier "."
+empty -> "."
+list -> "list" idenitifer ("in" idenitifer)? "."
+
+// component stmt
+commandExpressioninstruction -> commandExpression expression "."
+commandinstruction -> command "."
+
+// identifier instructions
+identifierInstruction -> suffixOnOffInstruction | variableDeclaration
+variableDeclaration -> idenitifer ( "to" | "is" ) expression "."
+suffixOnOffInstruction -> suffix onOff "."
+onOff -> ( "on" | "off" )
+
+// expressions
+expression -> or
+
+// binary expresions
+or -> and ("or" and)?
+and -> equality ("and" equality)?
+equality -> comparison (( "=" | "<>" ) comparison)?
+comparison -> addition (( "<" | ">" | "<=" | ">=" ) addition)?
+addition -> multiplication (( "+" | "-" ) multiplication)?
+multiplication -> unary (( "*" | "/" ) unary)?
+
+// unary expressions
+unary -> ( "+" | "-" | "not" | "defined" )? factor
+factor -> suffix ("^" suffix)*
+suffix -> atom suffixtrailer*
+suffixtrailer ->  ( call 
+    | delegate 
+    | arrayIndex 
+    | arrayBracket
+)
+call -> "(" arguments ")"
+delegate -> "@" 
+arrayIndex -> "#" ( idenitifer | integer )
+arrayBracket -> "[" expression "]"
+
+// expresion components
+arguments -> expression? ("," expression)*
+
+// atom
+atom -> ( literal
+    | fileIdentifier
+    | idenitifer
+    | "(" expression ")"
+)
+
+// lists
+commandExpression -> ( "edit" 
+    | "add" 
+    | "remove"
+)
+ioIdentifier -> ( "file" | 
+    "volume" 
+) 
+command -> ( "stage" 
+    | "clearscreen" 
+    | "preserve" 
+    | "reboot" 
+    | "shutdown"
+)
+number -> ( integer |
+    double
+)
+literal -> ( number
+    | true
+    | false
+    | string
+)

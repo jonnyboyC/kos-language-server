@@ -1,6 +1,6 @@
-import { ParseErrorInterface, MarkerInterface } from './types';
+import { SyntaxErrorInterface, MarkerInterface } from './types';
 
-export class ParseError implements ParseErrorInterface {
+export class SyntaxError implements SyntaxErrorInterface {
     public readonly start: MarkerInterface;
     public readonly end: MarkerInterface;
 
@@ -12,7 +12,7 @@ export class ParseError implements ParseErrorInterface {
         this.end = end;
     }
 
-    public get tag(): 'error' {
-        return 'error';
+    public get tag(): 'syntaxError' {
+        return 'syntaxError';
     }
 }

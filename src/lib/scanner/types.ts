@@ -4,8 +4,8 @@ export interface TokenMap {
     readonly [key: string]: TokenType
 }
 
-export interface ParseErrorInterface {
-    readonly tag: 'error',
+export interface SyntaxErrorInterface {
+    readonly tag: 'syntaxError',
     readonly message: string;
     readonly start: MarkerInterface;
     readonly end: MarkerInterface;
@@ -30,5 +30,5 @@ export interface MarkerInterface {
     readonly column: number;
 }
 
-export type ParseResult = TokenInterface | ParseErrorInterface | WhiteSpaceInterface;
+export type ScanResult = TokenInterface | SyntaxErrorInterface | WhiteSpaceInterface;
 
