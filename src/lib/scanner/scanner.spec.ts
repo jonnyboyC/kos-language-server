@@ -2,6 +2,7 @@ import test from 'ava';
 import { Scanner } from './scanner';
 import { readdirSync, readFileSync, statSync } from 'fs'
 import { join } from 'path';
+import { TokenInterface, SyntaxErrorInterface } from './types';
 
 
 const testDir = join(__dirname, '../../../../test');
@@ -24,11 +25,11 @@ test('scan all', (t) => {
         console.log('---------------------');
 
         const scanner = new Scanner(kosFile);
-        const result = scanner.ScanToken();
+        const result = scanner.scanTokens();
 
-        if (result[0].tag === 'token') {
+        if (isToken(result)) {
             console.log('---------------------');
-            console.log(result.map(r => r.toString()));
+            console.log(result.map((r: TokenInterface) => r.toString()));
             t.deepEqual(true, true);
         } else {
             t.deepEqual(true, true);
@@ -36,6 +37,10 @@ test('scan all', (t) => {
     });
 });
   
+const isToken = (result: TokenInterface[] | SyntaxErrorInterface[]): result is TokenInterface[] => {
+    return result[0].tag === 'token'
+}
+
 // test('stuff', t => {
 //     t.deepEqual(true, true)
 // })

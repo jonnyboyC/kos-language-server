@@ -7,6 +7,28 @@ export class Expr implements ExprInterface {
     }
 }
 
+export class ExprBinary extends Expr {
+    public left: Expr;
+    public operator: TokenInterface;
+    public right: Expr;
+    constructor(left: Expr, operator: TokenInterface, right: Expr) {
+        super()
+        this.left = left;
+        this.operator = operator;
+        this.right = right;
+    }
+}
+
+export class ExprUnary extends Expr {
+    public operator: TokenInterface;
+    public factor: Expr;
+    constructor(operator: TokenInterface, factor: Expr) {
+        super();
+        this.factor = factor;
+        this.operator = operator;
+    }
+}
+
 export class ExprFactor extends Expr {
     public suffix: Expr;
     public power: TokenInterface;
@@ -21,13 +43,15 @@ export class ExprFactor extends Expr {
 
 export class ExprCall extends Expr {
     public callee: Expr;
+    public open: TokenInterface;
     public args: Expr[];
-    public closeParen: TokenInterface;
-    constructor(callee: Expr, args: Expr[], closeParen: TokenInterface) {
+    public close: TokenInterface;
+    constructor(callee: Expr, open: TokenInterface, args: Expr[], close: TokenInterface) {
         super();
         this.callee = callee;
+        this.open = open;
         this.args = args;
-        this.closeParen = closeParen;
+        this.close = close;
     }
 }
 

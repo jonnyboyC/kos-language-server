@@ -2,7 +2,7 @@ import { TokenType } from './tokentypes';
 import { TokenMap, ScanResult, TokenInterface, SyntaxErrorInterface } from './types';
 import { Token, Marker } from './token';
 import { WhiteSpace } from './whitespace';
-import { SyntaxError } from './syntaxError'
+import { KosSyntaxError } from './kosSyntaxError'
 
 export class Scanner {
     private readonly _source: string
@@ -21,7 +21,7 @@ export class Scanner {
     }
 
     // scan all available tokesn
-    public ScanToken(): TokenInterface[] | SyntaxError[] {
+    public scanTokens(): TokenInterface[] | SyntaxErrorInterface[] {
         // create arrays for valid tokens and encountered errors
         const tokens: TokenInterface[] = [];
         const errors: SyntaxErrorInterface[] = [];
@@ -48,6 +48,8 @@ export class Scanner {
         if (errors.length !== 0) {
             return errors;
         }
+
+        tokens.push(this.generateToken(TokenType.Eof));
         return tokens;
     }
 
@@ -219,8 +221,8 @@ export class Scanner {
         );
     }
 
-    private generateError(message: string): SyntaxError {
-        return new SyntaxError(
+    private generateError(message: string): SyntaxErrorInterface {
+        return new KosSyntaxError(
             message,
             new Marker(this._start, this._startLine),
             new Marker(this._current, this._currentLine)

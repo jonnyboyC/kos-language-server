@@ -1,6 +1,6 @@
 import { SyntaxErrorInterface, MarkerInterface } from './types';
 
-export class SyntaxError implements SyntaxErrorInterface {
+export class KosSyntaxError implements SyntaxErrorInterface {
     public readonly start: MarkerInterface;
     public readonly end: MarkerInterface;
 
