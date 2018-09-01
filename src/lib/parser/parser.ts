@@ -1,9 +1,10 @@
-import { TokenInterface } from "../scanner/types";
-import { TokenType } from "../scanner/tokentypes";
-import { ParseErrorInterface, ExprResult, TokenResult, ParseResult, InstructionResult, ExprInterface, Scope } from "./types";
-import { ParseError } from "./parserError";
-import { Expr, ExprLiteral, ExprGrouping, ExprVariable, ExprCall, ExprDelegate, ExprArrayBracket, ExprArrayIndex, ExprFactor, ExprUnary, ExprBinary, ExprSuffix } from "./expr";
-import { Inst, InstructionBlock, VariableDeclaration, OnOffInst, CommandInst, CommandExpressionInst, UnsetInst, UnlockInst, SetInst, LockInst, LazyGlobalInst } from "./inst";
+import { TokenInterface } from '../scanner/types';
+import { TokenType } from '../scanner/tokentypes';
+import { ParseErrorInterface, ExprResult, TokenResult, ParseResult, InstructionResult, ExprInterface, Scope, InstInterface } from './types';
+import { ParseError } from './parserError';
+import { Expr, ExprLiteral, ExprGrouping, ExprVariable, ExprCall, ExprDelegate, ExprArrayBracket, ExprArrayIndex, ExprFactor, ExprUnary, ExprBinary, ExprSuffix } from './expr';
+import { Inst, InstructionBlock, VariableDeclaration, OnOffInst, CommandInst, CommandExpressionInst, UnsetInst, UnlockInst, SetInst, LockInst, LazyGlobalInst, ElseInst, IfInst, UntilInst, FromInst, WhenInst, ReturnInst, SwitchInst, ForInst } from './inst';
+import { Token } from '../scanner/token';
 
 export class Parser {
     private readonly _tokens: TokenInterface[]
@@ -27,11 +28,18 @@ export class Parser {
 
     // testing function / utility
     public parseInstruction = (): InstructionResult => {
-        return this.instruction();
+        try {
+            return this.instruction();
+        } catch (error) {
+            if (error instanceof ParseError) {
+                return error;
+            }
+            throw error;
+        }
     }
 
-    public instruction = (): InstructionResult => {
-        const temp = this.error(this.peek(), "fake");
+    public instruction = (): InstInterface => {
+        const temp = this.error(this.peek(), 'fake');
 
         switch (this.peek().type) {
             case TokenType.CurlyOpen:
@@ -76,25 +84,25 @@ export class Parser {
                 return this.lazyGlobal();
             case TokenType.If:
                 this.advance();
-                return temp;
+                return this.ifInst();
             case TokenType.Until:
                 this.advance();
-                return temp;
+                return this.until();
             case TokenType.From:
                 this.advance();
-                return temp;
+                return this.from();
             case TokenType.When:
                 this.advance();
-                return temp;
+                return this.when();
             case TokenType.Return:
                 this.advance();
-                return temp;
+                return this.returnInst();
             case TokenType.Switch:
                 this.advance();
-                return temp;
+                return this.switchInst();
             case TokenType.For:
                 this.advance();
-                return temp;
+                return this.forInst();
             case TokenType.On:
                 this.advance();
                 return temp;
@@ -135,33 +143,29 @@ export class Parser {
                 this.advance();
                 return temp;
             default:
-                return this.error(this.peek(), "expected instruction TODO express all valid instruction leads");
+                throw this.error(this.peek(), 'expected instruction TODO express all valid instruction leads');
         }
     }
 
     // parse a block of instructions
-    private instructionBlock = (): InstructionResult => {
+    private instructionBlock = (): InstInterface => {
         const open = this.previous();
         const instructions: Inst[] = [];
 
         // while not at end and until closing curly keep parsing instructions
         while (!this.check(TokenType.CurlyClose) && !this.isAtEnd()) {
             const instruction = this.instruction();
-            if (isError(instruction)) return instruction;
-
             instructions.push(instruction);
         }
 
         // check closing curly is found
-        const close = this.consume("Expected '}' to finish instruction block", TokenType.CurlyClose);
-        if (isError(close)) return close;
+        const close = this.consume('Expected "}" to finish instruction block', TokenType.CurlyClose);
         return new InstructionBlock(open, instructions, close);
     }
 
     // parse an instruction lead with a identifier
-    private identifierLedInstruction = (): InstructionResult => {
+    private identifierLedInstruction = (): InstInterface => {
         const suffix = this.suffix();
-        if (isError(suffix)) return suffix;
 
         if (this.match(TokenType.To, TokenType.Is)) {
             return this.variableDeclaration(suffix);
@@ -170,111 +174,177 @@ export class Parser {
             return this.onOff(suffix);
         }
 
-        return this.error(this.peek(), "Expected 'to', 'is', 'on', 'off'");
+        throw this.error(this.peek(), 'Expected "to", "is", "on", "off"');
     } 
 
     // parse a variable declaration, scoping occurs elseware
-    private variableDeclaration = (suffix: ExprInterface, scope?: Scope): InstructionResult => {
+    private variableDeclaration = (suffix: ExprInterface, scope?: Scope): InstInterface => {
         const toIs = this.previous();
         const value = this.expression();
-
-        if (isError(value)) return value;
-        const period = this.terminal();
-        if (isError(period)) return period;
+        this.terminal();
 
         return new VariableDeclaration(suffix, toIs, value, scope);
     }
 
     // parse on off statement
-    private onOff = (suffix: ExprInterface): InstructionResult => {
+    private onOff = (suffix: ExprInterface): InstInterface => {
         const onOff = this.previous();
-        const period = this.terminal();
+        this.terminal();
 
-        if (isError(period)) return period;
         return new OnOffInst(suffix, onOff);
     }
 
     // parse command instruction
-    private command = (): InstructionResult => {
+    private command = (): InstInterface => {
         const command = this.previous();
         const period = this.terminal();
 
-        if (isError(period)) return period;
         return new CommandInst(command)
     }
 
     // parse command instruction
-    private commandExpression = (): InstructionResult => {
+    private commandExpression = (): InstInterface => {
         const command = this.previous();
         const expression = this.expression();
-        if (isError(expression)) return expression;
+        this.terminal();
 
-        const period = this.terminal();
-
-        if (isError(period)) return period;
         return new CommandExpressionInst(command, expression)
     }
 
     // parse unset instruction
-    private unset = (): InstructionResult => {
+    private unset = (): InstInterface => {
         const unset = this.previous();
-        const identifer = this.consume("Excpeted identifier or 'all'.", TokenType.Identifier, TokenType.All);
+        const identifer = this.consume('Excpeted identifier or "all".', TokenType.Identifier, TokenType.All);
 
-        if (isError(identifer)) return identifer;
         return new UnsetInst(unset, identifer);
     }
 
     // parse unlock instruction
-    private unlock = (): InstructionResult => {
+    private unlock = (): InstInterface => {
         const unlock = this.previous();
-        const identifer = this.consume("Excpeted identifier or 'all'.", TokenType.Identifier, TokenType.All);
+        const identifer = this.consume('Excpeted identifier or "all".', TokenType.Identifier, TokenType.All);
 
-        if (isError(identifer)) return identifer;
         return new UnlockInst(unlock, identifer);
     }
 
     // parse set instruction
-    private set = (): InstructionResult => {
+    private set = (): InstInterface => {
         const set = this.previous();
         const suffix = this.suffix();
-        
-        if (isError(suffix)) return suffix;
-        const to = this.consume("Expected 'to'.", TokenType.To);
-
-        if (isError(to)) return to;
+        const to = this.consume('Expected "to".', TokenType.To);
         const value = this.expression();
 
-        if (isError(value)) return value;
         return new SetInst(set, suffix, to, value);
     }
 
     // parse lock instruction
-    private lock = (): InstructionResult => {
+    private lock = (): InstInterface => {
         const lock = this.previous();
-        const identifer = this.consume("Expected identifier.", TokenType.Identifier);
-
-        if (isError(identifer)) return identifer;
-        const to = this.consume("Expected 'to'.", TokenType.To);
-
-        if (isError(to)) return to;
+        const identifer = this.consume('Expected identifier.', TokenType.Identifier);
+        const to = this.consume('Expected "to".', TokenType.To);
         const value = this.expression();
 
-        if (isError(value)) return value;
         return new LockInst(lock, identifer, to, value);
     }
 
-    private lazyGlobal = (): InstructionResult => {
+    // parse lazy global
+    private lazyGlobal = (): InstInterface => {
         const atSign = this.previous();
-        const lazyGlobal = this.consume("Expected keyword 'lazyGlobal'.", TokenType.LazyGlobal);
+        const lazyGlobal = this.consume('Expected keyword "lazyGlobal".', TokenType.LazyGlobal);
 
-        if (isError(lazyGlobal)) return lazyGlobal;
-        const onOff = this.consume("Expected 'on' or 'off'.", TokenType.On, TokenType.Off);
-        
-        if (isError(onOff)) return onOff;
-        const period = this.terminal();
+        const onOff = this.consume('Expected "on" or "off".', TokenType.On, TokenType.Off);
+        this.terminal();
 
-        if (isError(period)) return period;
         return new LazyGlobalInst(atSign, lazyGlobal, onOff);
+    }
+
+    // parse if instruction
+    private ifInst = (): InstInterface => {
+        const ifToken = this.previous();
+        const condition = this.expression();
+
+        const instruction = this.instruction();
+        this.match(TokenType.Period);
+
+        // if else if found parse that branch
+        if (this.match(TokenType.Else)) {
+            const elseToken = this.previous();
+            const elseInstruction = this.instruction();
+
+            const elseInst = new ElseInst(elseToken, elseInstruction);
+            this.match(TokenType.Period);
+            return new IfInst(ifToken, condition, instruction, elseInst);
+        }
+
+        return new IfInst(ifToken, condition, instruction);
+    }
+
+    // parse until instruction
+    private until = (): InstInterface => {
+        const until = this.previous();
+        const condition = this.expression();
+        const instruction = this.instruction();
+        this.match(TokenType.Period);
+
+        return new UntilInst(until, condition, instruction);
+    }
+
+    // parse from instruction
+    private from = (): InstInterface => {
+        const from = this.previous();
+        const initializer = this.instructionBlock();
+        const until = this.consume('Expected "until".', TokenType.Until);
+        const condition = this.expression();
+        const increment = this.instructionBlock();
+        const doToken = this.consume('Expected "do".', TokenType.Do);
+        const instruction = this.instruction();
+
+        return new FromInst(from, initializer, until, condition, increment, doToken, instruction);
+    }
+
+    // parse when instruction
+    private when = (): InstInterface => {
+        const when = this.previous();
+        const condition = this.expression();
+
+        const then = this.consume('Expected "then".', TokenType.Then);
+        const instruction = this.instruction();
+        this.match(TokenType.Period);
+
+        return new WhenInst(when, condition, then, instruction);
+    }
+
+    // parse return instruction
+    private returnInst = (): InstInterface => {
+        const returnToken = this.previous();
+        const value = !this.check(TokenType.Period)
+            ? this.expression()
+            : undefined
+        this.terminal();
+
+        return new ReturnInst(returnToken, value);
+    }
+
+    // parse switch instruction
+    private switchInst = (): InstInterface => {
+        const switchToken = this.previous();
+        const to = this.consume('Expected "to".', TokenType.To);
+        const target = this.expression();
+        this.terminal();
+
+        return new SwitchInst(switchToken, to, target);
+    }
+
+    // parse for instruction
+    private forInst = (): InstInterface => {
+        const forToken = this.previous();
+        const identifer = this.consume('Expected identifier.', TokenType.Identifier);
+        const inToken = this.consume('Expected "in".', TokenType.In);
+        const suffix = this.suffix();
+        const instruction = this.instruction();
+        this.match(TokenType.Period);
+
+        return new ForInst(forToken, identifer, inToken, suffix, instruction);
     }
 
     // testing function / utility
@@ -283,54 +353,52 @@ export class Parser {
     }
 
     // parse any expression
-    private expression = (): ExprResult => {
+    private expression = (): ExprInterface => {
         return this.or();
     }
 
     // parse or expression
-    private or = (): ExprResult => {
+    private or = (): ExprInterface => {
         return this.binaryExpression(this.and, TokenType.Or);
     }
 
     // parse and expression
-    private and = (): ExprResult => {
+    private and = (): ExprInterface => {
         return this.binaryExpression(this.equality, TokenType.And)
     }
 
     // parse equality expression
-    private equality = (): ExprResult => {
+    private equality = (): ExprInterface => {
         return this.binaryExpression(this.comparison,
             TokenType.Equal, TokenType.NotEqual);
     }
 
     // parse comparison expression
-    private comparison = (): ExprResult => {
+    private comparison = (): ExprInterface => {
         return this.binaryExpression(this.addition,
             TokenType.Less, TokenType.Greater,
             TokenType.LessEqual, TokenType.GreaterEqual);
     }
 
     // parse addition expression
-    private addition = (): ExprResult => {
+    private addition = (): ExprInterface => {
         return this.binaryExpression(this.multiplication,
             TokenType.Plus, TokenType.Minus);
     }
 
     // parse multiplication expression
-    private multiplication = (): ExprResult => {
+    private multiplication = (): ExprInterface => {
         return this.binaryExpression(this.unary, 
                 TokenType.Multi, TokenType.Div);
     }
 
     // binary expression parser
-    private binaryExpression = (recurse: () => ExprResult, ...types: TokenType[]): ExprResult => {
+    private binaryExpression = (recurse: () => ExprInterface, ...types: TokenType[]): ExprInterface => {
         let expr = recurse();
-        if (isError(expr)) return expr;
 
         while (this.match(...types)) {
             const operator = this.previous();
             const right = recurse();
-            if (isError(right)) return right;
             expr = new ExprBinary(expr, operator, right);
         }
 
@@ -338,13 +406,12 @@ export class Parser {
     }
 
     // parse unary expression
-    private unary = (): ExprResult => {
+    private unary = (): ExprInterface => {
         // if unary token found parse as unary
         if (this.match(TokenType.Plus, TokenType.Minus,
                 TokenType.Not, TokenType.Defined)) {
             const operator = this.previous();
             const unary = this.unary();
-            if (isError(unary)) return unary;
             return new ExprUnary(operator, unary)
         }
 
@@ -353,16 +420,14 @@ export class Parser {
     }
 
     // parse factor expression
-    private factor = (): ExprResult => {
+    private factor = (): ExprInterface => {
         // parse suffix
         let expr = this.suffix();
-        if (isError(expr)) return expr;
 
         // parse seqeunce of factors if they exist
         while (this.match(TokenType.Power)) {
             const power = this.previous();
             const exponenent = this.suffix();
-            if (isError(exponenent)) return exponenent;
             expr = new ExprFactor(expr, power, exponenent);
         }
 
@@ -370,32 +435,28 @@ export class Parser {
     }
 
     // parse suffix
-    private suffix = (): ExprResult => {
+    private suffix = (): ExprInterface => {
         let expr = this.suffixTerm();
-        if (isError(expr)) return expr;
 
         // while colons are found parse all trailers
         while (this.match(TokenType.Colon)) {
             expr = this.suffixTrailer(expr);
-            if (isError(expr)) return expr;
         }
 
         return expr;
     }
 
     // parse suffix trailer expression
-    private suffixTrailer = (suffix: Expr): ExprResult => {
+    private suffixTrailer = (suffix: Expr): ExprInterface => {
         const colon = this.previous();
         const trailer = this.suffixTerm();
-        if (isError(trailer)) return trailer;
         return new ExprSuffix(suffix, colon, trailer);
     }
 
     // parse suffix term expression
-    private suffixTerm = (): ExprResult => {
+    private suffixTerm = (): ExprInterface => {
         // parse primary
         let expr = this.primary();
-        if (isError(expr)) return expr;
 
         // parse any trailers that exist
         while (true) {
@@ -410,36 +471,28 @@ export class Parser {
             } else {
                 break;
             }
-
-            if (isError(expr)) {
-                return expr;
-            }
         }
 
         return expr;
     }
 
     // function call
-    private functionTrailer = (callee: Expr): ExprResult => {
+    private functionTrailer = (callee: Expr): ExprInterface => {
         const open = this.previous();
         const args = this.arguments();
-        if (isArgsError(args)) return args;
+        if (isArgsError(args)) throw args;
 
-        const close = this.consume("Expect ')' after arguments.", TokenType.BracketClose);
-        if (isError(close)) {
-            return close;
-        }
+        const close = this.consume('Expect ")" after arguments.', TokenType.BracketClose);
         
         return new ExprCall(callee, open, args, close);
     }
 
     // get an argument list
-    private arguments = (): Expr[] | ParseError => {
-        const args: Expr[] = [];
+    private arguments = (): ExprInterface[] | ParseError => {
+        const args: ExprInterface[] = [];
         if (!this.check(TokenType.BracketClose)) {
             do {
                 const arg = this.expression();
-                if (isError(arg)) return arg;
                 args.push(arg);
             } while(this.match(TokenType.Comma))
         }
@@ -448,30 +501,27 @@ export class Parser {
     }
 
     // generate array bracket expression
-    private arrayBracket = (array: Expr): ExprResult => {
+    private arrayBracket = (array: Expr): ExprInterface => {
         const open = this.previous();
         const index = this.expression();
 
-        if (isError(index)) return index;
-        const close = this.consume("Expected ']' at end of array index.", TokenType.BracketClose)
-        if (isError(close)) return close;
+        const close = this.consume('Expected "]" at end of array index.', TokenType.BracketClose)
         return new ExprArrayBracket(array, open, index, close);
     }
 
     // generate array index expression
-    private arrayIndex = (array: Expr): ExprResult => {
+    private arrayIndex = (array: Expr): ExprInterface => {
         const indexer = this.previous();
      
         // check for integer or identifier
-        const index = this.consume("Expected integer or identifer.", 
+        const index = this.consume('Expected integer or identifer.', 
             TokenType.Integer, TokenType.Identifier)
         
-        if (isError(index)) return index;
         return new ExprArrayIndex(array, indexer, index);
     }
 
     // match primary expressions literals, identifers, and parenthesis
-    private primary = (): ExprResult => {
+    private primary = (): ExprInterface => {
         // match all literals
         if (this.match(TokenType.False, TokenType.True,
             TokenType.String, TokenType.Integer, TokenType.Double)) {
@@ -487,15 +537,13 @@ export class Parser {
         if (this.match(TokenType.BracketOpen)) {
             const open = this.previous();
             const expr = this.expression();
-            if (isError(expr)) return expr;
-            const close = this.consume("Expect ')' after expression", TokenType.BracketClose);
-            if (isError(close)) return close;
+            const close = this.consume('Expect ")" after expression', TokenType.BracketClose);
             
             return new ExprGrouping(open, expr, close);
         }
 
         // valid expression not found
-        return this.error(this.peek(), "Expected expression.");
+        throw this.error(this.peek(), 'Expected expression.');
     }
 
     // determine if current token matches a set of tokens
@@ -507,14 +555,14 @@ export class Parser {
     }
 
     private terminal = (): TokenResult => {
-        return this.consume("Expected '.'.", TokenType.Period);
+        return this.consume('Expected ".".', TokenType.Period);
     }
 
     // consume current token if it matches type. 
     // returns erros if incorrect token is found
-    private consume = (message: string, ...tokenType: TokenType[]): TokenResult => {
+    private consume = (message: string, ...tokenType: TokenType[]): TokenInterface => {
         if (this.match(...tokenType)) return this.previous();
-        return this.error(this.peek(), message);
+        throw this.error(this.peek(), message);
     }
 
     // check if current token matches expected type
@@ -557,8 +605,4 @@ export class Parser {
 
 const isArgsError = (result: Expr[] | ParseError): result is ParseError => {
     return (<ParseError>result).tag !== undefined;
-}
-
-const isError = (result: ParseResult): result is ParseError => {
-    return result.tag === 'parseError';
 }

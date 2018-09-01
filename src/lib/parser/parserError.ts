@@ -13,6 +13,4 @@ export class ParseError implements ParseErrorInterface {
     get tag(): 'parseError' {
         return 'parseError'
     }
-
-
 }

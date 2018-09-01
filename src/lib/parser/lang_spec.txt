@@ -69,7 +69,7 @@ from -> "from" instructionBlock "until" expression instructionBlock "do" instruc
 when -> "when" expression "then" instruction "."?
 break -> "break" "."
 return -> "return" expression? "."
-for -> "for" idenitifer "in" variableIdentifier instruction "."?
+for -> "for" idenitifer "in" suffix instruction "."?
 on -> "on" suffix instruction
 toggle -> "toggle" suffix "."
 wait -> "wait" "until"? expression "."

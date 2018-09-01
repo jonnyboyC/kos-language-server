@@ -11,7 +11,7 @@ export interface ExprInterface {
 }
 
 export interface InstInterface {
-    tag: 'stmt';
+    tag: 'inst';
 }
 
 export interface Scope {

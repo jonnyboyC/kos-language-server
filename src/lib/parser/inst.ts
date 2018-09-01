@@ -2,8 +2,8 @@ import { InstInterface, Scope, ExprInterface } from "./types";
 import { TokenInterface } from "../scanner/types";
 
 export class Inst implements InstInterface {
-    get tag(): 'stmt' {
-        return 'stmt';
+    get tag(): 'inst' {
+        return 'inst';
     }
 }
 
@@ -144,5 +144,95 @@ export class IfInst extends Inst {
         this.condition = condition;
         this.instruction = instruction;
         this.elseInst = elseInst;
+    }
+}
+
+export class ElseInst extends Inst {
+    public elseToken: TokenInterface;
+    public instruction: InstInterface;
+
+    constructor(elseToken: TokenInterface, instruction: InstInterface) {
+        super();
+        this.elseToken = elseToken;
+        this.instruction = instruction;
+    }
+}
+
+export class UntilInst extends Inst {
+    public until: TokenInterface;
+    public condition: ExprInterface;
+    public instruction: InstInterface;
+
+    constructor(until: TokenInterface, condition: ExprInterface, instruction: InstInterface) {
+        super();
+        this.until = until;
+        this.condition = condition;
+        this.instruction = instruction;
+    }
+}
+
+export class FromInst extends Inst {
+    public from: TokenInterface;
+    public initializer: InstInterface;
+    public until: TokenInterface;
+    public condition: ExprInterface;
+    public increment: InstInterface;
+    public doToken: TokenInterface;
+    public instruction: InstInterface;
+
+    constructor(from: TokenInterface,
+        initializer: InstInterface,
+        until: TokenInterface,
+        condition: ExprInterface,
+        increment: InstInterface,
+        doToken: TokenInterface,
+        instruction: InstInterface) {
+        super();
+
+        this.from = from;
+        this.initializer = initializer;
+        this.until = until;
+        this.condition = condition;
+        this.increment = increment;
+        this.doToken = doToken;
+        this.instruction = instruction;
+    }
+}
+
+export class WhenInst extends Inst {
+    constructor(
+        public when: TokenInterface, 
+        public condition: ExprInterface,
+        public then: TokenInterface,
+        public instruction: InstInterface) {
+        super();
+    }
+}
+
+export class ReturnInst extends Inst {
+    constructor(
+        public returnToken: TokenInterface,
+        public value?: ExprInterface) {
+        super();
+    }
+}
+
+export class SwitchInst extends Inst {
+    constructor(
+        public switchToken: TokenInterface,
+        public to: TokenInterface,
+        public target: ExprInterface) {
+        super();
+    }
+}
+
+export class ForInst extends Inst {
+    constructor(
+        public forToken: TokenInterface,
+        public identifier: TokenInterface,
+        public inToken: TokenInterface,
+        public suffix: ExprInterface,
+        public instruction: InstInterface) {
+        super();
     }
 }
