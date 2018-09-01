@@ -21,13 +21,13 @@ const parseExpression = (source: string) => {
     return parser.parse();
 }
 
-interface BasicTestInterface {
+interface AtomTestInterface {
     source: string;
     type: TokenType;
     literal: any;
 }
 
-const basicTest = (source: string, type: TokenType, literal: any): BasicTestInterface => {
+const atomTest = (source: string, type: TokenType, literal: any): AtomTestInterface => {
     return {
         source,
         type,
@@ -38,12 +38,12 @@ const basicTest = (source: string, type: TokenType, literal: any): BasicTestInte
 // test basic literal
 test('basic valid literal', (t) => {
     const validExpressions = [
-        basicTest('5', TokenType.Integer, 5), 
-        basicTest('10e6', TokenType.Double, 10e6), 
-        basicTest('"Test string"', TokenType.String, "test string"),
-        basicTest('"true if until"', TokenType.String, "true if until"),
-        basicTest('true', TokenType.True, undefined), 
-        basicTest('false', TokenType.False, undefined), 
+        atomTest('5', TokenType.Integer, 5), 
+        atomTest('10e6', TokenType.Double, 10e6), 
+        atomTest('"Test string"', TokenType.String, "test string"),
+        atomTest('"true if until"', TokenType.String, "true if until"),
+        atomTest('true', TokenType.True, undefined), 
+        atomTest('false', TokenType.False, undefined), 
     ];
 
     for (let expression of validExpressions) {
@@ -59,9 +59,9 @@ test('basic valid literal', (t) => {
 // test basic literal
 test('basic invalid literal', (t) => {
     const validExpressions = [
-        basicTest('-', TokenType.Integer, 5), 
-        basicTest('"Test string', TokenType.String, "test string"),
-        basicTest('until', TokenType.String, "true if until"),
+        atomTest('-', TokenType.Integer, 5), 
+        atomTest('"Test string', TokenType.String, "test string"),
+        atomTest('until', TokenType.String, "true if until"),
     ];
 
     for (let expression of validExpressions) {
@@ -73,11 +73,11 @@ test('basic invalid literal', (t) => {
 // test basic identifier
 test('basic valid identifier', (t) => {
     const validExpressions = [
-        basicTest('α', TokenType.Identifier, undefined),
-        basicTest('until123OtherStuff', TokenType.Identifier, undefined), 
-        basicTest('_variableName', TokenType.Identifier, undefined), 
-        basicTest('БНЯД.БНЯД', TokenType.FileIdentifier, undefined),
-        basicTest('fileVariable.thing', TokenType.FileIdentifier, undefined),
+        atomTest('α', TokenType.Identifier, undefined),
+        atomTest('until123OtherStuff', TokenType.Identifier, undefined), 
+        atomTest('_variableName', TokenType.Identifier, undefined), 
+        atomTest('БНЯД.БНЯД', TokenType.FileIdentifier, undefined),
+        atomTest('fileVariable.thing', TokenType.FileIdentifier, undefined),
     ];
 
     for (let expression of validExpressions) {
@@ -93,9 +93,9 @@ test('basic valid identifier', (t) => {
 // test basic identifier
 test('basic invalid identifier', (t) => {
     const validExpressions = [
-        basicTest('11α', TokenType.Identifier, undefined),
-        basicTest('+until123OtherStuff', TokenType.Identifier, undefined), 
-        basicTest(',БНЯД', TokenType.FileIdentifier, undefined),
+        atomTest('11α', TokenType.Identifier, undefined),
+        atomTest('+until123OtherStuff', TokenType.Identifier, undefined), 
+        atomTest(',БНЯД', TokenType.FileIdentifier, undefined),
     ];
 
     for (let expression of validExpressions) {
@@ -104,7 +104,57 @@ test('basic invalid identifier', (t) => {
     }
 })
 
+interface CallTestInterface {
+    source: string;
+    callee: string;
+    args: Function[];
+}
 
+const callTest = (source: string, callee: string, args: Function[]): CallTestInterface => {
+    return {
+        source,
+        callee,
+        args,
+    };
+}
+
+// test basic identifier
+test('valid call', (t) => {
+    const validExpressions = [
+        callTest('', TokenType.Identifier, undefined),
+        callTest('until123OtherStuff', TokenType.Identifier, undefined), 
+        callTest('_variableName', TokenType.Identifier, undefined), 
+        callTest('БНЯД.БНЯД', TokenType.FileIdentifier, undefined),
+        callTest('fileVariable.thing', TokenType.FileIdentifier, undefined),
+    ];
+
+    for (let expression of validExpressions) {
+        const result = parseExpression(expression.source);
+        t.true(isVariable(result))
+        if (isVariable(result)) {
+            t.deepEqual(expression.type, result.token.type);
+            t.deepEqual(expression.literal, result.token.literal)
+        }
+    }
+})
+
+// test basic identifier
+test('invalid call', (t) => {
+    const validExpressions = [
+        atomTest('11α', TokenType.Identifier, undefined),
+        atomTest('+until123OtherStuff', TokenType.Identifier, undefined), 
+        atomTest(',БНЯД', TokenType.FileIdentifier, undefined),
+    ];
+
+    for (let expression of validExpressions) {
+        const result = parseExpression(expression.source);
+        t.false(isVariable(result))
+    }
+})
+
+// interface ArgumentTestInterface {
+//     type: TokenType
+// }
 
 const isLiteral = (literalTest: ExprResult | SyntaxErrorInterface[]): literalTest is ExprLiteral => {
     return isExpr(literalTest) && literalTest instanceof ExprLiteral;

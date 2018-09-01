@@ -41,6 +41,18 @@ export class ExprFactor extends Expr {
     }
 }
 
+export class ExprSuffix extends Expr {
+    public suffix: Expr;
+    public colon: TokenInterface;
+    public trailer: Expr;
+    constructor(suffix: Expr, colon: TokenInterface, trailer: Expr) {
+        super();
+        this.suffix = suffix;
+        this.colon = colon;
+        this.trailer = trailer;
+    }
+}
+
 export class ExprCall extends Expr {
     public callee: Expr;
     public open: TokenInterface;

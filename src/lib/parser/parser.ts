@@ -2,7 +2,7 @@ import { TokenInterface } from "../scanner/types";
 import { TokenType } from "../scanner/tokentypes";
 import { ParseErrorInterface, ExprResult, TokenResult, ParseResult } from "./types";
 import { ParseError } from "./parserError";
-import { Expr, ExprLiteral, ExprGrouping, ExprVariable, ExprCall, ExprDelegate, ExprArrayBracket, ExprArrayIndex, ExprFactor, ExprUnary, ExprBinary } from "./expr";
+import { Expr, ExprLiteral, ExprGrouping, ExprVariable, ExprCall, ExprDelegate, ExprArrayBracket, ExprArrayIndex, ExprFactor, ExprUnary, ExprBinary, ExprSuffix } from "./expr";
 // import { Stmt } from "./stmt";
 
 export class Parser {
@@ -116,13 +116,33 @@ export class Parser {
         return expr;
     }
 
-    // parse suffix expression
+    // parse suffix
     private suffix = (): ExprResult => {
+        let expr = this.suffixTerm();
+        if (isError(expr)) return expr;
+
+        // while colons are found parse all trailers
+        while (this.match(TokenType.Colon)) {
+            expr = this.suffixTrailer(expr);
+            if (isError(expr)) return expr;
+        }
+
+        return expr;
+    }
+
+    // parse suffix trailer expression
+    private suffixTrailer = (suffix: Expr): ExprResult => {
+        const colon = this.previous();
+        const trailer = this.suffixTerm();
+        if (isError(trailer)) return trailer;
+        return new ExprSuffix(suffix, colon, trailer);
+    }
+
+    // parse suffix term expression
+    private suffixTerm = (): ExprResult => {
         // parse primary
         let expr = this.primary();
-        if (isError(expr)) {
-            return expr;
-        }
+        if (isError(expr)) return expr;
 
         // parse any trailers that exist
         while (true) {
