@@ -5,7 +5,7 @@ import { join } from 'path';
 import { TokenInterface, SyntaxErrorInterface } from './types';
 
 
-const testDir = join(__dirname, '../../../../test');
+const testDir = join(__dirname, '../../../../kerboscripts');
 
 type callbackFunc = (fileName: string) => void;
 
@@ -16,31 +16,19 @@ const walkDir = (dir: string, callback: callbackFunc): void => {
       isDirectory ? 
         walkDir(dirPath, callback) : callback(join(dir, f));
     });
-  };
+};
 
 test('scan all', (t) => {
     walkDir(testDir, (filePath) => {
         const kosFile = readFileSync(filePath, 'utf8');
-        console.log(kosFile);
-        console.log('---------------------');
 
         const scanner = new Scanner(kosFile);
         const result = scanner.scanTokens();
 
-        if (isToken(result)) {
-            console.log('---------------------');
-            console.log(result.map((r: TokenInterface) => r.toString()));
-            t.deepEqual(true, true);
-        } else {
-            t.deepEqual(true, true);
-        }
+        t.true(isToken(result));
     });
 });
   
 const isToken = (result: TokenInterface[] | SyntaxErrorInterface[]): result is TokenInterface[] => {
     return result[0].tag === 'token'
 }
-
-// test('stuff', t => {
-//     t.deepEqual(true, true)
-// })

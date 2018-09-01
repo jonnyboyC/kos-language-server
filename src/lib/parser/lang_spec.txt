@@ -71,12 +71,13 @@ when -> "when" expression "then" instruction "."?
 break -> "break" "."
 return -> "return" expression? "."
 for -> "for" idenitifer "in" variableIdentifier instruction "."?
-on -> "on" variableIdentifier instruction
+on -> "on" suffix instruction
+toggle -> "toggle" suffix "."
 wait -> "wait" "until"? expression "."
 
 // variables
 lock -> "lock" idenitifer "to" expression "."
-set -> "set" idenitifer ( "to" | "is" ) expression "."
+set -> "set" suffix ( "to" | "is" ) expression "."
 unbindInstruction -> ( "unset" | "unlock" ) ( "all" | idenitifer ) "."
 
 // io
@@ -92,7 +93,6 @@ runOncePath -> "runOncePath" "(" expression ("," arguments)? ")" "."
 print -> "print" expression ("at" "(" expression "," expression ")")?
 
 // misc
-toggle -> "toggle" variableIdentifier "."
 empty -> "."
 list -> "list" idenitifer ("in" idenitifer)? "."
 
@@ -102,7 +102,7 @@ commandinstruction -> command "."
 
 // identifier instructions
 identifierInstruction -> suffixOnOffInstruction | variableDeclaration
-variableDeclaration -> idenitifer ( "to" | "is" ) expression "."
+variableDeclaration -> suffix ( "to" | "is" ) expression "."
 suffixOnOffInstruction -> suffix onOff "."
 onOff -> ( "on" | "off" )
 

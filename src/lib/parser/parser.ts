@@ -25,6 +25,10 @@ export class Parser {
         return this.expression();
     }
 
+    public parseExpression = (): ExprResult => {
+        return this.expression();
+    }
+
     // parse any expression
     private expression = (): ExprResult => {
         return this.or();
