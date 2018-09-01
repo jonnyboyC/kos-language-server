@@ -3,8 +3,7 @@ import { TokenType } from "../scanner/tokentypes";
 import { ParseErrorInterface, ExprResult, TokenResult, ParseResult, InstructionResult, ExprInterface, Scope } from "./types";
 import { ParseError } from "./parserError";
 import { Expr, ExprLiteral, ExprGrouping, ExprVariable, ExprCall, ExprDelegate, ExprArrayBracket, ExprArrayIndex, ExprFactor, ExprUnary, ExprBinary, ExprSuffix } from "./expr";
-import { Instruction, InstructionBlock, VariableDeclaration, OnOffInstruction } from "./instruction";
-// import { Stmt } from "./stmt";
+import { Inst, InstructionBlock, VariableDeclaration, OnOffInst, CommandInst, CommandExpressionInst, UnsetInst, UnlockInst, SetInst, LockInst, LazyGlobalInst } from "./inst";
 
 export class Parser {
     private readonly _tokens: TokenInterface[]
@@ -54,27 +53,27 @@ export class Parser {
             case TokenType.Reboot:
             case TokenType.Shutdown:
                 this.advance();
-                return temp;
+                return this.command();;
             case TokenType.Edit:
             case TokenType.Add:
             case TokenType.Remove:
                 this.advance();
-                return temp;
+                return this.commandExpression();
             case TokenType.Unset:
                 this.advance();
-                return temp;
+                return this.unset();
             case TokenType.Unlock:
                 this.advance();
-                return temp;
+                return this.unlock();
             case TokenType.Set:
                 this.advance();
-                return temp;
+                return this.set();
             case TokenType.Lock:
                 this.advance();
-                return temp;
+                return this.lock();
             case TokenType.LazyGlobal:
                 this.advance();
-                return temp;
+                return this.lazyGlobal();
             case TokenType.If:
                 this.advance();
                 return temp;
@@ -143,7 +142,7 @@ export class Parser {
     // parse a block of instructions
     private instructionBlock = (): InstructionResult => {
         const open = this.previous();
-        const instructions: Instruction[] = [];
+        const instructions: Inst[] = [];
 
         // while not at end and until closing curly keep parsing instructions
         while (!this.check(TokenType.CurlyClose) && !this.isAtEnd()) {
@@ -168,7 +167,7 @@ export class Parser {
             return this.variableDeclaration(suffix);
         }
         if (this.match(TokenType.On, TokenType.Off)) {
-            return this.onOffDeclaration(suffix);
+            return this.onOff(suffix);
         }
 
         return this.error(this.peek(), "Expected 'to', 'is', 'on', 'off'");
@@ -180,19 +179,102 @@ export class Parser {
         const value = this.expression();
 
         if (isError(value)) return value;
-        const period = this.consume("Expected '.'", TokenType.Period)
+        const period = this.terminal();
         if (isError(period)) return period;
 
         return new VariableDeclaration(suffix, toIs, value, scope);
     }
 
     // parse on off statement
-    private onOffDeclaration = (suffix: ExprInterface): InstructionResult => {
+    private onOff = (suffix: ExprInterface): InstructionResult => {
         const onOff = this.previous();
-        const period = this.consume("Expected '.'", TokenType.Period);
+        const period = this.terminal();
 
         if (isError(period)) return period;
-        return new OnOffInstruction(suffix, onOff);
+        return new OnOffInst(suffix, onOff);
+    }
+
+    // parse command instruction
+    private command = (): InstructionResult => {
+        const command = this.previous();
+        const period = this.terminal();
+
+        if (isError(period)) return period;
+        return new CommandInst(command)
+    }
+
+    // parse command instruction
+    private commandExpression = (): InstructionResult => {
+        const command = this.previous();
+        const expression = this.expression();
+        if (isError(expression)) return expression;
+
+        const period = this.terminal();
+
+        if (isError(period)) return period;
+        return new CommandExpressionInst(command, expression)
+    }
+
+    // parse unset instruction
+    private unset = (): InstructionResult => {
+        const unset = this.previous();
+        const identifer = this.consume("Excpeted identifier or 'all'.", TokenType.Identifier, TokenType.All);
+
+        if (isError(identifer)) return identifer;
+        return new UnsetInst(unset, identifer);
+    }
+
+    // parse unlock instruction
+    private unlock = (): InstructionResult => {
+        const unlock = this.previous();
+        const identifer = this.consume("Excpeted identifier or 'all'.", TokenType.Identifier, TokenType.All);
+
+        if (isError(identifer)) return identifer;
+        return new UnlockInst(unlock, identifer);
+    }
+
+    // parse set instruction
+    private set = (): InstructionResult => {
+        const set = this.previous();
+        const suffix = this.suffix();
+        
+        if (isError(suffix)) return suffix;
+        const to = this.consume("Expected 'to'.", TokenType.To);
+
+        if (isError(to)) return to;
+        const value = this.expression();
+
+        if (isError(value)) return value;
+        return new SetInst(set, suffix, to, value);
+    }
+
+    // parse lock instruction
+    private lock = (): InstructionResult => {
+        const lock = this.previous();
+        const identifer = this.consume("Expected identifier.", TokenType.Identifier);
+
+        if (isError(identifer)) return identifer;
+        const to = this.consume("Expected 'to'.", TokenType.To);
+
+        if (isError(to)) return to;
+        const value = this.expression();
+
+        if (isError(value)) return value;
+        return new LockInst(lock, identifer, to, value);
+    }
+
+    private lazyGlobal = (): InstructionResult => {
+        const atSign = this.previous();
+        const lazyGlobal = this.consume("Expected keyword 'lazyGlobal'.", TokenType.LazyGlobal);
+
+        if (isError(lazyGlobal)) return lazyGlobal;
+        const onOff = this.consume("Expected 'on' or 'off'.", TokenType.On, TokenType.Off);
+        
+        if (isError(onOff)) return onOff;
+        const period = this.terminal();
+
+        if (isError(period)) return period;
+        return new LazyGlobalInst(atSign, lazyGlobal, onOff);
     }
 
     // testing function / utility
@@ -422,6 +504,10 @@ export class Parser {
         if (found) this.advance();
 
         return found;
+    }
+
+    private terminal = (): TokenResult => {
+        return this.consume("Expected '.'.", TokenType.Period);
     }
 
     // consume current token if it matches type. 

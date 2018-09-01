@@ -26,7 +26,8 @@ instruction -> ( instructionBlock
     | identifierInstruction
     | commandinstruction
     | commandExpressioninstruction
-    | unbindInstruction
+    | unset
+    | unlock
     | set
     | lock
     | lazyGlobal
@@ -75,8 +76,10 @@ wait -> "wait" "until"? expression "."
 
 // variables
 lock -> "lock" idenitifer "to" expression "."
-set -> "set" suffix ( "to" | "is" ) expression "."
-unbindInstruction -> ( "unset" | "unlock" ) ( "all" | idenitifer ) "."
+set -> "set" suffix "to" expression "."
+unset -> "unset" ( "all" | idenitifer ) "."
+unlock -> "unlock" ( "all" | idenitifer ) "."
+
 
 // io
 copy -> "copy" expression ( "to" | "from" ) expression "."
