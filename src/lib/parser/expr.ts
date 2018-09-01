@@ -8,10 +8,10 @@ export class Expr implements ExprInterface {
 }
 
 export class ExprBinary extends Expr {
-    public left: Expr;
+    public left: ExprInterface;
     public operator: TokenInterface;
-    public right: Expr;
-    constructor(left: Expr, operator: TokenInterface, right: Expr) {
+    public right: ExprInterface;
+    constructor(left: ExprInterface, operator: TokenInterface, right: ExprInterface) {
         super()
         this.left = left;
         this.operator = operator;
@@ -21,8 +21,8 @@ export class ExprBinary extends Expr {
 
 export class ExprUnary extends Expr {
     public operator: TokenInterface;
-    public factor: Expr;
-    constructor(operator: TokenInterface, factor: Expr) {
+    public factor: ExprInterface;
+    constructor(operator: TokenInterface, factor: ExprInterface) {
         super();
         this.factor = factor;
         this.operator = operator;
@@ -30,10 +30,10 @@ export class ExprUnary extends Expr {
 }
 
 export class ExprFactor extends Expr {
-    public suffix: Expr;
+    public suffix: ExprInterface;
     public power: TokenInterface;
-    public exponent: Expr;
-    constructor(suffix: Expr, power: TokenInterface, exponent: Expr) {
+    public exponent: ExprInterface;
+    constructor(suffix: ExprInterface, power: TokenInterface, exponent: ExprInterface) {
         super();
         this.suffix = suffix;
         this.power = power;
@@ -42,10 +42,10 @@ export class ExprFactor extends Expr {
 }
 
 export class ExprSuffix extends Expr {
-    public suffix: Expr;
+    public suffix: ExprInterface;
     public colon: TokenInterface;
-    public trailer: Expr;
-    constructor(suffix: Expr, colon: TokenInterface, trailer: Expr) {
+    public trailer: ExprInterface;
+    constructor(suffix: ExprInterface, colon: TokenInterface, trailer: ExprInterface) {
         super();
         this.suffix = suffix;
         this.colon = colon;
@@ -54,11 +54,11 @@ export class ExprSuffix extends Expr {
 }
 
 export class ExprCall extends Expr {
-    public callee: Expr;
+    public callee: ExprInterface;
     public open: TokenInterface;
-    public args: Expr[];
+    public args: ExprInterface[];
     public close: TokenInterface;
-    constructor(callee: Expr, open: TokenInterface, args: Expr[], close: TokenInterface) {
+    constructor(callee: ExprInterface, open: TokenInterface, args: ExprInterface[], close: TokenInterface) {
         super();
         this.callee = callee;
         this.open = open;
@@ -68,10 +68,10 @@ export class ExprCall extends Expr {
 }
 
 export class ExprArrayIndex extends Expr {
-    public array: Expr;
+    public array: ExprInterface;
     public indexer: TokenInterface;
     public index: TokenInterface;
-    constructor(array: Expr, indexer: TokenInterface, index: TokenInterface) {
+    constructor(array: ExprInterface, indexer: TokenInterface, index: TokenInterface) {
         super();
         this.array = array;
         this.indexer = indexer;
@@ -80,11 +80,11 @@ export class ExprArrayIndex extends Expr {
 }
 
 export class ExprArrayBracket extends Expr {
-    public array: Expr;
+    public array: ExprInterface;
     public open: TokenInterface;
-    public index: Expr;
+    public index: ExprInterface;
     public close: TokenInterface;
-    constructor(array: Expr, open: TokenInterface, index: Expr, close: TokenInterface) {
+    constructor(array: ExprInterface, open: TokenInterface, index: ExprInterface, close: TokenInterface) {
         super();
         this.array = array;
         this.open = open;
@@ -95,8 +95,8 @@ export class ExprArrayBracket extends Expr {
 
 export class ExprDelegate extends Expr {
     public atSign: TokenInterface;
-    public variable: Expr;
-    constructor (variable: Expr, atSign: TokenInterface) {
+    public variable: ExprInterface;
+    constructor (variable: ExprInterface, atSign: TokenInterface) {
         super();
         this.variable = variable;
         this.atSign = atSign
@@ -122,9 +122,9 @@ export class ExprVariable extends Expr {
 export class ExprGrouping extends Expr {
     public open: TokenInterface;
     public close: TokenInterface;
-    public expr: Expr;
+    public expr: ExprInterface;
 
-    constructor(open: TokenInterface, expr: Expr, close: TokenInterface) {
+    constructor(open: TokenInterface, expr: ExprInterface, close: TokenInterface) {
         super();
         this.open = open;
         this.expr = expr;

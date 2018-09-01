@@ -8,7 +8,7 @@ declaration -> ( instruction
     | parameterDeclaration
 )
 
-scopedVariableDeclaration -> scope? variableDeclaration
+scopedVariableDeclaration -> scope? suffix variableDeclaration
 parameterDeclaration -> scope? "parameter" parameters "."
 functionDeclaration -> scope? "function" instructionBlock "."?
 

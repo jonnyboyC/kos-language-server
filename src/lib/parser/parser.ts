@@ -1,8 +1,9 @@
 import { TokenInterface } from "../scanner/types";
 import { TokenType } from "../scanner/tokentypes";
-import { ParseErrorInterface, ExprResult, TokenResult, ParseResult, InstructionResult } from "./types";
+import { ParseErrorInterface, ExprResult, TokenResult, ParseResult, InstructionResult, ExprInterface, Scope } from "./types";
 import { ParseError } from "./parserError";
 import { Expr, ExprLiteral, ExprGrouping, ExprVariable, ExprCall, ExprDelegate, ExprArrayBracket, ExprArrayIndex, ExprFactor, ExprUnary, ExprBinary, ExprSuffix } from "./expr";
+import { Instruction, InstructionBlock, VariableDeclaration, OnOffInstruction } from "./instruction";
 // import { Stmt } from "./stmt";
 
 export class Parser {
@@ -25,13 +26,18 @@ export class Parser {
         return this.expression();
     }
 
+    // testing function / utility
     public parseInstruction = (): InstructionResult => {
+        return this.instruction();
+    }
+
+    public instruction = (): InstructionResult => {
         const temp = this.error(this.peek(), "fake");
 
         switch (this.peek().type) {
             case TokenType.CurlyOpen:
                 this.advance();
-                return temp;
+                return this.instructionBlock();
             case TokenType.Integer:
             case TokenType.Double:
             case TokenType.True:
@@ -41,7 +47,7 @@ export class Parser {
             case TokenType.BracketOpen:
             case TokenType.String:
                 this.advance();
-                return temp;
+                return this.identifierLedInstruction();
             case TokenType.Stage:
             case TokenType.Clearscreen:
             case TokenType.Preserve:
@@ -130,10 +136,66 @@ export class Parser {
                 this.advance();
                 return temp;
             default:
-                return this.error(this.peek(), "expected instruction ...");
+                return this.error(this.peek(), "expected instruction TODO express all valid instruction leads");
         }
     }
 
+    // parse a block of instructions
+    private instructionBlock = (): InstructionResult => {
+        const open = this.previous();
+        const instructions: Instruction[] = [];
+
+        // while not at end and until closing curly keep parsing instructions
+        while (!this.check(TokenType.CurlyClose) && !this.isAtEnd()) {
+            const instruction = this.instruction();
+            if (isError(instruction)) return instruction;
+
+            instructions.push(instruction);
+        }
+
+        // check closing curly is found
+        const close = this.consume("Expected '}' to finish instruction block", TokenType.CurlyClose);
+        if (isError(close)) return close;
+        return new InstructionBlock(open, instructions, close);
+    }
+
+    // parse an instruction lead with a identifier
+    private identifierLedInstruction = (): InstructionResult => {
+        const suffix = this.suffix();
+        if (isError(suffix)) return suffix;
+
+        if (this.match(TokenType.To, TokenType.Is)) {
+            return this.variableDeclaration(suffix);
+        }
+        if (this.match(TokenType.On, TokenType.Off)) {
+            return this.onOffDeclaration(suffix);
+        }
+
+        return this.error(this.peek(), "Expected 'to', 'is', 'on', 'off'");
+    } 
+
+    // parse a variable declaration, scoping occurs elseware
+    private variableDeclaration = (suffix: ExprInterface, scope?: Scope): InstructionResult => {
+        const toIs = this.previous();
+        const value = this.expression();
+
+        if (isError(value)) return value;
+        const period = this.consume("Expected '.'", TokenType.Period)
+        if (isError(period)) return period;
+
+        return new VariableDeclaration(suffix, toIs, value, scope);
+    }
+
+    // parse on off statement
+    private onOffDeclaration = (suffix: ExprInterface): InstructionResult => {
+        const onOff = this.previous();
+        const period = this.consume("Expected '.'", TokenType.Period);
+
+        if (isError(period)) return period;
+        return new OnOffInstruction(suffix, onOff);
+    }
+
+    // testing function / utility
     public parseExpression = (): ExprResult => {
         return this.expression();
     }

@@ -14,8 +14,14 @@ export interface InstructionInterface {
     tag: 'stmt';
 }
 
-export type ParseResult = ExprInterface | ParseErrorInterface | InstructionInterface | TokenInterface
-export type ExprResult = ExprInterface | ParseErrorInterface;
-export type InstructionResult = InstructionInterface | ParseErrorInterface;
-export type StmtResult = InstructionInterface | ParseErrorInterface;
-export type TokenResult = TokenInterface | ParseErrorInterface;
+export interface Scope {
+    
+}
+
+type Result<T> = T | ParseErrorInterface;
+
+export type ParseResult = Result<ExprInterface | InstructionInterface | TokenInterface>
+export type ExprResult = Result<ExprInterface>
+export type InstructionResult = Result<InstructionInterface>;
+export type StmtResult = Result<InstructionInterface>
+export type TokenResult = Result<TokenInterface>;
