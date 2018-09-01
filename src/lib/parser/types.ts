@@ -10,11 +10,12 @@ export interface ExprInterface {
     tag: 'expr';
 }
 
-export interface StmtInterface {
+export interface InstructionInterface {
     tag: 'stmt';
 }
 
-export type ParseResult = ExprInterface | ParseErrorInterface | StmtInterface | TokenInterface
+export type ParseResult = ExprInterface | ParseErrorInterface | InstructionInterface | TokenInterface
 export type ExprResult = ExprInterface | ParseErrorInterface;
-export type StmtResult = StmtInterface | ParseErrorInterface;
+export type InstructionResult = InstructionInterface | ParseErrorInterface;
+export type StmtResult = InstructionInterface | ParseErrorInterface;
 export type TokenResult = TokenInterface | ParseErrorInterface;

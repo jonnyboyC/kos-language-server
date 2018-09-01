@@ -3,7 +3,7 @@ import { Scanner } from '../scanner/scanner';
 import { Parser } from './parser';
 import { TokenInterface, SyntaxErrorInterface } from '../scanner/types';
 import { ParseErrorInterface, ExprInterface, ExprResult } from './types';
-import { ExprLiteral, ExprVariable } from './expr';
+import { ExprLiteral, ExprVariable, ExprCall } from './expr';
 import { TokenType } from '../scanner/tokentypes';
 
 // scan source file
@@ -121,19 +121,22 @@ const callTest = (source: string, callee: string, args: Function[]): CallTestInt
 // test basic identifier
 test('valid call', (t) => {
     const validExpressions = [
-        callTest('', TokenType.Identifier, undefined),
-        callTest('until123OtherStuff', TokenType.Identifier, undefined), 
-        callTest('_variableName', TokenType.Identifier, undefined), 
-        callTest('БНЯД.БНЯД', TokenType.FileIdentifier, undefined),
-        callTest('fileVariable.thing', TokenType.FileIdentifier, undefined),
+        callTest('test(4, "car")', "test", [ExprLiteral, ExprLiteral]),
+        callTest('БНЯД(varName, 14.3)', "бняд", [ExprVariable, ExprLiteral]), 
+        callTest('_variableName()', "_variablename", []), 
     ];
 
     for (let expression of validExpressions) {
         const result = parseExpression(expression.source);
-        t.true(isVariable(result))
-        if (isVariable(result)) {
-            t.deepEqual(expression.type, result.token.type);
-            t.deepEqual(expression.literal, result.token.literal)
+        t.true(isCall(result))
+        if (isCall(result)) {
+            if (isVariable(result.callee)) {
+                t.deepEqual(expression.callee, result.callee.token.lexeme);
+                t.deepEqual(expression.args.length, result.args.length);
+                for (let i = 0; i < expression.args.length; i++) {
+                    t.true(result.args[i] instanceof expression.args[i]);
+                }
+            }
         }
     }
 })
@@ -156,11 +159,15 @@ test('invalid call', (t) => {
 //     type: TokenType
 // }
 
+const isCall = (literalTest: ExprResult | SyntaxErrorInterface[]): literalTest is ExprCall => {
+    return isExpr(literalTest) && literalTest instanceof ExprCall;
+}
+
 const isLiteral = (literalTest: ExprResult | SyntaxErrorInterface[]): literalTest is ExprLiteral => {
     return isExpr(literalTest) && literalTest instanceof ExprLiteral;
 }
 
-const isVariable = (literalTest: ExprResult | SyntaxErrorInterface[]): literalTest is ExprLiteral => {
+const isVariable = (literalTest: ExprResult | SyntaxErrorInterface[]): literalTest is ExprVariable => {
     return isExpr(literalTest) && literalTest instanceof ExprVariable;
 }
 

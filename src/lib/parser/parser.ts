@@ -1,6 +1,6 @@
 import { TokenInterface } from "../scanner/types";
 import { TokenType } from "../scanner/tokentypes";
-import { ParseErrorInterface, ExprResult, TokenResult, ParseResult } from "./types";
+import { ParseErrorInterface, ExprResult, TokenResult, ParseResult, InstructionResult } from "./types";
 import { ParseError } from "./parserError";
 import { Expr, ExprLiteral, ExprGrouping, ExprVariable, ExprCall, ExprDelegate, ExprArrayBracket, ExprArrayIndex, ExprFactor, ExprUnary, ExprBinary, ExprSuffix } from "./expr";
 // import { Stmt } from "./stmt";
@@ -23,6 +23,115 @@ export class Parser {
 
         // }    
         return this.expression();
+    }
+
+    public parseInstruction = (): InstructionResult => {
+        const temp = this.error(this.peek(), "fake");
+
+        switch (this.peek().type) {
+            case TokenType.CurlyOpen:
+                this.advance();
+                return temp;
+            case TokenType.Integer:
+            case TokenType.Double:
+            case TokenType.True:
+            case TokenType.False:
+            case TokenType.Identifier:
+            case TokenType.FileIdentifier:
+            case TokenType.BracketOpen:
+            case TokenType.String:
+                this.advance();
+                return temp;
+            case TokenType.Stage:
+            case TokenType.Clearscreen:
+            case TokenType.Preserve:
+            case TokenType.Reboot:
+            case TokenType.Shutdown:
+                this.advance();
+                return temp;
+            case TokenType.Edit:
+            case TokenType.Add:
+            case TokenType.Remove:
+                this.advance();
+                return temp;
+            case TokenType.Unset:
+                this.advance();
+                return temp;
+            case TokenType.Unlock:
+                this.advance();
+                return temp;
+            case TokenType.Set:
+                this.advance();
+                return temp;
+            case TokenType.Lock:
+                this.advance();
+                return temp;
+            case TokenType.LazyGlobal:
+                this.advance();
+                return temp;
+            case TokenType.If:
+                this.advance();
+                return temp;
+            case TokenType.Until:
+                this.advance();
+                return temp;
+            case TokenType.From:
+                this.advance();
+                return temp;
+            case TokenType.When:
+                this.advance();
+                return temp;
+            case TokenType.Return:
+                this.advance();
+                return temp;
+            case TokenType.Switch:
+                this.advance();
+                return temp;
+            case TokenType.For:
+                this.advance();
+                return temp;
+            case TokenType.On:
+                this.advance();
+                return temp;
+            case TokenType.Toggle:
+                this.advance();
+                return temp;
+            case TokenType.Wait:
+                this.advance();
+                return temp;
+            case TokenType.Log:
+                this.advance();
+                return temp;
+            case TokenType.Copy:
+                this.advance();
+                return temp;
+            case TokenType.Rename:
+                this.advance();
+                return temp;
+            case TokenType.Delete:
+                this.advance();
+                return temp;
+            case TokenType.Run:
+                this.advance();
+                return temp;
+            case TokenType.RunPath:
+                this.advance();
+                return temp;
+            case TokenType.RunOncePath:
+                this.advance();
+                return temp;
+            case TokenType.Compile:
+                this.advance();
+                return temp;
+            case TokenType.List:
+                this.advance();
+                return temp;
+            case TokenType.Period:
+                this.advance();
+                return temp;
+            default:
+                return this.error(this.peek(), "expected instruction ...");
+        }
     }
 
     public parseExpression = (): ExprResult => {

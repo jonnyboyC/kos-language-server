@@ -39,7 +39,6 @@ instruction -> ( instructionBlock
     | switch
     | for
     | on
-    | unlock
     | toggle
     | wait
     | log
@@ -53,7 +52,6 @@ instruction -> ( instructionBlock
     | list
     | reboot
     | shutdown
-    | unset
     | empty
 )
 
@@ -101,10 +99,9 @@ commandExpressioninstruction -> commandExpression expression "."
 commandinstruction -> command "."
 
 // identifier instructions
-identifierInstruction -> suffixOnOffInstruction | variableDeclaration
-variableDeclaration -> suffix ( "to" | "is" ) expression "."
-suffixOnOffInstruction -> suffix onOff "."
-onOff -> ( "on" | "off" )
+identifierInstruction -> suffix ( suffixOnOffInstruction | variableDeclaration )
+variableDeclaration -> ( "to" | "is" ) expression "."
+suffixOnOffInstruction -> ( "on" | "off" ) "."
 
 // expressions
 expression -> or
