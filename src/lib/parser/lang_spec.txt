@@ -52,6 +52,7 @@ instruction -> ( instructionBlock
     | compile
     | list
     | empty
+    | print
 )
 
 // directive
@@ -89,7 +90,7 @@ compile -> "compile" expression ("to" expression)? "."
 run -> "run" "once"? ( string | fileIdentifier ) ("(" arguments ")")? "." // on??
 runPath -> "runPath" "(" expression ("," arguments)? ")" "."
 runOncePath -> "runOncePath" "(" expression ("," arguments)? ")" "."
-print -> "print" expression ("at" "(" expression "," expression ")")?
+print -> "print" expression ("at" "(" expression "," expression ")")? "."
 
 // misc
 empty -> "."

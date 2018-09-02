@@ -289,3 +289,16 @@ export class EmptyInst extends Inst {
         super();
     }
 }
+
+export class PrintInst extends Inst {
+    constructor(
+        public readonly print: TokenInterface,
+        public readonly expressions: ExprInterface,
+        public readonly at?: TokenInterface,
+        public readonly open?: TokenInterface,
+        public readonly x?: ExprInterface,
+        public readonly y?: ExprInterface,
+        public readonly close?: TokenInterface) {
+        super();
+    }
+}

@@ -3,7 +3,7 @@ import { TokenType } from '../scanner/tokentypes';
 import { ParseErrorInterface, ExprResult, TokenResult, InstResult, ExprInterface, ScopeInterface, InstInterface } from './types';
 import { ParseError } from './parserError';
 import { Expr, ExprLiteral, ExprGrouping, ExprVariable, ExprCall, ExprDelegate, ExprArrayBracket, ExprArrayIndex, ExprFactor, ExprUnary, ExprBinary, ExprSuffix } from './expr';
-import { Inst, InstructionBlock, OnOffInst, CommandInst, CommandExpressionInst, UnsetInst, UnlockInst, SetInst, LockInst, LazyGlobalInst, ElseInst, IfInst, UntilInst, FromInst, WhenInst, ReturnInst, SwitchInst, ForInst, OnInst, ToggleInst, WaitInst, LogInst, CopyInst, RenameInst, DeleteInst, RunInst, RunPathInst, RunPathOnceInst, CompileInst, ListInst, EmptyInst } from './inst';
+import { Inst, InstructionBlock, OnOffInst, CommandInst, CommandExpressionInst, UnsetInst, UnlockInst, SetInst, LockInst, LazyGlobalInst, ElseInst, IfInst, UntilInst, FromInst, WhenInst, ReturnInst, SwitchInst, ForInst, OnInst, ToggleInst, WaitInst, LogInst, CopyInst, RenameInst, DeleteInst, RunInst, RunPathInst, RunPathOnceInst, CompileInst, ListInst, EmptyInst, PrintInst } from './inst';
 import { Scope, FunctionDeclartion, DefaultParameter, ParameterDeclaration, VariableDeclaration } from './declare';
 
 export class Parser {
@@ -19,7 +19,7 @@ export class Parser {
         const instructions: Inst[] = [];
         const errors: ParseErrorInterface[] = [];
         
-        while (!this.isAtEnd) {
+        while (!this.isAtEnd()) {
             const instruction = this.declaration();
             switch (instruction.tag) {
                 case 'inst':
@@ -230,6 +230,9 @@ export class Parser {
             case TokenType.List:
                 this.advance();
                 return this.list();
+            case TokenType.Print:
+                this.advance();
+                return this.print();
             case TokenType.Period:
                 return new EmptyInst(this.advance());
             default:
@@ -609,6 +612,29 @@ export class Parser {
         }
         
         return new ListInst(list, identifier, inToken, target);
+    }
+
+    // parse print instruction
+    private print = (): InstInterface => {
+        const print = this.previous();
+        const expression = this.expression();
+        let at = undefined;
+        let open = undefined;
+        let x = undefined;
+        let y = undefined;
+        let close = undefined;
+
+        if (this.match(TokenType.At)) {
+            at = this.previous();
+            open = this.previous();
+            x = this.expression();
+            this.consume('Expected ",".', TokenType.Comma);
+            y = this.expression();
+            close = this.consume('Expected ")".', TokenType.BracketClose);
+        }
+        this.terminal();
+
+        return new PrintInst(print, expression, at, open, x, y, close);
     }
 
     // testing function / utility
