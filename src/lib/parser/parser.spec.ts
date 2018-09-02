@@ -18,7 +18,7 @@ const parseExpression = (source: string) => {
     if (isError(tokens)) return tokens;
 
     const parser = new Parser(tokens);
-    return parser.parse();
+    return parser.parseExpression();
 }
 
 interface AtomTestInterface {
