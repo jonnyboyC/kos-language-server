@@ -3,7 +3,7 @@ import { TokenType } from '../scanner/tokentypes';
 import { ParseErrorInterface, ExprResult, TokenResult, ParseResult, InstructionResult, ExprInterface, Scope, InstInterface } from './types';
 import { ParseError } from './parserError';
 import { Expr, ExprLiteral, ExprGrouping, ExprVariable, ExprCall, ExprDelegate, ExprArrayBracket, ExprArrayIndex, ExprFactor, ExprUnary, ExprBinary, ExprSuffix } from './expr';
-import { Inst, InstructionBlock, VariableDeclaration, OnOffInst, CommandInst, CommandExpressionInst, UnsetInst, UnlockInst, SetInst, LockInst, LazyGlobalInst, ElseInst, IfInst, UntilInst, FromInst, WhenInst, ReturnInst, SwitchInst, ForInst } from './inst';
+import { Inst, InstructionBlock, VariableDeclaration, OnOffInst, CommandInst, CommandExpressionInst, UnsetInst, UnlockInst, SetInst, LockInst, LazyGlobalInst, ElseInst, IfInst, UntilInst, FromInst, WhenInst, ReturnInst, SwitchInst, ForInst, OnInst, ToggleInst, WaitInst, LogInst, CopyInst, RenameInst, DeleteInst, RunInst, RunPathInst } from './inst';
 import { Token } from '../scanner/token';
 
 export class Parser {
@@ -105,31 +105,31 @@ export class Parser {
                 return this.forInst();
             case TokenType.On:
                 this.advance();
-                return temp;
+                return this.on();
             case TokenType.Toggle:
                 this.advance();
-                return temp;
+                return this.toggle();
             case TokenType.Wait:
                 this.advance();
-                return temp;
+                return this.wait();
             case TokenType.Log:
                 this.advance();
-                return temp;
+                return this.log();
             case TokenType.Copy:
                 this.advance();
-                return temp;
+                return this.copy();
             case TokenType.Rename:
                 this.advance();
-                return temp;
+                return this.rename();
             case TokenType.Delete:
                 this.advance();
-                return temp;
+                return this.delete();
             case TokenType.Run:
                 this.advance();
-                return temp;
+                return this.run();
             case TokenType.RunPath:
                 this.advance();
-                return temp;
+                return this.runPath();
             case TokenType.RunOncePath:
                 this.advance();
                 return temp;
@@ -347,9 +347,141 @@ export class Parser {
         return new ForInst(forToken, identifer, inToken, suffix, instruction);
     }
 
+    // parse on instruction
+    private on = (): InstInterface => {
+        const on = this.previous();
+        const suffix = this.suffix();
+        const instruction = this.instruction();
+        
+        return new OnInst(on, suffix, instruction);
+    }
+
+    // parse toggle instruction
+    private toggle = (): InstInterface => {
+        const toggle = this.previous();
+        const suffix = this.suffix();
+        this.match(TokenType.Period);
+        this.terminal();
+
+        return new ToggleInst(toggle, suffix);
+    }
+
+    // parse wait instruction
+    private wait = (): InstInterface => {
+        const wait = this.previous();
+        const until = this.match(TokenType.Until)
+            ? this.previous()
+            : undefined;
+
+        const expression = this.expression();
+        this.terminal();
+
+        return new WaitInst(wait, expression, until);
+    }
+
+    // parse log instruction
+    private log = (): InstInterface => {
+        const log = this.previous();
+        const expression = this.expression();
+        const to = this.consume('Expected "to".', TokenType.To);
+        const target = this.expression();
+        this.terminal();
+
+        return new LogInst(log, expression, to, target);
+    }
+
+    // parse copy instruction
+    private copy = (): InstInterface => {
+        const copy = this.previous();
+        const expression = this.expression();
+        const toFrom = this.consume('Expected "to" or "from".', 
+            TokenType.From, TokenType.To);
+        const target = this.expression();
+        this.terminal();
+        
+        return new CopyInst(copy, expression, toFrom, target);
+    }
+
+    // parse rename instruction
+    private rename = (): InstInterface => {
+        const rename = this.previous();
+        const ioIdentifier = this.consume('Expected identifier or file identifier',
+            TokenType.Identifier, TokenType.FileIdentifier);
+
+        const expression = this.expression();
+        const to = this.consume('Expected "to".', TokenType.To);
+        const target = this.expression();
+        this.terminal();
+
+        return new RenameInst(rename, ioIdentifier, expression, to, target);
+    }
+
+    // parse delete
+    private delete = (): InstInterface => {
+        const deleteToken = this.previous();
+        const expression = this.expression();
+
+        if (this.match(TokenType.From)) {
+            const from = this.previous();
+            const target = this.expression();
+            this.terminal();
+
+            return new DeleteInst(deleteToken, expression, from, target);
+        }
+
+        this.terminal();
+        return new DeleteInst(deleteToken, expression);
+    }
+
+    // parse run
+    private run = (): InstInterface => {
+        const run = this.previous();
+        const once = this.match(TokenType.Once)
+            ? this.previous()
+            : undefined;
+        
+        const identifier = this.consume('Expected string or fileidentifier.',
+            TokenType.String, TokenType.FileIdentifier);
+        
+        // parse arguments if found
+        if (this.match(TokenType.BracketOpen)) {
+            const open = this.previous();
+            const args = this.arguments();
+            const close = this.consume('Expected ")".', TokenType.BracketClose);
+            this.terminal();
+            
+            return new RunInst(run, identifier, once, open, args, close);
+        }
+
+        this.terminal();
+        return new RunInst(run, identifier, once);
+    }
+
+    // parse run path
+    private runPath = (): InstInterface => {
+        const runPath = this.previous();
+        const open = this.consume('Expected "(".', TokenType.BracketOpen);
+        const expression = this.expression();
+        const args = this.match(TokenType.Comma)
+            ? this.arguments()
+            : undefined;
+
+        const close = this.consume('Expected ")".', TokenType.BracketClose);
+        this.terminal();
+
+        return new RunPathInst(runPath, open, expression, close, args);
+    }
+
     // testing function / utility
     public parseExpression = (): ExprResult => {
-        return this.expression();
+        try {
+            return this.expression();
+        } catch(error) {
+            if (error instanceof ParseError) {
+                return error;
+            }
+            throw error;
+        }
     }
 
     // parse any expression
@@ -488,7 +620,7 @@ export class Parser {
     }
 
     // get an argument list
-    private arguments = (): ExprInterface[] | ParseError => {
+    private arguments = (): ExprInterface[] => {
         const args: ExprInterface[] = [];
         if (!this.check(TokenType.BracketClose)) {
             do {
