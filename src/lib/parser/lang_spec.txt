@@ -95,7 +95,7 @@ print -> "print" expression ("at" "(" expression "," expression ")")?
 
 // misc
 empty -> "."
-list -> "list" idenitifer ("in" idenitifer)? "."
+list -> "list" (idenitifer ("in" idenitifer)?)? "."
 
 // component stmt
 commandExpressioninstruction -> commandExpression expression "."

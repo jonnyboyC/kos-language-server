@@ -1,10 +1,9 @@
 import { TokenInterface } from '../scanner/types';
 import { TokenType } from '../scanner/tokentypes';
-import { ParseErrorInterface, ExprResult, TokenResult, ParseResult, InstructionResult, ExprInterface, Scope, InstInterface } from './types';
+import { ParseErrorInterface, ExprResult, TokenResult, InstructionResult, ExprInterface, Scope, InstInterface } from './types';
 import { ParseError } from './parserError';
 import { Expr, ExprLiteral, ExprGrouping, ExprVariable, ExprCall, ExprDelegate, ExprArrayBracket, ExprArrayIndex, ExprFactor, ExprUnary, ExprBinary, ExprSuffix } from './expr';
-import { Inst, InstructionBlock, VariableDeclaration, OnOffInst, CommandInst, CommandExpressionInst, UnsetInst, UnlockInst, SetInst, LockInst, LazyGlobalInst, ElseInst, IfInst, UntilInst, FromInst, WhenInst, ReturnInst, SwitchInst, ForInst, OnInst, ToggleInst, WaitInst, LogInst, CopyInst, RenameInst, DeleteInst, RunInst, RunPathInst } from './inst';
-import { Token } from '../scanner/token';
+import { Inst, InstructionBlock, VariableDeclaration, OnOffInst, CommandInst, CommandExpressionInst, UnsetInst, UnlockInst, SetInst, LockInst, LazyGlobalInst, ElseInst, IfInst, UntilInst, FromInst, WhenInst, ReturnInst, SwitchInst, ForInst, OnInst, ToggleInst, WaitInst, LogInst, CopyInst, RenameInst, DeleteInst, RunInst, RunPathInst, RunPathOnceInst, CompileInst, ListInst, EmptyInst } from './inst';
 
 export class Parser {
     private readonly _tokens: TokenInterface[]
@@ -39,8 +38,6 @@ export class Parser {
     }
 
     public instruction = (): InstInterface => {
-        const temp = this.error(this.peek(), 'fake');
-
         switch (this.peek().type) {
             case TokenType.CurlyOpen:
                 this.advance();
@@ -132,16 +129,15 @@ export class Parser {
                 return this.runPath();
             case TokenType.RunOncePath:
                 this.advance();
-                return temp;
+                return this.runPathOnce();
             case TokenType.Compile:
                 this.advance();
-                return temp;
+                return this.compile();
             case TokenType.List:
                 this.advance();
-                return temp;
+                return this.list();
             case TokenType.Period:
-                this.advance();
-                return temp;
+                return new EmptyInst(this.advance());
             default:
                 throw this.error(this.peek(), 'expected instruction TODO express all valid instruction leads');
         }
@@ -197,7 +193,7 @@ export class Parser {
     // parse command instruction
     private command = (): InstInterface => {
         const command = this.previous();
-        const period = this.terminal();
+        this.terminal();
 
         return new CommandInst(command)
     }
@@ -416,7 +412,7 @@ export class Parser {
         return new RenameInst(rename, ioIdentifier, expression, to, target);
     }
 
-    // parse delete
+    // parse delete instruction
     private delete = (): InstInterface => {
         const deleteToken = this.previous();
         const expression = this.expression();
@@ -433,7 +429,7 @@ export class Parser {
         return new DeleteInst(deleteToken, expression);
     }
 
-    // parse run
+    // parse run instruction
     private run = (): InstInterface => {
         const run = this.previous();
         const once = this.match(TokenType.Once)
@@ -457,7 +453,7 @@ export class Parser {
         return new RunInst(run, identifier, once);
     }
 
-    // parse run path
+    // parse run path instruction
     private runPath = (): InstInterface => {
         const runPath = this.previous();
         const open = this.consume('Expected "(".', TokenType.BracketOpen);
@@ -470,6 +466,55 @@ export class Parser {
         this.terminal();
 
         return new RunPathInst(runPath, open, expression, close, args);
+    }
+
+    // parse run path once instruction
+    private runPathOnce = (): InstInterface => {
+        const runPath = this.previous();
+        const open = this.consume('Expected "(".', TokenType.BracketOpen);
+        const expression = this.expression();
+        const args = this.match(TokenType.Comma)
+            ? this.arguments()
+            : undefined;
+
+        const close = this.consume('Expected ")".', TokenType.BracketClose);
+        this.terminal();
+
+        return new RunPathOnceInst(runPath, open, expression, close, args);
+    }
+
+    // parse compile instruction
+    private compile = (): InstInterface => {
+        const compile = this.previous();
+        const expression = this.expression();
+        if (this.match(TokenType.To)) {
+            const to = this.previous();
+            const target = this.expression();
+            this.terminal();
+        
+            return new CompileInst(compile, expression, to, target);
+        }
+
+        this.terminal();
+        return new CompileInst(compile, expression);
+    }
+
+    // parse list instruction
+    private list = (): InstInterface => {
+        const list = this.previous();
+        let identifier = undefined;
+        let inToken = undefined;
+        let target = undefined;
+
+        if (this.match(TokenType.Identifier)) {
+            identifier = this.previous();
+            if (this.match(TokenType.In)) {
+                inToken = this.previous();
+                target = this.consume('Expected identifer', TokenType.Identifier);
+            }
+        }
+        
+        return new ListInst(list, identifier, inToken, target);
     }
 
     // testing function / utility

@@ -1,4 +1,4 @@
-import { InstInterface, Scope, ExprInterface, ExprResult } from "./types";
+import { InstInterface, Scope, ExprInterface } from "./types";
 import { TokenInterface } from "../scanner/types";
 
 export class Inst implements InstInterface {
@@ -260,6 +260,43 @@ export class RunPathInst extends Inst {
         public readonly expression: ExprInterface,
         public readonly close: TokenInterface,
         public readonly args?: ExprInterface[]) {
+        super();
+    }
+}
+
+export class RunPathOnceInst extends Inst {
+    constructor(
+        public readonly runPath: TokenInterface,
+        public readonly open: TokenInterface,
+        public readonly expression: ExprInterface,
+        public readonly close: TokenInterface,
+        public readonly args?: ExprInterface[]) {
+        super();
+    }
+}
+
+export class CompileInst extends Inst {
+    constructor(
+        public readonly compile: TokenInterface,
+        public readonly expression: ExprInterface,
+        public readonly to?: TokenInterface,
+        public readonly target?: ExprInterface) {
+        super();
+    }
+}
+
+export class ListInst extends Inst {
+    constructor(
+        public readonly list: TokenInterface,
+        public readonly identifier?: TokenInterface,
+        public readonly inToken?: TokenInterface,
+        public readonly target?: TokenInterface) {
+        super();
+    }   
+}
+
+export class EmptyInst extends Inst {
+    constructor(public readonly empty: TokenInterface) {
         super();
     }
 }
