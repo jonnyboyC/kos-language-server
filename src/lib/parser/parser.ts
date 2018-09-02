@@ -1,9 +1,10 @@
 import { TokenInterface } from '../scanner/types';
 import { TokenType } from '../scanner/tokentypes';
-import { ParseErrorInterface, ExprResult, TokenResult, InstructionResult, ExprInterface, Scope, InstInterface } from './types';
+import { ParseErrorInterface, ExprResult, TokenResult, InstResult, ExprInterface, ScopeInterface, InstInterface } from './types';
 import { ParseError } from './parserError';
 import { Expr, ExprLiteral, ExprGrouping, ExprVariable, ExprCall, ExprDelegate, ExprArrayBracket, ExprArrayIndex, ExprFactor, ExprUnary, ExprBinary, ExprSuffix } from './expr';
-import { Inst, InstructionBlock, VariableDeclaration, OnOffInst, CommandInst, CommandExpressionInst, UnsetInst, UnlockInst, SetInst, LockInst, LazyGlobalInst, ElseInst, IfInst, UntilInst, FromInst, WhenInst, ReturnInst, SwitchInst, ForInst, OnInst, ToggleInst, WaitInst, LogInst, CopyInst, RenameInst, DeleteInst, RunInst, RunPathInst, RunPathOnceInst, CompileInst, ListInst, EmptyInst } from './inst';
+import { Inst, InstructionBlock, OnOffInst, CommandInst, CommandExpressionInst, UnsetInst, UnlockInst, SetInst, LockInst, LazyGlobalInst, ElseInst, IfInst, UntilInst, FromInst, WhenInst, ReturnInst, SwitchInst, ForInst, OnInst, ToggleInst, WaitInst, LogInst, CopyInst, RenameInst, DeleteInst, RunInst, RunPathInst, RunPathOnceInst, CompileInst, ListInst, EmptyInst } from './inst';
+import { Scope, FunctionDeclartion, DefaultParameter, ParameterDeclaration, VariableDeclaration } from './declare';
 
 export class Parser {
     private readonly _tokens: TokenInterface[]
@@ -14,19 +15,112 @@ export class Parser {
         this._current = 0;
     }
 
-    public parse(): ExprResult {
-        // const stmts: Stmt[] = [];
-        // const errors: ParseError[] = [];
+    public parse(): [Inst[], ParseErrorInterface[]] {
+        const instructions: Inst[] = [];
+        const errors: ParseErrorInterface[] = [];
         
-        // while (!this.isAtEnd) {
-        //     const instruction = 
+        while (!this.isAtEnd) {
+            const instruction = this.declaration();
+            switch (instruction.tag) {
+                case 'inst':
+                    instructions.push(instruction);
+                    break;
+                case 'parseError':
+                    errors.push(instruction);
+                    break;
+            }
+        }    
+        return [instructions, errors];
+    }
 
-        // }    
-        return this.expression();
+    private declaration = (): InstResult => {
+        try {
+            if ([TokenType.Declare, TokenType.Local, TokenType.Global, 
+                TokenType.Parameter, TokenType.Function].some(t => this.check(t))) {
+                return this.define();
+            }
+    
+            return this.instruction();
+        } catch (error) {
+            if (error instanceof ParseError) {
+                this.synchronize();
+                return error;
+            }
+            throw error;
+        }
+    }
+
+    // parse declaration instructions
+    private define = (): InstInterface => {
+        // attempt to find scoping
+        const declare = this.match(TokenType.Declare)
+            ? this.previous()
+            : undefined;
+
+        const scope = this.match(TokenType.Local, TokenType.Global)
+            ? this.previous()
+            : undefined;
+
+        const scopeDeclare = declare || scope
+            ? new Scope(scope, declare)
+            : undefined;
+
+        if (this.match(TokenType.Function)) {
+            return this.declareFunction(scopeDeclare);
+        }
+        if (this.match(TokenType.Parameter)) {
+            return this.declareParameter(scopeDeclare);
+        }
+
+        const suffix = this.suffix();
+        return this.declareVariable(suffix, scopeDeclare);
+    }
+
+    // parse function declaration
+    private declareFunction = (scope?: ScopeInterface): InstInterface => {
+        const functionToken = this.previous();
+        const instructionBlock = this.instructionBlock();
+
+        return new FunctionDeclartion(functionToken, instructionBlock, scope);
+    }
+
+    // parse parameter declaration
+    private declareParameter = (scope?: ScopeInterface): InstInterface => {
+        const parameterToken = this.previous();
+        let identifer = this.consume('Expected identifier', TokenType.Identifier);
+        const parameters = [identifer];
+        const defaultParameters = [];
+
+        // if command found more parameters can be parsed
+        while (this.match(TokenType.Comma)) {
+            identifer = this.consume('Expected identifier.', TokenType.Identifier);
+            
+            // if is or to found defaulted parameters proceed
+            if (this.check(TokenType.Is) || this.check(TokenType.To)) break;
+            parameters.push(identifer);
+        }
+
+        // check if default parameter
+        if (this.match(TokenType.Is) || this.match(TokenType.To)) {
+            let toIs = this.consume('Expected "is" or "to"', TokenType.To, TokenType.Is)
+            let value = this.expression();
+            defaultParameters.push(new DefaultParameter(identifer, toIs, value));
+
+            // from here on check only for defaulted parameters
+            while (this.match(TokenType.Comma)) {
+                identifer = this.consume('Expected identifier.', TokenType.Identifier);
+                toIs = this.consume('Expected "to" or "is"',
+                    TokenType.To, TokenType.Is);
+                value = this.expression();
+                defaultParameters.push(new DefaultParameter(identifer, toIs, value));
+            } 
+        }
+
+        return new ParameterDeclaration(parameterToken, parameters, defaultParameters, scope);
     }
 
     // testing function / utility
-    public parseInstruction = (): InstructionResult => {
+    public parseInstruction = (): InstResult => {
         try {
             return this.instruction();
         } catch (error) {
@@ -164,7 +258,7 @@ export class Parser {
         const suffix = this.suffix();
 
         if (this.match(TokenType.To, TokenType.Is)) {
-            return this.variableDeclaration(suffix);
+            return this.declareVariable(suffix);
         }
         if (this.match(TokenType.On, TokenType.Off)) {
             return this.onOff(suffix);
@@ -174,7 +268,7 @@ export class Parser {
     } 
 
     // parse a variable declaration, scoping occurs elseware
-    private variableDeclaration = (suffix: ExprInterface, scope?: Scope): InstInterface => {
+    private declareVariable = (suffix: ExprInterface, scope?: ScopeInterface): InstInterface => {
         const toIs = this.previous();
         const value = this.expression();
         this.terminal();
@@ -731,6 +825,7 @@ export class Parser {
         return found;
     }
 
+    // check for period
     private terminal = (): TokenResult => {
         return this.consume('Expected ".".', TokenType.Period);
     }
@@ -775,9 +870,9 @@ export class Parser {
     }
 
     // attempt to synchronize parser
-    // private synchronize(): void {
+    private synchronize(): void {
 
-    // }
+    }
 }
 
 const isArgsError = (result: Expr[] | ParseError): result is ParseError => {

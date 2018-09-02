@@ -14,14 +14,15 @@ export interface InstInterface {
     tag: 'inst';
 }
 
-export interface Scope {
-
+export interface ScopeInterface {
+    declare?: TokenInterface,
+    scope?: TokenInterface,
 }
 
 type Result<T> = T | ParseErrorInterface;
 
 export type ParseResult = Result<ExprInterface | InstInterface | TokenInterface>
 export type ExprResult = Result<ExprInterface>
-export type InstructionResult = Result<InstInterface>;
+export type InstResult = Result<InstInterface>;
 export type StmtResult = Result<InstInterface>
 export type TokenResult = Result<TokenInterface>;
