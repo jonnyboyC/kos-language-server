@@ -51,8 +51,6 @@ instruction -> ( instructionBlock
     | runOncePath
     | compile
     | list
-    | reboot
-    | shutdown
     | empty
 )
 

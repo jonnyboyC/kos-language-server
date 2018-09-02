@@ -1,4 +1,4 @@
-import { InstInterface, ScopeInterface, ExprInterface } from "./types";
+import { InstInterface, ExprInterface } from "./types";
 import { TokenInterface } from "../scanner/types";
 
 export class Inst implements InstInterface {
@@ -15,17 +15,6 @@ export class InstructionBlock extends Inst {
         super();
     }
 }
-
-
-// export class VariableDeclaration extends Inst {
-//     constructor(
-//         public readonly suffix: ExprInterface,
-//         public readonly toIs: TokenInterface,
-//         public readonly value: ExprInterface,
-//         public readonly scope?: ScopeInterface) {
-//         super();
-//     }
-// }
 
 export class OnOffInst extends Inst {
     constructor(

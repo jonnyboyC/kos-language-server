@@ -5,6 +5,8 @@ import { TokenInterface, SyntaxErrorInterface } from '../scanner/types';
 import { ParseErrorInterface, ExprInterface, ExprResult } from './types';
 import { ExprLiteral, ExprVariable, ExprCall } from './expr';
 import { TokenType } from '../scanner/tokentypes';
+import { readdirSync, statSync, readFileSync } from 'fs';
+import { join } from 'path';
 
 // scan source file
 const scan = (source: string) => {
@@ -20,6 +22,35 @@ const parseExpression = (source: string) => {
     const parser = new Parser(tokens);
     return parser.parseExpression();
 }
+
+const testDir = join(__dirname, '../../../../kerboscripts');
+
+type callbackFunc = (fileName: string) => void;
+
+const walkDir = (dir: string, callback: callbackFunc): void => {
+    readdirSync(dir).forEach( f => {
+      let dirPath = join(dir, f);
+      let isDirectory = statSync(dirPath).isDirectory();
+      isDirectory ? 
+        walkDir(dirPath, callback) : callback(join(dir, f));
+    });
+};
+
+test('parse all', (t) => {
+    walkDir(testDir, (filePath) => {
+        const kosFile = readFileSync(filePath, 'utf8');
+
+        const scanner = new Scanner(kosFile);
+        const result = scanner.scanTokens();
+
+        if(isToken(result)) {
+            const parser = new Parser(result);
+            const parseResult = parser.parse();
+
+            t.deepEqual(0, parseResult[1].length)
+        }
+    });
+});
 
 interface AtomTestInterface {
     source: string;
@@ -171,11 +202,14 @@ const isVariable = (literalTest: ExprResult | SyntaxErrorInterface[]): literalTe
     return isExpr(literalTest) && literalTest instanceof ExprVariable;
 }
 
-
 const isExpr = (result: ParseErrorInterface | ExprInterface | SyntaxErrorInterface[]): result is ExprInterface => {
     return !(result instanceof Array) && result.tag === 'expr';
 } 
 
 const isError = (result: TokenInterface[] | SyntaxErrorInterface[]): result is SyntaxErrorInterface[] => {
     return result[0].tag === 'syntaxError'
+}
+
+const isToken = (result: TokenInterface[] | SyntaxErrorInterface[]): result is TokenInterface[] => {
+    return result[0].tag === 'token'
 }

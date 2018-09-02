@@ -871,7 +871,44 @@ export class Parser {
 
     // attempt to synchronize parser
     private synchronize(): void {
+        this.advance();
+        
+        while (!this.isAtEnd()) {
+            if (this.previous().type == TokenType.Period) return;
 
+            switch (this.peek().type) {
+                case TokenType.Unset:
+                case TokenType.Unlock:
+                case TokenType.Set:
+                case TokenType.Lock:
+                case TokenType.If:
+                case TokenType.From:
+                case TokenType.When:
+                case TokenType.Wait:
+                case TokenType.Log:
+                case TokenType.Copy:
+                case TokenType.Rename:
+                case TokenType.Delete:
+                case TokenType.Run:
+                case TokenType.RunPath:
+                case TokenType.RunOncePath:
+                case TokenType.Compile:
+                case TokenType.List:
+                case TokenType.Reboot:
+                case TokenType.Shutdown:
+                case TokenType.Stage:
+                case TokenType.Clearscreen:
+                case TokenType.Preserve:
+                case TokenType.Edit:
+                case TokenType.Add:
+                case TokenType.Remove:
+                    return;
+                default:
+                    break;
+            }
+
+            this.advance();
+        }
     }
 }
 
