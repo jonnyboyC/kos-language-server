@@ -16,8 +16,8 @@ export class Scanner {
         this._source = source.toLowerCase();
         this._start = 0;
         this._current = 0;
-        this._startMarker = new Marker(0, 0)
-        this._currentMarker = new Marker(0, 0)
+        this._startMarker = new Marker(1, 1)
+        this._currentMarker = new Marker(1, 1)
     }
 
     // scan all available tokesn
@@ -59,21 +59,23 @@ export class Scanner {
         {
             case '(': return this.generateToken(TokenType.BracketOpen);
             case ')': return this.generateToken(TokenType.BracketClose);
-            case '{': return this.generateToken(TokenType.CurlyClose);
+            case '{': return this.generateToken(TokenType.CurlyOpen);
             case '}': return this.generateToken(TokenType.CurlyClose);
             case '[': return this.generateToken(TokenType.SquareOpen);
             case ']': return this.generateToken(TokenType.SquareClose);
             case ',': return this.generateToken(TokenType.Comma);
             case ':': return this.generateToken(TokenType.Colon);
-            case '.': return this.generateToken(TokenType.Period);
             case '@': return this.generateToken(TokenType.AtSign);
             case '#': return this.generateToken(TokenType.ArrayIndex)
 
-            case '^': return this.generateToken(keywords.Power);
+            case '^': return this.generateToken(TokenType.Power);
             case '+': return this.generateToken(TokenType.Plus);
             case '-': return this.generateToken(TokenType.Minus);
-            case '*': return this.generateToken(keywords.Multi);
+            case '*': return this.generateToken(TokenType.Multi);
             case '=': return this.generateToken(TokenType.Equal); 
+            case '.': 
+                if (this.isDigit(this.peekNext())) return this.number();
+                return this.generateToken(TokenType.Period);
             case '<': 
                 if (this.match('=')) return this.generateToken(TokenType.LessEqual);
                 if (this.match('>')) return this.generateToken(TokenType.NotEqual);
@@ -157,7 +159,8 @@ export class Scanner {
         this.advanceNumber();
 
         // if . and e not found number is an integar
-        if (this.peek() !== '.' && this.peek() !== 'e') {
+        if ((this.peek() !== '.' || !this.isDigit(this.peekNext())) && 
+            this.peek() !== 'e') {
             const intString = this.numberString();
             const int = parseInt(intString);
             return this.generateToken(TokenType.Integer, int);
@@ -174,9 +177,10 @@ export class Scanner {
         if (this.peek() == 'e') {
 
             // parse optional exponent sign
-            const next = this.peekNext();
-            if (next === '+' || next === '-') {
+            let next = this.peekNext();
+            while (this.isWhitespace(next) || next === '+' || next === '-') {
                 this.advance();
+                next = this.peekNext();
             }
 
             // unsure number follows exponent
@@ -198,7 +202,9 @@ export class Scanner {
     // advance number for digits and underscores
     private advanceNumber(): void {
         let current = this.peek();
-        while (this.isDigit(current) || this.isUnderScore(current)) {
+        while (this.isDigit(current) 
+            || this.isUnderScore(current)
+            || this.isWhitespace(current)) {
             this.advance();
             current = this.peek();
         }
@@ -208,7 +214,8 @@ export class Scanner {
     private numberString(): string {
         return this._source
             .substr(this._start, this._current - this._start)
-            .replace('_', '');
+            .replace(/(\_|\s)/g, '');
+
     }
 
     // generate token from provided token type and optional literal
@@ -232,7 +239,7 @@ export class Scanner {
 
     // increment line
     private incrementLine(): void {
-        this._currentMarker = new Marker(this._currentMarker.line + 1, 0);
+        this._currentMarker = new Marker(this._currentMarker.line + 1, 1);
     }
 
     // incremet file pointer
@@ -271,6 +278,13 @@ export class Scanner {
 
         this.increment();
         return true;
+    }
+
+    private isWhitespace(c: string): boolean {
+        return c === ' '
+            || c === '\r'
+            || c === '\t'
+            || c === '\n'
     }
 
     // is digit character

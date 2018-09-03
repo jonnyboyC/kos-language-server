@@ -3,7 +3,6 @@ import { TokenType } from './tokentypes';
 
 export class Token implements TokenInterface {
     public readonly type: TokenType;
-    public readonly typeString: string;
     public readonly lexeme: string;
     public readonly literal: any;
     public readonly start: MarkerInterface;
@@ -12,7 +11,6 @@ export class Token implements TokenInterface {
 
     constructor(type: TokenType, lexeme: string, literal: any, start: MarkerInterface, end: MarkerInterface) {
         this.type = type;
-        this.typeString = TokenType[type];
         this.lexeme = lexeme;
         this.literal = literal;
         this.start = start;
@@ -21,6 +19,10 @@ export class Token implements TokenInterface {
 
     public get tag(): 'token' {
         return 'token';
+    }
+
+    public get typeString(): string {
+        return TokenType[this.type]
     }
 
     public toString(): string {

@@ -1,5 +1,5 @@
 import { TokenInterface } from "../scanner/types";
-import { ExprInterface } from "./types";
+import { ExprInterface, InstInterface } from "./types";
 
 export class Expr implements ExprInterface {
     get tag(): 'expr' {
@@ -17,6 +17,10 @@ export class ExprBinary extends Expr {
         this.operator = operator;
         this.right = right;
     }
+
+    public toString(): string {
+        return `${this.left.toString()} ${this.operator.lexeme} ${this.right.toString()}`;
+    }
 }
 
 export class ExprUnary extends Expr {
@@ -26,6 +30,10 @@ export class ExprUnary extends Expr {
         super();
         this.factor = factor;
         this.operator = operator;
+    }
+
+    public toString(): string {
+        return `${this.operator.lexeme} ${this.factor.toString()}`;
     }
 }
 
@@ -39,6 +47,10 @@ export class ExprFactor extends Expr {
         this.power = power;
         this.exponent = exponent;
     }
+
+    public toString(): string {
+        return `${this.suffix.toString()} ${this.power.toString()} ${this.exponent.toString()}`;
+    }
 }
 
 export class ExprSuffix extends Expr {
@@ -50,6 +62,10 @@ export class ExprSuffix extends Expr {
         this.suffix = suffix;
         this.colon = colon;
         this.trailer = trailer;
+    }
+
+    public toString(): string {
+        return `${this.suffix.toString()}${this.colon.lexeme}${this.trailer.toString()}`;
     }
 }
 
@@ -65,6 +81,10 @@ export class ExprCall extends Expr {
         this.args = args;
         this.close = close;
     }
+
+    public toString(): string {
+        return `${this.callee.toString()}${this.open.lexeme}${this.args.map(a => a.toString()).join(", ")}${this.close.lexeme}`;
+    }
 }
 
 export class ExprArrayIndex extends Expr {
@@ -76,6 +96,10 @@ export class ExprArrayIndex extends Expr {
         this.array = array;
         this.indexer = indexer;
         this.index = index;
+    }
+
+    public toString(): string {
+        return `${this.array.toString()}${this.indexer.lexeme}${this.index.lexeme}`;
     }
 }
 
@@ -91,15 +115,23 @@ export class ExprArrayBracket extends Expr {
         this.index = index;
         this.close = close;
     }
+
+    public toString(): string {
+        return `${this.array.toString()}${this.open.lexeme}${this.index.toString()}${this.close.lexeme}`;
+    }
 }
 
 export class ExprDelegate extends Expr {
-    public atSign: TokenInterface;
     public variable: ExprInterface;
+    public atSign: TokenInterface;
     constructor (variable: ExprInterface, atSign: TokenInterface) {
         super();
         this.variable = variable;
         this.atSign = atSign
+    }
+    
+    public toString(): string {
+        return `${this.variable.toString()}${this.atSign.lexeme}`;
     }
 }
 
@@ -109,6 +141,10 @@ export class ExprLiteral extends Expr {
         super();
         this.token = token;
     }
+
+    public toString(): string {
+        return `${this.token.lexeme}`;
+    }
 }
 
 export class ExprVariable extends Expr {
@@ -116,6 +152,10 @@ export class ExprVariable extends Expr {
     constructor(token: TokenInterface) {
         super();
         this.token = token;
+    }
+
+    public toString(): string {
+        return `${this.token.lexeme}`;
     }
 }
 
@@ -129,5 +169,22 @@ export class ExprGrouping extends Expr {
         this.open = open;
         this.expr = expr;
         this.close = close;
+    }
+
+    public toString(): string {
+        return `${this.open.lexeme}${this.expr.toString()}${this.close.lexeme}`;
+    }
+}
+
+export class ExprAnonymousFunction extends Expr {
+    constructor(
+        public readonly open: TokenInterface,
+        public readonly instruction: InstInterface[],
+        public readonly close: TokenInterface) {
+        super();
+    }
+
+    public toString(): string {
+        return `{${this.instruction.map(i => i.toString()).join(' ')}}`
     }
 }

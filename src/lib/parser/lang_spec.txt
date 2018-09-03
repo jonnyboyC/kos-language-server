@@ -3,19 +3,20 @@ program -> declaration*
 
 // declarations
 declaration -> ( instruction
-    | scopedVariableDeclaration
+    | variableDeclaration
     | functionDeclaration
     | parameterDeclaration
 )
 
-scopedVariableDeclaration -> scope? suffix variableDeclaration
+variableDeclaration -> scope suffix ( "to" | "is" ) expression "."
 parameterDeclaration -> scope? "parameter" parameters "."
 functionDeclaration -> scope? "function" instructionBlock "."?
 
 // declaration components
 scope -> "declare"? ("local" | "global")?
-parameters -> parameter ("," parameters)? 
+parameters -> ( parameter ("," parameters)? 
     | defaultParameters
+)
 defaultParameters -> defaultParameter ("," defaultParameters)?
 
 parameter -> ( idenitifer | defaultParameter )
@@ -64,7 +65,7 @@ instructionBlock -> "{" instruction* "}"
 // control flow
 if -> "if" expression instruction "."? ("else" instruction "."?)? 
 until -> "until" expression instruction "."?
-from -> "from" instructionBlock "until" expression instructionBlock "do" instruction
+from -> "from" instructionBlock "until" expression "step" instructionBlock "do" instruction
 when -> "when" expression "then" instruction "."?
 break -> "break" "."
 return -> "return" expression? "."
@@ -101,9 +102,7 @@ commandExpressioninstruction -> commandExpression expression "."
 commandinstruction -> command "."
 
 // identifier instructions
-identifierInstruction -> suffix ( suffixOnOffInstruction | variableDeclaration )
-variableDeclaration -> ( "to" | "is" ) expression "."
-suffixOnOffInstruction -> ( "on" | "off" ) "."
+identifierInstruction -> suffix ( "on" | "off" )? "."
 
 // expressions
 expression -> or
@@ -139,6 +138,7 @@ arguments -> expression? ("," expression)*
 atom -> ( literal
     | fileIdentifier
     | idenitifer
+    | "list"
     | "(" expression ")"
 )
 

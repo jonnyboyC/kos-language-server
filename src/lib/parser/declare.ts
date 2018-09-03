@@ -23,9 +23,21 @@ export class VariableDeclaration extends Declare {
     }
 }
 
+export class LockDeclaration extends Declare {
+    constructor(
+        public readonly lock: TokenInterface,
+        public readonly identifier: TokenInterface,
+        public readonly to: TokenInterface,
+        public readonly value: ExprInterface,
+        public readonly scope?: ScopeInterface) {
+        super();
+    }
+}
+
 export class FunctionDeclartion extends Declare {
     constructor(
         public readonly functionToken: TokenInterface,
+        public readonly functionIdentifier: TokenInterface,
         public readonly instruction: InstInterface,
         public readonly scope?: ScopeInterface) {
         super();

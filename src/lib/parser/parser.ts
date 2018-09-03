@@ -2,9 +2,9 @@ import { TokenInterface } from '../scanner/types';
 import { TokenType } from '../scanner/tokentypes';
 import { ParseErrorInterface, ExprResult, TokenResult, InstResult, ExprInterface, ScopeInterface, InstInterface } from './types';
 import { ParseError } from './parserError';
-import { Expr, ExprLiteral, ExprGrouping, ExprVariable, ExprCall, ExprDelegate, ExprArrayBracket, ExprArrayIndex, ExprFactor, ExprUnary, ExprBinary, ExprSuffix } from './expr';
-import { Inst, InstructionBlock, OnOffInst, CommandInst, CommandExpressionInst, UnsetInst, UnlockInst, SetInst, LockInst, LazyGlobalInst, ElseInst, IfInst, UntilInst, FromInst, WhenInst, ReturnInst, SwitchInst, ForInst, OnInst, ToggleInst, WaitInst, LogInst, CopyInst, RenameInst, DeleteInst, RunInst, RunPathInst, RunPathOnceInst, CompileInst, ListInst, EmptyInst, PrintInst } from './inst';
-import { Scope, FunctionDeclartion, DefaultParameter, ParameterDeclaration, VariableDeclaration } from './declare';
+import { Expr, ExprLiteral, ExprGrouping, ExprVariable, ExprCall, ExprDelegate, ExprArrayBracket, ExprArrayIndex, ExprFactor, ExprUnary, ExprBinary, ExprSuffix, ExprAnonymousFunction } from './expr';
+import { Inst, InstructionBlock, OnOffInst, CommandInst, CommandExpressionInst, UnsetInst, UnlockInst, SetInst, LazyGlobalInst, ElseInst, IfInst, UntilInst, FromInst, WhenInst, ReturnInst, SwitchInst, ForInst, OnInst, ToggleInst, WaitInst, LogInst, CopyInst, RenameInst, DeleteInst, RunInst, RunPathInst, RunPathOnceInst, CompileInst, ListInst, EmptyInst, PrintInst, ExprInst } from './inst';
+import { Scope, FunctionDeclartion, DefaultParameter, ParameterDeclaration, VariableDeclaration, LockDeclaration } from './declare';
 
 export class Parser {
     private readonly _tokens: TokenInterface[]
@@ -36,7 +36,7 @@ export class Parser {
     private declaration = (): InstResult => {
         try {
             if ([TokenType.Declare, TokenType.Local, TokenType.Global, 
-                TokenType.Parameter, TokenType.Function].some(t => this.check(t))) {
+                TokenType.Parameter, TokenType.Function, TokenType.Lock].some(t => this.check(t))) {
                 return this.define();
             }
     
@@ -71,17 +71,27 @@ export class Parser {
         if (this.match(TokenType.Parameter)) {
             return this.declareParameter(scopeDeclare);
         }
+        if (this.match(TokenType.Lock)) {
+            return this.declareLock(scopeDeclare);
+        }
+        if (scopeDeclare) {
+            return this.declareVariable(scopeDeclare);
+        }
 
-        const suffix = this.suffix();
-        return this.declareVariable(suffix, scopeDeclare);
+        throw this.error(this.peek(), 'Expected Function parameter or variable declaration.')
     }
 
     // parse function declaration
     private declareFunction = (scope?: ScopeInterface): InstInterface => {
         const functionToken = this.previous();
-        const instructionBlock = this.instructionBlock();
+        const functionIdentiifer = this.consume("Expected identifier.", TokenType.Identifier);
 
-        return new FunctionDeclartion(functionToken, instructionBlock, scope);
+        if (this.match(TokenType.CurlyOpen)) {
+            const instructionBlock = this.instructionBlock();
+            return new FunctionDeclartion(functionToken, functionIdentiifer, instructionBlock, scope);
+        }
+
+        throw this.error(this.peek(), 'Expected instruction block starting with "{"')
     }
 
     // parse parameter declaration
@@ -102,7 +112,7 @@ export class Parser {
 
         // check if default parameter
         if (this.match(TokenType.Is) || this.match(TokenType.To)) {
-            let toIs = this.consume('Expected "is" or "to"', TokenType.To, TokenType.Is)
+            let toIs = this.previous();
             let value = this.expression();
             defaultParameters.push(new DefaultParameter(identifer, toIs, value));
 
@@ -118,6 +128,29 @@ export class Parser {
 
         return new ParameterDeclaration(parameterToken, parameters, defaultParameters, scope);
     }
+
+    // parse lock instruction
+    private declareLock = (scope?: ScopeInterface): InstInterface => {
+        const lock = this.previous();
+        const identifer = this.consume('Expected identifier.', TokenType.Identifier);
+        const to = this.consume('Expected "to".', TokenType.To);
+        const value = this.expression();
+
+        return new LockDeclaration(lock, identifer, to, value, scope);
+    }
+
+    // parse a variable declaration, scoping occurs elseware
+    private declareVariable = (scope: ScopeInterface): InstInterface => {
+        const suffix = this.suffix();
+
+        const toIs = this.consume('Expected "to" or "is".', TokenType.To, TokenType.Is);
+        const value = this.expression();
+        this.terminal();
+
+        return new VariableDeclaration(suffix, toIs, value, scope);
+    }
+
+    
 
     // testing function / utility
     public parseInstruction = (): InstResult => {
@@ -144,7 +177,8 @@ export class Parser {
             case TokenType.FileIdentifier:
             case TokenType.BracketOpen:
             case TokenType.String:
-                this.advance();
+                // note we don't advance the token index here
+                // TODO see if there exists a more general solution
                 return this.identifierLedInstruction();
             case TokenType.Stage:
             case TokenType.Clearscreen:
@@ -167,10 +201,7 @@ export class Parser {
             case TokenType.Set:
                 this.advance();
                 return this.set();
-            case TokenType.Lock:
-                this.advance();
-                return this.lock();
-            case TokenType.LazyGlobal:
+            case TokenType.AtSign:
                 this.advance();
                 return this.lazyGlobal();
             case TokenType.If:
@@ -243,41 +274,33 @@ export class Parser {
     // parse a block of instructions
     private instructionBlock = (): InstInterface => {
         const open = this.previous();
-        const instructions: Inst[] = [];
+        const declarations: Inst[] = [];
 
         // while not at end and until closing curly keep parsing instructions
         while (!this.check(TokenType.CurlyClose) && !this.isAtEnd()) {
-            const instruction = this.instruction();
-            instructions.push(instruction);
+            const declaration = this.declaration();
+
+            if (declaration.tag === 'inst') {
+                declarations.push(declaration);
+            }
         }
 
         // check closing curly is found
         const close = this.consume('Expected "}" to finish instruction block', TokenType.CurlyClose);
-        return new InstructionBlock(open, instructions, close);
+        return new InstructionBlock(open, declarations, close);
     }
 
     // parse an instruction lead with a identifier
     private identifierLedInstruction = (): InstInterface => {
         const suffix = this.suffix();
 
-        if (this.match(TokenType.To, TokenType.Is)) {
-            return this.declareVariable(suffix);
-        }
         if (this.match(TokenType.On, TokenType.Off)) {
             return this.onOff(suffix);
         }
-
-        throw this.error(this.peek(), 'Expected "to", "is", "on", "off"');
-    } 
-
-    // parse a variable declaration, scoping occurs elseware
-    private declareVariable = (suffix: ExprInterface, scope?: ScopeInterface): InstInterface => {
-        const toIs = this.previous();
-        const value = this.expression();
         this.terminal();
 
-        return new VariableDeclaration(suffix, toIs, value, scope);
-    }
+        return new ExprInst(suffix);
+    } 
 
     // parse on off statement
     private onOff = (suffix: ExprInterface): InstInterface => {
@@ -330,16 +353,6 @@ export class Parser {
         return new SetInst(set, suffix, to, value);
     }
 
-    // parse lock instruction
-    private lock = (): InstInterface => {
-        const lock = this.previous();
-        const identifer = this.consume('Expected identifier.', TokenType.Identifier);
-        const to = this.consume('Expected "to".', TokenType.To);
-        const value = this.expression();
-
-        return new LockInst(lock, identifer, to, value);
-    }
-
     // parse lazy global
     private lazyGlobal = (): InstInterface => {
         const atSign = this.previous();
@@ -385,14 +398,19 @@ export class Parser {
     // parse from instruction
     private from = (): InstInterface => {
         const from = this.previous();
-        const initializer = this.instructionBlock();
-        const until = this.consume('Expected "until".', TokenType.Until);
-        const condition = this.expression();
-        const increment = this.instructionBlock();
-        const doToken = this.consume('Expected "do".', TokenType.Do);
-        const instruction = this.instruction();
-
-        return new FromInst(from, initializer, until, condition, increment, doToken, instruction);
+        if (this.match(TokenType.CurlyOpen)) {
+            const initializer = this.instructionBlock();
+            const until = this.consume('Expected "until".', TokenType.Until);
+            const condition = this.expression();
+            const step = this.consume('Expected "step".', TokenType.Step);
+            if (this.match(TokenType.CurlyOpen)) {
+                const increment = this.instructionBlock();
+                const doToken = this.consume('Expected "do".', TokenType.Do);
+                const instruction = this.instruction();
+                return new FromInst(from, initializer, until, condition, step, increment, doToken, instruction);
+            }
+       }
+       throw this.error(this.peek(), 'Expected "{".');
     }
 
     // parse when instruction
@@ -534,7 +552,7 @@ export class Parser {
             : undefined;
         
         const identifier = this.consume('Expected string or fileidentifier.',
-            TokenType.String, TokenType.FileIdentifier);
+            TokenType.String, TokenType.Identifier, TokenType.FileIdentifier);
         
         // parse arguments if found
         if (this.match(TokenType.BracketOpen)) {
@@ -626,7 +644,7 @@ export class Parser {
 
         if (this.match(TokenType.At)) {
             at = this.previous();
-            open = this.previous();
+            open = this.consume('Expected "(".', TokenType.BracketOpen);
             x = this.expression();
             this.consume('Expected ",".', TokenType.Comma);
             y = this.expression();
@@ -753,7 +771,7 @@ export class Parser {
     // parse suffix term expression
     private suffixTerm = (): ExprInterface => {
         // parse primary
-        let expr = this.primary();
+        let expr = this.atom();
 
         // parse any trailers that exist
         while (true) {
@@ -802,7 +820,7 @@ export class Parser {
         const open = this.previous();
         const index = this.expression();
 
-        const close = this.consume('Expected "]" at end of array index.', TokenType.BracketClose)
+        const close = this.consume('Expected "]" at end of array index.', TokenType.SquareClose)
         return new ExprArrayBracket(array, open, index, close);
     }
 
@@ -817,16 +835,39 @@ export class Parser {
         return new ExprArrayIndex(array, indexer, index);
     }
 
-    // match primary expressions literals, identifers, and parenthesis
-    private primary = (): ExprInterface => {
+    // parse anonymouse function
+    private anonymousFunction = (): ExprInterface => {
+        const open = this.previous();
+        const declarations: Inst[] = [];
+
+        // while not at end and until closing curly keep parsing instructions
+        while (!this.check(TokenType.CurlyClose) && !this.isAtEnd()) {
+            const declaration = this.declaration();
+
+            if (declaration.tag === 'inst') {
+                declarations.push(declaration);
+            }
+        }
+
+        // check closing curly is found
+        const close = this.consume('Expected "}" to finish instruction block', TokenType.CurlyClose);
+        return new ExprAnonymousFunction(open, declarations, close);
+    }
+
+    // match atom expressions literals, identifers, list, and parenthesis
+    private atom = (): ExprInterface => {
         // match all literals
         if (this.match(TokenType.False, TokenType.True,
             TokenType.String, TokenType.Integer, TokenType.Double)) {
             return new ExprLiteral(this.previous());
         }
 
-        // match identifiers
-        if (this.match(TokenType.Identifier, TokenType.FileIdentifier)) {
+        // match identifiers TODO identifier all keywords that can be used here
+        if (this.match(
+                TokenType.Identifier, TokenType.FileIdentifier, 
+                TokenType.List, TokenType.Add, TokenType.Toggle, 
+                TokenType.From, TokenType.To, TokenType.Step, TokenType.Remove,
+                TokenType.E)) {
             return new ExprVariable(this.previous());
         }
 
@@ -837,6 +878,10 @@ export class Parser {
             const close = this.consume('Expect ")" after expression', TokenType.BracketClose);
             
             return new ExprGrouping(open, expr, close);
+        }
+
+        if (this.match(TokenType.CurlyOpen)) {
+            return this.anonymousFunction()
         }
 
         // valid expression not found

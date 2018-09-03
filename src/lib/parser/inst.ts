@@ -16,6 +16,13 @@ export class InstructionBlock extends Inst {
     }
 }
 
+export class ExprInst extends Inst {
+    constructor(
+        public readonly suffix: ExprInterface) {
+        super();
+    }
+}
+
 export class OnOffInst extends Inst {
     constructor(
         public readonly suffix: ExprInterface,
@@ -64,16 +71,6 @@ export class SetInst extends Inst {
     }
 }
 
-export class LockInst extends Inst {
-    constructor(
-        public readonly lock: TokenInterface,
-        public readonly identifier: TokenInterface,
-        public readonly to: TokenInterface,
-        public readonly value: ExprInterface) {
-        super();
-    }
-}
-
 export class LazyGlobalInst extends Inst {
     constructor(
         public readonly atSign: TokenInterface,
@@ -116,6 +113,7 @@ export class FromInst extends Inst {
         public readonly initializer: InstInterface,
         public readonly until: TokenInterface,
         public readonly condition: ExprInterface,
+        public readonly step: TokenInterface,
         public readonly increment: InstInterface,
         public readonly doToken: TokenInterface,
         public readonly instruction: InstInterface) {
