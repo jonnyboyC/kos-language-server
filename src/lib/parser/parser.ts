@@ -15,6 +15,7 @@ export class Parser {
         this._current = 0;
     }
 
+    // parse tokens
     public parse(): [Inst[], ParseErrorInterface[]] {
         const instructions: Inst[] = [];
         const errors: ParseErrorInterface[] = [];
@@ -33,6 +34,7 @@ export class Parser {
         return [instructions, errors];
     }
 
+    // parse declaration attempt to synchronize
     private declaration = (): InstResult => {
         try {
             if ([TokenType.Declare, TokenType.Local, TokenType.Global, 
@@ -65,6 +67,7 @@ export class Parser {
             ? new Scope(scope, declare)
             : undefined;
 
+        // match declaration
         if (this.match(TokenType.Function)) {
             return this.declareFunction(scopeDeclare);
         }
@@ -150,8 +153,6 @@ export class Parser {
         return new VariableDeclaration(suffix, toIs, value, scope);
     }
 
-    
-
     // testing function / utility
     public parseInstruction = (): InstResult => {
         try {
@@ -164,6 +165,7 @@ export class Parser {
         }
     }
 
+    // parse instruction
     public instruction = (): InstInterface => {
         switch (this.peek().type) {
             case TokenType.CurlyOpen:
@@ -795,7 +797,9 @@ export class Parser {
     private functionTrailer = (callee: Expr): ExprInterface => {
         const open = this.previous();
         const args = this.arguments();
-        if (isArgsError(args)) throw args;
+        if (isArgsError(args)) {
+            throw args;
+        }
 
         const close = this.consume('Expect ")" after arguments.', TokenType.BracketClose);
         
