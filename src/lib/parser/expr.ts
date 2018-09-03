@@ -8,14 +8,11 @@ export class Expr implements ExprInterface {
 }
 
 export class ExprBinary extends Expr {
-    public left: ExprInterface;
-    public operator: TokenInterface;
-    public right: ExprInterface;
-    constructor(left: ExprInterface, operator: TokenInterface, right: ExprInterface) {
+    constructor(
+        public readonly left: ExprInterface, 
+        public readonly operator: TokenInterface, 
+        public readonly right: ExprInterface) {
         super()
-        this.left = left;
-        this.operator = operator;
-        this.right = right;
     }
 
     public toString(): string {
@@ -24,12 +21,10 @@ export class ExprBinary extends Expr {
 }
 
 export class ExprUnary extends Expr {
-    public operator: TokenInterface;
-    public factor: ExprInterface;
-    constructor(operator: TokenInterface, factor: ExprInterface) {
+    constructor(
+        public readonly operator: TokenInterface, 
+        public readonly factor: ExprInterface) {
         super();
-        this.factor = factor;
-        this.operator = operator;
     }
 
     public toString(): string {
@@ -38,14 +33,11 @@ export class ExprUnary extends Expr {
 }
 
 export class ExprFactor extends Expr {
-    public suffix: ExprInterface;
-    public power: TokenInterface;
-    public exponent: ExprInterface;
-    constructor(suffix: ExprInterface, power: TokenInterface, exponent: ExprInterface) {
+    constructor(
+        public readonly suffix: ExprInterface, 
+        public readonly power: TokenInterface, 
+        public readonly exponent: ExprInterface) {
         super();
-        this.suffix = suffix;
-        this.power = power;
-        this.exponent = exponent;
     }
 
     public toString(): string {
@@ -54,14 +46,11 @@ export class ExprFactor extends Expr {
 }
 
 export class ExprSuffix extends Expr {
-    public suffix: ExprInterface;
-    public colon: TokenInterface;
-    public trailer: ExprInterface;
-    constructor(suffix: ExprInterface, colon: TokenInterface, trailer: ExprInterface) {
+    constructor(
+        public readonly suffix: ExprInterface, 
+        public readonly colon: TokenInterface, 
+        public readonly trailer: ExprInterface) {
         super();
-        this.suffix = suffix;
-        this.colon = colon;
-        this.trailer = trailer;
     }
 
     public toString(): string {
@@ -70,16 +59,12 @@ export class ExprSuffix extends Expr {
 }
 
 export class ExprCall extends Expr {
-    public callee: ExprInterface;
-    public open: TokenInterface;
-    public args: ExprInterface[];
-    public close: TokenInterface;
-    constructor(callee: ExprInterface, open: TokenInterface, args: ExprInterface[], close: TokenInterface) {
+    constructor(
+        public readonly callee: ExprInterface, 
+        public readonly open: TokenInterface, 
+        public readonly args: ExprInterface[], 
+        public readonly close: TokenInterface) {
         super();
-        this.callee = callee;
-        this.open = open;
-        this.args = args;
-        this.close = close;
     }
 
     public toString(): string {
@@ -88,14 +73,11 @@ export class ExprCall extends Expr {
 }
 
 export class ExprArrayIndex extends Expr {
-    public array: ExprInterface;
-    public indexer: TokenInterface;
-    public index: TokenInterface;
-    constructor(array: ExprInterface, indexer: TokenInterface, index: TokenInterface) {
+    constructor(
+        public readonly array: ExprInterface, 
+        public readonly indexer: TokenInterface, 
+        public readonly index: TokenInterface) {
         super();
-        this.array = array;
-        this.indexer = indexer;
-        this.index = index;
     }
 
     public toString(): string {
@@ -104,16 +86,12 @@ export class ExprArrayIndex extends Expr {
 }
 
 export class ExprArrayBracket extends Expr {
-    public array: ExprInterface;
-    public open: TokenInterface;
-    public index: ExprInterface;
-    public close: TokenInterface;
-    constructor(array: ExprInterface, open: TokenInterface, index: ExprInterface, close: TokenInterface) {
+    constructor(
+        public readonly array: ExprInterface, 
+        public readonly open: TokenInterface, 
+        public readonly index: ExprInterface,
+        public readonly close: TokenInterface) {
         super();
-        this.array = array;
-        this.open = open;
-        this.index = index;
-        this.close = close;
     }
 
     public toString(): string {
@@ -122,12 +100,10 @@ export class ExprArrayBracket extends Expr {
 }
 
 export class ExprDelegate extends Expr {
-    public variable: ExprInterface;
-    public atSign: TokenInterface;
-    constructor (variable: ExprInterface, atSign: TokenInterface) {
+    constructor (
+        public readonly variable: ExprInterface, 
+        public readonly atSign: TokenInterface) {
         super();
-        this.variable = variable;
-        this.atSign = atSign
     }
     
     public toString(): string {
@@ -136,10 +112,8 @@ export class ExprDelegate extends Expr {
 }
 
 export class ExprLiteral extends Expr {
-    public token: TokenInterface;
-    constructor(token: TokenInterface) {
+    constructor(public readonly token: TokenInterface) {
         super();
-        this.token = token;
     }
 
     public toString(): string {
@@ -148,10 +122,10 @@ export class ExprLiteral extends Expr {
 }
 
 export class ExprVariable extends Expr {
-    public token: TokenInterface;
-    constructor(token: TokenInterface) {
+    constructor(
+        public readonly token: TokenInterface,
+        public readonly isKeyword: boolean) {
         super();
-        this.token = token;
     }
 
     public toString(): string {
@@ -160,15 +134,11 @@ export class ExprVariable extends Expr {
 }
 
 export class ExprGrouping extends Expr {
-    public open: TokenInterface;
-    public close: TokenInterface;
-    public expr: ExprInterface;
-
-    constructor(open: TokenInterface, expr: ExprInterface, close: TokenInterface) {
+    constructor(
+        public readonly open: TokenInterface, 
+        public readonly expr: ExprInterface, 
+        public readonly close: TokenInterface) {
         super();
-        this.open = open;
-        this.expr = expr;
-        this.close = close;
     }
 
     public toString(): string {

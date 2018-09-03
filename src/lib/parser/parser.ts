@@ -1,5 +1,5 @@
 import { TokenInterface } from '../scanner/types';
-import { TokenType } from '../scanner/tokentypes';
+import { TokenType, isValidIdentifier } from '../scanner/tokentypes';
 import { ParseErrorInterface, ExprResult, TokenResult, InstResult, ExprInterface, ScopeInterface, InstInterface } from './types';
 import { ParseError } from './parserError';
 import { Expr, ExprLiteral, ExprGrouping, ExprVariable, ExprCall, ExprDelegate, ExprArrayBracket, ExprArrayIndex, ExprFactor, ExprUnary, ExprBinary, ExprSuffix, ExprAnonymousFunction } from './expr';
@@ -867,12 +867,8 @@ export class Parser {
         }
 
         // match identifiers TODO identifier all keywords that can be used here
-        if (this.match(
-                TokenType.Identifier, TokenType.FileIdentifier, 
-                TokenType.List, TokenType.Add, TokenType.Toggle, 
-                TokenType.From, TokenType.To, TokenType.Step, TokenType.Remove,
-                TokenType.E)) {
-            return new ExprVariable(this.previous());
+        if (isValidIdentifier(this.peek().type)) {
+            return new ExprVariable(this.advance());
         }
 
         // match grouping expression

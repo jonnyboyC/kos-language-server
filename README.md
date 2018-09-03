@@ -3,3 +3,185 @@
 An in progress language server for the [KOS](https://github.com/KSP-KOS/KOS) mod for Kerbal Space Program. This project is heavily inspired by the [crafting interpreters](http://craftinginterpreters.com/) series
 
 As of now the language server is a mostly compliant parser of kerboscripts, via documentation and interpreting the KOS parser source code. The current assummed language spec is below
+
+```
+// program
+program -> declaration*
+
+// declarations
+declaration -> ( instruction
+    | variableDeclaration
+    | lockDeclaration
+    | functionDeclaration
+    | parameterDeclaration
+)
+
+variableDeclaration -> scope suffix ( 'to' | 'is' ) expression '.'
+lockDeclaration -> scope? 'lock' idenitifer 'to' expression '.'
+parameterDeclaration -> scope? 'parameter' parameters '.'
+functionDeclaration -> scope? 'function' instructionBlock '.'?
+
+// declaration components
+scope -> 'declare'? ('local' | 'global')?
+
+// parameters
+parameters -> ( parameter (',' parameters)? 
+    | defaultParameters
+)
+defaultParameters -> defaultParameter (',' defaultParameters)?
+parameter -> ( idenitifer | defaultParameter )
+defaultParameter -> idenitifer ( 'to' | 'is' ) expression
+
+// instructions
+instruction -> ( instructionBlock
+    | identifierInstruction
+    | commandinstruction
+    | commandExpressioninstruction
+    | unset
+    | unlock
+    | set
+    | lazyGlobal
+    | if
+    | until
+    | from
+    | when
+    | break
+    | return
+    | switch
+    | for
+    | on
+    | toggle
+    | wait
+    | log
+    | copy
+    | rename
+    | delete
+    | run
+    | runPath
+    | runOncePath
+    | compile
+    | list
+    | empty
+    | print
+)
+
+// directive
+lazyGlobal -> '@' 'lazyglobal' onOff '.'
+
+// block
+instructionBlock -> '{' declarations* '}'
+
+// control flow
+if -> 'if' expression instruction '.'? ('else' instruction '.'?)? 
+until -> 'until' expression instruction '.'?
+from -> 'from' instructionBlock 'until' expression 'step' instructionBlock 'do' instruction
+when -> 'when' expression 'then' instruction '.'?
+break -> 'break' '.'
+return -> 'return' expression? '.'
+for -> 'for' idenitifer 'in' suffix instruction '.'?
+on -> 'on' suffix instruction
+toggle -> 'toggle' suffix '.'
+wait -> 'wait' 'until'? expression '.'
+
+// variables
+set -> 'set' suffix 'to' expression '.'
+unset -> 'unset' ( 'all' | idenitifer ) '.'
+unlock -> 'unlock' ( 'all' | idenitifer ) '.'
+
+// io
+copy -> 'copy' expression ( 'to' | 'from' ) expression '.'
+switch -> 'switch' 'to' expression '.'
+log -> 'log' expression 'to' expression '.'
+rename -> 'rename' ioIdentifier expression 'to' expression '.'
+delete -> 'delete' expression ('from' expression)? '.'
+compile -> 'compile' expression ('to' expression)? '.'
+run -> 'run' 'once'? ( string | fileIdentifier ) ('(' arguments ')')? '.' // on??
+runPath -> 'runPath' '(' expression (',' arguments)? ')' '.'
+runOncePath -> 'runOncePath' '(' expression (',' arguments)? ')' '.'
+print -> 'print' expression ('at' '(' expression ',' expression ')')? '.'
+
+// misc
+empty -> '.'
+list -> 'list' (idenitifer ('in' idenitifer)?)? '.'
+
+// command instruction
+commandExpressioninstruction -> commandExpression expression '.'
+commandinstruction -> command '.'
+
+// identifier instructions
+identifierInstruction -> suffix ( 'on' | 'off' )? '.'
+
+// expressions
+expression -> or
+
+// binary expresions
+or -> and ('or' and)?
+and -> equality ('and' equality)?
+equality -> comparison (( '=' | '<>' ) comparison)?
+comparison -> addition (( '<' | '>' | '<=' | '>=' ) addition)?
+addition -> multiplication (( '+' | '-' ) multiplication)?
+multiplication -> unary (( '*' | '/' ) unary)?
+
+// unary expressions
+unary -> ( '+' | '-' | 'not' | 'defined' )? factor
+factor -> suffix ('^' suffix)*
+suffix -> suffixTerm (suffixtrailer)*
+suffixtrailer -> ':' suffixTerm
+suffixTerm -> atom (suffixTermTrailer* | delegate)
+suffixTermTrailer -> ( call 
+    | arrayIndex 
+    | arrayBracket
+)
+call -> '(' arguments ')'
+arrayIndex -> '#' ( idenitifer | integer )
+arrayBracket -> '[' expression ']'
+delegate -> '@' 
+
+// expresion components
+arguments -> expression? (',' expression)*
+
+// atom
+atom -> ( literal
+    | fileIdentifier
+    | idenitifer
+    | '(' expression ')'
+)
+
+// literal
+literal -> ( number
+    | string
+    | 'true'
+    | 'false'
+)
+
+idenitifer -> ([all valid letter] | '_')*
+fileIdentifier -> idenitifer ('.' idenitifer)*
+
+string -> '"' [utf-16]* '"'
+integer -> sub_number
+double -> base ('e' ('+' | '-') sub_number)?
+base -> (sub_number 
+    | '.' sub_number 
+    | sub_number '.' sub_number
+)
+
+sub_number -> [0-9] ([0-9_]* [0-9])*
+
+// lists
+command -> ( 'stage' 
+    | 'clearscreen' 
+    | 'preserve' 
+    | 'reboot' 
+    | 'shutdown'
+)
+commandExpression -> ( 'edit' 
+    | 'add' 
+    | 'remove'
+)
+ioIdentifier -> ( 'file' | 
+    'volume' 
+) 
+number -> ( integer |
+    double
+)
+```
