@@ -37,7 +37,7 @@ export enum TokenType {
     LazyGlobal,
 }
 
-const isValidIdentifier = (type: TokenType): boolean => {
+export const isValidIdentifier = (type: TokenType): boolean => {
     switch (type) {
         case TokenType.E:
         case TokenType.Not:

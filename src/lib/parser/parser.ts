@@ -868,7 +868,8 @@ export class Parser {
 
         // match identifiers TODO identifier all keywords that can be used here
         if (isValidIdentifier(this.peek().type)) {
-            return new ExprVariable(this.advance());
+            const isKeyword = this.peek().type !== TokenType.Identifier;
+            return new ExprVariable(this.advance(), isKeyword);
         }
 
         // match grouping expression
