@@ -3,14 +3,22 @@
   "version": "1.0.0",
   "description": "KOS language client",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+	"engines": {
+		"vscode": "^1.23.0"
+	},
+	"scripts": {
+		"update-vscode": "vscode-install",
+		"postinstall": "vscode-install"
+	},
   "keywords": [
     "KOS",
     "language-server",
     "KSP"
   ],
   "author": "John Chabot",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "vscode": "^1.1.21",
+    "vscode-languageclient": "^5.0.1"
+  }
 }

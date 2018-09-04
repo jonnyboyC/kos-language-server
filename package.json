@@ -4,49 +4,28 @@
   "description": "kos vscode extension",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "vscode:prepublish": "node ./node_modules/vscode/bin/compile",
+		"compile": "node ./node_modules/vscode/bin/compile -watch -p ./",
+    "watch": "node ./node_modules/typescript/bin/tsc -w -p ./src",
+    "postinstall": "node ./node_modules/vscode/bin/install"
   },
-  "contributes": {
-    "languages": [
-      {
-        "id": "kos"
-      }
-    ],
-    "grammars": [
-      {
-        "language": "kos",
-        "scopeName": "source.id",
-        "path": "./syntaxes/kos.tmLanguage.json"
-      }
-    ],
-		"configuration": {
-			"type": "object",
-			"title": "Example configuration",
-			"properties": {
-				"languageServerExample.maxNumberOfProblems": {
-					"scope": "resource",
-					"type": "number",
-					"default": 100,
-					"description": "Controls the maximum number of problems produced by the server."
-				},
-				"languageServerExample.trace.server": {
-					"scope": "window",
-					"type": "string",
-					"enum": [
-						"off",
-						"messages",
-						"verbose"
-					],
-					"default": "off",
-					"description": "Traces the communication between VS Code and the language server."
-				}
-			}
-		}
-	},
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jonnyboyC/kos-language-server.git"
+		"url": "https://github.com/jonnyboyC/kos-language-server"
   },
+  "contributes": {
+    "languages": [{
+			"id": "kos",
+			"aliases": ["Kerbal Operating System", "kos"],
+			"extensions": [".ks"],
+			"configuration": "./kos.configuration.json"
+    }],
+    "grammars": [{
+      "language": "kos",
+      "scopeName": "source.kos",
+      "path": "./syntaxes/kos.tmLanguage.json"
+    }],
+	},
   "keywords": [
     "kos",
     "ksp",

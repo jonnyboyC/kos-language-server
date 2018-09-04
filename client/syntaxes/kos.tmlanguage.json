@@ -1,27 +1,10 @@
 {
-    "information_for_contributors": [
-        "This file has been converted from https://github.com/Microsoft/TypeScript-TmLanguage/blob/master/TypeScriptReact.tmLanguage",
-        "If you want to provide a fix or improvement, please create a pull request against the original repository.",
-        "Once accepted there, we are happy to receive an update request."
-    ],
-    "version": "https://github.com/Microsoft/TypeScript-TmLanguage/commit/67d50d27f0c459e6ccc9adc6645454ecb1c2406c",
-    "name": "JavaScript (with React support)",
+    "version": "",
+    "name": "Kerbal Operating System",
     "scopeName": "source.js",
     "patterns": [
         {
-            "include": "#directives"
-        },
-        {
             "include": "#statements"
-        },
-        {
-            "name": "comment.line.shebang.ts",
-            "match": "\\A(#!).*(?=$)",
-            "captures": {
-                "1": {
-                    "name": "punctuation.definition.comment.ts"
-                }
-            }
         }
     ],
 	"repository": {
@@ -40,7 +23,7 @@
 					"include": "#control-instructions"
 				},
 				{
-					"include": "#punctuation-semicolon"
+					"include": "#punctuation-period"
 				}
 			]
         },
@@ -95,7 +78,56 @@
             ]
         },
         "comment": {
-
+            "name": "comment.line.double-slash.ks",
+            "begin": "(//)",
+            "beginCaptures": {
+                "0": {
+                    "name": "comment.line.double-slash.ks"
+                }
+            },
+            "contentName": "comment.line.comment",
+            "end": "\\n"
+        },
+        "string": {
+            "name": "string.ks",
+            "begin": "\"",
+            "beginCaptures": {
+                "0": {
+                    "name": "punctuation.definition.string.begin.ks"
+                }
+            },
+            "end": "\"",
+            "endCaptures": {
+                "0": {
+                    "name": "punctuation.definition.string.end.ks"
+                }
+            }
+        },
+        "literal": {
+            "patterns": [
+                {
+                    "include": "#numeric-literal"
+                },
+                {
+                    "include": "#boolean-literal"
+                }
+            ]
+        },
+        "numeric-literal": {
+            "patterns": [
+                {
+                    "name": "constant.numeric.integer",
+                    "match": "\\b[0-9]((?[0-9]|(_))*[0-9])\\b"
+                },
+                {
+                    "name": "constant.numeric.double",
+                    "match": "\b([0-9]((?[0-9]|(_))*[0-9]))?"
+                }
+            ]
+        },
+        "punctuation-period": {
+            "name": "punctuation.terminator.instruction.ks",
+            "match": "(\\.)\\b"
         }
 	}
 }
