@@ -1,0 +1,24 @@
+{
+  "name": "kos-extension",
+  "version": "1.0.0",
+  "description": "kos vscode extension",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jonnyboyC/kos-language-server.git"
+  },
+  "keywords": [
+    "kos",
+    "ksp",
+    "language-server"
+  ],
+  "author": "John Chabot",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jonnyboyC/kos-language-server/issues"
+  },
+  "homepage": "https://github.com/jonnyboyC/kos-language-server#readme"
+}

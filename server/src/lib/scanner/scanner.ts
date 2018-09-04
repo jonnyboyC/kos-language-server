@@ -3,21 +3,22 @@ import { TokenMap, ScanResult, TokenInterface, SyntaxErrorInterface } from './ty
 import { Token, Marker } from './token';
 import { WhiteSpace } from './whitespace';
 import { KosSyntaxError } from './kosSyntaxError'
+import { Position } from 'vscode-languageserver';
 
 export class Scanner {
     private readonly _source: string
     private _start: number;
     private _current: number;
-    private _currentMarker: Marker;
-    private _startMarker: Marker;
+    private _currentPosition: Position;
+    private _startPosition: Position;
 
     // scanner initializer
     constructor(source: string) {
         this._source = source.toLowerCase();
         this._start = 0;
         this._current = 0;
-        this._startMarker = new Marker(1, 1)
-        this._currentMarker = new Marker(1, 1)
+        this._startPosition = new Marker(1, 1)
+        this._currentPosition = new Marker(1, 1)
     }
 
     // scan all available tokesn
@@ -30,7 +31,7 @@ export class Scanner {
         while (!this.isAtEnd()) 
         {
             this._start = this._current;
-            this._startMarker = this._currentMarker;
+            this._startPosition = this._currentPosition;
             const result = this.scanToken();
             switch (result.tag) {
                 case 'token':
@@ -223,8 +224,8 @@ export class Scanner {
         const text = this._source.substr(this._start, this._current - this._start);
         return new Token(
             type, text, literal, 
-            new Marker(this._startMarker.line, this._startMarker.column),
-            new Marker(this._currentMarker.line, this._currentMarker.column)
+            new Marker(this._startPosition.line, this._startPosition.character),
+            new Marker(this._currentPosition.line, this._currentPosition.character)
         );
     }
 
@@ -232,20 +233,20 @@ export class Scanner {
     private generateError(message: string): SyntaxErrorInterface {
         return new KosSyntaxError(
             message,
-            new Marker(this._startMarker.line, this._startMarker.column),
-            new Marker(this._currentMarker.line, this._currentMarker.column)
+            new Marker(this._startPosition.line, this._startPosition.character),
+            new Marker(this._currentPosition.line, this._currentPosition.character)
         );
     }
 
     // increment line
     private incrementLine(): void {
-        this._currentMarker = new Marker(this._currentMarker.line + 1, 1);
+        this._currentPosition = new Marker(this._currentPosition.line + 1, 1);
     }
 
     // incremet file pointer
     private increment(): void {
         this._current++;
-        this._currentMarker = new Marker(this._currentMarker.line, this._currentMarker.column + 1);
+        this._currentPosition = new Marker(this._currentPosition.line, this._currentPosition.character + 1);
     }
 
     // Is end of file

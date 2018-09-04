@@ -1,15 +1,16 @@
-import { TokenInterface, MarkerInterface } from './types';
+import { TokenInterface } from './types';
 import { TokenType } from './tokentypes';
+import { Position } from 'vscode-languageserver';
 
 export class Token implements TokenInterface {
     public readonly type: TokenType;
     public readonly lexeme: string;
     public readonly literal: any;
-    public readonly start: MarkerInterface;
-    public readonly end: MarkerInterface
+    public readonly start: Position;
+    public readonly end: Position
     ;
 
-    constructor(type: TokenType, lexeme: string, literal: any, start: MarkerInterface, end: MarkerInterface) {
+    constructor(type: TokenType, lexeme: string, literal: any, start: Position, end: Position) {
         this.type = type;
         this.lexeme = lexeme;
         this.literal = literal;
@@ -33,12 +34,12 @@ export class Token implements TokenInterface {
     }
 }
 
-export class Marker implements MarkerInterface {
+export class Marker implements Position {
     public readonly line: number;
-    public readonly column: number;
+    public readonly character: number;
 
-    constructor(line: number, column: number) {
+    constructor(line: number, character: number) {
         this.line = line;
-        this.column = column;
+        this.character = character;
     }
 }

@@ -1,4 +1,5 @@
 import { TokenType } from './tokentypes';
+import { Position } from 'vscode-languageserver';
 
 export interface TokenMap {
     readonly [key: string]: TokenType
@@ -7,8 +8,8 @@ export interface TokenMap {
 export interface SyntaxErrorInterface {
     readonly tag: 'syntaxError',
     readonly message: string;
-    readonly start: MarkerInterface;
-    readonly end: MarkerInterface;
+    readonly start: Position;
+    readonly end: Position;
 }
 
 export interface WhiteSpaceInterface {
@@ -20,14 +21,9 @@ export interface TokenInterface {
     readonly type: TokenType,
     readonly lexeme: string,
     readonly literal: any;
-    readonly start: MarkerInterface;
-    readonly end: MarkerInterface;
+    readonly start: Position;
+    readonly end: Position;
     toString: () => string;
-}
-
-export interface MarkerInterface {
-    readonly line: number;
-    readonly column: number;
 }
 
 export type ScanResult = TokenInterface | SyntaxErrorInterface | WhiteSpaceInterface;

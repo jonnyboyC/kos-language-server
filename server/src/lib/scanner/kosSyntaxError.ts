@@ -1,12 +1,13 @@
-import { SyntaxErrorInterface, MarkerInterface } from './types';
+import { SyntaxErrorInterface } from './types';
+import { Position } from 'vscode-languageserver';
 
 export class KosSyntaxError implements SyntaxErrorInterface {
-    public readonly start: MarkerInterface;
-    public readonly end: MarkerInterface;
+    public readonly start: Position;
+    public readonly end: Position;
 
     public readonly message: string;
 
-    public constructor(message: string, start: MarkerInterface, end: MarkerInterface) {
+    public constructor(message: string, start: Position, end: Position) {
         this.message = message;
         this.start = start;
         this.end = end;
