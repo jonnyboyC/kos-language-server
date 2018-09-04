@@ -1,0 +1,101 @@
+{
+    "information_for_contributors": [
+        "This file has been converted from https://github.com/Microsoft/TypeScript-TmLanguage/blob/master/TypeScriptReact.tmLanguage",
+        "If you want to provide a fix or improvement, please create a pull request against the original repository.",
+        "Once accepted there, we are happy to receive an update request."
+    ],
+    "version": "https://github.com/Microsoft/TypeScript-TmLanguage/commit/67d50d27f0c459e6ccc9adc6645454ecb1c2406c",
+    "name": "JavaScript (with React support)",
+    "scopeName": "source.js",
+    "patterns": [
+        {
+            "include": "#directives"
+        },
+        {
+            "include": "#statements"
+        },
+        {
+            "name": "comment.line.shebang.ts",
+            "match": "\\A(#!).*(?=$)",
+            "captures": {
+                "1": {
+                    "name": "punctuation.definition.comment.ts"
+                }
+            }
+        }
+    ],
+	"repository": {
+		"statements": {
+			"patterns": [
+				{
+					"include": "#instructions"
+				},
+				{
+					"include": "#comment"
+				},
+				{
+					"include": "#declaration"
+				},
+				{
+					"include": "#control-instructions"
+				},
+				{
+					"include": "#punctuation-semicolon"
+				}
+			]
+        },
+        "declaration": {
+            "patterns": [
+                {
+                    "include": "#variable-declaration"
+                },
+                {
+                    "include": "#function-declaration"
+                },
+                {
+                    "include": "#lock-declaration"
+                },
+                {
+                    "include": "#parameter-declaration"
+                }
+            ]
+        },
+        "control-instructions": {
+            "patterns": [
+                {
+                    "include": "#if-instruction"
+                },
+                {
+                    "include": "#until-instruction"
+                },
+                {
+                    "include": "#from-instruction"
+                },
+                {
+                    "include": "#when-instruction"
+                },
+                {
+                    "include": "#break-instruction"
+                },
+                {
+                    "include": "#return-instruction"
+                },
+                {
+                    "include": "#for-instruction"
+                },
+                {
+                    "include": "#on-instruction"
+                },
+                {
+                    "include": "#toggle-instruction"
+                },
+                {
+                    "include": "#wait-instruction"
+                }
+            ]
+        },
+        "comment": {
+
+        }
+	}
+}
