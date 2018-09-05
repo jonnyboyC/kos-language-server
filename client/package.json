@@ -3,13 +3,17 @@
   "version": "1.0.0",
   "description": "KOS language client",
   "main": "index.js",
-	"engines": {
-		"vscode": "^1.23.0"
-	},
-	"scripts": {
-		"update-vscode": "vscode-install",
-		"postinstall": "vscode-install"
-	},
+  "engines": {
+    "vscode": "^1.25.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jonnyboyC/kos-language-server"
+  },
+  "scripts": {
+    "update-vscode": "vscode-install",
+    "postinstall": "vscode-install"
+  },
   "keywords": [
     "KOS",
     "language-server",

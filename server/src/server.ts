@@ -13,7 +13,6 @@ import {
 	ProposedFeatures,
 	InitializeParams,
 	CompletionItem,
-	CompletionItemKind,
 	TextDocumentPositionParams
 } from 'vscode-languageserver';
 import { Scanner } from './lib/scanner/scanner';
@@ -31,6 +30,7 @@ let workspaceFolder: string = '';
 
 connection.onInitialize((params: InitializeParams) => {
     const capabilities = params.capabilities;
+    connection.console.log(`[Server(${process.pid}) ${capabilities}] Started and initialize received`);
     
     if (params.rootUri) {
         workspaceFolder = params.rootUri;

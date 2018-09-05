@@ -4,28 +4,47 @@
   "description": "kos vscode extension",
   "main": "index.js",
   "scripts": {
-    "vscode:prepublish": "node ./node_modules/vscode/bin/compile",
-		"compile": "node ./node_modules/vscode/bin/compile -watch -p ./",
-    "watch": "node ./node_modules/typescript/bin/tsc -w -p ./src",
-    "postinstall": "node ./node_modules/vscode/bin/install"
+    "vscode:prepublish": "cd client && npm run update-vscode && cd .. && npm run compile",
+    "compile:client": "tsc -p ./client/tsconfig.json",
+    "compile:server": "tsc -p ./server/tsconfig.json",
+    "watch:client": "tsc -w -p ./client/tsconfig.json",
+    "watch:server": "tsc -w -p ./server/tsconfig.json",
+    "compile": "npm run compile:client && npm run compile:server",
+    "postinstall": "cd client && npm install && cd ../server && npm install && cd .."
   },
+  "engines": {
+    "vscode": "^1.25.0"
+  },
+  "publisher": "johnChabot",
   "repository": {
     "type": "git",
-		"url": "https://github.com/jonnyboyC/kos-language-server"
+    "url": "https://github.com/jonnyboyC/kos-language-server"
   },
+  "activationEvents": [
+		"onLanguage:kos"
+	],
   "contributes": {
-    "languages": [{
-			"id": "kos",
-			"aliases": ["Kerbal Operating System", "kos"],
-			"extensions": [".ks"],
-			"configuration": "./kos.configuration.json"
-    }],
-    "grammars": [{
-      "language": "kos",
-      "scopeName": "source.kos",
-      "path": "./syntaxes/kos.tmLanguage.json"
-    }],
-	},
+    "languages": [
+      {
+        "id": "kos",
+        "aliases": [
+          "Kerbal Operating System",
+          "kos"
+        ],
+        "extensions": [
+          ".ks"
+        ],
+        "configuration": "./kos.configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "kos",
+        "scopeName": "source.kos",
+        "path": "./syntaxes/kos.tmLanguage.json"
+      }
+    ]
+  },
   "keywords": [
     "kos",
     "ksp",
@@ -36,5 +55,10 @@
   "bugs": {
     "url": "https://github.com/jonnyboyC/kos-language-server/issues"
   },
-  "homepage": "https://github.com/jonnyboyC/kos-language-server#readme"
+  "homepage": "https://github.com/jonnyboyC/kos-language-server#readme",
+  "devDependencies": {
+    "@types/mocha": "^5.2.5",
+    "@types/node": "^10.9.4",
+    "typescript": "^3.0.3"
+  }
 }

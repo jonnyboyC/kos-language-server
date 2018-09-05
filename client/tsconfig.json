@@ -1,7 +1,7 @@
 {
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "../build/server",
+    "outDir": "../build/client",
     "rootDir": "src",
     "target": "esnext",
     "module": "esnext"
@@ -11,6 +11,6 @@
   ],
   "exclude": [
     "node_modules", 
-    "../node_modules"
+    "../node_modules/"
   ],
 }
