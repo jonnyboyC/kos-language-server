@@ -23,7 +23,7 @@
     "watch": "Watch and rebuild the project on save"
   },
   "engines": {
-    "vscode": "^1.26.0"
+    "vscode": "^1.23.0"
   },
   "publisher": "johnChabot",
   "repository": {
@@ -67,9 +67,9 @@
   },
   "homepage": "https://github.com/jonnyboyC/kos-language-server#readme",
   "devDependencies": {
-    "@types/mocha": "^5.2.5",
-    "@types/node": "^10.9.4",
-    "typescript": "^3.0.3",
+    "@types/mocha": "~5.2.0",
+    "@types/node": "~8.0.0",
+    "typescript": "2.8.3",
     "tslint": "^5.10.0"
   }
 }

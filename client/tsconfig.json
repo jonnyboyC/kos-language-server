@@ -5,13 +5,13 @@
     "target": "es6",
     "outDir": "../build/client",
     "rootDir": "src",
-    "sourceMap": true
+    "lib": ["es6"],
+    "sourceMap": true,
   },
   "include": [
     "src"
   ],
   "exclude": [
     "node_modules", 
-    "../node_modules/"
   ],
 }

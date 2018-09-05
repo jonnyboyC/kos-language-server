@@ -19,7 +19,7 @@ export interface ScopeInterface {
     scope?: TokenInterface,
 }
 
-type Result<T> = T | ParseErrorInterface;
+export type Result<T> = T | ParseErrorInterface;
 
 export type ParseResult = Result<ExprInterface | InstInterface | TokenInterface>
 export type ExprResult = Result<ExprInterface>
