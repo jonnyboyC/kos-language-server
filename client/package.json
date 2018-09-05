@@ -4,7 +4,7 @@
   "description": "KOS language client",
   "main": "index.js",
   "engines": {
-    "vscode": "^1.25.0"
+    "vscode": "^1.26.0"
   },
   "repository": {
     "type": "git",
@@ -22,7 +22,7 @@
   "author": "John Chabot",
   "license": "MIT",
   "dependencies": {
-    "vscode": "^1.1.21",
+    "vscode": "^1.1.18",
     "vscode-languageclient": "^5.0.1"
   }
 }

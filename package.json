@@ -2,18 +2,28 @@
   "name": "kos-extension",
   "version": "1.0.0",
   "description": "kos vscode extension",
-  "main": "index.js",
+  "main": "./build/client/extension.js",
   "scripts": {
+    "info": "npm-scripts-info",
     "vscode:prepublish": "cd client && npm run update-vscode && cd .. && npm run compile",
     "compile:client": "tsc -p ./client/tsconfig.json",
     "compile:server": "tsc -p ./server/tsconfig.json",
+    "lint:client": "tslint -p ./client/tslint.json",
+    "lint:server": "tslint -p ./server/tslint.json",
     "watch:client": "tsc -w -p ./client/tsconfig.json",
     "watch:server": "tsc -w -p ./server/tsconfig.json",
+    "lint": "npm run lint:client && npm run lint:server",
     "compile": "npm run compile:client && npm run compile:server",
     "postinstall": "cd client && npm install && cd ../server && npm install && cd .."
   },
+  "scripts-info": {
+    "info": "Display information about the package scripts",
+    "compile": "build the project",
+    "lint": "lint the project",
+    "watch": "Watch and rebuild the project on save"
+  },
   "engines": {
-    "vscode": "^1.25.0"
+    "vscode": "^1.26.0"
   },
   "publisher": "johnChabot",
   "repository": {
@@ -21,8 +31,8 @@
     "url": "https://github.com/jonnyboyC/kos-language-server"
   },
   "activationEvents": [
-		"onLanguage:kos"
-	],
+    "onLanguage:kos"
+  ],
   "contributes": {
     "languages": [
       {
@@ -59,6 +69,7 @@
   "devDependencies": {
     "@types/mocha": "^5.2.5",
     "@types/node": "^10.9.4",
-    "typescript": "^3.0.3"
+    "typescript": "^3.0.3",
+    "tslint": "^5.10.0"
   }
 }
