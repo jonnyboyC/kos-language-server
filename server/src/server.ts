@@ -81,19 +81,16 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
     const parser = new Parser(tokens);
     const [, errors] = parser.parse();
 
-    if (errors.length > 0) {
-        const diagnostics: Diagnostic[] = errors.map(e => {
-            return {
-                severity: DiagnosticSeverity.Error,
-                range: { start: e.token.start, end: e.token.end },
-                message: e.message,
-                source: 'kos-language-server'
-            }
-        });
+	const diagnostics: Diagnostic[] = errors.map(e => {
+		return {
+			severity: DiagnosticSeverity.Error,
+			range: { start: e.token.start, end: e.token.end },
+			message: e.message,
+			source: 'kos-language-server'
+		}
+	});
 
-        connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
-        return;
-    }
+	connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
 }
 
 const hasScanError = (tokens: TokenInterface[] | SyntaxErrorInterface[]): tokens is SyntaxErrorInterface[] => {

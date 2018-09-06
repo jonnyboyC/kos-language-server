@@ -1,38 +1,27 @@
 {
-  "name": "kos-extension",
-  "version": "1.0.0",
-  "description": "kos vscode extension",
-  "main": "./build/client/extension.js",
-  "scripts": {
-    "info": "npm-scripts-info",
-    "vscode:prepublish": "cd client && npm run update-vscode && cd .. && npm run compile",
-    "compile:client": "tsc -p ./client/tsconfig.json",
-    "compile:server": "tsc -p ./server/tsconfig.json",
-    "lint:client": "tslint -p ./client/tslint.json",
-    "lint:server": "tslint -p ./server/tslint.json",
-    "watch:client": "tsc -w -p ./client/tsconfig.json",
-    "watch:server": "tsc -w -p ./server/tsconfig.json",
-    "lint": "npm run lint:client && npm run lint:server",
-    "compile": "npm run compile:client && npm run compile:server",
-    "postinstall": "cd client && npm install && cd ../server && npm install && cd .."
-  },
-  "scripts-info": {
-    "info": "Display information about the package scripts",
-    "compile": "build the project",
-    "lint": "lint the project",
-    "watch": "Watch and rebuild the project on save"
-  },
-  "engines": {
-    "vscode": "^1.23.0"
-  },
-  "publisher": "johnChabot",
+  "name": "kos-vscode",
+  "description": "Language support for KOS in vscode",
+  "author": "John Chabot",
+  "license": "MIT",
+  "version": "0.1.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/jonnyboyC/kos-language-server"
   },
+  "publisher": "johnChabot",
+  "categories": [],
+  "keywords": [
+    "kos",
+    "ksp",
+    "language-server"
+  ],
+  "engines": {
+    "vscode": "^1.23.0"
+  },
   "activationEvents": [
     "onLanguage:kos"
   ],
+  "main": "./client/out/extension",
   "contributes": {
     "languages": [
       {
@@ -55,13 +44,15 @@
       }
     ]
   },
-  "keywords": [
-    "kos",
-    "ksp",
-    "language-server"
-  ],
-  "author": "John Chabot",
-  "license": "MIT",
+  "scripts": {
+    "vscode:prepublish": "cd client && npm run update-vscode && cd .. && npm run compile",
+    "compile:client": "tsc -p ./client/tsconfig.json",
+    "compile:server": "tsc -p ./server/tsconfig.json",
+    "watch:client": "tsc -w -p ./client/tsconfig.json",
+    "watch:server": "tsc -w -p ./server/tsconfig.json",
+    "compile": "npm run compile:client && npm run compile:server",
+    "postinstall": "cd client && npm install && cd ../server && npm install && cd .."
+  },
   "bugs": {
     "url": "https://github.com/jonnyboyC/kos-language-server/issues"
   },
@@ -69,7 +60,6 @@
   "devDependencies": {
     "@types/mocha": "~5.2.0",
     "@types/node": "~8.0.0",
-    "typescript": "2.8.3",
-    "tslint": "^5.10.0"
+    "typescript": "2.8.3"
   }
 }

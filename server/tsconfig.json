@@ -4,7 +4,7 @@
     "module": "commonjs",
     "target": "es6",
     "moduleResolution": "node",
-    "outDir": "../build/server",
+    "outDir": "out",
     "rootDir": "src",
     "lib": ["es6"],
     "sourceMap": true
