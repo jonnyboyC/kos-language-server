@@ -40,7 +40,7 @@
       {
         "language": "kos",
         "scopeName": "source.kos",
-        "path": "./syntaxes/kos.tmLanguage.json"
+        "path": "./client/syntaxes/kos.tmLanguage.json"
       }
     ]
   },

@@ -17,8 +17,8 @@ export class Scanner {
         this._source = source.toLowerCase();
         this._start = 0;
         this._current = 0;
-        this._startPosition = new Marker(1, 1)
-        this._currentPosition = new Marker(1, 1)
+        this._startPosition = new Marker(0, 0)
+        this._currentPosition = new Marker(0, 0)
     }
 
     // scan all available tokesn
@@ -240,7 +240,7 @@ export class Scanner {
 
     // increment line
     private incrementLine(): void {
-        this._currentPosition = new Marker(this._currentPosition.line + 1, 1);
+        this._currentPosition = new Marker(this._currentPosition.line + 1, 0);
     }
 
     // incremet file pointer
