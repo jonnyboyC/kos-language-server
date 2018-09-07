@@ -3,6 +3,7 @@ import { TokenInterface } from '../scanner/types'
 export interface ParseErrorInterface {
     tag: 'parseError';
     token: TokenInterface;
+    otherInfo: string[];
     message: string;
 }
 

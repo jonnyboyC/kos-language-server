@@ -6,7 +6,7 @@ function wants_three_args {
 
 declare a is list(1, 2, 3).
 for b in a {
-  print "stuff"
+  print "stuff".
 }
 
 print "Testing function call with too few args.".

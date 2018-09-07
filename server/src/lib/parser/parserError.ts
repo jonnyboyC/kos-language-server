@@ -2,12 +2,11 @@ import { ParseErrorInterface } from "./types";
 import { TokenInterface } from "../scanner/types";
 
 export class ParseError implements ParseErrorInterface {
-    public message: string;
-    public token: TokenInterface
 
-    constructor(token: TokenInterface, message: string) {
-        this.message = message;
-        this.token = token;
+    constructor(
+        public readonly token: TokenInterface, 
+        public readonly message: string,
+        public readonly otherInfo: string[]) {
     }
     
     get tag(): 'parseError' {

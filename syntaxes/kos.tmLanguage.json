@@ -1,7 +1,7 @@
 {
     "version": "",
     "name": "Kerbal Operating System",
-    "scopeName": "source.js",
+    "scopeName": "source.kos",
     "patterns": [
         {
             "include": "#statements"
@@ -11,69 +11,37 @@
 		"statements": {
 			"patterns": [
 				{
-					"include": "#instructions"
-				},
-				{
-					"include": "#comment"
-				},
-				{
-					"include": "#declaration"
-				},
-				{
-					"include": "#control-instructions"
+					"include": "#instruction"
 				},
 				{
 					"include": "#punctuation-period"
 				}
 			]
         },
-        "declaration": {
+        "instruction": {
             "patterns": [
                 {
-                    "include": "#variable-declaration"
-                },
-                {
-                    "include": "#function-declaration"
-                },
-                {
-                    "include": "#lock-declaration"
-                },
-                {
-                    "include": "#parameter-declaration"
+                    "include": "#expression"
                 }
             ]
         },
-        "control-instructions": {
+        "expression": {
             "patterns": [
                 {
-                    "include": "#if-instruction"
+                    "include": "#expressionWithoutIdentifiers"
+                }
+            ]
+        },
+        "expressionWithoutIdentifiers": {
+            "patterns": [
+				{
+					"include": "#string"
                 },
                 {
-                    "include": "#until-instruction"
+					"include": "#comment"
                 },
                 {
-                    "include": "#from-instruction"
-                },
-                {
-                    "include": "#when-instruction"
-                },
-                {
-                    "include": "#break-instruction"
-                },
-                {
-                    "include": "#return-instruction"
-                },
-                {
-                    "include": "#for-instruction"
-                },
-                {
-                    "include": "#on-instruction"
-                },
-                {
-                    "include": "#toggle-instruction"
-                },
-                {
-                    "include": "#wait-instruction"
+                    "include": "#literal"
                 }
             ]
         },
@@ -109,7 +77,12 @@
                     "include": "#numeric-literal"
                 },
                 {
-                    "include": "#boolean-literal"
+                    "name": "constant.boolean.true",
+                    "include": "\\btrue"
+                },
+                {
+                    "name": "constant.boolean.true",
+                    "include": "\\bfalse"
                 }
             ]
         },
@@ -117,11 +90,11 @@
             "patterns": [
                 {
                     "name": "constant.numeric.integer",
-                    "match": "\\b[0-9]((?[0-9]|(_))*[0-9])\\b"
+                    "match": "\\b[0-9]((?[0-9]|(_))*[0-9])"
                 },
                 {
                     "name": "constant.numeric.double",
-                    "match": "\b([0-9]((?[0-9]|(_))*[0-9]))?"
+                    "match": "\\b-?(?:0|[1-9](?:[0-9_]*[0-9])?)(?:\\.\\d*)?(?:[eE][+\\-]?[0-9](?:[0-9_]*[0-9])?)?"
                 }
             ]
         },

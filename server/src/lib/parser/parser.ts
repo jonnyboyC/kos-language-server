@@ -570,11 +570,14 @@ export class Parser {
     // parse rename instruction
     private rename = (): InstInterface => {
         const rename = this.previous();
-        const ioIdentifier = this.consume('Expected identifier or file identifier following keyword "rename"',
+        const ioIdentifier = this.consume(
+            'Expected identifier or file identifier following keyword "rename"',
             TokenType.Identifier, TokenType.FileIdentifier);
 
         const expression = this.expression();
-        const to = this.consume('Expected "to" following keyword "rename".', TokenType.To);
+        const to = this.consume(
+            'Expected "to" following keyword "rename".', 
+            TokenType.To);
         const target = this.expression();
         this.terminal();
 
@@ -613,7 +616,9 @@ export class Parser {
         if (this.match(TokenType.BracketOpen)) {
             const open = this.previous();
             const args = this.arguments();
-            const close = this.consume('Expected ")" after "run" arguments.', TokenType.BracketClose);
+            const close = this.consume(
+                'Expected ")" after "run" arguments.', 
+                TokenType.BracketClose);
             this.terminal();
             
             return new RunInst(run, identifier, once, open, args, close);
@@ -626,13 +631,17 @@ export class Parser {
     // parse run path instruction
     private runPath = (): InstInterface => {
         const runPath = this.previous();
-        const open = this.consume('Expected "(" after keyword "runPath".', TokenType.BracketOpen);
+        const open = this.consume(
+            'Expected "(" after keyword "runPath".', 
+            TokenType.BracketOpen);
         const expression = this.expression();
         const args = this.match(TokenType.Comma)
             ? this.arguments()
             : undefined;
 
-        const close = this.consume('Expected ")" after runPath arguments.', TokenType.BracketClose);
+        const close = this.consume(
+            'Expected ")" after runPath arguments.', 
+            TokenType.BracketClose);
         this.terminal();
 
         return new RunPathInst(runPath, open, expression, close, args);
@@ -641,13 +650,17 @@ export class Parser {
     // parse run path once instruction
     private runPathOnce = (): InstInterface => {
         const runPath = this.previous();
-        const open = this.consume('Expected "(" after keyword "runPathOnce".', TokenType.BracketOpen);
+        const open = this.consume(
+            'Expected "(" after keyword "runPathOnce".', 
+            TokenType.BracketOpen);
         const expression = this.expression();
         const args = this.match(TokenType.Comma)
             ? this.arguments()
             : undefined;
 
-        const close = this.consume('Expected ")" after runPathOnce arugments.', TokenType.BracketClose);
+        const close = this.consume(
+            'Expected ")" after runPathOnce arugments.', 
+            TokenType.BracketClose);
         this.terminal();
 
         return new RunPathOnceInst(runPath, open, expression, close, args);
@@ -680,7 +693,7 @@ export class Parser {
             identifier = this.previous();
             if (this.match(TokenType.In)) {
                 inToken = this.previous();
-                target = this.consume('Expected identifer', TokenType.Identifier);
+                target = this.consume('Expected identifier after "in" keyword in "list" command', TokenType.Identifier);
             }
         }
         
@@ -959,7 +972,7 @@ export class Parser {
     // returns erros if incorrect token is found
     private consume = (message: string, ...tokenType: TokenType[]): TokenInterface => {
         if (this.match(...tokenType)) return this.previous();
-        throw this.error(this.peek(), message);
+        throw this.error(this.previous(), message);
     }
 
     // check if current token matches expected type
@@ -991,7 +1004,7 @@ export class Parser {
 
     // report parse error
     private error = (token: TokenInterface, message: string, ...extraInfo: string[]): ParseErrorInterface => {
-        return new ParseError(token, message);
+        return new ParseError(token, message, extraInfo);
     }
 
     // attempt to synchronize parser
