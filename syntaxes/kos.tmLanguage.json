@@ -368,7 +368,16 @@
                     "include": "#copy-instruction"
                 },
                 {
+                    "include": "#rename-instruction"
+                },
+                {
                     "include": "#switch-instruction"
+                },
+                {
+                    "include": "#delete-instruction"
+                },
+                {
+                    "include": "#compile-instruction"
                 },
                 {
                     "include": "#expression"
@@ -474,12 +483,40 @@
                 }
             },
             "end": "\\.",
+            "endCaptures": {
+                "1": {
+                    "name": "punctuation.terminator.statement.kos"
+                }
+            },
             "patterns": [
                 {
                     "include": "#expression"
                 },
                 {
                     "include": "#copy-operators"
+                }
+            ]
+        },
+        "rename-instruction": {
+            "name": "meta.rename.kos",
+            "begin": "(?i)\\b(rename)(?![_[:alnum:]\\:])",
+            "beginCaptures": {
+                "1": {
+                    "name": "keyword.command.rename.kos"
+                }
+            },
+            "end": "\\.",
+            "endCaptures": {
+                "1": {
+                    "name": "punctuation.terminator.statement.kos"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "#expression"
+                },
+                {
+                    "include": "#rename-operators"
                 }
             ]
         },
@@ -495,9 +532,82 @@
                 }
             },
             "end": "\\.",
+            "endCaptures": {
+                "1": {
+                    "name": "punctuation.terminator.statement.kos"
+                }
+            },            
             "patterns": [
                 {
                     "include": "#expression"
+                }
+            ]
+        },
+        "log-instruction": {
+            "begin": "(?i)\\b(log)(?![_[:alnum:]\\:])",
+            "beginCaptures": {
+                "1": {
+                    "name": "keyword.command.log.kos"
+                }
+            },
+            "end": "\\.",
+            "endCaptures": {
+                "1": {
+                    "name": "punctuation.terminator.statement.kos"
+                }
+            },            
+            "patterns": [
+                {
+                    "include": "#expression"
+                },
+                {
+                    "include": "#log-operators"
+                }
+            ]
+        },
+        "delete-instruction": {
+            "name": "meta.delete.kos",
+            "begin": "(?i)\\b(delete)(?![_[:alnum:]\\:])",
+            "beginCaptures": {
+                "1": {
+                    "name": "keyword.command.delete.kos"
+                }
+            },
+            "end": "\\.",
+            "endCaptures": {
+                "1": {
+                    "name": "punctuation.terminator.statement.kos"
+                }
+            }, 
+            "patterns": [
+                {
+                    "include": "#expression"
+                },
+                {
+                    "include": "delete-operators"
+                }
+            ]
+        },
+        "compile-instruction": {
+            "name": "meta.compile.kos",
+            "begin": "(?i)\\b(compile)(?![_[:alnum:]\\:])",
+            "beginCaptures": {
+                "1": {
+                    "name": "keyword.command.compile.kos"
+                }
+            },
+            "end": "\\.",
+            "endCaptures": {
+                "1": {
+                    "name": "punctuation.terminator.statement.kos"
+                }
+            }, 
+            "patterns": [
+                {
+                    "include": "#expression"
+                },
+                {
+                    "include": "#compile-operators"
                 }
             ]
         },
@@ -637,7 +747,39 @@
             "patterns": [
                 {
                     "name": "keyword.command.copy.direction.kos",
-                    "match": "(?i)(?<![_[:alnum:]\\:])(to|copy)(?![_[:alnum:]\\:])"
+                    "match": "(?i)(?<![_[:alnum:]\\:])(to|from)(?![_[:alnum:]\\:])"
+                }
+            ]
+        },
+        "log-operators": {
+            "patterns": [
+                {
+                    "name": "keyword.command.log.to.kos",
+                    "match": "(?i)(?<![_[:alnum:]\\:])(to)(?![_[:alnum:]\\:])"
+                }
+            ]
+        },
+        "delete-operators": {
+            "patterns": [
+                {
+                    "name": "keyword.command.log.from.kos",
+                    "match": "(?i)(?<![_[:alnum:]\\:])(from)(?![_[:alnum:]\\:])"
+                }
+            ]
+        },
+        "compile-operators": {
+            "patterns": [
+                {
+                    "name": "keyword.command.compile.to.kos",
+                    "match": "(?i)(?<![_[:alnum:]\\:])(to)(?![_[:alnum:]\\:])"
+                }
+            ]
+        },
+        "rename-operators": {
+            "patterns": [
+                {
+                    "name": "keyword.command.log.to.kos",
+                    "match": "(?i)(?<![_[:alnum:]\\:])(rename)(?![_[:alnum:]\\:])"
                 }
             ]
         },
