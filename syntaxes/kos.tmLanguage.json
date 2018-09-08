@@ -12,62 +12,359 @@
 			"patterns": [
 				{
 					"include": "#instruction"
+                },
+                {
+                    "include": "#declaration"
+                },
+                {
+                    "include": "#comment"
+                },
+                {
+                    "include": "#control-statement"
+                }
+			]
+        },
+        "declaration": {
+            "patterns": [
+                {
+                    "include": "#function-declaration"
+                },
+                {
+                    "include": "#parameter-declaration"
+                },
+                {
+                    "include": "#lock-declaration"
+                },
+                {
+                    "include": "#variable-declaration"
+                }
+            ]
+        },
+        "function-declaration": {
+			"name": "meta.function.kos",
+			"begin": "(?:(\\bdeclare)\\s+)?(?:\\b(local|global)\\s+)?\\b(function)\\s+([_[:alpha:]][_[:alnum:]]*)",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword.declaration.declare.kos"
 				},
+				"2": {
+					"name": "storage.modifier.scope.kos"
+				},
+				"3": {
+					"name": "storage.type.function.kos"
+                },
+                "4": {
+                    "name": "meta.definition.function.kos entity.name.function.kos"
+                }
+            },
+			"end": "(?<=\\})",
+            "patterns": [
 				{
-					"include": "#punctuation-period"
+					"include": "#block"
 				}
 			]
         },
-        "instruction": {
+        "parameter-declaration": {
+            "begin": "(?:(\\bdeclare)\\s+)?(?:\\b(local|global)\\s+)?\\b(parameter)\\s+",
+            "beginCaptures": {
+				"1": {
+					"name": "keyword.declaration.declare.kos"
+				},
+				"2": {
+					"name": "storage.modifier.scope.kos"
+				},
+				"3": {
+					"name": "keyword.declaration.parameter.kos"
+                }
+            },
+            "end": "\\.",
+            "patterns": [
+				{
+					"include": "#parameter-body"
+                },
+                {
+                    "#include": "#punctuation-comma"
+                }
+			]
+        },
+        "parameter-body": {
+            "begin": "\\b([_[:alpha:]][_[:alnum:]]*)",
+            "beginCaptures": {
+                "1": {
+                    "name": "variable.parameter.kos"
+                },
+                "2": {
+                    "name": "keyword.operator.expression.is.kos"
+                },
+                "3": {
+                    "name": "keyword.operator.expression.to.kos"
+                }
+            },
+            "end": "(?=(\\,|\\.))",
             "patterns": [
                 {
                     "include": "#expression"
                 }
             ]
         },
+        "lock-declaration": {
+            "begin": "(?:(\\bdeclare)\\s+)?(?:\\b(local|global)\\s+)?(\\block)\\s+\\b([_[:alpha:]][_[:alnum:]]*)\\s+(\\bto)\\s+",
+            "beginCaptures": {
+				"1": {
+					"name": "keyword.declaration.declare.kos"
+				},
+				"2": {
+					"name": "storage.modifier.scope.kos"
+				},
+				"3": {
+					"name": "keyword.declaration.lock.kos"
+                },
+                "4": {
+                    "name": "variable.other.kos"
+                },
+                "5": {
+                    "name": "keyword.operator.expression.to.kos"
+                }
+            },
+            "end": "\\.",
+            "endCaptures": {
+                "0": {
+                    "name": "punctuation.terminator.statement.kos"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "#expression"
+                }
+            ]
+        },
+        "variable-declaration": {
+            "patterns": [
+                {
+                    "include": "#variable-declaration-declare"
+                },
+                {
+                    "include": "#variable-declaration-scope"
+                }
+            ]
+        },
+        "variable-declaration-declare": {
+            "begin": "\\b(declare)\\s+\\b(local|global)?\\s+\\b([_[:alpha:]][_[:alnum:]]*)\\s+\\b(?:(is)|(to))\\s+",
+            "beginCaptures": {
+				"1": {
+					"name": "keyword.declaration.declare.kos"
+				},
+				"2": {
+					"name": "storage.modifier.scope.kos"
+				},
+				"3": {
+					"name": "variable.other.kos"
+                },
+                "4": {
+                    "name": "keyword.operator.expression.is.kos"
+                },
+                "5": {
+                    "name": "keyword.operator.expression.to.kos"
+                }
+            },
+            "end": "\\.",
+            "endCaptures": {
+                "1": {
+                    "name": "punctuation.terminator.statement.kos"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "#expression"
+                }
+            ] 
+        },
+        "variable-declaration-scope": {
+            "begin": "\\s+\\b(local|global)\\s+\\b([_[:alpha:]][_[:alnum:]]*)\\s+\\b(?:(to)|(is))\\s+",
+            "beginCaptures": {
+				"1": {
+					"name": "storage.modifier.scope.kos"
+				},
+				"2": {
+					"name": "variable.other.kos"
+                },
+                "3": {
+                    "name": "keyword.operator.expression.is.kos"
+                },
+                "4": {
+                    "name": "keyword.operator.expression.to.kos"
+                }
+            },
+            "end": "\\.",
+            "endCaptures": {
+                "1": {
+                    "name": "punctuation.terminator.statement.kos"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "#expression"
+                }
+            ] 
+        },
+		"block": {
+			"name": "meta.block.kos",
+			"begin": "\\{",
+			"beginCaptures": {
+				"0": {
+					"name": "punctuation.definition.block.kos"
+				}
+			},
+			"end": "\\}",
+			"endCaptures": {
+				"0": {
+					"name": "punctuation.definition.block.kos"
+				}
+			},
+			"patterns": [
+				{
+					"include": "#statements"
+				}
+			]
+        },
+        "control-statement": {
+            "patterns": [
+                {
+                    "name": "keyword.control.conditional.kos",
+					"match": "(?<![_[:alnum:]\\:])(else|if)(?![_[:alnum:]\\:])"
+                },
+                {
+                    "name": "keyword.control.trigger.kos",
+                    "match": "(?<![_[:alnum:]\\:])(when|then|on)(?![_[:alnum:]\\:])"
+                },
+                {
+                    "name": "keyword.control.flow.kos",
+                    "match": "(?<![_[:alnum:]\\:])(until)(?![_[:alnum:]\\:])"
+                },
+                {
+                    "match": "(?<![_[:alnum:]\\:])(break)(\\.)",
+                    "captures": {
+                        "1": {
+                            "name": "keyword.control.loop.kos"
+                        },
+                        "2": {
+                            "name": "punctuation.terminator.statement.kos"
+                        }
+                    }
+                },
+                {
+                    "include": "#return-statement"
+                }
+            ]
+        },
+        "return-statement": {
+            "begin": "(?<![_[:alnum:]\\:])(return)\\s+",
+            "beginCaptures": {
+                "1": {
+                    "name": "keyword.control.flow.kos"
+                }
+            },
+            "end": "\\.",
+            "endCaptures": {
+                "1": {
+                    "name": "punctuation.terminator.statement.kos"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "#expression"
+                }
+            ]
+        },
+        "instruction": {
+            "patterns": [
+                {
+                    "include": "#expression"
+                },
+                {
+                    "include": "#block"
+                }
+            ]
+        },
         "expression": {
             "patterns": [
                 {
-                    "include": "#expressionWithoutIdentifiers"
-                }
+					"include": "#expressionWithoutIdentifiers"
+				},
+				{
+					"include": "#identifiers"
+                },
+                {
+					"include": "#expressionPunctuations"
+				}
             ]
         },
         "expressionWithoutIdentifiers": {
             "patterns": [
-				{
-					"include": "#string"
-                },
                 {
 					"include": "#comment"
                 },
                 {
                     "include": "#literal"
+                },
+                {
+                    "include": "#function-call"
+                },
+                {
+                    "include": "#block"
+                },
+                {
+                    "include": "#expression-operators"
+                }
+            ]
+        },
+        "expression-operators": {
+            "patterns": [
+                {
+                    "name": "keyword.operator.expression.or.kos",
+                    "match": "or"
+                },
+                {
+                    "name": "keyword.operator.expression.and.kos",
+                    "match": "and"
+                },
+                {
+                    "name": "keyword.operator.expression.not.kos",
+                    "match": "not"
+                },
+                {
+                    "name": "keyword.operator.comparison.kos",
+                    "match": "<>|="
+                },
+                {
+                    "name": "keyword.operator.relational.kos",
+                    "match": "<=|>="
                 }
             ]
         },
         "comment": {
-            "name": "comment.line.double-slash.ks",
+            "name": "comment.line.double-slash.kos",
             "begin": "(//)",
             "beginCaptures": {
                 "0": {
-                    "name": "comment.line.double-slash.ks"
+                    "name": "comment.line.double-slash.kos"
                 }
             },
-            "contentName": "comment.line.comment",
+            "contentName": "comment.line.comment.kos",
             "end": "\\n"
         },
         "string": {
-            "name": "string.ks",
+            "name": "string.kos",
             "begin": "\"",
             "beginCaptures": {
                 "0": {
-                    "name": "punctuation.definition.string.begin.ks"
+                    "name": "punctuation.definition.string.begin.kos"
                 }
             },
             "end": "\"",
             "endCaptures": {
                 "0": {
-                    "name": "punctuation.definition.string.end.ks"
+                    "name": "punctuation.definition.string.end.kos"
                 }
             }
         },
@@ -77,30 +374,29 @@
                     "include": "#numeric-literal"
                 },
                 {
-                    "name": "constant.boolean.true",
-                    "include": "\\btrue"
+					"include": "#string"
                 },
                 {
-                    "name": "constant.boolean.true",
-                    "include": "\\bfalse"
+                    "name": "constant.language.true.kos",
+                    "match": "\\btrue"
+                },
+                {
+                    "name": "constant.language.false.kos",
+                    "match": "\\bfalse"
                 }
             ]
         },
         "numeric-literal": {
-            "patterns": [
-                {
-                    "name": "constant.numeric.integer",
-                    "match": "\\b[0-9]((?[0-9]|(_))*[0-9])"
-                },
-                {
-                    "name": "constant.numeric.double",
-                    "match": "\\b-?(?:0|[1-9](?:[0-9_]*[0-9])?)(?:\\.\\d*)?(?:[eE][+\\-]?[0-9](?:[0-9_]*[0-9])?)?"
-                }
-            ]
+            "name": "constant.numeric.number.kos",
+            "match": "-?(?:0|[1-9](?:[0-9_]*[0-9])?)(?:\\.[0-9](?:[0-9_]*[0-9])?)?(?:[eE][+\\-]?[0-9](?:[0-9_]*[0-9])?)?"
         },
-        "punctuation-period": {
-            "name": "punctuation.terminator.instruction.ks",
-            "match": "(\\.)\\b"
-        }
+        "punctuation-comma": {
+			"name": "punctuation.separator.comma.kos",
+			"match": "\\,"
+		},
+		"punctuation-period": {
+			"name": "punctuation.terminator.statement.kos",
+			"match": "\\."
+		}
 	}
 }
