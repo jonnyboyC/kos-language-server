@@ -10,6 +10,9 @@
 	"repository": {
 		"statements": {
 			"patterns": [
+                {
+                    "include": "#directive"
+                },
 				{
 					"include": "#instruction"
                 },
@@ -23,6 +26,27 @@
                     "include": "#control-statement"
                 }
 			]
+        },
+        "directive": {
+            "patterns": [
+                {
+                    "match": "(?i)(\\@)(lazyglobal)\\s+\\b(on|off)\\s*\\.",
+                    "captures": {
+                        "1": {
+                            "name": "punctuation.initiator.directive.kos"
+                        },
+                        "2": {
+                            "name": "keyword.directive.lazyGlobal.kos"
+                        },
+                        "3": {
+                            "name": "keyword.control.lazyGlobal.kos"
+                        },
+                        "4": {
+                            "name": "punctuation.terminator.statement.kos"
+                        }
+                    }
+                }
+            ]
         },
         "declaration": {
             "patterns": [
@@ -42,7 +66,7 @@
         },
         "function-declaration": {
 			"name": "meta.function.kos",
-			"begin": "(?:(\\bdeclare)\\s+)?(?:\\b(local|global)\\s+)?\\b(function)\\s+([_[:alpha:]][_[:alnum:]]*)",
+			"begin": "(?i)(?:(\\bdeclare)\\s+)?(?:\\b(local|global)\\s+)?\\b(function)\\s+([_[:alpha:]][_[:alnum:]]*)",
 			"beginCaptures": {
 				"1": {
 					"name": "keyword.declaration.declare.kos"
@@ -65,7 +89,7 @@
 			]
         },
         "parameter-declaration": {
-            "begin": "(?:(\\bdeclare)\\s+)?(?:\\b(local|global)\\s+)?\\b(parameter)\\s+",
+            "begin": "(?i)(?:(\\bdeclare)\\s+)?(?:\\b(local|global)\\s+)?\\b(parameter)\\s+",
             "beginCaptures": {
 				"1": {
 					"name": "keyword.declaration.declare.kos"
@@ -88,16 +112,13 @@
 			]
         },
         "parameter-body": {
-            "begin": "\\b([_[:alpha:]][_[:alnum:]]*)",
+            "begin": "(?i)\\b([_[:alpha:]][_[:alnum:]]*)(?:\\s+\\b(is|to)\\s+)?",
             "beginCaptures": {
                 "1": {
                     "name": "variable.parameter.kos"
                 },
                 "2": {
-                    "name": "keyword.operator.expression.is.kos"
-                },
-                "3": {
-                    "name": "keyword.operator.expression.to.kos"
+                    "name": "keyword.assignment.assign.kos"
                 }
             },
             "end": "(?=(\\,|\\.))",
@@ -108,7 +129,7 @@
             ]
         },
         "lock-declaration": {
-            "begin": "(?:(\\bdeclare)\\s+)?(?:\\b(local|global)\\s+)?(\\block)\\s+\\b([_[:alpha:]][_[:alnum:]]*)\\s+(\\bto)\\s+",
+            "begin": "(?i)(?:(\\bdeclare)\\s+)?(?:\\b(local|global)\\s+)?(\\block)\\s+\\b([_[:alpha:]][_[:alnum:]]*)\\s+(\\bto)\\s+",
             "beginCaptures": {
 				"1": {
 					"name": "keyword.declaration.declare.kos"
@@ -123,7 +144,7 @@
                     "name": "variable.other.kos"
                 },
                 "5": {
-                    "name": "keyword.operator.expression.to.kos"
+                    "name": "keyword.assignment.assign.kos"
                 }
             },
             "end": "\\.",
@@ -149,7 +170,7 @@
             ]
         },
         "variable-declaration-declare": {
-            "begin": "\\b(declare)\\s+\\b(local|global)?\\s+\\b([_[:alpha:]][_[:alnum:]]*)\\s+\\b(?:(is)|(to))\\s+",
+            "begin": "\\b(declare)\\s+(\\b(local|global)\\s+)?\\b([_[:alpha:]][_[:alnum:]]*)\\s+\\b(is|to)\\s+",
             "beginCaptures": {
 				"1": {
 					"name": "keyword.declaration.declare.kos"
@@ -161,10 +182,7 @@
 					"name": "variable.other.kos"
                 },
                 "4": {
-                    "name": "keyword.operator.expression.is.kos"
-                },
-                "5": {
-                    "name": "keyword.operator.expression.to.kos"
+                    "name": "keyword.assignment.assign.kos"
                 }
             },
             "end": "\\.",
@@ -180,7 +198,7 @@
             ] 
         },
         "variable-declaration-scope": {
-            "begin": "\\s+\\b(local|global)\\s+\\b([_[:alpha:]][_[:alnum:]]*)\\s+\\b(?:(to)|(is))\\s+",
+            "begin": "\\b(local|global)\\s+\\b([_[:alpha:]][_[:alnum:]]*)\\s+\\b(to|is)\\s+",
             "beginCaptures": {
 				"1": {
 					"name": "storage.modifier.scope.kos"
@@ -189,10 +207,7 @@
 					"name": "variable.other.kos"
                 },
                 "3": {
-                    "name": "keyword.operator.expression.is.kos"
-                },
-                "4": {
-                    "name": "keyword.operator.expression.to.kos"
+                    "name": "keyword.assignment.assign.kos"
                 }
             },
             "end": "\\.",
@@ -231,18 +246,33 @@
             "patterns": [
                 {
                     "name": "keyword.control.conditional.kos",
-					"match": "(?<![_[:alnum:]\\:])(else|if)(?![_[:alnum:]\\:])"
+					"match": "(?i)(?<![_[:alnum:]\\:])(else|if)(?![_[:alnum:]\\:])"
                 },
                 {
                     "name": "keyword.control.trigger.kos",
-                    "match": "(?<![_[:alnum:]\\:])(when|then|on)(?![_[:alnum:]\\:])"
+                    "match": "(?i)(?<![_[:alnum:]\\:])(when|then|on)(?![_[:alnum:]\\:])"
+                },
+                {
+                    "match": "(?i)(?<![_[:alnum:]\\:])(preserve)(\\.)",
+                    "captures": {
+                        "1": {
+                            "name": "keyword.control.trigger.kos"
+                        },
+                        "2": {
+                            "name": "punctuation.terminator.statement.kos"
+                        }
+                    }
                 },
                 {
                     "name": "keyword.control.flow.kos",
-                    "match": "(?<![_[:alnum:]\\:])(until)(?![_[:alnum:]\\:])"
+                    "match": "(?i)(?<![_[:alnum:]\\:])(until)(?![_[:alnum:]\\:])"
                 },
                 {
-                    "match": "(?<![_[:alnum:]\\:])(break)(\\.)",
+                    "name": "keyword.control.loop.kos",
+                    "match": "(?i)(?<![_[:alnum:]\\:])(for|in|from|step|do)(?![_[:alnum:]\\:])"
+                },
+                {
+                    "match": "(?i)(?<![_[:alnum:]\\:])(break)(\\.)",
                     "captures": {
                         "1": {
                             "name": "keyword.control.loop.kos"
@@ -254,11 +284,17 @@
                 },
                 {
                     "include": "#return-statement"
+                },
+                {
+                    "include": "#toggle-statement"
+                },
+                {
+                    "include": "#wait-statement"
                 }
             ]
         },
         "return-statement": {
-            "begin": "(?<![_[:alnum:]\\:])(return)\\s+",
+            "begin": "(?i)(?<![_[:alnum:]\\:])(return)\\s+",
             "beginCaptures": {
                 "1": {
                     "name": "keyword.control.flow.kos"
@@ -276,8 +312,58 @@
                 }
             ]
         },
+        "toggle-statement": {
+            "begin": "(?<![_[:alnum:]\\:])(?i)(toggle)\\s+",
+            "beginCaptures": {
+                "1": {
+                    "name": "keyword.control.toggle.kos"
+                }
+            },
+            "end": "\\.",
+            "endCaptures": {
+                "1": {
+                    "name": "punctuation.terminator.statement.kos"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "#suffix"
+                }
+            ]
+        },
+        "wait-statement": {
+            "begin": "(?i)(?<![_[:alnum:]\\:])(wait)\\s+(\\b(wait)\\s)?",
+            "beginCaptures": {
+                "1": {
+                    "name": "keyword.control.wait.kos"
+                },
+                "2": {
+                    "name": "keyword.control.wait.kos"
+                }
+            },
+            "end": "\\.",
+            "endCaptures": {
+                "1": {
+                    "name": "punctuation.terminator.statement.kos"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "#expression"
+                }
+            ]
+        },
         "instruction": {
             "patterns": [
+                {
+                    "include": "#set-instruction"
+                },
+                {
+                    "include": "#unassign-instruction"
+                },
+                {
+                    "include": "#print-instruction"
+                },
                 {
                     "include": "#expression"
                 },
@@ -286,26 +372,106 @@
                 }
             ]
         },
+        "set-instruction": {
+            "name": "meta.assignment.kos",
+            "begin": "(?i)\\b(set)\\s+",
+            "beginCaptures": {
+                "1": {
+                    "name": "keyword.assignment.set.kos"
+                }
+            },
+            "end": "\\.",
+            "endCaptures": {
+                "1": {
+                    "name": "punctuation.terminator.statement.kos"
+                }
+            },
+            "patterns": [
+                {
+                    "includes": "#expression"
+                }, 
+                {
+                    "includes": "#assignment-operators"
+                }
+            ]
+        },
+        "unassign-instruction": {
+            "name": "meta.unassignment.kos",
+            "begin": "(?i)\\b(unset|unlock)\\s+",
+            "beginCaptures": {
+                "1": {
+                    "name": "keyword.assignment.unassign.kos"
+                }
+            },
+            "end": "\\.",
+            "endCaptures": {
+                "1": {
+                    "name": "punctuation.terminator.statement.kos"
+                }
+            },
+            "patterns": [
+                {
+                    "includes": "#identifier"
+                },
+                {
+                    "name": "keyword.other.unassign.all.kos",
+                    "matches": "(?i)\\ball"
+                }
+            ]
+        },
+        "print-instruction": {
+            "begin": "(?i)\\b(print)\\s+",
+            "beginCaptures": {
+                "1": {
+                    "name": "keyword.other.print.kos"
+                }
+            },
+            "end": "\\.",
+            "endCaptures": {
+                "1": {
+                    "name": "punctuation.terminator.statement.kos"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "#expression"
+                },
+                {
+                    "include": "#print-at-expression"
+                }
+            ]
+        },
+        "print-at-expression": {
+            "begin": "(?i)\\b(at)\\s+\\(\\s+",
+            "beginCaptures": {
+                "1": {
+                    "name": "keyword.other.at.kos"
+                }
+            },
+            "end": "\\)",
+            "patterns": [
+                {
+                    "include": "#punctuation-comma"
+                },
+                {
+                    "include": "#expression"
+                }
+            ]
+        },
         "expression": {
             "patterns": [
                 {
-					"include": "#expressionWithoutIdentifiers"
+					"include": "#expressions-without-identifiers"
 				},
 				{
-					"include": "#identifiers"
-                },
-                {
-					"include": "#expressionPunctuations"
-				}
+					"include": "#atom"
+                }
             ]
         },
-        "expressionWithoutIdentifiers": {
+        "expressions-without-identifiers": {
             "patterns": [
                 {
 					"include": "#comment"
-                },
-                {
-                    "include": "#literal"
                 },
                 {
                     "include": "#function-call"
@@ -339,6 +505,29 @@
                 {
                     "name": "keyword.operator.relational.kos",
                     "match": "<=|>="
+                }
+            ]
+        },
+        "atom": {
+            "patterns": [
+                {
+                    "include": "#literal"
+                },
+                {
+                    "include": "#grouping"
+                },
+                {
+                    "name": "variable.other.fileIdentifier.kos",
+                    "match": "\\b([_[:alpha:]][_[:alnum:]]*(?:\\.[_[:alpha:]][_[:alnum:]]*)+)"
+                }
+            ]
+        },
+        "grouping": {
+            "begin": "\\(",
+            "end": "\\)",
+            "patterns": [
+                {
+                    "include": "#expression"
                 }
             ]
         },
@@ -383,6 +572,14 @@
                 {
                     "name": "constant.language.false.kos",
                     "match": "\\bfalse"
+                }
+            ]
+        },
+        "assignment-operators": {
+            "patterns": [
+                {
+                    "name": "keyword.assignment.assign.kos",
+                    "match": "(?i)(?<![_[:alnum:]\\:])(to|is)(?![_[:alnum:]\\:])"
                 }
             ]
         },
