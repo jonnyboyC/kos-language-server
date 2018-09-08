@@ -365,6 +365,12 @@
                     "include": "#print-instruction"
                 },
                 {
+                    "include": "#copy-instruction"
+                },
+                {
+                    "include": "#switch-instruction"
+                },
+                {
                     "include": "#expression"
                 },
                 {
@@ -420,10 +426,11 @@
             ]
         },
         "print-instruction": {
-            "begin": "(?i)\\b(print)\\s+",
+            "name": "meta.print.kos",
+            "begin": "(?i)\\b(print)(?![_[:alnum:]\\:])",
             "beginCaptures": {
                 "1": {
-                    "name": "keyword.other.print.kos"
+                    "name": "keyword.command.print.kos"
                 }
             },
             "end": "\\.",
@@ -442,10 +449,10 @@
             ]
         },
         "print-at-expression": {
-            "begin": "(?i)\\b(at)\\s+\\(\\s+",
+            "begin": "(?i)\\b(at)\\s*\\(",
             "beginCaptures": {
                 "1": {
-                    "name": "keyword.other.at.kos"
+                    "name": "keyword.command.at.kos"
                 }
             },
             "end": "\\)",
@@ -458,6 +465,42 @@
                 }
             ]
         },
+        "copy-instruction": {
+            "name": "meta.copy.kos",
+            "begin": "(?i)\\b(copy)(?![_[:alnum:]\\:])",
+            "beginCaptures": {
+                "1": {
+                    "name": "keyword.command.copy.kos"
+                }
+            },
+            "end": "\\.",
+            "patterns": [
+                {
+                    "include": "#expression"
+                },
+                {
+                    "include": "#copy-operators"
+                }
+            ]
+        },
+        "switch-instruction": {
+            "name": "meta.switch.kos",
+            "begin": "(?i)\\b(switch)\\s+\\b(to)(?![_[:alnum:]\\:])",
+            "beginCaptures": {
+                "1": {
+                    "name": "keyword.command.switch.kos"
+                },
+                "2": {
+                    "name": "keyword.command.switchTo.kos"
+                }
+            },
+            "end": "\\.",
+            "patterns": [
+                {
+                    "include": "#expression"
+                }
+            ]
+        },
         "expression": {
             "patterns": [
                 {
@@ -465,6 +508,9 @@
 				},
 				{
 					"include": "#atom"
+                },
+                {
+                    "include": "#white-space"
                 }
             ]
         },
@@ -504,7 +550,11 @@
                 },
                 {
                     "name": "keyword.operator.relational.kos",
-                    "match": "<=|>="
+                    "match": "<=|>=|<|>"
+                },
+                {
+                    "name": "keyword.operator.arithmetic.kos",
+                    "match": "\\*|/|-|\\+"
                 }
             ]
         },
@@ -582,6 +632,18 @@
                     "match": "(?i)(?<![_[:alnum:]\\:])(to|is)(?![_[:alnum:]\\:])"
                 }
             ]
+        },
+        "copy-operators": {
+            "patterns": [
+                {
+                    "name": "keyword.command.copy.direction.kos",
+                    "match": "(?i)(?<![_[:alnum:]\\:])(to|copy)(?![_[:alnum:]\\:])"
+                }
+            ]
+        },
+        "white-space": {
+            "name": "punctuation.separator.whitespace.kos",
+            "match": "\\s"
         },
         "numeric-literal": {
             "name": "constant.numeric.number.kos",
