@@ -612,20 +612,31 @@ export class Parser {
             'Expected string or fileidentifier following keyword "run".',
             TokenType.String, TokenType.Identifier, TokenType.FileIdentifier);
         
+        let open = undefined;
+        let args = undefined;
+        let close = undefined;
+
         // parse arguments if found
         if (this.match(TokenType.BracketOpen)) {
-            const open = this.previous();
-            const args = this.arguments();
-            const close = this.consume(
+            open = this.previous();
+            args = this.arguments();
+            close = this.consume(
                 'Expected ")" after "run" arguments.', 
                 TokenType.BracketClose);
-            this.terminal();
-            
-            return new RunInst(run, identifier, once, open, args, close);
+        }
+
+        let on = undefined;
+        let expr = undefined;
+
+        // parse arguments if found
+        if (this.match(TokenType.On)) {
+            on = this.previous();
+            args = this.arguments();
+            expr = this.expression();
         }
 
         this.terminal();
-        return new RunInst(run, identifier, once);
+        return new RunInst(run, identifier, once, open, args, close, on, expr);
     }
 
     // parse run path instruction

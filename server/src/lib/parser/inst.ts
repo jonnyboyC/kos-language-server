@@ -235,7 +235,9 @@ export class RunInst extends Inst {
         public readonly once?: TokenInterface,
         public readonly open?: TokenInterface,
         public readonly args?: ExprInterface[],
-        public readonly close?: TokenInterface) {
+        public readonly close?: TokenInterface,
+        public readonly on?: TokenInterface,
+        public readonly expr?: ExprInterface ) {
         super();
     }
 }
