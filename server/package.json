@@ -1,30 +1,18 @@
 {
-  "name": "kos-language-server",
-  "description": "A Language server for Kerbal Operating System. A mod for Kerbal Space Program.",
-  "version": "0.0.1",
-  "author": "John Chabot",
-  "license": "MIT",
-  "engines": {
-    "node": "*"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/jonnyboyC/kos-language-server"
-  },
-  "dependencies": {
-    "vscode-languageserver": "4.1.3"
-  },
-  "ava": {
-    "failFast": true,
-    "files": [
-      "out/server/**/*.spec.js"
-    ],
-    "sources": [
-      "out/server/**/*.js"
-    ]
-  },
-  "scripts": {},
-  "devDependencies": {
-    "ava": "^0.25.0"
-  }
+    "name": "kos-language-server",
+    "description": "A Language server for Kerbal Operating System. A mod for Kerbal Space Program.",
+    "version": "0.0.1",
+    "author": "John Chabot",
+    "license": "MIT",
+    "engines": {
+        "node": "*"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/jonnyboyC/kos-language-server"
+    },
+    "dependencies": {
+        "vscode-languageserver": "4.1.3"
+    },
+    "scripts": {}
 }

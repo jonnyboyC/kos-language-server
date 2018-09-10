@@ -23,7 +23,7 @@ const parseExpression = (source: string) => {
     return parser.parseExpression();
 }
 
-const testDir = join(__dirname, '../../../../kerboscripts');
+const testDir = join(__dirname, '../../../kerboscripts');
 
 type callbackFunc = (fileName: string) => void;
 
@@ -73,8 +73,8 @@ test('basic valid literal', (t) => {
         atomTest('10e6', TokenType.Double, 10e6), 
         atomTest('"Test string"', TokenType.String, "test string"),
         atomTest('"true if until"', TokenType.String, "true if until"),
-        atomTest('true', TokenType.True, undefined), 
-        atomTest('false', TokenType.False, undefined), 
+        atomTest('true', TokenType.True, true), 
+        atomTest('false', TokenType.False, false), 
     ];
 
     for (let expression of validExpressions) {

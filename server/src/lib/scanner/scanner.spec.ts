@@ -5,7 +5,7 @@ import { join } from 'path';
 import { TokenInterface, SyntaxErrorInterface } from './types';
 
 
-const testDir = join(__dirname, '../../../../kerboscripts');
+const testDir = join(__dirname, '../../../kerboscripts');
 
 type callbackFunc = (fileName: string) => void;
 

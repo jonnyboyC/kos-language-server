@@ -2,7 +2,7 @@
 
 An in progress language server for the [KOS](https://github.com/KSP-KOS/KOS) mod for Kerbal Space Program. This project is heavily inspired by the [crafting interpreters](http://craftinginterpreters.com/) series
 
-As of now the language server is a mostly compliant parser of kerboscripts, via documentation and interpreting the KOS parser source code. The current assummed language spec is below
+As of now the language server is a mostly compliant parser of kerboscripts, via documentation and interpreting the KOS parser source code. The current assummed language spec is below. The full language spec has since been found here
 
 ```
 // program
@@ -95,7 +95,7 @@ log -> 'log' expression 'to' expression '.'
 rename -> 'rename' ioIdentifier expression 'to' expression '.'
 delete -> 'delete' expression ('from' expression)? '.'
 compile -> 'compile' expression ('to' expression)? '.'
-run -> 'run' 'once'? ( string | fileIdentifier ) ('(' arguments ')')? '.' // on??
+run -> 'run' 'once'? ( string | fileIdentifier ) ('(' arguments ')')? ('on', expresion)? '.'
 runPath -> 'runPath' '(' expression (',' arguments)? ')' '.'
 runOncePath -> 'runOncePath' '(' expression (',' arguments)? ')' '.'
 print -> 'print' expression ('at' '(' expression ',' expression ')')? '.'

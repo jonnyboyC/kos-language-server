@@ -2,7 +2,10 @@ import { TokenType } from './tokentypes';
 import { Position } from 'vscode-languageserver';
 
 export interface TokenMap {
-    readonly [key: string]: TokenType
+    readonly [key: string]: {
+        type: TokenType,
+        literal?: any
+    }
 }
 
 export interface SyntaxErrorInterface {

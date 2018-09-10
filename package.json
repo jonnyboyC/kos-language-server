@@ -1,65 +1,73 @@
 {
-  "name": "kos-vscode",
-  "description": "Language support for KOS in vscode",
-  "author": "John Chabot",
-  "license": "MIT",
-  "version": "0.1.0",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/jonnyboyC/kos-language-server"
-  },
-  "publisher": "johnChabot",
-  "categories": [],
-  "keywords": [
-    "kos",
-    "ksp",
-    "language-server"
-  ],
-  "engines": {
-    "vscode": "^1.23.0"
-  },
-  "activationEvents": [
-    "onLanguage:kos"
-  ],
-  "main": "./client/out/extension",
-  "contributes": {
-    "languages": [
-      {
-        "id": "kos",
-        "aliases": [
-          "Kerbal Operating System",
-          "kos"
-        ],
-        "extensions": [
-          ".ks"
-        ],
-        "configuration": "./kos.configuration.json"
-      }
+    "name": "kos-vscode",
+    "description": "Language support for KOS in vscode",
+    "author": "John Chabot",
+    "license": "MIT",
+    "version": "0.1.0",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/jonnyboyC/kos-language-server"
+    },
+    "publisher": "johnChabot",
+    "categories": [],
+    "keywords": [
+        "kos",
+        "ksp",
+        "language-server"
     ],
-    "grammars": [
-      {
-        "language": "kos",
-        "scopeName": "source.kos",
-        "path": "./syntaxes/kos.tmLanguage.json"
-      }
-    ]
-  },
-  "scripts": {
-    "vscode:prepublish": "cd client && npm run update-vscode && cd .. && npm run compile",
-    "compile:client": "tsc -p ./client/tsconfig.json",
-    "compile:server": "tsc -p ./server/tsconfig.json",
-    "watch:client": "tsc -w -p ./client/tsconfig.json",
-    "watch:server": "tsc -w -p ./server/tsconfig.json",
-    "compile": "npm run compile:client && npm run compile:server",
-    "postinstall": "cd client && npm install && cd ../server && npm install && cd .."
-  },
-  "bugs": {
-    "url": "https://github.com/jonnyboyC/kos-language-server/issues"
-  },
-  "homepage": "https://github.com/jonnyboyC/kos-language-server#readme",
-  "devDependencies": {
-    "@types/mocha": "~5.2.0",
-    "@types/node": "~8.0.0",
-    "typescript": "2.8.3"
-  }
+    "engines": {
+        "vscode": "^1.23.0"
+    },
+    "activationEvents": [
+        "onLanguage:kos"
+    ],
+    "main": "./client/out/extension",
+    "contributes": {
+        "languages": [{
+            "id": "kos",
+            "aliases": [
+                "Kerbal Operating System",
+                "kos"
+            ],
+            "extensions": [
+                ".ks"
+            ],
+            "configuration": "./kos.configuration.json"
+        }],
+        "grammars": [{
+            "language": "kos",
+            "scopeName": "source.kos",
+            "path": "./syntaxes/kos.tmLanguage.json"
+        }]
+    },
+    "scripts": {
+        "vscode:prepublish": "cd client && npm run update-vscode && cd .. && npm run compile",
+        "compile:client": "tsc -p ./client/tsconfig.json",
+        "compile:server": "tsc -p ./server/tsconfig.json",
+        "test": "ava",
+        "watch:client": "tsc -w -p ./client/tsconfig.json",
+        "watch:server": "tsc -w -p ./server/tsconfig.json",
+        "compile": "npm run compile:client && npm run compile:server",
+        "postinstall": "cd client && npm install && cd ../server && npm install && cd .."
+    },
+    "ava": {
+        "files": [
+            "server/out/**/*.spec.js",
+            "client/out/**/*.spec.js"
+        ],
+        "sources": [
+            "server/out/**/*.js",
+            "client/out/**/*.js"
+        ]
+    },
+    "bugs": {
+        "url": "https://github.com/jonnyboyC/kos-language-server/issues"
+    },
+    "homepage": "https://github.com/jonnyboyC/kos-language-server#readme",
+    "devDependencies": {
+        "@types/mocha": "~5.2.0",
+        "@types/node": "~8.0.0",
+        "ava": "^0.25.0",
+        "typescript": "2.8.3"
+    }
 }
