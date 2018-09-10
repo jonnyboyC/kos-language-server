@@ -1,6 +1,6 @@
 # kos-language-server
 
-An in progress language server for the [KOS](https://github.com/KSP-KOS/KOS) mod for Kerbal Space Program. This project is heavily inspired by the [crafting interpreters](http://craftinginterpreters.com/) series
+An in progress language server for the [KOS](https://github.com/KSP-KOS/KOS) mod for Kerbal Space Program. This project is heavily inspired by the [crafting interpreters](http://craftinginterpreters.com/) series. The [vscode-extension can be found here](https://marketplace.visualstudio.com/items?itemName=JohnChabot.kos-vscode)
 
 ![Alt Text](https://i.imgur.com/Xh5yXJi.gif)
 

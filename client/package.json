@@ -1,28 +1,28 @@
 {
-	"name": "kos-vscode-client",
-	"description": "Vscode client for the KOS-language-server",
-	"author": "John Chabot",
-	"license": "MIT",
-	"version": "0.1.0",
-	"publisher": "johnChabot",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/jonnyboyC/kos-language-server"
-	},
-	"engines": {
-		"vscode": "^1.23.0"
-	},
-	"keywords": [
-		"KOS",
-		"language-server",
-		"KSP"
-	],
-	"scripts": {
-		"update-vscode": "vscode-install",
-		"postinstall": "vscode-install"
-	},
-	"dependencies": {
-		"vscode": "1.1.18",
-		"vscode-languageclient": "4.1.4"
-	}
+    "name": "kos-vscode-client",
+    "description": "Vscode client for the KOS-language-server",
+    "author": "John Chabot",
+    "license": "MIT",
+    "version": "0.1.0",
+    "publisher": "JohnChabot",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/jonnyboyC/kos-language-server"
+    },
+    "engines": {
+        "vscode": "^1.23.0"
+    },
+    "keywords": [
+        "KOS",
+        "language-server",
+        "KSP"
+    ],
+    "scripts": {
+        "update-vscode": "vscode-install",
+        "postinstall": "vscode-install"
+    },
+    "dependencies": {
+        "vscode": "1.1.18",
+        "vscode-languageclient": "4.1.4"
+    }
 }
