@@ -2,8 +2,13 @@
 
 An in progress language server for the [KOS](https://github.com/KSP-KOS/KOS) mod for Kerbal Space Program. This project is heavily inspired by the [crafting interpreters](http://craftinginterpreters.com/) series
 
-![Alt Text](https://i.imgur.com/kXgHlpr.gifv)
-As of now the language server is a mostly compliant parser of kerboscripts, via documentation and interpreting the KOS parser source code. The current assummed language spec is below. The full language spec has since been found here
+![Alt Text](https://i.imgur.com/Xh5yXJi.gif)
+
+The language server in it's current form is limited to identifying scanning and parsing errors in the language. The current grammer the server adhere's to is shown below. The grammer KOS follows internally is shown [here](https://github.com/KSP-KOS/KOS/blob/develop/src/kOS.Safe/Compilation/KS/kRISC.tpg). An effort will be made to ensure these are equivalent. 
+
+Currently a vscode client has been implemented with:
+- syntax highlighting
+- brace detection
 
 
 ```
