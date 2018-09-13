@@ -1,6 +1,7 @@
 import { Inst } from "./inst";
 import { ScopeInterface, ExprInterface, InstInterface } from "./types";
 import { TokenInterface } from "../scanner/types";
+import { TokenType } from "../scanner/tokentypes";
 
 export class Declare extends Inst {
     constructor() { super(); }
@@ -44,11 +45,26 @@ export class FunctionDeclartion extends Declare {
     }
 }
 
+export class Parameter {
+    constructor(
+        public readonly identifier: TokenInterface) {
+    }
+
+    public get isKeyword(): boolean {
+        return !(this.identifier.type === TokenType.Identifier
+            || this.identifier.type === TokenType.FileIdentifier);
+    }
+}
+
 export class DefaultParameter {
     constructor(
         public readonly identifier: TokenInterface,
         public readonly toIs: TokenInterface,
         public readonly value: ExprInterface) {
+    }
+
+    get isKeyword(): boolean {
+        return this.identifier.type !== TokenType.Identifier
     }
 }
 

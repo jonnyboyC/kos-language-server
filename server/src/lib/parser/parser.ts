@@ -89,8 +89,9 @@ export class Parser {
     // parse function declaration
     private declareFunction = (scope?: ScopeInterface): InstInterface => {
         const functionToken = this.previous();
-        const functionIdentiifer = this.consume("Expected identifier.", TokenType.Identifier);
+        const functionIdentiifer = this.consumeValidIdentifier("Expected identifier");
 
+        // match function body
         if (this.match(TokenType.CurlyOpen)) {
             const instructionBlock = this.instructionBlock();
             return new FunctionDeclartion(functionToken, functionIdentiifer, instructionBlock, scope);
@@ -104,17 +105,15 @@ export class Parser {
     // parse parameter declaration
     private declareParameter = (scope?: ScopeInterface): InstInterface => {
         const parameterToken = this.previous();
-        let identifer = this.consume(
-            'Expected identifier after parameter keyword.', 
-            TokenType.Identifier);
+        let identifer = this.consumeValidIdentifier(
+            'Expected identifier after parameter keyword.');
         const parameters = [identifer];
         const defaultParameters = [];
 
         // if comma found more parameters can be parsed
         while (this.match(TokenType.Comma)) {
-            identifer = this.consume(
-                'Expected additional identiifer following comma.', 
-                TokenType.Identifier);
+            identifer = this.consumeValidIdentifier(
+                'Expected additional identiifer following comma.');
             
             // if is or to found defaulted parameters proceed
             if (this.check(TokenType.Is) || this.check(TokenType.To)) break;
@@ -129,9 +128,8 @@ export class Parser {
 
             // from here on check only for defaulted parameters
             while (this.match(TokenType.Comma)) {
-                identifer = this.consume(
-                    'Expected identifier following comma.', 
-                    TokenType.Identifier);
+                identifer = this.consumeValidIdentifier(
+                    'Expected identifier following comma.');
                 toIs = this.consume(
                     'Expected default parameter using keyword "to" or "is".',
                     TokenType.To, TokenType.Is);
@@ -146,9 +144,8 @@ export class Parser {
     // parse lock instruction
     private declareLock = (scope?: ScopeInterface): InstInterface => {
         const lock = this.previous();
-        const identifer = this.consume(
-            'Expected identifier following lock keyword.', 
-            TokenType.Identifier);
+        const identifer = this.consumeValidIdentifier(
+            'Expected identifier following lock keyword.');
         const to = this.consume(
             'Expected keyword "to" following lock.', 
             TokenType.To);
@@ -944,9 +941,8 @@ export class Parser {
         }
 
         // match identifiers TODO identifier all keywords that can be used here
-        if (isValidIdentifier(this.peek().type)) {
-            const isKeyword = this.peek().type !== TokenType.Identifier;
-            return new ExprVariable(this.advance(), isKeyword);
+        if (isValidIdentifier(this.peek().type) || this.check(TokenType.FileIdentifier)) {
+            return new ExprVariable(this.advance());
         }
 
         // match grouping expression
@@ -958,12 +954,39 @@ export class Parser {
             return new ExprGrouping(open, expr, close);
         }
 
+        // match anonymous function
         if (this.match(TokenType.CurlyOpen)) {
             return this.anonymousFunction()
         }
 
         // valid expression not found
         throw this.error(this.peek(), 'Expected expression.');
+    }
+
+    // check for period
+    private terminal = (): TokenResult => {
+        return this.consume('Expected ".".', TokenType.Period);
+    }
+    
+    // check for any valid identifier
+    private consumeValidIdentifier = (message: string): TokenInterface => {
+        if (this.identifierMatch()) return this.previous();
+        throw this.error(this.previous(), message);
+    }
+
+    // consume current token if it matches type. 
+    // returns erros if incorrect token is found
+    private consume = (message: string, ...tokenType: TokenType[]): TokenInterface => {
+        if (this.match(...tokenType)) return this.previous();
+        throw this.error(this.previous(), message);
+    }
+
+    // was identifier matched
+    private identifierMatch = (): boolean => {
+        const found = this.identifierCheck();
+        if (found) this.advance();
+
+        return found;
     }
 
     // determine if current token matches a set of tokens
@@ -974,16 +997,10 @@ export class Parser {
         return found;
     }
 
-    // check for period
-    private terminal = (): TokenResult => {
-        return this.consume('Expected ".".', TokenType.Period);
-    }
-
-    // consume current token if it matches type. 
-    // returns erros if incorrect token is found
-    private consume = (message: string, ...tokenType: TokenType[]): TokenInterface => {
-        if (this.match(...tokenType)) return this.previous();
-        throw this.error(this.previous(), message);
+    // check if current token can be an identifier
+    private identifierCheck = (): boolean => {
+        if (this.isAtEnd()) return false;
+        return isValidIdentifier(this.peek().type);
     }
 
     // check if current token matches expected type
