@@ -3,7 +3,7 @@ import { TokenType, isValidIdentifier } from '../scanner/tokentypes';
 import { ParseErrorInterface, ExprResult, TokenResult, InstResult, ExprInterface, ScopeInterface, InstInterface } from './types';
 import { ParseError } from './parserError';
 import { Expr, ExprLiteral, ExprGrouping, ExprVariable, ExprCall, ExprDelegate, ExprArrayBracket, ExprArrayIndex, ExprFactor, ExprUnary, ExprBinary, ExprSuffix, ExprAnonymousFunction } from './expr';
-import { Inst, InstructionBlock, OnOffInst, CommandInst, CommandExpressionInst, UnsetInst, UnlockInst, SetInst, LazyGlobalInst, ElseInst, IfInst, UntilInst, FromInst, WhenInst, ReturnInst, SwitchInst, ForInst, OnInst, ToggleInst, WaitInst, LogInst, CopyInst, RenameInst, DeleteInst, RunInst, RunPathInst, RunPathOnceInst, CompileInst, ListInst, EmptyInst, PrintInst, ExprInst } from './inst';
+import { Inst, InstructionBlock, OnOffInst, CommandInst, CommandExpressionInst, UnsetInst, UnlockInst, SetInst, LazyGlobalInst, ElseInst, IfInst, UntilInst, FromInst, WhenInst, ReturnInst, SwitchInst, ForInst, OnInst, ToggleInst, WaitInst, LogInst, CopyInst, RenameInst, DeleteInst, RunInst, RunPathInst, RunPathOnceInst, CompileInst, ListInst, EmptyInst, PrintInst, ExprInst, BreakInst } from './inst';
 import { Scope, FunctionDeclartion, DefaultParameter, ParameterDeclaration, VariableDeclaration, LockDeclaration } from './declare';
 
 export class Parser {
@@ -235,6 +235,9 @@ export class Parser {
             case TokenType.Return:
                 this.advance();
                 return this.returnInst();
+            case TokenType.Break:
+                this.advance();
+                return this.breakInst();
             case TokenType.Switch:
                 this.advance();
                 return this.switchInst();
@@ -479,6 +482,14 @@ export class Parser {
         return new ReturnInst(returnToken, value);
     }
 
+    // parse return instruction
+    private breakInst = (): InstInterface => {
+        const breakToken = this.previous();
+        this.terminal();
+
+        return new BreakInst(breakToken);
+    }
+
     // parse switch instruction
     private switchInst = (): InstInterface => {
         const switchToken = this.previous();
@@ -493,9 +504,8 @@ export class Parser {
     // parse for instruction
     private forInst = (): InstInterface => {
         const forToken = this.previous();
-        const identifer = this.consume(
-            'Expected identifier. following keyword "for"', 
-            TokenType.Identifier);
+        const identifer = this.consumeValidIdentifier(
+            'Expected identifier. following keyword "for"');
         const inToken = this.consume(
             'Expected "in" after "for" loop variable.', 
             TokenType.In);
@@ -697,13 +707,14 @@ export class Parser {
         let inToken = undefined;
         let target = undefined;
 
-        if (this.match(TokenType.Identifier)) {
+        if (this.identifierMatch()) {
             identifier = this.previous();
             if (this.match(TokenType.In)) {
                 inToken = this.previous();
-                target = this.consume('Expected identifier after "in" keyword in "list" command', TokenType.Identifier);
+                target = this.consumeValidIdentifier('Expected identifier after "in" keyword in "list" command');
             }
         }
+        this.terminal();
         
         return new ListInst(list, identifier, inToken, target);
     }

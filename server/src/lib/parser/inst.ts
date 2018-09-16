@@ -139,6 +139,13 @@ export class ReturnInst extends Inst {
     }
 }
 
+export class BreakInst extends Inst {
+    constructor(
+        public readonly breakToken: TokenInterface) {
+        super();
+    }
+}
+
 export class SwitchInst extends Inst {
     constructor(
         public readonly switchToken: TokenInterface,
