@@ -97,8 +97,12 @@
                 }
             },
             "end": "\\.",
-            "patterns": [{
-                    "#include": "#punctuation-comma"
+            "patterns": [
+                {
+                    "include": "#comment"
+                },
+                {
+                    "include": "#punctuation-comma"
                 },
                 {
                     "include": "#parameter-body"
@@ -106,7 +110,7 @@
             ]
         },
         "parameter-body": {
-            "begin": "(?i)\\b([_[:alpha:]][_[:alnum:]]*)(?:\\s+\\b(is|to)\\s+)?",
+            "begin": "(?i)\\b([_[:alpha:]][_[:alnum:]]*)(?:\\s+\\b(is|to)\\s+)?\\s*",
             "beginCaptures": {
                 "1": {
                     "name": "variable.parameter.kos"
@@ -116,9 +120,14 @@
                 }
             },
             "end": "(?=(\\,|\\.))",
-            "patterns": [{
-                "include": "#expression"
-            }]
+            "patterns": [
+                {
+                    "include": "#comment"
+                },    
+                {
+                    "include": "#expression"
+                }
+            ]
         },
         "lock-declaration": {
             "begin": "(?i)(?:(\\bdeclare)\\s+)?(?:\\b(local|global)\\s+)?(\\block)\\s+\\b([_[:alpha:]][_[:alnum:]]*)\\s+(\\bto)\\s+",
@@ -967,9 +976,12 @@
         },
         "comment": {
             "name": "comment.line.double-slash.kos",
-            "begin": "(//)",
+            "begin": "(^[ \\t]+)?(//)",
             "beginCaptures": {
-                "0": {
+                "1": {
+                    "name": "punctuation.whitespace.comment.leading.js"
+                },
+                "2": {
                     "name": "comment.line.double-slash.kos"
                 }
             },
