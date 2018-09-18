@@ -128,7 +128,7 @@ export class Scanner {
 
     // extract a file identifier
     private fileIdentifier(): Token {
-        while (this.peek() === '.' || this.isAlphaNumeric(this.peekNext())) {
+        while (this.isAlphaNumeric(this.peek()) || (this.peek() === '.' && this.isAlphaNumeric(this.peekNext()))) {
             this.advance();
             while (this.isAlphaNumeric(this.peek())) this.advance();
         }

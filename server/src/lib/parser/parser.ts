@@ -4,7 +4,7 @@ import { TokenType, isValidIdentifier } from '../scanner/tokentypes';
 import { ParseErrorInterface, ExprResult, TokenResult, InstResult, ExprInterface, ScopeInterface, InstInterface } from './types';
 import { ParseError } from './parserError';
 import { Expr, ExprLiteral, ExprGrouping, ExprVariable, ExprCall, ExprDelegate, ExprArrayBracket, ExprArrayIndex, ExprFactor, ExprUnary, ExprBinary, ExprSuffix, ExprAnonymousFunction } from './expr';
-import { Inst, InstructionBlock, OnOffInst, CommandInst, CommandExpressionInst, UnsetInst, UnlockInst, SetInst, LazyGlobalInst, ElseInst, IfInst, UntilInst, FromInst, WhenInst, ReturnInst, SwitchInst, ForInst, OnInst, ToggleInst, WaitInst, LogInst, CopyInst, RenameInst, DeleteInst, RunInst, RunPathInst, RunPathOnceInst, CompileInst, ListInst, EmptyInst, PrintInst, ExprInst } from './inst';
+import { Inst, InstructionBlock, OnOffInst, CommandInst, CommandExpressionInst, UnsetInst, UnlockInst, SetInst, LazyGlobalInst, ElseInst, IfInst, UntilInst, FromInst, WhenInst, ReturnInst, SwitchInst, ForInst, OnInst, ToggleInst, WaitInst, LogInst, CopyInst, RenameInst, DeleteInst, RunInst, RunPathInst, RunPathOnceInst, CompileInst, ListInst, EmptyInst, PrintInst, ExprInst, BreakInst } from './inst';
 import { Scope, FunctionDeclartion, DefaultParameter, ParameterDeclaration, VariableDeclaration, LockDeclaration } from './declare';
 
 export class Parser {
@@ -90,8 +90,9 @@ export class Parser {
     // parse function declaration
     private declareFunction = (scope?: ScopeInterface): InstInterface => {
         const functionToken = this.previous();
-        const functionIdentiifer = this.consumeThrow("Expected identifier.", TokenType.Identifier);
+        const functionIdentiifer = this.consumeValidIdentifier("Expected identifier");
 
+        // match function body
         if (this.match(TokenType.CurlyOpen)) {
             const instructionBlock = this.instructionBlock();
             return new FunctionDeclartion(functionToken, functionIdentiifer, instructionBlock, scope);
@@ -105,17 +106,15 @@ export class Parser {
     // parse parameter declaration
     private declareParameter = (scope?: ScopeInterface): InstInterface => {
         const parameterToken = this.previous();
-        let identifer = this.consumeThrow(
-            'Expected identifier after parameter keyword.', 
-            TokenType.Identifier);
+        let identifer = this.consumeValidIdentifier(
+            'Expected identifier after parameter keyword.');
         const parameters = [identifer];
         const defaultParameters = [];
 
         // if comma found more parameters can be parsed
         while (this.match(TokenType.Comma)) {
-            identifer = this.consumeThrow(
-                'Expected additional identiifer following comma.', 
-                TokenType.Identifier);
+            identifer = this.consumeValidIdentifier(
+                'Expected additional identiifer following comma.');
             
             // if is or to found defaulted parameters proceed
             if (this.check(TokenType.Is) || this.check(TokenType.To)) break;
@@ -130,10 +129,9 @@ export class Parser {
 
             // from here on check only for defaulted parameters
             while (this.match(TokenType.Comma)) {
-                identifer = this.consumeThrow(
-                    'Expected identifier following comma.', 
-                    TokenType.Identifier);
-                toIs = this.consumeThrow(
+                identifer = this.consumeValidIdentifier(
+                    'Expected identifier following comma.');
+                toIs = this.consume(
                     'Expected default parameter using keyword "to" or "is".',
                     TokenType.To, TokenType.Is);
                 value = this.expression();
@@ -147,10 +145,9 @@ export class Parser {
     // parse lock instruction
     private declareLock = (scope?: ScopeInterface): InstInterface => {
         const lock = this.previous();
-        const identifer = this.consumeThrow(
-            'Expected identifier following lock keyword.', 
-            TokenType.Identifier);
-        const to = this.consumeThrow(
+        const identifer = this.consumeValidIdentifier(
+            'Expected identifier following lock keyword.');
+        const to = this.consume(
             'Expected keyword "to" following lock.', 
             TokenType.To);
         const value = this.expression();
@@ -239,6 +236,9 @@ export class Parser {
             case TokenType.Return:
                 this.advance();
                 return this.returnInst();
+            case TokenType.Break:
+                this.advance();
+                return this.breakInst();
             case TokenType.Switch:
                 this.advance();
                 return this.switchInst();
@@ -506,6 +506,14 @@ export class Parser {
         return new ReturnInst(returnToken, value);
     }
 
+    // parse return instruction
+    private breakInst = (): InstInterface => {
+        const breakToken = this.previous();
+        this.terminal();
+
+        return new BreakInst(breakToken);
+    }
+
     // parse switch instruction
     private switchInst = (): InstInterface => {
         const switchToken = this.previous();
@@ -520,10 +528,9 @@ export class Parser {
     // parse for instruction
     private forInst = (): InstInterface => {
         const forToken = this.previous();
-        const identifer = this.consumeThrow(
-            'Expected identifier. following keyword "for"', 
-            TokenType.Identifier);
-        const inToken = this.consumeThrow(
+        const identifer = this.consumeValidIdentifier(
+            'Expected identifier. following keyword "for"');
+        const inToken = this.consume(
             'Expected "in" after "for" loop variable.', 
             TokenType.In);
         const suffix = this.suffix();
@@ -723,13 +730,14 @@ export class Parser {
         let inToken = undefined;
         let target = undefined;
 
-        if (this.match(TokenType.Identifier)) {
+        if (this.identifierMatch()) {
             identifier = this.previous();
             if (this.match(TokenType.In)) {
                 inToken = this.previous();
-                target = this.consumeThrow('Expected identifier after "in" keyword in "list" command', TokenType.Identifier);
+                target = this.consumeValidIdentifier('Expected identifier after "in" keyword in "list" command');
             }
         }
+        this.terminal();
         
         return new ListInst(list, identifier, inToken, target);
     }
@@ -967,9 +975,8 @@ export class Parser {
         }
 
         // match identifiers TODO identifier all keywords that can be used here
-        if (isValidIdentifier(this.peek().type)) {
-            const isKeyword = this.peek().type !== TokenType.Identifier;
-            return new ExprVariable(this.advance(), isKeyword);
+        if (isValidIdentifier(this.peek().type) || this.check(TokenType.FileIdentifier)) {
+            return new ExprVariable(this.advance());
         }
 
         // match grouping expression
@@ -981,12 +988,39 @@ export class Parser {
             return new ExprGrouping(open, expr, close);
         }
 
+        // match anonymous function
         if (this.match(TokenType.CurlyOpen)) {
             return this.anonymousFunction()
         }
 
         // valid expression not found
         throw this.error(this.peek(), 'Expected expression.');
+    }
+
+    // check for period
+    private terminal = (): TokenResult => {
+        return this.consumeThrow('Expected ".".', TokenType.Period);
+    }
+    
+    // check for any valid identifier
+    private consumeValidIdentifier = (message: string): TokenInterface => {
+        if (this.identifierMatch()) return this.previous();
+        throw this.error(this.previous(), message);
+    }
+
+    // consume current token if it matches type. 
+    // throws errors if incorrect token is found
+    private consumeThrow = (message: string, ...tokenType: TokenType[]): TokenInterface => {
+        if (this.match(...tokenType)) return this.previous();
+        throw this.error(this.previous(), message);
+    }
+
+    // was identifier matched
+    private identifierMatch = (): boolean => {
+        const found = this.identifierCheck();
+        if (found) this.advance();
+
+        return found;
     }
 
     // determine if current token matches a set of tokens
@@ -997,23 +1031,10 @@ export class Parser {
         return found;
     }
 
-    // check for period
-    private terminal = (): TokenResult => {
-        return this.consumeThrow('Expected ".".', TokenType.Period);
-    }
-
-    // consume current token if it matches type. 
-    // throws errors if incorrect token is found
-    private consumeThrow = (message: string, ...tokenType: TokenType[]): TokenInterface => {
-        if (this.match(...tokenType)) return this.previous();
-        throw this.error(this.previous(), message);
-    }
-
-    // consume current token if it matches type. 
-    // returns errors if incorrect token is found
-    private consumeReturn = (message: string, ...tokenType: TokenType[]): TokenInterface | ParseErrorInterface => {
-        if (this.match(...tokenType)) return this.previous();
-        return this.error(this.previous(), message);
+    // check if current token can be an identifier
+    private identifierCheck = (): boolean => {
+        if (this.isAtEnd()) return false;
+        return isValidIdentifier(this.peek().type);
     }
 
     // check if current token matches expected type
@@ -1056,13 +1077,27 @@ export class Parser {
             if (this.previous().type == TokenType.Period) return;
 
             switch (this.peek().type) {
+                case TokenType.Stage:
+                case TokenType.Clearscreen:
+                case TokenType.Preserve:
+                case TokenType.Reboot:
+                case TokenType.Shutdown:
+                case TokenType.Edit:
+                case TokenType.Add:
+                case TokenType.Remove:
                 case TokenType.Unset:
                 case TokenType.Unlock:
                 case TokenType.Set:
-                case TokenType.Lock:
                 case TokenType.If:
+                case TokenType.Until:
                 case TokenType.From:
                 case TokenType.When:
+                case TokenType.Return:
+                case TokenType.Break:
+                case TokenType.Switch:
+                case TokenType.For:
+                case TokenType.On:
+                case TokenType.Toggle:
                 case TokenType.Wait:
                 case TokenType.Log:
                 case TokenType.Copy:
@@ -1073,14 +1108,7 @@ export class Parser {
                 case TokenType.RunOncePath:
                 case TokenType.Compile:
                 case TokenType.List:
-                case TokenType.Reboot:
-                case TokenType.Shutdown:
-                case TokenType.Stage:
-                case TokenType.Clearscreen:
-                case TokenType.Preserve:
-                case TokenType.Edit:
-                case TokenType.Add:
-                case TokenType.Remove:
+                case TokenType.Print:
                     return;
                 default:
                     break;

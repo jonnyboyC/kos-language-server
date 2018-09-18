@@ -1,5 +1,6 @@
 import { TokenInterface } from "../scanner/types";
 import { ExprInterface, InstInterface } from "./types";
+import { TokenType } from "../scanner/tokentypes";
 
 export class Expr implements ExprInterface {
     get tag(): 'expr' {
@@ -123,9 +124,13 @@ export class ExprLiteral extends Expr {
 
 export class ExprVariable extends Expr {
     constructor(
-        public readonly token: TokenInterface,
-        public readonly isKeyword: boolean) {
+        public readonly token: TokenInterface) {
         super();
+    }
+
+    public get isKeyword(): boolean {
+        return !(this.token.type === TokenType.Identifier
+            || this.token.type === TokenType.FileIdentifier);
     }
 
     public toString(): string {

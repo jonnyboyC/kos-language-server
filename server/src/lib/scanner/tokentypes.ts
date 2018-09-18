@@ -96,7 +96,7 @@ export const isValidIdentifier = (type: TokenType): boolean => {
         case TokenType.Reboot:
         case TokenType.Shutdown:
         case TokenType.Identifier:
-        case TokenType.FileIdentifier:
+        // case TokenType.FileIdentifier:
         case TokenType.LazyGlobal:
             return true;
         default:
