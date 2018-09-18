@@ -84,6 +84,7 @@
             }]
         },
         "parameter-declaration": {
+            "name": "meta.declaration.parameter",
             "begin": "(?i)(?:(\\bdeclare)\\s+)?(?:\\b(local|global)\\s+)?\\b(parameter)\\s+",
             "beginCaptures": {
                 "1": {
@@ -130,6 +131,7 @@
             ]
         },
         "lock-declaration": {
+            "name": "meta.declaration.lock",
             "begin": "(?i)(?:(\\bdeclare)\\s+)?(?:\\b(local|global)\\s+)?(\\block)\\s+\\b([_[:alpha:]][_[:alnum:]]*)\\s+(\\bto)\\s+",
             "beginCaptures": {
                 "1": {
@@ -168,7 +170,8 @@
             ]
         },
         "variable-declaration-declare": {
-            "begin": "(?i)\\b(declare)\\s+(\\b(local|global)\\s+)?\\b([_[:alpha:]][_[:alnum:]]*)\\s+\\b(is|to)\\s+",
+            "name": "meta.declaration.variable",
+            "begin": "(?i)\\b(declare)\\s+(?:\\b(local|global)\\s+)?\\b([_[:alpha:]][_[:alnum:]]*)\\s+\\b(is|to)\\s+",
             "beginCaptures": {
                 "1": {
                     "name": "keyword.declaration.declare.kos"
@@ -194,6 +197,7 @@
             }]
         },
         "variable-declaration-scope": {
+            "name": "meta.declaration.variable",
             "begin": "(?i)\\b(local|global)\\s+\\b([_[:alpha:]][_[:alnum:]]*)\\s+\\b(to|is)\\s+",
             "beginCaptures": {
                 "1": {

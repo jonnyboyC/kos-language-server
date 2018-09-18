@@ -1086,7 +1086,6 @@ export class Parser {
                 case TokenType.Compile:
                 case TokenType.List:
                 case TokenType.Print:
-                case TokenType.Period:
                     return;
                 default:
                     break;
