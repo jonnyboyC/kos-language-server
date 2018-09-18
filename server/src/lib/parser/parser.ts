@@ -1054,13 +1054,27 @@ export class Parser {
             if (this.previous().type == TokenType.Period) return;
 
             switch (this.peek().type) {
+                case TokenType.Stage:
+                case TokenType.Clearscreen:
+                case TokenType.Preserve:
+                case TokenType.Reboot:
+                case TokenType.Shutdown:
+                case TokenType.Edit:
+                case TokenType.Add:
+                case TokenType.Remove:
                 case TokenType.Unset:
                 case TokenType.Unlock:
                 case TokenType.Set:
-                case TokenType.Lock:
                 case TokenType.If:
+                case TokenType.Until:
                 case TokenType.From:
                 case TokenType.When:
+                case TokenType.Return:
+                case TokenType.Break:
+                case TokenType.Switch:
+                case TokenType.For:
+                case TokenType.On:
+                case TokenType.Toggle:
                 case TokenType.Wait:
                 case TokenType.Log:
                 case TokenType.Copy:
@@ -1071,14 +1085,8 @@ export class Parser {
                 case TokenType.RunOncePath:
                 case TokenType.Compile:
                 case TokenType.List:
-                case TokenType.Reboot:
-                case TokenType.Shutdown:
-                case TokenType.Stage:
-                case TokenType.Clearscreen:
-                case TokenType.Preserve:
-                case TokenType.Edit:
-                case TokenType.Add:
-                case TokenType.Remove:
+                case TokenType.Print:
+                case TokenType.Period:
                     return;
                 default:
                     break;
