@@ -18,6 +18,7 @@ import {
 import { Scanner } from './lib/scanner/scanner';
 import { TokenInterface, SyntaxErrorInterface } from './lib/scanner/types';
 import { Parser } from './lib/parser/parser';
+import { ParseErrorInterface } from './lib/parser/types';
 
 // Create a connection for the server. The connection uses Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -58,6 +59,15 @@ documents.onDidChangeContent(change => {
 	validateTextDocument(change.document);
 });
 
+const toDiagnostic = (error: ParseErrorInterface): Diagnostic => {
+	return {
+		severity: DiagnosticSeverity.Error,
+		range: { start: error.token.start, end: error.token.end },
+		message: error.message,
+		source: 'kos-language-server'
+	}
+}
+
 async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 	// The validator creates diagnostics for all uppercase words length 2 and more
     let text = textDocument.getText();
@@ -81,14 +91,15 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
     const parser = new Parser(tokens);
     const [, errors] = parser.parse();
 
-	const diagnostics: Diagnostic[] = errors.map(e => {
-		return {
-			severity: DiagnosticSeverity.Error,
-			range: { start: e.token.start, end: e.token.end },
-			message: e.message,
-			source: 'kos-language-server'
-		}
-	});
+	let diagnostics: Diagnostic[] = []
+	if (errors.length !== 0) {
+		diagnostics = errors
+		.map(error => [
+			toDiagnostic(error), 
+			...error.inner.map(innerError => toDiagnostic(innerError))
+			])
+		.reduce((acc, current) => acc.concat(current))
+	}
 
 	connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
 }

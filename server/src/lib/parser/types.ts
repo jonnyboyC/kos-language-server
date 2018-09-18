@@ -5,6 +5,7 @@ export interface ParseErrorInterface {
     token: TokenInterface;
     otherInfo: string[];
     message: string;
+    inner: ParseErrorInterface[]
 }
 
 export interface ExprInterface {
