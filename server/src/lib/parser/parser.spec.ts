@@ -3,7 +3,7 @@ import { Scanner } from '../scanner/scanner';
 import { Parser } from './parser';
 import { IToken, ISyntaxError } from '../scanner/types';
 import { IParseError, IExpr, ExprResult } from './types';
-import { ExprLiteral, ExprVariable, ExprCall } from './expr';
+import { LiteralExpr, VariableExpr, CallExpr } from './expr';
 import { TokenType } from '../scanner/tokentypes';
 import { readdirSync, statSync, readFileSync } from 'fs';
 import { join } from 'path';
@@ -152,8 +152,8 @@ const callTest = (source: string, callee: string, args: Function[]): CallTestInt
 // test basic identifier
 test('valid call', (t) => {
     const validExpressions = [
-        callTest('test(4, "car")', "test", [ExprLiteral, ExprLiteral]),
-        callTest('БНЯД(varName, 14.3)', "бняд", [ExprVariable, ExprLiteral]), 
+        callTest('test(4, "car")', "test", [LiteralExpr, LiteralExpr]),
+        callTest('БНЯД(varName, 14.3)', "бняд", [VariableExpr, LiteralExpr]), 
         callTest('_variableName()', "_variablename", []), 
     ];
 
@@ -190,16 +190,16 @@ test('invalid call', (t) => {
 //     type: TokenType
 // }
 
-const isCall = (literalTest: ExprResult | ISyntaxError[]): literalTest is ExprCall => {
-    return isExpr(literalTest) && literalTest instanceof ExprCall;
+const isCall = (literalTest: ExprResult | ISyntaxError[]): literalTest is CallExpr => {
+    return isExpr(literalTest) && literalTest instanceof CallExpr;
 }
 
-const isLiteral = (literalTest: ExprResult | ISyntaxError[]): literalTest is ExprLiteral => {
-    return isExpr(literalTest) && literalTest instanceof ExprLiteral;
+const isLiteral = (literalTest: ExprResult | ISyntaxError[]): literalTest is LiteralExpr => {
+    return isExpr(literalTest) && literalTest instanceof LiteralExpr;
 }
 
-const isVariable = (literalTest: ExprResult | ISyntaxError[]): literalTest is ExprVariable => {
-    return isExpr(literalTest) && literalTest instanceof ExprVariable;
+const isVariable = (literalTest: ExprResult | ISyntaxError[]): literalTest is VariableExpr => {
+    return isExpr(literalTest) && literalTest instanceof VariableExpr;
 }
 
 const isExpr = (result: IParseError | IExpr | ISyntaxError[]): result is IExpr => {

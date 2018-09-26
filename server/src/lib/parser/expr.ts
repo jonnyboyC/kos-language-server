@@ -12,7 +12,7 @@ export class Expr implements IExpr {
     }
 }
 
-export class ExprBinary extends Expr {
+export class BinaryExpr extends Expr {
     constructor(
         public readonly left: IExpr, 
         public readonly operator: IToken, 
@@ -29,7 +29,7 @@ export class ExprBinary extends Expr {
     }
 }
 
-export class ExprUnary extends Expr {
+export class UnaryExpr extends Expr {
     constructor(
         public readonly operator: IToken, 
         public readonly factor: IExpr) {
@@ -45,7 +45,7 @@ export class ExprUnary extends Expr {
     }
 }
 
-export class ExprFactor extends Expr {
+export class FactorExpr extends Expr {
     constructor(
         public readonly suffix: IExpr, 
         public readonly power: IToken, 
@@ -62,7 +62,7 @@ export class ExprFactor extends Expr {
     }
 }
 
-export class ExprSuffix extends Expr {
+export class SuffixExpr extends Expr {
     constructor(
         public readonly suffix: IExpr, 
         public readonly colon: IToken, 
@@ -79,7 +79,7 @@ export class ExprSuffix extends Expr {
     }
 }
 
-export class ExprCall extends Expr {
+export class CallExpr extends Expr {
     constructor(
         public readonly callee: IExpr, 
         public readonly open: IToken, 
@@ -97,7 +97,7 @@ export class ExprCall extends Expr {
     }
 }
 
-export class ExprArrayIndex extends Expr {
+export class ArrayIndexExpr extends Expr {
     constructor(
         public readonly array: IExpr, 
         public readonly indexer: IToken, 
@@ -114,7 +114,7 @@ export class ExprArrayIndex extends Expr {
     }
 }
 
-export class ExprArrayBracket extends Expr {
+export class ArrayBracketExpr extends Expr {
     constructor(
         public readonly array: IExpr, 
         public readonly open: IToken, 
@@ -132,7 +132,7 @@ export class ExprArrayBracket extends Expr {
     }
 }
 
-export class ExprDelegate extends Expr {
+export class DelegateExpr extends Expr {
     constructor (
         public readonly variable: IExpr, 
         public readonly atSign: IToken) {
@@ -148,7 +148,7 @@ export class ExprDelegate extends Expr {
     }
 }
 
-export class ExprLiteral extends Expr {
+export class LiteralExpr extends Expr {
     constructor(public readonly token: IToken) {
         super();
     }
@@ -162,7 +162,7 @@ export class ExprLiteral extends Expr {
     }
 }
 
-export class ExprVariable extends Expr {
+export class VariableExpr extends Expr {
     constructor(
         public readonly token: IToken) {
         super();
@@ -182,7 +182,7 @@ export class ExprVariable extends Expr {
     }
 }
 
-export class ExprGrouping extends Expr {
+export class GroupingExpr extends Expr {
     constructor(
         public readonly open: IToken, 
         public readonly expr: IExpr, 
@@ -199,7 +199,7 @@ export class ExprGrouping extends Expr {
     }
 }
 
-export class ExprAnonymousFunction extends Expr {
+export class AnonymousFunctionExpr extends Expr {
     constructor(
         public readonly open: IToken,
         public readonly instruction: IInst[],

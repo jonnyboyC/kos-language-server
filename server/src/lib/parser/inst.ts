@@ -1,13 +1,17 @@
-import { IInst, IExpr } from "./types";
+import { IInst, IExpr, IInstVisitable, IInstVisitor } from "./types";
 import { IToken } from "../scanner/types";
 
 export class Inst implements IInst {
     get tag(): 'inst' {
         return 'inst';
     }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        throw new Error("Method not implemented.");
+    }
 }
 
-export class InstructionBlock extends Inst {
+export class BlockInst extends Inst {
     constructor( 
         public readonly open: IToken,
         public readonly instructions: Inst[],
@@ -222,8 +226,6 @@ export class RenameInst extends Inst {
         super();
     }
 }
-
-
 
 export class DeleteInst extends Inst {
     constructor(

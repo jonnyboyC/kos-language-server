@@ -1,5 +1,6 @@
 import { IToken } from '../scanner/types'
-import { ExprBinary, ExprUnary, ExprFactor, ExprSuffix, ExprCall, ExprArrayIndex, ExprArrayBracket, ExprDelegate, ExprLiteral, ExprVariable, ExprGrouping, ExprAnonymousFunction } from './expr';
+import { BinaryExpr, UnaryExpr, FactorExpr, SuffixExpr, CallExpr, ArrayIndexExpr, ArrayBracketExpr, DelegateExpr, LiteralExpr, VariableExpr, GroupingExpr, AnonymousFunctionExpr } from './expr';
+import { BlockInst, ExprInst, OnOffInst, CommandInst, CommandExpressionInst, UnsetInst, UnlockInst, SetInst, LazyGlobalInst, IfInst, ElseInst, UntilInst, FromInst, WhenInst, ReturnInst, BreakInst, SwitchInst, ForInst, OnInst, ToggleInst, WaitInst, LogInst, CopyInst, RenameInst, DeleteInst, RunInst, RunPathInst, RunPathOnceInst, CompileInst, ListInst, EmptyInst, PrintInst } from './inst';
 
 export interface IParseError {
     tag: 'parseError';
@@ -9,11 +10,11 @@ export interface IParseError {
     inner: IParseError[]
 }
 
-export interface IExpr extends IExprVisitable {
+export interface IExpr extends IVisitableExpr {
     tag: 'expr';
 }
 
-export interface IInst {
+export interface IInst extends IInstVisitable {
     tag: 'inst';
 }
 
@@ -22,24 +23,66 @@ export interface IScope {
     scope?: IToken,
 }
 
-export interface IExprVisitor<T> {
-    visitBinary(expr: ExprBinary): T;
-    visitUnary(expr: ExprUnary): T;
-    visitFactor(expr: ExprFactor): T;
-    visitSuffix(expr: ExprSuffix): T;
-    visitCall(expr: ExprCall): T;
-    visitArrayIndex(expr: ExprArrayIndex): T;
-    visitArrayBracket(expr: ExprArrayBracket): T;
-    visitDelegate(expr: ExprDelegate): T;
-    visitLiteral(expr: ExprLiteral): T;
-    visitVariable(expr: ExprVariable): T;
-    visitGrouping(expr: ExprGrouping): T;
-    visitAnonymousFunction(expr: ExprAnonymousFunction): T;
-}
-
-export interface IExprVisitable {
+export interface IVisitableExpr {
     accept<T>(visitor: IExprVisitor<T>): T
 }
+
+export interface IExprVisitor<T> {
+    visitBinary(expr: BinaryExpr): T;
+    visitUnary(expr: UnaryExpr): T;
+    visitFactor(expr: FactorExpr): T;
+    visitSuffix(expr: SuffixExpr): T;
+    visitCall(expr: CallExpr): T;
+    visitArrayIndex(expr: ArrayIndexExpr): T;
+    visitArrayBracket(expr: ArrayBracketExpr): T;
+    visitDelegate(expr: DelegateExpr): T;
+    visitLiteral(expr: LiteralExpr): T;
+    visitVariable(expr: VariableExpr): T;
+    visitGrouping(expr: GroupingExpr): T;
+    visitAnonymousFunction(expr: AnonymousFunctionExpr): T;
+}
+
+export interface IInstVisitable {
+    accept<T>(visitor: IInstVisitor<T>): T
+}
+
+
+export interface IInstVisitor<T> {
+    visitBlock(inst: BlockInst): T;
+    visitExpr(inst: ExprInst): T;
+    visitOnOff(inst: OnOffInst): T;
+    visitCommand(inst: CommandInst): T;
+    visitCommandExpr(inst: CommandExpressionInst): T;
+    visitUnset(inst: UnsetInst): T;
+    visitUnlock(inst: UnlockInst): T;
+    visitSet(inst: SetInst): T;
+    visitLazyGlobalInst(inst: LazyGlobalInst): T;
+    visitIf(inst: IfInst): T;
+    visitElse(inst: ElseInst): T;
+    visitUntil(inst: UntilInst): T;
+    visitFromInst(inst: FromInst): T;
+    visitWhenInst(inst: WhenInst): T;
+    visitReturn(inst: ReturnInst): T;
+    visitBreak(inst: BreakInst): T;
+    visitSwitch(inst: SwitchInst): T;
+    visitFor(inst: ForInst): T;
+    visitOn(inst: OnInst): T;
+    visitToggle(inst: ToggleInst): T;
+    visitWait(inst: WaitInst): T;
+    visitLog(inst: LogInst): T;
+    visitCopy(inst: CopyInst): T;
+    visitRename(inst: RenameInst): T;
+    visitDelete(inst: DeleteInst): T;
+    visitRun(inst: RunInst): T;
+    visitRunPath(inst: RunPathInst): T;
+    visitRunPathONce(inst: RunPathOnceInst): T;
+    visitCompile(inst: CompileInst): T;
+    visitList(inst: ListInst): T;
+    visitEmpty(inst: EmptyInst): T;
+    visitPrint(inst: PrintInst): T;
+}
+
+
 
 export type Result<T> = T | IParseError;
 

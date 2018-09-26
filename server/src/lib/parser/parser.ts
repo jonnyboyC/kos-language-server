@@ -3,8 +3,8 @@ import { IToken } from '../scanner/types';
 import { TokenType, isValidIdentifier } from '../scanner/tokentypes';
 import { IParseError, ExprResult, TokenResult, InstResult, IExpr, IScope, IInst } from './types';
 import { ParseError } from './parserError';
-import { Expr, ExprLiteral, ExprGrouping, ExprVariable, ExprCall, ExprDelegate, ExprArrayBracket, ExprArrayIndex, ExprFactor, ExprUnary, ExprBinary, ExprSuffix, ExprAnonymousFunction } from './expr';
-import { Inst, InstructionBlock, OnOffInst, CommandInst, CommandExpressionInst, UnsetInst, UnlockInst, SetInst, LazyGlobalInst, ElseInst, IfInst, UntilInst, FromInst, WhenInst, ReturnInst, SwitchInst, ForInst, OnInst, ToggleInst, WaitInst, LogInst, CopyInst, RenameInst, DeleteInst, RunInst, RunPathInst, RunPathOnceInst, CompileInst, ListInst, EmptyInst, PrintInst, ExprInst, BreakInst } from './inst';
+import { Expr, LiteralExpr, GroupingExpr, VariableExpr, CallExpr, DelegateExpr, ArrayBracketExpr, ArrayIndexExpr, FactorExpr, UnaryExpr, BinaryExpr, SuffixExpr, AnonymousFunctionExpr } from './expr';
+import { Inst, BlockInst, OnOffInst, CommandInst, CommandExpressionInst, UnsetInst, UnlockInst, SetInst, LazyGlobalInst, ElseInst, IfInst, UntilInst, FromInst, WhenInst, ReturnInst, SwitchInst, ForInst, OnInst, ToggleInst, WaitInst, LogInst, CopyInst, RenameInst, DeleteInst, RunInst, RunPathInst, RunPathOnceInst, CompileInst, ListInst, EmptyInst, PrintInst, ExprInst, BreakInst } from './inst';
 import { Scope, FunctionDeclartion, DefaultParameter, ParameterDeclaration, VariableDeclaration, LockDeclaration } from './declare';
 
 export class Parser {
@@ -331,7 +331,7 @@ export class Parser {
             throw error;
         }
 
-        return new InstructionBlock(open, declarations, close);
+        return new BlockInst(open, declarations, close);
     }
 
     // parse an instruction lead with a identifier
@@ -824,7 +824,7 @@ export class Parser {
         while (this.matchToken(...types)) {
             const operator = this.previous();
             const right = recurse();
-            expr = new ExprBinary(expr, operator, right);
+            expr = new BinaryExpr(expr, operator, right);
         }
 
         return expr;
@@ -837,7 +837,7 @@ export class Parser {
                 TokenType.Not, TokenType.Defined)) {
             const operator = this.previous();
             const unary = this.unary();
-            return new ExprUnary(operator, unary)
+            return new UnaryExpr(operator, unary)
         }
 
         // else parse plain factor
@@ -853,7 +853,7 @@ export class Parser {
         while (this.matchToken(TokenType.Power)) {
             const power = this.previous();
             const exponenent = this.suffix();
-            expr = new ExprFactor(expr, power, exponenent);
+            expr = new FactorExpr(expr, power, exponenent);
         }
 
         return expr;
@@ -875,7 +875,7 @@ export class Parser {
     private suffixTrailer = (suffix: Expr): IExpr => {
         const colon = this.previous();
         const trailer = this.suffixTerm();
-        return new ExprSuffix(suffix, colon, trailer);
+        return new SuffixExpr(suffix, colon, trailer);
     }
 
     // parse suffix term expression
@@ -892,7 +892,7 @@ export class Parser {
             } else if (this.matchToken(TokenType.BracketOpen)) {
                 expr = this.functionTrailer(expr);
             } else if (this.matchToken(TokenType.AtSign)) {
-                return new ExprDelegate(expr, this.previous());
+                return new DelegateExpr(expr, this.previous());
             } else {
                 break;
             }
@@ -911,7 +911,7 @@ export class Parser {
 
         const close = this.consumeTokenThrow('Expect ")" after arguments.', TokenType.BracketClose);
         
-        return new ExprCall(callee, open, args, close);
+        return new CallExpr(callee, open, args, close);
     }
 
     // get an argument list
@@ -933,7 +933,7 @@ export class Parser {
         const index = this.expression();
 
         const close = this.consumeTokenThrow('Expected "]" at end of array index.', TokenType.SquareClose)
-        return new ExprArrayBracket(array, open, index, close);
+        return new ArrayBracketExpr(array, open, index, close);
     }
 
     // generate array index expression
@@ -944,7 +944,7 @@ export class Parser {
         const index = this.consumeTokenThrow('Expected integer or identifer.', 
             TokenType.Integer, TokenType.Identifier)
         
-        return new ExprArrayIndex(array, indexer, index);
+        return new ArrayIndexExpr(array, indexer, index);
     }
 
     // parse anonymouse function
@@ -963,7 +963,7 @@ export class Parser {
 
         // check closing curly is found
         const close = this.consumeTokenThrow('Expected "}" to finish instruction block', TokenType.CurlyClose);
-        return new ExprAnonymousFunction(open, declarations, close);
+        return new AnonymousFunctionExpr(open, declarations, close);
     }
 
     // match atom expressions literals, identifers, list, and parenthesis
@@ -971,12 +971,12 @@ export class Parser {
         // match all literals
         if (this.matchToken(TokenType.False, TokenType.True,
             TokenType.String, TokenType.Integer, TokenType.Double)) {
-            return new ExprLiteral(this.previous());
+            return new LiteralExpr(this.previous());
         }
 
         // match identifiers TODO identifier all keywords that can be used here
         if (isValidIdentifier(this.peek().type) || this.check(TokenType.FileIdentifier)) {
-            return new ExprVariable(this.advance());
+            return new VariableExpr(this.advance());
         }
 
         // match grouping expression
@@ -985,7 +985,7 @@ export class Parser {
             const expr = this.expression();
             const close = this.consumeTokenThrow('Expect ")" after expression', TokenType.BracketClose);
             
-            return new ExprGrouping(open, expr, close);
+            return new GroupingExpr(open, expr, close);
         }
 
         // match anonymous function
