@@ -1,8 +1,8 @@
-import { TokenInterface } from './types';
+import { IToken } from './types';
 import { TokenType } from './tokentypes';
 import { Position } from 'vscode-languageserver';
 
-export class Token implements TokenInterface {
+export class Token implements IToken {
     public readonly type: TokenType;
     public readonly lexeme: string;
     public readonly literal: any;

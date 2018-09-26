@@ -1,7 +1,7 @@
-import { InstInterface, ExprInterface } from "./types";
-import { TokenInterface } from "../scanner/types";
+import { IInst, IExpr } from "./types";
+import { IToken } from "../scanner/types";
 
-export class Inst implements InstInterface {
+export class Inst implements IInst {
     get tag(): 'inst' {
         return 'inst';
     }
@@ -9,216 +9,216 @@ export class Inst implements InstInterface {
 
 export class InstructionBlock extends Inst {
     constructor( 
-        public readonly open: TokenInterface,
+        public readonly open: IToken,
         public readonly instructions: Inst[],
-        public readonly close: TokenInterface) {
+        public readonly close: IToken) {
         super();
     }
 }
 
 export class ExprInst extends Inst {
     constructor(
-        public readonly suffix: ExprInterface) {
+        public readonly suffix: IExpr) {
         super();
     }
 }
 
 export class OnOffInst extends Inst {
     constructor(
-        public readonly suffix: ExprInterface,
-        public readonly onOff: TokenInterface) {
+        public readonly suffix: IExpr,
+        public readonly onOff: IToken) {
         super();
     }
 }
 
 export class CommandInst extends Inst {
-    constructor(public readonly command: TokenInterface) {
+    constructor(public readonly command: IToken) {
         super();
     }
 }
 
 export class CommandExpressionInst extends Inst {
     constructor(
-        public readonly command: TokenInterface,
-        public readonly expression: ExprInterface) {
+        public readonly command: IToken,
+        public readonly expression: IExpr) {
         super();
     }
 }
 
 export class UnsetInst extends Inst {
     constructor(
-        public readonly unset: TokenInterface,
-        public readonly identifier: TokenInterface) {
+        public readonly unset: IToken,
+        public readonly identifier: IToken) {
         super();
     }
 }
 
 export class UnlockInst extends Inst {
     constructor(
-        public readonly unlock: TokenInterface,
-        public readonly identifier: TokenInterface) {
+        public readonly unlock: IToken,
+        public readonly identifier: IToken) {
         super();
     }
 }
 
 export class SetInst extends Inst {
     constructor(
-        public readonly set: TokenInterface,
-        public readonly suffix: ExprInterface,
-        public readonly to: TokenInterface,
-        public readonly value: ExprInterface) {
+        public readonly set: IToken,
+        public readonly suffix: IExpr,
+        public readonly to: IToken,
+        public readonly value: IExpr) {
         super();
     }
 }
 
 export class LazyGlobalInst extends Inst {
     constructor(
-        public readonly atSign: TokenInterface,
-        public readonly lazyGlobal: TokenInterface,
-        public readonly onOff: TokenInterface) {
+        public readonly atSign: IToken,
+        public readonly lazyGlobal: IToken,
+        public readonly onOff: IToken) {
         super();
     }
 }
 
 export class IfInst extends Inst {
     constructor(
-        public readonly ifToken: TokenInterface,
-        public readonly condition: ExprInterface,
-        public readonly instruction: InstInterface,
-        public readonly elseInst?: InstInterface) {
+        public readonly ifToken: IToken,
+        public readonly condition: IExpr,
+        public readonly instruction: IInst,
+        public readonly elseInst?: IInst) {
         super()
     }
 }
 
 export class ElseInst extends Inst {
     constructor(
-        public readonly elseToken: TokenInterface,
-        public readonly instruction: InstInterface) {
+        public readonly elseToken: IToken,
+        public readonly instruction: IInst) {
         super();
     }
 }
 
 export class UntilInst extends Inst {
     constructor(
-        public readonly until: TokenInterface,
-        public readonly condition: ExprInterface,
-        public readonly instruction: InstInterface) {
+        public readonly until: IToken,
+        public readonly condition: IExpr,
+        public readonly instruction: IInst) {
         super()
     }
 }
 
 export class FromInst extends Inst {
     constructor(
-        public readonly from: TokenInterface,
-        public readonly initializer: InstInterface,
-        public readonly until: TokenInterface,
-        public readonly condition: ExprInterface,
-        public readonly step: TokenInterface,
-        public readonly increment: InstInterface,
-        public readonly doToken: TokenInterface,
-        public readonly instruction: InstInterface) {
+        public readonly from: IToken,
+        public readonly initializer: IInst,
+        public readonly until: IToken,
+        public readonly condition: IExpr,
+        public readonly step: IToken,
+        public readonly increment: IInst,
+        public readonly doToken: IToken,
+        public readonly instruction: IInst) {
         super();
     }
 }
 
 export class WhenInst extends Inst {
     constructor(
-        public readonly when: TokenInterface, 
-        public readonly condition: ExprInterface,
-        public readonly then: TokenInterface,
-        public readonly instruction: InstInterface) {
+        public readonly when: IToken, 
+        public readonly condition: IExpr,
+        public readonly then: IToken,
+        public readonly instruction: IInst) {
         super();
     }
 }
 
 export class ReturnInst extends Inst {
     constructor(
-        public readonly returnToken: TokenInterface,
-        public readonly value?: ExprInterface) {
+        public readonly returnToken: IToken,
+        public readonly value?: IExpr) {
         super();
     }
 }
 
 export class BreakInst extends Inst {
     constructor(
-        public readonly breakToken: TokenInterface) {
+        public readonly breakToken: IToken) {
         super();
     }
 }
 
 export class SwitchInst extends Inst {
     constructor(
-        public readonly switchToken: TokenInterface,
-        public readonly to: TokenInterface,
-        public readonly target: ExprInterface) {
+        public readonly switchToken: IToken,
+        public readonly to: IToken,
+        public readonly target: IExpr) {
         super();
     }
 }
 
 export class ForInst extends Inst {
     constructor(
-        public readonly forToken: TokenInterface,
-        public readonly identifier: TokenInterface,
-        public readonly inToken: TokenInterface,
-        public readonly suffix: ExprInterface,
-        public readonly instruction: InstInterface) {
+        public readonly forToken: IToken,
+        public readonly identifier: IToken,
+        public readonly inToken: IToken,
+        public readonly suffix: IExpr,
+        public readonly instruction: IInst) {
         super();
     }
 }
 
 export class OnInst extends Inst {
     constructor(
-        public readonly on: TokenInterface,
-        public readonly suffix: ExprInterface,
-        public readonly instruction: InstInterface) {
+        public readonly on: IToken,
+        public readonly suffix: IExpr,
+        public readonly instruction: IInst) {
         super();
     }
 }
 
 export class ToggleInst extends Inst {
     constructor(
-        public readonly toggle: TokenInterface,
-        public readonly suffix: ExprInterface) {
+        public readonly toggle: IToken,
+        public readonly suffix: IExpr) {
         super();
     }
 }
 
 export class WaitInst extends Inst {
     constructor(
-        public readonly wait: TokenInterface,
-        public readonly expression: ExprInterface,
-        public readonly until?: TokenInterface) {
+        public readonly wait: IToken,
+        public readonly expression: IExpr,
+        public readonly until?: IToken) {
         super();
     }
 }
 
 export class LogInst extends Inst {
     constructor(
-        public readonly log: TokenInterface,
-        public readonly expression: ExprInterface,
-        public readonly to: TokenInterface,
-        public readonly target: ExprInterface) {
+        public readonly log: IToken,
+        public readonly expression: IExpr,
+        public readonly to: IToken,
+        public readonly target: IExpr) {
         super();
     }
 }
 
 export class CopyInst extends Inst {
     constructor(
-        public readonly copy: TokenInterface,
-        public readonly expression: ExprInterface,
-        public readonly toFrom: TokenInterface,
-        public readonly target: ExprInterface) {
+        public readonly copy: IToken,
+        public readonly expression: IExpr,
+        public readonly toFrom: IToken,
+        public readonly target: IExpr) {
         super();
     }
 }
 
 export class RenameInst extends Inst {
     constructor(
-        public readonly rename: TokenInterface,
-        public readonly ioIdentifer: TokenInterface,
-        public readonly expression: ExprInterface,
-        public readonly to: TokenInterface,
-        public readonly target: ExprInterface) {
+        public readonly rename: IToken,
+        public readonly ioIdentifer: IToken,
+        public readonly expression: IExpr,
+        public readonly to: IToken,
+        public readonly target: IExpr) {
         super();
     }
 }
@@ -227,85 +227,85 @@ export class RenameInst extends Inst {
 
 export class DeleteInst extends Inst {
     constructor(
-        public readonly deleteToken: TokenInterface,
-        public readonly expression: ExprInterface,
-        public readonly from?: TokenInterface,
-        public readonly target?: ExprInterface) {
+        public readonly deleteToken: IToken,
+        public readonly expression: IExpr,
+        public readonly from?: IToken,
+        public readonly target?: IExpr) {
         super();
     }
 }
 
 export class RunInst extends Inst {
     constructor(
-        public readonly run: TokenInterface,
-        public readonly identifier: TokenInterface,
-        public readonly once?: TokenInterface,
-        public readonly open?: TokenInterface,
-        public readonly args?: ExprInterface[],
-        public readonly close?: TokenInterface,
-        public readonly on?: TokenInterface,
-        public readonly expr?: ExprInterface ) {
+        public readonly run: IToken,
+        public readonly identifier: IToken,
+        public readonly once?: IToken,
+        public readonly open?: IToken,
+        public readonly args?: IExpr[],
+        public readonly close?: IToken,
+        public readonly on?: IToken,
+        public readonly expr?: IExpr ) {
         super();
     }
 }
 
 export class RunPathInst extends Inst {
     constructor(
-        public readonly runPath: TokenInterface,
-        public readonly open: TokenInterface,
-        public readonly expression: ExprInterface,
-        public readonly close: TokenInterface,
-        public readonly args?: ExprInterface[]) {
+        public readonly runPath: IToken,
+        public readonly open: IToken,
+        public readonly expression: IExpr,
+        public readonly close: IToken,
+        public readonly args?: IExpr[]) {
         super();
     }
 }
 
 export class RunPathOnceInst extends Inst {
     constructor(
-        public readonly runPath: TokenInterface,
-        public readonly open: TokenInterface,
-        public readonly expression: ExprInterface,
-        public readonly close: TokenInterface,
-        public readonly args?: ExprInterface[]) {
+        public readonly runPath: IToken,
+        public readonly open: IToken,
+        public readonly expression: IExpr,
+        public readonly close: IToken,
+        public readonly args?: IExpr[]) {
         super();
     }
 }
 
 export class CompileInst extends Inst {
     constructor(
-        public readonly compile: TokenInterface,
-        public readonly expression: ExprInterface,
-        public readonly to?: TokenInterface,
-        public readonly target?: ExprInterface) {
+        public readonly compile: IToken,
+        public readonly expression: IExpr,
+        public readonly to?: IToken,
+        public readonly target?: IExpr) {
         super();
     }
 }
 
 export class ListInst extends Inst {
     constructor(
-        public readonly list: TokenInterface,
-        public readonly identifier?: TokenInterface,
-        public readonly inToken?: TokenInterface,
-        public readonly target?: TokenInterface) {
+        public readonly list: IToken,
+        public readonly identifier?: IToken,
+        public readonly inToken?: IToken,
+        public readonly target?: IToken) {
         super();
     }   
 }
 
 export class EmptyInst extends Inst {
-    constructor(public readonly empty: TokenInterface) {
+    constructor(public readonly empty: IToken) {
         super();
     }
 }
 
 export class PrintInst extends Inst {
     constructor(
-        public readonly print: TokenInterface,
-        public readonly expressions: ExprInterface,
-        public readonly at?: TokenInterface,
-        public readonly open?: TokenInterface,
-        public readonly x?: ExprInterface,
-        public readonly y?: ExprInterface,
-        public readonly close?: TokenInterface) {
+        public readonly print: IToken,
+        public readonly expressions: IExpr,
+        public readonly at?: IToken,
+        public readonly open?: IToken,
+        public readonly x?: IExpr,
+        public readonly y?: IExpr,
+        public readonly close?: IToken) {
         super();
     }
 }

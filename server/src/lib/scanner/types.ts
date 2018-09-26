@@ -1,25 +1,25 @@
 import { TokenType } from './tokentypes';
 import { Position } from 'vscode-languageserver';
 
-export interface TokenMap {
+export interface ITokenMap {
     readonly [key: string]: {
         type: TokenType,
         literal?: any
     }
 }
 
-export interface SyntaxErrorInterface {
+export interface ISyntaxError {
     readonly tag: 'syntaxError',
     readonly message: string;
     readonly start: Position;
     readonly end: Position;
 }
 
-export interface WhiteSpaceInterface {
+export interface IWhiteSpace {
     readonly tag: 'whitespace',
 }
 
-export interface TokenInterface {
+export interface IToken {
     readonly tag: 'token',
     readonly type: TokenType,
     readonly lexeme: string,
@@ -29,5 +29,5 @@ export interface TokenInterface {
     toString: () => string;
 }
 
-export type ScanResult = TokenInterface | SyntaxErrorInterface | WhiteSpaceInterface;
+export type ScanResult = IToken | ISyntaxError | IWhiteSpace;
 

@@ -1,30 +1,50 @@
-import { TokenInterface } from '../scanner/types'
+import { IToken } from '../scanner/types'
+import { ExprBinary, ExprUnary, ExprFactor, ExprSuffix, ExprCall, ExprArrayIndex, ExprArrayBracket, ExprDelegate, ExprLiteral, ExprVariable, ExprGrouping, ExprAnonymousFunction } from './expr';
 
-export interface ParseErrorInterface {
+export interface IParseError {
     tag: 'parseError';
-    token: TokenInterface;
+    token: IToken;
     otherInfo: string[];
     message: string;
-    inner: ParseErrorInterface[]
+    inner: IParseError[]
 }
 
-export interface ExprInterface {
+export interface IExpr extends IExprVisitable {
     tag: 'expr';
 }
 
-export interface InstInterface {
+export interface IInst {
     tag: 'inst';
 }
 
-export interface ScopeInterface {
-    declare?: TokenInterface,
-    scope?: TokenInterface,
+export interface IScope {
+    declare?: IToken,
+    scope?: IToken,
 }
 
-export type Result<T> = T | ParseErrorInterface;
+export interface IExprVisitor<T> {
+    visitBinary(expr: ExprBinary): T;
+    visitUnary(expr: ExprUnary): T;
+    visitFactor(expr: ExprFactor): T;
+    visitSuffix(expr: ExprSuffix): T;
+    visitCall(expr: ExprCall): T;
+    visitArrayIndex(expr: ExprArrayIndex): T;
+    visitArrayBracket(expr: ExprArrayBracket): T;
+    visitDelegate(expr: ExprDelegate): T;
+    visitLiteral(expr: ExprLiteral): T;
+    visitVariable(expr: ExprVariable): T;
+    visitGrouping(expr: ExprGrouping): T;
+    visitAnonymousFunction(expr: ExprAnonymousFunction): T;
+}
 
-export type ParseResult = Result<ExprInterface | InstInterface | TokenInterface>
-export type ExprResult = Result<ExprInterface>
-export type InstResult = Result<InstInterface>;
-export type StmtResult = Result<InstInterface>
-export type TokenResult = Result<TokenInterface>;
+export interface IExprVisitable {
+    accept<T>(visitor: IExprVisitor<T>): T
+}
+
+export type Result<T> = T | IParseError;
+
+export type ParseResult = Result<IExpr | IInst | IToken>
+export type ExprResult = Result<IExpr>
+export type InstResult = Result<IInst>;
+export type StmtResult = Result<IInst>
+export type TokenResult = Result<IToken>;

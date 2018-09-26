@@ -1,6 +1,6 @@
-import { WhiteSpaceInterface } from './types';
+import { IWhiteSpace } from './types';
 
-export class WhiteSpace implements WhiteSpaceInterface {
+export class WhiteSpace implements IWhiteSpace {
     get tag(): 'whitespace' {
         return 'whitespace';
     }

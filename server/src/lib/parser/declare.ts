@@ -1,53 +1,53 @@
 import { Inst } from "./inst";
-import { ScopeInterface, ExprInterface, InstInterface } from "./types";
-import { TokenInterface } from "../scanner/types";
+import { IScope, IExpr, IInst } from "./types";
+import { IToken } from "../scanner/types";
 import { TokenType } from "../scanner/tokentypes";
 
 export class Declare extends Inst {
     constructor() { super(); }
 }
 
-export class Scope implements ScopeInterface {
+export class Scope implements IScope {
     constructor(
-        public readonly scope?: TokenInterface,
-        public readonly declare?: TokenInterface) {
+        public readonly scope?: IToken,
+        public readonly declare?: IToken) {
     }
 }
 
 export class VariableDeclaration extends Declare {
     constructor(
-        public readonly suffix: ExprInterface,
-        public readonly toIs: TokenInterface,
-        public readonly expression: ExprInterface,
-        public readonly scope?: ScopeInterface) {
+        public readonly suffix: IExpr,
+        public readonly toIs: IToken,
+        public readonly expression: IExpr,
+        public readonly scope?: IScope) {
         super();
     }
 }
 
 export class LockDeclaration extends Declare {
     constructor(
-        public readonly lock: TokenInterface,
-        public readonly identifier: TokenInterface,
-        public readonly to: TokenInterface,
-        public readonly value: ExprInterface,
-        public readonly scope?: ScopeInterface) {
+        public readonly lock: IToken,
+        public readonly identifier: IToken,
+        public readonly to: IToken,
+        public readonly value: IExpr,
+        public readonly scope?: IScope) {
         super();
     }
 }
 
 export class FunctionDeclartion extends Declare {
     constructor(
-        public readonly functionToken: TokenInterface,
-        public readonly functionIdentifier: TokenInterface,
-        public readonly instruction: InstInterface,
-        public readonly scope?: ScopeInterface) {
+        public readonly functionToken: IToken,
+        public readonly functionIdentifier: IToken,
+        public readonly instruction: IInst,
+        public readonly scope?: IScope) {
         super();
     }
 }
 
 export class Parameter {
     constructor(
-        public readonly identifier: TokenInterface) {
+        public readonly identifier: IToken) {
     }
 
     public get isKeyword(): boolean {
@@ -58,9 +58,9 @@ export class Parameter {
 
 export class DefaultParameter {
     constructor(
-        public readonly identifier: TokenInterface,
-        public readonly toIs: TokenInterface,
-        public readonly value: ExprInterface) {
+        public readonly identifier: IToken,
+        public readonly toIs: IToken,
+        public readonly value: IExpr) {
     }
 
     get isKeyword(): boolean {
@@ -70,10 +70,10 @@ export class DefaultParameter {
 
 export class ParameterDeclaration extends Declare {
     constructor(
-        public readonly parameterToken: TokenInterface,
-        public readonly parameters: TokenInterface[],
+        public readonly parameterToken: IToken,
+        public readonly parameters: IToken[],
         public readonly defaultParameters: DefaultParameter[],
-        public readonly scope?: ScopeInterface) {
+        public readonly scope?: IScope) {
         super();
     }
 }

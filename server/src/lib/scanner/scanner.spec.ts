@@ -2,7 +2,7 @@ import test from 'ava';
 import { Scanner } from './scanner';
 import { readdirSync, readFileSync, statSync } from 'fs'
 import { join } from 'path';
-import { TokenInterface, SyntaxErrorInterface } from './types';
+import { IToken, ISyntaxError } from './types';
 
 
 const testDir = join(__dirname, '../../../kerboscripts');
@@ -29,6 +29,6 @@ test('scan all', (t) => {
     });
 });
   
-const isToken = (result: TokenInterface[] | SyntaxErrorInterface[]): result is TokenInterface[] => {
+const isToken = (result: IToken[] | ISyntaxError[]): result is IToken[] => {
     return result[0].tag === 'token'
 }

@@ -16,9 +16,9 @@ import {
 	TextDocumentPositionParams
 } from 'vscode-languageserver';
 import { Scanner } from './lib/scanner/scanner';
-import { TokenInterface, SyntaxErrorInterface } from './lib/scanner/types';
+import { IToken, ISyntaxError } from './lib/scanner/types';
 import { Parser } from './lib/parser/parser';
-import { ParseErrorInterface } from './lib/parser/types';
+import { IParseError } from './lib/parser/types';
 
 // Create a connection for the server. The connection uses Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -59,7 +59,7 @@ documents.onDidChangeContent(change => {
 	validateTextDocument(change.document);
 });
 
-const toDiagnostic = (error: ParseErrorInterface): Diagnostic => {
+const toDiagnostic = (error: IParseError): Diagnostic => {
 	return {
 		severity: DiagnosticSeverity.Error,
 		range: { start: error.token.start, end: error.token.end },
@@ -104,7 +104,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 	connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
 }
 
-const hasScanError = (tokens: TokenInterface[] | SyntaxErrorInterface[]): tokens is SyntaxErrorInterface[] => {
+const hasScanError = (tokens: IToken[] | ISyntaxError[]): tokens is ISyntaxError[] => {
     return tokens[0].tag === 'syntaxError';
 } 
 
