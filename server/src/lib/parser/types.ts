@@ -1,6 +1,7 @@
 import { IToken } from '../scanner/types'
 import { BinaryExpr, UnaryExpr, FactorExpr, SuffixExpr, CallExpr, ArrayIndexExpr, ArrayBracketExpr, DelegateExpr, LiteralExpr, VariableExpr, GroupingExpr, AnonymousFunctionExpr } from './expr';
 import { BlockInst, ExprInst, OnOffInst, CommandInst, CommandExpressionInst, UnsetInst, UnlockInst, SetInst, LazyGlobalInst, IfInst, ElseInst, UntilInst, FromInst, WhenInst, ReturnInst, BreakInst, SwitchInst, ForInst, OnInst, ToggleInst, WaitInst, LogInst, CopyInst, RenameInst, DeleteInst, RunInst, RunPathInst, RunPathOnceInst, CompileInst, ListInst, EmptyInst, PrintInst } from './inst';
+import { DeclVariable, DeclLock, DeclFunction, DeclParameter } from './declare';
 
 export interface IParseError {
     tag: 'parseError';
@@ -10,7 +11,7 @@ export interface IParseError {
     inner: IParseError[]
 }
 
-export interface IExpr extends IVisitableExpr {
+export interface IExpr extends IExprVisitable {
     tag: 'expr';
 }
 
@@ -18,12 +19,12 @@ export interface IInst extends IInstVisitable {
     tag: 'inst';
 }
 
-export interface IScope {
+export interface IDeclScope {
     declare?: IToken,
     scope?: IToken,
 }
 
-export interface IVisitableExpr {
+export interface IExprVisitable {
     accept<T>(visitor: IExprVisitor<T>): T
 }
 
@@ -48,6 +49,11 @@ export interface IInstVisitable {
 
 
 export interface IInstVisitor<T> {
+    visitDeclVariable(decl: DeclVariable): T;
+    visitDeclLock(decl: DeclLock): T;
+    visitDeclFunction(decl: DeclFunction): T;
+    visitDeclParameter(decl: DeclParameter): T;
+
     visitBlock(inst: BlockInst): T;
     visitExpr(inst: ExprInst): T;
     visitOnOff(inst: OnOffInst): T;
@@ -60,8 +66,8 @@ export interface IInstVisitor<T> {
     visitIf(inst: IfInst): T;
     visitElse(inst: ElseInst): T;
     visitUntil(inst: UntilInst): T;
-    visitFromInst(inst: FromInst): T;
-    visitWhenInst(inst: WhenInst): T;
+    visitFrom(inst: FromInst): T;
+    visitWhen(inst: WhenInst): T;
     visitReturn(inst: ReturnInst): T;
     visitBreak(inst: BreakInst): T;
     visitSwitch(inst: SwitchInst): T;
@@ -75,7 +81,7 @@ export interface IInstVisitor<T> {
     visitDelete(inst: DeleteInst): T;
     visitRun(inst: RunInst): T;
     visitRunPath(inst: RunPathInst): T;
-    visitRunPathONce(inst: RunPathOnceInst): T;
+    visitRunPathOnce(inst: RunPathOnceInst): T;
     visitCompile(inst: CompileInst): T;
     visitList(inst: ListInst): T;
     visitEmpty(inst: EmptyInst): T;

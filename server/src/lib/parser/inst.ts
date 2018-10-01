@@ -1,14 +1,12 @@
 import { IInst, IExpr, IInstVisitable, IInstVisitor } from "./types";
 import { IToken } from "../scanner/types";
 
-export class Inst implements IInst {
+export abstract class Inst implements IInst {
     get tag(): 'inst' {
         return 'inst';
     }
 
-    accept<T>(visitor: IInstVisitor<T>): T {
-        throw new Error("Method not implemented.");
-    }
+    public abstract accept<T>(visitor: IInstVisitor<T>): T
 }
 
 export class BlockInst extends Inst {
@@ -18,12 +16,21 @@ export class BlockInst extends Inst {
         public readonly close: IToken) {
         super();
     }
+
+    
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitBlock(this);
+    }
 }
 
 export class ExprInst extends Inst {
     constructor(
         public readonly suffix: IExpr) {
         super();
+    }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitExpr(this);
     }
 }
 
@@ -33,11 +40,19 @@ export class OnOffInst extends Inst {
         public readonly onOff: IToken) {
         super();
     }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitOnOff(this);
+    }
 }
 
 export class CommandInst extends Inst {
     constructor(public readonly command: IToken) {
         super();
+    }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitCommand(this);
     }
 }
 
@@ -47,6 +62,10 @@ export class CommandExpressionInst extends Inst {
         public readonly expression: IExpr) {
         super();
     }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitCommandExpr(this);
+    }
 }
 
 export class UnsetInst extends Inst {
@@ -55,6 +74,10 @@ export class UnsetInst extends Inst {
         public readonly identifier: IToken) {
         super();
     }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitUnset(this);
+    }
 }
 
 export class UnlockInst extends Inst {
@@ -62,6 +85,10 @@ export class UnlockInst extends Inst {
         public readonly unlock: IToken,
         public readonly identifier: IToken) {
         super();
+    }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitUnlock(this);
     }
 }
 
@@ -73,6 +100,10 @@ export class SetInst extends Inst {
         public readonly value: IExpr) {
         super();
     }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitSet(this);
+    }
 }
 
 export class LazyGlobalInst extends Inst {
@@ -81,6 +112,10 @@ export class LazyGlobalInst extends Inst {
         public readonly lazyGlobal: IToken,
         public readonly onOff: IToken) {
         super();
+    }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitLazyGlobalInst(this);
     }
 }
 
@@ -92,6 +127,10 @@ export class IfInst extends Inst {
         public readonly elseInst?: IInst) {
         super()
     }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitIf(this);
+    }
 }
 
 export class ElseInst extends Inst {
@@ -99,6 +138,10 @@ export class ElseInst extends Inst {
         public readonly elseToken: IToken,
         public readonly instruction: IInst) {
         super();
+    }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitElse(this);
     }
 }
 
@@ -108,6 +151,10 @@ export class UntilInst extends Inst {
         public readonly condition: IExpr,
         public readonly instruction: IInst) {
         super()
+    }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitUntil(this);
     }
 }
 
@@ -123,6 +170,10 @@ export class FromInst extends Inst {
         public readonly instruction: IInst) {
         super();
     }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitFrom(this);
+    }
 }
 
 export class WhenInst extends Inst {
@@ -133,6 +184,10 @@ export class WhenInst extends Inst {
         public readonly instruction: IInst) {
         super();
     }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitWhen(this);
+    }
 }
 
 export class ReturnInst extends Inst {
@@ -141,12 +196,20 @@ export class ReturnInst extends Inst {
         public readonly value?: IExpr) {
         super();
     }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitReturn(this);
+    }
 }
 
 export class BreakInst extends Inst {
     constructor(
         public readonly breakToken: IToken) {
         super();
+    }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitBreak(this);
     }
 }
 
@@ -156,6 +219,10 @@ export class SwitchInst extends Inst {
         public readonly to: IToken,
         public readonly target: IExpr) {
         super();
+    }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitSwitch(this);
     }
 }
 
@@ -168,6 +235,10 @@ export class ForInst extends Inst {
         public readonly instruction: IInst) {
         super();
     }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitFor(this);
+    }
 }
 
 export class OnInst extends Inst {
@@ -177,6 +248,10 @@ export class OnInst extends Inst {
         public readonly instruction: IInst) {
         super();
     }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitOn(this);
+    }
 }
 
 export class ToggleInst extends Inst {
@@ -184,6 +259,10 @@ export class ToggleInst extends Inst {
         public readonly toggle: IToken,
         public readonly suffix: IExpr) {
         super();
+    }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitToggle(this);
     }
 }
 
@@ -193,6 +272,10 @@ export class WaitInst extends Inst {
         public readonly expression: IExpr,
         public readonly until?: IToken) {
         super();
+    }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitWait(this);
     }
 }
 
@@ -204,6 +287,10 @@ export class LogInst extends Inst {
         public readonly target: IExpr) {
         super();
     }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitLog(this);
+    }
 }
 
 export class CopyInst extends Inst {
@@ -213,6 +300,10 @@ export class CopyInst extends Inst {
         public readonly toFrom: IToken,
         public readonly target: IExpr) {
         super();
+    }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitCopy(this);
     }
 }
 
@@ -225,6 +316,10 @@ export class RenameInst extends Inst {
         public readonly target: IExpr) {
         super();
     }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitRename(this);
+    }
 }
 
 export class DeleteInst extends Inst {
@@ -234,6 +329,10 @@ export class DeleteInst extends Inst {
         public readonly from?: IToken,
         public readonly target?: IExpr) {
         super();
+    }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitDelete(this);
     }
 }
 
@@ -249,6 +348,10 @@ export class RunInst extends Inst {
         public readonly expr?: IExpr ) {
         super();
     }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitRun(this);
+    }
 }
 
 export class RunPathInst extends Inst {
@@ -259,6 +362,10 @@ export class RunPathInst extends Inst {
         public readonly close: IToken,
         public readonly args?: IExpr[]) {
         super();
+    }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitRunPath(this);
     }
 }
 
@@ -271,6 +378,10 @@ export class RunPathOnceInst extends Inst {
         public readonly args?: IExpr[]) {
         super();
     }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitRunPathOnce(this);
+    }
 }
 
 export class CompileInst extends Inst {
@@ -281,6 +392,10 @@ export class CompileInst extends Inst {
         public readonly target?: IExpr) {
         super();
     }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitCompile(this);
+    }
 }
 
 export class ListInst extends Inst {
@@ -290,24 +405,36 @@ export class ListInst extends Inst {
         public readonly inToken?: IToken,
         public readonly target?: IToken) {
         super();
-    }   
+    }
+    
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitList(this);
+    }
 }
 
 export class EmptyInst extends Inst {
     constructor(public readonly empty: IToken) {
         super();
     }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitEmpty(this);
+    }
 }
 
 export class PrintInst extends Inst {
     constructor(
         public readonly print: IToken,
-        public readonly expressions: IExpr,
+        public readonly expression: IExpr,
         public readonly at?: IToken,
         public readonly open?: IToken,
         public readonly x?: IExpr,
         public readonly y?: IExpr,
         public readonly close?: IToken) {
         super();
+    }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitPrint(this);
     }
 }

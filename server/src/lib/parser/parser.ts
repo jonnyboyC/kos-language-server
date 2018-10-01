@@ -1,11 +1,11 @@
 
 import { IToken } from '../scanner/types';
 import { TokenType, isValidIdentifier } from '../scanner/tokentypes';
-import { IParseError, ExprResult, TokenResult, InstResult, IExpr, IScope, IInst } from './types';
+import { IParseError, ExprResult, TokenResult, InstResult, IExpr, IDeclScope, IInst } from './types';
 import { ParseError } from './parserError';
 import { Expr, LiteralExpr, GroupingExpr, VariableExpr, CallExpr, DelegateExpr, ArrayBracketExpr, ArrayIndexExpr, FactorExpr, UnaryExpr, BinaryExpr, SuffixExpr, AnonymousFunctionExpr } from './expr';
 import { Inst, BlockInst, OnOffInst, CommandInst, CommandExpressionInst, UnsetInst, UnlockInst, SetInst, LazyGlobalInst, ElseInst, IfInst, UntilInst, FromInst, WhenInst, ReturnInst, SwitchInst, ForInst, OnInst, ToggleInst, WaitInst, LogInst, CopyInst, RenameInst, DeleteInst, RunInst, RunPathInst, RunPathOnceInst, CompileInst, ListInst, EmptyInst, PrintInst, ExprInst, BreakInst } from './inst';
-import { Scope, FunctionDeclartion, DefaultParameter, ParameterDeclaration, VariableDeclaration, LockDeclaration } from './declare';
+import { DeclScope, DeclFunction, DefaultParameter, DeclParameter, DeclVariable, DeclLock } from './declare';
 
 export class Parser {
     private readonly _tokens: IToken[]
@@ -65,7 +65,7 @@ export class Parser {
             : undefined;
 
         const scopeDeclare = declare || scope
-            ? new Scope(scope, declare)
+            ? new DeclScope(scope, declare)
             : undefined;
 
         // match declaration
@@ -88,14 +88,14 @@ export class Parser {
     }
 
     // parse function declaration
-    private declareFunction = (scope?: IScope): IInst => {
+    private declareFunction = (scope?: IDeclScope): IInst => {
         const functionToken = this.previous();
         const functionIdentiifer = this.consumeIdentifierThrow("Expected identifier");
 
         // match function body
         if (this.matchToken(TokenType.CurlyOpen)) {
             const instructionBlock = this.instructionBlock();
-            return new FunctionDeclartion(functionToken, functionIdentiifer, instructionBlock, scope);
+            return new DeclFunction(functionToken, functionIdentiifer, instructionBlock, scope);
         }
 
         throw this.error(this.peek(), 
@@ -104,7 +104,7 @@ export class Parser {
     }
 
     // parse parameter declaration
-    private declareParameter = (scope?: IScope): IInst => {
+    private declareParameter = (scope?: IDeclScope): IInst => {
         const parameterToken = this.previous();
         let identifer = this.consumeIdentifierThrow(
             'Expected identifier after parameter keyword.');
@@ -139,11 +139,11 @@ export class Parser {
             } 
         }
 
-        return new ParameterDeclaration(parameterToken, parameters, defaultParameters, scope);
+        return new DeclParameter(parameterToken, parameters, defaultParameters, scope);
     }
 
     // parse lock instruction
-    private declareLock = (scope?: IScope): IInst => {
+    private declareLock = (scope?: IDeclScope): IInst => {
         const lock = this.previous();
         const identifer = this.consumeIdentifierThrow(
             'Expected identifier following lock keyword.');
@@ -152,11 +152,11 @@ export class Parser {
             TokenType.To);
         const value = this.expression();
 
-        return new LockDeclaration(lock, identifer, to, value, scope);
+        return new DeclLock(lock, identifer, to, value, scope);
     }
 
     // parse a variable declaration, scoping occurs elseware
-    private declareVariable = (scope: IScope): IInst => {
+    private declareVariable = (scope: IDeclScope): IInst => {
         const suffix = this.suffix();
 
         const toIs = this.consumeTokenThrow(
@@ -165,7 +165,7 @@ export class Parser {
         const value = this.expression();
         this.terminal();
 
-        return new VariableDeclaration(suffix, toIs, value, scope);
+        return new DeclVariable(suffix, toIs, value, scope);
     }
 
     // testing function / utility

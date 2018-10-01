@@ -1,47 +1,61 @@
 import { Inst } from "./inst";
-import { IScope, IExpr, IInst } from "./types";
+import { IDeclScope, IExpr, IInst, IInstVisitor } from "./types";
 import { IToken } from "../scanner/types";
 import { TokenType } from "../scanner/tokentypes";
 
-export class Declare extends Inst {
-    constructor() { super(); }
+export abstract class Decl extends Inst {
+    constructor() { 
+        super(); 
+    }
 }
 
-export class Scope implements IScope {
+export class DeclScope implements IDeclScope {
     constructor(
         public readonly scope?: IToken,
         public readonly declare?: IToken) {
     }
 }
 
-export class VariableDeclaration extends Declare {
+export class DeclVariable extends Decl {
     constructor(
         public readonly suffix: IExpr,
         public readonly toIs: IToken,
         public readonly expression: IExpr,
-        public readonly scope?: IScope) {
+        public readonly scope?: IDeclScope) {
         super();
+    }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitDeclVariable(this);
     }
 }
 
-export class LockDeclaration extends Declare {
+export class DeclLock extends Decl {
     constructor(
         public readonly lock: IToken,
         public readonly identifier: IToken,
         public readonly to: IToken,
         public readonly value: IExpr,
-        public readonly scope?: IScope) {
+        public readonly scope?: IDeclScope) {
         super();
+    }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitDeclLock(this);
     }
 }
 
-export class FunctionDeclartion extends Declare {
+export class DeclFunction extends Decl {
     constructor(
         public readonly functionToken: IToken,
         public readonly functionIdentifier: IToken,
         public readonly instruction: IInst,
-        public readonly scope?: IScope) {
+        public readonly scope?: IDeclScope) {
         super();
+    }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitDeclFunction(this);
     }
 }
 
@@ -68,12 +82,16 @@ export class DefaultParameter {
     }
 }
 
-export class ParameterDeclaration extends Declare {
+export class DeclParameter extends Decl {
     constructor(
         public readonly parameterToken: IToken,
         public readonly parameters: IToken[],
         public readonly defaultParameters: DefaultParameter[],
-        public readonly scope?: IScope) {
+        public readonly scope?: IDeclScope) {
         super();
+    }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitDeclParameter(this);
     }
 }

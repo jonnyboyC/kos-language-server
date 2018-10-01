@@ -2,14 +2,12 @@ import { IToken } from "../scanner/types";
 import { IExpr, IInst, IExprVisitor } from "./types";
 import { TokenType } from "../scanner/tokentypes";
 
-export class Expr implements IExpr {
+export abstract class Expr implements IExpr {
     get tag(): 'expr' {
         return 'expr';
     }
 
-    public accept<T>(visitor: IExprVisitor<T>): T {
-        throw new Error("Method not implemented.");
-    }
+    public abstract accept<T>(visitor: IExprVisitor<T>): T 
 }
 
 export class BinaryExpr extends Expr {
