@@ -16,4 +16,8 @@ export class KsParameters {
         public readonly parameters: KsParameter[]
     )
     { }
+
+    get tag(): string {
+        return 'parameters';
+    }
 }
