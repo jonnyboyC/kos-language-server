@@ -1,4 +1,4 @@
-import { IInstVisitor, IExprVisitor } from "../parser/types";
+import { IInstVisitor, IExprVisitor, IExpr } from "../parser/types";
 import {
     BinaryExpr, UnaryExpr,
     FactorExpr, SuffixExpr,
@@ -27,22 +27,27 @@ import {
     PrintInst,
     Inst
 } from '../parser/inst'
-import { IScope, IStack } from "./types";
+import { IScope, IStack, VariableState, ScopeType } from "./types";
 import { TokenType } from "../scanner/tokentypes";
 import { ResolverError } from "./resolverError";
 import { DeclVariable, DeclLock, DeclFunction, DeclParameter } from "../parser/declare";
+import { KsVariable } from "./variable";
+import { IToken } from "../scanner/types";
+import { empty } from "../utilities/typeGuards";
 
 type Errors = Array<ResolverError>
 
 export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
     private readonly _insts: Inst[];
     private readonly _scopes: IStack<IScope>;
+    private readonly _global: IScope;
     private _lazyGlobalOff: boolean;
     private _firstInst: boolean;
 
     constructor(insts: Inst[]) {
         this._insts = insts;
         this._scopes = [];
+        this._global = new Map();
         this._lazyGlobalOff = true;
         this._firstInst = true;
     }
@@ -74,17 +79,72 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
         return expr.accept(this);
     }
 
-    // push new scope onto scope stack
-    private beginScope(): void {
-        this._scopes.push({});
+    // declare a variable
+    private declare(scopeType: ScopeType, token: IToken): Maybe<ResolverError> {
+        const scope = scopeType == ScopeType.global
+            ? this._global
+            : this.peekScope();
+
+        if (scope.has(token.lexeme)) {
+            return new ResolverError()
+        }
+
+        scope.set(token.lexeme, new KsVariable(scopeType, token, VariableState.declared))
+        return undefined;
     }
 
-    private endScope(): void {
+    // define a variable
+    private define(token: IToken): Maybe<ResolverError> {
+        const scope = this.peekScope();
+        const variable = scope.get(token.lexeme);
+
+        // if variable is found update its state and return
+        if (!empty(variable)) {
+            variable.state = VariableState.defined;
+            return undefined;
+        }
+
+        // if lazy global is on define new global variable
+        if (!this._lazyGlobalOff) {
+            const global = this._global;
+            const globalVariable = global.get(token.lexeme);
+
+            // if global already exits update value
+            if (!empty(globalVariable)) {
+                globalVariable.state = VariableState.defined;
+                return undefined;
+            }
+
+            // otherwise create new variable and set to defined
+            global.set(token.lexeme, new KsVariable(ScopeType.global, token, VariableState.defined))
+            return undefined;
+        }
+
+        return new ResolverError();
+    }
+
+    // peek the current scope
+    private peekScope(): IScope {
+        const scope = this._scopes[this._scopes.length - 1];
+        return scope || this._global;
+    }
+
+    // push new scope onto scope stack
+    private beginScope(): void {
+        this._scopes.push(new Map());
+    }
+
+    // pop a scope and check variable validity
+    private endScope(): Errors {
         const scope = this._scopes.pop();
 
-        if (scope) {
-            // do stuff
+        if (scope && !this._lazyGlobalOff) {
+            return Array.from(scope.values())
+                .filter(variable => variable.state !== VariableState.used)
+                .map(() => new ResolverError()) 
         }
+
+        return [];
     }
 
     /* --------------------------------------------
@@ -93,53 +153,75 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
 
     ----------------------------------------------*/
 
-    public visitDeclVariable(decl: DeclVariable): ResolverError[] {
-        throw new Error("Method not implemented.");
+    public visitDeclVariable(decl: DeclVariable): Errors {
+        if (!empty(decl.scope)) {
+            decl.suffix.
+        } else {
+
+        }
+
+        return [];
     }
 
     public visitDeclLock(decl: DeclLock): ResolverError[] {
-        throw new Error("Method not implemented.");
+        if (!empty(decl.scope)) {
+
+        } else {
+
+        }
+
+        return [];    
     }
 
     public visitDeclFunction(decl: DeclFunction): ResolverError[] {
-        throw new Error("Method not implemented.");
-    }
+        if (!empty(decl.scope)) {
+
+        } else {
+
+        }
+
+        return [];    }
 
     public visitDeclParameter(decl: DeclParameter): ResolverError[] {
-        throw new Error("Method not implemented.");
-    }
+        if (!empty(decl.scope)) {
+
+        } else {
+
+        }
+
+        return [];    }
 
     public visitBlock(inst: BlockInst): Errors {
         this.beginScope();
-        const possibleErrors = this.resolveInsts(inst.instructions);
+        const errors = this.resolveInsts(inst.instructions);
         this.endScope();
 
-        return possibleErrors;
+        return errors;
     }
     public visitExpr(inst: ExprInst): Errors {
         return this.resolveExpr(inst.suffix);
     }
     public visitOnOff(inst: OnOffInst): Errors {
-        throw new Error("Method not implemented.");
+        return this.resolveExpr(inst.suffix);
     }
-    public visitCommand(inst: CommandInst): Errors {
+    public visitCommand(_inst: CommandInst): Errors {
         return [];
     }
     public visitCommandExpr(inst: CommandExpressionInst): Errors {
-        return this.resolveExpr(inst.expression);
+        return this.resolveExpr(inst.expression)
     }
     public visitUnset(inst: UnsetInst): Errors {
-        throw new Error("Method not implemented.");
+        return [];
     }
     public visitUnlock(inst: UnlockInst): Errors {
-        throw new Error("Method not implemented.");
+        return [];
     }
     public visitSet(inst: SetInst): Errors {
         throw new Error("Method not implemented.");
     }
     public visitLazyGlobalInst(inst: LazyGlobalInst): Errors {
+        // It is an error if lazy global is not at the start of a file
         if (!this._firstInst) {
-            // error thing
             return [new ResolverError()]
         }
     
@@ -147,15 +229,15 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
         return [];
     }
     public visitIf(inst: IfInst): Errors {
-        let possibleErrors = this.resolveExpr(inst.condition)
+        let errors = this.resolveExpr(inst.condition)
             .concat(this.resolveInst(inst.instruction));
 
         if (inst.elseInst) {
-            possibleErrors = possibleErrors.concat(
+            errors = errors.concat(
                 this.resolveInst(inst.elseInst));
         }
 
-        return possibleErrors;
+        return errors;
     }
     public visitElse(inst: ElseInst): Errors {
         return this.resolveInst(inst.instruction);
@@ -186,7 +268,8 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
         return this.resolveExpr(inst.target);
     }
     public visitFor(inst: ForInst): Errors {
-        // TODO indentifer logic
+        this.declare(ScopeType.local, inst.identifier)
+        this.define(inst.identifier);
 
         return this.resolveExpr(inst.suffix)
             .concat(this.resolveInst(inst.instruction));
@@ -210,8 +293,6 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
             .concat(this.resolveExpr(inst.target));
     }
     public visitRename(inst: RenameInst): Errors {
-        // TODO identifier logic
-
         return this.resolveExpr(inst.expression)
             .concat(this.resolveExpr(inst.target));
     }
@@ -225,33 +306,31 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
             : [];
     }
     public visitRunPath(inst: RunPathInst): Errors {
-        let possibleErrors = this.resolveExpr(inst.expression);
+        let errors = this.resolveExpr(inst.expression);
         if (inst.args) {
-            possibleErrors.concat(
+            errors.concat(
                 accumulateErrors(inst.args, this.resolveExpr.bind(this)));
         }
 
-        return possibleErrors;
+        return errors;
     }
     public visitRunPathOnce(inst: RunPathOnceInst): Errors {
-        let possibleErrors = this.resolveExpr(inst.expression);
+        let errors = this.resolveExpr(inst.expression);
         if (inst.args) {
-            possibleErrors.concat(
+            errors.concat(
                 accumulateErrors(inst.args, this.resolveExpr.bind(this)));
         }
 
-        return possibleErrors;
+        return errors;
     }
     public visitCompile(inst: CompileInst): Errors {
         return this.resolveExpr(inst.expression)
             .concat(inst.target ? this.resolveExpr(inst.target) : []);
     }
-    public visitList(inst: ListInst): Errors {
-        // TODO identifier
-
+    public visitList(_inst: ListInst): Errors {
         return [];
     }
-    public visitEmpty(inst: EmptyInst): Errors {
+    public visitEmpty(_inst: EmptyInst): Errors {
         return [];
     }
     public visitPrint(inst: PrintInst): Errors {
@@ -288,22 +367,26 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
         return this.resolveExpr(expr.array);
     }
     public visitArrayBracket(expr: ArrayBracketExpr): Errors {
-        throw new Error("Method not implemented.");
+        return this.resolveExpr(expr.array)
+            .concat(this.resolveExpr(expr.index));
     }
     public visitDelegate(expr: DelegateExpr): Errors {
+        expr.variable
+
         throw new Error("Method not implemented.");
     }
-    public visitLiteral(expr: LiteralExpr): Errors {
-        throw new Error("Method not implemented.");
+    public visitLiteral(_expr: LiteralExpr): Errors {
+        return [];
     }
-    public visitVariable(expr: VariableExpr): Errors {
-        throw new Error("Method not implemented.");
+    public visitVariable(_expr: VariableExpr): Errors {
+        // TODO unsure how to handle this
+        return [];
     }
     public visitGrouping(expr: GroupingExpr): Errors {
-        throw new Error("Method not implemented.");
+        return this.resolveExpr(expr.expr);
     }
     public visitAnonymousFunction(expr: AnonymousFunctionExpr): Errors {
-        throw new Error("Method not implemented.");
+        return this.resolveInsts(expr.instruction);
     }
 }
 

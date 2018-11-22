@@ -2,6 +2,7 @@ import { Inst } from "./inst";
 import { IDeclScope, IExpr, IInst, IInstVisitor } from "./types";
 import { IToken } from "../scanner/types";
 import { TokenType } from "../scanner/tokentypes";
+import { SuffixExpr } from "./expr";
 
 export abstract class Decl extends Inst {
     constructor() { 

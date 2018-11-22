@@ -12,6 +12,7 @@ export interface IParseError {
 }
 
 export interface IExpr extends IExprVisitable {
+    variables: IToken[];
     tag: 'expr';
 }
 

@@ -30,10 +30,12 @@ export enum ScopeType {
     global,
 }
 
-export interface IScope {
-    [thing: string]: KsVariable
+export interface IScope extends Map<string, KsVariable> {
+    // [thing: string]: KsVariable
 }
 
 export type Entity = KsVariable | KsFunction | KsLock | KsParameter;
 
-export interface IStack<T> extends Pick<Array<T>, 'pop' | 'push'> {}
+export interface IStack<T> extends Pick<Array<T>, 'pop' | 'push' | 'length'> {
+    [index: number]: T
+}

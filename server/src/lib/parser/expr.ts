@@ -7,6 +7,8 @@ export abstract class Expr implements IExpr {
         return 'expr';
     }
 
+    public abstract get variables(): IToken[];
+
     public abstract accept<T>(visitor: IExprVisitor<T>): T 
 }
 
