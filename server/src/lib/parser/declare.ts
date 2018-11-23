@@ -1,8 +1,8 @@
 import { Inst } from "./inst";
-import { IDeclScope, IExpr, IInst, IInstVisitor } from "./types";
+import { IDeclScope, IExpr, IInst, IInstVisitor, ScopeType } from "./types";
 import { IToken } from "../scanner/types";
 import { TokenType } from "../scanner/tokentypes";
-import { SuffixExpr } from "./expr";
+import { empty } from "../utilities/typeGuards";
 
 export abstract class Decl extends Inst {
     constructor() { 
@@ -14,6 +14,21 @@ export class DeclScope implements IDeclScope {
     constructor(
         public readonly scope?: IToken,
         public readonly declare?: IToken) {
+    }
+
+    get type(): ScopeType {
+        if (empty(this.scope)) {
+            return ScopeType.global;
+        }
+
+        switch(this.scope.type) {
+            case TokenType.Local:
+                return ScopeType.local;
+            case TokenType.Global:
+                return ScopeType.global;
+            default:
+                throw new Error('Unknown scope type found');
+        }
     }
 }
 

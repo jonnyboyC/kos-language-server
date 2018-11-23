@@ -12,7 +12,6 @@ export interface IParseError {
 }
 
 export interface IExpr extends IExprVisitable {
-    variables: IToken[];
     tag: 'expr';
 }
 
@@ -23,6 +22,7 @@ export interface IInst extends IInstVisitable {
 export interface IDeclScope {
     declare?: IToken,
     scope?: IToken,
+    type: ScopeType
 }
 
 export interface IExprVisitable {
@@ -89,7 +89,10 @@ export interface IInstVisitor<T> {
     visitPrint(inst: PrintInst): T;
 }
 
-
+export enum ScopeType {
+    local,
+    global,
+}
 
 export type Result<T> = T | IParseError;
 

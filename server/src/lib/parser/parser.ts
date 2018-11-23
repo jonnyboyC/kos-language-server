@@ -36,7 +36,7 @@ export class Parser {
     }
 
     // parse declaration attempt to synchronize
-    private declaration = (): InstResult => {
+    private declaration = (): InstResult => {Function
         try {
             if ([TokenType.Declare, TokenType.Local, TokenType.Global, 
                 TokenType.Parameter, TokenType.Function, TokenType.Lock].some(t => this.check(t))) {
@@ -95,6 +95,8 @@ export class Parser {
         // match function body
         if (this.matchToken(TokenType.CurlyOpen)) {
             const instructionBlock = this.instructionBlock();
+            this.terminal();
+
             return new DeclFunction(functionToken, functionIdentiifer, instructionBlock, scope);
         }
 
@@ -138,6 +140,7 @@ export class Parser {
                 defaultParameters.push(new DefaultParameter(identifer, toIs, value));
             } 
         }
+        this.terminal();
 
         return new DeclParameter(parameterToken, parameters, defaultParameters, scope);
     }
@@ -151,6 +154,7 @@ export class Parser {
             'Expected keyword "to" following lock.', 
             TokenType.To);
         const value = this.expression();
+        this.terminal();
 
         return new DeclLock(lock, identifer, to, value, scope);
     }

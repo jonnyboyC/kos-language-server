@@ -1,4 +1,4 @@
-import { IInst, IExpr, IInstVisitable, IInstVisitor } from "./types";
+import { IInst, IExpr, IInstVisitor } from "./types";
 import { IToken } from "../scanner/types";
 
 export abstract class Inst implements IInst {
@@ -16,9 +16,8 @@ export class BlockInst extends Inst {
         public readonly close: IToken) {
         super();
     }
-
     
-    accept<T>(visitor: IInstVisitor<T>): T {
+    public accept<T>(visitor: IInstVisitor<T>): T {
         return visitor.visitBlock(this);
     }
 }
@@ -29,7 +28,7 @@ export class ExprInst extends Inst {
         super();
     }
 
-    accept<T>(visitor: IInstVisitor<T>): T {
+    public accept<T>(visitor: IInstVisitor<T>): T {
         return visitor.visitExpr(this);
     }
 }
@@ -41,7 +40,7 @@ export class OnOffInst extends Inst {
         super();
     }
 
-    accept<T>(visitor: IInstVisitor<T>): T {
+    public accept<T>(visitor: IInstVisitor<T>): T {
         return visitor.visitOnOff(this);
     }
 }
@@ -51,7 +50,7 @@ export class CommandInst extends Inst {
         super();
     }
 
-    accept<T>(visitor: IInstVisitor<T>): T {
+    public accept<T>(visitor: IInstVisitor<T>): T {
         return visitor.visitCommand(this);
     }
 }
@@ -63,7 +62,7 @@ export class CommandExpressionInst extends Inst {
         super();
     }
 
-    accept<T>(visitor: IInstVisitor<T>): T {
+    public accept<T>(visitor: IInstVisitor<T>): T {
         return visitor.visitCommandExpr(this);
     }
 }
@@ -75,7 +74,7 @@ export class UnsetInst extends Inst {
         super();
     }
 
-    accept<T>(visitor: IInstVisitor<T>): T {
+    public accept<T>(visitor: IInstVisitor<T>): T {
         return visitor.visitUnset(this);
     }
 }
@@ -87,7 +86,7 @@ export class UnlockInst extends Inst {
         super();
     }
 
-    accept<T>(visitor: IInstVisitor<T>): T {
+    public accept<T>(visitor: IInstVisitor<T>): T {
         return visitor.visitUnlock(this);
     }
 }
@@ -101,7 +100,7 @@ export class SetInst extends Inst {
         super();
     }
 
-    accept<T>(visitor: IInstVisitor<T>): T {
+    public accept<T>(visitor: IInstVisitor<T>): T {
         return visitor.visitSet(this);
     }
 }
@@ -114,7 +113,10 @@ export class LazyGlobalInst extends Inst {
         super();
     }
 
-    accept<T>(visitor: IInstVisitor<T>): T {
+    public *used(): IterableIterator<IToken> {
+    }
+
+    public accept<T>(visitor: IInstVisitor<T>): T {
         return visitor.visitLazyGlobalInst(this);
     }
 }
@@ -128,7 +130,7 @@ export class IfInst extends Inst {
         super()
     }
 
-    accept<T>(visitor: IInstVisitor<T>): T {
+    public accept<T>(visitor: IInstVisitor<T>): T {
         return visitor.visitIf(this);
     }
 }
@@ -140,7 +142,7 @@ export class ElseInst extends Inst {
         super();
     }
 
-    accept<T>(visitor: IInstVisitor<T>): T {
+    public accept<T>(visitor: IInstVisitor<T>): T {
         return visitor.visitElse(this);
     }
 }
@@ -153,7 +155,7 @@ export class UntilInst extends Inst {
         super()
     }
 
-    accept<T>(visitor: IInstVisitor<T>): T {
+    public accept<T>(visitor: IInstVisitor<T>): T {
         return visitor.visitUntil(this);
     }
 }
@@ -171,7 +173,7 @@ export class FromInst extends Inst {
         super();
     }
 
-    accept<T>(visitor: IInstVisitor<T>): T {
+    public accept<T>(visitor: IInstVisitor<T>): T {
         return visitor.visitFrom(this);
     }
 }
@@ -184,8 +186,8 @@ export class WhenInst extends Inst {
         public readonly instruction: IInst) {
         super();
     }
-
-    accept<T>(visitor: IInstVisitor<T>): T {
+        
+    public accept<T>(visitor: IInstVisitor<T>): T {
         return visitor.visitWhen(this);
     }
 }
@@ -197,18 +199,21 @@ export class ReturnInst extends Inst {
         super();
     }
 
-    accept<T>(visitor: IInstVisitor<T>): T {
+    public accept<T>(visitor: IInstVisitor<T>): T {
         return visitor.visitReturn(this);
     }
 }
 
 export class BreakInst extends Inst {
+    public declared(): IterableIterator<IToken> {
+        throw new Error("Method not implemented.");
+    }
     constructor(
         public readonly breakToken: IToken) {
         super();
     }
 
-    accept<T>(visitor: IInstVisitor<T>): T {
+    public accept<T>(visitor: IInstVisitor<T>): T {
         return visitor.visitBreak(this);
     }
 }
@@ -221,7 +226,7 @@ export class SwitchInst extends Inst {
         super();
     }
 
-    accept<T>(visitor: IInstVisitor<T>): T {
+    public accept<T>(visitor: IInstVisitor<T>): T {
         return visitor.visitSwitch(this);
     }
 }
@@ -236,12 +241,15 @@ export class ForInst extends Inst {
         super();
     }
 
-    accept<T>(visitor: IInstVisitor<T>): T {
+    public accept<T>(visitor: IInstVisitor<T>): T {
         return visitor.visitFor(this);
     }
 }
 
 export class OnInst extends Inst {
+    public declared(): IterableIterator<IToken> {
+        throw new Error("Method not implemented.");
+    }
     constructor(
         public readonly on: IToken,
         public readonly suffix: IExpr,
@@ -249,24 +257,30 @@ export class OnInst extends Inst {
         super();
     }
 
-    accept<T>(visitor: IInstVisitor<T>): T {
+    public accept<T>(visitor: IInstVisitor<T>): T {
         return visitor.visitOn(this);
     }
 }
 
 export class ToggleInst extends Inst {
+    public declared(): IterableIterator<IToken> {
+        throw new Error("Method not implemented.");
+    }
     constructor(
         public readonly toggle: IToken,
         public readonly suffix: IExpr) {
         super();
     }
 
-    accept<T>(visitor: IInstVisitor<T>): T {
+    public accept<T>(visitor: IInstVisitor<T>): T {
         return visitor.visitToggle(this);
     }
 }
 
 export class WaitInst extends Inst {
+    public declared(): IterableIterator<IToken> {
+        throw new Error("Method not implemented.");
+    }
     constructor(
         public readonly wait: IToken,
         public readonly expression: IExpr,
@@ -274,12 +288,15 @@ export class WaitInst extends Inst {
         super();
     }
 
-    accept<T>(visitor: IInstVisitor<T>): T {
+    public accept<T>(visitor: IInstVisitor<T>): T {
         return visitor.visitWait(this);
     }
 }
 
 export class LogInst extends Inst {
+    public declared(): IterableIterator<IToken> {
+        throw new Error("Method not implemented.");
+    }
     constructor(
         public readonly log: IToken,
         public readonly expression: IExpr,
@@ -288,12 +305,15 @@ export class LogInst extends Inst {
         super();
     }
 
-    accept<T>(visitor: IInstVisitor<T>): T {
+    public accept<T>(visitor: IInstVisitor<T>): T {
         return visitor.visitLog(this);
     }
 }
 
 export class CopyInst extends Inst {
+    public declared(): IterableIterator<IToken> {
+        throw new Error("Method not implemented.");
+    }
     constructor(
         public readonly copy: IToken,
         public readonly expression: IExpr,
@@ -302,12 +322,15 @@ export class CopyInst extends Inst {
         super();
     }
 
-    accept<T>(visitor: IInstVisitor<T>): T {
+    public accept<T>(visitor: IInstVisitor<T>): T {
         return visitor.visitCopy(this);
     }
 }
 
 export class RenameInst extends Inst {
+    public declared(): IterableIterator<IToken> {
+        throw new Error("Method not implemented.");
+    }
     constructor(
         public readonly rename: IToken,
         public readonly ioIdentifer: IToken,
@@ -317,12 +340,15 @@ export class RenameInst extends Inst {
         super();
     }
 
-    accept<T>(visitor: IInstVisitor<T>): T {
+    public accept<T>(visitor: IInstVisitor<T>): T {
         return visitor.visitRename(this);
     }
 }
 
 export class DeleteInst extends Inst {
+    public declared(): IterableIterator<IToken> {
+        throw new Error("Method not implemented.");
+    }
     constructor(
         public readonly deleteToken: IToken,
         public readonly expression: IExpr,
@@ -331,12 +357,15 @@ export class DeleteInst extends Inst {
         super();
     }
 
-    accept<T>(visitor: IInstVisitor<T>): T {
+    public accept<T>(visitor: IInstVisitor<T>): T {
         return visitor.visitDelete(this);
     }
 }
 
 export class RunInst extends Inst {
+    public declared(): IterableIterator<IToken> {
+        throw new Error("Method not implemented.");
+    }
     constructor(
         public readonly run: IToken,
         public readonly identifier: IToken,
@@ -349,12 +378,15 @@ export class RunInst extends Inst {
         super();
     }
 
-    accept<T>(visitor: IInstVisitor<T>): T {
+    public accept<T>(visitor: IInstVisitor<T>): T {
         return visitor.visitRun(this);
     }
 }
 
 export class RunPathInst extends Inst {
+    public declared(): IterableIterator<IToken> {
+        throw new Error("Method not implemented.");
+    }
     constructor(
         public readonly runPath: IToken,
         public readonly open: IToken,
@@ -364,12 +396,15 @@ export class RunPathInst extends Inst {
         super();
     }
 
-    accept<T>(visitor: IInstVisitor<T>): T {
+    public accept<T>(visitor: IInstVisitor<T>): T {
         return visitor.visitRunPath(this);
     }
 }
 
 export class RunPathOnceInst extends Inst {
+    public declared(): IterableIterator<IToken> {
+        throw new Error("Method not implemented.");
+    }
     constructor(
         public readonly runPath: IToken,
         public readonly open: IToken,
@@ -379,12 +414,15 @@ export class RunPathOnceInst extends Inst {
         super();
     }
 
-    accept<T>(visitor: IInstVisitor<T>): T {
+    public accept<T>(visitor: IInstVisitor<T>): T {
         return visitor.visitRunPathOnce(this);
     }
 }
 
 export class CompileInst extends Inst {
+    public declared(): IterableIterator<IToken> {
+        throw new Error("Method not implemented.");
+    }
     constructor(
         public readonly compile: IToken,
         public readonly expression: IExpr,
@@ -393,12 +431,15 @@ export class CompileInst extends Inst {
         super();
     }
 
-    accept<T>(visitor: IInstVisitor<T>): T {
+    public accept<T>(visitor: IInstVisitor<T>): T {
         return visitor.visitCompile(this);
     }
 }
 
 export class ListInst extends Inst {
+    public declared(): IterableIterator<IToken> {
+        throw new Error("Method not implemented.");
+    }
     constructor(
         public readonly list: IToken,
         public readonly identifier?: IToken,
@@ -407,22 +448,28 @@ export class ListInst extends Inst {
         super();
     }
     
-    accept<T>(visitor: IInstVisitor<T>): T {
+    public accept<T>(visitor: IInstVisitor<T>): T {
         return visitor.visitList(this);
     }
 }
 
 export class EmptyInst extends Inst {
+    public declared(): IterableIterator<IToken> {
+        throw new Error("Method not implemented.");
+    }
     constructor(public readonly empty: IToken) {
         super();
     }
 
-    accept<T>(visitor: IInstVisitor<T>): T {
+    public accept<T>(visitor: IInstVisitor<T>): T {
         return visitor.visitEmpty(this);
     }
 }
 
 export class PrintInst extends Inst {
+    public declared(): IterableIterator<IToken> {
+        throw new Error("Method not implemented.");
+    }
     constructor(
         public readonly print: IToken,
         public readonly expression: IExpr,
@@ -434,7 +481,7 @@ export class PrintInst extends Inst {
         super();
     }
 
-    accept<T>(visitor: IInstVisitor<T>): T {
+    public accept<T>(visitor: IInstVisitor<T>): T {
         return visitor.visitPrint(this);
     }
 }

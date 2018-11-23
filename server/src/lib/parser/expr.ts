@@ -7,8 +7,6 @@ export abstract class Expr implements IExpr {
         return 'expr';
     }
 
-    public abstract get variables(): IToken[];
-
     public abstract accept<T>(visitor: IExprVisitor<T>): T 
 }
 
@@ -138,7 +136,7 @@ export class DelegateExpr extends Expr {
         public readonly atSign: IToken) {
         super();
     }
-    
+
     public toString(): string {
         return `${this.variable.toString()}${this.atSign.lexeme}`;
     }

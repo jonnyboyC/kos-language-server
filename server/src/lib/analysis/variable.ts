@@ -1,5 +1,6 @@
 import { IToken } from "../scanner/types";
-import { VariableState, ScopeType } from "./types";
+import { VariableState } from "./types";
+import { ScopeType } from "../parser/types";
 
 export class KsVariable {
     constructor(

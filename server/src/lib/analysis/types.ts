@@ -11,7 +11,6 @@ export enum FunctionType {
 
 export enum VariableState {
     declared,
-    defined,
     used,
 }
 
@@ -25,13 +24,7 @@ export enum LockState {
     unlocked,
 }
 
-export enum ScopeType {
-    local,
-    global,
-}
-
 export interface IScope extends Map<string, KsVariable> {
-    // [thing: string]: KsVariable
 }
 
 export type Entity = KsVariable | KsFunction | KsLock | KsParameter;

@@ -19,6 +19,7 @@ import { Scanner } from './lib/scanner/scanner';
 import { IToken, ISyntaxError } from './lib/scanner/types';
 import { Parser } from './lib/parser/parser';
 import { IParseError } from './lib/parser/types';
+import { Resolver } from './lib/analysis/resolver';
 
 // Create a connection for the server. The connection uses Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -89,7 +90,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
     }
 
     const parser = new Parser(tokens);
-    const [, errors] = parser.parse();
+    const [insts, errors] = parser.parse();
 
 	let diagnostics: Diagnostic[] = []
 	if (errors.length !== 0) {
@@ -100,6 +101,11 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 			])
 		.reduce((acc, current) => acc.concat(current))
 	}
+
+	const resolver = new Resolver(insts)
+	const resolverErrors = resolver.resolve();
+
+	console.log(resolverErrors);
 
 	connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
 }

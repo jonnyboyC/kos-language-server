@@ -1,5 +1,6 @@
-import { ScopeType, LockState } from "./types";
+import { LockState } from "./types";
 import { IToken } from "../scanner/types";
+import { ScopeType } from "../parser/types";
 
 export class KsLock {
     constructor(
