@@ -7,7 +7,8 @@
     "outDir": "out",
     "rootDir": "src",
     "lib": ["es6"],
-    "sourceMap": true
+    "sourceMap": true,
+    "strict": true,
   },
   "include": [
     "src"

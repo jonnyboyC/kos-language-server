@@ -23,22 +23,26 @@
     ],
     "main": "./client/out/extension",
     "contributes": {
-        "languages": [{
-            "id": "kos",
-            "aliases": [
-                "Kerbal Operating System",
-                "kos"
-            ],
-            "extensions": [
-                ".ks"
-            ],
-            "configuration": "./kos.configuration.json"
-        }],
-        "grammars": [{
-            "language": "kos",
-            "scopeName": "source.kos",
-            "path": "./syntaxes/kos.tmLanguage.json"
-        }]
+        "languages": [
+            {
+                "id": "kos",
+                "aliases": [
+                    "Kerbal Operating System",
+                    "kos"
+                ],
+                "extensions": [
+                    ".ks"
+                ],
+                "configuration": "./kos.configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "kos",
+                "scopeName": "source.kos",
+                "path": "./syntaxes/kos.tmLanguage.json"
+            }
+        ]
     },
     "scripts": {
         "vscode:prepublish": "cd client && npm run update-vscode && cd .. && npm run compile",

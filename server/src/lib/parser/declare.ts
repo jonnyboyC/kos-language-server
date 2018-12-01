@@ -1,53 +1,83 @@
 import { Inst } from "./inst";
-import { ScopeInterface, ExprInterface, InstInterface } from "./types";
-import { TokenInterface } from "../scanner/types";
+import { IDeclScope, IExpr, IInst, IInstVisitor, ScopeType } from "./types";
+import { IToken } from "../scanner/types";
 import { TokenType } from "../scanner/tokentypes";
+import { empty } from "../utilities/typeGuards";
 
-export class Declare extends Inst {
-    constructor() { super(); }
-}
-
-export class Scope implements ScopeInterface {
-    constructor(
-        public readonly scope?: TokenInterface,
-        public readonly declare?: TokenInterface) {
+export abstract class Decl extends Inst {
+    constructor() { 
+        super(); 
     }
 }
 
-export class VariableDeclaration extends Declare {
+export class DeclScope implements IDeclScope {
     constructor(
-        public readonly suffix: ExprInterface,
-        public readonly toIs: TokenInterface,
-        public readonly expression: ExprInterface,
-        public readonly scope?: ScopeInterface) {
-        super();
+        public readonly scope?: IToken,
+        public readonly declare?: IToken) {
+    }
+
+    get type(): ScopeType {
+        if (empty(this.scope)) {
+            return ScopeType.global;
+        }
+
+        switch(this.scope.type) {
+            case TokenType.Local:
+                return ScopeType.local;
+            case TokenType.Global:
+                return ScopeType.global;
+            default:
+                throw new Error('Unknown scope type found');
+        }
     }
 }
 
-export class LockDeclaration extends Declare {
+export class DeclVariable extends Decl {
     constructor(
-        public readonly lock: TokenInterface,
-        public readonly identifier: TokenInterface,
-        public readonly to: TokenInterface,
-        public readonly value: ExprInterface,
-        public readonly scope?: ScopeInterface) {
+        public readonly suffix: IExpr,
+        public readonly toIs: IToken,
+        public readonly expression: IExpr,
+        public readonly scope?: IDeclScope) {
         super();
+    }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitDeclVariable(this);
     }
 }
 
-export class FunctionDeclartion extends Declare {
+export class DeclLock extends Decl {
     constructor(
-        public readonly functionToken: TokenInterface,
-        public readonly functionIdentifier: TokenInterface,
-        public readonly instruction: InstInterface,
-        public readonly scope?: ScopeInterface) {
+        public readonly lock: IToken,
+        public readonly identifier: IToken,
+        public readonly to: IToken,
+        public readonly value: IExpr,
+        public readonly scope?: IDeclScope) {
         super();
+    }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitDeclLock(this);
+    }
+}
+
+export class DeclFunction extends Decl {
+    constructor(
+        public readonly functionToken: IToken,
+        public readonly functionIdentifier: IToken,
+        public readonly instruction: IInst,
+        public readonly scope?: IDeclScope) {
+        super();
+    }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitDeclFunction(this);
     }
 }
 
 export class Parameter {
     constructor(
-        public readonly identifier: TokenInterface) {
+        public readonly identifier: IToken) {
     }
 
     public get isKeyword(): boolean {
@@ -58,9 +88,9 @@ export class Parameter {
 
 export class DefaultParameter {
     constructor(
-        public readonly identifier: TokenInterface,
-        public readonly toIs: TokenInterface,
-        public readonly value: ExprInterface) {
+        public readonly identifier: IToken,
+        public readonly toIs: IToken,
+        public readonly value: IExpr) {
     }
 
     get isKeyword(): boolean {
@@ -68,12 +98,16 @@ export class DefaultParameter {
     }
 }
 
-export class ParameterDeclaration extends Declare {
+export class DeclParameter extends Decl {
     constructor(
-        public readonly parameterToken: TokenInterface,
-        public readonly parameters: TokenInterface[],
+        public readonly parameterToken: IToken,
+        public readonly parameters: IToken[],
         public readonly defaultParameters: DefaultParameter[],
-        public readonly scope?: ScopeInterface) {
+        public readonly scope?: IDeclScope) {
         super();
+    }
+
+    accept<T>(visitor: IInstVisitor<T>): T {
+        return visitor.visitDeclParameter(this);
     }
 }

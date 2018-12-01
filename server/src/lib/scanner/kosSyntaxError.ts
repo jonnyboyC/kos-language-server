@@ -1,7 +1,7 @@
-import { SyntaxErrorInterface } from './types';
+import { ISyntaxError } from './types';
 import { Position } from 'vscode-languageserver';
 
-export class KosSyntaxError implements SyntaxErrorInterface {
+export class KosSyntaxError implements ISyntaxError {
     public readonly start: Position;
     public readonly end: Position;
 

@@ -1,5 +1,5 @@
 import { TokenType } from './tokentypes';
-import { TokenMap, ScanResult, TokenInterface, SyntaxErrorInterface } from './types';
+import { ITokenMap, ScanResult, IToken, ISyntaxError } from './types';
 import { Token, Marker } from './token';
 import { WhiteSpace } from './whitespace';
 import { KosSyntaxError } from './kosSyntaxError'
@@ -22,10 +22,10 @@ export class Scanner {
     }
 
     // scan all available tokesn
-    public scanTokens(): TokenInterface[] | SyntaxErrorInterface[] {
+    public scanTokens(): IToken[] | ISyntaxError[] {
         // create arrays for valid tokens and encountered errors
-        const tokens: TokenInterface[] = [];
-        const errors: SyntaxErrorInterface[] = [];
+        const tokens: IToken[] = [];
+        const errors: ISyntaxError[] = [];
 
         // begin scanning
         while (!this.isAtEnd()) 
@@ -230,7 +230,7 @@ export class Scanner {
     }
 
     // generate error
-    private generateError(message: string): SyntaxErrorInterface {
+    private generateError(message: string): ISyntaxError {
         return new KosSyntaxError(
             message,
             new Marker(this._startPosition.line, this._startPosition.character),
@@ -397,7 +397,7 @@ const identifierTest = new RegExp(
 
 
 // keyword map
-const keywords: TokenMap = {
+const keywords: ITokenMap = {
     'add': { type: TokenType.Add }, 
     'and': { type: TokenType.And },
     'all': { type: TokenType.All },

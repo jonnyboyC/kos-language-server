@@ -16,9 +16,11 @@ import {
 	TextDocumentPositionParams
 } from 'vscode-languageserver';
 import { Scanner } from './lib/scanner/scanner';
-import { TokenInterface, SyntaxErrorInterface } from './lib/scanner/types';
+import { IToken, ISyntaxError } from './lib/scanner/types';
 import { Parser } from './lib/parser/parser';
-import { ParseErrorInterface } from './lib/parser/types';
+import { IParseError } from './lib/parser/types';
+import { Resolver } from './lib/analysis/resolver';
+import { IResolverError } from './lib/analysis/types';
 
 // Create a connection for the server. The connection uses Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -59,9 +61,18 @@ documents.onDidChangeContent(change => {
 	validateTextDocument(change.document);
 });
 
-const toDiagnostic = (error: ParseErrorInterface): Diagnostic => {
+const parseToDiagnostics = (error: IParseError): Diagnostic => {
 	return {
 		severity: DiagnosticSeverity.Error,
+		range: { start: error.token.start, end: error.token.end },
+		message: error.message,
+		source: 'kos-language-server'
+	}
+}
+
+const resolverToDiagnostics = (error: IResolverError): Diagnostic => {
+	return {
+		severity: DiagnosticSeverity.Warning,
 		range: { start: error.token.start, end: error.token.end },
 		message: error.message,
 		source: 'kos-language-server'
@@ -89,22 +100,25 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
     }
 
     const parser = new Parser(tokens);
-    const [, errors] = parser.parse();
+    const [insts, errors] = parser.parse();
 
 	let diagnostics: Diagnostic[] = []
 	if (errors.length !== 0) {
-		diagnostics = errors
-		.map(error => [
-			toDiagnostic(error), 
-			...error.inner.map(innerError => toDiagnostic(innerError))
-			])
+		diagnostics = errors.map(error => [
+			parseToDiagnostics(error), 
+			...error.inner.map(innerError => parseToDiagnostics(innerError))
+		])
 		.reduce((acc, current) => acc.concat(current))
 	}
 
+	const resolver = new Resolver(insts)
+	const resolverErrors = resolver.resolve();
+
+	diagnostics = diagnostics.concat(resolverErrors.map(error => resolverToDiagnostics(error)));
 	connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
 }
 
-const hasScanError = (tokens: TokenInterface[] | SyntaxErrorInterface[]): tokens is SyntaxErrorInterface[] => {
+const hasScanError = (tokens: IToken[] | ISyntaxError[]): tokens is ISyntaxError[] => {
     return tokens[0].tag === 'syntaxError';
 } 
 

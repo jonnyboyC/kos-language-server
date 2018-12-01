@@ -1,9 +1,9 @@
 import test from 'ava';
 import { Scanner } from '../scanner/scanner';
 import { Parser } from './parser';
-import { TokenInterface, SyntaxErrorInterface } from '../scanner/types';
-import { ParseErrorInterface, ExprInterface, ExprResult } from './types';
-import { ExprLiteral, ExprVariable, ExprCall } from './expr';
+import { IToken, ISyntaxError } from '../scanner/types';
+import { IParseError, IExpr, ExprResult } from './types';
+import { LiteralExpr, VariableExpr, CallExpr } from './expr';
 import { TokenType } from '../scanner/tokentypes';
 import { readdirSync, statSync, readFileSync } from 'fs';
 import { join } from 'path';
@@ -152,8 +152,8 @@ const callTest = (source: string, callee: string, args: Function[]): CallTestInt
 // test basic identifier
 test('valid call', (t) => {
     const validExpressions = [
-        callTest('test(4, "car")', "test", [ExprLiteral, ExprLiteral]),
-        callTest('БНЯД(varName, 14.3)', "бняд", [ExprVariable, ExprLiteral]), 
+        callTest('test(4, "car")', "test", [LiteralExpr, LiteralExpr]),
+        callTest('БНЯД(varName, 14.3)', "бняд", [VariableExpr, LiteralExpr]), 
         callTest('_variableName()', "_variablename", []), 
     ];
 
@@ -190,26 +190,26 @@ test('invalid call', (t) => {
 //     type: TokenType
 // }
 
-const isCall = (literalTest: ExprResult | SyntaxErrorInterface[]): literalTest is ExprCall => {
-    return isExpr(literalTest) && literalTest instanceof ExprCall;
+const isCall = (literalTest: ExprResult | ISyntaxError[]): literalTest is CallExpr => {
+    return isExpr(literalTest) && literalTest instanceof CallExpr;
 }
 
-const isLiteral = (literalTest: ExprResult | SyntaxErrorInterface[]): literalTest is ExprLiteral => {
-    return isExpr(literalTest) && literalTest instanceof ExprLiteral;
+const isLiteral = (literalTest: ExprResult | ISyntaxError[]): literalTest is LiteralExpr => {
+    return isExpr(literalTest) && literalTest instanceof LiteralExpr;
 }
 
-const isVariable = (literalTest: ExprResult | SyntaxErrorInterface[]): literalTest is ExprVariable => {
-    return isExpr(literalTest) && literalTest instanceof ExprVariable;
+const isVariable = (literalTest: ExprResult | ISyntaxError[]): literalTest is VariableExpr => {
+    return isExpr(literalTest) && literalTest instanceof VariableExpr;
 }
 
-const isExpr = (result: ParseErrorInterface | ExprInterface | SyntaxErrorInterface[]): result is ExprInterface => {
+const isExpr = (result: IParseError | IExpr | ISyntaxError[]): result is IExpr => {
     return !(result instanceof Array) && result.tag === 'expr';
 } 
 
-const isError = (result: TokenInterface[] | SyntaxErrorInterface[]): result is SyntaxErrorInterface[] => {
+const isError = (result: IToken[] | ISyntaxError[]): result is ISyntaxError[] => {
     return result[0].tag === 'syntaxError'
 }
 
-const isToken = (result: TokenInterface[] | SyntaxErrorInterface[]): result is TokenInterface[] => {
+const isToken = (result: IToken[] | ISyntaxError[]): result is IToken[] => {
     return result[0].tag === 'token'
 }

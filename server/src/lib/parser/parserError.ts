@@ -1,12 +1,12 @@
-import { ParseErrorInterface } from "./types";
-import { TokenInterface } from "../scanner/types";
+import { IParseError } from "./types";
+import { IToken } from "../scanner/types";
 
-export class ParseError implements ParseErrorInterface {
+export class ParseError implements IParseError {
 
-    public readonly inner: ParseErrorInterface[];
+    public readonly inner: IParseError[];
 
     constructor(
-        public readonly token: TokenInterface, 
+        public readonly token: IToken, 
         public readonly message: string,
         public readonly otherInfo: string[]) {
         this.inner = [];
