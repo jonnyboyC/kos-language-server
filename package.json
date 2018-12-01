@@ -16,7 +16,7 @@
         "language-server"
     ],
     "engines": {
-        "vscode": "^1.23.0"
+        "vscode": "^1.26.0"
     },
     "activationEvents": [
         "onLanguage:kos"
@@ -70,8 +70,8 @@
     "homepage": "https://github.com/jonnyboyC/kos-language-server#readme",
     "devDependencies": {
         "@types/mocha": "~5.2.0",
-        "@types/node": "~8.0.0",
+        "@types/node": "~10.12.11",
         "ava": "^0.25.0",
-        "typescript": "2.8.3"
+        "typescript": "3.2.1"
     }
 }
