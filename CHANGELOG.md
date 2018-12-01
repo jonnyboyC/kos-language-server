@@ -1,3 +1,9 @@
+## [0.1.3] (2018-12-1)
+
+### Bug Fixes
+- **parameter parsing**: Fixed and issue with parameter parsing where default parameters follow a normal parameter wouldn't work correctly.
+- **updated vscode dependencies**: Precautionary update vscode depdencies to deal with the event-stream vunderability
+
 ## [0.1.2] (2018-09-17)
 
 
