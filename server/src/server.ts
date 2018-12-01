@@ -111,10 +111,10 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 		.reduce((acc, current) => acc.concat(current))
 	}
 
-	const resolver = new Resolver(insts)
-	const resolverErrors = resolver.resolve();
+	// const resolver = new Resolver(insts)
+	// const resolverErrors = resolver.resolve();
+	// diagnostics = diagnostics.concat(resolverErrors.map(error => resolverToDiagnostics(error)));
 
-	diagnostics = diagnostics.concat(resolverErrors.map(error => resolverToDiagnostics(error)));
 	connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
 }
 
