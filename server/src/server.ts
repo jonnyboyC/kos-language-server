@@ -19,8 +19,8 @@ import { Scanner } from './lib/scanner/scanner';
 import { IToken, ISyntaxError } from './lib/scanner/types';
 import { Parser } from './lib/parser/parser';
 import { IParseError } from './lib/parser/types';
-import { Resolver } from './lib/analysis/resolver';
-import { IResolverError } from './lib/analysis/types';
+// import { Resolver } from './lib/analysis/resolver';
+// import { IResolverError } from './lib/analysis/types';
 
 // Create a connection for the server. The connection uses Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -70,14 +70,14 @@ const parseToDiagnostics = (error: IParseError): Diagnostic => {
 	}
 }
 
-const resolverToDiagnostics = (error: IResolverError): Diagnostic => {
-	return {
-		severity: DiagnosticSeverity.Warning,
-		range: { start: error.token.start, end: error.token.end },
-		message: error.message,
-		source: 'kos-language-server'
-	}
-}
+// const resolverToDiagnostics = (error: IResolverError): Diagnostic => {
+// 	return {
+// 		severity: DiagnosticSeverity.Warning,
+// 		range: { start: error.token.start, end: error.token.end },
+// 		message: error.message,
+// 		source: 'kos-language-server'
+// 	}
+// }
 
 async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 	// The validator creates diagnostics for all uppercase words length 2 and more
@@ -100,7 +100,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
     }
 
     const parser = new Parser(tokens);
-    const [insts, errors] = parser.parse();
+    const [, errors] = parser.parse();
 
 	let diagnostics: Diagnostic[] = []
 	if (errors.length !== 0) {
