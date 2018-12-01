@@ -6,6 +6,7 @@ import { ParseError } from './parserError';
 import { Expr, LiteralExpr, GroupingExpr, VariableExpr, CallExpr, DelegateExpr, ArrayBracketExpr, ArrayIndexExpr, FactorExpr, UnaryExpr, BinaryExpr, SuffixExpr, AnonymousFunctionExpr } from './expr';
 import { Inst, BlockInst, OnOffInst, CommandInst, CommandExpressionInst, UnsetInst, UnlockInst, SetInst, LazyGlobalInst, ElseInst, IfInst, UntilInst, FromInst, WhenInst, ReturnInst, SwitchInst, ForInst, OnInst, ToggleInst, WaitInst, LogInst, CopyInst, RenameInst, DeleteInst, RunInst, RunPathInst, RunPathOnceInst, CompileInst, ListInst, EmptyInst, PrintInst, ExprInst, BreakInst } from './inst';
 import { DeclScope, DeclFunction, DefaultParameter, DeclParameter, DeclVariable, DeclLock } from './declare';
+import { empty } from '../utilities/typeGuards';
 
 export class Parser {
     private readonly _tokens: IToken[]
@@ -95,7 +96,7 @@ export class Parser {
         // match function body
         if (this.matchToken(TokenType.CurlyOpen)) {
             const instructionBlock = this.instructionBlock();
-            this.terminal();
+            this.matchToken(TokenType.Period);
 
             return new DeclFunction(functionToken, functionIdentiifer, instructionBlock, scope);
         }
@@ -108,41 +109,50 @@ export class Parser {
     // parse parameter declaration
     private declareParameter = (scope?: IDeclScope): IInst => {
         const parameterToken = this.previous();
-        let identifer = this.consumeIdentifierThrow(
-            'Expected identifier after parameter keyword.');
-        const parameters = [identifer];
-        const defaultParameters = [];
 
-        // if comma found more parameters can be parsed
-        while (this.matchToken(TokenType.Comma)) {
-            identifer = this.consumeIdentifierThrow(
-                'Expected additional identiifer following comma.');
-            
-            // if is or to found defaulted parameters proceed
-            if (this.check(TokenType.Is) || this.check(TokenType.To)) break;
-            parameters.push(identifer);
-        }
-
-        // check if default parameter
-        if (this.matchToken(TokenType.Is) || this.matchToken(TokenType.To)) {
-            let toIs = this.previous();
-            let value = this.expression();
-            defaultParameters.push(new DefaultParameter(identifer, toIs, value));
-
-            // from here on check only for defaulted parameters
-            while (this.matchToken(TokenType.Comma)) {
-                identifer = this.consumeIdentifierThrow(
-                    'Expected identifier following comma.');
-                toIs = this.consumeTokenThrow(
-                    'Expected default parameter using keyword "to" or "is".',
-                    TokenType.To, TokenType.Is);
-                value = this.expression();
-                defaultParameters.push(new DefaultParameter(identifer, toIs, value));
-            } 
-        }
+        const parameters = this.declareNormalParameters();
+        const defaultParameters = this.declaredDefaultedParameters();
         this.terminal();
 
         return new DeclParameter(parameterToken, parameters, defaultParameters, scope);
+    }
+
+    // parse regular parameters
+    private declareNormalParameters = (): IToken[] => {
+        const parameters = [];
+
+        // parse paremter until defaulted
+        do {
+            // break if this parameter is defaulted
+            if (this.checkNext(TokenType.Is) || this.checkNext(TokenType.To)) break;
+
+            const identifer = this.consumeIdentifierThrow(
+                'Expected additional identiifer following comma.');
+
+            parameters.push(identifer);
+        } while (this.matchToken(TokenType.Comma))
+
+        return parameters;
+    }
+
+    // parse defaulted parameters
+    private declaredDefaultedParameters = (): DefaultParameter[] => {
+        const defaultParameters = [];
+        
+        // parse until no additional parameters exist
+        do {
+            if (!this.checkNext(TokenType.Is) && !this.checkNext(TokenType.To)) break;
+
+            const identifer = this.consumeIdentifierThrow(
+                'Expected identifier following comma.');
+            const toIs = this.consumeTokenThrow(
+                'Expected default parameter using keyword "to" or "is".',
+                TokenType.To, TokenType.Is);
+            const value = this.expression();
+            defaultParameters.push(new DefaultParameter(identifer, toIs, value));
+        } while (this.matchToken(TokenType.Comma))
+
+        return defaultParameters;
     }
 
     // parse lock instruction
@@ -1013,13 +1023,6 @@ export class Parser {
         throw this.error(this.previous(), message);
     }
 
-    // check for any valid identifier
-    // returns errors if incorrect token is found
-    // private consumeIdentifierReturn = (message: string): TokenInterface | ParseErrorInterface => {
-    //     if (this.matchIdentifier()) return this.previous();
-    //     return this.error(this.previous(), message);
-    // }
-
     // consume current token if it matches type. 
     // throws errors if incorrect token is found
     private consumeTokenThrow = (message: string, ...tokenType: TokenType[]): IToken => {
@@ -1062,6 +1065,13 @@ export class Parser {
         return this.peek().type === tokenType;
     }
 
+    // check if the next token matches expected type
+    private checkNext = (tokenType: TokenType): boolean => {
+        const nextToken = this.peekNext();
+        if (empty(nextToken)) return false;
+        return nextToken.type === tokenType;
+    }
+
     // return current token and advance
     private advance = (): IToken => {
         if (!this.isAtEnd()) this._current++;
@@ -1076,6 +1086,14 @@ export class Parser {
     // peek current token
     private peek = (): IToken => {
         return this._tokens[this._current];
+    }
+
+    // peek next token
+    private peekNext = (): Maybe<IToken> => {
+        const nextToken = this._tokens[this._current + 1];
+        if (empty(nextToken) || nextToken.type === TokenType.Eof) return undefined;
+        
+        return nextToken;
     }
 
     // retrieve previous token

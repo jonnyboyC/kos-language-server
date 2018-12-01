@@ -35,6 +35,7 @@ import { KsVariable } from "./variable";
 import { IToken } from "../scanner/types";
 import { empty } from "../utilities/typeGuards";
 import { LocalResolver } from "./localResolver";
+import { SetResolver } from "./setResolver";
 
 export type Errors = Array<ResolverError>
 
@@ -43,6 +44,7 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
     private readonly _scopes: IStack<IScope>;
     private readonly _global: IScope;
     private readonly _localResolver: LocalResolver;
+    private readonly _setResolver: SetResolver;
     private _lazyGlobalOff: boolean;
     private _firstInst: boolean;
 
@@ -51,20 +53,24 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
         this._scopes = [];
         this._global = new Map();
         this._localResolver = new LocalResolver();
-        this._lazyGlobalOff = true;
+        this._setResolver = new SetResolver();
+        this._lazyGlobalOff = false;
         this._firstInst = true;
     }
 
     // resolve the sequence of instructions
     public resolve(): Errors {
+        this.beginScope();
         const [firstInst, ...restInsts] = this._insts;
-        const firstPossibleError = firstInst instanceof LazyGlobalInst
-            ? this.visitLazyGlobalInst(firstInst)
-            : []
 
+        // check for lazy global flag
+        const firstError = this.resolveInst(firstInst)
         this._firstInst = false;
         
-        return firstPossibleError.concat(this.resolveInsts(restInsts));
+        // resolve reset
+        const resolveErrors = this.resolveInsts(restInsts);
+        const scopeErrors = this.endScope();
+        return firstError.concat(resolveErrors, scopeErrors);
     }
 
     // resolve the given set of instructions
@@ -112,6 +118,17 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
         return undefined;
     }
 
+    private define(token: IToken): Maybe<ResolverError> {
+        const variable = this.lookup(token);
+
+        // check that variable has already been defined
+        if (empty(variable)) {
+            return new ResolverError(token, `Variable ${token.lexeme} does not exist.`, []);
+        }
+
+        return undefined;
+    }
+
     private declareLocals(scopeType: ScopeType, expr: IExpr): Errors {
         return this.filterErrors(
             this._localResolver.resolveExpr(expr)
@@ -135,6 +152,11 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
             }
         }
 
+        const variable = this._global.get(token.lexeme);
+        if (!empty(variable)) {
+            return variable;
+        }
+
         return undefined;
     }
 
@@ -153,7 +175,7 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
     private endScope(): Errors {
         const scope = this._scopes.pop();
 
-        if (scope && !this._lazyGlobalOff) {
+        if (!empty(scope)) {
             return Array.from(scope.values())
                 .filter(variable => variable.state !== VariableState.used)
                 .map((variable) => new ResolverError(variable.name, `Variable ${variable.name.lexeme} was not used.`, [])) 
@@ -225,9 +247,16 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
     }
 
     public visitDeclParameter(decl: DeclParameter): ResolverError[] {
-        const scopeType = decl.scope
-            ? decl.scope.type
-            : ScopeType.global;
+        const scopeError: Maybe<ResolverError>[] = [];
+
+        // check that parameter isn't declared global
+        if (!empty(decl.scope) && !empty(decl.scope.scope)) {
+            if (decl.scope.scope.type === TokenType.Global) {
+                scopeError.push(new ResolverError(decl.scope.scope, `parameter ${decl.parameterToken} cannot be global`, []));
+            }
+        }
+        
+        const scopeType = ScopeType.local;
 
         // need to check if default paraemter can really be abbitrary expr
         const parameterErrors = decl.parameters
@@ -235,7 +264,7 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
         const defaultParameterErrors = decl.defaultParameters
             .map(parameter => this.declare(scopeType, parameter.identifier));
         
-        return this.filterErrors(parameterErrors.concat(defaultParameterErrors));
+        return this.filterErrors(scopeError.concat(parameterErrors, defaultParameterErrors));
     }
 
     public visitBlock(inst: BlockInst): Errors {
@@ -275,16 +304,28 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
         return empty(error) ? [] : [error];
     }
     public visitSet(inst: SetInst): Errors {
-        if (this._lazyGlobalOff) {
-            const useErrors = this.useLocals(inst.value);
-            const resolveErrors = this.resolveExpr(inst.value);
-            return useErrors.concat(resolveErrors);
-        } else {
-            // TODO
-            const useErrors = this.useLocals(inst.value);
-            const resolveErrors = this.resolveExpr(inst.value);
-            return useErrors.concat(resolveErrors);
+        const varToken = this._setResolver.resolveExpr(inst.suffix);
+        if (empty(varToken)) {
+            const tokens = this._localResolver.resolveExpr(inst.suffix)
+            return [new ResolverError(tokens[0], `cannot assign to variable ${tokens[0]}`, [])]
         }
+
+        if (!this._lazyGlobalOff) {
+            if (empty(this.lookup(varToken))) {
+                this._global.set(
+                    varToken.lexeme, 
+                    new KsVariable(ScopeType.global, varToken, VariableState.declared)
+                );
+            }
+        }
+
+        const defineError = this.define(varToken);
+        const useErrors = this.useLocals(inst.value);
+        const resolveErrors = this.resolveExpr(inst.value);
+
+        return !empty(defineError)
+            ? useErrors.concat(resolveErrors, defineError)
+            : useErrors.concat(resolveErrors);
     }
     public visitLazyGlobalInst(inst: LazyGlobalInst): Errors {
         // It is an error if lazy global is not at the start of a file

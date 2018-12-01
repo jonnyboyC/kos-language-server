@@ -2,6 +2,7 @@ import { KsVariable } from "./variable";
 import { KsFunction } from "./function";
 import { KsLock } from "./lock";
 import { KsParameter } from "./parameters";
+import { IToken } from "../scanner/types";
 
 export enum FunctionType {
     none,
@@ -25,6 +26,12 @@ export enum LockState {
 }
 
 export interface IScope extends Map<string, KsVariable> {
+}
+
+export interface IResolverError {
+    readonly token: IToken; 
+    readonly message: string;    
+    readonly otherInfo: string[];
 }
 
 export type Entity = KsVariable | KsFunction | KsLock | KsParameter;
