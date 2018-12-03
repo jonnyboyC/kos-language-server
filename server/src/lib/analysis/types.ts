@@ -25,7 +25,7 @@ export enum LockState {
     unlocked,
 }
 
-export interface IScope extends Map<string, KsVariable> {
+export interface IScope extends Map<string, KsEntity> {
 }
 
 export interface IResolverError {
@@ -34,7 +34,7 @@ export interface IResolverError {
     readonly otherInfo: string[];
 }
 
-export type Entity = KsVariable | KsFunction | KsLock | KsParameter;
+export type KsEntity = KsVariable | KsFunction | KsLock | KsParameter;
 
 export interface IStack<T> extends Pick<Array<T>, 'pop' | 'push' | 'length'> {
     [index: number]: T

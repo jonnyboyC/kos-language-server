@@ -27,7 +27,7 @@ import {
     PrintInst,
     Inst
 } from '../parser/inst'
-import { IScope, IStack, VariableState } from "./types";
+import { IScope, IStack, VariableState, KsEntity } from "./types";
 import { TokenType } from "../scanner/tokentypes";
 import { ResolverError } from "./resolverError";
 import { DeclVariable, DeclLock, DeclFunction, DeclParameter } from "../parser/declare";
@@ -89,25 +89,23 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
     }
 
     // declare a variable
-    private declare(scopeType: ScopeType, token: IToken): Maybe<ResolverError> {
-        const variable = this.lookup(token);
+    private declareVariable(scopeType: ScopeType, token: IToken): Maybe<ResolverError> {
+        const variable = this.lookupVariable(token, 'local');
 
         // check if variable has already been defined
         if (!empty(variable)) {
             return new ResolverError(token, `Variable ${variable.name.lexeme} already exists here ${variable.name.start}.`, []);
         }
 
-        const scope = scopeType == ScopeType.global
-            ? this._global
-            : this.peekScope();
+        const scope = this.selectScope(scopeType);
 
         scope.set(token.lexeme, new KsVariable(scopeType, token, VariableState.declared))
         return undefined;
     }
 
-    // // define a variable
-    private use(token: IToken): Maybe<ResolverError> {
-        const variable = this.lookup(token);
+    // use a variable
+    private useVariable(token: IToken): Maybe<ResolverError> {
+        const variable = this.lookupVariable(token, 'global');
 
         // check that variable has already been defined
         if (empty(variable)) {
@@ -118,8 +116,8 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
         return undefined;
     }
 
-    private define(token: IToken): Maybe<ResolverError> {
-        const variable = this.lookup(token);
+    private defineVariable(token: IToken): Maybe<ResolverError> {
+        const variable = this.lookupVariable(token, 'global');
 
         // check that variable has already been defined
         if (empty(variable)) {
@@ -129,35 +127,61 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
         return undefined;
     }
 
+    // attempt to declare ever variable in the expression
     private declareLocals(scopeType: ScopeType, expr: IExpr): Errors {
-        return this.filterErrors(
-            this._localResolver.resolveExpr(expr)
-                .map(variable => this.declare(scopeType, variable)));
+        return this._localResolver.resolveExpr(expr)
+            .map(variable => this.declareVariable(scopeType, variable))
+            .filter(this.filterError);
     }
 
-    // attempt to lookup variable return error if not found
+    // attempt to use ever variable in the expression
     private useLocals(expr: IExpr): Errors {
-        return this.filterErrors(
-            this._localResolver.resolveExpr(expr)
-                .map(variable => this.use(variable)));
+        return this._localResolver.resolveExpr(expr)
+            .map(variable => this.useVariable(variable))
+            .filter(this.filterError);
     }
 
-    // attempt a variable lookup
-    private lookup(token: IToken): Maybe<KsVariable> {
+    // attemp a variable lookup
+    private lookupVariable(token: IToken, scope: 'local' | 'global'): Maybe<KsVariable> {
+        const entity = this.lookup(token, scope);
+        return !empty(entity) && entity.tag === 'variable' 
+            ? entity 
+            : undefined;
+    }
+
+    // attempt a entity lookup
+    private lookup(token: IToken, scope: 'local' | 'global'): Maybe<KsEntity> {
+        if (scope === 'local') {
+            return this.peekScope().get(token.lexeme);
+        }
+
         for (let i = this._scopes.length - 1; i >= 0; i--) {
             const scope = this._scopes[i];
-            const variable = scope.get(token.lexeme);
-            if (!empty(variable)) {
-                return variable;
+            const entity = scope.get(token.lexeme);
+            if (!empty(entity)) {
+                return entity;
             }
         }
 
-        const variable = this._global.get(token.lexeme);
-        if (!empty(variable)) {
-            return variable;
+        const entity = this._global.get(token.lexeme);
+        if (!empty(entity)) {
+            return entity;
         }
 
         return undefined;
+    }
+
+    /* --------------------------------------------
+
+    Scope Helpers
+
+    ----------------------------------------------*/
+
+    // determine which scope should be used
+    private selectScope(type: ScopeType): IScope {
+        return type == ScopeType.global
+            ? this._global
+            : this.peekScope();
     }
 
     // peek the current scope
@@ -171,29 +195,40 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
         this._scopes.push(new Map());
     }
 
-    // pop a scope and check variable validity
+    // pop a scope and check entity validity
     private endScope(): Errors {
         const scope = this._scopes.pop();
 
+        const errors = [];
         if (!empty(scope)) {
-            return Array.from(scope.values())
-                .filter(variable => variable.state !== VariableState.used)
-                .map((variable) => new ResolverError(variable.name, `Variable ${variable.name.lexeme} was not used.`, [])) 
+            const entities = Array.from(scope.values())
+
+            for (const entity of entities) {
+                switch (entity.tag) {
+                    case 'function':
+                        break;
+                    case 'parameter':
+                        break;
+                    case 'lock':
+                        entity
+                        break;
+                    case 'variable':
+                        if (entity.state !== VariableState.used) {
+                            errors.push(new ResolverError(entity.name, `Variable ${entity.name.lexeme} was not used.`, []))
+                        }
+                        break;
+                    default:
+                        throw new Error();
+                }
+            }
         }
 
         return [];
     }
 
     // filter to just actual errors
-    private filterErrors(maybeError: Maybe<ResolverError>[]): Errors {
-        const errors: Errors = [];
-        for(const error of maybeError) {
-            if (!empty(error)) {
-                errors.push(error);
-            }
-        }
-
-        return errors;
+    private filterError(maybeError: Maybe<ResolverError>): maybeError is ResolverError {
+        return !empty(maybeError)
     }
 
     /* --------------------------------------------
@@ -222,7 +257,7 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
             ? scope.type
             : ScopeType.global;
 
-        const declareError = this.declare(scopeType, decl.identifier);
+        const declareError = this.declareVariable(scopeType, decl.identifier);
         const useErrors = this.useLocals(decl.value);
         const resolveErrors = this.resolveExpr(decl.value);
         
@@ -236,8 +271,8 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
             ? decl.scope.type
             : ScopeType.global;
 
-        const declareError = this.declare(scopeType, decl.functionIdentifier)
-        const resolveErrors = this.resolveInst(decl.instruction);
+        const declareError = this.declareVariable(scopeType, decl.functionIdentifier)
+        const resolveErrors = this.resolveInst(decl.instructionBlock);
 
         const errors = empty(declareError)
             ? resolveErrors
@@ -260,11 +295,12 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
 
         // need to check if default paraemter can really be abbitrary expr
         const parameterErrors = decl.parameters
-            .map(parameter => this.declare(scopeType, parameter));
+            .map(parameter => this.declareVariable(scopeType, parameter));
         const defaultParameterErrors = decl.defaultParameters
-            .map(parameter => this.declare(scopeType, parameter.identifier));
+            .map(parameter => this.declareVariable(scopeType, parameter.identifier));
         
-        return this.filterErrors(scopeError.concat(parameterErrors, defaultParameterErrors));
+        return scopeError.concat(parameterErrors, defaultParameterErrors)
+            .filter(this.filterError);
     }
 
     public visitBlock(inst: BlockInst): Errors {
@@ -284,7 +320,8 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
         const useErrors = this.useLocals(inst.suffix);
         const resolveErrors = this.resolveExpr(inst.suffix);
 
-        return this.filterErrors(useErrors.concat(resolveErrors));
+        return useErrors.concat(resolveErrors)
+            .filter(this.filterError);
     }
     public visitCommand(_inst: CommandInst): Errors {
         return [];
@@ -293,14 +330,15 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
         const useErrors = this.useLocals(inst.expression);
         const resolveErrors = this.resolveExpr(inst.expression);
 
-        return this.filterErrors(useErrors.concat(resolveErrors));    
+        return useErrors.concat(resolveErrors)
+            .filter(this.filterError);    
     }
     public visitUnset(inst: UnsetInst): Errors {
-        const error = this.use(inst.identifier)
+        const error = this.useVariable(inst.identifier)
         return empty(error) ? [] : [error];
     }
     public visitUnlock(inst: UnlockInst): Errors {
-        const error = this.use(inst.identifier)
+        const error = this.useVariable(inst.identifier)
         return empty(error) ? [] : [error];
     }
     public visitSet(inst: SetInst): Errors {
@@ -311,7 +349,7 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
         }
 
         if (!this._lazyGlobalOff) {
-            if (empty(this.lookup(varToken))) {
+            if (empty(this.lookup(varToken, 'global'))) {
                 this._global.set(
                     varToken.lexeme, 
                     new KsVariable(ScopeType.global, varToken, VariableState.declared)
@@ -319,7 +357,7 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
             }
         }
 
-        const defineError = this.define(varToken);
+        const defineError = this.defineVariable(varToken);
         const useErrors = this.useLocals(inst.value);
         const resolveErrors = this.resolveExpr(inst.value);
 
@@ -358,12 +396,12 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
             this.resolveInst(inst.instruction));
     }
     public visitFrom(inst: FromInst): Errors {
-        return this.resolveInst(inst.initializer)
-            .concat(
-                this.useLocals(inst.condition),
-                this.resolveExpr(inst.condition),
-                this.resolveInst(inst.increment),
-                this.resolveInst(inst.instruction));
+
+        return this.resolveInsts(inst.initializer.instructions).concat(
+            this.useLocals(inst.condition),
+            this.resolveExpr(inst.condition),
+            this.resolveInsts(inst.increment.instructions),
+            this.resolveInst(inst.instruction));
     }
     public visitWhen(inst: WhenInst): Errors {
         return this.resolveExpr(inst.condition)
@@ -385,7 +423,7 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
             .concat(this.resolveExpr(inst.target));
     }
     public visitFor(inst: ForInst): Errors {
-        const declareError = this.declare(ScopeType.local, inst.identifier)
+        const declareError = this.declareVariable(ScopeType.local, inst.identifier)
 
         const errors = this.useLocals(inst.suffix).concat(
             this.resolveExpr(inst.suffix),

@@ -12,7 +12,7 @@ export class KsLock {
     ) 
     { }
 
-    get tag(): string {
+    get tag(): 'lock' {
         return 'lock';
     }
 }

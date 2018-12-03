@@ -10,7 +10,7 @@ export class KsVariable {
     ) 
     { }
 
-    get tag(): string {
+    get tag(): 'variable' {
         return 'variable';
     }
 }

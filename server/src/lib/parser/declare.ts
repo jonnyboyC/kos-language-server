@@ -1,5 +1,5 @@
-import { Inst } from "./inst";
-import { IDeclScope, IExpr, IInst, IInstVisitor, ScopeType } from "./types";
+import { Inst, BlockInst } from "./inst";
+import { IDeclScope, IExpr, IInstVisitor, ScopeType } from "./types";
 import { IToken } from "../scanner/types";
 import { TokenType } from "../scanner/tokentypes";
 import { empty } from "../utilities/typeGuards";
@@ -65,7 +65,7 @@ export class DeclFunction extends Decl {
     constructor(
         public readonly functionToken: IToken,
         public readonly functionIdentifier: IToken,
-        public readonly instruction: IInst,
+        public readonly instructionBlock: BlockInst,
         public readonly scope?: IDeclScope) {
         super();
     }

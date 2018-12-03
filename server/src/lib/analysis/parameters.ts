@@ -10,6 +10,10 @@ export class KsParameter {
         public state: ParameterState,
     ) 
     { }
+
+    get tag(): 'parameter' {
+        return 'parameter';
+    }
 }
 
 export class KsParameters {
@@ -18,7 +22,7 @@ export class KsParameters {
     )
     { }
 
-    get tag(): string {
+    get tag(): 'parameters' {
         return 'parameters';
     }
 }

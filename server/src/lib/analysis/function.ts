@@ -12,7 +12,7 @@ export class KsFunction {
     ) 
     { }
 
-    get tag(): string {
+    get tag(): 'function' {
         return 'function'
     }
 }

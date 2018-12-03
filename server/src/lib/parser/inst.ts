@@ -163,11 +163,11 @@ export class UntilInst extends Inst {
 export class FromInst extends Inst {
     constructor(
         public readonly from: IToken,
-        public readonly initializer: IInst,
+        public readonly initializer: BlockInst,
         public readonly until: IToken,
         public readonly condition: IExpr,
         public readonly step: IToken,
-        public readonly increment: IInst,
+        public readonly increment: BlockInst,
         public readonly doToken: IToken,
         public readonly instruction: IInst) {
         super();

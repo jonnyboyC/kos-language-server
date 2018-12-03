@@ -89,7 +89,7 @@ export class Parser {
     }
 
     // parse function declaration
-    private declareFunction = (scope?: IDeclScope): IInst => {
+    private declareFunction = (scope?: IDeclScope): DeclFunction => {
         const functionToken = this.previous();
         const functionIdentiifer = this.consumeIdentifierThrow("Expected identifier");
 
@@ -107,7 +107,7 @@ export class Parser {
     }
 
     // parse parameter declaration
-    private declareParameter = (scope?: IDeclScope): IInst => {
+    private declareParameter = (scope?: IDeclScope): DeclParameter => {
         const parameterToken = this.previous();
 
         const parameters = this.declareNormalParameters();
@@ -156,7 +156,7 @@ export class Parser {
     }
 
     // parse lock instruction
-    private declareLock = (scope?: IDeclScope): IInst => {
+    private declareLock = (scope?: IDeclScope): DeclLock => {
         const lock = this.previous();
         const identifer = this.consumeIdentifierThrow(
             'Expected identifier following lock keyword.');
@@ -170,7 +170,7 @@ export class Parser {
     }
 
     // parse a variable declaration, scoping occurs elseware
-    private declareVariable = (scope: IDeclScope): IInst => {
+    private declareVariable = (scope: IDeclScope): DeclVariable => {
         const suffix = this.suffix();
 
         const toIs = this.consumeTokenThrow(
@@ -308,7 +308,7 @@ export class Parser {
     }
 
     // parse a block of instructions
-    private instructionBlock = (): IInst => {
+    private instructionBlock = (): BlockInst => {
         const open = this.previous();
         const declarations: Inst[] = [];
 
@@ -361,7 +361,7 @@ export class Parser {
     } 
 
     // parse on off statement
-    private onOff = (suffix: IExpr): IInst => {
+    private onOff = (suffix: IExpr): OnOffInst => {
         const onOff = this.previous();
         this.terminal();
 
@@ -369,7 +369,7 @@ export class Parser {
     }
 
     // parse command instruction
-    private command = (): IInst => {
+    private command = (): CommandInst => {
         const command = this.previous();
         this.terminal();
 
@@ -377,7 +377,7 @@ export class Parser {
     }
 
     // parse command instruction
-    private commandExpression = (): IInst => {
+    private commandExpression = (): CommandExpressionInst => {
         const command = this.previous();
         const expression = this.expression();
         this.terminal();
@@ -386,7 +386,7 @@ export class Parser {
     }
 
     // parse unset instruction
-    private unset = (): IInst => {
+    private unset = (): UnsetInst => {
         const unset = this.previous();
         const identifer = this.consumeTokenThrow(
             'Excpeted identifier or "all" following keyword "unset".', 
@@ -397,7 +397,7 @@ export class Parser {
     }
 
     // parse unlock instruction
-    private unlock = (): IInst => {
+    private unlock = (): UnlockInst => {
         const unlock = this.previous();
         const identifer = this.consumeTokenThrow(
             'Excpeted identifier or "all" following keyword "unlock".', 
@@ -408,7 +408,7 @@ export class Parser {
     }
 
     // parse set instruction
-    private set = (): IInst => {
+    private set = (): SetInst => {
         const set = this.previous();
         const suffix = this.suffix();
         const to = this.consumeTokenThrow(
@@ -421,7 +421,7 @@ export class Parser {
     }
 
     // parse lazy global
-    private lazyGlobal = (): IInst => {
+    private lazyGlobal = (): LazyGlobalInst => {
         const atSign = this.previous();
         const lazyGlobal = this.consumeTokenThrow(
             'Expected keyword "lazyGlobal" following @.', 
@@ -436,7 +436,7 @@ export class Parser {
     }
 
     // parse if instruction
-    private ifInst = (): IInst => {
+    private ifInst = (): IfInst => {
         const ifToken = this.previous();
         const condition = this.expression();
 
@@ -457,7 +457,7 @@ export class Parser {
     }
 
     // parse until instruction
-    private until = (): IInst => {
+    private until = (): UntilInst => {
         const until = this.previous();
         const condition = this.expression();
         const instruction = this.instruction();
@@ -467,7 +467,7 @@ export class Parser {
     }
 
     // parse from instruction
-    private from = (): IInst => {
+    private from = (): FromInst => {
         const from = this.previous();
         if (this.matchToken(TokenType.CurlyOpen)) {
             const initializer = this.instructionBlock();
@@ -496,7 +496,7 @@ export class Parser {
     }
 
     // parse when instruction
-    private when = (): IInst => {
+    private when = (): WhenInst => {
         const when = this.previous();
         const condition = this.expression();
 
@@ -510,7 +510,7 @@ export class Parser {
     }
 
     // parse return instruction
-    private returnInst = (): IInst => {
+    private returnInst = (): ReturnInst => {
         const returnToken = this.previous();
         const value = !this.check(TokenType.Period)
             ? this.expression()
@@ -521,7 +521,7 @@ export class Parser {
     }
 
     // parse return instruction
-    private breakInst = (): IInst => {
+    private breakInst = (): BreakInst => {
         const breakToken = this.previous();
         this.terminal();
 
@@ -529,7 +529,7 @@ export class Parser {
     }
 
     // parse switch instruction
-    private switchInst = (): IInst => {
+    private switchInst = (): SwitchInst => {
         const switchToken = this.previous();
         const to = this.consumeTokenThrow(
             'Expected "to" following keyword "switch".', TokenType.To);
@@ -540,7 +540,7 @@ export class Parser {
     }
 
     // parse for instruction
-    private forInst = (): IInst => {
+    private forInst = (): ForInst => {
         const forToken = this.previous();
         const identifer = this.consumeIdentifierThrow(
             'Expected identifier. following keyword "for"');
@@ -555,7 +555,7 @@ export class Parser {
     }
 
     // parse on instruction
-    private on = (): IInst => {
+    private on = (): OnInst => {
         const on = this.previous();
         const suffix = this.suffix();
         const instruction = this.instruction();
@@ -564,7 +564,7 @@ export class Parser {
     }
 
     // parse toggle instruction
-    private toggle = (): IInst => {
+    private toggle = (): ToggleInst => {
         const toggle = this.previous();
         const suffix = this.suffix();
         this.terminal();
@@ -573,7 +573,7 @@ export class Parser {
     }
 
     // parse wait instruction
-    private wait = (): IInst => {
+    private wait = (): WaitInst => {
         const wait = this.previous();
         const until = this.matchToken(TokenType.Until)
             ? this.previous()
@@ -586,7 +586,7 @@ export class Parser {
     }
 
     // parse log instruction
-    private log = (): IInst => {
+    private log = (): LogInst => {
         const log = this.previous();
         const expression = this.expression();
         const to = this.consumeTokenThrow(
@@ -599,7 +599,7 @@ export class Parser {
     }
 
     // parse copy instruction
-    private copy = (): IInst => {
+    private copy = (): CopyInst => {
         const copy = this.previous();
         const expression = this.expression();
         const toFrom = this.consumeTokenThrow(
@@ -612,7 +612,7 @@ export class Parser {
     }
 
     // parse rename instruction
-    private rename = (): IInst => {
+    private rename = (): RenameInst => {
         const rename = this.previous();
         const ioIdentifier = this.consumeTokenThrow(
             'Expected identifier or file identifier following keyword "rename"',
@@ -629,7 +629,7 @@ export class Parser {
     }
 
     // parse delete instruction
-    private delete = (): IInst => {
+    private delete = (): DeleteInst => {
         const deleteToken = this.previous();
         const expression = this.expression();
 
@@ -646,7 +646,7 @@ export class Parser {
     }
 
     // parse run instruction
-    private run = (): IInst => {
+    private run = (): RunInst => {
         const run = this.previous();
         const once = this.matchToken(TokenType.Once)
             ? this.previous()
@@ -684,7 +684,7 @@ export class Parser {
     }
 
     // parse run path instruction
-    private runPath = (): IInst => {
+    private runPath = (): RunPathInst => {
         const runPath = this.previous();
         const open = this.consumeTokenThrow(
             'Expected "(" after keyword "runPath".', 
@@ -703,7 +703,7 @@ export class Parser {
     }
 
     // parse run path once instruction
-    private runPathOnce = (): IInst => {
+    private runPathOnce = (): RunPathOnceInst => {
         const runPath = this.previous();
         const open = this.consumeTokenThrow(
             'Expected "(" after keyword "runPathOnce".', 
@@ -722,7 +722,7 @@ export class Parser {
     }
 
     // parse compile instruction
-    private compile = (): IInst => {
+    private compile = (): CompileInst => {
         const compile = this.previous();
         const expression = this.expression();
         if (this.matchToken(TokenType.To)) {
@@ -738,7 +738,7 @@ export class Parser {
     }
 
     // parse list instruction
-    private list = (): IInst => {
+    private list = (): ListInst => {
         const list = this.previous();
         let identifier = undefined;
         let inToken = undefined;
@@ -757,7 +757,7 @@ export class Parser {
     }
 
     // parse print instruction
-    private print = (): IInst => {
+    private print = (): PrintInst => {
         const print = this.previous();
         const expression = this.expression();
         let at = undefined;
