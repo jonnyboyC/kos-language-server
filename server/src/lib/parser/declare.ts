@@ -18,7 +18,7 @@ export class DeclScope implements IDeclScope {
 
     get type(): ScopeType {
         if (empty(this.scope)) {
-            return ScopeType.global;
+            return ScopeType.local;
         }
 
         switch(this.scope.type) {

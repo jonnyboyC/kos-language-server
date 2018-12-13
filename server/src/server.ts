@@ -21,6 +21,8 @@ import { Parser } from './lib/parser/parser';
 import { IParseError } from './lib/parser/types';
 import { Resolver } from './lib/analysis/resolver';
 import { IResolverError } from './lib/analysis/types';
+import { ScopeManager } from './lib/analysis/scopeManager';
+import { FuncResolver } from './lib/analysis/functionResolver';
 
 // Create a connection for the server. The connection uses Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -111,9 +113,15 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 		.reduce((acc, current) => acc.concat(current))
 	}
 
-	const resolver = new Resolver(insts)
+	const scopeManager = new ScopeManager();
+	const funcResolver = new FuncResolver(insts, scopeManager); 
+	const resolver = new Resolver(insts, scopeManager);
+
+	const funcErrors = funcResolver.resolve();
 	const resolverErrors = resolver.resolve();
-	diagnostics = diagnostics.concat(resolverErrors.map(error => resolverToDiagnostics(error)));
+	diagnostics = diagnostics.concat(resolverErrors
+		.concat(funcErrors)
+		.map(error => resolverToDiagnostics(error)));
 
 	connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
 }

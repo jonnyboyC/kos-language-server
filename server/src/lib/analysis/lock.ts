@@ -5,12 +5,22 @@ import { ScopeType } from "../parser/types";
 export class KsLock {
     constructor(
         public readonly scope: ScopeType,
-        public readonly token: IToken,
-        public readonly identifer: IToken,
-        public readonly defaulted: boolean,
+        public readonly name: IToken,
         public state: LockState,
     ) 
     { }
+
+    get cooked(): boolean {
+        switch (this.name.lexeme) {
+            case 'throttle':
+            case 'steering':
+            case 'wheelthrottle':
+            case 'wheelsteering':
+                return true;
+            default:
+                return false;
+        }
+    }
 
     get tag(): 'lock' {
         return 'lock';

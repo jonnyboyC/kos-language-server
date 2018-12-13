@@ -4,28 +4,33 @@ import { KsLock } from "./lock";
 import { KsParameter } from "./parameters";
 import { IToken } from "../scanner/types";
 
-export enum FunctionType {
-    none,
-    function,
-    initializer,
-}
-
-export enum VariableState {
+export const enum FunctionState {
     declared,
     used,
 }
 
-export enum ParameterState {
-    defined,
+export const enum VariableState {
+    declared,
+    used,
+}
+
+export const enum ParameterState {
+    declared,
     used
 }
 
-export enum LockState {
+export const enum LockState {
     locked,
+    used,
     unlocked,
 }
 
 export interface IScope extends Map<string, KsEntity> {
+}
+
+export interface IScopeNode {
+    scope: IScope;
+    children: IScopeNode[];
 }
 
 export interface IResolverError {
@@ -38,4 +43,5 @@ export type KsEntity = KsVariable | KsFunction | KsLock | KsParameter;
 
 export interface IStack<T> extends Pick<Array<T>, 'pop' | 'push' | 'length'> {
     [index: number]: T
+    [Symbol.iterator](): IterableIterator<T>
 }
