@@ -1,5 +1,5 @@
 import { IInst, IExpr, IInstVisitor } from "./types";
-import { IToken } from "../scanner/types";
+import { IToken } from "../entities/types";
 
 export abstract class Inst implements IInst {
     get tag(): 'inst' {

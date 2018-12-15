@@ -1,8 +1,9 @@
-import { KsVariable } from "./variable";
-import { KsFunction } from "./function";
-import { KsLock } from "./lock";
-import { KsParameter } from "./parameters";
-import { IToken } from "../scanner/types";
+import { KsVariable } from "../entities/variable";
+import { KsFunction } from "../entities/function";
+import { KsLock } from "../entities/lock";
+import { IToken } from "../entities/types";
+import { KsParameter } from "../entities/parameters";
+import { Position } from "vscode-languageserver";
 
 export const enum FunctionState {
     declared,
@@ -28,7 +29,18 @@ export const enum LockState {
 export interface IScope extends Map<string, KsEntity> {
 }
 
+export const mockEnd: Position = {
+    line: Infinity,
+    character: Infinity,
+};
+
+export interface IScopePosition {
+    start: Position,
+    end: Position,
+}
+
 export interface IScopeNode {
+    position?: IScopePosition
     scope: IScope;
     children: IScopeNode[];
 }

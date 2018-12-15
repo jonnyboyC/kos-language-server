@@ -1,7 +1,7 @@
-import { IToken } from '../scanner/types'
 import { BinaryExpr, UnaryExpr, FactorExpr, SuffixExpr, CallExpr, ArrayIndexExpr, ArrayBracketExpr, DelegateExpr, LiteralExpr, VariableExpr, GroupingExpr, AnonymousFunctionExpr } from './expr';
 import { BlockInst, ExprInst, OnOffInst, CommandInst, CommandExpressionInst, UnsetInst, UnlockInst, SetInst, LazyGlobalInst, IfInst, ElseInst, UntilInst, FromInst, WhenInst, ReturnInst, BreakInst, SwitchInst, ForInst, OnInst, ToggleInst, WaitInst, LogInst, CopyInst, RenameInst, DeleteInst, RunInst, RunPathInst, RunPathOnceInst, CompileInst, ListInst, EmptyInst, PrintInst } from './inst';
 import { DeclVariable, DeclLock, DeclFunction, DeclParameter } from './declare';
+import { IToken } from '../entities/types';
 
 export interface IParseError {
     tag: 'parseError';

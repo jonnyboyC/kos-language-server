@@ -1,5 +1,5 @@
-import { IToken } from "../scanner/types";
-import { ParameterState } from "./types";
+import { IToken } from "./types";
+import { ParameterState } from "../analysis/types";
 
 export class KsParameter {
     constructor(

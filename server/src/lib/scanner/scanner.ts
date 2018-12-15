@@ -1,9 +1,10 @@
-import { TokenType } from './tokentypes';
-import { ITokenMap, ScanResult, IToken, ISyntaxError } from './types';
-import { Token, Marker } from './token';
+import { TokenType } from '../entities/tokentypes';
+import { ITokenMap, ScanResult, ISyntaxError } from './types';
+import { Token, Marker } from '../entities/token';
 import { WhiteSpace } from './whitespace';
 import { KosSyntaxError } from './kosSyntaxError'
 import { Position } from 'vscode-languageserver';
+import { IToken } from '../entities/types';
 
 export class Scanner {
     private readonly _source: string
@@ -26,6 +27,8 @@ export class Scanner {
         // create arrays for valid tokens and encountered errors
         const tokens: IToken[] = [];
         const errors: ISyntaxError[] = [];
+
+        tokens.push(this.generateToken(TokenType.Sof))
 
         // begin scanning
         while (!this.isAtEnd()) 

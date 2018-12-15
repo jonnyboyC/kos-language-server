@@ -1,6 +1,5 @@
-import { IToken } from "../scanner/types";
 import { IResolverError } from "./types";
-
+import { IToken } from "../entities/types";
 
 export class ResolverError implements IResolverError {
     constructor(

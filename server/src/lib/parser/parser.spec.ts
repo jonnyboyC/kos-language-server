@@ -1,12 +1,13 @@
 import test from 'ava';
 import { Scanner } from '../scanner/scanner';
 import { Parser } from './parser';
-import { IToken, ISyntaxError } from '../scanner/types';
+import { ISyntaxError } from '../scanner/types';
 import { IParseError, IExpr, ExprResult } from './types';
 import { LiteralExpr, VariableExpr, CallExpr } from './expr';
-import { TokenType } from '../scanner/tokentypes';
+import { TokenType } from '../entities/tokentypes';
 import { readdirSync, statSync, readFileSync } from 'fs';
 import { join } from 'path';
+import { IToken } from '../entities/types';
 
 // scan source file
 const scan = (source: string) => {

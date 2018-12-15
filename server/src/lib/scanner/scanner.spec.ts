@@ -2,7 +2,8 @@ import test from 'ava';
 import { Scanner } from './scanner';
 import { readdirSync, readFileSync, statSync } from 'fs'
 import { join } from 'path';
-import { IToken, ISyntaxError } from './types';
+import { ISyntaxError } from './types';
+import { IToken } from '../entities/types';
 
 
 const testDir = join(__dirname, '../../../kerboscripts');

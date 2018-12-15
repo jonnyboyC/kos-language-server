@@ -1,6 +1,6 @@
-import { IToken } from './types';
 import { TokenType } from './tokentypes';
 import { Position } from 'vscode-languageserver';
+import { IToken } from './types';
 
 export class Token implements IToken {
     public readonly type: TokenType;

@@ -1,5 +1,5 @@
 import { IParseError } from "./types";
-import { IToken } from "../scanner/types";
+import { IToken } from "../entities/types";
 
 export class ParseError implements IParseError {
 

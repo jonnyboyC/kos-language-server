@@ -13,29 +13,33 @@ import {
 	ProposedFeatures,
 	InitializeParams,
 	CompletionItem,
-	TextDocumentPositionParams
+	TextDocumentPositionParams,
+	CompletionItemKind
 } from 'vscode-languageserver';
 import { Scanner } from './lib/scanner/scanner';
-import { IToken, ISyntaxError } from './lib/scanner/types';
+import { ISyntaxError } from './lib/scanner/types';
 import { Parser } from './lib/parser/parser';
 import { IParseError } from './lib/parser/types';
 import { Resolver } from './lib/analysis/resolver';
 import { IResolverError } from './lib/analysis/types';
 import { ScopeManager } from './lib/analysis/scopeManager';
 import { FuncResolver } from './lib/analysis/functionResolver';
+import { IToken } from './lib/entities/types';
+import { empty } from './lib/utilities/typeGuards';
 
 // Create a connection for the server. The connection uses Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
-const connection = createConnection(ProposedFeatures.all);
+export const connection = createConnection(ProposedFeatures.all);
 
 // Create a simple text document manager. The text document manager
 // supports full document sync only
 const documents: TextDocuments = new TextDocuments();
 let workspaceFolder: string = '';
+const scopeMap: Map<string, ScopeManager> = new Map();
 
 connection.onInitialize((params: InitializeParams) => {
     const capabilities = params.capabilities;
-    connection.console.log(`[Server(${process.pid}) ${capabilities}] Started and initialize received`);
+    connection.console.log(`[Server(${process.pid}) ${JSON.stringify(capabilities)}] Started and initialize received`);
     
     if (params.rootUri) {
         workspaceFolder = params.rootUri;
@@ -63,6 +67,17 @@ documents.onDidChangeContent(change => {
 	validateTextDocument(change.document);
 });
 
+// convert scan error to diagnostic
+const scanToDiagnostics = (error: ISyntaxError): Diagnostic => {
+	return {
+		severity: DiagnosticSeverity.Error,
+		range: { start: error.start, end: error.end },
+		message: error.message,
+		source: 'kos-language-server'
+	}
+}
+
+// convert parse error to diagnostic
 const parseToDiagnostics = (error: IParseError): Diagnostic => {
 	return {
 		severity: DiagnosticSeverity.Error,
@@ -72,6 +87,7 @@ const parseToDiagnostics = (error: IParseError): Diagnostic => {
 	}
 }
 
+// convert resolver error to diagnostic
 const resolverToDiagnostics = (error: IResolverError): Diagnostic => {
 	return {
 		severity: DiagnosticSeverity.Warning,
@@ -83,46 +99,58 @@ const resolverToDiagnostics = (error: IResolverError): Diagnostic => {
 
 async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 	// The validator creates diagnostics for all uppercase words length 2 and more
-    let text = textDocument.getText();
-    const scanner = new Scanner(text);
-    const tokens = scanner.scanTokens();
+	let text = textDocument.getText();
 
-    if (hasScanError(tokens)) {
-        const diagnostics: Diagnostic[] = tokens.map(t => {
-            return {
-                severity: DiagnosticSeverity.Error,
-                range: { start: t.start, end: t.end },
-                message: t.message,
-                source: 'kos-language-server'
-            }
-        });
+	connection.console.log('');
+	connection.console.log(`Scanning ${textDocument.uri}`);
+	const scanner = new Scanner(text);
+	const tokens = scanner.scanTokens();
 
-        connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
-        return;
-    }
+	// if scanner found errors report those immediately
+	if (hasScanError(tokens)) {
+	const diagnostics: Diagnostic[] = tokens
+		.map(error => scanToDiagnostics(error));
 
-    const parser = new Parser(tokens);
-    const [insts, errors] = parser.parse();
+			connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
+			return;
+	}
 
+	// parse scanned tokens
+	connection.console.log(`Parsing ${textDocument.uri}`)
+	const parser = new Parser(tokens);
+	const [insts, errors] = parser.parse();
+
+	// generate new parser errors
 	let diagnostics: Diagnostic[] = []
-	if (errors.length !== 0) {
-		diagnostics = errors.map(error => [
+	
+	if (errors.length > 0) {
+		errors.map(error => [
 			parseToDiagnostics(error), 
 			...error.inner.map(innerError => parseToDiagnostics(innerError))
 		])
 		.reduce((acc, current) => acc.concat(current))
 	}
 
+	// generate a scope manager for resolving
 	const scopeManager = new ScopeManager();
+	
+	// generate resolvers
 	const funcResolver = new FuncResolver(insts, scopeManager); 
 	const resolver = new Resolver(insts, scopeManager);
-
+	
+	// resolve the rest of the script
+	connection.console.log(`Function resolving ${textDocument.uri}`);
 	const funcErrors = funcResolver.resolve();
+	
+	// perform an initial function pass
+	connection.console.log(`Resolving ${textDocument.uri}`)
 	const resolverErrors = resolver.resolve();
+
 	diagnostics = diagnostics.concat(resolverErrors
 		.concat(funcErrors)
 		.map(error => resolverToDiagnostics(error)));
 
+	scopeMap.set(textDocument.uri, scopeManager);
 	connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
 }
 
@@ -141,7 +169,47 @@ connection.onCompletion(
 		// The pass parameter contains the position of the text document in
 		// which code complete got requested. For the example we ignore this
 		// info and always provide the same completion items.
-		return [];
+
+		const { position } = _textDocumentPosition;
+		const { uri } = _textDocumentPosition.textDocument;
+		const completionItems: CompletionItem[] = []
+
+		const scopeManager = scopeMap.get(uri);
+
+		if (!empty(scopeManager)) {
+			const entities = scopeManager
+				.entitiesAtPosition(position);
+			
+			return completionItems.concat(
+				entities.map(entity => {
+					let kind: Maybe<CompletionItemKind> = undefined;
+					switch (entity.tag) {
+						case 'function':
+							kind = CompletionItemKind.Function;
+							break;
+						case 'parameter':
+							kind = CompletionItemKind.Variable;
+							break;
+						case 'lock':
+							kind = CompletionItemKind.Variable;
+							break;
+						case 'variable':
+							kind = CompletionItemKind.Variable;
+							break;
+						default:
+							throw new Error();
+					}
+
+
+					return {
+						label: entity.name.lexeme,
+						kind,
+					};
+				})
+			);
+		}
+
+		return completionItems;
 	}
 );
 

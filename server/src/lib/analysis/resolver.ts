@@ -27,18 +27,22 @@ import {
     PrintInst,
     Inst
 } from '../parser/inst'
-import { TokenType } from "../scanner/tokentypes";
 import { ResolverError } from "./resolverError";
 import { DeclVariable, DeclLock, DeclFunction, DeclParameter } from "../parser/declare";
 import { empty } from "../utilities/typeGuards";
 import { LocalResolver } from "./localResolver";
 import { SetResolver } from "./setResolver";
 import { ScopeManager } from "./scopeManager";
+import { TokenType } from "../entities/tokentypes";
 import { LockState } from "./types";
+import { fileInsts } from "../entities/fileInsts";
+import { IToken } from "../entities/types";
 
 export type Errors = Array<ResolverError>
 
 export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
+    private readonly _start: IToken;
+    private readonly _end: IToken;
     private readonly _insts: Inst[];
     private readonly _scopeMan: ScopeManager;
     private readonly _localResolver: LocalResolver;
@@ -46,8 +50,10 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
     private _lazyGlobalOff: boolean;
     private _firstInst: boolean;
 
-    constructor(insts: Inst[], scopeMan: ScopeManager) {
-        this._insts = insts;
+    constructor(fileInsts: fileInsts, scopeMan: ScopeManager) {
+        this._start = fileInsts.start;
+        this._end = fileInsts.end;
+        this._insts = fileInsts.insts;
         this._scopeMan = scopeMan;
         this._localResolver = new LocalResolver();
         this._setResolver = new SetResolver();
@@ -59,7 +65,7 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
     // resolve the sequence of instructions
     public resolve(): Errors {
         this._scopeMan.rewindScope();
-        this._scopeMan.beginScope();
+        this._scopeMan.beginScope(this._start);
         const [firstInst, ...restInsts] = this._insts;
 
         // check for lazy global flag
@@ -68,7 +74,7 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
         
         // resolve reset
         const resolveErrors = this.resolveInsts(restInsts);
-        const scopeErrors = this._scopeMan.endScope();
+        const scopeErrors = this._scopeMan.endScope(this._end);
         return firstError.concat(resolveErrors, scopeErrors);
     }
 
@@ -191,9 +197,9 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
     ----------------------------------------------*/
 
     public visitBlock(inst: BlockInst): Errors {
-        this._scopeMan.beginScope();
+        this._scopeMan.beginScope(inst.open);
         const errors = this.resolveInsts(inst.instructions);
-        this._scopeMan.endScope();
+        this._scopeMan.endScope(inst.close);
 
         return errors;
     }

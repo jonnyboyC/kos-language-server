@@ -31,27 +31,33 @@ import { ResolverError } from "./resolverError";
 import { DeclVariable, DeclLock, DeclFunction, DeclParameter } from "../parser/declare";
 import { empty } from "../utilities/typeGuards";
 import { ScopeManager } from "./scopeManager";
-import { KsParameter } from "./parameters";
 import { ParameterState } from "./types";
+import { fileInsts } from "../entities/fileInsts";
+import { IToken } from "../entities/types";
+import { KsParameter } from "../entities/parameters";
 
 export type Errors = Array<ResolverError>
 
 export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
+    private readonly _start: IToken;
+    private readonly _end: IToken;
     private readonly _insts: Inst[];
     private readonly _scopeMan: ScopeManager;
 
-    constructor(insts: Inst[], scopeMan: ScopeManager) {
-        this._insts = insts;
+    constructor(fileInsts: fileInsts, scopeMan: ScopeManager) {
+        this._start = fileInsts.start;
+        this._end = fileInsts.end;
+        this._insts = fileInsts.insts;
         this._scopeMan = scopeMan;
     }
 
     // resolve the sequence of instructions
     public resolve(): Errors {
         this._scopeMan.rewindScope();
-        this._scopeMan.beginScope();
+        this._scopeMan.beginScope(this._start);
 
         const resolveErrors = this.resolveInsts(this._insts);
-        const scopeErrors = this._scopeMan.endScope();
+        const scopeErrors = this._scopeMan.endScope(this._end);
 
         return resolveErrors.concat(scopeErrors);
     }
@@ -89,9 +95,15 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
 
     // check function declaration
     public visitDeclFunction(decl: DeclFunction): ResolverError[] {
-        const scopeType = decl.scope
-            ? decl.scope.type
-            : ScopeType.global;
+        let scopeType = decl.scope && decl.scope.type;
+
+        // functions are default global at file scope and local everywhere else
+        if (empty(scopeType)) {
+            scopeType = this._scopeMan.isFile()
+                ? ScopeType.global
+                : ScopeType.local;
+        }
+
 
         let returnValue = false;
         let parameterDecls: DeclParameter[] = [];
@@ -152,9 +164,9 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
     ----------------------------------------------*/
 
     public visitBlock(inst: BlockInst): Errors {
-        this._scopeMan.beginScope();
+        this._scopeMan.beginScope(inst.open);
         const errors = this.resolveInsts(inst.instructions);
-        this._scopeMan.endScope();
+        this._scopeMan.endScope(inst.close);
 
         return errors;
     }

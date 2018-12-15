@@ -1,12 +1,13 @@
 
-import { IToken } from '../scanner/types';
-import { TokenType, isValidIdentifier } from '../scanner/tokentypes';
+import { TokenType, isValidIdentifier } from '../entities/tokentypes';
 import { IParseError, ExprResult, TokenResult, InstResult, IExpr, IDeclScope, IInst } from './types';
 import { ParseError } from './parserError';
 import { Expr, LiteralExpr, GroupingExpr, VariableExpr, CallExpr, DelegateExpr, ArrayBracketExpr, ArrayIndexExpr, FactorExpr, UnaryExpr, BinaryExpr, SuffixExpr, AnonymousFunctionExpr } from './expr';
 import { Inst, BlockInst, OnOffInst, CommandInst, CommandExpressionInst, UnsetInst, UnlockInst, SetInst, LazyGlobalInst, ElseInst, IfInst, UntilInst, FromInst, WhenInst, ReturnInst, SwitchInst, ForInst, OnInst, ToggleInst, WaitInst, LogInst, CopyInst, RenameInst, DeleteInst, RunInst, RunPathInst, RunPathOnceInst, CompileInst, ListInst, EmptyInst, PrintInst, ExprInst, BreakInst } from './inst';
 import { DeclScope, DeclFunction, DefaultParameter, DeclParameter, DeclVariable, DeclLock } from './declare';
 import { empty } from '../utilities/typeGuards';
+import { IToken } from '../entities/types';
+import { fileInsts } from '../entities/fileInsts';
 
 export class Parser {
     private readonly _tokens: IToken[]
@@ -18,9 +19,11 @@ export class Parser {
     }
 
     // parse tokens
-    public parse(): [Inst[], IParseError[]] {
+    public parse(): [fileInsts, IParseError[]] {
         const instructions: Inst[] = [];
         const errors: IParseError[] = [];
+
+        this.consumeTokenThrow(`File did not beging with Start of file token`, TokenType.Sof);
         
         while (!this.isAtEnd()) {
             const instruction = this.declaration();
@@ -33,7 +36,10 @@ export class Parser {
                     break;
             }
         }    
-        return [instructions, errors];
+        return [
+            new fileInsts(this._tokens[0], instructions, this._tokens[this._tokens.length - 1]), 
+            errors
+        ];
     }
 
     // parse declaration attempt to synchronize

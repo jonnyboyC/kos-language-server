@@ -1,6 +1,6 @@
-import { IToken } from "../scanner/types";
 import { IExpr, IInst, IExprVisitor } from "./types";
-import { TokenType } from "../scanner/tokentypes";
+import { TokenType } from "../entities/tokentypes";
+import { IToken } from "../entities/types";
 
 export abstract class Expr implements IExpr {
     get tag(): 'expr' {

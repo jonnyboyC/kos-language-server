@@ -1,8 +1,8 @@
 import { Inst, BlockInst } from "./inst";
 import { IDeclScope, IExpr, IInstVisitor, ScopeType } from "./types";
-import { IToken } from "../scanner/types";
-import { TokenType } from "../scanner/tokentypes";
+import { TokenType } from "../entities/tokentypes";
 import { empty } from "../utilities/typeGuards";
+import { IToken } from "../entities/types";
 
 export abstract class Decl extends Inst {
     constructor() { 

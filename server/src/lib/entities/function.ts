@@ -1,7 +1,7 @@
-import { IToken } from "../scanner/types";
-import { KsParameter } from "./parameters";
 import { ScopeType } from "../parser/types";
-import { FunctionState } from "./types";
+import { FunctionState } from "../analysis/types";
+import { IToken } from "./types";
+import { KsParameter } from "./parameters";
 
 export class KsFunction {
     public readonly requiredParameters: number;

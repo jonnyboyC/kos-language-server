@@ -19,7 +19,7 @@ export enum TokenType {
     // done
     BracketOpen, BracketClose, CurlyOpen, CurlyClose,
     SquareOpen, SquareClose, Comma, Colon,
-    Period, AtSign, Eof,
+    Period, AtSign, Eof, Sof,
 
     Toggle, Wait, Off, List, Clearscreen,
     Stage, Add, Remove, Log, Step, 

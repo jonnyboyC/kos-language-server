@@ -1,13 +1,15 @@
-import { IToken } from "../scanner/types";
 import { ResolverError } from "./resolverError";
 import { empty } from "../utilities/typeGuards";
 import { ScopeType } from "../parser/types";
-import { KsVariable } from "./variable";
-import { VariableState, IScope, IScopeNode, KsEntity, IStack, FunctionState, LockState, ParameterState } from "./types";
-import { KsFunction } from "./function";
-import { KsLock } from "./lock";
-import { KsParameter } from "./parameters";
+import { KsVariable } from "../entities/variable";
+import { VariableState, IScope, IScopeNode, KsEntity, IStack, FunctionState, LockState, ParameterState, mockEnd } from "./types";
+import { KsFunction } from "../entities/function";
+import { KsLock } from "../entities/lock";
 import { Position } from "vscode-languageserver";
+import { IToken } from "../entities/types";
+import { KsParameter } from "../entities/parameters";
+import { positionAfterEqual, positionBeforeEqual } from "../utilities/positionHelpers";
+import { connection } from "../../server";
 
 export class ScopeManager {
     private readonly _global: IScope;
@@ -17,7 +19,10 @@ export class ScopeManager {
 
     constructor() {
         this._global = new Map();
-        this._scopesRoot = { scope: this._global, children: []};
+        this._scopesRoot = {
+            scope: this._global, 
+            children: []
+        };
         this._activeScopePath = []
         this._backTrackPath = [];
     }
@@ -29,7 +34,7 @@ export class ScopeManager {
     }
 
     // push new scope onto scope stack
-    public beginScope(): void {
+    public beginScope(token: IToken): void {
         const depth = this._activeScopePath.length - 1;
         const next = !empty(this._backTrackPath[depth + 1])
             ? this._backTrackPath[depth + 1] + 1 : 0;
@@ -37,16 +42,23 @@ export class ScopeManager {
         const activeNode = this.activeScopeNode();
 
         if (empty(activeNode.children[next])) {
-            activeNode.children.push({scope: new Map(), children: []});
+            activeNode.children.push({scope: new Map(), children: [], position: { start: token.start, end: mockEnd }});
         }
+
+        connection.console.log(`begin scope at ${JSON.stringify(token.start)}`);
 
         this._activeScopePath.push(next);
         this._backTrackPath = [...this._activeScopePath]
     }
 
     // pop a scope and check entity validity
-    public endScope(): ResolverError[] {
-        const { scope } = this.activeScopeNode();
+    public endScope(token: IToken): ResolverError[] {
+        const { scope, position } = this.activeScopeNode();
+
+        if (!empty(position)) {
+            position.end = token.end;
+        } 
+
         this._activeScopePath.pop();
 
         const errors = [];
@@ -71,9 +83,58 @@ export class ScopeManager {
             }
         }
 
-        return [];
+        connection.console.log(`end scope at ${JSON.stringify(token.start)}`);
+        return errors;
     }
 
+    // get all entities in scope at a position
+    public entitiesAtPosition(pos: Position): KsEntity[] {
+        const entities = Array.from(this._scopesRoot.scope.values());
+
+        return this.entitiesAtPositionDepth(pos, this._scopesRoot.children)
+            .concat(entities);
+    }
+
+    // recursively move down scopes for more relevant entities
+    private entitiesAtPositionDepth(pos: Position, nodes: IScopeNode[]): KsEntity[] {
+        let entities: KsEntity[] = [];
+        
+        for (const node of nodes) {
+            const { position } = node;
+            if (empty(position)) {
+                entities = entities.concat(
+                    Array.from(node.scope.values()),
+                    this.entitiesAtPositionDepth(pos, node.children));
+            } else {
+                const { start, end } = position;
+                if (positionBeforeEqual(start, pos) && positionAfterEqual(end, pos)) {
+
+                    entities = entities.concat(
+                        Array.from(node.scope.values()),
+                        this.entitiesAtPositionDepth(pos, node.children));
+                }
+            }
+        }
+
+        return entities;
+    }
+
+    // is the current scope in file
+    public isFile(): boolean {
+        return this.scopeDepth() === 2;
+    }
+
+    // is the current scope in global
+    public isGlobal(): boolean {
+        return this.activeScopeNode() === this._scopesRoot;
+    }
+
+    // the current scope depth
+    public scopeDepth(): number {
+        return this.activeScopeStack().length;
+    }
+
+    // attempt to use an entity
     public useEntity(name: IToken): Maybe<ResolverError> {
         const entity = this.lookup(name, ScopeType.global);
 
@@ -107,6 +168,7 @@ export class ScopeManager {
         const scope = this.selectScope(scopeType);
 
         scope.set(name.lexeme, new KsVariable(scopeType, name, VariableState.declared))
+        connection.console.log(`declare variable ${name.lexeme} at ${JSON.stringify(name.start)}`);
         return undefined;
     }
 
@@ -125,6 +187,7 @@ export class ScopeManager {
         return this.checkUseVariable(name, variable, state); 
     }
 
+    // check if a variable exist then use it
     public checkUseVariable(name: IToken, variable: Maybe<KsVariable>, state: VariableState): Maybe<ResolverError> {
         // check that variable has already been defined
         if (empty(variable)) {
@@ -132,6 +195,7 @@ export class ScopeManager {
         }
 
         variable.state = state;
+        connection.console.log(`use variable ${name.lexeme} at ${JSON.stringify(name.start)}`);
         return undefined;
     }
 
@@ -152,6 +216,8 @@ export class ScopeManager {
             scopeType, name,
             parameters, returnValue,
             FunctionState.declared))
+
+        connection.console.log(`declare function ${name.lexeme} at ${JSON.stringify(name.start)}`);
         return undefined;
     }
 
@@ -162,6 +228,7 @@ export class ScopeManager {
         return this.checkUseFunction(name, func); 
     }
 
+    // check that a function exists then use it
     private checkUseFunction(name: IToken, func: Maybe<KsFunction>,): Maybe<ResolverError> {
         // check that function has already been defined
         if (empty(func)) {
@@ -169,6 +236,7 @@ export class ScopeManager {
         }
 
         func.state = FunctionState.used;
+        connection.console.log(`use function ${name.lexeme} at ${JSON.stringify(name.start)}`);
         return undefined;
     }
 
@@ -177,7 +245,7 @@ export class ScopeManager {
         const entity = this.lookup(name, ScopeType.local);
 
         // check if variable has already been defined
-        if (!empty(entity)) {
+        if (!empty(entity) && entity.tag !== 'lock') {
             return this.localConflictError(name, entity);
         }
 
@@ -185,9 +253,11 @@ export class ScopeManager {
         const state = this.lockState(name.lexeme);
 
         scope.set(name.lexeme, new KsLock(scopeType, name, state));
+        connection.console.log(`declare lock ${name.lexeme} at ${JSON.stringify(name.start)}`);
         return undefined;
     }
 
+    // locks with side effects are considerd used immediatly
     private lockState(lockName: string): LockState {
         switch (lockName) {
             case 'throttle':
@@ -220,6 +290,7 @@ export class ScopeManager {
         }
 
         lock.state = newState
+        connection.console.log(`use lock ${name.lexeme} at ${JSON.stringify(name.start)}`);
         return undefined;
     }
 
@@ -236,6 +307,7 @@ export class ScopeManager {
 
         const scope = this.selectScope(scopeType);
         scope.set(name.lexeme, new KsParameter(name, defaulted, ParameterState.declared))
+        connection.console.log(`declare parameter ${name.lexeme} at ${JSON.stringify(name.start)}`);
         return undefined;
     }
 
@@ -255,6 +327,7 @@ export class ScopeManager {
         }
 
         parameter.state = ParameterState.used;
+        connection.console.log(`use parameter ${name.lexeme} at ${JSON.stringify(name.start)}`);
         return undefined;
     }
 

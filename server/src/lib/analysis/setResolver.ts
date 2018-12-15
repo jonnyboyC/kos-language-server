@@ -1,8 +1,8 @@
 import { IExprVisitor, IExpr } from "../parser/types";
-import { IToken } from "../scanner/types";
 import { BinaryExpr, UnaryExpr, FactorExpr, SuffixExpr,
   CallExpr, ArrayIndexExpr, ArrayBracketExpr, DelegateExpr,
   LiteralExpr, VariableExpr, GroupingExpr, AnonymousFunctionExpr } from "../parser/expr";
+import { IToken } from "../entities/types";
 
 export class SetResolver implements IExprVisitor<Maybe<IToken>> {
   public resolveExpr(expr: IExpr): Maybe<IToken> { 
