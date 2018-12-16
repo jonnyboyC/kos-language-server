@@ -23,6 +23,7 @@ export class Parser {
         const instructions: Inst[] = [];
         const errors: IParseError[] = [];
 
+        // ensure a start of file is present
         this.consumeTokenThrow(`File did not beging with Start of file token`, TokenType.Sof);
         
         while (!this.isAtEnd()) {

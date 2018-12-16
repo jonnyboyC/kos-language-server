@@ -18,6 +18,7 @@
 			"name": "Attach to Server",
 			"address": "localhost",
 			"protocol": "inspector",
+			"timeout": 20000,
 			"port": 6009,
 			"sourceMaps": true,
 			"outFiles": ["${workspaceRoot}/server/out/**/*.js"]

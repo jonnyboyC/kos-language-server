@@ -14,7 +14,9 @@ import {
 	InitializeParams,
 	CompletionItem,
 	TextDocumentPositionParams,
-	CompletionItemKind
+	CompletionItemKind,
+    SignatureHelp,
+    Location
 } from 'vscode-languageserver';
 import { Scanner } from './lib/scanner/scanner';
 import { ISyntaxError } from './lib/scanner/types';
@@ -26,24 +28,33 @@ import { ScopeManager } from './lib/analysis/scopeManager';
 import { FuncResolver } from './lib/analysis/functionResolver';
 import { IToken } from './lib/entities/types';
 import { empty } from './lib/utilities/typeGuards';
+import { fileInsts } from './lib/entities/fileInsts';
+import { TokenManager } from './lib/scanner/tokenManager';
 
 // Create a connection for the server. The connection uses Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
 export const connection = createConnection(ProposedFeatures.all);
 
+interface IDocumentInfo {
+    tokenManager?: TokenManager;
+    syntaxTree?: fileInsts;
+    scopeManager?: ScopeManager;
+}
+
+
 // Create a simple text document manager. The text document manager
 // supports full document sync only
 const documents: TextDocuments = new TextDocuments();
 let workspaceFolder: string = '';
-const scopeMap: Map<string, ScopeManager> = new Map();
+const scopeMap: Map<string, IDocumentInfo> = new Map();
 
 connection.onInitialize((params: InitializeParams) => {
-    const capabilities = params.capabilities;
-    connection.console.log(`[Server(${process.pid}) ${JSON.stringify(capabilities)}] Started and initialize received`);
-    
-    if (params.rootUri) {
-        workspaceFolder = params.rootUri;
-    }
+	const capabilities = params.capabilities;
+	connection.console.log(`[Server(${process.pid}) ${JSON.stringify(capabilities)}] Started and initialize received`);
+	
+	if (params.rootUri) {
+			workspaceFolder = params.rootUri;
+	}
 	connection.console.log(`[Server(${process.pid}) ${workspaceFolder}] Started and initialize received`);
 
 	return {
@@ -56,7 +67,8 @@ connection.onInitialize((params: InitializeParams) => {
             },
             signatureHelpProvider: {
                 triggerCharacters: [ '(' ]
-            }
+            },
+            definitionProvider: true,
 		}
 	};
 });
@@ -99,7 +111,7 @@ const resolverToDiagnostics = (error: IResolverError): Diagnostic => {
 
 async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 	// The validator creates diagnostics for all uppercase words length 2 and more
-	let text = textDocument.getText();
+    let text = textDocument.getText();
 
 	connection.console.log('');
 	connection.console.log(`Scanning ${textDocument.uri}`);
@@ -108,17 +120,20 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 
 	// if scanner found errors report those immediately
 	if (hasScanError(tokens)) {
-	const diagnostics: Diagnostic[] = tokens
-		.map(error => scanToDiagnostics(error));
+		const diagnostics: Diagnostic[] = tokens
+			.map(error => scanToDiagnostics(error));
 
-			connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
-			return;
-	}
+		connection.console.log(`Scanning encountered ${diagnostics.length} errors bailing.`)
+		connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
+		return;
+    }
+    
+    const tokenManager = new TokenManager(tokens);
 
 	// parse scanned tokens
 	connection.console.log(`Parsing ${textDocument.uri}`)
 	const parser = new Parser(tokens);
-	const [insts, errors] = parser.parse();
+	const [fileInsts, errors] = parser.parse();
 
 	// generate new parser errors
 	let diagnostics: Diagnostic[] = []
@@ -129,14 +144,15 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 			...error.inner.map(innerError => parseToDiagnostics(innerError))
 		])
 		.reduce((acc, current) => acc.concat(current))
+		connection.console.log(`Parser encountered ${errors}.`)
 	}
 
 	// generate a scope manager for resolving
 	const scopeManager = new ScopeManager();
 	
 	// generate resolvers
-	const funcResolver = new FuncResolver(insts, scopeManager); 
-	const resolver = new Resolver(insts, scopeManager);
+	const funcResolver = new FuncResolver(fileInsts, scopeManager); 
+	const resolver = new Resolver(fileInsts, scopeManager);
 	
 	// resolve the rest of the script
 	connection.console.log(`Function resolving ${textDocument.uri}`);
@@ -150,7 +166,11 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 		.concat(funcErrors)
 		.map(error => resolverToDiagnostics(error)));
 
-	scopeMap.set(textDocument.uri, scopeManager);
+	scopeMap.set(textDocument.uri, {
+        tokenManager: tokenManager,
+        syntaxTree: fileInsts,
+        scopeManager: scopeManager
+    });
 	connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
 }
 
@@ -163,21 +183,66 @@ connection.onDidChangeWatchedFiles(_change => {
 	connection.console.log('We received an file change event');
 });
 
-// This handler provides the initial list of the completion items.
-connection.onCompletion(
-	(_textDocumentPosition: TextDocumentPositionParams): CompletionItem[] => {
-		// The pass parameter contains the position of the text document in
-		// which code complete got requested. For the example we ignore this
-		// info and always provide the same completion items.
+connection.onDefinition(
+    (documentPosition: TextDocumentPositionParams): Maybe<Location> => {
+		const { position } = documentPosition;
+		const { uri } = documentPosition.textDocument;
 
-		const { position } = _textDocumentPosition;
-		const { uri } = _textDocumentPosition.textDocument;
-		const completionItems: CompletionItem[] = []
+        const documentInfo = scopeMap.get(uri);
+        if (empty(documentInfo) || empty(documentInfo.scopeManager) || empty(documentInfo.tokenManager)) {
+            return undefined;
+        }
+
+        const { scopeManager, tokenManager } = documentInfo;
+        const token = tokenManager.find(position);
+
+        if (empty(token)) {
+            return undefined;
+        }
+
+        const entity = scopeManager.entityAtPosition(position, token.lexeme);
+        if (empty(entity)) {
+            return undefined;
+        }
+
+        return Location.create(uri, entity.name)
+    }
+);
+
+connection.onSignatureHelp(
+    (documentPosition: TextDocumentPositionParams): SignatureHelp => {
+        // const { position } = documentPosition;
+		const { uri } = documentPosition.textDocument;
 
 		const scopeManager = scopeMap.get(uri);
 
 		if (!empty(scopeManager)) {
-			const entities = scopeManager
+            
+        }
+
+        return {
+            signatures: [],
+            activeParameter: null,
+            activeSignature: null,
+        };
+    }
+);
+
+// This handler provides the inentitiesAtPositionitial list of the completion items.
+connection.onCompletion(
+	(documentPosition: TextDocumentPositionParams): CompletionItem[] => {
+		// The pass parameter contains the position of the text document in
+		// which code complete got requested. For the example we ignore this
+		// info and always provide the same completion items.
+
+		const { position } = documentPosition;
+		const { uri } = documentPosition.textDocument;
+		const completionItems: CompletionItem[] = []
+
+		const documentInfo = scopeMap.get(uri);
+
+		if (!empty(documentInfo) && !empty(documentInfo.scopeManager)) {
+			const entities = documentInfo.scopeManager
 				.entitiesAtPosition(position);
 			
 			return completionItems.concat(
@@ -204,6 +269,7 @@ connection.onCompletion(
 					return {
 						label: entity.name.lexeme,
 						kind,
+						data: entity,
 					};
 				})
 			);
@@ -217,13 +283,7 @@ connection.onCompletion(
 // the completion list.
 connection.onCompletionResolve(
 	(item: CompletionItem): CompletionItem => {
-		if (item.data === 1) {
-			(item.detail = 'TypeScript details'),
-				(item.documentation = 'TypeScript documentation');
-		} else if (item.data === 2) {
-			(item.detail = 'JavaScript details'),
-				(item.documentation = 'JavaScript documentation');
-		}
+		// this would be a possible spot to pull in doc string if present.
 		return item;
 	}
 );

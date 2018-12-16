@@ -1,4 +1,4 @@
-import { Position } from "vscode-languageserver";
+import { Position, Range } from "vscode-languageserver";
 
 export const positionAfter = (pos1: Position, pos2: Position): boolean => {
   if (pos1.line > pos2.line) {
@@ -41,4 +41,31 @@ export const positionBeforeEqual = (pos1: Position, pos2: Position): boolean => 
 export const positionEqual = (pos1: Position, pos2: Position): boolean => {
   return pos1.line === pos2.line
     && pos1.character == pos2.character;
+}
+
+export const rangeContains = (range: Range, pos: Position): boolean => {
+  if (pos.line < range.start.line) return false;
+  if (pos.character < range.start.character) return false;
+  if (pos.line > range.end.line) return false;
+  if (pos.character > range.end.character) return false;
+
+  return true;
+}
+
+export const rangeBefore = (range: Range, pos: Position): boolean => {
+  if (pos.line > range.end.line) return true;
+  if (pos.line === range.end.line) {
+    if (pos.character > range.end.character) return true;
+  }
+
+  return false;
+}
+
+export const rangeAfter = (range: Range, pos: Position): boolean => {
+  if (pos.line < range.start.line) return true;
+  if (pos.line === range.start.line) {
+    if (pos.character < range.start.character) return true;
+  }
+
+  return false;
 }

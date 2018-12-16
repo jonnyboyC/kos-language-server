@@ -10,6 +10,7 @@ import { IToken } from "../entities/types";
 import { KsParameter } from "../entities/parameters";
 import { positionAfterEqual, positionBeforeEqual } from "../utilities/positionHelpers";
 import { connection } from "../../server";
+import { ScopePosition } from "./scopePosition";
 
 export class ScopeManager {
     private readonly _global: IScope;
@@ -21,7 +22,8 @@ export class ScopeManager {
         this._global = new Map();
         this._scopesRoot = {
             scope: this._global, 
-            children: []
+            children: [],
+            position: { tag: 'global' }
         };
         this._activeScopePath = []
         this._backTrackPath = [];
@@ -42,7 +44,11 @@ export class ScopeManager {
         const activeNode = this.activeScopeNode();
 
         if (empty(activeNode.children[next])) {
-            activeNode.children.push({scope: new Map(), children: [], position: { start: token.start, end: mockEnd }});
+            activeNode.children.push({
+                scope: new Map(), 
+                position: new ScopePosition(token.start, mockEnd),
+                children: [],
+            });
         }
 
         connection.console.log(`begin scope at ${JSON.stringify(token.start)}`);
@@ -55,7 +61,7 @@ export class ScopeManager {
     public endScope(token: IToken): ResolverError[] {
         const { scope, position } = this.activeScopeNode();
 
-        if (!empty(position)) {
+        if (position.tag === 'real') {
             position.end = token.end;
         } 
 
@@ -87,6 +93,11 @@ export class ScopeManager {
         return errors;
     }
 
+    public entityAtPosition(pos: Position, name: string): Maybe<KsEntity> {
+        const entities = this.entitiesAtPosition(pos);
+        return entities.find(entity => entity.name.lexeme === name);
+    }
+
     // get all entities in scope at a position
     public entitiesAtPosition(pos: Position): KsEntity[] {
         const entities = Array.from(this._scopesRoot.scope.values());
@@ -101,18 +112,22 @@ export class ScopeManager {
         
         for (const node of nodes) {
             const { position } = node;
-            if (empty(position)) {
-                entities = entities.concat(
-                    Array.from(node.scope.values()),
-                    this.entitiesAtPositionDepth(pos, node.children));
-            } else {
-                const { start, end } = position;
-                if (positionBeforeEqual(start, pos) && positionAfterEqual(end, pos)) {
-
+            switch (position.tag) {
+                // if global it is available
+                case 'global':
                     entities = entities.concat(
                         Array.from(node.scope.values()),
                         this.entitiesAtPositionDepth(pos, node.children));
-                }
+                    break;
+                // if the scope has a real position check if we're in the bounds
+                case 'real':
+                    const { start, end } = position;
+                    if (positionBeforeEqual(start, pos) && positionAfterEqual(end, pos)) {
+
+                        entities = entities.concat(
+                            Array.from(node.scope.values()),
+                            this.entitiesAtPositionDepth(pos, node.children));
+                    }
             }
         }
 

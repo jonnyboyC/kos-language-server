@@ -3,7 +3,7 @@ import { KsFunction } from "../entities/function";
 import { KsLock } from "../entities/lock";
 import { IToken } from "../entities/types";
 import { KsParameter } from "../entities/parameters";
-import { Position } from "vscode-languageserver";
+import { Position, Range } from "vscode-languageserver";
 
 export const enum FunctionState {
     declared,
@@ -34,13 +34,18 @@ export const mockEnd: Position = {
     character: Infinity,
 };
 
-export interface IScopePosition {
-    start: Position,
-    end: Position,
+export interface IRealScopePosition extends Range {
+    tag: 'real';
 }
 
+export interface IGlobalScopePosition {
+    tag: 'global';
+}
+
+type IScopePosition = IRealScopePosition | IGlobalScopePosition;
+
 export interface IScopeNode {
-    position?: IScopePosition
+    position: IScopePosition
     scope: IScope;
     children: IScopeNode[];
 }

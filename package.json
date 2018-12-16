@@ -73,5 +73,8 @@
         "@types/node": "~10.12.11",
         "ava": "^0.25.0",
         "typescript": "3.2.1"
+    },
+    "dependencies": {
+        "tslint": "^5.11.0"
     }
 }
