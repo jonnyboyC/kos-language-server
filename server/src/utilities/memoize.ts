@@ -1,4 +1,4 @@
-import { empty } from "./typeGuards";
+import { empty } from './typeGuards';
 
 export const memoize1 = <T1, TReturn>(func: (arg1: T1) => TReturn): (arg1: T1) => TReturn => {
   const memory: Map<T1, TReturn> = new Map();
@@ -10,11 +10,11 @@ export const memoize1 = <T1, TReturn>(func: (arg1: T1) => TReturn): (arg1: T1) =
     const newResult = func(arg1);
     memory.set(arg1, newResult);
     return newResult;
-  }
-}
+  };
+};
 
-
-export const memoize2 = <T1, T2, TReturn>(func: (arg1: T1, arg2: T2) => TReturn): (arg1: T1, arg2: T2) => TReturn => {
+export const memoize2 = <T1, T2, TReturn>(func: (arg1: T1, arg2: T2) => TReturn):
+  (arg1: T1, arg2: T2) => TReturn => {
   const memory: Map<[T1, T2], TReturn> = new Map();
 
   return (arg1: T1, arg2: T2): TReturn => {
@@ -25,8 +25,8 @@ export const memoize2 = <T1, T2, TReturn>(func: (arg1: T1, arg2: T2) => TReturn)
     const newResult = func(arg1, arg2);
     memory.set(args, newResult);
     return newResult;
-  }
-}
+  };
+};
 
 export const memoize3 = <T1, T2, T3, TReturn>(func: (arg1: T1, arg2: T2, arg3: T3) => TReturn):
   (arg1: T1, arg2: T2, arg3: T3) => TReturn => {
@@ -40,5 +40,5 @@ export const memoize3 = <T1, T2, T3, TReturn>(func: (arg1: T1, arg2: T2, arg3: T
     const newResult = func(arg1, arg2, arg3);
     memory.set(args, newResult);
     return newResult;
-  }
-}
+  };
+};

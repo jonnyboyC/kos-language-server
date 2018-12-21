@@ -17,21 +17,20 @@ import {
   CompletionItemKind,
   SignatureHelp,
   Location,
-  DidChangeConfigurationParams,
   DidChangeWatchedFilesParams,
 } from 'vscode-languageserver';
-import { Scanner } from './lib/scanner/scanner';
-import { ISyntaxError } from './lib/scanner/types';
-import { Parser } from './lib/parser/parser';
-import { IParseError } from './lib/parser/types';
-import { Resolver } from './lib/analysis/resolver';
-import { IResolverError } from './lib/analysis/types';
-import { ScopeManager } from './lib/analysis/scopeManager';
-import { FuncResolver } from './lib/analysis/functionResolver';
-import { IToken } from './lib/entities/types';
-import { empty } from './lib/utilities/typeGuards';
-import { fileInsts } from './lib/entities/fileInsts';
-import { TokenManager } from './lib/scanner/tokenManager';
+import { Scanner } from './scanner/scanner';
+import { ISyntaxError } from './scanner/types';
+import { Parser } from './parser/parser';
+import { IParseError } from './parser/types';
+import { Resolver } from './analysis/resolver';
+import { IResolverError } from './analysis/types';
+import { ScopeManager } from './analysis/scopeManager';
+import { FuncResolver } from './analysis/functionResolver';
+import { IToken } from './entities/types';
+import { empty } from './utilities/typeGuards';
+import { FileInsts } from './entities/fileInsts';
+import { TokenManager } from './scanner/tokenManager';
 
 // Create a connection for the server. The connection uses Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -39,7 +38,7 @@ export const connection = createConnection(ProposedFeatures.all);
 
 interface IDocumentInfo {
   tokenManager?: TokenManager;
-  syntaxTree?: fileInsts;
+  syntaxTree?: FileInsts;
   scopeManager?: ScopeManager;
 }
 
