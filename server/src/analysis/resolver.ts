@@ -35,7 +35,7 @@ import { SetResolver } from "./setResolver";
 import { ScopeManager } from "./scopeManager";
 import { TokenType } from "../entities/tokentypes";
 import { LockState } from "./types";
-import { fileInsts } from "../entities/fileInsts";
+import { FileInsts } from "../entities/fileInsts";
 import { IToken } from "../entities/types";
 
 export type Errors = Array<ResolverError>
@@ -50,7 +50,7 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
     private _lazyGlobalOff: boolean;
     private _firstInst: boolean;
 
-    constructor(fileInsts: fileInsts, scopeMan: ScopeManager) {
+    constructor(fileInsts: FileInsts, scopeMan: ScopeManager) {
         this._start = fileInsts.start;
         this._end = fileInsts.end;
         this._insts = fileInsts.insts;
