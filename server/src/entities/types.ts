@@ -10,3 +10,13 @@ export interface IToken {
   readonly end: Position;
   toString: () => string;
 }
+
+export interface IType {
+  readonly name: string;
+  params?: IType[];
+  returns?: IType;
+  inherentsFrom?: IType;
+  suffixes: {
+    [name: string]: IType,
+  };
+}

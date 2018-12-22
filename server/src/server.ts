@@ -18,6 +18,7 @@ import {
   SignatureHelp,
   Location,
   DidChangeWatchedFilesParams,
+  SignatureInformation,
 } from 'vscode-languageserver';
 import { Scanner } from './scanner/scanner';
 import { ISyntaxError } from './scanner/types';
@@ -215,13 +216,30 @@ connection.onDefinition(
 
 connection.onSignatureHelp(
   (documentPosition: TextDocumentPositionParams): SignatureHelp => {
-        // const { position } = documentPosition;
+    const { position } = documentPosition;
     const { uri } = documentPosition.textDocument;
 
-    const scopeManager = scopeMap.get(uri);
+    const documentInfo = scopeMap.get(uri);
 
-    if (!empty(scopeManager)) {
+    // we need the scope and token managers for this document
+    if (!(empty(documentInfo)
+    || empty(documentInfo.scopeManager)
+    || empty(documentInfo.tokenManager))) {
 
+      // attempt to find a token here
+      const tokenFound = documentInfo.tokenManager.find(position);
+      if (!empty(tokenFound)) {
+        const entityFound = documentInfo.scopeManager.entityAtPosition(position, tokenFound.lexeme);
+        if (!empty(entityFound)) {
+          if (entityFound.tag === 'function') {
+            return {
+              signatures: [SignatureInformation.create(entityFound.name.lexeme)],
+              activeParameter: 0,
+              activeSignature: 0,
+            };
+          }
+        }
+      }
     }
 
     return {

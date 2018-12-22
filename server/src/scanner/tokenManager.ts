@@ -7,7 +7,7 @@ export class TokenManager {
     public readonly tokens: IToken[]) {
   }
 
-  // fid a token at a given position
+  // find a token at a given position
   public find(pos: Position): Maybe<IToken> {
     let left = 0;
     let right = this.tokens.length - 1;
