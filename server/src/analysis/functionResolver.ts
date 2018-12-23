@@ -32,7 +32,7 @@ import { DeclVariable, DeclLock, DeclFunction, DeclParameter } from '../parser/d
 import { empty } from '../utilities/typeGuards';
 import { ScopeManager } from './scopeManager';
 import { ParameterState } from './types';
-import { FileInsts } from '../entities/fileInsts';
+import { SyntaxTree } from '../entities/syntaxTree';
 import { IToken } from '../entities/types';
 import { KsParameter } from '../entities/parameters';
 
@@ -45,10 +45,10 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
   private readonly insts: Inst[];
   private readonly scopeMan: ScopeManager;
 
-  constructor(fileInsts: FileInsts, scopeMan: ScopeManager) {
-    this.start = fileInsts.start;
-    this.end = fileInsts.end;
-    this.insts = fileInsts.insts;
+  constructor(syntaxTree: SyntaxTree, scopeMan: ScopeManager) {
+    this.start = syntaxTree.start;
+    this.end = syntaxTree.end;
+    this.insts = syntaxTree.insts;
     this.scopeMan = scopeMan;
   }
 

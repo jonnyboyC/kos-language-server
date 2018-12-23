@@ -35,7 +35,7 @@ import { SetResolver } from './setResolver';
 import { ScopeManager } from './scopeManager';
 import { TokenType } from '../entities/tokentypes';
 import { LockState } from './types';
-import { FileInsts } from '../entities/fileInsts';
+import { SyntaxTree } from '../entities/syntaxTree';
 import { IToken } from '../entities/types';
 
 // tslint:disable-next-line:prefer-array-literal
@@ -51,10 +51,10 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   private lazyGlobalOff: boolean;
   private firstInst: boolean;
 
-  constructor(fileInsts: FileInsts, scopeMan: ScopeManager) {
-    this.start = fileInsts.start;
-    this.end = fileInsts.end;
-    this.insts = fileInsts.insts;
+  constructor(syntaxTree: SyntaxTree, scopeMan: ScopeManager) {
+    this.start = syntaxTree.start;
+    this.end = syntaxTree.end;
+    this.insts = syntaxTree.insts;
     this.scopeMan = scopeMan;
     this.localResolver = new LocalResolver();
     this.setResolver = new SetResolver();

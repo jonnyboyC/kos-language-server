@@ -29,7 +29,7 @@ import { IResolverError } from './analysis/types';
 import { ScopeManager } from './analysis/scopeManager';
 import { FuncResolver } from './analysis/functionResolver';
 import { empty } from './utilities/typeGuards';
-import { FileInsts } from './entities/fileInsts';
+import { SyntaxTree } from './entities/syntaxTree';
 import { TokenManager } from './scanner/tokenManager';
 
 // Create a connection for the server. The connection uses Node's IPC as a transport.
@@ -38,7 +38,7 @@ export const connection = createConnection(ProposedFeatures.all);
 
 interface IDocumentInfo {
   tokenManager?: TokenManager;
-  syntaxTree?: FileInsts;
+  syntaxTree?: SyntaxTree;
   scopeManager?: ScopeManager;
 }
 
@@ -132,7 +132,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
   connection.console.log(`Parsing ${textDocument.uri}`);
   connection.console.log('');
   const parser = new Parser(tokens);
-  const [fileInsts, parseErrors] = parser.parse();
+  const [syntaxTree, parseErrors] = parser.parse();
 
   if (parseErrors.length > 0) {
     connection.console.warn(`Parser encountered ${parseErrors.length} Errors.`);
@@ -142,8 +142,8 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
   const scopeManager = new ScopeManager();
 
   // generate resolvers
-  const funcResolver = new FuncResolver(fileInsts, scopeManager);
-  const resolver = new Resolver(fileInsts, scopeManager);
+  const funcResolver = new FuncResolver(syntaxTree, scopeManager);
+  const resolver = new Resolver(syntaxTree, scopeManager);
 
   // resolve the rest of the script
   connection.console.log(`Function resolving ${textDocument.uri}`);
@@ -171,7 +171,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
   scopeMap.set(textDocument.uri, {
     tokenManager,
     scopeManager,
-    syntaxTree: fileInsts,
+    syntaxTree,
   });
   connection.sendDiagnostics({ diagnostics, uri: textDocument.uri });
 }

@@ -30,7 +30,7 @@ import { DeclScope, DeclFunction,
 } from './declare';
 import { empty } from '../utilities/typeGuards';
 import { IToken } from '../entities/types';
-import { FileInsts } from '../entities/fileInsts';
+import { SyntaxTree } from '../entities/syntaxTree';
 
 export class Parser {
   private readonly tokens: IToken[];
@@ -42,7 +42,7 @@ export class Parser {
   }
 
   // parse tokens
-  public parse(): [FileInsts, IParseError[]] {
+  public parse(): [SyntaxTree, IParseError[]] {
     const instructions: Inst[] = [];
     const errors: IParseError[] = [];
 
@@ -61,7 +61,7 @@ export class Parser {
       }
     }
     return [
-      new FileInsts(this.tokens[0], instructions, this.tokens[this.tokens.length - 1]),
+      new SyntaxTree(this.tokens[0], instructions, this.tokens[this.tokens.length - 1]),
       errors,
     ];
   }
