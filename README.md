@@ -1,194 +1,22 @@
 # kos-language-server
 
-An in progress language server for the [KOS](https://github.com/KSP-KOS/KOS) mod for Kerbal Space Program. This project is heavily inspired by the [crafting interpreters](http://craftinginterpreters.com/) series. The [vscode-extension can be found here](https://marketplace.visualstudio.com/items?itemName=JohnChabot.kos-vscode)
+A language server for the [KOS](https://github.com/KSP-KOS/KOS) mod for Kerbal Space Program. A language server can provide an IDE language support services for a target language, in this case KOS. The main idea here being that adding language support to new IDES is easier as more of the code can be reused between implmentions. For more infromation read this article about the language server protocol [here](https://langserver.org/). As of now the project has only one client of the server an extension for [Visual Studio Code](https://code.visualstudio.com/). The [vscode-extension can be found here](https://marketplace.visualstudio.com/items?itemName=JohnChabot.kos-vscode)
+
+This project is heavily inspired by the [crafting interpreters](http://craftinginterpreters.com/) series. Definitely check it out if your interested in creating your own language.
 
 ![Alt Text](https://i.imgur.com/Xh5yXJi.gif)
 
-The language server in it's current form is limited to identifying scanning and parsing errors in the language. The current grammer the server adhere's to is shown below. The grammer KOS follows internally is shown [here](https://github.com/KSP-KOS/KOS/blob/develop/src/kOS.Safe/Compilation/KS/kRISC.tpg). An effort will be made to ensure these are equivalent. 
+For additional client support such as sublime text, vim, atom, notepad++ or others please post an issue with the requested IDE. 
 
-Currently a vscode client has been implemented with:
-- syntax highlighting
+Currently the vscode client 0.1.3 implements the follow features
+- synatx highlighting
 - brace detection
+- diagnostics on parsing errors
 
-
-```
-// program
-program -> declaration*
-
-// declarations
-declaration -> ( instruction
-    | variableDeclaration
-    | lockDeclaration
-    | functionDeclaration
-    | parameterDeclaration
-)
-
-variableDeclaration -> scope suffix ( 'to' | 'is' ) expression '.'
-lockDeclaration -> scope? 'lock' idenitifer 'to' expression '.'
-parameterDeclaration -> scope? 'parameter' parameters '.'
-functionDeclaration -> scope? 'function' instructionBlock '.'?
-
-// declaration components
-scope -> 'declare'? ('local' | 'global')?
-
-// parameters
-parameters -> ( parameter (',' parameters)? 
-    | defaultParameters
-)
-defaultParameters -> defaultParameter (',' defaultParameters)?
-parameter -> ( idenitifer | defaultParameter )
-defaultParameter -> idenitifer ( 'to' | 'is' ) expression
-
-// instructions
-instruction -> ( instructionBlock
-    | identifierInstruction
-    | commandinstruction
-    | commandExpressioninstruction
-    | unset
-    | unlock
-    | set
-    | lazyGlobal
-    | if
-    | until
-    | from
-    | when
-    | break
-    | return
-    | switch
-    | for
-    | on
-    | toggle
-    | wait
-    | log
-    | copy
-    | rename
-    | delete
-    | run
-    | runPath
-    | runOncePath
-    | compile
-    | list
-    | empty
-    | print
-)
-
-// directive
-lazyGlobal -> '@' 'lazyglobal' onOff '.'
-
-// block
-instructionBlock -> '{' declarations* '}'
-
-// control flow
-if -> 'if' expression instruction '.'? ('else' instruction '.'?)? 
-until -> 'until' expression instruction '.'?
-from -> 'from' instructionBlock 'until' expression 'step' instructionBlock 'do' instruction
-when -> 'when' expression 'then' instruction '.'?
-break -> 'break' '.'
-return -> 'return' expression? '.'
-for -> 'for' idenitifer 'in' suffix instruction '.'?
-on -> 'on' suffix instruction
-toggle -> 'toggle' suffix '.'
-wait -> 'wait' 'until'? expression '.'
-
-// variables
-set -> 'set' suffix 'to' expression '.'
-unset -> 'unset' ( 'all' | idenitifer ) '.'
-unlock -> 'unlock' ( 'all' | idenitifer ) '.'
-
-// io
-copy -> 'copy' expression ( 'to' | 'from' ) expression '.'
-switch -> 'switch' 'to' expression '.'
-log -> 'log' expression 'to' expression '.'
-rename -> 'rename' ioIdentifier expression 'to' expression '.'
-delete -> 'delete' expression ('from' expression)? '.'
-compile -> 'compile' expression ('to' expression)? '.'
-run -> 'run' 'once'? ( string | fileIdentifier ) ('(' arguments ')')? ('on', expresion)? '.'
-runPath -> 'runPath' '(' expression (',' arguments)? ')' '.'
-runOncePath -> 'runOncePath' '(' expression (',' arguments)? ')' '.'
-print -> 'print' expression ('at' '(' expression ',' expression ')')? '.'
-
-// misc
-empty -> '.'
-list -> 'list' (idenitifer ('in' idenitifer)?)? '.'
-
-// command instruction
-commandExpressioninstruction -> commandExpression expression '.'
-commandinstruction -> command '.'
-
-// identifier instructions
-identifierInstruction -> suffix ( 'on' | 'off' )? '.'
-
-// expressions
-expression -> or
-
-// binary expresions
-or -> and ('or' and)?
-and -> equality ('and' equality)?
-equality -> comparison (( '=' | '<>' ) comparison)?
-comparison -> addition (( '<' | '>' | '<=' | '>=' ) addition)?
-addition -> multiplication (( '+' | '-' ) multiplication)?
-multiplication -> unary (( '*' | '/' ) unary)?
-
-// unary expressions
-unary -> ( '+' | '-' | 'not' | 'defined' )? factor
-factor -> suffix ('^' suffix)*
-suffix -> suffixTerm (suffixtrailer)*
-suffixtrailer -> ':' suffixTerm
-suffixTerm -> atom (suffixTermTrailer* | delegate)
-suffixTermTrailer -> ( call 
-    | arrayIndex 
-    | arrayBracket
-)
-call -> '(' arguments ')'
-arrayIndex -> '#' ( idenitifer | integer )
-arrayBracket -> '[' expression ']'
-delegate -> '@' 
-
-// expresion components
-arguments -> expression? (',' expression)*
-
-// atom
-atom -> ( literal
-    | fileIdentifier
-    | idenitifer
-    | '(' expression ')'
-)
-
-// literal
-literal -> ( number
-    | string
-    | 'true'
-    | 'false'
-)
-
-idenitifer -> ([all valid letter] | '_')*
-fileIdentifier -> idenitifer ('.' idenitifer)*
-
-string -> '"' [utf-16]* '"'
-integer -> sub_number
-double -> base ('e' ('+' | '-') sub_number)?
-base -> (sub_number 
-    | '.' sub_number 
-    | sub_number '.' sub_number
-)
-
-sub_number -> [0-9] ([0-9_]* [0-9])*
-
-// lists
-command -> ( 'stage' 
-    | 'clearscreen' 
-    | 'preserve' 
-    | 'reboot' 
-    | 'shutdown'
-)
-commandExpression -> ( 'edit' 
-    | 'add' 
-    | 'remove'
-)
-ioIdentifier -> ( 'file' | 
-    'volume' 
-) 
-number -> ( integer |
-    double
-)
-```
+In development I'm looking at the follow features
+- go to definition
+- identify unused variables
+- identify variables that don't exist
+- suffix suggestions
+- function signiture help
+- basic type inference 
