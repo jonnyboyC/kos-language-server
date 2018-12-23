@@ -23,7 +23,7 @@ export class Scanner {
   }
 
   // scan all available tokens
-  public scanTokens(): IToken[] | ISyntaxError[] {
+  public scanTokens(): [IToken[], ISyntaxError[]] {
     // create arrays for valid tokens and encountered errors
     const tokens: IToken[] = [];
     const errors: ISyntaxError[] = [];
@@ -47,13 +47,8 @@ export class Scanner {
       }
     }
 
-    // if errors return errors instead
-    if (errors.length !== 0) {
-      return errors;
-    }
-
     tokens.push(this.generateToken(TokenType.Eof));
-    return tokens;
+    return [tokens, errors];
   }
 
   private scanToken(): ScanResult {

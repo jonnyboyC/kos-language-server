@@ -108,7 +108,7 @@ export class ScopeManager {
     const entities = Array.from(this.scopesRoot.scope.values());
 
     return this.entitiesAtPositionDepth(pos, this.scopesRoot.children)
-            .concat(entities);
+      .concat(entities);
   }
 
   // recursively move down scopes for more relevant entities
@@ -140,12 +140,12 @@ export class ScopeManager {
   }
 
   // is the current scope in file
-  public isFile(): boolean {
+  public isFileScope(): boolean {
     return this.scopeDepth() === 2;
   }
 
   // is the current scope in global
-  public isGlobal(): boolean {
+  public isGlobalScope(): boolean {
     return this.activeScopeNode() === this.scopesRoot;
   }
 

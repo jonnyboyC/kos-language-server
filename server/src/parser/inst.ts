@@ -1,487 +1,487 @@
-import { IInst, IExpr, IInstVisitor } from "./types";
-import { IToken } from "../entities/types";
+import { IInst, IExpr, IInstVisitor } from './types';
+import { IToken } from '../entities/types';
 
 export abstract class Inst implements IInst {
-    get tag(): 'inst' {
-        return 'inst';
-    }
+  get tag(): 'inst' {
+    return 'inst';
+  }
 
-    public abstract accept<T>(visitor: IInstVisitor<T>): T
+  public abstract accept<T>(visitor: IInstVisitor<T>): T;
 }
 
 export class BlockInst extends Inst {
-    constructor( 
-        public readonly open: IToken,
-        public readonly instructions: Inst[],
-        public readonly close: IToken) {
-        super();
-    }
-    
-    public accept<T>(visitor: IInstVisitor<T>): T {
-        return visitor.visitBlock(this);
-    }
+  constructor(
+    public readonly open: IToken,
+    public readonly instructions: Inst[],
+    public readonly close: IToken) {
+    super();
+  }
+
+  public accept<T>(visitor: IInstVisitor<T>): T {
+    return visitor.visitBlock(this);
+  }
 }
 
 export class ExprInst extends Inst {
-    constructor(
-        public readonly suffix: IExpr) {
-        super();
-    }
+  constructor(
+    public readonly suffix: IExpr) {
+    super();
+  }
 
-    public accept<T>(visitor: IInstVisitor<T>): T {
-        return visitor.visitExpr(this);
-    }
+  public accept<T>(visitor: IInstVisitor<T>): T {
+    return visitor.visitExpr(this);
+  }
 }
 
 export class OnOffInst extends Inst {
-    constructor(
-        public readonly suffix: IExpr,
-        public readonly onOff: IToken) {
-        super();
-    }
+  constructor(
+    public readonly suffix: IExpr,
+    public readonly onOff: IToken) {
+    super();
+  }
 
-    public accept<T>(visitor: IInstVisitor<T>): T {
-        return visitor.visitOnOff(this);
-    }
+  public accept<T>(visitor: IInstVisitor<T>): T {
+    return visitor.visitOnOff(this);
+  }
 }
 
 export class CommandInst extends Inst {
-    constructor(public readonly command: IToken) {
-        super();
-    }
+  constructor(public readonly command: IToken) {
+    super();
+  }
 
-    public accept<T>(visitor: IInstVisitor<T>): T {
-        return visitor.visitCommand(this);
-    }
+  public accept<T>(visitor: IInstVisitor<T>): T {
+    return visitor.visitCommand(this);
+  }
 }
 
 export class CommandExpressionInst extends Inst {
-    constructor(
-        public readonly command: IToken,
-        public readonly expression: IExpr) {
-        super();
-    }
+  constructor(
+    public readonly command: IToken,
+    public readonly expression: IExpr) {
+    super();
+  }
 
-    public accept<T>(visitor: IInstVisitor<T>): T {
-        return visitor.visitCommandExpr(this);
-    }
+  public accept<T>(visitor: IInstVisitor<T>): T {
+    return visitor.visitCommandExpr(this);
+  }
 }
 
 export class UnsetInst extends Inst {
-    constructor(
-        public readonly unset: IToken,
-        public readonly identifier: IToken) {
-        super();
-    }
+  constructor(
+    public readonly unset: IToken,
+    public readonly identifier: IToken) {
+    super();
+  }
 
-    public accept<T>(visitor: IInstVisitor<T>): T {
-        return visitor.visitUnset(this);
-    }
+  public accept<T>(visitor: IInstVisitor<T>): T {
+    return visitor.visitUnset(this);
+  }
 }
 
 export class UnlockInst extends Inst {
-    constructor(
-        public readonly unlock: IToken,
-        public readonly identifier: IToken) {
-        super();
-    }
+  constructor(
+    public readonly unlock: IToken,
+    public readonly identifier: IToken) {
+    super();
+  }
 
-    public accept<T>(visitor: IInstVisitor<T>): T {
-        return visitor.visitUnlock(this);
-    }
+  public accept<T>(visitor: IInstVisitor<T>): T {
+    return visitor.visitUnlock(this);
+  }
 }
 
 export class SetInst extends Inst {
-    constructor(
-        public readonly set: IToken,
-        public readonly suffix: IExpr,
-        public readonly to: IToken,
-        public readonly value: IExpr) {
-        super();
-    }
+  constructor(
+    public readonly set: IToken,
+    public readonly suffix: IExpr,
+    public readonly to: IToken,
+    public readonly value: IExpr) {
+    super();
+  }
 
-    public accept<T>(visitor: IInstVisitor<T>): T {
-        return visitor.visitSet(this);
-    }
+  public accept<T>(visitor: IInstVisitor<T>): T {
+    return visitor.visitSet(this);
+  }
 }
 
 export class LazyGlobalInst extends Inst {
-    constructor(
-        public readonly atSign: IToken,
-        public readonly lazyGlobal: IToken,
-        public readonly onOff: IToken) {
-        super();
-    }
+  constructor(
+    public readonly atSign: IToken,
+    public readonly lazyGlobal: IToken,
+    public readonly onOff: IToken) {
+    super();
+  }
 
-    public *used(): IterableIterator<IToken> {
-    }
+  public *used(): IterableIterator<IToken> {
+  }
 
-    public accept<T>(visitor: IInstVisitor<T>): T {
-        return visitor.visitLazyGlobalInst(this);
-    }
+  public accept<T>(visitor: IInstVisitor<T>): T {
+    return visitor.visitLazyGlobalInst(this);
+  }
 }
 
 export class IfInst extends Inst {
-    constructor(
-        public readonly ifToken: IToken,
-        public readonly condition: IExpr,
-        public readonly instruction: IInst,
-        public readonly elseInst?: IInst) {
-        super()
-    }
+  constructor(
+    public readonly ifToken: IToken,
+    public readonly condition: IExpr,
+    public readonly instruction: IInst,
+    public readonly elseInst?: IInst) {
+    super();
+  }
 
-    public accept<T>(visitor: IInstVisitor<T>): T {
-        return visitor.visitIf(this);
-    }
+  public accept<T>(visitor: IInstVisitor<T>): T {
+    return visitor.visitIf(this);
+  }
 }
 
 export class ElseInst extends Inst {
-    constructor(
-        public readonly elseToken: IToken,
-        public readonly instruction: IInst) {
-        super();
-    }
+  constructor(
+    public readonly elseToken: IToken,
+    public readonly instruction: IInst) {
+    super();
+  }
 
-    public accept<T>(visitor: IInstVisitor<T>): T {
-        return visitor.visitElse(this);
-    }
+  public accept<T>(visitor: IInstVisitor<T>): T {
+    return visitor.visitElse(this);
+  }
 }
 
 export class UntilInst extends Inst {
-    constructor(
-        public readonly until: IToken,
-        public readonly condition: IExpr,
-        public readonly instruction: IInst) {
-        super()
-    }
+  constructor(
+    public readonly until: IToken,
+    public readonly condition: IExpr,
+    public readonly instruction: IInst) {
+    super();
+  }
 
-    public accept<T>(visitor: IInstVisitor<T>): T {
-        return visitor.visitUntil(this);
-    }
+  public accept<T>(visitor: IInstVisitor<T>): T {
+    return visitor.visitUntil(this);
+  }
 }
 
 export class FromInst extends Inst {
-    constructor(
-        public readonly from: IToken,
-        public readonly initializer: BlockInst,
-        public readonly until: IToken,
-        public readonly condition: IExpr,
-        public readonly step: IToken,
-        public readonly increment: BlockInst,
-        public readonly doToken: IToken,
-        public readonly instruction: IInst) {
-        super();
-    }
+  constructor(
+    public readonly from: IToken,
+    public readonly initializer: BlockInst,
+    public readonly until: IToken,
+    public readonly condition: IExpr,
+    public readonly step: IToken,
+    public readonly increment: BlockInst,
+    public readonly doToken: IToken,
+    public readonly instruction: IInst) {
+    super();
+  }
 
-    public accept<T>(visitor: IInstVisitor<T>): T {
-        return visitor.visitFrom(this);
-    }
+  public accept<T>(visitor: IInstVisitor<T>): T {
+    return visitor.visitFrom(this);
+  }
 }
 
 export class WhenInst extends Inst {
-    constructor(
-        public readonly when: IToken, 
-        public readonly condition: IExpr,
-        public readonly then: IToken,
-        public readonly instruction: IInst) {
-        super();
-    }
-        
-    public accept<T>(visitor: IInstVisitor<T>): T {
-        return visitor.visitWhen(this);
-    }
+  constructor(
+    public readonly when: IToken,
+    public readonly condition: IExpr,
+    public readonly then: IToken,
+    public readonly instruction: IInst) {
+    super();
+  }
+
+  public accept<T>(visitor: IInstVisitor<T>): T {
+    return visitor.visitWhen(this);
+  }
 }
 
 export class ReturnInst extends Inst {
-    constructor(
-        public readonly returnToken: IToken,
-        public readonly value?: IExpr) {
-        super();
-    }
+  constructor(
+    public readonly returnToken: IToken,
+    public readonly value?: IExpr) {
+    super();
+  }
 
-    public accept<T>(visitor: IInstVisitor<T>): T {
-        return visitor.visitReturn(this);
-    }
+  public accept<T>(visitor: IInstVisitor<T>): T {
+    return visitor.visitReturn(this);
+  }
 }
 
 export class BreakInst extends Inst {
-    public declared(): IterableIterator<IToken> {
-        throw new Error("Method not implemented.");
-    }
-    constructor(
-        public readonly breakToken: IToken) {
-        super();
-    }
+  public declared(): IterableIterator<IToken> {
+    throw new Error('Method not implemented.');
+  }
+  constructor(
+    public readonly breakToken: IToken) {
+    super();
+  }
 
-    public accept<T>(visitor: IInstVisitor<T>): T {
-        return visitor.visitBreak(this);
-    }
+  public accept<T>(visitor: IInstVisitor<T>): T {
+    return visitor.visitBreak(this);
+  }
 }
 
 export class SwitchInst extends Inst {
-    constructor(
-        public readonly switchToken: IToken,
-        public readonly to: IToken,
-        public readonly target: IExpr) {
-        super();
-    }
+  constructor(
+    public readonly switchToken: IToken,
+    public readonly to: IToken,
+    public readonly target: IExpr) {
+    super();
+  }
 
-    public accept<T>(visitor: IInstVisitor<T>): T {
-        return visitor.visitSwitch(this);
-    }
+  public accept<T>(visitor: IInstVisitor<T>): T {
+    return visitor.visitSwitch(this);
+  }
 }
 
 export class ForInst extends Inst {
-    constructor(
-        public readonly forToken: IToken,
-        public readonly identifier: IToken,
-        public readonly inToken: IToken,
-        public readonly suffix: IExpr,
-        public readonly instruction: IInst) {
-        super();
-    }
+  constructor(
+    public readonly forToken: IToken,
+    public readonly identifier: IToken,
+    public readonly inToken: IToken,
+    public readonly suffix: IExpr,
+    public readonly instruction: IInst) {
+    super();
+  }
 
-    public accept<T>(visitor: IInstVisitor<T>): T {
-        return visitor.visitFor(this);
-    }
+  public accept<T>(visitor: IInstVisitor<T>): T {
+    return visitor.visitFor(this);
+  }
 }
 
 export class OnInst extends Inst {
-    public declared(): IterableIterator<IToken> {
-        throw new Error("Method not implemented.");
-    }
-    constructor(
-        public readonly on: IToken,
-        public readonly suffix: IExpr,
-        public readonly instruction: IInst) {
-        super();
-    }
+  public declared(): IterableIterator<IToken> {
+    throw new Error('Method not implemented.');
+  }
+  constructor(
+    public readonly on: IToken,
+    public readonly suffix: IExpr,
+    public readonly instruction: IInst) {
+    super();
+  }
 
-    public accept<T>(visitor: IInstVisitor<T>): T {
-        return visitor.visitOn(this);
-    }
+  public accept<T>(visitor: IInstVisitor<T>): T {
+    return visitor.visitOn(this);
+  }
 }
 
 export class ToggleInst extends Inst {
-    public declared(): IterableIterator<IToken> {
-        throw new Error("Method not implemented.");
-    }
-    constructor(
-        public readonly toggle: IToken,
-        public readonly suffix: IExpr) {
-        super();
-    }
+  public declared(): IterableIterator<IToken> {
+    throw new Error('Method not implemented.');
+  }
+  constructor(
+    public readonly toggle: IToken,
+    public readonly suffix: IExpr) {
+    super();
+  }
 
-    public accept<T>(visitor: IInstVisitor<T>): T {
-        return visitor.visitToggle(this);
-    }
+  public accept<T>(visitor: IInstVisitor<T>): T {
+    return visitor.visitToggle(this);
+  }
 }
 
 export class WaitInst extends Inst {
-    public declared(): IterableIterator<IToken> {
-        throw new Error("Method not implemented.");
-    }
-    constructor(
-        public readonly wait: IToken,
-        public readonly expression: IExpr,
-        public readonly until?: IToken) {
-        super();
-    }
+  public declared(): IterableIterator<IToken> {
+    throw new Error('Method not implemented.');
+  }
+  constructor(
+    public readonly wait: IToken,
+    public readonly expression: IExpr,
+    public readonly until?: IToken) {
+    super();
+  }
 
-    public accept<T>(visitor: IInstVisitor<T>): T {
-        return visitor.visitWait(this);
-    }
+  public accept<T>(visitor: IInstVisitor<T>): T {
+    return visitor.visitWait(this);
+  }
 }
 
 export class LogInst extends Inst {
-    public declared(): IterableIterator<IToken> {
-        throw new Error("Method not implemented.");
-    }
-    constructor(
-        public readonly log: IToken,
-        public readonly expression: IExpr,
-        public readonly to: IToken,
-        public readonly target: IExpr) {
-        super();
-    }
+  public declared(): IterableIterator<IToken> {
+    throw new Error('Method not implemented.');
+  }
+  constructor(
+    public readonly log: IToken,
+    public readonly expression: IExpr,
+    public readonly to: IToken,
+    public readonly target: IExpr) {
+    super();
+  }
 
-    public accept<T>(visitor: IInstVisitor<T>): T {
-        return visitor.visitLog(this);
-    }
+  public accept<T>(visitor: IInstVisitor<T>): T {
+    return visitor.visitLog(this);
+  }
 }
 
 export class CopyInst extends Inst {
-    public declared(): IterableIterator<IToken> {
-        throw new Error("Method not implemented.");
-    }
-    constructor(
-        public readonly copy: IToken,
-        public readonly expression: IExpr,
-        public readonly toFrom: IToken,
-        public readonly target: IExpr) {
-        super();
-    }
+  public declared(): IterableIterator<IToken> {
+    throw new Error('Method not implemented.');
+  }
+  constructor(
+    public readonly copy: IToken,
+    public readonly expression: IExpr,
+    public readonly toFrom: IToken,
+    public readonly target: IExpr) {
+    super();
+  }
 
-    public accept<T>(visitor: IInstVisitor<T>): T {
-        return visitor.visitCopy(this);
-    }
+  public accept<T>(visitor: IInstVisitor<T>): T {
+    return visitor.visitCopy(this);
+  }
 }
 
 export class RenameInst extends Inst {
-    public declared(): IterableIterator<IToken> {
-        throw new Error("Method not implemented.");
-    }
-    constructor(
-        public readonly rename: IToken,
-        public readonly ioIdentifer: IToken,
-        public readonly expression: IExpr,
-        public readonly to: IToken,
-        public readonly target: IExpr) {
-        super();
-    }
+  public declared(): IterableIterator<IToken> {
+    throw new Error('Method not implemented.');
+  }
+  constructor(
+    public readonly rename: IToken,
+    public readonly ioIdentifer: IToken,
+    public readonly expression: IExpr,
+    public readonly to: IToken,
+    public readonly target: IExpr) {
+    super();
+  }
 
-    public accept<T>(visitor: IInstVisitor<T>): T {
-        return visitor.visitRename(this);
-    }
+  public accept<T>(visitor: IInstVisitor<T>): T {
+    return visitor.visitRename(this);
+  }
 }
 
 export class DeleteInst extends Inst {
-    public declared(): IterableIterator<IToken> {
-        throw new Error("Method not implemented.");
-    }
-    constructor(
-        public readonly deleteToken: IToken,
-        public readonly expression: IExpr,
-        public readonly from?: IToken,
-        public readonly target?: IExpr) {
-        super();
-    }
+  public declared(): IterableIterator<IToken> {
+    throw new Error('Method not implemented.');
+  }
+  constructor(
+    public readonly deleteToken: IToken,
+    public readonly expression: IExpr,
+    public readonly from?: IToken,
+    public readonly target?: IExpr) {
+    super();
+  }
 
-    public accept<T>(visitor: IInstVisitor<T>): T {
-        return visitor.visitDelete(this);
-    }
+  public accept<T>(visitor: IInstVisitor<T>): T {
+    return visitor.visitDelete(this);
+  }
 }
 
 export class RunInst extends Inst {
-    public declared(): IterableIterator<IToken> {
-        throw new Error("Method not implemented.");
-    }
-    constructor(
-        public readonly run: IToken,
-        public readonly identifier: IToken,
-        public readonly once?: IToken,
-        public readonly open?: IToken,
-        public readonly args?: IExpr[],
-        public readonly close?: IToken,
-        public readonly on?: IToken,
-        public readonly expr?: IExpr ) {
-        super();
-    }
+  public declared(): IterableIterator<IToken> {
+    throw new Error('Method not implemented.');
+  }
+  constructor(
+    public readonly run: IToken,
+    public readonly identifier: IToken,
+    public readonly once?: IToken,
+    public readonly open?: IToken,
+    public readonly args?: IExpr[],
+    public readonly close?: IToken,
+    public readonly on?: IToken,
+    public readonly expr?: IExpr) {
+    super();
+  }
 
-    public accept<T>(visitor: IInstVisitor<T>): T {
-        return visitor.visitRun(this);
-    }
+  public accept<T>(visitor: IInstVisitor<T>): T {
+    return visitor.visitRun(this);
+  }
 }
 
 export class RunPathInst extends Inst {
-    public declared(): IterableIterator<IToken> {
-        throw new Error("Method not implemented.");
-    }
-    constructor(
-        public readonly runPath: IToken,
-        public readonly open: IToken,
-        public readonly expression: IExpr,
-        public readonly close: IToken,
-        public readonly args?: IExpr[]) {
-        super();
-    }
+  public declared(): IterableIterator<IToken> {
+    throw new Error('Method not implemented.');
+  }
+  constructor(
+    public readonly runPath: IToken,
+    public readonly open: IToken,
+    public readonly expression: IExpr,
+    public readonly close: IToken,
+    public readonly args?: IExpr[]) {
+    super();
+  }
 
-    public accept<T>(visitor: IInstVisitor<T>): T {
-        return visitor.visitRunPath(this);
-    }
+  public accept<T>(visitor: IInstVisitor<T>): T {
+    return visitor.visitRunPath(this);
+  }
 }
 
 export class RunPathOnceInst extends Inst {
-    public declared(): IterableIterator<IToken> {
-        throw new Error("Method not implemented.");
-    }
-    constructor(
-        public readonly runPath: IToken,
-        public readonly open: IToken,
-        public readonly expression: IExpr,
-        public readonly close: IToken,
-        public readonly args?: IExpr[]) {
-        super();
-    }
+  public declared(): IterableIterator<IToken> {
+    throw new Error('Method not implemented.');
+  }
+  constructor(
+    public readonly runPath: IToken,
+    public readonly open: IToken,
+    public readonly expression: IExpr,
+    public readonly close: IToken,
+    public readonly args?: IExpr[]) {
+    super();
+  }
 
-    public accept<T>(visitor: IInstVisitor<T>): T {
-        return visitor.visitRunPathOnce(this);
-    }
+  public accept<T>(visitor: IInstVisitor<T>): T {
+    return visitor.visitRunPathOnce(this);
+  }
 }
 
 export class CompileInst extends Inst {
-    public declared(): IterableIterator<IToken> {
-        throw new Error("Method not implemented.");
-    }
-    constructor(
-        public readonly compile: IToken,
-        public readonly expression: IExpr,
-        public readonly to?: IToken,
-        public readonly target?: IExpr) {
-        super();
-    }
+  public declared(): IterableIterator<IToken> {
+    throw new Error('Method not implemented.');
+  }
+  constructor(
+    public readonly compile: IToken,
+    public readonly expression: IExpr,
+    public readonly to?: IToken,
+    public readonly target?: IExpr) {
+    super();
+  }
 
-    public accept<T>(visitor: IInstVisitor<T>): T {
-        return visitor.visitCompile(this);
-    }
+  public accept<T>(visitor: IInstVisitor<T>): T {
+    return visitor.visitCompile(this);
+  }
 }
 
 export class ListInst extends Inst {
-    public declared(): IterableIterator<IToken> {
-        throw new Error("Method not implemented.");
-    }
-    constructor(
-        public readonly list: IToken,
-        public readonly identifier?: IToken,
-        public readonly inToken?: IToken,
-        public readonly target?: IToken) {
-        super();
-    }
-    
-    public accept<T>(visitor: IInstVisitor<T>): T {
-        return visitor.visitList(this);
-    }
+  public declared(): IterableIterator<IToken> {
+    throw new Error('Method not implemented.');
+  }
+  constructor(
+    public readonly list: IToken,
+    public readonly identifier?: IToken,
+    public readonly inToken?: IToken,
+    public readonly target?: IToken) {
+    super();
+  }
+
+  public accept<T>(visitor: IInstVisitor<T>): T {
+    return visitor.visitList(this);
+  }
 }
 
 export class EmptyInst extends Inst {
-    public declared(): IterableIterator<IToken> {
-        throw new Error("Method not implemented.");
-    }
-    constructor(public readonly empty: IToken) {
-        super();
-    }
+  public declared(): IterableIterator<IToken> {
+    throw new Error('Method not implemented.');
+  }
+  constructor(public readonly empty: IToken) {
+    super();
+  }
 
-    public accept<T>(visitor: IInstVisitor<T>): T {
-        return visitor.visitEmpty(this);
-    }
+  public accept<T>(visitor: IInstVisitor<T>): T {
+    return visitor.visitEmpty(this);
+  }
 }
 
 export class PrintInst extends Inst {
-    public declared(): IterableIterator<IToken> {
-        throw new Error("Method not implemented.");
-    }
-    constructor(
-        public readonly print: IToken,
-        public readonly expression: IExpr,
-        public readonly at?: IToken,
-        public readonly open?: IToken,
-        public readonly x?: IExpr,
-        public readonly y?: IExpr,
-        public readonly close?: IToken) {
-        super();
-    }
+  public declared(): IterableIterator<IToken> {
+    throw new Error('Method not implemented.');
+  }
+  constructor(
+    public readonly print: IToken,
+    public readonly expression: IExpr,
+    public readonly at?: IToken,
+    public readonly open?: IToken,
+    public readonly x?: IExpr,
+    public readonly y?: IExpr,
+    public readonly close?: IToken) {
+    super();
+  }
 
-    public accept<T>(visitor: IInstVisitor<T>): T {
-        return visitor.visitPrint(this);
-    }
+  public accept<T>(visitor: IInstVisitor<T>): T {
+    return visitor.visitPrint(this);
+  }
 }

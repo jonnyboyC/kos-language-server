@@ -155,7 +155,7 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   public visitDeclFunction(decl: DeclFunction): ResolverError[] {
     let scopeError: Maybe<ResolverError> = undefined;
 
-    // check that parameter isn't declared global
+    // check that function isn't declared global
     if (!empty(decl.scope) && !empty(decl.scope.scope)) {
       if (decl.scope.scope.type === TokenType.Global) {
         scopeError = new ResolverError(decl.scope.scope, 'Function cannot be global', []);
@@ -163,15 +163,15 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
     }
 
     return empty(scopeError)
-            ? this.resolveInst(decl.instructionBlock)
-            : this.resolveInst(decl.instructionBlock).concat(scopeError);
+      ? this.resolveInst(decl.instructionBlock)
+      : this.resolveInst(decl.instructionBlock).concat(scopeError);
   }
 
     // check parameter declaration
   public visitDeclParameter(decl: DeclParameter): ResolverError[] {
     const scopeError: Maybe<ResolverError>[] = [];
 
-        // check that parameter isn't declared global
+    // check that parameter isn't declared global
     if (!empty(decl.scope) && !empty(decl.scope.scope)) {
       if (decl.scope.scope.type === TokenType.Global) {
         scopeError.push(new ResolverError(decl.scope.scope, 'Parameters cannot be global', []));

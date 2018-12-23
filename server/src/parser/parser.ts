@@ -1154,23 +1154,41 @@ export class Parser {
 
   // attempt to synchronize parser
   private synchronize(): void {
-    this.advance();
+    // need to confirm this is the only case
+    if (this.peek().type === TokenType.CurlyClose) {
+      this.advance();
+    }
 
     while (!this.isAtEnd()) {
       if (this.previous().type === TokenType.Period) return;
 
       switch (this.peek().type) {
+        // declarations
+        case TokenType.Declare:
+        case TokenType.Function:
+        case TokenType.Parameter:
+        case TokenType.Lock:
+        case TokenType.Local:
+        case TokenType.Global:
+
+        // commands
         case TokenType.Stage:
         case TokenType.Clearscreen:
         case TokenType.Preserve:
         case TokenType.Reboot:
         case TokenType.Shutdown:
+
+        // command expressions
         case TokenType.Edit:
         case TokenType.Add:
         case TokenType.Remove:
+
+        // variable instructions
         case TokenType.Unset:
         case TokenType.Unlock:
         case TokenType.Set:
+
+        // control flow
         case TokenType.If:
         case TokenType.Until:
         case TokenType.From:
@@ -1182,6 +1200,8 @@ export class Parser {
         case TokenType.On:
         case TokenType.Toggle:
         case TokenType.Wait:
+
+        // io instructions
         case TokenType.Log:
         case TokenType.Copy:
         case TokenType.Rename:

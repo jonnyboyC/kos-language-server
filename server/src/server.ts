@@ -28,7 +28,6 @@ import { Resolver } from './analysis/resolver';
 import { IResolverError } from './analysis/types';
 import { ScopeManager } from './analysis/scopeManager';
 import { FuncResolver } from './analysis/functionResolver';
-import { IToken } from './entities/types';
 import { empty } from './utilities/typeGuards';
 import { FileInsts } from './entities/fileInsts';
 import { TokenManager } from './scanner/tokenManager';
@@ -118,36 +117,25 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 
   connection.console.log('');
   connection.console.log(`Scanning ${textDocument.uri}`);
+  connection.console.log('');
   const scanner = new Scanner(text);
-  const tokens = scanner.scanTokens();
+  const [tokens, scanErrors] = scanner.scanTokens();
 
   // if scanner found errors report those immediately
-  if (hasScanError(tokens)) {
-    const diagnostics: Diagnostic[] = tokens
-      .map(error => scanToDiagnostics(error));
-
-    connection.console.log(`Scanning encountered ${diagnostics.length} errors bailing.`);
-    connection.sendDiagnostics({ diagnostics, uri: textDocument.uri });
-    return;
+  if (scanErrors.length > 0) {
+    connection.console.warn(`Scanning encountered ${scanErrors.length} Errors.`);
   }
 
   const tokenManager = new TokenManager(tokens);
 
   // parse scanned tokens
   connection.console.log(`Parsing ${textDocument.uri}`);
+  connection.console.log('');
   const parser = new Parser(tokens);
-  const [fileInsts, errors] = parser.parse();
+  const [fileInsts, parseErrors] = parser.parse();
 
-  // generate new parser errors
-  let diagnostics: Diagnostic[] = [];
-
-  if (errors.length > 0) {
-    errors.map(error => [
-      parseToDiagnostics(error),
-      ...error.inner.map(innerError => parseToDiagnostics(innerError)),
-    ])
-    .reduce((acc, current) => acc.concat(current));
-    connection.console.log(`Parser encountered ${errors}.`);
+  if (parseErrors.length > 0) {
+    connection.console.warn(`Parser encountered ${parseErrors.length} Errors.`);
   }
 
   // generate a scope manager for resolving
@@ -159,15 +147,26 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 
   // resolve the rest of the script
   connection.console.log(`Function resolving ${textDocument.uri}`);
-  const funcErrors = funcResolver.resolve();
+  connection.console.log('');
+  let resolverErrors = funcResolver.resolve();
 
   // perform an initial function pass
   connection.console.log(`Resolving ${textDocument.uri}`);
-  const resolverErrors = resolver.resolve();
+  connection.console.log('');
+  resolverErrors = resolverErrors.concat(resolver.resolve());
 
-  diagnostics = diagnostics.concat(resolverErrors
-    .concat(funcErrors)
-    .map(error => resolverToDiagnostics(error)));
+  if (resolverErrors.length > 0) {
+    connection.console.warn(`Resolver encountered ${parseErrors.length} Errors.`);
+  }
+
+  // generate all diagnostics
+  const diagnostics: Diagnostic[] = scanErrors.map(error => scanToDiagnostics(error)).concat(
+    parseErrors.length === 0 ? [] : parseErrors.map(error => error.inner.concat(error))
+      .reduce((acc, current) => acc.concat(current))
+      .map(error => parseToDiagnostics(error)),
+    resolverErrors
+      .map(error => resolverToDiagnostics(error)),
+    );
 
   scopeMap.set(textDocument.uri, {
     tokenManager,
@@ -176,10 +175,6 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
   });
   connection.sendDiagnostics({ diagnostics, uri: textDocument.uri });
 }
-
-const hasScanError = (tokens: IToken[] | ISyntaxError[]): tokens is ISyntaxError[] => {
-  return tokens[0].tag === 'syntaxError';
-};
 
 connection.onDidChangeWatchedFiles((change: DidChangeWatchedFilesParams) => {
   // Monitored files have change in VSCode
@@ -223,8 +218,8 @@ connection.onSignatureHelp(
 
     // we need the scope and token managers for this document
     if (!(empty(documentInfo)
-    || empty(documentInfo.scopeManager)
-    || empty(documentInfo.tokenManager))) {
+      || empty(documentInfo.scopeManager)
+      || empty(documentInfo.tokenManager))) {
 
       // attempt to find a token here
       const tokenFound = documentInfo.tokenManager.find(position);

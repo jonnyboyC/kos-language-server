@@ -101,7 +101,7 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
 
     // functions are default global at file scope and local everywhere else
     if (empty(scopeType)) {
-      scopeType = this.scopeMan.isFile()
+      scopeType = this.scopeMan.isFileScope()
         ? ScopeType.global
         : ScopeType.local;
     }
