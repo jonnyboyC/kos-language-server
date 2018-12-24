@@ -42,12 +42,12 @@ export class SyntaxTreeFind implements IExprVisitor<Maybe<IToken>>, IInstVisitor
     return inst && this.findInst(inst);
   }
 
-  // resolve for an instruction
+  // find an instruction
   private findInst(inst: IInst): Maybe<IToken> {
     return inst.accept(this);
   }
 
-  // resolve for an expression
+  // find an expression
   private findExpr(expr: IExpr): Maybe<IToken> {
     return expr.accept(this);
   }
@@ -74,7 +74,11 @@ export class SyntaxTreeFind implements IExprVisitor<Maybe<IToken>>, IInstVisitor
   }
 
   visitDeclVariable(decl: DeclVariable): Maybe<IToken> {
+    if (rangeContains(decl.toIs, this.pos)) {
+      return decl.toIs;
+    }
 
+    if (rangeBefore(decl.toIs, ))
 
     throw new Error('Method not implemented.');
   }

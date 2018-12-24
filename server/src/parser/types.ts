@@ -32,18 +32,19 @@ export interface IParseError {
 
 export interface IExpr extends IExprVisitable, Range {
   tag: 'expr';
+  ranges: Range[];
   toString(): string;
 }
 
 export interface IInst extends IInstVisitable, Range {
   tag: 'inst';
+  ranges: Range[];
 }
 
-export interface IDeclScope {
+export interface IDeclScope extends Range {
   declare?: IToken;
   scope?: IToken;
   type: ScopeType;
-  range: Range;
 }
 
 export interface IExprVisitable {

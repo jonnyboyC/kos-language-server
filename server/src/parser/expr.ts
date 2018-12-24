@@ -8,6 +8,7 @@ export abstract class Expr implements IExpr {
     return 'expr';
   }
 
+  public abstract get ranges(): Range[];
   public abstract toString(): string;
   public abstract get start(): Position;
   public abstract get end(): Position;
@@ -28,6 +29,10 @@ export class BinaryExpr extends Expr {
 
   public get end(): Position {
     return this.right.end;
+  }
+
+  public get ranges(): Range[] {
+    return [this.left, this.operator, this.right];
   }
 
   public toString(): string {
@@ -52,6 +57,10 @@ export class UnaryExpr extends Expr {
 
   public get end(): Position {
     return this.factor.end;
+  }
+
+  public get ranges(): Range[] {
+    return [this.operator, this.factor];
   }
 
   public toString(): string {
@@ -79,6 +88,10 @@ export class FactorExpr extends Expr {
     return this.exponent.end;
   }
 
+  public get ranges(): Range[] {
+    return [this.suffix, this.power, this.exponent];
+  }
+
   public toString(): string {
     return `${this.suffix.toString()} ${this.power.toString()} ${this.exponent.toString()}`;
   }
@@ -102,6 +115,10 @@ export class SuffixExpr extends Expr {
 
   public get end(): Position {
     return this.trailer.end;
+  }
+
+  public get ranges(): Range[] {
+    return [this.suffix, this.colon, this.trailer];
   }
 
   public toString(): string {
@@ -130,6 +147,10 @@ export class CallExpr extends Expr {
     return this.close.end;
   }
 
+  public get ranges(): Range[] {
+    return [this.callee, this.open, ...this.args, this.close];
+  }
+
   public toString(): string {
     return `${this.callee.toString()}${this.open.lexeme}`
      + `${this.args.map(a => a.toString()).join(', ')}${this.close.lexeme}`;
@@ -154,6 +175,10 @@ export class ArrayIndexExpr extends Expr {
 
   public get end(): Position {
     return this.index.end;
+  }
+
+  public get ranges(): Range[] {
+    return [this.array, this.indexer, this.index];
   }
 
   public toString(): string {
@@ -182,6 +207,10 @@ export class ArrayBracketExpr extends Expr {
     return this.close.end;
   }
 
+  public get ranges(): Range[] {
+    return [this.array, this.open, this.index, this.close];
+  }
+
   public toString(): string {
     return `${this.array.toString()}${this.open.lexeme}`
       + `${this.index.toString()}${this.close.lexeme}`;
@@ -207,6 +236,10 @@ export class DelegateExpr extends Expr {
     return this.atSign.end;
   }
 
+  public get ranges(): Range[] {
+    return [this.variable, this.atSign];
+  }
+
   public toString(): string {
     return `${this.variable.toString()}${this.atSign.lexeme}`;
   }
@@ -227,6 +260,10 @@ export class LiteralExpr extends Expr {
 
   public get end(): Position {
     return this.token.end;
+  }
+
+  public get ranges(): Range[] {
+    return [this.token];
   }
 
   public toString(): string {
@@ -250,6 +287,10 @@ export class VariableExpr extends Expr {
 
   public get end(): Position {
     return this.token.end;
+  }
+
+  public get ranges(): Range[] {
+    return [this.token];
   }
 
   public get isKeyword(): boolean {
@@ -282,6 +323,10 @@ export class GroupingExpr extends Expr {
     return this.close.end;
   }
 
+  public get ranges(): Range[] {
+    return [this.open, this.expr, this.close];
+  }
+
   public toString(): string {
     return `${this.open.lexeme}${this.expr.toString()}${this.close.lexeme}`;
   }
@@ -305,6 +350,10 @@ export class AnonymousFunctionExpr extends Expr {
 
   public get end(): Position {
     return this.close.end;
+  }
+
+  public get ranges(): Range[] {
+    return [this.open, ...this.instruction, this.close];
   }
 
   public toString(): string {

@@ -8,6 +8,7 @@ export abstract class Inst implements IInst {
     return 'inst';
   }
 
+  public abstract get ranges(): Range[];
   public abstract get start(): Position;
   public abstract get end(): Position;
   public abstract accept<T>(visitor: IInstVisitor<T>): T;
@@ -29,6 +30,10 @@ export class BlockInst extends Inst {
     return this.close.end;
   }
 
+  public get ranges(): Range[] {
+    return [this.open, ...this.instructions, this.close];
+  }
+
   public accept<T>(visitor: IInstVisitor<T>): T {
     return visitor.visitBlock(this);
   }
@@ -46,6 +51,10 @@ export class ExprInst extends Inst {
 
   public get end(): Position {
     return this.suffix.end;
+  }
+
+  public get ranges(): Range[] {
+    return [this.suffix];
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -68,6 +77,10 @@ export class OnOffInst extends Inst {
     return this.onOff.end;
   }
 
+  public get ranges(): Range[] {
+    return [this.suffix, this.onOff];
+  }
+
   public accept<T>(visitor: IInstVisitor<T>): T {
     return visitor.visitOnOff(this);
   }
@@ -84,6 +97,10 @@ export class CommandInst extends Inst {
 
   public get end(): Position {
     return this.command.end;
+  }
+
+  public get ranges(): Range[] {
+    return [this.command];
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -106,6 +123,10 @@ export class CommandExpressionInst extends Inst {
     return this.expression.end;
   }
 
+  public get ranges(): Range[] {
+    return [this.command, this.expression];
+  }
+
   public accept<T>(visitor: IInstVisitor<T>): T {
     return visitor.visitCommandExpr(this);
   }
@@ -126,6 +147,10 @@ export class UnsetInst extends Inst {
     return this.identifier.end;
   }
 
+  public get ranges(): Range[] {
+    return [this.unset, this.identifier];
+  }
+
   public accept<T>(visitor: IInstVisitor<T>): T {
     return visitor.visitUnset(this);
   }
@@ -144,6 +169,10 @@ export class UnlockInst extends Inst {
 
   public get end(): Position {
     return this.identifier.end;
+  }
+
+  public get ranges(): Range[] {
+    return [this.unlock, this.identifier];
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -168,6 +197,10 @@ export class SetInst extends Inst {
     return this.value.end;
   }
 
+  public get ranges(): Range[] {
+    return [this.set, this.suffix, this.to, this.value];
+  }
+
   public accept<T>(visitor: IInstVisitor<T>): T {
     return visitor.visitSet(this);
   }
@@ -187,6 +220,10 @@ export class LazyGlobalInst extends Inst {
 
   public get end(): Position {
     return this.onOff.end;
+  }
+
+  public get ranges(): Range[] {
+    return [this.atSign, this.lazyGlobal, this.onOff];
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -213,6 +250,15 @@ export class IfInst extends Inst {
     : this.elseInst.end;
   }
 
+  public get ranges(): Range[] {
+    const ranges = [this.ifToken, this.condition, this.instruction];
+    if (!empty(this.elseInst)) {
+      ranges.push(this.elseInst);
+    }
+
+    return ranges;
+  }
+
   public accept<T>(visitor: IInstVisitor<T>): T {
     return visitor.visitIf(this);
   }
@@ -231,6 +277,10 @@ export class ElseInst extends Inst {
 
   public get end(): Position {
     return this.instruction.end;
+  }
+
+  public get ranges(): Range[] {
+    return [this.elseToken, this.instruction];
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -252,6 +302,10 @@ export class UntilInst extends Inst {
 
   public get end(): Position {
     return this.instruction.end;
+  }
+
+  public get ranges(): Range[] {
+    return [this.until, this.condition, this.instruction];
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -280,6 +334,15 @@ export class FromInst extends Inst {
     return this.instruction.end;
   }
 
+  public get ranges(): Range[] {
+    return [
+      this.from, this.initializer,
+      this.until, this.condition,
+      this.step, this.increment,
+      this.doToken, this.instruction,
+    ];
+  }
+
   public accept<T>(visitor: IInstVisitor<T>): T {
     return visitor.visitFrom(this);
   }
@@ -300,6 +363,13 @@ export class WhenInst extends Inst {
 
   public get end(): Position {
     return this.instruction.end;
+  }
+
+  public get ranges(): Range[] {
+    return [
+      this.when, this.condition,
+      this.then, this.instruction,
+    ];
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -324,6 +394,15 @@ export class ReturnInst extends Inst {
       : this.value.end;
   }
 
+  public get ranges(): Range[] {
+    const ranges = [this.returnToken];
+    if (!empty(this.value)) {
+      this.ranges.push(this.value);
+    }
+
+    return ranges;
+  }
+
   public accept<T>(visitor: IInstVisitor<T>): T {
     return visitor.visitReturn(this);
   }
@@ -341,6 +420,10 @@ export class BreakInst extends Inst {
 
   public get end(): Position {
     return this.breakToken.end;
+  }
+
+  public get ranges(): Range[] {
+    return [this.breakToken];
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -362,6 +445,10 @@ export class SwitchInst extends Inst {
 
   public get end(): Position {
     return this.target.end;
+  }
+
+  public get ranges(): Range[] {
+    return [this.switchToken, this.to, this.target];
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -387,6 +474,14 @@ export class ForInst extends Inst {
     return this.instruction.end;
   }
 
+  public get ranges(): Range[] {
+    return [
+      this.forToken, this.identifier,
+      this.inToken, this.suffix,
+      this.instruction,
+    ];
+  }
+
   public accept<T>(visitor: IInstVisitor<T>): T {
     return visitor.visitFor(this);
   }
@@ -406,6 +501,10 @@ export class OnInst extends Inst {
 
   public get end(): Position {
     return this.instruction.end;
+  }
+
+  public get ranges(): Range[] {
+    return [this.on, this.suffix, this.instruction];
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -431,6 +530,10 @@ export class ToggleInst extends Inst {
     return this.suffix.end;
   }
 
+  public get ranges(): Range[] {
+    return [this.toggle, this.suffix];
+  }
+
   public accept<T>(visitor: IInstVisitor<T>): T {
     return visitor.visitToggle(this);
   }
@@ -450,6 +553,14 @@ export class WaitInst extends Inst {
 
   public get end(): Position {
     return this.expression.end;
+  }
+
+  public get ranges(): Range[] {
+    if (empty(this.until)) {
+      return [this.wait, this.expression];
+    }
+
+    return [this.wait, this.until, this.expression];
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -474,6 +585,10 @@ export class LogInst extends Inst {
     return this.target.end;
   }
 
+  public get ranges(): Range[] {
+    return [this.log, this.expression, this.to, this.target];
+  }
+
   public accept<T>(visitor: IInstVisitor<T>): T {
     return visitor.visitLog(this);
   }
@@ -494,6 +609,10 @@ export class CopyInst extends Inst {
 
   public get end(): Position {
     return this.target.end;
+  }
+
+  public get ranges(): Range[] {
+    return [this.copy, this.expression, this.toFrom, this.target];
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -517,6 +636,14 @@ export class RenameInst extends Inst {
 
   public get end(): Position {
     return this.target.end;
+  }
+
+  public get ranges(): Range[] {
+    return [
+      this.rename, this.ioIdentifer,
+      this.expression, this.to,
+      this.target,
+    ];
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -544,6 +671,16 @@ export class DeleteInst extends Inst {
     return empty(this.target)
       ? this.expression.end
       : this.target.end;
+  }
+
+  public get ranges(): Range[] {
+    const ranges = [this.deleteToken, this.expression];
+    if (!empty(this.from) && !empty(this.target)) {
+      ranges.push(this.from);
+      ranges.push(this.target);
+    }
+
+    return ranges;
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -576,6 +713,29 @@ export class RunInst extends Inst {
         : this.identifier.end;
   }
 
+  public get ranges(): Range[] {
+    const ranges: Range[] = [this.run];
+    if (!empty(this.once)) {
+      ranges.push(this.once);
+    }
+    ranges.push(this.identifier);
+    if (!empty(this.open) && !empty(this.args) && !empty(this.close)) {
+      ranges.push(this.open);
+      for (const arg of this.args) {
+        ranges.push(arg);
+      }
+
+      ranges.push(this.close);
+    }
+
+    if (!empty(this.on) && !empty(this.expr)) {
+      ranges.push(this.on);
+      ranges.push(this.expr);
+    }
+
+    return ranges;
+  }
+
   public accept<T>(visitor: IInstVisitor<T>): T {
     return visitor.visitRun(this);
   }
@@ -597,6 +757,18 @@ export class RunPathInst extends Inst {
 
   public get end(): Position {
     return this.close.end;
+  }
+
+  public get ranges(): Range[] {
+    const ranges: Range[] = [this.runPath, this.open, this.expression];
+    if (!empty(this.args)) {
+      for (const arg of this.args) {
+        ranges.push(arg);
+      }
+    }
+
+    ranges.push(this.close);
+    return ranges;
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -622,6 +794,18 @@ export class RunPathOnceInst extends Inst {
     return this.close.end;
   }
 
+  public get ranges(): Range[] {
+    const ranges: Range[] = [this.runPath, this.open, this.expression];
+    if (!empty(this.args)) {
+      for (const arg of this.args) {
+        ranges.push(arg);
+      }
+    }
+
+    ranges.push(this.close);
+    return ranges;
+  }
+
   public accept<T>(visitor: IInstVisitor<T>): T {
     return visitor.visitRunPathOnce(this);
   }
@@ -644,6 +828,16 @@ export class CompileInst extends Inst {
     return empty(this.target)
       ? this.expression.end
       : this.target.end;
+  }
+
+  public get ranges(): Range[] {
+    const ranges: Range[] = [this.compile, this.expression];
+    if (!empty(this.to) && !empty(this.target)) {
+      ranges.push(this.to);
+      ranges.push(this.target);
+    }
+
+    return ranges;
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -672,6 +866,21 @@ export class ListInst extends Inst {
         : this.list.end;
   }
 
+  public get ranges(): Range[] {
+    const ranges: Range[] = [this.list];
+
+    if (!empty(this.identifier)) {
+      ranges.push(this.identifier);
+
+      if (!empty(this.inToken) && !empty(this.target)) {
+        ranges.push(this.inToken);
+        ranges.push(this.target);
+      }
+    }
+
+    return ranges;
+  }
+
   public accept<T>(visitor: IInstVisitor<T>): T {
     return visitor.visitList(this);
   }
@@ -688,6 +897,10 @@ export class EmptyInst extends Inst {
 
   public get end(): Position {
     return this.empty.end;
+  }
+
+  public get ranges(): Range[] {
+    return [this.empty];
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -715,6 +928,24 @@ export class PrintInst extends Inst {
     return empty(this.close)
       ? this.expression.end
       : this.close.end;
+  }
+
+  public get ranges(): Range[] {
+    const ranges = [this.print, this.expression];
+
+    if (!empty(this.at)
+      && !empty(this.open)
+      && !empty(this.x)
+      && !empty(this.y)
+      && !empty(this.close)) {
+      ranges.push(this.at);
+      ranges.push(this.open);
+      ranges.push(this.x);
+      ranges.push(this.y);
+      ranges.push(this.close);
+    }
+
+    return ranges;
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
