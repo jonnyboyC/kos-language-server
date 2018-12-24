@@ -1,17 +1,17 @@
-import { IExprVisitor, IExpr } from "../parser/types";
+import { IExprVisitor, IExpr } from '../parser/types';
 import { BinaryExpr, UnaryExpr, FactorExpr, SuffixExpr,
   CallExpr, ArrayIndexExpr, ArrayBracketExpr, DelegateExpr,
-  LiteralExpr, VariableExpr, GroupingExpr, AnonymousFunctionExpr } from "../parser/expr";
-import { IToken } from "../entities/types";
+  LiteralExpr, VariableExpr, GroupingExpr, AnonymousFunctionExpr } from '../parser/expr';
+import { IToken } from '../entities/types';
 
 export class LocalResolver implements IExprVisitor<IToken[]> {
-  public resolveExpr(expr: IExpr): IToken[] { 
+  public resolveExpr(expr: IExpr): IToken[] {
     return expr.accept(this);
   }
   public visitBinary(expr: BinaryExpr): IToken[] {
     return this.resolveExpr(expr.left)
       .concat(this.resolveExpr(expr.right));
-  }  
+  }
   public visitUnary(expr: UnaryExpr): IToken[] {
     return this.resolveExpr(expr.factor)
       .concat(this.resolveExpr(expr.factor));
@@ -26,7 +26,7 @@ export class LocalResolver implements IExprVisitor<IToken[]> {
   }
   public visitCall(expr: CallExpr): IToken[] {
     return this.resolveExpr(expr.callee)
-      .concat(...expr.args.map(arg => this.resolveExpr(arg)))
+      .concat(...expr.args.map(arg => this.resolveExpr(arg)));
   }
   public visitArrayIndex(expr: ArrayIndexExpr): IToken[] {
     return this.resolveExpr(expr.array);
@@ -38,6 +38,7 @@ export class LocalResolver implements IExprVisitor<IToken[]> {
   public visitDelegate(expr: DelegateExpr): IToken[] {
     return this.resolveExpr(expr.variable);
   }
+  // tslint:disable-next-line:variable-name
   public visitLiteral(_expr: LiteralExpr): IToken[] {
     return [];
   }
@@ -47,6 +48,7 @@ export class LocalResolver implements IExprVisitor<IToken[]> {
   public visitGrouping(expr: GroupingExpr): IToken[] {
     return this.resolveExpr(expr.expr);
   }
+  // tslint:disable-next-line:variable-name
   public visitAnonymousFunction(_expr: AnonymousFunctionExpr): IToken[] {
     return [];
   }

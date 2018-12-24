@@ -20,6 +20,7 @@ import {
 } from './inst';
 import { DeclVariable, DeclLock, DeclFunction, DeclParameter } from './declare';
 import { IToken } from '../entities/types';
+import { Range } from 'vscode-languageserver';
 
 export interface IParseError {
   tag: 'parseError';
@@ -31,16 +32,20 @@ export interface IParseError {
 
 export interface IExpr extends IExprVisitable {
   tag: 'expr';
+  range: Range;
+  toString(): string;
 }
 
 export interface IInst extends IInstVisitable {
   tag: 'inst';
+  range: Range;
 }
 
 export interface IDeclScope {
   declare?: IToken;
   scope?: IToken;
   type: ScopeType;
+  range: Range;
 }
 
 export interface IExprVisitable {
