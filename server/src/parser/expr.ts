@@ -1,7 +1,7 @@
 import { IExpr, IInst, IExprVisitor } from './types';
 import { TokenType } from '../entities/tokentypes';
 import { IToken } from '../entities/types';
-import { Range } from 'vscode-languageserver';
+import { Range, Position } from 'vscode-languageserver';
 
 export abstract class Expr implements IExpr {
   get tag(): 'expr' {
@@ -9,7 +9,8 @@ export abstract class Expr implements IExpr {
   }
 
   public abstract toString(): string;
-  public abstract get range(): Range;
+  public abstract get start(): Position;
+  public abstract get end(): Position;
   public abstract accept<T>(visitor: IExprVisitor<T>): T;
 }
 
@@ -21,11 +22,12 @@ export class BinaryExpr extends Expr {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.left.range.start,
-      end: this.right.range.end,
-    };
+  public get start(): Position {
+    return this.left.start;
+  }
+
+  public get end(): Position {
+    return this.right.end;
   }
 
   public toString(): string {
@@ -44,11 +46,12 @@ export class UnaryExpr extends Expr {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.operator.start,
-      end: this.factor.range.end,
-    };
+  public get start(): Position {
+    return this.operator.start;
+  }
+
+  public get end(): Position {
+    return this.factor.end;
   }
 
   public toString(): string {
@@ -68,11 +71,12 @@ export class FactorExpr extends Expr {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.suffix.range.start,
-      end: this.suffix.range.end,
-    };
+  public get start(): Position {
+    return this.suffix.start;
+  }
+
+  public get end(): Position {
+    return this.exponent.end;
   }
 
   public toString(): string {
@@ -92,11 +96,12 @@ export class SuffixExpr extends Expr {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.suffix.range.start,
-      end: this.suffix.range.end,
-    };
+  public get start(): Position {
+    return this.suffix.start;
+  }
+
+  public get end(): Position {
+    return this.trailer.end;
   }
 
   public toString(): string {
@@ -117,11 +122,12 @@ export class CallExpr extends Expr {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.callee.range.start,
-      end: this.close.end,
-    };
+  public get start(): Position {
+    return this.callee.start;
+  }
+
+  public get end(): Position {
+    return this.close.end;
   }
 
   public toString(): string {
@@ -142,11 +148,12 @@ export class ArrayIndexExpr extends Expr {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.array.range.start,
-      end: this.index.end,
-    };
+  public get start(): Position {
+    return this.array.start;
+  }
+
+  public get end(): Position {
+    return this.index.end;
   }
 
   public toString(): string {
@@ -167,11 +174,12 @@ export class ArrayBracketExpr extends Expr {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.array.range.start,
-      end: this.close.end,
-    };
+  public get start(): Position {
+    return this.array.start;
+  }
+
+  public get end(): Position {
+    return this.close.end;
   }
 
   public toString(): string {
@@ -191,11 +199,12 @@ export class DelegateExpr extends Expr {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.variable.range.start,
-      end: this.atSign.end,
-    };
+  public get start(): Position {
+    return this.variable.start;
+  }
+
+  public get end(): Position {
+    return this.atSign.end;
   }
 
   public toString(): string {
@@ -212,11 +221,12 @@ export class LiteralExpr extends Expr {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.token.start,
-      end: this.token.end,
-    };
+  public get start(): Position {
+    return this.token.start;
+  }
+
+  public get end(): Position {
+    return this.token.end;
   }
 
   public toString(): string {
@@ -234,11 +244,12 @@ export class VariableExpr extends Expr {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.token.start,
-      end: this.token.end,
-    };
+  public get start(): Position {
+    return this.token.start;
+  }
+
+  public get end(): Position {
+    return this.token.end;
   }
 
   public get isKeyword(): boolean {
@@ -263,11 +274,12 @@ export class GroupingExpr extends Expr {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.open.start,
-      end: this.close.end,
-    };
+  public get start(): Position {
+    return this.open.start;
+  }
+
+  public get end(): Position {
+    return this.close.end;
   }
 
   public toString(): string {
@@ -287,11 +299,12 @@ export class AnonymousFunctionExpr extends Expr {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.open.start,
-      end: this.close.end,
-    };
+  public get start(): Position {
+    return this.open.start;
+  }
+
+  public get end(): Position {
+    return this.close.end;
   }
 
   public toString(): string {

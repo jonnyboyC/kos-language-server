@@ -30,15 +30,13 @@ export interface IParseError {
   inner: IParseError[];
 }
 
-export interface IExpr extends IExprVisitable {
+export interface IExpr extends IExprVisitable, Range {
   tag: 'expr';
-  range: Range;
   toString(): string;
 }
 
-export interface IInst extends IInstVisitable {
+export interface IInst extends IInstVisitable, Range {
   tag: 'inst';
-  range: Range;
 }
 
 export interface IDeclScope {

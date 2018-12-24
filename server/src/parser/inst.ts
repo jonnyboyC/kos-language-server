@@ -1,6 +1,6 @@
 import { IInst, IExpr, IInstVisitor } from './types';
 import { IToken } from '../entities/types';
-import { Range } from 'vscode-languageserver';
+import { Range, Position } from 'vscode-languageserver';
 import { empty } from '../utilities/typeGuards';
 
 export abstract class Inst implements IInst {
@@ -8,7 +8,8 @@ export abstract class Inst implements IInst {
     return 'inst';
   }
 
-  public abstract get range(): Range;
+  public abstract get start(): Position;
+  public abstract get end(): Position;
   public abstract accept<T>(visitor: IInstVisitor<T>): T;
 }
 
@@ -20,11 +21,12 @@ export class BlockInst extends Inst {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.open.start,
-      end: this.close.end,
-    };
+  public get start(): Position {
+    return this.open.start;
+  }
+
+  public get end(): Position {
+    return this.close.end;
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -38,8 +40,12 @@ export class ExprInst extends Inst {
     super();
   }
 
-  public get range(): Range {
-    return this.suffix.range;
+  public get start(): Position {
+    return this.suffix.start;
+  }
+
+  public get end(): Position {
+    return this.suffix.end;
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -54,11 +60,12 @@ export class OnOffInst extends Inst {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.suffix.range.start,
-      end: this.onOff.end,
-    };
+  public get start(): Position {
+    return this.suffix.start;
+  }
+
+  public get end(): Position {
+    return this.onOff.end;
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -71,11 +78,12 @@ export class CommandInst extends Inst {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.command.start,
-      end: this.command.end,
-    };
+  public get start(): Position {
+    return this.command.start;
+  }
+
+  public get end(): Position {
+    return this.command.end;
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -90,11 +98,12 @@ export class CommandExpressionInst extends Inst {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.command.start,
-      end: this.expression.range.end,
-    };
+  public get start(): Position {
+    return this.command.start;
+  }
+
+  public get end(): Position {
+    return this.expression.end;
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -109,11 +118,12 @@ export class UnsetInst extends Inst {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.unset.start,
-      end: this.identifier.end,
-    };
+  public get start(): Position {
+    return this.unset.start;
+  }
+
+  public get end(): Position {
+    return this.identifier.end;
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -128,11 +138,12 @@ export class UnlockInst extends Inst {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.unlock.start,
-      end: this.identifier.end,
-    };
+  public get start(): Position {
+    return this.unlock.start;
+  }
+
+  public get end(): Position {
+    return this.identifier.end;
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -149,11 +160,12 @@ export class SetInst extends Inst {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.set.start,
-      end: this.value.range.end,
-    };
+  public get start(): Position {
+    return this.set.start;
+  }
+
+  public get end(): Position {
+    return this.value.end;
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -169,14 +181,12 @@ export class LazyGlobalInst extends Inst {
     super();
   }
 
-  // public *used(): IterableIterator<IToken> {
-  // }
+  public get start(): Position {
+    return this.atSign.start;
+  }
 
-  public get range(): Range {
-    return {
-      start: this.atSign.start,
-      end: this.onOff.end,
-    };
+  public get end(): Position {
+    return this.onOff.end;
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -193,13 +203,14 @@ export class IfInst extends Inst {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.ifToken.start,
-      end: empty(this.elseInst)
-        ? this.instruction.range.end
-        : this.elseInst.range.end,
-    };
+  public get start(): Position {
+    return this.ifToken.start;
+  }
+
+  public get end(): Position {
+    return empty(this.elseInst)
+    ? this.instruction.end
+    : this.elseInst.end;
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -214,11 +225,12 @@ export class ElseInst extends Inst {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.elseToken.start,
-      end: this.instruction.range.end,
-    };
+  public get start(): Position {
+    return this.elseToken.start;
+  }
+
+  public get end(): Position {
+    return this.instruction.end;
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -234,11 +246,12 @@ export class UntilInst extends Inst {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.until.start,
-      end: this.instruction.range.end,
-    };
+  public get start(): Position {
+    return this.until.start;
+  }
+
+  public get end(): Position {
+    return this.instruction.end;
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -259,11 +272,12 @@ export class FromInst extends Inst {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.from.start,
-      end: this.instruction.range.end,
-    };
+  public get start(): Position {
+    return this.from.start;
+  }
+
+  public get end(): Position {
+    return this.instruction.end;
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -280,11 +294,12 @@ export class WhenInst extends Inst {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.when.start,
-      end: this.instruction.range.end,
-    };
+  public get start(): Position {
+    return this.when.start;
+  }
+
+  public get end(): Position {
+    return this.instruction.end;
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -299,13 +314,14 @@ export class ReturnInst extends Inst {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.returnToken.start,
-      end: empty(this.value)
-        ? this.returnToken.end
-        : this.value.range.end,
-    };
+  public get start(): Position {
+    return this.returnToken.start;
+  }
+
+  public get end(): Position {
+    return empty(this.value)
+      ? this.returnToken.end
+      : this.value.end;
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -319,11 +335,12 @@ export class BreakInst extends Inst {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.breakToken.start,
-      end: this.breakToken.end,
-    };
+  public get start(): Position {
+    return this.breakToken.start;
+  }
+
+  public get end(): Position {
+    return this.breakToken.end;
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -339,11 +356,12 @@ export class SwitchInst extends Inst {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.switchToken.start,
-      end: this.target.range.end,
-    };
+  public get start(): Position {
+    return this.switchToken.start;
+  }
+
+  public get end(): Position {
+    return this.target.end;
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -361,11 +379,12 @@ export class ForInst extends Inst {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.forToken.start,
-      end: this.instruction.range.end,
-    };
+  public get start(): Position {
+    return this.forToken.start;
+  }
+
+  public get end(): Position {
+    return this.instruction.end;
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -381,11 +400,12 @@ export class OnInst extends Inst {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.on.start,
-      end: this.instruction.range.end,
-    };
+  public get start(): Position {
+    return this.on.start;
+  }
+
+  public get end(): Position {
+    return this.instruction.end;
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -403,11 +423,12 @@ export class ToggleInst extends Inst {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.toggle.start,
-      end: this.suffix.range.end,
-    };
+  public get start(): Position {
+    return this.toggle.start;
+  }
+
+  public get end(): Position {
+    return this.suffix.end;
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -423,11 +444,12 @@ export class WaitInst extends Inst {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.wait.start,
-      end: this.expression.range.end,
-    };
+  public get start(): Position {
+    return this.wait.start;
+  }
+
+  public get end(): Position {
+    return this.expression.end;
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -444,11 +466,12 @@ export class LogInst extends Inst {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.log.start,
-      end: this.target.range.end,
-    };
+  public get start(): Position {
+    return this.log.start;
+  }
+
+  public get end(): Position {
+    return this.target.end;
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -457,9 +480,6 @@ export class LogInst extends Inst {
 }
 
 export class CopyInst extends Inst {
-  public declared(): IterableIterator<IToken> {
-    throw new Error('Method not implemented.');
-  }
   constructor(
     public readonly copy: IToken,
     public readonly expression: IExpr,
@@ -468,11 +488,12 @@ export class CopyInst extends Inst {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.copy.start,
-      end: this.target.range.end,
-    };
+  public get start(): Position {
+    return this.copy.start;
+  }
+
+  public get end(): Position {
+    return this.target.end;
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -490,11 +511,12 @@ export class RenameInst extends Inst {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.rename.start,
-      end: this.target.range.end,
-    };
+  public get start(): Position {
+    return this.rename.start;
+  }
+
+  public get end(): Position {
+    return this.target.end;
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -514,13 +536,14 @@ export class DeleteInst extends Inst {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.deleteToken.start,
-      end: empty(this.target)
-        ? this.expression.range.end
-        : this.target.range.end,
-    };
+  public get start(): Position {
+    return this.deleteToken.start;
+  }
+
+  public get end(): Position {
+    return empty(this.target)
+      ? this.expression.end
+      : this.target.end;
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -541,15 +564,16 @@ export class RunInst extends Inst {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.run.start,
-      end: !empty(this.expr)
-        ? this.expr.range.end
-        : !empty(this.args)
-          ? this.args[this.args.length - 1].range.end
-          : this.identifier.end,
-    };
+  public get start(): Position {
+    return this.run.start;
+  }
+
+  public get end(): Position {
+    return !empty(this.expr)
+      ? this.expr.end
+      : !empty(this.args)
+        ? this.args[this.args.length - 1].end
+        : this.identifier.end;
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -567,11 +591,12 @@ export class RunPathInst extends Inst {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.runPath.start,
-      end: this.close.end,
-    };
+  public get start(): Position {
+    return this.runPath.start;
+  }
+
+  public get end(): Position {
+    return this.close.end;
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -589,11 +614,12 @@ export class RunPathOnceInst extends Inst {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.runPath.start,
-      end: this.close.end,
-    };
+  public get start(): Position {
+    return this.runPath.start;
+  }
+
+  public get end(): Position {
+    return this.close.end;
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -610,13 +636,14 @@ export class CompileInst extends Inst {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.compile.start,
-      end: empty(this.target)
-        ? this.expression.range.end
-        : this.target.range.end,
-    };
+  public get start(): Position {
+    return this.compile.start;
+  }
+
+  public get end(): Position {
+    return empty(this.target)
+      ? this.expression.end
+      : this.target.end;
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -633,15 +660,16 @@ export class ListInst extends Inst {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.list.start,
-      end: !empty(this.target)
-        ? this.target.end
-        : !empty(this.identifier)
-          ? this.identifier.end
-          : this.list.end,
-    };
+  public get start(): Position {
+    return this.list.start;
+  }
+
+  public get end(): Position {
+    return !empty(this.target)
+      ? this.target.end
+      : !empty(this.identifier)
+        ? this.identifier.end
+        : this.list.end;
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -654,11 +682,12 @@ export class EmptyInst extends Inst {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.empty.start,
-      end: this.empty.end,
-    };
+  public get start(): Position {
+    return this.empty.start;
+  }
+
+  public get end(): Position {
+    return this.empty.end;
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -678,13 +707,14 @@ export class PrintInst extends Inst {
     super();
   }
 
-  public get range(): Range {
-    return {
-      start: this.print.start,
-      end: empty(this.close)
-        ? this.expression.range.end
-        : this.close.end,
-    };
+  public get start(): Position {
+    return this.print.start;
+  }
+
+  public get end(): Position {
+    return empty(this.close)
+      ? this.expression.end
+      : this.close.end;
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {

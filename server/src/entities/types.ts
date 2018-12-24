@@ -1,7 +1,7 @@
-import { Position } from 'vscode-languageserver';
+import { Position, Range } from 'vscode-languageserver';
 import { TokenType } from './tokentypes';
 
-export interface IToken {
+export interface IToken extends Range {
   readonly tag: 'token';
   readonly type: TokenType;
   readonly lexeme: string;

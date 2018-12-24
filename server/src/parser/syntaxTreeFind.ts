@@ -1,4 +1,4 @@
-import { IExprVisitor, IInstVisitor } from './types';
+import { IExprVisitor, IInstVisitor, IInst, IExpr } from './types';
 import { IToken } from '../entities/types';
 import { DeclVariable, DeclLock, DeclFunction, DeclParameter } from './declare';
 import {
@@ -20,17 +20,62 @@ import {
   GroupingExpr, AnonymousFunctionExpr,
 } from './expr';
 import { SyntaxTree } from '../entities/syntaxTree';
-import { Position } from 'vscode-languageserver';
+import { Position, Range } from 'vscode-languageserver';
+import { rangeBefore, rangeAfter, rangeContains } from '../utilities/positionHelpers';
 
 export class SyntaxTreeFind implements IExprVisitor<Maybe<IToken>>, IInstVisitor<Maybe<IToken>> {
 
-  constructor() { }
+  private pos: Position;
+  private syntaxTree: SyntaxTree;
 
-  find(snytaxTree: SyntaxTree, pos: Position) {
-    
+  constructor(syntaxTree: SyntaxTree) {
+    this.syntaxTree = syntaxTree;
+    this.pos = {
+      line: 0,
+      character: 0,
+    };
+  }
+
+  find(pos: Position): Maybe<IToken> {
+    this.pos = pos;
+    const inst = this.binarySearch(this.syntaxTree.insts, pos);
+    return inst && this.findInst(inst);
+  }
+
+  // resolve for an instruction
+  private findInst(inst: IInst): Maybe<IToken> {
+    return inst.accept(this);
+  }
+
+  // resolve for an expression
+  private findExpr(expr: IExpr): Maybe<IToken> {
+    return expr.accept(this);
+  }
+
+  // binary search a ast or block of instructions
+  private binarySearch<T extends Range>(insts: T[], pos: Position): Maybe<T> {
+    let left = 0;
+    let right = insts.length - 1;
+
+    while (left <= right) {
+      const mid = Math.floor((right + left) / 2);
+      if (rangeBefore(insts[mid], pos)) {
+        left = mid + 1;
+      } else if (rangeAfter(insts[mid], pos)) {
+        right = mid - 1;
+      } else if (rangeContains(insts[mid], pos)) {
+        return insts[mid];
+      } else {
+        return undefined;
+      }
+    }
+
+    return undefined;
   }
 
   visitDeclVariable(decl: DeclVariable): Maybe<IToken> {
+
+
     throw new Error('Method not implemented.');
   }
   visitDeclLock(decl: DeclLock): Maybe<IToken> {

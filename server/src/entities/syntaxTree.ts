@@ -1,5 +1,6 @@
 import { IToken } from './types';
 import { IInst } from '../parser/types';
+import { Range } from 'vscode-languageserver';
 
 export class SyntaxTree {
   constructor(
@@ -8,4 +9,11 @@ export class SyntaxTree {
     public readonly end: IToken,
   )
   { }
+
+  public get range(): Range {
+    return {
+      start: this.start.start,
+      end: this.end.end,
+    };
+  }
 }
