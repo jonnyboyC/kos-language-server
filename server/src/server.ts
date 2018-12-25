@@ -19,6 +19,7 @@ import {
   Location,
   DidChangeWatchedFilesParams,
   SignatureInformation,
+  ParameterInformation,
 } from 'vscode-languageserver';
 import { Scanner } from './scanner/scanner';
 import { ISyntaxError } from './scanner/types';
@@ -30,16 +31,16 @@ import { ScopeManager } from './analysis/scopeManager';
 import { FuncResolver } from './analysis/functionResolver';
 import { empty } from './utilities/typeGuards';
 import { SyntaxTree } from './entities/syntaxTree';
-import { TokenManager } from './scanner/tokenManager';
+import { SyntaxTreeFind } from './parser/syntaxTreeFind';
+import { CallExpr } from './parser/expr';
 
 // Create a connection for the server. The connection uses Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
 export const connection = createConnection(ProposedFeatures.all);
 
 interface IDocumentInfo {
-  tokenManager?: TokenManager;
-  syntaxTree?: SyntaxTree;
-  scopeManager?: ScopeManager;
+  syntaxTree: SyntaxTree;
+  scopeManager: ScopeManager;
 }
 
 // Create a simple text document manager. The text document manager
@@ -126,8 +127,6 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
     connection.console.warn(`Scanning encountered ${scanErrors.length} Errors.`);
   }
 
-  const tokenManager = new TokenManager(tokens);
-
   // parse scanned tokens
   connection.console.log(`Parsing ${textDocument.uri}`);
   connection.console.log('');
@@ -156,7 +155,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
   resolverErrors = resolverErrors.concat(resolver.resolve());
 
   if (resolverErrors.length > 0) {
-    connection.console.warn(`Resolver encountered ${parseErrors.length} Errors.`);
+    connection.console.warn(`Resolver encountered ${resolverErrors.length} Errors.`);
   }
 
   // generate all diagnostics
@@ -169,7 +168,6 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
     );
 
   scopeMap.set(textDocument.uri, {
-    tokenManager,
     scopeManager,
     syntaxTree,
   });
@@ -189,17 +187,19 @@ connection.onDefinition(
     const documentInfo = scopeMap.get(uri);
     if (empty(documentInfo)
       || empty(documentInfo.scopeManager)
-      || empty(documentInfo.tokenManager)) {
+      || empty(documentInfo.syntaxTree)) {
       return undefined;
     }
 
-    const { scopeManager, tokenManager } = documentInfo;
-    const token = tokenManager.find(position);
+    const { scopeManager, syntaxTree } = documentInfo;
+    const finder = new SyntaxTreeFind();
+    const result = finder.find(syntaxTree, position);
 
-    if (empty(token)) {
+    if (empty(result)) {
       return undefined;
     }
 
+    const { token } = result;
     const entity = scopeManager.entityAtPosition(position, token.lexeme);
     if (empty(entity)) {
       return undefined;
@@ -216,20 +216,45 @@ connection.onSignatureHelp(
 
     const documentInfo = scopeMap.get(uri);
 
-    // we need the scope and token managers for this document
-    if (!(empty(documentInfo)
-      || empty(documentInfo.scopeManager)
-      || empty(documentInfo.tokenManager))) {
+    // we need the document info to lookup a signiture
+    if (!empty(documentInfo)) {
+      const { syntaxTree } = documentInfo;
+      const finder = new SyntaxTreeFind();
 
       // attempt to find a token here
-      const tokenFound = documentInfo.tokenManager.find(position);
-      if (!empty(tokenFound)) {
-        const entityFound = documentInfo.scopeManager.entityAtPosition(position, tokenFound.lexeme);
-        if (!empty(entityFound)) {
-          if (entityFound.tag === 'function') {
+      const result = finder.find(syntaxTree, position, CallExpr);
+      if (!empty(result)) {
+        const { node, token } = result;
+
+        // make sure our token is in a calling context
+        if (node instanceof CallExpr) {
+
+          // resolve the token to make sure it's actually a function
+          const ksFunction = documentInfo.scopeManager.entityAtPosition(position, token.lexeme);
+          if (!empty(ksFunction) && ksFunction.tag === 'function') {
+            const { parameters } = ksFunction;
+            let idx = 0;
+
+            // tslint:disable-next-line:no-increment-decrement
+            for (const arg of node.args) {
+              const found = finder.find(arg, position);
+              if (!empty(found)) {
+                break;
+              }
+
+              // tslint:disable-next-line:no-increment-decrement
+              idx++;
+            }
+
             return {
-              signatures: [SignatureInformation.create(entityFound.name.lexeme)],
-              activeParameter: 0,
+              signatures: [
+                SignatureInformation.create(
+                  ksFunction.name.lexeme,
+                  undefined,
+                  ...parameters.map(param => ParameterInformation.create(param.name.lexeme)),
+                ),
+              ],
+              activeParameter: idx,
               activeSignature: 0,
             };
           }

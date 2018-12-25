@@ -1,19 +1,24 @@
 import { IToken } from './types';
-import { IInst } from '../parser/types';
-import { Range } from 'vscode-languageserver';
+import { IInst, IRangeSequence } from '../parser/types';
+import { Range, Position } from 'vscode-languageserver';
 
-export class SyntaxTree {
+export class SyntaxTree implements IRangeSequence {
   constructor(
-    public readonly start: IToken,
+    public readonly startToken: IToken,
     public readonly insts: IInst[],
-    public readonly end: IToken,
+    public readonly endToken: IToken,
   )
   { }
 
-  public get range(): Range {
-    return {
-      start: this.start.start,
-      end: this.end.end,
-    };
+  public get start(): Position {
+    return this.startToken.start;
+  }
+
+  public get end(): Position {
+    return this.endToken.end;
+  }
+
+  public get ranges(): Range[] {
+    return [this.startToken, ...this.insts, this.endToken];
   }
 }

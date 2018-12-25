@@ -45,9 +45,9 @@ export const positionEqual = (pos1: Position, pos2: Position): boolean => {
 
 export const rangeContains = (range: Range, pos: Position): boolean => {
   if (pos.line < range.start.line) return false;
-  if (pos.character < range.start.character) return false;
+  if (pos.line === range.start.line && pos.character < range.start.character) return false;
   if (pos.line > range.end.line) return false;
-  if (pos.character > range.end.character) return false;
+  if (pos.line === range.end.line && pos.character > range.end.character) return false;
 
   return true;
 };

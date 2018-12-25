@@ -16,11 +16,12 @@ import {
   LogInst, CopyInst, RenameInst,
   DeleteInst, RunInst, RunPathInst,
   RunPathOnceInst, CompileInst,
-  ListInst, EmptyInst, PrintInst,
+  ListInst, EmptyInst, PrintInst, InvalidInst,
 } from './inst';
 import { DeclVariable, DeclLock, DeclFunction, DeclParameter } from './declare';
 import { IToken } from '../entities/types';
 import { Range } from 'vscode-languageserver';
+import { SyntaxTree } from '../entities/syntaxTree';
 
 export interface IParseError {
   tag: 'parseError';
@@ -30,15 +31,17 @@ export interface IParseError {
   inner: IParseError[];
 }
 
-export interface IExpr extends IExprVisitable, Range {
-  tag: 'expr';
+export interface IRangeSequence extends Range {
   ranges: Range[];
+}
+
+export interface IExpr extends IExprVisitable, IRangeSequence {
+  tag: 'expr';
   toString(): string;
 }
 
-export interface IInst extends IInstVisitable, Range {
+export interface IInst extends IInstVisitable, IRangeSequence {
   tag: 'inst';
-  ranges: Range[];
 }
 
 export interface IDeclScope extends Range {
@@ -76,6 +79,7 @@ export interface IInstVisitor<T> {
   visitDeclFunction(decl: DeclFunction): T;
   visitDeclParameter(decl: DeclParameter): T;
 
+  visitInvalid(inst: InvalidInst): T;
   visitBlock(inst: BlockInst): T;
   visitExpr(inst: ExprInst): T;
   visitOnOff(inst: OnOffInst): T;
@@ -110,15 +114,24 @@ export interface IInstVisitor<T> {
   visitPrint(inst: PrintInst): T;
 }
 
+export interface IFindResult {
+  node?: INode;
+  token: IToken;
+}
+
+export interface IParseResult {
+  error?: IParseError;
+  inst: IInst;
+}
+
 export enum ScopeType {
   local,
   global,
 }
 
 export type Result<T> = T | IParseError;
+export type INode = IExpr | IInst | SyntaxTree;
 
-export type ParseResult = Result<IExpr | IInst | IToken>;
 export type ExprResult = Result<IExpr>;
 export type InstResult = Result<IInst>;
-export type StmtResult = Result<IInst>;
 export type TokenResult = Result<IToken>;

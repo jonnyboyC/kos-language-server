@@ -14,6 +14,28 @@ export abstract class Inst implements IInst {
   public abstract accept<T>(visitor: IInstVisitor<T>): T;
 }
 
+export class InvalidInst extends Inst {
+  constructor(public readonly tokens: IToken[]) {
+    super();
+  }
+
+  public get start(): Position {
+    return this.tokens[0].start;
+  }
+
+  public get end(): Position {
+    return this.tokens[this.tokens.length - 1].end;
+  }
+
+  public get ranges(): Range[] {
+    return [...this.tokens];
+  }
+
+  public accept<T>(visitor: IInstVisitor<T>): T {
+    return visitor.visitInvalid(this);
+  }
+}
+
 export class BlockInst extends Inst {
   constructor(
     public readonly open: IToken,

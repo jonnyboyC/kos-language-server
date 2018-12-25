@@ -2,7 +2,7 @@
 import { TokenType, isValidIdentifier } from '../entities/tokentypes';
 import {
   IParseError, ExprResult, TokenResult,
-  InstResult, IExpr, IDeclScope, IInst,
+  InstResult, IExpr, IDeclScope, IInst, IParseResult,
 } from './types';
 import { ParseError } from './parserError';
 import { Expr, LiteralExpr, GroupingExpr,
@@ -22,11 +22,11 @@ import { Inst, BlockInst, OnOffInst,
   DeleteInst, RunInst, RunPathInst,
   RunPathOnceInst, CompileInst,
   ListInst, EmptyInst, PrintInst,
-  ExprInst, BreakInst,
+  ExprInst, BreakInst, InvalidInst,
 } from './inst';
 import { DeclScope, DeclFunction,
   DefaultParameter, DeclParameter,
-  DeclVariable, DeclLock,
+  DeclVariable, DeclLock, Parameter,
 } from './declare';
 import { empty } from '../utilities/typeGuards';
 import { IToken } from '../entities/types';
@@ -50,14 +50,11 @@ export class Parser {
     this.consumeTokenThrow('File did not beging with Start of file token', TokenType.Sof);
 
     while (!this.isAtEnd()) {
-      const instruction = this.declaration();
-      switch (instruction.tag) {
-        case 'inst':
-          instructions.push(instruction);
-          break;
-        case 'parseError':
-          errors.push(instruction);
-          break;
+      const { inst, error } = this.declaration();
+      instructions.push(inst);
+
+      if (!empty(error)) {
+        errors.push(error);
       }
     }
     return [
@@ -67,18 +64,23 @@ export class Parser {
   }
 
   // parse declaration attempt to synchronize
-  private declaration = (): InstResult => {
+  private declaration = (): IParseResult => {
+    const start = this.current;
     try {
       if ([TokenType.Declare, TokenType.Local, TokenType.Global,
         TokenType.Parameter, TokenType.Function, TokenType.Lock].some(t => this.check(t))) {
-        return this.define();
+        return { inst: this.define() };
       }
 
-      return this.instruction();
+      return { inst: this.instruction() };
     } catch (error) {
       if (error instanceof ParseError) {
         this.synchronize();
-        return error;
+
+        return {
+          error,
+          inst: new InvalidInst(this.tokens.slice(start, this.current)),
+        };
       }
       throw error;
     }
@@ -150,7 +152,7 @@ export class Parser {
   }
 
   // parse regular parameters
-  private declareNormalParameters = (): IToken[] => {
+  private declareNormalParameters = (): Parameter[] => {
     const parameters = [];
 
     // parse paremter until defaulted
@@ -161,7 +163,7 @@ export class Parser {
       const identifer = this.consumeIdentifierThrow(
         'Expected additional identiifer following comma.');
 
-      parameters.push(identifer);
+      parameters.push(new Parameter(identifer));
     } while (this.matchToken(TokenType.Comma));
 
     return parameters;
@@ -349,13 +351,11 @@ export class Parser {
 
     // while not at end and until closing curly keep parsing instructions
     while (!this.check(TokenType.CurlyClose) && !this.isAtEnd()) {
-      const declaration = this.declaration();
+      const { inst, error } = this.declaration();
+      declarations.push(inst);
 
-      // catch and synchronize errors that occur while parsing the block
-      if (declaration.tag === 'inst') {
-        declarations.push(declaration);
-      } else {
-        errors.push(declaration);
+      if (!empty(error)) {
+        errors.push(error);
       }
     }
 
@@ -1006,19 +1006,28 @@ export class Parser {
   private anonymousFunction = (): IExpr => {
     const open = this.previous();
     const declarations: Inst[] = [];
+    const errors: ParseError[] = [];
 
     // while not at end and until closing curly keep parsing instructions
     while (!this.check(TokenType.CurlyClose) && !this.isAtEnd()) {
-      const declaration = this.declaration();
+      const { inst, error } = this.declaration();
+      declarations.push(inst);
 
-      if (declaration.tag === 'inst') {
-        declarations.push(declaration);
+      if (!empty(error)) {
+        errors.push(error);
       }
     }
 
     // check closing curly is found
     const close = this.consumeTokenThrow(
       'Expected "}" to finish instruction block', TokenType.CurlyClose);
+
+    // if inner errors found bundle and throw
+    if (errors.length > 0) {
+      const error = this.error(open, 'Error found in this block.');
+      error.inner = errors;
+      throw error;
+    }
     return new AnonymousFunctionExpr(open, declarations, close);
   }
 

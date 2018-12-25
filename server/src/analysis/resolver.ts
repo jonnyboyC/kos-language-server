@@ -26,6 +26,7 @@ import {
     ListInst, EmptyInst,
     PrintInst,
     Inst,
+    InvalidInst,
 } from '../parser/inst';
 import { ResolverError } from './resolverError';
 import { DeclVariable, DeclLock, DeclFunction, DeclParameter } from '../parser/declare';
@@ -52,8 +53,8 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   private firstInst: boolean;
 
   constructor(syntaxTree: SyntaxTree, scopeMan: ScopeManager) {
-    this.start = syntaxTree.start;
-    this.end = syntaxTree.end;
+    this.start = syntaxTree.startToken;
+    this.end = syntaxTree.endToken;
     this.insts = syntaxTree.insts;
     this.scopeMan = scopeMan;
     this.localResolver = new LocalResolver();
@@ -183,7 +184,7 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
 
     // need to check if default paraemter can really be abbitrary expr
     const parameterErrors = decl.parameters
-      .map(parameter => this.scopeMan.declareParameter(scopeType, parameter, false));
+      .map(parameter => this.scopeMan.declareParameter(scopeType, parameter.identifier, false));
     const defaultParameterErrors = decl.defaultParameters
       .map(parameter => this.scopeMan.declareParameter(scopeType, parameter.identifier, true));
 
@@ -196,6 +197,11 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   Instructions
 
   ----------------------------------------------*/
+
+  // tslint:disable-next-line:variable-name
+  public visitInvalid(_inst: InvalidInst): Errors {
+    return [];
+  }
 
   public visitBlock(inst: BlockInst): Errors {
     this.scopeMan.beginScope(inst.open);
