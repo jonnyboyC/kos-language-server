@@ -2,7 +2,7 @@ import ava from 'ava';
 import { Scanner } from '../scanner/scanner';
 import { Parser } from './parser';
 import { ISyntaxError } from '../scanner/types';
-import { IParseError, IExpr, ExprResult } from './types';
+import { IParseError, IExpr, ExprResult, IParseResult } from './types';
 import { LiteralExpr, VariableExpr, CallExpr } from './expr';
 import { TokenType } from '../entities/tokentypes';
 import { readdirSync, statSync, readFileSync } from 'fs';
@@ -16,7 +16,7 @@ const scan = (source: string) : [IToken[], ISyntaxError[]] => {
 };
 
 // parse source
-const parseExpression = (source: string): [ExprResult, ISyntaxError[]] => {
+const parseExpression = (source: string): [IParseResult<IExpr>, ISyntaxError[]] => {
   const [tokens, scannerErrors] = scan(source);
   const parser = new Parser(tokens);
   return [parser.parseExpression(), scannerErrors];
@@ -76,11 +76,11 @@ ava('basic valid literal', (t) => {
   ];
 
   for (const expression of validExpressions) {
-    const [result] = parseExpression(expression.source);
-    t.true(isLiteral(result));
-    if (isLiteral(result)) {
-      t.deepEqual(expression.type, result.token.type);
-      t.deepEqual(expression.literal, result.token.literal);
+    const [{ value }] = parseExpression(expression.source);
+    t.true(isLiteral(value));
+    if (isLiteral(value)) {
+      t.deepEqual(expression.type, value.token.type);
+      t.deepEqual(expression.literal, value.token.literal);
     }
   }
 });
@@ -94,8 +94,8 @@ ava('basic invalid literal', (t) => {
   ];
 
   for (const expression of validExpressions) {
-    const [result, scannerErrors] = parseExpression(expression.source);
-    t.false(isLiteral(result));
+    const [{ value }, scannerErrors] = parseExpression(expression.source);
+    t.false(isLiteral(value));
     t.true(scannerErrors.length === 0);
   }
 });
@@ -111,13 +111,13 @@ ava('basic valid identifier', (t) => {
   ];
 
   for (const expression of validExpressions) {
-    const [result, scannerErrors] = parseExpression(expression.source);
-    t.true(isVariable(result));
+    const [{ value }, scannerErrors] = parseExpression(expression.source);
+    t.true(isVariable(value));
     t.true(scannerErrors.length === 0);
 
-    if (isVariable(result)) {
-      t.deepEqual(expression.type, result.token.type);
-      t.deepEqual(expression.literal, result.token.literal);
+    if (isVariable(value)) {
+      t.deepEqual(expression.type, value.token.type);
+      t.deepEqual(expression.literal, value.token.literal);
     }
   }
 });
@@ -131,8 +131,8 @@ ava('basic invalid identifier', (t) => {
   ];
 
   for (const expression of validExpressions) {
-    const [result, scannerErrors] = parseExpression(expression.source);
-    t.false(isVariable(result));
+    const [{ value }, scannerErrors] = parseExpression(expression.source);
+    t.false(isVariable(value));
     t.true(scannerErrors.length === 0);
   }
 });
@@ -160,18 +160,18 @@ ava('valid call', (t) => {
   ];
 
   for (const expression of validExpressions) {
-    const [result, scannerErrors] = parseExpression(expression.source);
-    t.true(isCall(result));
+    const [{ value }, scannerErrors] = parseExpression(expression.source);
+    t.true(isCall(value));
     t.true(scannerErrors.length === 0);
 
-    if (isCall(result)) {
-      if (isVariable(result.callee)) {
-        t.deepEqual(expression.callee, result.callee.token.lexeme);
-        t.deepEqual(expression.args.length, result.args.length);
+    if (isCall(value)) {
+      if (isVariable(value.callee)) {
+        t.deepEqual(expression.callee, value.callee.token.lexeme);
+        t.deepEqual(expression.args.length, value.args.length);
 
         // tslint:disable-next-line:no-increment-decrement
         for (let i = 0; i < expression.args.length; i++) {
-          t.true(result.args[i] instanceof expression.args[i]);
+          t.true(value.args[i] instanceof expression.args[i]);
         }
       }
     }
@@ -187,8 +187,8 @@ ava('invalid call', (t) => {
   ];
 
   for (const expression of validExpressions) {
-    const [result, scannerErrors] = parseExpression(expression.source);
-    t.false(isVariable(result));
+    const [{ value }, scannerErrors] = parseExpression(expression.source);
+    t.false(isVariable(value));
     t.true(scannerErrors.length === 0);
   }
 });

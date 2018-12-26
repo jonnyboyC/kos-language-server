@@ -4,6 +4,8 @@ A language server for the [KOS](https://github.com/KSP-KOS/KOS) mod for Kerbal S
 
 This project is heavily inspired by the [crafting interpreters](http://craftinginterpreters.com/) series. Definitely check it out if your interested in creating your own language.
 
+(temp)[https://blog.mgechev.com/2017/08/05/typed-lambda-calculus-create-type-checker-transpiler-compiler-javascript/]
+
 ![Alt Text](https://i.imgur.com/Xh5yXJi.gif)
 
 For additional client support such as sublime text, vim, atom, notepad++ or others please post an issue with the requested IDE. 

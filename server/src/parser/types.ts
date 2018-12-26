@@ -119,9 +119,9 @@ export interface IFindResult {
   token: IToken;
 }
 
-export interface IParseResult {
-  error?: IParseError;
-  inst: IInst;
+export interface IParseResult<T> {
+  errors: IParseError[];
+  value: T;
 }
 
 export enum ScopeType {
