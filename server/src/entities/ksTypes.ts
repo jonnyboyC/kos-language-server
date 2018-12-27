@@ -16,12 +16,6 @@ export const createSuffixType = (name: string, returns?: IType, ...params: IType
   };
 };
 
-// const addCallSigniture = (type: IType, returns?: IType, ...params: IType[]): IType => {
-//   type.returns = returns;
-//   type.params = params;
-//   return type;
-// };
-
 const addPrototype = (type: IType, parent: IType): IType => {
   type.inherentsFrom = parent;
   return type;

@@ -1,6 +1,6 @@
 export enum TokenType {
     WhiteSpace, CommentLine,
-    Plus, Minus, Multi, Div, Power, E,
+    Plus, Minus, Multi, Div, Power,
     Not, And, Or, True, False,
     Equal, NotEqual, GreaterEqual, Greater, LessEqual, Less,
 
@@ -39,7 +39,6 @@ export enum TokenType {
 
 export const isValidIdentifier = (type: TokenType): boolean => {
   switch (type) {
-    case TokenType.E:
     case TokenType.Not:
     case TokenType.And:
     case TokenType.Or:

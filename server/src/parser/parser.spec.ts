@@ -18,8 +18,8 @@ const scan = (source: string) : [IToken[], ISyntaxError[]] => {
 // parse source
 const parseExpression = (source: string): [IParseResult<IExpr>, ISyntaxError[]] => {
   const [tokens, scannerErrors] = scan(source);
-  const parser = new Parser(tokens);
-  return [parser.parseExpression(), scannerErrors];
+  const parser = new Parser();
+  return [parser.parseExpression(tokens), scannerErrors];
 };
 
 const testDir = join(__dirname, '../../../kerboscripts');
@@ -43,8 +43,8 @@ ava('parse all', (t) => {
     const [tokens, scannerErrors] = scanner.scanTokens();
 
     t.true(scannerErrors.length === 0);
-    const parser = new Parser(tokens);
-    const [, parseErrors] = parser.parse();
+    const parser = new Parser();
+    const [, parseErrors] = parser.parse(tokens);
 
     t.true(parseErrors.length === 0);
   });

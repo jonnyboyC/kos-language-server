@@ -32,7 +32,9 @@ import { FuncResolver } from './analysis/functionResolver';
 import { empty } from './utilities/typeGuards';
 import { SyntaxTree } from './entities/syntaxTree';
 import { SyntaxTreeFind } from './parser/syntaxTreeFind';
-import { CallExpr } from './parser/expr';
+import { performance } from 'perf_hooks';
+import { InvalidInst } from './parser/inst';
+import { signitureHelper } from './utilities/signitureHelper';
 
 // Create a connection for the server. The connection uses Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -69,7 +71,7 @@ connection.onInitialize((params: InitializeParams) => {
         triggerCharacters: [':'],
       },
       signatureHelpProvider: {
-        triggerCharacters: ['('],
+        triggerCharacters: ['(', ','],
       },
       definitionProvider: true,
     },
@@ -119,8 +121,11 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
   connection.console.log('');
   connection.console.log(`Scanning ${textDocument.uri}`);
   connection.console.log('');
+
+  performance.mark('scanner-start');
   const scanner = new Scanner(text);
   const [tokens, scanErrors] = scanner.scanTokens();
+  performance.mark('scanner-end');
 
   // if scanner found errors report those immediately
   if (scanErrors.length > 0) {
@@ -130,8 +135,11 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
   // parse scanned tokens
   connection.console.log(`Parsing ${textDocument.uri}`);
   connection.console.log('');
-  const parser = new Parser(tokens);
-  const [syntaxTree, parseErrors] = parser.parse();
+
+  performance.mark('parser-start');
+  const parser = new Parser();
+  const [syntaxTree, parseErrors] = parser.parse(tokens);
+  performance.mark('parser-end');
 
   if (parseErrors.length > 0) {
     connection.console.warn(`Parser encountered ${parseErrors.length} Errors.`);
@@ -147,12 +155,22 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
   // resolve the rest of the script
   connection.console.log(`Function resolving ${textDocument.uri}`);
   connection.console.log('');
+  performance.mark('func-resolver-start');
   let resolverErrors = funcResolver.resolve();
+  performance.mark('func-resolver-end');
 
   // perform an initial function pass
   connection.console.log(`Resolving ${textDocument.uri}`);
   connection.console.log('');
+
+  performance.mark('resolver-start');
   resolverErrors = resolverErrors.concat(resolver.resolve());
+  performance.mark('resolver-end');
+
+  performance.measure('scanner', 'scanner-start', 'scanner-end');
+  performance.measure('parser', 'parser-start', 'parser-end');
+  performance.measure('func-resolver', 'func-resolver-start', 'func-resolver-end');
+  performance.measure('resolver', 'resolver-start', 'resolver-end');
 
   if (resolverErrors.length > 0) {
     connection.console.warn(`Resolver encountered ${resolverErrors.length} Errors.`);
@@ -167,11 +185,26 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
       .map(error => resolverToDiagnostics(error)),
     );
 
+  const [scannerMeasure] = performance.getEntriesByName('scanner');
+  const [parserMeasure] = performance.getEntriesByName('parser');
+  const [funcResolverMeasure] = performance.getEntriesByName('func-resolver');
+  const [resolverMeasure] = performance.getEntriesByName('resolver');
+
+  connection.console.log('');
+  connection.console.log('-------- performance ---------');
+  connection.console.log(`Scanner took ${scannerMeasure.duration} ms`);
+  connection.console.log(`Parser took ${parserMeasure.duration} ms`);
+  connection.console.log(`Function Resolver took ${funcResolverMeasure.duration} ms`);
+  connection.console.log(`Resolver took ${resolverMeasure.duration} ms`);
+
   scopeMap.set(textDocument.uri, {
     scopeManager,
     syntaxTree,
   });
   connection.sendDiagnostics({ diagnostics, uri: textDocument.uri });
+
+  performance.clearMarks();
+  performance.clearMeasures();
 }
 
 connection.onDidChangeWatchedFiles((change: DidChangeWatchedFilesParams) => {
@@ -179,6 +212,7 @@ connection.onDidChangeWatchedFiles((change: DidChangeWatchedFilesParams) => {
   connection.console.log(`We received ${change.changes.length} file change events`);
 });
 
+// This handler provides definition help
 connection.onDefinition(
   (documentPosition: TextDocumentPositionParams): Maybe<Location> => {
     const { position } = documentPosition;
@@ -209,68 +243,63 @@ connection.onDefinition(
   },
 );
 
+// This handler provides signature help
 connection.onSignatureHelp(
   (documentPosition: TextDocumentPositionParams): SignatureHelp => {
     const { position } = documentPosition;
     const { uri } = documentPosition.textDocument;
 
-    const documentInfo = scopeMap.get(uri);
-
     // we need the document info to lookup a signiture
-    if (!empty(documentInfo)) {
-      const { syntaxTree } = documentInfo;
-      const finder = new SyntaxTreeFind();
+    const documentInfo = scopeMap.get(uri);
+    if (empty(documentInfo)) return defaultSigniture();
 
-      // attempt to find a token here
-      const result = finder.find(syntaxTree, position, CallExpr);
-      if (!empty(result)) {
-        const { node, token } = result;
+    const { syntaxTree } = documentInfo;
+    const finder = new SyntaxTreeFind();
 
-        // make sure our token is in a calling context
-        if (node instanceof CallExpr) {
+    // attempt to find a token here get surround invalid inst context
+    const result = finder.find(syntaxTree, position, InvalidInst);
 
-          // resolve the token to make sure it's actually a function
-          const ksFunction = documentInfo.scopeManager.entityAtPosition(position, token.lexeme);
-          if (!empty(ksFunction) && ksFunction.tag === 'function') {
-            const { parameters } = ksFunction;
-            let idx = 0;
-
-            // tslint:disable-next-line:no-increment-decrement
-            for (const arg of node.args) {
-              const found = finder.find(arg, position);
-              if (!empty(found)) {
-                break;
-              }
-
-              // tslint:disable-next-line:no-increment-decrement
-              idx++;
-            }
-
-            return {
-              signatures: [
-                SignatureInformation.create(
-                  ksFunction.name.lexeme,
-                  undefined,
-                  ...parameters.map(param => ParameterInformation.create(param.name.lexeme)),
-                ),
-              ],
-              activeParameter: idx,
-              activeSignature: 0,
-            };
-          }
-        }
-      }
+    // currently we only support invalid instructions for signiture completion
+    // we could possible support call expressions as well
+    if (empty(result) || empty(result.node) || !(result.node instanceof InvalidInst)) {
+      return defaultSigniture();
     }
 
+    // determine the identifier of the invalid instruction and parameter index
+    const { node } = result;
+    const identifierIndex = signitureHelper(node.tokens, position);
+    if (empty(identifierIndex)) return defaultSigniture();
+
+    const { identifier, index } = identifierIndex;
+
+    // resolve the token to make sure it's actually a function
+    const ksFunction = documentInfo.scopeManager.entityAtPosition(position, identifier);
+    if (empty(ksFunction) || ksFunction.tag !== 'function') {
+      return defaultSigniture();
+    }
+
+    const { parameters } = ksFunction;
     return {
-      signatures: [],
-      activeParameter: null,
-      activeSignature: null,
+      signatures: [
+        SignatureInformation.create(
+          ksFunction.name.lexeme,
+          undefined,
+          ...parameters.map(param => ParameterInformation.create(param.name.lexeme)),
+        ),
+      ],
+      activeParameter: index,
+      activeSignature: 0,
     };
   },
 );
 
-// This handler provides the inentitiesAtPositionitial list of the completion items.
+const defaultSigniture = (): SignatureHelp => ({
+  signatures: [],
+  activeParameter: null,
+  activeSignature: null,
+});
+
+// This handler provides the initial list of the completion items.
 connection.onCompletion(
   (documentPosition: TextDocumentPositionParams): CompletionItem[] => {
     // The pass parameter contains the position of the text document in

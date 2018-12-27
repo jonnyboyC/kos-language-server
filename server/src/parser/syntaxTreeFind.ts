@@ -19,8 +19,8 @@ import {
   DelegateExpr, LiteralExpr, VariableExpr,
   GroupingExpr, AnonymousFunctionExpr, Expr,
 } from './expr';
-import { Position, Range } from 'vscode-languageserver';
-import { rangeBefore, rangeAfter, rangeContains } from '../utilities/positionHelpers';
+import { Position } from 'vscode-languageserver';
+import { binarySearch } from '../utilities/positionHelpers';
 import { empty } from '../utilities/typeGuards';
 import { Token } from '../entities/token';
 
@@ -46,7 +46,7 @@ export class SyntaxTreeFind implements
   }
 
   private findNode(node: INode): Maybe<IFindResult> {
-    const searchResult = this.binarySearch(node.ranges, this.pos);
+    const searchResult = binarySearch(node.ranges, this.pos);
     if (empty(searchResult)) {
       return searchResult;
     }
@@ -104,27 +104,6 @@ export class SyntaxTreeFind implements
   // find an expression
   private findExpr(expr: IExpr): Maybe<IFindResult> {
     return expr.accept(this);
-  }
-
-  // binary search a ast or block of instructions
-  private binarySearch<T extends Range>(ranges: T[], pos: Position): Maybe<T> {
-    let left = 0;
-    let right = ranges.length - 1;
-
-    while (left <= right) {
-      const mid = Math.floor((right + left) / 2);
-      if (rangeBefore(ranges[mid], pos)) {
-        left = mid + 1;
-      } else if (rangeAfter(ranges[mid], pos)) {
-        right = mid - 1;
-      } else if (rangeContains(ranges[mid], pos)) {
-        return ranges[mid];
-      } else {
-        return undefined;
-      }
-    }
-
-    return undefined;
   }
 
   visitDeclVariable(decl: DeclVariable): Maybe<IFindResult> {

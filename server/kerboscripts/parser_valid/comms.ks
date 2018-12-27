@@ -19,7 +19,7 @@ function test_comms {
 
   print connection:sendmessage(4).
   set received to messages:pop.
-  print received:content = 4
+  print received:content = 4.
 
   print connection:sendmessage(true).
   set received to messages:pop.
@@ -29,6 +29,7 @@ function test_comms {
   set received to messages:pop.
   print received:content = "testmessage".
 }
+
 // Inter-vessel tests, this doesn't do any long-range tests, vessel simply sends messages to itself
 
 print ship:connection:tostring:contains(ship:name).

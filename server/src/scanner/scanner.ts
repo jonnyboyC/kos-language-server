@@ -171,11 +171,19 @@ export class Scanner {
       this.advanceNumber();
     }
 
+    const current = this.peek();
+    let next = this.peekNext();
+
     // parse exponent
-    if (this.peek() === 'e') {
+    if (current === 'e'
+      && (next === '+'
+      || next === '-'
+      || this.isWhitespace(next)
+      || this.isDigit(next)
+      )) {
 
       // parse optional exponent sign
-      let next = this.peekNext();
+      next = this.peekNext();
       while (this.isWhitespace(next) || next === '+' || next === '-') {
         this.advance();
         next = this.peekNext();
@@ -219,10 +227,10 @@ export class Scanner {
   private generateToken(type: TokenType, literal?: any): Token {
     const text = this.source.substr(this.start, this.current - this.start);
     return new Token(
-            type, text, literal,
-            new Marker(this.startPosition.line, this.startPosition.character),
-            new Marker(this.currentPosition.line, this.currentPosition.character),
-        );
+      type, text, literal,
+      new Marker(this.startPosition.line, this.startPosition.character),
+      new Marker(this.currentPosition.line, this.currentPosition.character),
+    );
   }
 
   // generate error
@@ -407,7 +415,6 @@ const keywords: ITokenMap = {
   declare: { type: TokenType.Declare },
   defined: { type: TokenType.Defined },
   delete: { type: TokenType.Delete },
-  e: { type: TokenType.E },
   edit: { type: TokenType.Edit },
   else: { type: TokenType.Else },
   false: { type: TokenType.False, literal: false },

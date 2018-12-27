@@ -32,18 +32,21 @@ import { empty } from '../utilities/typeGuards';
 import { IToken } from '../entities/types';
 import { SyntaxTree } from '../entities/syntaxTree';
 import { parseResult } from './parseResult';
+import { Token, Marker } from '../entities/token';
 
 export class Parser {
-  private readonly tokens: IToken[];
+  private tokens: IToken[];
   private current: number;
 
-  constructor(tokens: IToken[]) {
-    this.tokens = tokens;
+  constructor() {
+    this.tokens = [];
     this.current = 0;
   }
 
   // parse tokens
-  public parse(): [SyntaxTree, IParseError[]] {
+  public parse = (tokens: IToken[]): [SyntaxTree, IParseError[]]  => {
+    this.setTokens(tokens);
+
     const instructions: Inst[] = [];
     let parseErrors: IParseError[] = [];
 
@@ -59,6 +62,47 @@ export class Parser {
       new SyntaxTree(this.tokens[0], instructions, this.tokens[this.tokens.length - 1]),
       parseErrors,
     ];
+  }
+
+  // testing function / utility
+  public parseInstruction = (tokens: IToken[]): IParseResult<IInst> => {
+    this.setTokens([...tokens]);
+    return this.declaration();
+  }
+
+  // testing function / utility
+  public parseExpression = (tokens: IToken[]): IParseResult<IExpr> => {
+    this.setTokens([...tokens, this.fakeEof(tokens)]);
+    return this.expression();
+  }
+
+  public parseArgCount = (tokens: IToken[]): IParseResult<number> => {
+    this.setTokens([...tokens, this.fakeEof(tokens)]);
+    return this.partialArgumentsCount();
+  }
+
+  // set the tokens
+  private setTokens = (tokens: IToken[]): void => {
+    this.current = 0;
+    this.tokens = tokens;
+  }
+
+  // generate a placholder token as a fake end of file
+  private fakeEof = (tokens: IToken[]): IToken => {
+    if (tokens.length === 0) {
+      return new Token(
+        TokenType.Eof, '', undefined,
+        new Marker(0, 0),
+        new Marker(0, 1),
+      );
+    }
+
+    const last = tokens[tokens.length - 1];
+    return new Token(
+      TokenType.Eof, '', undefined,
+      new Marker(last.end.line + 1, 0),
+      new Marker(last.end.line + 1, 1),
+    );
   }
 
   // parse declaration attempt to synchronize
@@ -229,13 +273,8 @@ export class Parser {
     );
   }
 
-  // testing function / utility
-  public parseInstruction = (): IParseResult<IInst> => {
-    return this.declaration();
-  }
-
   // parse instruction
-  public instruction = (): IParseResult<IInst> => {
+  private instruction = (): IParseResult<IInst> => {
     switch (this.peek().type) {
       case TokenType.CurlyOpen:
         this.advance();
@@ -479,13 +518,13 @@ export class Parser {
     const ifToken = this.previous();
     const conditionResult = this.expression();
 
-    const inst = this.instruction();
+    const inst = this.declaration();
     this.matchToken(TokenType.Period);
 
     // if else if found parse that branch
     if (this.matchToken(TokenType.Else)) {
       const elseToken = this.previous();
-      const elseResult = this.instruction();
+      const elseResult = this.declaration();
 
       const elseInst = new ElseInst(elseToken, elseResult.value);
       this.matchToken(TokenType.Period);
@@ -507,7 +546,7 @@ export class Parser {
   private until = (): IParseResult<UntilInst> => {
     const until = this.previous();
     const conditionResult = this.expression();
-    const inst = this.instruction();
+    const inst = this.declaration();
     this.matchToken(TokenType.Period);
 
     return parseResult(
@@ -534,7 +573,7 @@ export class Parser {
         const doToken = this.consumeTokenThrow(
           'Expected "do" block following step.',
           TokenType.Do);
-        const inst = this.instruction();
+        const inst = this.declaration();
         return parseResult(
           new FromInst(
             from, initResult.value, until, conditionResult.value,
@@ -565,7 +604,7 @@ export class Parser {
     const then = this.consumeTokenThrow(
       'Expected "then" following "when" condition.',
       TokenType.Then);
-    const inst = this.instruction();
+    const inst = this.declaration();
     this.matchToken(TokenType.Period);
 
     return parseResult(
@@ -624,7 +663,7 @@ export class Parser {
       'Expected "in" after "for" loop variable.',
       TokenType.In);
     const suffix = this.suffix();
-    const inst = this.instruction();
+    const inst = this.declaration();
     this.matchToken(TokenType.Period);
 
     return parseResult(
@@ -638,7 +677,7 @@ export class Parser {
   private on = (): IParseResult<OnInst> => {
     const on = this.previous();
     const suffix = this.suffix();
-    const inst = this.instruction();
+    const inst = this.declaration();
 
     return parseResult(
       new OnInst(on, suffix.value, inst.value),
@@ -949,11 +988,6 @@ export class Parser {
     );
   }
 
-  // testing function / utility
-  public parseExpression = (): IParseResult<IExpr> => {
-    return this.expression();
-  }
-
   // parse any expression
   private expression = (): IParseResult<IExpr> => {
     return this.or();
@@ -1114,11 +1148,26 @@ export class Parser {
   }
 
   // get an argument list
+  private partialArgumentsCount = (): IParseResult<number> => {
+    let count = -1;
+
+    if (!this.check(TokenType.BracketClose)) {
+      do {
+        count += 1;
+        if (this.isAtEnd()) break;
+        this.expression();
+      } while (this.matchToken(TokenType.Comma));
+    }
+
+    return parseResult(count < 0 ? 0 : count);
+  }
+
+  // get an argument list
   private arguments = (): IParseResult<IExpr[]> => {
     const args: IExpr[] = [];
     const errors: IParseError[][] = [];
 
-    if (!this.check(TokenType.BracketClose)) {
+    if (!this.isAtEnd() && !this.check(TokenType.BracketClose)) {
       do {
         const arg = this.expression();
         args.push(arg.value);

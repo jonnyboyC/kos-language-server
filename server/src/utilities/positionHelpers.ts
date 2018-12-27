@@ -1,4 +1,5 @@
 import { Position, Range } from 'vscode-languageserver';
+import { empty } from './typeGuards';
 
 export const positionAfter = (pos1: Position, pos2: Position): boolean => {
   if (pos1.line > pos2.line) {
@@ -68,4 +69,32 @@ export const rangeAfter = (range: Range, pos: Position): boolean => {
   }
 
   return false;
+};
+
+export const binarySearch = <T extends Range>(ranges: T[], pos: Position): Maybe<T> => {
+  const index = binarySearchIndex(ranges, pos);
+
+  return empty(index)
+    ? index
+    : ranges[index];
+};
+
+export const binarySearchIndex = <T extends Range>(ranges: T[], pos: Position): Maybe<number> => {
+  let left = 0;
+  let right = ranges.length - 1;
+
+  while (left <= right) {
+    const mid = Math.floor((right + left) / 2);
+    if (rangeBefore(ranges[mid], pos)) {
+      left = mid + 1;
+    } else if (rangeAfter(ranges[mid], pos)) {
+      right = mid - 1;
+    } else if (rangeContains(ranges[mid], pos)) {
+      return mid;
+    } else {
+      return undefined;
+    }
+  }
+
+  return undefined;
 };
