@@ -15,6 +15,32 @@ export abstract class Expr implements IExpr {
   public abstract accept<T>(visitor: IExprVisitor<T>): T;
 }
 
+export class InvalidExpr extends Expr {
+  constructor(public readonly tokens: IToken[]) {
+    super();
+  }
+
+  public get start(): Position {
+    return this.tokens[0].start;
+  }
+
+  public get end(): Position {
+    return this.tokens[this.tokens.length - 1].end;
+  }
+
+  public get ranges(): Range[] {
+    return [...this.tokens];
+  }
+
+  public toString(): string {
+    return this.tokens.join(', ');
+  }
+
+  public accept<T>(visitor: IExprVisitor<T>): T {
+    return visitor.visitExprInvalid(this);
+  }
+}
+
 export class BinaryExpr extends Expr {
   constructor(
     public readonly left: IExpr,

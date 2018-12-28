@@ -1,12 +1,19 @@
 import { IExprVisitor, IExpr } from '../parser/types';
-import { BinaryExpr, UnaryExpr, FactorExpr, SuffixExpr,
+import {
+  BinaryExpr, UnaryExpr, FactorExpr, SuffixExpr,
   CallExpr, ArrayIndexExpr, ArrayBracketExpr, DelegateExpr,
-  LiteralExpr, VariableExpr, GroupingExpr, AnonymousFunctionExpr } from '../parser/expr';
+  LiteralExpr, VariableExpr, GroupingExpr, AnonymousFunctionExpr,
+  InvalidExpr,
+} from '../parser/expr';
 import { IToken } from '../entities/types';
 
 export class SetResolver implements IExprVisitor<Maybe<IToken>> {
   public resolveExpr(expr: IExpr): Maybe<IToken> {
     return expr.accept(this);
+  }
+  // tslint:disable-next-line:variable-name
+  public visitExprInvalid(_expr: InvalidExpr): Maybe<IToken> {
+    return undefined;
   }
   // tslint:disable-next-line:variable-name
   public visitBinary(_expr: BinaryExpr): Maybe<IToken> {

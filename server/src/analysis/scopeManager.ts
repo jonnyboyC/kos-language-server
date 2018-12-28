@@ -4,11 +4,11 @@ import { ScopeType } from '../parser/types';
 import { KsVariable } from '../entities/variable';
 import { VariableState, IScope, IScopeNode,
   KsEntity, IStack, FunctionState, LockState,
-  ParameterState, mockEnd,
+  ParameterState,
 } from './types';
 import { KsFunction } from '../entities/function';
 import { KsLock } from '../entities/lock';
-import { Position } from 'vscode-languageserver';
+import { Position, Range } from 'vscode-languageserver';
 import { IToken } from '../entities/types';
 import { KsParameter } from '../entities/parameters';
 import { positionAfterEqual, positionBeforeEqual } from '../utilities/positionHelpers';
@@ -38,8 +38,8 @@ export class ScopeManager {
     this.backTrackPath = [];
   }
 
-    // push new scope onto scope stack
-  public beginScope(token: IToken): void {
+  // push new scope onto scope stack
+  public beginScope(range: Range): void {
     const depth = this.activeScopePath.length - 1;
     const next = !empty(this.backTrackPath[depth + 1])
             ? this.backTrackPath[depth + 1] + 1 : 0;
@@ -49,25 +49,20 @@ export class ScopeManager {
     if (empty(activeNode.children[next])) {
       activeNode.children.push({
         scope: new Map(),
-        position: new ScopePosition(token.start, mockEnd),
+        position: new ScopePosition(range.start, range.end),
         children: [],
       });
     }
 
-    connection.console.log(`begin scope at ${JSON.stringify(token.start)}`);
+    connection.console.log(`begin scope at ${JSON.stringify(range.start)}`);
 
     this.activeScopePath.push(next);
     this.backTrackPath = [...this.activeScopePath];
   }
 
     // pop a scope and check entity validity
-  public endScope(token: IToken): ResolverError[] {
+  public endScope(): ResolverError[] {
     const { scope, position } = this.activeScopeNode();
-
-    if (position.tag === 'real') {
-      position.end = token.end;
-    }
-
     this.activeScopePath.pop();
 
     const errors = [];
@@ -94,7 +89,9 @@ export class ScopeManager {
       }
     }
 
-    connection.console.log(`end scope at ${JSON.stringify(token.start)}`);
+    if (position.tag === 'real') {
+      connection.console.log(`end scope at ${JSON.stringify(position.end)}`);
+    }
     return errors;
   }
 

@@ -32,7 +32,7 @@ export class InvalidInst extends Inst {
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
-    return visitor.visitInvalid(this);
+    return visitor.visitInstInvalid(this);
   }
 }
 

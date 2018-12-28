@@ -8,6 +8,7 @@ export interface IToken extends Range {
   readonly literal: any;
   readonly start: Position;
   readonly end: Position;
+  readonly file?: string;
   toString: () => string;
 }
 

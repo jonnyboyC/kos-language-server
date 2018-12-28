@@ -9,7 +9,7 @@ import { Expr, LiteralExpr, GroupingExpr,
   VariableExpr, CallExpr, DelegateExpr,
   ArrayBracketExpr, ArrayIndexExpr,
   FactorExpr, UnaryExpr, BinaryExpr,
-  SuffixExpr, AnonymousFunctionExpr,
+  SuffixExpr, AnonymousFunctionExpr, InvalidExpr,
 } from './expr';
 import { Inst, BlockInst, OnOffInst,
   CommandInst, CommandExpressionInst,
@@ -50,45 +50,55 @@ export class Parser {
     const instructions: Inst[] = [];
     let parseErrors: IParseError[] = [];
 
-    // ensure a start of file is present
-    this.consumeTokenThrow('File did not beging with Start of file token', TokenType.Sof);
-
     while (!this.isAtEnd()) {
       const { value: inst, errors } = this.declaration();
       instructions.push(inst);
       parseErrors = parseErrors.concat(errors);
     }
     return [
-      new SyntaxTree(this.tokens[0], instructions, this.tokens[this.tokens.length - 1]),
+      new SyntaxTree(instructions),
       parseErrors,
     ];
   }
 
   // testing function / utility
   public parseInstruction = (tokens: IToken[]): IParseResult<IInst> => {
-    this.setTokens([...tokens]);
+    this.setTokens(tokens);
     return this.declaration();
   }
 
   // testing function / utility
   public parseExpression = (tokens: IToken[]): IParseResult<IExpr> => {
-    this.setTokens([...tokens, this.fakeEof(tokens)]);
-    return this.expression();
+    this.setTokens(tokens);
+
+    try {
+      return this.expression();
+    } catch (error) {
+      if (error instanceof ParseError) {
+        this.synchronize();
+
+        return {
+          errors: [error],
+          value: new InvalidExpr(this.tokens.slice(0, this.current)),
+        };
+      }
+      throw error;
+    }
   }
 
   public parseArgCount = (tokens: IToken[]): IParseResult<number> => {
-    this.setTokens([...tokens, this.fakeEof(tokens)]);
+    this.setTokens(tokens);
     return this.partialArgumentsCount();
   }
 
   // set the tokens
   private setTokens = (tokens: IToken[]): void => {
     this.current = 0;
-    this.tokens = tokens;
+    this.tokens = tokens.concat(this.eof(tokens));
   }
 
   // generate a placholder token as a fake end of file
-  private fakeEof = (tokens: IToken[]): IToken => {
+  private eof = (tokens: IToken[]): IToken => {
     if (tokens.length === 0) {
       return new Token(
         TokenType.Eof, '', undefined,

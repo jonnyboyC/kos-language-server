@@ -4,6 +4,7 @@ import {
   ArrayBracketExpr, DelegateExpr, LiteralExpr,
   VariableExpr, GroupingExpr,
   AnonymousFunctionExpr,
+  InvalidExpr,
 } from './expr';
 import {
   BlockInst, ExprInst, OnOffInst,
@@ -55,6 +56,7 @@ export interface IExprVisitable {
 }
 
 export interface IExprVisitor<T> {
+  visitExprInvalid(expr: InvalidExpr): T;
   visitBinary(expr: BinaryExpr): T;
   visitUnary(expr: UnaryExpr): T;
   visitFactor(expr: FactorExpr): T;
@@ -79,7 +81,7 @@ export interface IInstVisitor<T> {
   visitDeclFunction(decl: DeclFunction): T;
   visitDeclParameter(decl: DeclParameter): T;
 
-  visitInvalid(inst: InvalidInst): T;
+  visitInstInvalid(inst: InvalidInst): T;
   visitBlock(inst: BlockInst): T;
   visitExpr(inst: ExprInst): T;
   visitOnOff(inst: OnOffInst): T;

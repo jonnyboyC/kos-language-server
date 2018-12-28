@@ -1,12 +1,19 @@
 import { IExprVisitor, IExpr } from '../parser/types';
-import { BinaryExpr, UnaryExpr, FactorExpr, SuffixExpr,
+import {
+  BinaryExpr, UnaryExpr, FactorExpr, SuffixExpr,
   CallExpr, ArrayIndexExpr, ArrayBracketExpr, DelegateExpr,
-  LiteralExpr, VariableExpr, GroupingExpr, AnonymousFunctionExpr } from '../parser/expr';
+  LiteralExpr, VariableExpr, GroupingExpr, AnonymousFunctionExpr,
+  InvalidExpr,
+} from '../parser/expr';
 import { IToken } from '../entities/types';
 
 export class LocalResolver implements IExprVisitor<IToken[]> {
   public resolveExpr(expr: IExpr): IToken[] {
     return expr.accept(this);
+  }
+  // tslint:disable-next-line:variable-name
+  public visitExprInvalid(_expr: InvalidExpr): IToken[] {
+    return [];
   }
   public visitBinary(expr: BinaryExpr): IToken[] {
     return this.resolveExpr(expr.left)

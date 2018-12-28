@@ -3,7 +3,7 @@ import { KsFunction } from '../entities/function';
 import { KsLock } from '../entities/lock';
 import { IToken } from '../entities/types';
 import { KsParameter } from '../entities/parameters';
-import { Position, Range } from 'vscode-languageserver';
+import { Range } from 'vscode-languageserver';
 
 export const enum FunctionState {
   declared,
@@ -28,11 +28,6 @@ export const enum LockState {
 
 export interface IScope extends Map<string, KsEntity> {
 }
-
-export const mockEnd: Position = {
-  line: Infinity,
-  character: Infinity,
-};
 
 export interface IRealScopePosition extends Range {
   tag: 'real';

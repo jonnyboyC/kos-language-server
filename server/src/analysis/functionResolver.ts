@@ -5,7 +5,7 @@ import {
   CallExpr, ArrayIndexExpr,
   ArrayBracketExpr, DelegateExpr,
   LiteralExpr, VariableExpr,
-  GroupingExpr, AnonymousFunctionExpr,
+  GroupingExpr, AnonymousFunctionExpr, InvalidExpr,
 } from '../parser/expr';
 import {
   BlockInst, ExprInst,
@@ -25,7 +25,6 @@ import {
   RunPathOnceInst, CompileInst,
   ListInst, EmptyInst,
   PrintInst,
-  Inst,
   InvalidInst,
 } from '../parser/inst';
 import { ResolverError } from './resolverError';
@@ -34,56 +33,58 @@ import { empty } from '../utilities/typeGuards';
 import { ScopeManager } from './scopeManager';
 import { ParameterState } from './types';
 import { SyntaxTree } from '../entities/syntaxTree';
-import { IToken } from '../entities/types';
 import { KsParameter } from '../entities/parameters';
 
 // tslint:disable-next-line:prefer-array-literal
 export type Errors = Array<ResolverError>;
 
 export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
-  private readonly start: IToken;
-  private readonly end: IToken;
-  private readonly insts: Inst[];
-  private readonly scopeMan: ScopeManager;
+  private syntaxTree: SyntaxTree;
+  private scopeMan: ScopeManager;
 
-  constructor(syntaxTree: SyntaxTree, scopeMan: ScopeManager) {
-    this.start = syntaxTree.startToken;
-    this.end = syntaxTree.endToken;
-    this.insts = syntaxTree.insts;
-    this.scopeMan = scopeMan;
+  constructor() {
+    this.syntaxTree = new SyntaxTree([]);
+    this.scopeMan = new ScopeManager();
   }
 
-    // resolve the sequence of instructions
-  public resolve(): Errors {
-    this.scopeMan.rewindScope();
-    this.scopeMan.beginScope(this.start);
+  // resolve the sequence of instructions
+  public resolve(syntaxTree: SyntaxTree, scopeMan: ScopeManager): Errors {
+    this.setSyntaxTree(syntaxTree, scopeMan);
+    this.scopeMan.beginScope(this.syntaxTree);
 
-    const resolveErrors = this.resolveInsts(this.insts);
-    const scopeErrors = this.scopeMan.endScope(this.end);
+    const resolveErrors = this.resolveInsts(this.syntaxTree.insts);
+    const scopeErrors = this.scopeMan.endScope();
 
     return resolveErrors.concat(scopeErrors);
   }
 
-    // resolve the given set of instructions
+  // set the syntax tree and scope manager
+  private setSyntaxTree(syntaxTree: SyntaxTree, scopeMan: ScopeManager): void {
+    this.syntaxTree = syntaxTree;
+    this.scopeMan = scopeMan;
+    this.scopeMan.rewindScope();
+  }
+
+  // resolve the given set of instructions
   public resolveInsts(insts: IInst[]): Errors {
     return accumulateErrors(insts, this.resolveInst.bind(this));
   }
 
-    // resolve for an instruction
+  // resolve for an instruction
   private resolveInst(inst: IInst): Errors {
     return inst.accept(this);
   }
 
-    // resolve for an expression
+  // resolve for an expression
   private resolveExpr(expr: IExpr): Errors {
     return expr.accept(this);
   }
 
-    /* --------------------------------------------
+  /* --------------------------------------------
 
-    Declarations
+  Declarations
 
-    ----------------------------------------------*/
+  ----------------------------------------------*/
 
   // check variable declaration
   public visitDeclVariable(decl: DeclVariable): Errors {
@@ -169,14 +170,14 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
   ----------------------------------------------*/
 
   // tslint:disable-next-line:variable-name
-  public visitInvalid(_inst: InvalidInst): Errors {
+  public visitInstInvalid(_inst: InvalidInst): Errors {
     return [];
   }
 
   public visitBlock(inst: BlockInst): Errors {
-    this.scopeMan.beginScope(inst.open);
+    this.scopeMan.beginScope(inst);
     const errors = this.resolveInsts(inst.instructions);
-    this.scopeMan.endScope(inst.close);
+    this.scopeMan.endScope();
 
     return errors;
   }
@@ -363,6 +364,11 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
   Expressions
 
   ----------------------------------------------*/
+
+  // tslint:disable-next-line:variable-name
+  public visitExprInvalid(_expr: InvalidExpr): Errors {
+    return [];
+  }
 
   public visitBinary(expr: BinaryExpr): Errors {
     return this.resolveExpr(expr.left)

@@ -11,8 +11,8 @@ import { IToken } from '../entities/types';
 
 // scan source file
 const scan = (source: string) : [IToken[], ISyntaxError[]] => {
-  const scanner = new Scanner(source);
-  return scanner.scanTokens();
+  const scanner = new Scanner();
+  return scanner.scanTokens(source);
 };
 
 // parse source
@@ -22,7 +22,7 @@ const parseExpression = (source: string): [IParseResult<IExpr>, ISyntaxError[]] 
   return [parser.parseExpression(tokens), scannerErrors];
 };
 
-const testDir = join(__dirname, '../../../kerboscripts');
+const testDir = join(__dirname, '../../../kerboscripts/parser_valid/');
 
 type callbackFunc = (fileName: string) => void;
 
@@ -39,8 +39,8 @@ ava('parse all', (t) => {
   walkDir(testDir, (filePath) => {
     const kosFile = readFileSync(filePath, 'utf8');
 
-    const scanner = new Scanner(kosFile);
-    const [tokens, scannerErrors] = scanner.scanTokens();
+    const scanner = new Scanner();
+    const [tokens, scannerErrors] = scanner.scanTokens(kosFile);
 
     t.true(scannerErrors.length === 0);
     const parser = new Parser();

@@ -5,7 +5,7 @@ import {
     CallExpr, ArrayIndexExpr,
     ArrayBracketExpr, DelegateExpr,
     LiteralExpr, VariableExpr,
-    GroupingExpr, AnonymousFunctionExpr,
+    GroupingExpr, AnonymousFunctionExpr, InvalidExpr,
 } from '../parser/expr';
 import {
     BlockInst, ExprInst,
@@ -25,7 +25,6 @@ import {
     RunPathOnceInst, CompileInst,
     ListInst, EmptyInst,
     PrintInst,
-    Inst,
     InvalidInst,
 } from '../parser/inst';
 import { ResolverError } from './resolverError';
@@ -37,38 +36,32 @@ import { ScopeManager } from './scopeManager';
 import { TokenType } from '../entities/tokentypes';
 import { LockState } from './types';
 import { SyntaxTree } from '../entities/syntaxTree';
-import { IToken } from '../entities/types';
 
 // tslint:disable-next-line:prefer-array-literal
 export type Errors = Array<ResolverError>;
 
 export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
-  private readonly start: IToken;
-  private readonly end: IToken;
-  private readonly insts: Inst[];
-  private readonly scopeMan: ScopeManager;
+  private syntaxTree: SyntaxTree;
+  private scopeMan: ScopeManager;
   private readonly localResolver: LocalResolver;
   private readonly setResolver: SetResolver;
   private lazyGlobalOff: boolean;
   private firstInst: boolean;
 
-  constructor(syntaxTree: SyntaxTree, scopeMan: ScopeManager) {
-    this.start = syntaxTree.startToken;
-    this.end = syntaxTree.endToken;
-    this.insts = syntaxTree.insts;
-    this.scopeMan = scopeMan;
+  constructor() {
+    this.syntaxTree = new SyntaxTree([]);
+    this.scopeMan = new ScopeManager();
     this.localResolver = new LocalResolver();
     this.setResolver = new SetResolver();
     this.lazyGlobalOff = false;
     this.firstInst = true;
-    scopeMan.rewindScope();
   }
 
   // resolve the sequence of instructions
-  public resolve(): Errors {
-    this.scopeMan.rewindScope();
-    this.scopeMan.beginScope(this.start);
-    const [firstInst, ...restInsts] = this.insts;
+  public resolve(syntaxTree: SyntaxTree, scopeMan: ScopeManager): Errors {
+    this.setSyntaxTree(syntaxTree, scopeMan);
+    this.scopeMan.beginScope(this.syntaxTree);
+    const [firstInst, ...restInsts] = this.syntaxTree.insts;
 
     // check for lazy global flag
     const firstError = this.resolveInst(firstInst);
@@ -76,12 +69,19 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
 
     // resolve reset
     const resolveErrors = this.resolveInsts(restInsts);
-    const scopeErrors = this.scopeMan.endScope(this.end);
+    const scopeErrors = this.scopeMan.endScope();
     return firstError.concat(resolveErrors, scopeErrors);
   }
 
+  // set the syntax tree and scope manager
+  private setSyntaxTree(syntaxTree: SyntaxTree, scopeMan: ScopeManager): void {
+    this.syntaxTree = syntaxTree;
+    this.scopeMan = scopeMan;
+    this.scopeMan.rewindScope();
+  }
+
   // resolve the given set of instructions
-  public resolveInsts(insts: IInst[]): Errors {
+  private resolveInsts(insts: IInst[]): Errors {
     return accumulateErrors(insts, this.resolveInst.bind(this));
   }
 
@@ -199,14 +199,14 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   ----------------------------------------------*/
 
   // tslint:disable-next-line:variable-name
-  public visitInvalid(_inst: InvalidInst): Errors {
+  public visitInstInvalid(_inst: InvalidInst): Errors {
     return [];
   }
 
   public visitBlock(inst: BlockInst): Errors {
-    this.scopeMan.beginScope(inst.open);
+    this.scopeMan.beginScope(inst);
     const errors = this.resolveInsts(inst.instructions);
-    this.scopeMan.endScope(inst.close);
+    this.scopeMan.endScope();
 
     return errors;
   }
@@ -467,6 +467,11 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   Expressions
 
   ----------------------------------------------*/
+
+  // tslint:disable-next-line:variable-name
+  public visitExprInvalid(_expr: InvalidExpr): Errors {
+    return [];
+  }
 
   public visitBinary(expr: BinaryExpr): Errors {
     return this.resolveExpr(expr.left)

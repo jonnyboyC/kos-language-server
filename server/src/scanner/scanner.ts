@@ -1,34 +1,33 @@
 import { TokenType } from '../entities/tokentypes';
 import { ITokenMap, ScanResult, ISyntaxError } from './types';
-import { Token, Marker } from '../entities/token';
+import { Token, Marker, MutableMarker } from '../entities/token';
 import { WhiteSpace } from './whitespace';
 import { KosSyntaxError } from './kosSyntaxError';
-import { Position } from 'vscode-languageserver';
 import { IToken } from '../entities/types';
 
 export class Scanner {
-  private readonly source: string;
+  private source: string;
   private start: number;
   private current: number;
-  private currentPosition: Position;
-  private startPosition: Position;
+  private currentPosition: MutableMarker;
+  private startPosition: MutableMarker;
 
   // scanner initializer
-  constructor(source: string) {
-    this.source = source.toLowerCase();
+  constructor() {
+    this.source = '';
     this.start = 0;
     this.current = 0;
-    this.startPosition = new Marker(0, 0);
-    this.currentPosition = new Marker(0, 0);
+    this.startPosition = new MutableMarker(0, 0);
+    this.currentPosition = new MutableMarker(0, 0);
   }
 
   // scan all available tokens
-  public scanTokens(): [IToken[], ISyntaxError[]] {
+  public scanTokens(source: string, file?: string): [IToken[], ISyntaxError[]] {
+    this.setSource(source, file);
+
     // create arrays for valid tokens and encountered errors
     const tokens: IToken[] = [];
     const errors: ISyntaxError[] = [];
-
-    tokens.push(this.generateToken(TokenType.Sof));
 
     // begin scanning
     while (!this.isAtEnd()) {
@@ -47,8 +46,15 @@ export class Scanner {
       }
     }
 
-    tokens.push(this.generateToken(TokenType.Eof));
     return [tokens, errors];
+  }
+
+  private setSource(source: string, file?: string) {
+    this.source = source.toLowerCase();
+    this.start = 0;
+    this.current = 0;
+    this.startPosition = new MutableMarker(0, 0, file);
+    this.currentPosition = new MutableMarker(0, 0, file);
   }
 
   private scanToken(): ScanResult {
@@ -228,8 +234,14 @@ export class Scanner {
     const text = this.source.substr(this.start, this.current - this.start);
     return new Token(
       type, text, literal,
-      new Marker(this.startPosition.line, this.startPosition.character),
-      new Marker(this.currentPosition.line, this.currentPosition.character),
+      new Marker(
+        this.startPosition.line,
+        this.startPosition.character,
+        this.startPosition.file),
+      new Marker(
+        this.currentPosition.line,
+        this.currentPosition.character,
+        this.currentPosition.file),
     );
   }
 
@@ -237,22 +249,21 @@ export class Scanner {
   private generateError(message: string): ISyntaxError {
     return new KosSyntaxError(
       message,
-      new Marker(this.startPosition.line, this.startPosition.character),
-      new Marker(this.currentPosition.line, this.currentPosition.character),
+      this.startPosition.toImmutable(),
+      this.currentPosition.toImmutable(),
     );
   }
 
   // increment line
   private incrementLine(): void {
-    this.currentPosition = new Marker(this.currentPosition.line + 1, 0);
+    this.currentPosition.line += 1;
+    this.currentPosition.character = 0;
   }
 
   // incremet file pointer
   private increment(): void {
     this.current += 1;
-    this.currentPosition = new Marker(
-      this.currentPosition.line,
-      this.currentPosition.character + 1);
+    this.currentPosition.character += 1;
   }
 
   // Is end of file

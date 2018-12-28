@@ -47,8 +47,8 @@ interface IDocumentInfo {
 
 // Create a simple text document manager. The text document manager
 // supports full document sync only
-const documents: TextDocuments = new TextDocuments();
 let workspaceFolder: string = '';
+const documents: TextDocuments = new TextDocuments();
 const scopeMap: Map<string, IDocumentInfo> = new Map();
 
 connection.onInitialize((params: InitializeParams) => {
@@ -123,8 +123,8 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
   connection.console.log('');
 
   performance.mark('scanner-start');
-  const scanner = new Scanner(text);
-  const [tokens, scanErrors] = scanner.scanTokens();
+  const scanner = new Scanner();
+  const [tokens, scanErrors] = scanner.scanTokens(text);
   performance.mark('scanner-end');
 
   // if scanner found errors report those immediately
@@ -146,17 +146,17 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
   }
 
   // generate a scope manager for resolving
-  const scopeManager = new ScopeManager();
+  const scopeMan = new ScopeManager();
 
   // generate resolvers
-  const funcResolver = new FuncResolver(syntaxTree, scopeManager);
-  const resolver = new Resolver(syntaxTree, scopeManager);
+  const funcResolver = new FuncResolver();
+  const resolver = new Resolver();
 
   // resolve the rest of the script
   connection.console.log(`Function resolving ${textDocument.uri}`);
   connection.console.log('');
   performance.mark('func-resolver-start');
-  let resolverErrors = funcResolver.resolve();
+  let resolverErrors = funcResolver.resolve(syntaxTree, scopeMan);
   performance.mark('func-resolver-end');
 
   // perform an initial function pass
@@ -164,7 +164,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
   connection.console.log('');
 
   performance.mark('resolver-start');
-  resolverErrors = resolverErrors.concat(resolver.resolve());
+  resolverErrors = resolverErrors.concat(resolver.resolve(syntaxTree, scopeMan));
   performance.mark('resolver-end');
 
   performance.measure('scanner', 'scanner-start', 'scanner-end');
@@ -198,8 +198,8 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
   connection.console.log(`Resolver took ${resolverMeasure.duration} ms`);
 
   scopeMap.set(textDocument.uri, {
-    scopeManager,
     syntaxTree,
+    scopeManager: scopeMan,
   });
   connection.sendDiagnostics({ diagnostics, uri: textDocument.uri });
 

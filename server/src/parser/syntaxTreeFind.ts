@@ -17,7 +17,7 @@ import {
   BinaryExpr, UnaryExpr, FactorExpr, SuffixExpr,
   CallExpr, ArrayIndexExpr, ArrayBracketExpr,
   DelegateExpr, LiteralExpr, VariableExpr,
-  GroupingExpr, AnonymousFunctionExpr, Expr,
+  GroupingExpr, AnonymousFunctionExpr, Expr, InvalidExpr,
 } from './expr';
 import { Position } from 'vscode-languageserver';
 import { binarySearch } from '../utilities/positionHelpers';
@@ -39,7 +39,7 @@ export class SyntaxTreeFind implements
     this.context = undefined;
   }
 
-  find(syntaxNode: INode, pos: Position, context?: Function): Maybe<IFindResult> {
+  public find(syntaxNode: INode, pos: Position, context?: Function): Maybe<IFindResult> {
     this.pos = pos;
     this.context = context;
     return this.findNode(syntaxNode);
@@ -118,7 +118,7 @@ export class SyntaxTreeFind implements
   visitDeclParameter(decl: DeclParameter): Maybe<IFindResult> {
     return this.findNode(decl);
   }
-  visitInvalid(inst: InvalidInst): Maybe<IFindResult> {
+  visitInstInvalid(inst: InvalidInst): Maybe<IFindResult> {
     return this.findNode(inst);
   }
   visitBlock(inst: BlockInst): Maybe<IFindResult> {
@@ -216,6 +216,9 @@ export class SyntaxTreeFind implements
   }
   visitPrint(inst: PrintInst): Maybe<IFindResult> {
     return this.findNode(inst);
+  }
+  visitExprInvalid(expr: InvalidExpr): Maybe<IFindResult> {
+    return this.findNode(expr);
   }
   visitBinary(expr: BinaryExpr): Maybe<IFindResult> {
     return this.findNode(expr);
