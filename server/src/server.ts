@@ -81,131 +81,8 @@ connection.onInitialize((params: InitializeParams) => {
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent((change) => {
-  validateTextDocument(change.document);
+  updateDocumentValidation(change.document);
 });
-
-// convert scan error to diagnostic
-const scanToDiagnostics = (error: ISyntaxError): Diagnostic => {
-  return {
-    severity: DiagnosticSeverity.Error,
-    range: { start: error.start, end: error.end },
-    message: error.message,
-    source: 'kos-language-server',
-  };
-};
-
-// convert parse error to diagnostic
-const parseToDiagnostics = (error: IParseError): Diagnostic => {
-  return {
-    severity: DiagnosticSeverity.Error,
-    range: { start: error.token.start, end: error.token.end },
-    message: error.message,
-    source: 'kos-language-server',
-  };
-};
-
-// convert resolver error to diagnostic
-const resolverToDiagnostics = (error: IResolverError): Diagnostic => {
-  return {
-    severity: DiagnosticSeverity.Warning,
-    range: { start: error.token.start, end: error.token.end },
-    message: error.message,
-    source: 'kos-language-server',
-  };
-};
-
-async function validateTextDocument(textDocument: TextDocument): Promise<void> {
-  // The validator creates diagnostics for all uppercase words length 2 and more
-  const text = textDocument.getText();
-
-  connection.console.log('');
-  connection.console.log(`Scanning ${textDocument.uri}`);
-  connection.console.log('');
-
-  performance.mark('scanner-start');
-  const scanner = new Scanner();
-  const [tokens, scanErrors] = scanner.scanTokens(text);
-  performance.mark('scanner-end');
-
-  // if scanner found errors report those immediately
-  if (scanErrors.length > 0) {
-    connection.console.warn(`Scanning encountered ${scanErrors.length} Errors.`);
-  }
-
-  // parse scanned tokens
-  connection.console.log(`Parsing ${textDocument.uri}`);
-  connection.console.log('');
-
-  performance.mark('parser-start');
-  const parser = new Parser();
-  const [syntaxTree, parseErrors] = parser.parse(tokens);
-  performance.mark('parser-end');
-
-  if (parseErrors.length > 0) {
-    connection.console.warn(`Parser encountered ${parseErrors.length} Errors.`);
-  }
-
-  // generate a scope manager for resolving
-  const scopeMan = new ScopeManager();
-
-  // generate resolvers
-  const funcResolver = new FuncResolver();
-  const resolver = new Resolver();
-
-  // resolve the rest of the script
-  connection.console.log(`Function resolving ${textDocument.uri}`);
-  connection.console.log('');
-  performance.mark('func-resolver-start');
-  let resolverErrors = funcResolver.resolve(syntaxTree, scopeMan);
-  performance.mark('func-resolver-end');
-
-  // perform an initial function pass
-  connection.console.log(`Resolving ${textDocument.uri}`);
-  connection.console.log('');
-
-  performance.mark('resolver-start');
-  resolverErrors = resolverErrors.concat(resolver.resolve(syntaxTree, scopeMan));
-  performance.mark('resolver-end');
-
-  performance.measure('scanner', 'scanner-start', 'scanner-end');
-  performance.measure('parser', 'parser-start', 'parser-end');
-  performance.measure('func-resolver', 'func-resolver-start', 'func-resolver-end');
-  performance.measure('resolver', 'resolver-start', 'resolver-end');
-
-  if (resolverErrors.length > 0) {
-    connection.console.warn(`Resolver encountered ${resolverErrors.length} Errors.`);
-  }
-
-  // generate all diagnostics
-  const diagnostics: Diagnostic[] = scanErrors.map(error => scanToDiagnostics(error)).concat(
-    parseErrors.length === 0 ? [] : parseErrors.map(error => error.inner.concat(error))
-      .reduce((acc, current) => acc.concat(current))
-      .map(error => parseToDiagnostics(error)),
-    resolverErrors
-      .map(error => resolverToDiagnostics(error)),
-    );
-
-  const [scannerMeasure] = performance.getEntriesByName('scanner');
-  const [parserMeasure] = performance.getEntriesByName('parser');
-  const [funcResolverMeasure] = performance.getEntriesByName('func-resolver');
-  const [resolverMeasure] = performance.getEntriesByName('resolver');
-
-  connection.console.log('');
-  connection.console.log('-------- performance ---------');
-  connection.console.log(`Scanner took ${scannerMeasure.duration} ms`);
-  connection.console.log(`Parser took ${parserMeasure.duration} ms`);
-  connection.console.log(`Function Resolver took ${funcResolverMeasure.duration} ms`);
-  connection.console.log(`Resolver took ${resolverMeasure.duration} ms`);
-
-  scopeMap.set(textDocument.uri, {
-    syntaxTree,
-    scopeManager: scopeMan,
-  });
-  connection.sendDiagnostics({ diagnostics, uri: textDocument.uri });
-
-  performance.clearMarks();
-  performance.clearMeasures();
-}
 
 connection.onDidChangeWatchedFiles((change: DidChangeWatchedFilesParams) => {
   // Monitored files have change in VSCode
@@ -357,6 +234,134 @@ connection.onCompletionResolve(
     return item;
   },
 );
+
+// when a document has been updated revalidate it
+const updateDocumentValidation = async (textDocument: TextDocument): Promise<void> => {
+  return validateDocument(textDocument.uri, textDocument.getText());
+};
+
+// main validation code
+const validateDocument = async (uri: string, text: string): Promise<void> => {
+  return new Promise(() => {
+    connection.console.log('');
+    connection.console.log(`Scanning ${uri}`);
+    connection.console.log('');
+
+    performance.mark('scanner-start');
+    const scanner = new Scanner();
+    const [tokens, scanErrors] = scanner.scanTokens(text);
+    performance.mark('scanner-end');
+
+    // if scanner found errors report those immediately
+    if (scanErrors.length > 0) {
+      connection.console.warn(`Scanning encountered ${scanErrors.length} Errors.`);
+    }
+
+    // parse scanned tokens
+    connection.console.log(`Parsing ${uri}`);
+    connection.console.log('');
+
+    performance.mark('parser-start');
+    const parser = new Parser();
+    const [syntaxTree, parseErrors] = parser.parse(tokens);
+    performance.mark('parser-end');
+
+    if (parseErrors.length > 0) {
+      connection.console.warn(`Parser encountered ${parseErrors.length} Errors.`);
+    }
+
+    // generate a scope manager for resolving
+    const scopeMan = new ScopeManager();
+
+    // generate resolvers
+    const funcResolver = new FuncResolver();
+    const resolver = new Resolver();
+
+    // resolve the rest of the script
+    connection.console.log(`Function resolving ${uri}`);
+    connection.console.log('');
+    performance.mark('func-resolver-start');
+    let resolverErrors = funcResolver.resolve(syntaxTree, scopeMan);
+    performance.mark('func-resolver-end');
+
+    // perform an initial function pass
+    connection.console.log(`Resolving ${uri}`);
+    connection.console.log('');
+
+    performance.mark('resolver-start');
+    resolverErrors = resolverErrors.concat(resolver.resolve(syntaxTree, scopeMan));
+    performance.mark('resolver-end');
+
+    performance.measure('scanner', 'scanner-start', 'scanner-end');
+    performance.measure('parser', 'parser-start', 'parser-end');
+    performance.measure('func-resolver', 'func-resolver-start', 'func-resolver-end');
+    performance.measure('resolver', 'resolver-start', 'resolver-end');
+
+    if (resolverErrors.length > 0) {
+      connection.console.warn(`Resolver encountered ${resolverErrors.length} Errors.`);
+    }
+
+    // generate all diagnostics
+    const diagnostics: Diagnostic[] = scanErrors.map(error => scanToDiagnostics(error)).concat(
+      parseErrors.length === 0 ? [] : parseErrors.map(error => error.inner.concat(error))
+        .reduce((acc, current) => acc.concat(current))
+        .map(error => parseToDiagnostics(error)),
+      resolverErrors
+        .map(error => resolverToDiagnostics(error)),
+      );
+
+    const [scannerMeasure] = performance.getEntriesByName('scanner');
+    const [parserMeasure] = performance.getEntriesByName('parser');
+    const [funcResolverMeasure] = performance.getEntriesByName('func-resolver');
+    const [resolverMeasure] = performance.getEntriesByName('resolver');
+
+    connection.console.log('');
+    connection.console.log('-------- performance ---------');
+    connection.console.log(`Scanner took ${scannerMeasure.duration} ms`);
+    connection.console.log(`Parser took ${parserMeasure.duration} ms`);
+    connection.console.log(`Function Resolver took ${funcResolverMeasure.duration} ms`);
+    connection.console.log(`Resolver took ${resolverMeasure.duration} ms`);
+
+    scopeMap.set(uri, {
+      syntaxTree,
+      scopeManager: scopeMan,
+    });
+    connection.sendDiagnostics({ diagnostics, uri });
+
+    performance.clearMarks();
+    performance.clearMeasures();
+  });
+};
+
+// convert scan error to diagnostic
+const scanToDiagnostics = (error: ISyntaxError): Diagnostic => {
+  return {
+    severity: DiagnosticSeverity.Error,
+    range: { start: error.start, end: error.end },
+    message: error.message,
+    source: 'kos-language-server',
+  };
+};
+
+// convert parse error to diagnostic
+const parseToDiagnostics = (error: IParseError): Diagnostic => {
+  return {
+    severity: DiagnosticSeverity.Error,
+    range: { start: error.token.start, end: error.token.end },
+    message: error.message,
+    source: 'kos-language-server',
+  };
+};
+
+// convert resolver error to diagnostic
+const resolverToDiagnostics = (error: IResolverError): Diagnostic => {
+  return {
+    severity: DiagnosticSeverity.Warning,
+    range: { start: error.token.start, end: error.token.end },
+    message: error.message,
+    source: 'kos-language-server',
+  };
+};
 
 // Make the text document manager listen on the connection
 // for open, change and close text document events

@@ -14,10 +14,18 @@ export interface IToken extends Range {
 
 export interface IType {
   readonly name: string;
-  params?: IType[];
+  params?: IType[] | IVarType;
   returns?: IType;
   inherentsFrom?: IType;
-  suffixes: {
-    [name: string]: IType,
-  };
+  suffixes: ISuffixMap;
+  tag: 'type';
+}
+
+export interface ISuffixMap {
+  [name: string]: IType;
+}
+
+export interface IVarType {
+  type: IType;
+  tag: 'varType';
 }

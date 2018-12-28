@@ -1,19 +1,30 @@
-import { IType } from './types';
+import { IType, ISuffixMap, IVarType } from './types';
+
+class Type implements IType {
+  public suffixes: ISuffixMap;
+  public inherentsFrom?: IType;
+  constructor(
+    public readonly name: string,
+    public readonly params?: IType[] | IVarType,
+    public readonly returns?: IType) {
+    this.suffixes = {};
+  }
+
+  get tag(): 'type' {
+    return 'type';
+  }
+}
 
 export const createStructureType = (name: string): IType => {
-  return {
-    name,
-    suffixes: {},
-  };
+  return new Type(name);
 };
 
 export const createSuffixType = (name: string, returns?: IType, ...params: IType[]): IType => {
-  return {
-    name,
-    returns,
-    params,
-    suffixes: {},
-  };
+  return new Type(name, params, returns);
+};
+
+export const createVarSuffixType = (name: string, returns?: IType, params?: IVarType): IType => {
+  return new Type(name, params, returns);
 };
 
 const addPrototype = (type: IType, parent: IType): IType => {
@@ -27,14 +38,17 @@ const addSuffixs = (type: IType, ...suffixes: IType[]): void => {
   }
 };
 
+export const functionType: IType = createStructureType('function');
 export const structureType: IType = createStructureType('structure');
 export const stringType: IType = createStructureType('string');
 export const scalarType: IType = createStructureType('scalar');
 export const booleanType: IType = createStructureType('boolean');
+export const delegateType: IType = createStructureType('delegate');
 
 addPrototype(stringType, structureType);
 addPrototype(scalarType, structureType);
 addPrototype(booleanType, structureType);
+addPrototype(delegateType, structureType);
 
 addSuffixs(
   structureType,
@@ -71,4 +85,11 @@ addSuffixs(
   createSuffixType('tonumber', scalarType, structureType),
   createSuffixType('toscalar', scalarType, structureType),
   createSuffixType('format', stringType, structureType),
+);
+
+addSuffixs(
+  delegateType,
+  createSuffixType('call', structureType),
+  createSuffixType('bind', delegateType),
+  createSuffixType('isdead', booleanType),
 );
