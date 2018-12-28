@@ -67,12 +67,12 @@ const atomTest = (source: string, type: TokenType, literal: any): AtomTestInterf
 // test basic literal
 ava('basic valid literal', (t) => {
   const validExpressions = [
-    atomTest('5', TokenType.Integer, 5),
-    atomTest('10e6', TokenType.Double, 10e6),
-    atomTest('"Test string"', TokenType.String, 'test string'),
-    atomTest('"true if until"', TokenType.String, 'true if until'),
-    atomTest('true', TokenType.True, true),
-    atomTest('false', TokenType.False, false),
+    atomTest('5', TokenType.integer, 5),
+    atomTest('10e6', TokenType.double, 10e6),
+    atomTest('"Test string"', TokenType.string, 'test string'),
+    atomTest('"true if until"', TokenType.string, 'true if until'),
+    atomTest('true', TokenType.true, true),
+    atomTest('false', TokenType.false, false),
   ];
 
   for (const expression of validExpressions) {
@@ -88,9 +88,9 @@ ava('basic valid literal', (t) => {
 // test basic literal
 ava('basic invalid literal', (t) => {
   const validExpressions = [
-    atomTest('-', TokenType.Integer, 5),
-    atomTest('"Test string', TokenType.String, 'test string'),
-    atomTest('until', TokenType.String, 'true if until'),
+    atomTest('-', TokenType.integer, 5),
+    atomTest('"Test string', TokenType.string, 'test string'),
+    atomTest('until', TokenType.string, 'true if until'),
   ];
 
   for (const expression of validExpressions) {
@@ -103,11 +103,11 @@ ava('basic invalid literal', (t) => {
 // test basic identifier
 ava('basic valid identifier', (t) => {
   const validExpressions = [
-    atomTest('α', TokenType.Identifier, undefined),
-    atomTest('until123OtherStuff', TokenType.Identifier, undefined),
-    atomTest('_variableName', TokenType.Identifier, undefined),
-    atomTest('БНЯД.БНЯД', TokenType.FileIdentifier, undefined),
-    atomTest('fileVariable.thing', TokenType.FileIdentifier, undefined),
+    atomTest('α', TokenType.identifier, undefined),
+    atomTest('until123OtherStuff', TokenType.identifier, undefined),
+    atomTest('_variableName', TokenType.identifier, undefined),
+    atomTest('БНЯД.БНЯД', TokenType.fileIdentifier, undefined),
+    atomTest('fileVariable.thing', TokenType.fileIdentifier, undefined),
   ];
 
   for (const expression of validExpressions) {
@@ -125,9 +125,9 @@ ava('basic valid identifier', (t) => {
 // test basic identifier
 ava('basic invalid identifier', (t) => {
   const validExpressions = [
-    atomTest('11α', TokenType.Identifier, undefined),
-    atomTest('+until123OtherStuff', TokenType.Identifier, undefined),
-    atomTest(',БНЯД', TokenType.FileIdentifier, undefined),
+    atomTest('11α', TokenType.identifier, undefined),
+    atomTest('+until123OtherStuff', TokenType.identifier, undefined),
+    atomTest(',БНЯД', TokenType.fileIdentifier, undefined),
   ];
 
   for (const expression of validExpressions) {
@@ -181,9 +181,9 @@ ava('valid call', (t) => {
 // test basic identifier
 ava('invalid call', (t) => {
   const validExpressions = [
-    atomTest('11α', TokenType.Identifier, undefined),
-    atomTest('+until123OtherStuff', TokenType.Identifier, undefined),
-    atomTest(',БНЯД', TokenType.FileIdentifier, undefined),
+    atomTest('11α', TokenType.identifier, undefined),
+    atomTest('+until123OtherStuff', TokenType.identifier, undefined),
+    atomTest(',БНЯД', TokenType.fileIdentifier, undefined),
   ];
 
   for (const expression of validExpressions) {

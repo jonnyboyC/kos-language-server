@@ -35,7 +35,7 @@ const partialArgs = (tokens: IToken[], pos: Position): Maybe<[IToken, IToken[]]>
     const token = tokens[i];
 
     if (depth < 0) {
-      if (token.type === TokenType.Identifier) {
+      if (token.type === TokenType.identifier) {
         identifier = token;
       }
 
@@ -43,10 +43,10 @@ const partialArgs = (tokens: IToken[], pos: Position): Maybe<[IToken, IToken[]]>
     }
 
     switch (token.type) {
-      case TokenType.BracketClose:
+      case TokenType.bracketClose:
         depth += 1;
         break;
-      case TokenType.BracketOpen:
+      case TokenType.bracketOpen:
         depth -= 1;
         break;
     }

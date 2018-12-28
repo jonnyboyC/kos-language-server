@@ -60,38 +60,38 @@ export class Scanner {
   private scanToken(): ScanResult {
     const c = this.advance();
     switch (c) {
-      case '(': return this.generateToken(TokenType.BracketOpen);
-      case ')': return this.generateToken(TokenType.BracketClose);
-      case '{': return this.generateToken(TokenType.CurlyOpen);
-      case '}': return this.generateToken(TokenType.CurlyClose);
-      case '[': return this.generateToken(TokenType.SquareOpen);
-      case ']': return this.generateToken(TokenType.SquareClose);
-      case ',': return this.generateToken(TokenType.Comma);
-      case ':': return this.generateToken(TokenType.Colon);
-      case '@': return this.generateToken(TokenType.AtSign);
-      case '#': return this.generateToken(TokenType.ArrayIndex);
+      case '(': return this.generateToken(TokenType.bracketOpen);
+      case ')': return this.generateToken(TokenType.bracketClose);
+      case '{': return this.generateToken(TokenType.curlyOpen);
+      case '}': return this.generateToken(TokenType.curlyClose);
+      case '[': return this.generateToken(TokenType.squareOpen);
+      case ']': return this.generateToken(TokenType.squareClose);
+      case ',': return this.generateToken(TokenType.comma);
+      case ':': return this.generateToken(TokenType.colon);
+      case '@': return this.generateToken(TokenType.atSign);
+      case '#': return this.generateToken(TokenType.arrayIndex);
 
-      case '^': return this.generateToken(TokenType.Power);
-      case '+': return this.generateToken(TokenType.Plus);
-      case '-': return this.generateToken(TokenType.Minus);
-      case '*': return this.generateToken(TokenType.Multi);
-      case '=': return this.generateToken(TokenType.Equal);
+      case '^': return this.generateToken(TokenType.power);
+      case '+': return this.generateToken(TokenType.plus);
+      case '-': return this.generateToken(TokenType.minus);
+      case '*': return this.generateToken(TokenType.multi);
+      case '=': return this.generateToken(TokenType.equal);
       case '.':
         if (this.isDigit(this.peekNext())) return this.number();
-        return this.generateToken(TokenType.Period);
+        return this.generateToken(TokenType.period);
       case '<':
-        if (this.match('=')) return this.generateToken(TokenType.LessEqual);
-        if (this.match('>')) return this.generateToken(TokenType.NotEqual);
-        return this.generateToken(TokenType.Less);
+        if (this.match('=')) return this.generateToken(TokenType.lessEqual);
+        if (this.match('>')) return this.generateToken(TokenType.notEqual);
+        return this.generateToken(TokenType.less);
       case '>':
-        if (this.match('=')) return this.generateToken(TokenType.GreaterEqual);
-        return this.generateToken(TokenType.Greater);
+        if (this.match('=')) return this.generateToken(TokenType.greaterEqual);
+        return this.generateToken(TokenType.greater);
       case '/':
         if (this.match('/')) {
           while (this.peek() !== '\n' && !this.isAtEnd()) this.advance();
           return new WhiteSpace();
         }
-        return this.generateToken(TokenType.Div);
+        return this.generateToken(TokenType.div);
       case ' ':
       case '\r':
       case '\t':
@@ -126,7 +126,7 @@ export class Scanner {
     if (keywords.hasOwnProperty(text)) {
       return this.generateToken(keywords[text].type, keywords[text].literal);
     }
-    return this.generateToken(TokenType.Identifier);
+    return this.generateToken(TokenType.identifier);
   }
 
     // extract a file identifier
@@ -137,7 +137,7 @@ export class Scanner {
       while (this.isAlphaNumeric(this.peek())) this.advance();
     }
 
-    return this.generateToken(TokenType.FileIdentifier);
+    return this.generateToken(TokenType.fileIdentifier);
   }
 
     // extract string
@@ -156,7 +156,7 @@ export class Scanner {
         // generate literal
     this.advance();
     const value = this.source.substr(this.start + 1, this.current - this.start - 2);
-    return this.generateToken(TokenType.String, value);
+    return this.generateToken(TokenType.string, value);
   }
 
   // extract number
@@ -168,7 +168,7 @@ export class Scanner {
             this.peek() !== 'e') {
       const intString = this.numberString();
       const int = parseInt(intString, 10);
-      return this.generateToken(TokenType.Integer, int);
+      return this.generateToken(TokenType.integer, int);
     }
 
     // continue parsing decimal places if they exist
@@ -208,7 +208,7 @@ export class Scanner {
     // generate float
     const floatString = this.numberString();
     const float = parseFloat(floatString);
-    return this.generateToken(TokenType.Double, float);
+    return this.generateToken(TokenType.double, float);
   }
 
   // advance number for digits and underscores
@@ -414,62 +414,62 @@ const identifierTest = new RegExp(
 
 // keyword map
 const keywords: ITokenMap = {
-  add: { type: TokenType.Add },
-  and: { type: TokenType.And },
-  all: { type: TokenType.All },
-  at: { type: TokenType.At },
-  break: { type: TokenType.Break },
-  clearscreen: { type: TokenType.Clearscreen },
-  compile: { type: TokenType.Compile },
-  copy: { type: TokenType.Copy },
+  add: { type: TokenType.add },
+  and: { type: TokenType.and },
+  all: { type: TokenType.all },
+  at: { type: TokenType.at },
+  break: { type: TokenType.break },
+  clearscreen: { type: TokenType.clearscreen },
+  compile: { type: TokenType.compile },
+  copy: { type: TokenType.copy },
   do: { type: TokenType.Do },
-  declare: { type: TokenType.Declare },
-  defined: { type: TokenType.Defined },
-  delete: { type: TokenType.Delete },
-  edit: { type: TokenType.Edit },
-  else: { type: TokenType.Else },
-  false: { type: TokenType.False, literal: false },
-  file: { type: TokenType.File },
-  for: { type: TokenType.For },
-  from: { type: TokenType.From },
-  function: { type: TokenType.Function },
-  global: { type: TokenType.Global },
-  if: { type: TokenType.If },
-  in: { type: TokenType.In },
-  is: { type: TokenType.Is },
-  lazyglobal: { type: TokenType.LazyGlobal },
-  list: { type: TokenType.List },
-  local: { type: TokenType.Local },
-  lock: { type: TokenType.Lock },
-  log: { type: TokenType.Log },
-  not: { type: TokenType.Not },
-  off: { type: TokenType.Off },
-  on: { type: TokenType.On },
-  or: { type: TokenType.Or },
-  once: { type: TokenType.Once },
-  parameter: { type: TokenType.Parameter },
-  preserve: { type: TokenType.Preserve },
-  print: { type: TokenType.Print },
-  reboot: { type: TokenType.Reboot },
-  remove: { type: TokenType.Remove },
-  rename: { type: TokenType.Rename },
-  return: { type: TokenType.Return },
-  run: { type: TokenType.Run },
-  runpath: { type: TokenType.RunPath },
-  runoncepath: { type: TokenType.RunOncePath },
-  set: { type: TokenType.Set },
-  shutdown: { type: TokenType.Shutdown },
-  stage: { type: TokenType.Stage },
-  step: { type: TokenType.Step },
-  switch: { type: TokenType.Switch },
-  then: { type: TokenType.Then },
-  to: { type: TokenType.To },
-  true: { type: TokenType.True, literal: true },
-  toggle: { type: TokenType.Toggle },
-  unlock: { type: TokenType.Unlock },
-  unset: { type: TokenType.Unset },
-  until: { type: TokenType.Until },
-  volume: { type: TokenType.Volume },
-  wait: { type: TokenType.Wait },
-  when: { type: TokenType.When },
+  declare: { type: TokenType.declare },
+  defined: { type: TokenType.defined },
+  delete: { type: TokenType.delete },
+  edit: { type: TokenType.edit },
+  else: { type: TokenType.else },
+  false: { type: TokenType.false, literal: false },
+  file: { type: TokenType.file },
+  for: { type: TokenType.for },
+  from: { type: TokenType.from },
+  function: { type: TokenType.function },
+  global: { type: TokenType.global },
+  if: { type: TokenType.if },
+  in: { type: TokenType.in },
+  is: { type: TokenType.is },
+  lazyglobal: { type: TokenType.lazyGlobal },
+  list: { type: TokenType.list },
+  local: { type: TokenType.local },
+  lock: { type: TokenType.lock },
+  log: { type: TokenType.log },
+  not: { type: TokenType.not },
+  off: { type: TokenType.off },
+  on: { type: TokenType.on },
+  or: { type: TokenType.or },
+  once: { type: TokenType.once },
+  parameter: { type: TokenType.parameter },
+  preserve: { type: TokenType.preserve },
+  print: { type: TokenType.print },
+  reboot: { type: TokenType.reboot },
+  remove: { type: TokenType.remove },
+  rename: { type: TokenType.rename },
+  return: { type: TokenType.return },
+  run: { type: TokenType.run },
+  runpath: { type: TokenType.runPath },
+  runoncepath: { type: TokenType.runOncePath },
+  set: { type: TokenType.set },
+  shutdown: { type: TokenType.shutdown },
+  stage: { type: TokenType.stage },
+  step: { type: TokenType.step },
+  switch: { type: TokenType.switch },
+  then: { type: TokenType.then },
+  to: { type: TokenType.to },
+  true: { type: TokenType.true, literal: true },
+  toggle: { type: TokenType.toggle },
+  unlock: { type: TokenType.unlock },
+  unset: { type: TokenType.unset },
+  until: { type: TokenType.until },
+  volume: { type: TokenType.volume },
+  wait: { type: TokenType.wait },
+  when: { type: TokenType.when },
 };

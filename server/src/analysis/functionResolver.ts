@@ -34,6 +34,7 @@ import { ScopeManager } from './scopeManager';
 import { ParameterState } from './types';
 import { SyntaxTree } from '../entities/syntaxTree';
 import { KsParameter } from '../entities/parameters';
+import { TokenType } from '../entities/tokentypes';
 
 // tslint:disable-next-line:prefer-array-literal
 export type Errors = Array<ResolverError>;
@@ -99,13 +100,26 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
 
   // check function declaration
   public visitDeclFunction(decl: DeclFunction): ResolverError[] {
-    let scopeType = decl.scope && decl.scope.type;
+    const scopeToken = decl.scope && decl.scope.scope;
+
+    let scopeType: ScopeType;
 
     // functions are default global at file scope and local everywhere else
-    if (empty(scopeType)) {
+    if (empty(scopeToken)) {
       scopeType = this.scopeMan.isFileScope()
         ? ScopeType.global
         : ScopeType.local;
+    } else {
+      switch (scopeToken.type) {
+        case TokenType.local:
+          scopeType = ScopeType.local;
+          break;
+        case TokenType.global:
+          scopeType = ScopeType.global;
+          break;
+        default:
+          throw new Error('Unexpected scope token encountered. Expected local or global.');
+      }
     }
 
     let returnValue = false;

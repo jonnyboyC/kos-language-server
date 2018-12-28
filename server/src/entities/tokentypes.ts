@@ -1,102 +1,102 @@
 export enum TokenType {
-    WhiteSpace, CommentLine,
-    Plus, Minus, Multi, Div, Power,
-    Not, And, Or, True, False,
-    Equal, NotEqual, GreaterEqual, Greater, LessEqual, Less,
+    whiteSpace, commentLine,
+    plus, minus, multi, div, power,
+    not, and, or, true, false,
+    equal, notEqual, greaterEqual, greater, lessEqual, less,
 
-    Set, Unset, To, Is, Until,
-    If, Else, For, When, Then, From, Do,
-    At, On, In,
-    Lock, Unlock,
-    Print, ArrayIndex,
+    set, unset, to, is, until,
+    if, else, for, when, then, from, Do,
+    at, on, in,
+    lock, unlock,
+    print, arrayIndex,
 
-    Integer, Double, String,
+    integer, double, string,
 
-    Local, Global, Parameter, Function,
-    Preserve, Break, Return, Declare,
-    Defined,
+    local, global, parameter, function,
+    preserve, break, return, declare,
+    defined,
 
     // done
-    BracketOpen, BracketClose, CurlyOpen, CurlyClose,
-    SquareOpen, SquareClose, Comma, Colon,
-    Period, AtSign, Eof,
+    bracketOpen, bracketClose, curlyOpen, curlyClose,
+    squareOpen, squareClose, comma, colon,
+    period, atSign, eof,
 
-    Toggle, Wait, Off, List, Clearscreen,
-    Stage, Add, Remove, Log, Step,
+    toggle, wait, off, list, clearscreen,
+    stage, add, remove, log, step,
 
-    Switch, Copy, Rename, Volume,
-    File, Delete, Edit, All,
+    switch, copy, rename, volume,
+    file, delete, edit, all,
 
-    Run, RunPath, RunOncePath,
-    Once, Compile,
+    run, runPath, runOncePath,
+    once, compile,
 
-    Reboot, Shutdown,
+    reboot, shutdown,
 
-    Identifier,
-    FileIdentifier,
-    LazyGlobal,
+    identifier,
+    fileIdentifier,
+    lazyGlobal,
 }
 
 export const isValidIdentifier = (type: TokenType): boolean => {
   switch (type) {
-    case TokenType.Not:
-    case TokenType.And:
-    case TokenType.Or:
-    case TokenType.Set:
-    case TokenType.Unset:
-    case TokenType.To:
-    case TokenType.Is:
-    case TokenType.Until:
-    case TokenType.If:
-    case TokenType.Else:
-    case TokenType.For:
-    case TokenType.When:
-    case TokenType.Then:
-    case TokenType.From:
+    case TokenType.not:
+    case TokenType.and:
+    case TokenType.or:
+    case TokenType.set:
+    case TokenType.unset:
+    case TokenType.to:
+    case TokenType.is:
+    case TokenType.until:
+    case TokenType.if:
+    case TokenType.else:
+    case TokenType.for:
+    case TokenType.when:
+    case TokenType.then:
+    case TokenType.from:
     case TokenType.Do:
-    case TokenType.At:
-    case TokenType.On:
-    case TokenType.In:
-    case TokenType.Lock:
-    case TokenType.Unlock:
-    case TokenType.Print:
-    case TokenType.Local:
-    case TokenType.Global:
-    case TokenType.Parameter:
-    case TokenType.Function:
-    case TokenType.Preserve:
-    case TokenType.Break:
-    case TokenType.Return:
-    case TokenType.Declare:
-    case TokenType.Defined:
-    case TokenType.Toggle:
-    case TokenType.Wait:
-    case TokenType.Off:
-    case TokenType.List:
-    case TokenType.Clearscreen:
-    case TokenType.Stage:
-    case TokenType.Add:
-    case TokenType.Remove:
-    case TokenType.Log:
-    case TokenType.Step:
-    case TokenType.Switch:
-    case TokenType.Copy:
-    case TokenType.Rename:
-    case TokenType.Volume:
-    case TokenType.File:
-    case TokenType.Delete:
-    case TokenType.Edit:
-    case TokenType.All:
-    case TokenType.Run:
-    case TokenType.RunPath:
-    case TokenType.RunOncePath:
-    case TokenType.Once:
-    case TokenType.Compile:
-    case TokenType.Reboot:
-    case TokenType.Shutdown:
-    case TokenType.Identifier:
+    case TokenType.at:
+    case TokenType.on:
+    case TokenType.in:
+    case TokenType.lock:
+    case TokenType.unlock:
+    case TokenType.print:
+    case TokenType.local:
+    case TokenType.global:
+    case TokenType.parameter:
+    case TokenType.function:
+    case TokenType.preserve:
+    case TokenType.break:
+    case TokenType.return:
+    case TokenType.declare:
+    case TokenType.defined:
+    case TokenType.toggle:
+    case TokenType.wait:
+    case TokenType.off:
+    case TokenType.list:
+    case TokenType.clearscreen:
+    case TokenType.stage:
+    case TokenType.add:
+    case TokenType.remove:
+    case TokenType.log:
+    case TokenType.step:
+    case TokenType.switch:
+    case TokenType.copy:
+    case TokenType.rename:
+    case TokenType.volume:
+    case TokenType.file:
+    case TokenType.delete:
+    case TokenType.edit:
+    case TokenType.all:
+    case TokenType.run:
+    case TokenType.runPath:
+    case TokenType.runOncePath:
+    case TokenType.once:
+    case TokenType.compile:
+    case TokenType.reboot:
+    case TokenType.shutdown:
+    case TokenType.identifier:
     // case TokenType.FileIdentifier:
-    case TokenType.LazyGlobal:
+    case TokenType.lazyGlobal:
       return true;
     default:
       return false;

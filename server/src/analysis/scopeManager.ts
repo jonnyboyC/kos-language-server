@@ -21,6 +21,9 @@ export class ScopeManager {
   private activeScopePath: IStack<number>;
   private backTrackPath: IStack<number>;
 
+  public childScopes: Set<ScopeManager>;
+  public parentScopes: Set<ScopeManager>;
+
   constructor() {
     this.global = new Map();
     this.scopesRoot = {
@@ -30,12 +33,37 @@ export class ScopeManager {
     };
     this.activeScopePath = [];
     this.backTrackPath = [];
+    this.childScopes = new Set();
+    this.parentScopes = new Set();
   }
 
-    // rewind scope to entry point for multiple passes
+  // rewind scope to entry point for multiple passes
   public rewindScope(): void {
     this.activeScopePath = [];
     this.backTrackPath = [];
+  }
+
+  // add a child scope manager from a file run in this file
+  public addChild(childMan: ScopeManager): void {
+    this.childScopes.add(childMan);
+    childMan.parentScopes.add(this);
+  }
+
+  // should be called when the associated file is deleted
+  public removeSelf(): void {
+    // remove refernces from parent scopes
+    for (const parent of this.parentScopes) {
+      parent.childScopes.delete(this);
+    }
+
+    // remove references from child scopes
+    for (const child of this.childScopes) {
+      child.parentScopes.delete(this);
+    }
+
+    // clear own references
+    this.childScopes.clear();
+    this.parentScopes.clear();
   }
 
   // push new scope onto scope stack

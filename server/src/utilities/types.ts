@@ -6,3 +6,10 @@ interface IdentifierIndex {
   identifier: string;
   index: number;
 }
+
+interface ILogger {
+  error(message: string): void;
+  warn(message: string): void;
+  info(message: string): void;
+  log(message: string): void;
+}

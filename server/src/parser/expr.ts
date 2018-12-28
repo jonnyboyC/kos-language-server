@@ -320,8 +320,8 @@ export class VariableExpr extends Expr {
   }
 
   public get isKeyword(): boolean {
-    return !(this.token.type === TokenType.Identifier
-      || this.token.type === TokenType.FileIdentifier);
+    return !(this.token.type === TokenType.identifier
+      || this.token.type === TokenType.fileIdentifier);
   }
 
   public toString(): string {

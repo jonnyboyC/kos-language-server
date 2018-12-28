@@ -55,9 +55,9 @@ export class DeclScope implements IDeclScope {
     }
 
     switch (this.scope.type) {
-      case TokenType.Local:
+      case TokenType.local:
         return ScopeType.local;
-      case TokenType.Global:
+      case TokenType.global:
         return ScopeType.global;
       default:
         throw new Error('Unknown scope type found');
@@ -183,7 +183,7 @@ export class Parameter implements Range {
   }
 
   public get isKeyword(): boolean {
-    return this.identifier.type !== TokenType.Identifier;
+    return this.identifier.type !== TokenType.identifier;
   }
 }
 
@@ -203,7 +203,7 @@ export class DefaultParameter implements Range {
   }
 
   public get isKeyword(): boolean {
-    return this.identifier.type !== TokenType.Identifier;
+    return this.identifier.type !== TokenType.identifier;
   }
 }
 
