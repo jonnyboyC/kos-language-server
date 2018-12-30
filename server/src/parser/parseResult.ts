@@ -1,8 +1,8 @@
-import { IParseError, IParseResult } from './types';
+import { IParseError, INodeResult } from './types';
 import { empty } from '../utilities/typeGuards';
 
-export const parseResult = <T>(inst: T, ...errors: IParseError[][]):
-  IParseResult<T> => {
+export const nodeResult = <T>(inst: T, ...errors: IParseError[][]):
+  INodeResult<T> => {
   if (empty(errors)) {
     return { value: inst, errors: [] };
   }

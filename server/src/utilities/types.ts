@@ -13,3 +13,7 @@ interface ILogger {
   info(message: string): void;
   log(message: string): void;
 }
+
+interface ITracer {
+  log(message: string, verbose?: string): void;
+}

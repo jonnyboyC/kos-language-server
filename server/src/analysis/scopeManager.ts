@@ -12,8 +12,8 @@ import { Position, Range } from 'vscode-languageserver';
 import { IToken } from '../entities/types';
 import { KsParameter } from '../entities/parameters';
 import { positionAfterEqual, positionBeforeEqual } from '../utilities/positionHelpers';
-import { connection } from '../server';
 import { ScopePosition } from './scopePosition';
+import { mockLogger } from '../utilities/logger';
 
 export class ScopeManager {
   private readonly global: IScope;
@@ -23,8 +23,10 @@ export class ScopeManager {
 
   public childScopes: Set<ScopeManager>;
   public parentScopes: Set<ScopeManager>;
+  public logger: ILogger;
 
-  constructor() {
+  constructor(logger: ILogger = mockLogger) {
+    this.logger = logger;
     this.global = new Map();
     this.scopesRoot = {
       scope: this.global,
@@ -82,7 +84,7 @@ export class ScopeManager {
       });
     }
 
-    connection.console.log(`begin scope at ${JSON.stringify(range.start)}`);
+    this.logger.info(`begin scope at ${JSON.stringify(range.start)}`);
 
     this.activeScopePath.push(next);
     this.backTrackPath = [...this.activeScopePath];
@@ -118,7 +120,7 @@ export class ScopeManager {
     }
 
     if (position.tag === 'real') {
-      connection.console.log(`end scope at ${JSON.stringify(position.end)}`);
+      this.logger.info(`end scope at ${JSON.stringify(position.end)}`);
     }
     return errors;
   }
@@ -213,7 +215,7 @@ export class ScopeManager {
     const scope = this.selectScope(scopeType);
 
     scope.set(name.lexeme, new KsVariable(scopeType, name, VariableState.declared));
-    connection.console.log(`declare variable ${name.lexeme} at ${JSON.stringify(name.start)}`);
+    this.logger.info(`declare variable ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
 
@@ -241,7 +243,7 @@ export class ScopeManager {
     }
 
     variable.state = state;
-    connection.console.log(`use variable ${name.lexeme} at ${JSON.stringify(name.start)}`);
+    this.logger.info(`use variable ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
 
@@ -264,7 +266,7 @@ export class ScopeManager {
             parameters, returnValue,
             FunctionState.declared));
 
-    connection.console.log(`declare function ${name.lexeme} at ${JSON.stringify(name.start)}`);
+    this.logger.info(`declare function ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
 
@@ -283,7 +285,7 @@ export class ScopeManager {
     }
 
     func.state = FunctionState.used;
-    connection.console.log(`use function ${name.lexeme} at ${JSON.stringify(name.start)}`);
+    this.logger.info(`use function ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
 
@@ -300,7 +302,7 @@ export class ScopeManager {
     const state = this.lockState(name.lexeme);
 
     scope.set(name.lexeme, new KsLock(scopeType, name, state));
-    connection.console.log(`declare lock ${name.lexeme} at ${JSON.stringify(name.start)}`);
+    this.logger.info(`declare lock ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
 
@@ -338,7 +340,7 @@ export class ScopeManager {
     }
 
     lock.state = newState;
-    connection.console.log(`use lock ${name.lexeme} at ${JSON.stringify(name.start)}`);
+    this.logger.info(`use lock ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
 
@@ -356,7 +358,7 @@ export class ScopeManager {
 
     const scope = this.selectScope(scopeType);
     scope.set(name.lexeme, new KsParameter(name, defaulted, ParameterState.declared));
-    connection.console.log(`declare parameter ${name.lexeme} at ${JSON.stringify(name.start)}`);
+    this.logger.info(`declare parameter ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
 
@@ -376,7 +378,7 @@ export class ScopeManager {
     }
 
     parameter.state = ParameterState.used;
-    connection.console.log(`use parameter ${name.lexeme} at ${JSON.stringify(name.start)}`);
+    this.logger.info(`use parameter ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
 

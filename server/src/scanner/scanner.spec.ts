@@ -21,9 +21,9 @@ ava('scan all', (t) => {
     const kosFile = readFileSync(filePath, 'utf8');
 
     const scanner = new Scanner();
-    const [tokens, scannerErrors] = scanner.scanTokens(kosFile);
+    const { tokens, scanErrors } = scanner.scanTokens(kosFile);
 
     t.true(tokens.length > 0);
-    t.true(scannerErrors.length === 0);
+    t.true(scanErrors.length === 0);
   });
 });

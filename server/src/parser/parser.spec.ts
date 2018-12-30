@@ -1,25 +1,24 @@
 import ava from 'ava';
 import { Scanner } from '../scanner/scanner';
 import { Parser } from './parser';
-import { ISyntaxError } from '../scanner/types';
-import { IParseError, IExpr, ExprResult, IParseResult } from './types';
+import { IScannerError, IScanResult } from '../scanner/types';
+import { IParseError, IExpr, ExprResult, INodeResult } from './types';
 import { LiteralExpr, VariableExpr, CallExpr } from './expr';
 import { TokenType } from '../entities/tokentypes';
 import { readdirSync, statSync, readFileSync } from 'fs';
 import { join } from 'path';
-import { IToken } from '../entities/types';
 
 // scan source file
-const scan = (source: string) : [IToken[], ISyntaxError[]] => {
+const scan = (source: string) : IScanResult => {
   const scanner = new Scanner();
   return scanner.scanTokens(source);
 };
 
 // parse source
-const parseExpression = (source: string): [IParseResult<IExpr>, ISyntaxError[]] => {
-  const [tokens, scannerErrors] = scan(source);
+const parseExpression = (source: string): [INodeResult<IExpr>, IScannerError[]] => {
+  const { tokens, scanErrors } = scan(source);
   const parser = new Parser();
-  return [parser.parseExpression(tokens), scannerErrors];
+  return [parser.parseExpression(tokens), scanErrors];
 };
 
 const testDir = join(__dirname, '../../../kerboscripts/parser_valid/');
@@ -40,11 +39,11 @@ ava('parse all', (t) => {
     const kosFile = readFileSync(filePath, 'utf8');
 
     const scanner = new Scanner();
-    const [tokens, scannerErrors] = scanner.scanTokens(kosFile);
+    const { tokens, scanErrors } = scanner.scanTokens(kosFile);
 
-    t.true(scannerErrors.length === 0);
+    t.true(scanErrors.length === 0);
     const parser = new Parser();
-    const [, parseErrors] = parser.parse(tokens);
+    const { parseErrors } = parser.parse(tokens);
 
     t.true(parseErrors.length === 0);
   });
@@ -193,7 +192,7 @@ ava('invalid call', (t) => {
   }
 });
 
-const isCall = (literalTest: ExprResult | ISyntaxError[]): literalTest is CallExpr => {
+const isCall = (literalTest: ExprResult | IScannerError[]): literalTest is CallExpr => {
   return isExpr(literalTest) && literalTest instanceof CallExpr;
 };
 
@@ -205,6 +204,6 @@ const isVariable = (literalTest: ExprResult): literalTest is VariableExpr => {
   return isExpr(literalTest) && literalTest instanceof VariableExpr;
 };
 
-const isExpr = (result: IParseError | IExpr | ISyntaxError[]): result is IExpr => {
+const isExpr = (result: IParseError | IExpr | IScannerError[]): result is IExpr => {
   return !(result instanceof Array) && result.tag === 'expr';
 };

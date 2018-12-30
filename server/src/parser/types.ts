@@ -23,6 +23,7 @@ import { DeclVariable, DeclLock, DeclFunction, DeclParameter } from './declare';
 import { IToken } from '../entities/types';
 import { Range } from 'vscode-languageserver';
 import { SyntaxTree } from '../entities/syntaxTree';
+import { IScannerError } from '../scanner/types';
 
 export interface IParseError {
   tag: 'parseError';
@@ -31,6 +32,18 @@ export interface IParseError {
   message: string;
   inner: IParseError[];
 }
+
+export interface ParseResult {
+  syntaxTree: SyntaxTree;
+  runInsts: RunInstType[];
+  parseErrors: IParseError[];
+}
+
+export interface SyntaxTreeResult extends ParseResult {
+  scanErrors: IScannerError[];
+}
+
+export type RunInstType = RunInst | RunPathInst | RunPathOnceInst;
 
 export interface IRangeSequence extends Range {
   ranges: Range[];
@@ -121,7 +134,7 @@ export interface IFindResult {
   token: IToken;
 }
 
-export interface IParseResult<T> {
+export interface INodeResult<T> {
   errors: IParseError[];
   value: T;
 }

@@ -1,7 +1,7 @@
-import { ISyntaxError } from './types';
+import { IScannerError } from './types';
 import { Position } from 'vscode-languageserver';
 
-export class KosSyntaxError implements ISyntaxError {
+export class ScannerError implements IScannerError {
   public readonly start: Position;
   public readonly end: Position;
 
@@ -13,7 +13,7 @@ export class KosSyntaxError implements ISyntaxError {
     this.end = end;
   }
 
-  public get tag(): 'syntaxError' {
-    return 'syntaxError';
+  public get tag(): 'scannerError' {
+    return 'scannerError';
   }
 }

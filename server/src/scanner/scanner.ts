@@ -1,9 +1,10 @@
 import { TokenType } from '../entities/tokentypes';
-import { ITokenMap, ScanResult, ISyntaxError } from './types';
+import { ITokenMap, ScanResult, IScannerError, IScanResult } from './types';
 import { Token, Marker, MutableMarker } from '../entities/token';
 import { WhiteSpace } from './whitespace';
-import { KosSyntaxError } from './kosSyntaxError';
+import { ScannerError } from './kosSyntaxError';
 import { IToken } from '../entities/types';
+import { empty } from '../utilities/typeGuards';
 
 export class Scanner {
   private source: string;
@@ -22,12 +23,12 @@ export class Scanner {
   }
 
   // scan all available tokens
-  public scanTokens(source: string, file?: string): [IToken[], ISyntaxError[]] {
+  public scanTokens(source: string, file?: string): IScanResult {
     this.setSource(source, file);
 
     // create arrays for valid tokens and encountered errors
     const tokens: IToken[] = [];
-    const errors: ISyntaxError[] = [];
+    const scanErrors: IScannerError[] = [];
 
     // begin scanning
     while (!this.isAtEnd()) {
@@ -38,19 +39,19 @@ export class Scanner {
         case 'token':
           tokens.push(result);
           break;
-        case 'syntaxError':
-          errors.push(result);
+        case 'scannerError':
+          scanErrors.push(result);
           break;
         case 'whitespace':
           break;
       }
     }
 
-    return [tokens, errors];
+    return { tokens, scanErrors };
   }
 
   private setSource(source: string, file?: string) {
-    this.source = source.toLowerCase();
+    this.source = source;
     this.start = 0;
     this.current = 0;
     this.startPosition = new MutableMarker(0, 0, file);
@@ -122,11 +123,12 @@ export class Scanner {
       return this.fileIdentifier();
     }
 
-    const text = this.source.substr(this.start, this.current - this.start);
-    if (keywords.hasOwnProperty(text)) {
-      return this.generateToken(keywords[text].type, keywords[text].literal);
+    const text = this.source.substr(this.start, this.current - this.start).toLowerCase();
+    const keyword = keywords.get(text);
+    if (!empty(keyword)) {
+      return this.generateToken(keyword.type, keyword.literal, true);
     }
-    return this.generateToken(TokenType.identifier);
+    return this.generateToken(TokenType.identifier, undefined, true);
   }
 
     // extract a file identifier
@@ -137,7 +139,7 @@ export class Scanner {
       while (this.isAlphaNumeric(this.peek())) this.advance();
     }
 
-    return this.generateToken(TokenType.fileIdentifier);
+    return this.generateToken(TokenType.fileIdentifier, undefined, true);
   }
 
     // extract string
@@ -165,7 +167,7 @@ export class Scanner {
 
     // if . and e not found number is an integar
     if ((this.peek() !== '.' || !this.isDigit(this.peekNext())) &&
-            this.peek() !== 'e') {
+      (this.peek() !== 'e' && this.peek() !== 'E')) {
       const intString = this.numberString();
       const int = parseInt(intString, 10);
       return this.generateToken(TokenType.integer, int);
@@ -181,12 +183,11 @@ export class Scanner {
     let next = this.peekNext();
 
     // parse exponent
-    if (current === 'e'
-      && (next === '+'
-      || next === '-'
-      || this.isWhitespace(next)
-      || this.isDigit(next)
-      )) {
+    if ((current === 'e' || current === 'E') && (
+      next === '+' ||
+      next === '-' ||
+      this.isWhitespace(next) ||
+      this.isDigit(next))) {
 
       // parse optional exponent sign
       next = this.peekNext();
@@ -230,8 +231,11 @@ export class Scanner {
   }
 
   // generate token from provided token type and optional literal
-  private generateToken(type: TokenType, literal?: any): Token {
-    const text = this.source.substr(this.start, this.current - this.start);
+  private generateToken(type: TokenType, literal?: any, toLower?: boolean): Token {
+    const text = toLower
+      ? this.source.substr(this.start, this.current - this.start).toLowerCase()
+      : this.source.substr(this.start, this.current - this.start);
+
     return new Token(
       type, text, literal,
       new Marker(
@@ -246,8 +250,8 @@ export class Scanner {
   }
 
   // generate error
-  private generateError(message: string): ISyntaxError {
-    return new KosSyntaxError(
+  private generateError(message: string): IScannerError {
+    return new ScannerError(
       message,
       this.startPosition.toImmutable(),
       this.currentPosition.toImmutable(),
@@ -413,63 +417,62 @@ const identifierTest = new RegExp(
     '\uFFD2-\uFFD7\uFFDA-\uFFDC]*$');
 
 // keyword map
-const keywords: ITokenMap = {
-  add: { type: TokenType.add },
-  and: { type: TokenType.and },
-  all: { type: TokenType.all },
-  at: { type: TokenType.at },
-  break: { type: TokenType.break },
-  clearscreen: { type: TokenType.clearscreen },
-  compile: { type: TokenType.compile },
-  copy: { type: TokenType.copy },
-  do: { type: TokenType.Do },
-  declare: { type: TokenType.declare },
-  defined: { type: TokenType.defined },
-  delete: { type: TokenType.delete },
-  edit: { type: TokenType.edit },
-  else: { type: TokenType.else },
-  false: { type: TokenType.false, literal: false },
-  file: { type: TokenType.file },
-  for: { type: TokenType.for },
-  from: { type: TokenType.from },
-  function: { type: TokenType.function },
-  global: { type: TokenType.global },
-  if: { type: TokenType.if },
-  in: { type: TokenType.in },
-  is: { type: TokenType.is },
-  lazyglobal: { type: TokenType.lazyGlobal },
-  list: { type: TokenType.list },
-  local: { type: TokenType.local },
-  lock: { type: TokenType.lock },
-  log: { type: TokenType.log },
-  not: { type: TokenType.not },
-  off: { type: TokenType.off },
-  on: { type: TokenType.on },
-  or: { type: TokenType.or },
-  once: { type: TokenType.once },
-  parameter: { type: TokenType.parameter },
-  preserve: { type: TokenType.preserve },
-  print: { type: TokenType.print },
-  reboot: { type: TokenType.reboot },
-  remove: { type: TokenType.remove },
-  rename: { type: TokenType.rename },
-  return: { type: TokenType.return },
-  run: { type: TokenType.run },
-  runpath: { type: TokenType.runPath },
-  runoncepath: { type: TokenType.runOncePath },
-  set: { type: TokenType.set },
-  shutdown: { type: TokenType.shutdown },
-  stage: { type: TokenType.stage },
-  step: { type: TokenType.step },
-  switch: { type: TokenType.switch },
-  then: { type: TokenType.then },
-  to: { type: TokenType.to },
-  true: { type: TokenType.true, literal: true },
-  toggle: { type: TokenType.toggle },
-  unlock: { type: TokenType.unlock },
-  unset: { type: TokenType.unset },
-  until: { type: TokenType.until },
-  volume: { type: TokenType.volume },
-  wait: { type: TokenType.wait },
-  when: { type: TokenType.when },
-};
+const keywords: ITokenMap = new Map([
+  ['and', { type: TokenType.and }],
+  ['all', { type: TokenType.all }],
+  ['at', { type: TokenType.at }],
+  ['break', { type: TokenType.break }],
+  ['clearscreen', { type: TokenType.clearscreen }],
+  ['compile', { type: TokenType.compile }],
+  ['copy', { type: TokenType.copy }],
+  ['do', { type: TokenType.Do }],
+  ['declare', { type: TokenType.declare }],
+  ['defined', { type: TokenType.defined }],
+  ['delete', { type: TokenType.delete }],
+  ['edit', { type: TokenType.edit }],
+  ['else', { type: TokenType.else }],
+  ['false', { type: TokenType.false, literal: false }],
+  ['file', { type: TokenType.file }],
+  ['for', { type: TokenType.for }],
+  ['from', { type: TokenType.from }],
+  ['function', { type: TokenType.function }],
+  ['global', { type: TokenType.global }],
+  ['if', { type: TokenType.if }],
+  ['in', { type: TokenType.in }],
+  ['is', { type: TokenType.is }],
+  ['lazyglobal', { type: TokenType.lazyGlobal }],
+  ['list', { type: TokenType.list }],
+  ['local', { type: TokenType.local }],
+  ['lock', { type: TokenType.lock }],
+  ['log', { type: TokenType.log }],
+  ['not', { type: TokenType.not }],
+  ['off', { type: TokenType.off }],
+  ['on', { type: TokenType.on }],
+  ['or', { type: TokenType.or }],
+  ['once', { type: TokenType.once }],
+  ['parameter', { type: TokenType.parameter }],
+  ['preserve', { type: TokenType.preserve }],
+  ['print', { type: TokenType.print }],
+  ['reboot', { type: TokenType.reboot }],
+  ['remove', { type: TokenType.remove }],
+  ['rename', { type: TokenType.rename }],
+  ['return', { type: TokenType.return }],
+  ['run', { type: TokenType.run }],
+  ['runpath', { type: TokenType.runPath }],
+  ['runoncepath', { type: TokenType.runOncePath }],
+  ['set', { type: TokenType.set }],
+  ['shutdown', { type: TokenType.shutdown }],
+  ['stage', { type: TokenType.stage }],
+  ['step', { type: TokenType.step }],
+  ['switch', { type: TokenType.switch }],
+  ['then', { type: TokenType.then }],
+  ['to', { type: TokenType.to }],
+  ['true', { type: TokenType.true, literal: true }],
+  ['toggle', { type: TokenType.toggle }],
+  ['unlock', { type: TokenType.unlock }],
+  ['unset', { type: TokenType.unset }],
+  ['until', { type: TokenType.until }],
+  ['volume', { type: TokenType.volume }],
+  ['wait', { type: TokenType.wait }],
+  ['when', { type: TokenType.when }],
+]);
