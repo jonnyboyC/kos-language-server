@@ -36,6 +36,7 @@ import { ScopeManager } from './scopeManager';
 import { TokenType } from '../entities/tokentypes';
 import { LockState } from './types';
 import { SyntaxTree } from '../entities/syntaxTree';
+import { mockLogger, mockTracer } from '../utilities/logger';
 
 // tslint:disable-next-line:prefer-array-literal
 export type Errors = Array<ResolverError>;
@@ -43,34 +44,45 @@ export type Errors = Array<ResolverError>;
 export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   private syntaxTree: SyntaxTree;
   private scopeMan: ScopeManager;
+  private readonly logger: ILogger;
+  private readonly tracer: ITracer;
   private readonly localResolver: LocalResolver;
   private readonly setResolver: SetResolver;
   private lazyGlobalOff: boolean;
   private firstInst: boolean;
 
-  constructor() {
+  constructor(logger: ILogger = mockLogger, tracer: ITracer = mockTracer) {
     this.syntaxTree = new SyntaxTree([]);
     this.scopeMan = new ScopeManager();
     this.localResolver = new LocalResolver();
     this.setResolver = new SetResolver();
     this.lazyGlobalOff = false;
     this.firstInst = true;
+    this.logger = logger;
+    this.tracer = tracer;
   }
 
   // resolve the sequence of instructions
   public resolve(syntaxTree: SyntaxTree, scopeMan: ScopeManager): Errors {
-    this.setSyntaxTree(syntaxTree, scopeMan);
-    this.scopeMan.beginScope(this.syntaxTree);
-    const [firstInst, ...restInsts] = this.syntaxTree.insts;
+    try {
+      this.setSyntaxTree(syntaxTree, scopeMan);
+      this.scopeMan.beginScope(this.syntaxTree);
+      const [firstInst, ...restInsts] = this.syntaxTree.insts;
 
-    // check for lazy global flag
-    const firstError = this.resolveInst(firstInst);
-    this.firstInst = false;
+      // check for lazy global flag
+      const firstError = this.resolveInst(firstInst);
+      this.firstInst = false;
 
-    // resolve reset
-    const resolveErrors = this.resolveInsts(restInsts);
-    const scopeErrors = this.scopeMan.endScope();
-    return firstError.concat(resolveErrors, scopeErrors);
+      // resolve reset
+      const resolveErrors = this.resolveInsts(restInsts);
+      const scopeErrors = this.scopeMan.endScope();
+      return firstError.concat(resolveErrors, scopeErrors);
+    } catch (err) {
+      this.logger.error(`Error occured in resolver ${err}`);
+      this.tracer.log(err);
+
+      return [];
+    }
   }
 
   // set the syntax tree and scope manager

@@ -35,6 +35,7 @@ import { ParameterState } from './types';
 import { SyntaxTree } from '../entities/syntaxTree';
 import { KsParameter } from '../entities/parameters';
 import { TokenType } from '../entities/tokentypes';
+import { mockLogger, mockTracer } from '../utilities/logger';
 
 // tslint:disable-next-line:prefer-array-literal
 export type Errors = Array<ResolverError>;
@@ -42,21 +43,32 @@ export type Errors = Array<ResolverError>;
 export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   private syntaxTree: SyntaxTree;
   private scopeMan: ScopeManager;
+  private readonly logger: ILogger;
+  private readonly tracer: ITracer;
 
-  constructor() {
+  constructor(logger: ILogger = mockLogger, tracer: ITracer = mockTracer) {
     this.syntaxTree = new SyntaxTree([]);
     this.scopeMan = new ScopeManager();
+    this.logger = logger;
+    this.tracer = tracer;
   }
 
   // resolve the sequence of instructions
   public resolve(syntaxTree: SyntaxTree, scopeMan: ScopeManager): Errors {
-    this.setSyntaxTree(syntaxTree, scopeMan);
-    this.scopeMan.beginScope(this.syntaxTree);
+    try {
+      this.setSyntaxTree(syntaxTree, scopeMan);
+      this.scopeMan.beginScope(this.syntaxTree);
 
-    const resolveErrors = this.resolveInsts(this.syntaxTree.insts);
-    const scopeErrors = this.scopeMan.endScope();
+      const resolveErrors = this.resolveInsts(this.syntaxTree.insts);
+      const scopeErrors = this.scopeMan.endScope();
 
-    return resolveErrors.concat(scopeErrors);
+      return resolveErrors.concat(scopeErrors);
+    } catch (err) {
+      this.logger.error(`Error occured in resolver ${err}`);
+      this.tracer.log(err);
+
+      return[];
+    }
   }
 
   // set the syntax tree and scope manager

@@ -5,6 +5,7 @@ import { WhiteSpace } from './whitespace';
 import { ScannerError } from './kosSyntaxError';
 import { IToken } from '../entities/types';
 import { empty } from '../utilities/typeGuards';
+import { mockLogger, mockTracer } from '../utilities/logger';
 
 export class Scanner {
   private source: string;
@@ -12,42 +13,56 @@ export class Scanner {
   private current: number;
   private currentPosition: MutableMarker;
   private startPosition: MutableMarker;
+  private readonly logger: ILogger;
+  private readonly tracer: ITracer;
 
   // scanner initializer
-  constructor() {
+  constructor(logger: ILogger = mockLogger, tracer: ITracer = mockTracer) {
     this.source = '';
     this.start = 0;
     this.current = 0;
     this.startPosition = new MutableMarker(0, 0);
     this.currentPosition = new MutableMarker(0, 0);
+    this.logger = logger;
+    this.tracer = tracer;
   }
 
   // scan all available tokens
   public scanTokens(source: string, file?: string): IScanResult {
-    this.setSource(source, file);
+    try {
+      this.setSource(source, file);
 
-    // create arrays for valid tokens and encountered errors
-    const tokens: IToken[] = [];
-    const scanErrors: IScannerError[] = [];
+      // create arrays for valid tokens and encountered errors
+      const tokens: IToken[] = [];
+      const scanErrors: IScannerError[] = [];
 
-    // begin scanning
-    while (!this.isAtEnd()) {
-      this.start = this.current;
-      this.startPosition = this.currentPosition;
-      const result = this.scanToken();
-      switch (result.tag) {
-        case 'token':
-          tokens.push(result);
-          break;
-        case 'scannerError':
-          scanErrors.push(result);
-          break;
-        case 'whitespace':
-          break;
+      // begin scanning
+      while (!this.isAtEnd()) {
+        this.start = this.current;
+        this.startPosition = this.currentPosition;
+        const result = this.scanToken();
+        switch (result.tag) {
+          case 'token':
+            tokens.push(result);
+            break;
+          case 'scannerError':
+            scanErrors.push(result);
+            break;
+          case 'whitespace':
+            break;
+        }
       }
-    }
 
-    return { tokens, scanErrors };
+      return { tokens, scanErrors };
+    } catch (err) {
+      this.logger.error(`Error occured in scanner ${err}`);
+      this.tracer.log(err);
+
+      return {
+        tokens: [],
+        scanErrors: [],
+      };
+    }
   }
 
   private setSource(source: string, file?: string) {

@@ -33,35 +33,52 @@ import { IToken } from '../entities/types';
 import { SyntaxTree } from '../entities/syntaxTree';
 import { nodeResult } from './parseResult';
 import { Token, Marker } from '../entities/token';
+import { mockLogger, mockTracer } from '../utilities/logger';
 
 export class Parser {
   private tokens: IToken[];
   private current: number;
   private runInsts: RunInstType[];
+  private readonly logger: ILogger;
+  private readonly tracer: ITracer;
 
-  constructor() {
+
+  constructor(logger: ILogger = mockLogger, tracer: ITracer = mockTracer) {
     this.tokens = [];
     this.current = 0;
     this.runInsts = [];
+    this.logger = logger;
+    this.tracer = tracer;
   }
 
   // parse tokens
   public parse = (tokens: IToken[]): ParseResult => {
-    this.setTokens(tokens);
+    try {
+      this.setTokens(tokens);
 
-    const instructions: Inst[] = [];
-    let parseErrors: IParseError[] = [];
+      const instructions: Inst[] = [];
+      let parseErrors: IParseError[] = [];
 
-    while (!this.isAtEnd()) {
-      const { value: inst, errors } = this.declaration();
-      instructions.push(inst);
-      parseErrors = parseErrors.concat(errors);
+      while (!this.isAtEnd()) {
+        const { value: inst, errors } = this.declaration();
+        instructions.push(inst);
+        parseErrors = parseErrors.concat(errors);
+      }
+      return {
+        parseErrors,
+        runInsts: this.runInsts,
+        syntaxTree: new SyntaxTree(instructions),
+      };
+    } catch (err) {
+      this.logger.error(`Error occured in parser ${err}`);
+      this.tracer.log(err);
+
+      return {
+        runInsts: [],
+        syntaxTree: new SyntaxTree([]),
+        parseErrors: [],
+      };
     }
-    return {
-      parseErrors,
-      runInsts: this.runInsts,
-      syntaxTree: new SyntaxTree(instructions),
-    };
   }
 
   // testing function / utility
