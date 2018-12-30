@@ -796,6 +796,10 @@
                     "match": "not"
                 },
                 {
+                    "name": "keyword.operator.expression.defined.kos",
+                    "match": "defined"
+                },
+                {
                     "name": "keyword.operator.expression.on.kos",
                     "match": "on"
                 },

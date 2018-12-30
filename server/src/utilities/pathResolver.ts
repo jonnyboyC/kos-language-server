@@ -5,11 +5,14 @@ import { LiteralExpr } from '../parser/expr';
 import { empty } from './typeGuards';
 import { TokenType } from '../entities/tokentypes';
 
+// resolve uri from run statments
 export const resolveUri = (
   volume0Path: string,
   volumne0Uri: string,
   uri: string,
   inst: RunInstType): Maybe<{uri: string, path: string}> => {
+
+  // get realtive an run path from file
   const relativePath = relative(volumne0Uri, dirname(uri));
   const runPath = instPath(inst);
 
@@ -17,6 +20,8 @@ export const resolveUri = (
     return undefined;
   }
 
+  // check if the scripts reads from volume 0 "disk"
+  // TODO no idea what to do for ship volumnes
   const [possibleVolumne, ...remaining] = runPath.split(sep);
   if (possibleVolumne === '0:') {
     return {
@@ -25,30 +30,20 @@ export const resolveUri = (
     };
   }
 
+  // if no volumne do a relative lookup
   return {
     path: join(volume0Path, relativePath, possibleVolumne, ...remaining),
     uri: join(volumne0Uri, relativePath, possibleVolumne, ...remaining),
   };
 };
 
-const literalPath = (expr: LiteralExpr): Maybe<string> => {
-  const { token } = expr;
-
-  switch (token.type) {
-    case TokenType.string:
-      return token.literal;
-    case TokenType.fileIdentifier:
-      return token.lexeme;
-  }
-
-  return undefined;
-};
-
+// based on run type determine how to get file path
 const instPath = (inst: RunInstType): Maybe<string> => {
   if (inst instanceof RunInst) {
-    return inst.identifier.lexeme;
+    return inst.identifier.literal;
   }
 
+  // for run path varients check for literal
   if (inst instanceof RunPathInst) {
     if (inst.expression instanceof LiteralExpr) {
       return literalPath(inst.expression);
@@ -59,6 +54,21 @@ const instPath = (inst: RunInstType): Maybe<string> => {
     if (inst.expression instanceof LiteralExpr) {
       return literalPath(inst.expression);
     }
+  }
+
+  return undefined;
+};
+
+
+// determine which string to return for the filepath
+const literalPath = (expr: LiteralExpr): Maybe<string> => {
+  const { token } = expr;
+
+  switch (token.type) {
+    case TokenType.string:
+      return token.literal;
+    case TokenType.fileIdentifier:
+      return token.lexeme;
   }
 
   return undefined;
