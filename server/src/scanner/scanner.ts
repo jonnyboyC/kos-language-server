@@ -13,6 +13,7 @@ export class Scanner {
   private current: number;
   private currentPosition: MutableMarker;
   private startPosition: MutableMarker;
+  private uri?: string;
   private readonly logger: ILogger;
   private readonly tracer: ITracer;
 
@@ -28,9 +29,9 @@ export class Scanner {
   }
 
   // scan all available tokens
-  public scanTokens(source: string, file?: string): IScanResult {
+  public scanTokens(source: string, uri?: string): IScanResult {
     try {
-      this.setSource(source, file);
+      this.setSource(source, uri);
 
       // create arrays for valid tokens and encountered errors
       const tokens: IToken[] = [];
@@ -65,12 +66,13 @@ export class Scanner {
     }
   }
 
-  private setSource(source: string, file?: string) {
+  private setSource(source: string, uri?: string) {
     this.source = source;
     this.start = 0;
     this.current = 0;
-    this.startPosition = new MutableMarker(0, 0, file);
-    this.currentPosition = new MutableMarker(0, 0, file);
+    this.startPosition = new MutableMarker(0, 0);
+    this.currentPosition = new MutableMarker(0, 0);
+    this.uri = uri;
   }
 
   private scanToken(): ScanResult {
@@ -170,7 +172,7 @@ export class Scanner {
       return this.generateError('Expected closing " for string');
     }
 
-        // generate literal
+    // generate literal
     this.advance();
     const value = this.source.substr(this.start + 1, this.current - this.start - 2);
     return this.generateToken(TokenType.string, value);
@@ -255,12 +257,11 @@ export class Scanner {
       type, text, literal,
       new Marker(
         this.startPosition.line,
-        this.startPosition.character,
-        this.startPosition.file),
+        this.startPosition.character),
       new Marker(
         this.currentPosition.line,
-        this.currentPosition.character,
-        this.currentPosition.file),
+        this.currentPosition.character),
+      this.uri,
     );
   }
 
@@ -433,6 +434,7 @@ const identifierTest = new RegExp(
 
 // keyword map
 const keywords: ITokenMap = new Map([
+  ['add', { type: TokenType.add }],
   ['and', { type: TokenType.and }],
   ['all', { type: TokenType.all }],
   ['at', { type: TokenType.at }],

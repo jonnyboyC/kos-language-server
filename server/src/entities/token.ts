@@ -8,7 +8,7 @@ export class Token implements IToken {
   public readonly literal: any;
   public readonly start: Marker;
   public readonly end: Marker;
-  public readonly file?: string;
+  public readonly uri?: string;
 
   constructor(
     type: TokenType,
@@ -16,13 +16,13 @@ export class Token implements IToken {
     literal: any,
     start: Marker,
     end: Marker,
-    file?: string) {
+    uri?: string) {
     this.type = type;
     this.lexeme = lexeme;
     this.literal = literal;
     this.start = start;
     this.end = end;
-    this.file = file;
+    this.uri = uri;
   }
 
   public get tag(): 'token' {
@@ -44,27 +44,23 @@ export class Token implements IToken {
 export class Marker implements Position {
   public readonly line: number;
   public readonly character: number;
-  public readonly file?: string;
 
-  constructor(line: number, character: number, file?: string) {
+  constructor(line: number, character: number) {
     this.line = line;
     this.character = character;
-    this.file = file;
   }
 }
 
 export class MutableMarker implements Position {
   public line: number;
   public character: number;
-  public file?: string;
 
-  constructor(line: number, character: number, file?: string) {
+  constructor(line: number, character: number) {
     this.line = line;
     this.character = character;
-    this.file = file;
   }
 
   public toImmutable(): Marker {
-    return new Marker(this.line, this.character, this.file);
+    return new Marker(this.line, this.character);
   }
 }

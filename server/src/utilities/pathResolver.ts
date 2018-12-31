@@ -40,7 +40,16 @@ export const resolveUri = (
 // based on run type determine how to get file path
 const instPath = (inst: RunInstType): Maybe<string> => {
   if (inst instanceof RunInst) {
-    return inst.identifier.literal;
+    const { identifier } = inst;
+
+    switch (identifier.type) {
+      case TokenType.string:
+        return identifier.literal;
+      case TokenType.fileIdentifier:
+        return identifier.lexeme;
+      default:
+        return undefined;
+    }
   }
 
   // for run path varients check for literal
@@ -58,7 +67,6 @@ const instPath = (inst: RunInstType): Maybe<string> => {
 
   return undefined;
 };
-
 
 // determine which string to return for the filepath
 const literalPath = (expr: LiteralExpr): Maybe<string> => {

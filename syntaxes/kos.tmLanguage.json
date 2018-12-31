@@ -397,6 +397,9 @@
                     "include": "#command-instructions"
                 },
                 {
+                    "include": "#node-instructions"
+                },
+                {
                     "include": "#block"
                 },
                 {
@@ -755,6 +758,76 @@
                 }
             ]
         },
+        "node-instructions": {
+            "patterns": [
+                {
+                    "include": "#node-add"
+                },
+                {
+                    "include": "#node-remove"
+                },
+                {
+                    "include": "#node-edit"
+                }
+            ]
+        },
+        "node-add": {
+            "name": "meta.node.add.kos",
+            "begin": "(?i)\\b(add)(?![_[:alnum:]\\:])",
+            "beginCaptures": {
+                "1": {
+                    "name": "keyword.command.add.kos"
+                }
+            },
+            "end": "\\.",
+            "endCaptures": {
+                "1": {
+                    "name": "punctuation.terminator.statement.kos"
+                }
+            },
+            "patterns": [{
+                    "include": "#expression"
+                }
+            ]
+        },
+        "node-edit": {
+            "name": "meta.node.edit.kos",
+            "begin": "(?i)\\b(edit)(?![_[:alnum:]\\:])",
+            "beginCaptures": {
+                "1": {
+                    "name": "keyword.command.edit.kos"
+                }
+            },
+            "end": "\\.",
+            "endCaptures": {
+                "1": {
+                    "name": "punctuation.terminator.statement.kos"
+                }
+            },
+            "patterns": [{
+                    "include": "#expression"
+                }
+            ]
+        },
+        "node-remove": {
+            "name": "meta.node.remove.kos",
+            "begin": "(?i)\\b(remove)(?![_[:alnum:]\\:])",
+            "beginCaptures": {
+                "1": {
+                    "name": "keyword.command.add.kos"
+                }
+            },
+            "end": "\\.",
+            "endCaptures": {
+                "1": {
+                    "name": "punctuation.terminator.statement.kos"
+                }
+            },
+            "patterns": [{
+                    "include": "#expression"
+                }
+            ]
+        },
         "expression": {
             "patterns": [{
                     "include": "#expressions-without-identifiers"
@@ -1020,11 +1093,11 @@
                 },
                 {
                     "name": "constant.language.true.kos",
-                    "match": "\\btrue"
+                    "match": "\\btrue(?![_[:alnum:]\\:])"
                 },
                 {
                     "name": "constant.language.false.kos",
-                    "match": "\\bfalse"
+                    "match": "\\bfalse(?![_[:alnum:]\\:])"
                 }
             ]
         },

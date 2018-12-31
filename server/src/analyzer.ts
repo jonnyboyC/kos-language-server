@@ -1,5 +1,5 @@
 import { DiagnosticSeverity, Position } from 'vscode-languageserver';
-import { IDocumentInfo, ILoadData, DiagnosticUri } from './types';
+import { IDocumentInfo, ILoadData, IDiagnosticUri, IValidateResult } from './types';
 import { performance } from 'perf_hooks';
 import { Parser } from './parser/parser';
 import { ScopeManager } from './analysis/scopeManager';
@@ -19,8 +19,10 @@ import { signitureHelper } from './utilities/signitureHelper';
 import { CallExpr } from './parser/expr';
 import { resolveUri } from './utilities/pathResolver';
 import { existsSync } from 'fs';
+import { extname } from 'path';
 import { flatten } from './utilities/arrayUtilities';
 import { readFileAsync } from './utilities/fsUtilities';
+import { standardLibrary } from './analysis/standardLibrary';
 
 export class Analyzer {
   public volumne0Path: string;
@@ -38,21 +40,33 @@ export class Analyzer {
   }
 
   // main validation code
-  public async validateDocument(uri: string, text: string): Promise<DiagnosticUri[]> {
+  public async validateDocument(uri: string, text: string): Promise<IValidateResult> {
     const { syntaxTree, parseErrors, scanErrors, runInsts } = await this.parseDocument(uri, text);
-    let diagnostics: DiagnosticUri[] = [];
+    let validateResults: IValidateResult[] = [];
 
     // if any run instruction exist get uri then load
     if (runInsts.length > 0 && !empty(this.volumne0Uri)) {
       const loadDatas = this.getValidUri(uri, runInsts);
 
-      diagnostics = flatten(await Promise.all(loadDatas
-        .map(loadData => this.loadAndValidateDocument(loadData))),
-      );
+      validateResults = await Promise.all(loadDatas
+        .map(loadData => this.loadAndValidateDocument(uri, loadData)));
     }
+
+    // flatten all child diagnostics
+    const childDiagnostics = flatten(validateResults.map(result => result.diagnostics));
 
     // generate a scope manager for resolving
     const scopeMan = new ScopeManager(this.logger);
+
+    // add child scopes
+    for (const validateResult of validateResults) {
+      if (!empty(validateResult.scopeManager)) {
+        scopeMan.addChild(validateResult.scopeManager);
+      }
+    }
+
+    // add standard library
+    scopeMan.addChild(standardLibrary);
 
     // generate resolvers
     const funcResolver = new FuncResolver();
@@ -81,13 +95,14 @@ export class Analyzer {
     }
 
     // generate all diagnostics
-    diagnostics = diagnostics.concat(scanErrors.map(error => scanToDiagnostics(error, uri)).concat(
+    const diagnostics = childDiagnostics.concat(
+      scanErrors.map(error => scanToDiagnostics(error, uri)),
       parseErrors.length === 0 ? [] : parseErrors.map(error => error.inner.concat(error))
         .reduce((acc, current) => acc.concat(current))
         .map(error => parseToDiagnostics(error, uri)),
       resolverErrors
         .map(error => resolverToDiagnostics(error, uri)),
-      ));
+      );
 
     // log performance
     const [funcResolverMeasure] = performance.getEntriesByName('func-resolver');
@@ -98,6 +113,12 @@ export class Analyzer {
     this.logger.log(`Function Resolver took ${funcResolverMeasure.duration} ms`);
     this.logger.log(`Resolver took ${resolverMeasure.duration} ms`);
 
+    // make sure to delete references so scope manager can be gc'ed
+    const documentInfo = this.documentInfos.get(uri);
+    if (!empty(documentInfo)) {
+      documentInfo.scopeManager.deleteSelf();
+    }
+
     this.documentInfos.set(uri, {
       syntaxTree,
       scopeManager: scopeMan,
@@ -106,7 +127,10 @@ export class Analyzer {
     performance.clearMarks();
     performance.clearMeasures();
 
-    return diagnostics;
+    return {
+      diagnostics,
+      scopeManager: scopeMan,
+    };
   }
 
   // get a token at a position in a document
@@ -201,7 +225,7 @@ export class Analyzer {
 
     performance.mark('scanner-start');
     const scanner = new Scanner();
-    const { tokens, scanErrors } = scanner.scanTokens(text);
+    const { tokens, scanErrors } = scanner.scanTokens(text, uri);
     performance.mark('scanner-end');
 
     // if scanner found errors report those immediately
@@ -280,35 +304,63 @@ export class Analyzer {
   }
 
   // load an validate a file from disk
-  private async loadAndValidateDocument({ uri, inst, path }: ILoadData): Promise<DiagnosticUri[]> {
+  private async loadAndValidateDocument(parentUri: string, { uri, inst, path }: ILoadData):
+    Promise<IValidateResult> {
     try {
-      if (!existsSync(path)) {
-        return [{
-          uri,
-          range: inst,
-          severity: DiagnosticSeverity.Error,
-          message: `Unable to find ${uri}`,
-        }];
+      const validated = this.tryFindDocument(path, uri);
+
+      if (empty(validated)) {
+        return {
+          diagnostics: [{
+            uri: parentUri,
+            range: inst,
+            severity: DiagnosticSeverity.Error,
+            message: `Unable to find ${uri}`,
+          }],
+        };
       }
 
       // attempt to read file from disk
-      const fileResult = await readFileAsync(path, 'utf-8');
-      return await this.validateDocument(uri, fileResult);
+      const fileResult = await readFileAsync(validated.path, 'utf-8');
+      return await this.validateDocument(validated.uri, fileResult);
     } catch (err) {
 
       // if we already checked for the file and failed ??
-      return [{
-        uri,
-        range: inst,
-        severity: DiagnosticSeverity.Error,
-        message: `Unable to read ${uri}`,
-      }];
+      return {
+        diagnostics: [{
+          uri: parentUri,
+          range: inst,
+          severity: DiagnosticSeverity.Error,
+          message: `Unable to read ${uri}`,
+        }],
+      };
+    }
+  }
+
+  private tryFindDocument(path: string, uri: string): Maybe<{path: string, uri: string}> {
+    const ext = extname(path);
+
+    switch (ext) {
+      case '.ks':
+      // case '.ksm': probably need to report we can't read ksm files
+        if (existsSync(path)) {
+          return { path, uri };
+        }
+
+        return undefined;
+      case '':
+        if (existsSync(`${path}.ks`)) {
+          return { path: `${path}.ks`, uri: `${uri}.ks` };
+        }
+        return undefined;
+      default:
+        return undefined;
     }
   }
 }
 
 // convert scan error to diagnostic
-const scanToDiagnostics = (error: IScannerError, uri: string): DiagnosticUri => {
+const scanToDiagnostics = (error: IScannerError, uri: string): IDiagnosticUri => {
   return {
     uri,
     severity: DiagnosticSeverity.Error,
@@ -319,7 +371,7 @@ const scanToDiagnostics = (error: IScannerError, uri: string): DiagnosticUri => 
 };
 
 // convert parse error to diagnostic
-const parseToDiagnostics = (error: IParseError, uri: string): DiagnosticUri => {
+const parseToDiagnostics = (error: IParseError, uri: string): IDiagnosticUri => {
   return {
     uri,
     severity: DiagnosticSeverity.Error,
@@ -330,7 +382,7 @@ const parseToDiagnostics = (error: IParseError, uri: string): DiagnosticUri => {
 };
 
 // convert resolver error to diagnostic
-const resolverToDiagnostics = (error: IResolverError, uri: string): DiagnosticUri => {
+const resolverToDiagnostics = (error: IResolverError, uri: string): IDiagnosticUri => {
   return {
     uri,
     severity: DiagnosticSeverity.Warning,

@@ -51,8 +51,22 @@ export class ScopeManager {
     childMan.parentScopes.add(this);
   }
 
+  // should be called when the associated file is closed
+  public closeSelf(): void {
+    // remove childern if no parents
+    if (this.parentScopes.size === 0) {
+      // remove references from child scopes
+      for (const child of this.childScopes) {
+        child.parentScopes.delete(this);
+      }
+
+      // clear own references
+      this.childScopes.clear();
+    }
+  }
+
   // should be called when the associated file is deleted
-  public removeSelf(): void {
+  public deleteSelf(): void {
     // remove refernces from parent scopes
     for (const parent of this.parentScopes) {
       parent.childScopes.delete(this);
@@ -72,7 +86,7 @@ export class ScopeManager {
   public beginScope(range: Range): void {
     const depth = this.activeScopePath.length - 1;
     const next = !empty(this.backTrackPath[depth + 1])
-            ? this.backTrackPath[depth + 1] + 1 : 0;
+      ? this.backTrackPath[depth + 1] + 1 : 0;
 
     const activeNode = this.activeScopeNode();
 
@@ -132,7 +146,10 @@ export class ScopeManager {
 
     // get all entities in scope at a position
   public entitiesAtPosition(pos: Position): KsEntity[] {
-    const entities = Array.from(this.scopesRoot.scope.values());
+    const entities = Array.from(this.scopesRoot.scope.values())
+      .concat(...Array.from(this.childScopes.values())
+        .map(scope => Array.from(scope.scopesRoot.scope.values())),
+      );
 
     return this.entitiesAtPositionDepth(pos, this.scopesRoot.children)
       .concat(entities);
@@ -187,7 +204,7 @@ export class ScopeManager {
 
     // check if entity exists
     if (empty(entity)) {
-      return new ResolverError(name, `Entity ${name.lexeme} does not exist`, []);
+      return new ResolverError(name, `Entity ${name.lexeme} may not exist`, []);
     }
 
     // check the appropriate lookup for the entity
@@ -239,7 +256,7 @@ export class ScopeManager {
     Maybe<ResolverError> {
     // check that variable has already been defined
     if (empty(variable)) {
-      return new ResolverError(name, `Variable ${name.lexeme} does not exist.`, []);
+      return new ResolverError(name, `Variable ${name.lexeme} may not exist.`, []);
     }
 
     variable.state = state;
@@ -281,7 +298,7 @@ export class ScopeManager {
   private checkUseFunction(name: IToken, func: Maybe<KsFunction>): Maybe<ResolverError> {
     // check that function has already been defined
     if (empty(func)) {
-      return new ResolverError(name, `Function ${name.lexeme} does not exist.`, []);
+      return new ResolverError(name, `Function ${name.lexeme} may not exist.`, []);
     }
 
     func.state = FunctionState.used;
@@ -332,7 +349,7 @@ export class ScopeManager {
 
     // check that variable has already been defined
     if (empty(lock)) {
-      return new ResolverError(name, `Lock ${name.lexeme} does not exist.`, []);
+      return new ResolverError(name, `Lock ${name.lexeme} may not exist.`, []);
     }
 
     if (lock.state === LockState.unlocked) {
@@ -374,7 +391,7 @@ export class ScopeManager {
 
     // check that parmeter has already been defined
     if (empty(parameter)) {
-      return new ResolverError(name, `Parameter ${name.lexeme} does not exist.`, []);
+      return new ResolverError(name, `Parameter ${name.lexeme} may not exist.`, []);
     }
 
     parameter.state = ParameterState.used;
@@ -425,6 +442,14 @@ export class ScopeManager {
     for (let i = scopes.length - 1; i >= 0; i--) {
       const scope = scopes[i];
       const entity = scope.get(token.lexeme);
+      if (!empty(entity)) {
+        return entity;
+      }
+    }
+
+    // check child scopes entity is in another file
+    for (const child of this.childScopes) {
+      const entity = child.scopesRoot.scope.get(token.lexeme);
       if (!empty(entity)) {
         return entity;
       }
@@ -489,7 +514,7 @@ export class ScopeManager {
 
   // generate a position string
   private positionToString(position: Position): string {
-    return `line: ${position.line} column: ${position.character}`;
+    return `line: ${position.line + 1} column: ${position.character + 1}`;
   }
 
   // to pascal case

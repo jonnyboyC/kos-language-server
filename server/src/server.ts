@@ -23,7 +23,7 @@ import {
 } from 'vscode-languageserver';
 import { empty } from './utilities/typeGuards';
 import { Analyzer } from './analyzer';
-import { DiagnosticUri } from './types';
+import { IDiagnosticUri } from './types';
 
 // Create a connection for the server. The connection uses Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -74,10 +74,10 @@ connection.onInitialize((params: InitializeParams) => {
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent(async (change) => {
-  const diagnostics = await analyzer
+  const { diagnostics } = await analyzer
     .validateDocument(change.document.uri, change.document.getText());
 
-  const diagnosticMap: { [uri: string]: DiagnosticUri[] } = {};
+  const diagnosticMap: { [uri: string]: IDiagnosticUri[] } = {};
   for (const diagnostic of diagnostics) {
     if (!diagnosticMap.hasOwnProperty(diagnostic.uri)) {
       diagnosticMap[diagnostic.uri] = [diagnostic];
@@ -121,7 +121,7 @@ connection.onDefinition(
     const { uri } = documentPosition.textDocument;
 
     const name = analyzer.getTokenAtPosition(uri, position);
-    return name && Location.create(uri, name);
+    return name && Location.create(name.uri || uri, name);
   },
 );
 

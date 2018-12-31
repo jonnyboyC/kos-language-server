@@ -14,6 +14,11 @@ export interface ILoadData {
   inst: RunInstType;
 }
 
-export interface DiagnosticUri extends Diagnostic {
+export interface IValidateResult {
+  diagnostics: IDiagnosticUri[];
+  scopeManager?: ScopeManager;
+}
+
+export interface IDiagnosticUri extends Diagnostic {
   uri: string;
 }

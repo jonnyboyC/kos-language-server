@@ -42,7 +42,6 @@ export class Parser {
   private readonly logger: ILogger;
   private readonly tracer: ITracer;
 
-
   constructor(logger: ILogger = mockLogger, tracer: ITracer = mockTracer) {
     this.tokens = [];
     this.current = 0;

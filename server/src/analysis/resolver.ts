@@ -341,16 +341,17 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   }
 
   public visitFor(inst: ForInst): Errors {
+    this.scopeMan.beginScope(inst);
     const declareError = this.scopeMan.declareVariable(ScopeType.local, inst.identifier);
 
-    const errors = this.useLocals(inst.suffix).concat(
+    let errors = this.useLocals(inst.suffix).concat(
       this.resolveExpr(inst.suffix),
       this.resolveInst(inst.instruction));
 
+    errors = errors.concat(this.scopeMan.endScope());
     if (!empty(declareError)) {
-      return [declareError].concat(errors);
+      return errors.concat(declareError);
     }
-
     return errors;
   }
 
@@ -449,8 +450,14 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   }
 
   // tslint:disable-next-line:variable-name
-  public visitList(_inst: ListInst): Errors {
-    return [];
+  public visitList(inst: ListInst): Errors {
+    // list generates new variable when target is used
+    if (empty(inst.target)) {
+      return [];
+    }
+
+    const declareError = this.scopeMan.declareVariable(ScopeType.local, inst.target);
+    return !empty(declareError) ? [declareError] : [];
   }
 
   // tslint:disable-next-line:variable-name
@@ -502,7 +509,7 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
       if (empty(func)) {
         errors.push(new ResolverError(
           callee.token,
-          `Function ${callee.token.lexeme} does not exist`, []));
+          `Function ${callee.token.lexeme} may not exist`, []));
       } else {
         const max = func.parameters.length;
         const min = func.requiredParameters;
@@ -515,7 +522,7 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
         if (expr.args.length > max) {
           errors.push(new ResolverError(
             callee.token,
-            `Function ${callee.token.lexeme} aceptts at most ${max} parameters`, []));
+            `Function ${callee.token.lexeme} accepts at most ${max} parameters`, []));
         }
       }
     }
