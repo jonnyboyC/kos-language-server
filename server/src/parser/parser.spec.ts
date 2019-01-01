@@ -39,7 +39,7 @@ ava('parse all', (t) => {
     const kosFile = readFileSync(filePath, 'utf8');
 
     const scanner = new Scanner();
-    const { tokens, scanErrors } = scanner.scanTokens(kosFile);
+    const { tokens, scanErrors } = scanner.scanTokens(kosFile, filePath);
 
     t.true(scanErrors.length === 0);
     const parser = new Parser();

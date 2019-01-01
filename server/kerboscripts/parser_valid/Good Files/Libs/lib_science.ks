@@ -1,6 +1,6 @@
 Function ScienceCollect{
 
-set Parameter KeepData to false.
+parameter KeepData is false.
 set ModuleList to List().
 
 for m in ship:modulesnamed("DMModuleScienceAnimate") {

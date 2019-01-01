@@ -141,7 +141,7 @@ if body:atm:exists = false {
     5000,  65,  0.75,
     7500,  35,  0.5,
     9000,  0,   0.1
-    )
+    ).
  }
 
   //////////////
@@ -159,7 +159,7 @@ If runmode = 0 {
   set circvar to 2.
   set_runmode(1).
  }
-
+  
 //runmode 1 [in flight, sub orbital]
 if runmode = 1 {
   EXECUTE_ASCENT_PROFILE(90, ASCENT_PROFILE).
@@ -191,7 +191,7 @@ if runmode = 3 {
       Circuralization2(). // firing up at the right time
     }
     if circvar = 4 {
-      Circuralization1(90, 0.2)
+      Circuralization1(90, 0.2).
     }
     if circvar = 5 {
       wait 0.
@@ -220,16 +220,17 @@ if runmode = 5 {
     set TargetThingy to TargetThingy:Body.
     set_runmode(6).
  } Else {
-     ACTUAL RENDEZVOUS SCRIPT
+    //  ACTUAL RENDEZVOUS SCRIPT
      }
  }
 
 // runmode 6 [ body intercepting runmode ]
 If runmode = 6 {
- some body script
+//  some body script
  }
 
 // runmode 7 [ target orbit do-er ]
 if runmode = 7 {
-  targetorbit script
+  // targetorbit script
  }
+

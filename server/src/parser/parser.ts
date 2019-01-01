@@ -291,7 +291,7 @@ export class Parser {
     const suffix = this.suffix();
 
     const toIs = this.consumeTokenThrow(
-      'Expected keyword "to" or "is" following declar.',
+      'Expected keyword "to" or "is" following declare.',
       TokenType.to, TokenType.is);
     const valueResult = this.expression();
     this.terminal();

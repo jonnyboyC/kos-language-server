@@ -45,7 +45,7 @@ export interface IScopeNode {
   children: IScopeNode[];
 }
 
-export interface IResolverError {
+export interface IResolverError extends Range {
   readonly token: IToken;
   readonly message: string;
   readonly otherInfo: string[];

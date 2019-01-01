@@ -63,7 +63,7 @@ print "======================================================" at(0, 3).
 print "                    [ 000 ALARM ]                     " at(0, 4).
 
 
-  copypath("0:/WIP/newerror.ks", "")
+  copypath("0:/WIP/newerror.ks", "").
   Run newerror.ks.
   deletepath(newerror). // makes room for next error report
   copypath("0:/WIP/criticalerror.ks", "").

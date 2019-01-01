@@ -20,7 +20,7 @@ Function PitchProgramRate {
 	local AltFinal is PitchData["AltFinal"].
 	local AltDiff is AltFinal - altitude.
 
-	local a to .5*VAccel.
+	local a to 0.5*VAccel.
 	local b to verticalspeed.
 	local c to -AltDiff.
 

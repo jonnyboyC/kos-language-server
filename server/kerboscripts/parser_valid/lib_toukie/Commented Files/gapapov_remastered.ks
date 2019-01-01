@@ -83,7 +83,7 @@ Function GAPAPOV {
       // go to moon! i.e. Kerbin -> Mun or Duna -> Ike
       T_Transfer["MoonTransfer"](TargetBody, TargetPeriapsis, TargetInclination).
     }
-    set FinishProcedure to true // for formality (we wont be using this var anymore)
+    set FinishProcedure to true. // for formality (we wont be using this var anymore)
   }
 
   if RendezvousNeeded = true {

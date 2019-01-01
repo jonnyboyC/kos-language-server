@@ -313,7 +313,7 @@ export class Analyzer {
         return {
           diagnostics: [{
             uri: parentUri,
-            range: inst,
+            range: { start: inst.start, end: inst.end },
             severity: DiagnosticSeverity.Error,
             message: `Unable to find ${uri}`,
           }],
@@ -329,7 +329,7 @@ export class Analyzer {
       return {
         diagnostics: [{
           uri: parentUri,
-          range: inst,
+          range: { start: inst.start, end: inst.end },
           severity: DiagnosticSeverity.Error,
           message: `Unable to read ${uri}`,
         }],
@@ -375,7 +375,7 @@ const parseToDiagnostics = (error: IParseError, uri: string): IDiagnosticUri => 
   return {
     uri,
     severity: DiagnosticSeverity.Error,
-    range: { start: error.token.start, end: error.token.end },
+    range: { start: error.start, end: error.end },
     message: error.message,
     source: 'kos-language-server',
   };
@@ -386,7 +386,7 @@ const resolverToDiagnostics = (error: IResolverError, uri: string): IDiagnosticU
   return {
     uri,
     severity: DiagnosticSeverity.Warning,
-    range: { start: error.token.start, end: error.token.end },
+    range: { start: error.start, end: error.end },
     message: error.message,
     source: 'kos-language-server',
   };

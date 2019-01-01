@@ -46,6 +46,7 @@ const instPath = (inst: RunInstType): Maybe<string> => {
       case TokenType.string:
         return identifier.literal;
       case TokenType.fileIdentifier:
+      case TokenType.identifier:
         return identifier.lexeme;
       default:
         return undefined;

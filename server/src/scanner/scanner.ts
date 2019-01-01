@@ -131,11 +131,11 @@ export class Scanner {
     }
   }
 
-    // extract any identifiers
+  // extract any identifiers
   private identifier(): Token {
     while (this.isAlphaNumeric(this.peek())) this.advance();
 
-        // if "." immediatily followed by alpha numeri
+    // if "." immediatily followed by alpha numeri
     if (this.peek() === '.' && this.isAlphaNumeric(this.peekNext())) {
       return this.fileIdentifier();
     }
@@ -159,15 +159,15 @@ export class Scanner {
     return this.generateToken(TokenType.fileIdentifier, undefined, true);
   }
 
-    // extract string
+  // extract string
   private string(): ScanResult {
-        // while closing " not found increment new lines
+    // while closing " not found increment new lines
     while (this.peek() !== '"' && !this.isAtEnd()) {
       if (this.peek() === '\n') this.incrementLine();
       this.advance();
     }
 
-        // if closing " not found report error
+    // if closing " not found report error
     if (this.isAtEnd()) {
       return this.generateError('Expected closing " for string');
     }
@@ -180,21 +180,8 @@ export class Scanner {
 
   // extract number
   private number(): ScanResult {
-    this.advanceNumber();
-
-    // if . and e not found number is an integar
-    if ((this.peek() !== '.' || !this.isDigit(this.peekNext())) &&
-      (this.peek() !== 'e' && this.peek() !== 'E')) {
-      const intString = this.numberString();
-      const int = parseInt(intString, 10);
-      return this.generateToken(TokenType.integer, int);
-    }
-
-    // continue parsing decimal places if they exist
-    if (this.peek() === '.' && this.isDigit(this.peekNext())) {
-      this.advance();
-      this.advanceNumber();
-    }
+    let isFloat = this.advanceNumber();
+    this.advanceWhitespace();
 
     const current = this.peek();
     let next = this.peekNext();
@@ -205,6 +192,8 @@ export class Scanner {
       next === '-' ||
       this.isWhitespace(next) ||
       this.isDigit(next))) {
+
+      isFloat = true;
 
       // parse optional exponent sign
       next = this.peekNext();
@@ -224,18 +213,41 @@ export class Scanner {
     }
 
     // generate float
-    const floatString = this.numberString();
-    const float = parseFloat(floatString);
-    return this.generateToken(TokenType.double, float);
+    const numberString = this.numberString();
+    if (isFloat) {
+      return this.generateToken(TokenType.double, parseFloat(numberString));
+    }
+
+    return this.generateToken(TokenType.integer, parseInt(numberString, 10));
+  }
+
+  // advance a number as either an int or double
+  private advanceNumber(): boolean {
+    this.advanceNumberComponent();
+    if (this.peek() === '.' && this.isDigit(this.peekNext())) {
+      this.advance();
+      this.advanceNumberComponent();
+      return true;
+    }
+
+    return false;
   }
 
   // advance number for digits and underscores
-  private advanceNumber(): void {
+  private advanceNumberComponent(): void {
     let current = this.peek();
     while (this.isDigit(current)
       || this.isUnderScore(current)
       || this.isWhitespace(current)) {
       this.advance();
+      current = this.peek();
+    }
+  }
+
+  // advance through whitespace
+  private advanceWhitespace(): void {
+    let current = this.peek();
+    while (this.isWhitespace(current)) {
       current = this.peek();
     }
   }
@@ -318,11 +330,11 @@ export class Scanner {
     return true;
   }
 
+  // is same line whitepsace
   private isWhitespace(c: string): boolean {
     return c === ' '
       || c === '\r'
-      || c === '\t'
-      || c === '\n';
+      || c === '\t';
   }
 
   // is digit character
