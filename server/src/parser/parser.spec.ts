@@ -2,7 +2,7 @@ import ava from 'ava';
 import { Scanner } from '../scanner/scanner';
 import { Parser } from './parser';
 import { IScannerError, IScanResult } from '../scanner/types';
-import { IParseError, IExpr, ExprResult, INodeResult } from './types';
+import { IExpr, INodeResult } from './types';
 import { LiteralExpr, VariableExpr, CallExpr } from './expr';
 import { TokenType } from '../entities/tokentypes';
 import { readdirSync, statSync, readFileSync } from 'fs';
@@ -21,7 +21,7 @@ const parseExpression = (source: string): [INodeResult<IExpr>, IScannerError[]] 
   return [parser.parseExpression(tokens), scanErrors];
 };
 
-const testDir = join(__dirname, '../../../kerboscripts/parser_valid/');
+const testDir = join(__dirname, '../../../server/kerboscripts/parser_valid/');
 
 type callbackFunc = (fileName: string) => void;
 
@@ -68,16 +68,19 @@ ava('basic valid literal', (t) => {
   const validExpressions = [
     atomTest('5', TokenType.integer, 5),
     atomTest('10e6', TokenType.double, 10e6),
-    atomTest('"Test string"', TokenType.string, 'test string'),
+    atomTest('"Test string"', TokenType.string, 'Test string'),
     atomTest('"true if until"', TokenType.string, 'true if until'),
     atomTest('true', TokenType.true, true),
     atomTest('false', TokenType.false, false),
   ];
 
   for (const expression of validExpressions) {
-    const [{ value }] = parseExpression(expression.source);
-    t.true(isLiteral(value));
-    if (isLiteral(value)) {
+    const [{ value, errors }, scanErrors] = parseExpression(expression.source);
+    t.true(value instanceof LiteralExpr);
+    t.true(errors.length === 0);
+    t.true(scanErrors.length === 0);
+
+    if (value instanceof LiteralExpr) {
       t.deepEqual(expression.type, value.token.type);
       t.deepEqual(expression.literal, value.token.literal);
     }
@@ -89,13 +92,12 @@ ava('basic invalid literal', (t) => {
   const validExpressions = [
     atomTest('-', TokenType.integer, 5),
     atomTest('"Test string', TokenType.string, 'test string'),
-    atomTest('until', TokenType.string, 'true if until'),
   ];
 
   for (const expression of validExpressions) {
-    const [{ value }, scannerErrors] = parseExpression(expression.source);
-    t.false(isLiteral(value));
-    t.true(scannerErrors.length === 0);
+    const [{ value, errors }, scanErrors] = parseExpression(expression.source);
+    t.false(value instanceof LiteralExpr);
+    t.true(errors.length > 0 || scanErrors.length > 0);
   }
 });
 
@@ -111,10 +113,10 @@ ava('basic valid identifier', (t) => {
 
   for (const expression of validExpressions) {
     const [{ value }, scannerErrors] = parseExpression(expression.source);
-    t.true(isVariable(value));
+    t.true(value instanceof VariableExpr);
     t.true(scannerErrors.length === 0);
 
-    if (isVariable(value)) {
+    if (value instanceof VariableExpr) {
       t.deepEqual(expression.type, value.token.type);
       t.deepEqual(expression.literal, value.token.literal);
     }
@@ -130,9 +132,9 @@ ava('basic invalid identifier', (t) => {
   ];
 
   for (const expression of validExpressions) {
-    const [{ value }, scannerErrors] = parseExpression(expression.source);
-    t.false(isVariable(value));
-    t.true(scannerErrors.length === 0);
+    const [{ value, errors }] = parseExpression(expression.source);
+    t.false(value instanceof VariableExpr);
+    t.true(errors.length >= 0);
   }
 });
 
@@ -159,12 +161,14 @@ ava('valid call', (t) => {
   ];
 
   for (const expression of validExpressions) {
-    const [{ value }, scannerErrors] = parseExpression(expression.source);
-    t.true(isCall(value));
+    const [{ value, errors }, scannerErrors] = parseExpression(expression.source);
+    t.true(value instanceof CallExpr);
+    t.true(errors.length === 0);
     t.true(scannerErrors.length === 0);
 
-    if (isCall(value)) {
-      if (isVariable(value.callee)) {
+    if (value instanceof CallExpr) {
+      t.true(value.callee instanceof VariableExpr);
+      if (value.callee instanceof VariableExpr) {
         t.deepEqual(expression.callee, value.callee.token.lexeme);
         t.deepEqual(expression.args.length, value.args.length);
 
@@ -187,23 +191,7 @@ ava('invalid call', (t) => {
 
   for (const expression of validExpressions) {
     const [{ value }, scannerErrors] = parseExpression(expression.source);
-    t.false(isVariable(value));
+    t.false(value instanceof VariableExpr);
     t.true(scannerErrors.length === 0);
   }
 });
-
-const isCall = (literalTest: ExprResult | IScannerError[]): literalTest is CallExpr => {
-  return isExpr(literalTest) && literalTest instanceof CallExpr;
-};
-
-const isLiteral = (literalTest: ExprResult): literalTest is LiteralExpr => {
-  return isExpr(literalTest) && literalTest instanceof LiteralExpr;
-};
-
-const isVariable = (literalTest: ExprResult): literalTest is VariableExpr => {
-  return isExpr(literalTest) && literalTest instanceof VariableExpr;
-};
-
-const isExpr = (result: IParseError | IExpr | IScannerError[]): result is IExpr => {
-  return !(result instanceof Array) && result.tag === 'expr';
-};

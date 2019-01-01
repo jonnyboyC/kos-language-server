@@ -25,7 +25,7 @@ import { Range } from 'vscode-languageserver';
 import { SyntaxTree } from '../entities/syntaxTree';
 import { IScannerError } from '../scanner/types';
 
-export interface IParseError {
+export interface IParseError extends Range {
   tag: 'parseError';
   token: IToken;
   otherInfo: string[];

@@ -4,7 +4,6 @@ import { Position } from 'vscode-languageserver';
 export class ScannerError implements IScannerError {
   public readonly start: Position;
   public readonly end: Position;
-
   public readonly message: string;
 
   public constructor(message: string, start: Position, end: Position) {

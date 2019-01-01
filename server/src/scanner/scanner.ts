@@ -2,7 +2,7 @@ import { TokenType } from '../entities/tokentypes';
 import { ITokenMap, ScanResult, IScannerError, IScanResult } from './types';
 import { Token, Marker, MutableMarker } from '../entities/token';
 import { WhiteSpace } from './whitespace';
-import { ScannerError } from './kosSyntaxError';
+import { ScannerError } from './ScannerError';
 import { IToken } from '../entities/types';
 import { empty } from '../utilities/typeGuards';
 import { mockLogger, mockTracer } from '../utilities/logger';
