@@ -24,6 +24,7 @@ import {
 import { empty } from './utilities/typeGuards';
 import { Analyzer } from './analyzer';
 import { IDiagnosticUri } from './types';
+import { keywordCompletions } from './utilities/constants';
 
 // Create a connection for the server. The connection uses Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -59,7 +60,7 @@ connection.onInitialize((params: InitializeParams) => {
       // Tell the client that the server supports code completion
       completionProvider: {
         resolveProvider: true,
-        triggerCharacters: [':'],
+        // triggerCharacters: [':'],
       },
 
       signatureHelpProvider: {
@@ -76,6 +77,14 @@ connection.onInitialize((params: InitializeParams) => {
 documents.onDidChangeContent(async (change) => {
   const { diagnostics } = await analyzer
     .validateDocument(change.document.uri, change.document.getText());
+
+  if (diagnostics.length === 0) {
+    connection.sendDiagnostics({
+      uri: change.document.uri,
+      diagnostics: [],
+    });
+    return;
+  }
 
   const diagnosticMap: { [uri: string]: IDiagnosticUri[] } = {};
   for (const diagnostic of diagnostics) {
@@ -190,8 +199,9 @@ connection.onCompletion(
         kind,
         label: entity.name.lexeme,
         data: entity,
-      };
-    });
+      } as CompletionItem;
+    })
+    .concat(keywordCompletions);
   },
 );
 

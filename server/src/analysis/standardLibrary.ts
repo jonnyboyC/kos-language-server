@@ -123,6 +123,13 @@ const functionNames = [
   'writejson',
 ];
 
+const locks = [
+  'throttle',
+  'steering',
+  'wheelthrottle',
+  'wheelsteering',
+];
+
 const variables = [
   'abort',
   'activeship',
@@ -248,6 +255,19 @@ for (const variable of variables) {
     new Token(
       TokenType.identifier,
       variable,
+      undefined,
+      new Marker(0, 0),
+      new Marker(0, 0),
+      undefined,
+    ));
+}
+
+for (const lock of locks) {
+  standardLibrary.declareLock(
+    ScopeType.global,
+    new Token(
+      TokenType.identifier,
+      lock,
       undefined,
       new Marker(0, 0),
       new Marker(0, 0),
