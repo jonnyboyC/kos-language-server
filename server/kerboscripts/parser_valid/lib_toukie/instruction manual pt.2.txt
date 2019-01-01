@@ -1,0 +1,81 @@
+lib_inclination:
+
+  +++ RelativeAngleCalculation()
+  Uses braeunig eq. 4.75 to calculate the angle change needed to match the ship with the target vessel.
+
+  +++ AscenDescenFinder()
+  First calculates the normal vectors of the ship and the target vessel by taking the
+  crossproduct of (ship:position - ship:body:position) and the velocity vector (ship:velocity:orbit).
+  Using the left-hand rule (similar to the FBI rule) you'll find the direction of the normal vector.
+  In this case your index would be (ship:position - ship:body:position), your middle finger would be
+  the velocity vector and your thumb would be the normal vector.
+    ! ship:position gives a vector of (0,0,0) because vectors 'start' from the ship.
+    ! - ship:body:position gives a vector from the planet to the ship, (+) ship:body:position gives
+    ! a vector starting from the ship going to the planet
+  (imgur.com/a/SUTiDEl for more information, or Script/PDFs/photo1)
+
+  Then the Descending node vector is found by taking the crossproduct of the normal vecors.
+  Note: an angle of 90 degrees is NOT neccesairy when using the left-hand rule.
+  (imgur.com/a/bXxKKcP for more information, or Script/PDFs/photo2)
+
+  if vdot(DNvector + body:position, ship:velocity:orbit) > 0
+  checks if the vector going from the ship to the Descending Node goes in prograde direction.
+
+  set TrueAnomDN to ship:orbit:trueanomaly + vang(DNvector, ship:position - ship:body:position).
+  the shortest arc from ship to DN is in the prograde direction, and the angle from Pe to DN in prograde
+  direction (which is the definition of the true anomaly of DN) is the true anomaly of ship plus the
+  angle between ship and DN vectors. Otherwise, the shortest arc is in the opposite direction, so we need
+  to subtract it from the ship's true anomaly.
+
+  if the outcome is below 0 degrees, 360 degrees get added in order to make it positive.
+  if the outcome is above 360 degrees, 360 get subtracted in order to keep it under 360 degrees.
+
+  The Ascending Node is 180 degrees apart from the Descending Node is 180 degrees is addded.
+  The same rules above with adding and subtracting 360 degrees still apply.
+
+    +++ DeltaVTheta()
+    Uses braeunig eq. 4.73 to calculate the delta v needed in order to match the inclination.
+
+    +++ InclinationMatcher()
+    Uses previous functions to calculate the true anomaly of both the Ascending Node and the Descending
+    Node, then time till AN and DN, the dv needed to match the inclinations and finally it performs a
+    burn.
+
+lib_mancalc:
+
+  +++ DvCalc()
+  Uses en.wikipedia.org/wiki/Vis-viva_equation to calculate the difference of velocity before and
+  after the burn, then it lists the ISP of the engines.
+
+  +++ TimeTillManeuverBurn()
+  Checks how much time it'll take to burn and takes half of that time and subtracts it from the start
+  time to balance the burn time.
+
+  +++ PerformBurn
+  Performs burn, not much to it.
+
+lib_other:
+  +++ Ish()
+  see instruction manual pt. 1: lib_other.
+
+  +++ DestinationSplitter()
+  Splits up destination in parts like: 'is the ship orbiting the same body as the target', 'is the target
+  orbiting the moon of the ship's body' and 'does the target have the mass of a planet'.
+
+lib_phase_angle:
+
+  +++ PhaseAngleCalculation()
+  Checks if target destination orbits the same body as the ship. If so, both the SMA are the SMA of the
+  ships's orbit around the body. Otherwise, the SMA of the body gets used.
+
+  If both vessels orbit the same body a transfer to another planet is not needed. So the whole function
+  is rendered useless.
+  If the vessels orbit different bodies this function becomes useful. First it chooses the correct
+  SMA when dealing with moons/same body/different body and calculates the transit time and phase angle
+  needed (Kosmonot's interplanetary howto guide).
+
+  +++ GetGrandparentBody()
+  Gets grandparent body.
+
+  +++ EjectionAngleVelocityCalculation()
+  Uses Kosmonot's interplanetary howto guide.

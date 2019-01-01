@@ -1,0 +1,57 @@
+           //////////////////////////////////////
+          //   Launch.ks instruction manual   //
+         //////////////////////////////////////
+
+
+               -----------------------------
+               Alarms, meanings and ordering
+               -----------------------------
+
+          000 - No alarm present, 000 covers up the previous alarm if it has been resolved.
+
+Alarms starting with 0 followed by two numbers indicate that there is an issue on the surface, this may vary from being on the launchpad
+to being landed on a planet.
+
+          001 - Launch clamps have been found in stages other than the current stage.
+          002 - No engine in first stage.
+
+Alarms starting with 1 followed by two numbers indicate that there is an issue while in flight.
+
+          101 - Dry mass has decreased although no staging has occurred, activates run mode 998.
+          102 - Vertical velocity under 0 m/s during ascent, activates run mode 998.
+
+Alarms starting with 2 followed by two numbers indicate that there is an issue with resources on the ship.
+
+          201 - Low electric charge.
+          202 - Low on liquid fuel.
+          203 - Low on mono propellant.
+
+Alarms starting with 3 followed by two numbers indicate that there is an issue with rendezvous and/or docking.
+
+          301 - Rendezvous burn is in or below atmosphere.
+          302 - Approaching target too fast, slow down.
+
+
+Alarms starting with 9 followed by two numbers indicate that there is an issue in the script (faulty results), this can occur at any time.
+
+          901 - Target height is too low for a stable orbit due to a present atmosphere and error margin.
+          902 - Target height is below the surface or too close to the surface (for bodies without atmosphere).
+          903 - Target height exceeds the sphere of influence of current planet.
+          904 - Essential parts not tagged.
+          905 - Tags not tagged to the correct part.
+          906 - User activated alarm, activates run mode 998.
+
+
+
+
+          --------------------------------
+          Run modes, meanings and ordering
+          --------------------------------
+
+Run modes are like checkpoints for scripts, if a run mode is set and the the program ends it can pick up from where it was by checking
+which run mode was set.
+          000 - pre-flight checks.
+          001 - gravity turn
+          002 - circularizing
+          998 - auto abort system, immediately fires LES, throttles down to 0 and stages till the parachute stage (and deploys them later).
+          999 - If a  "standard" error occurs it gets set to this run mode, although harmful to the script it does not require auto abort. .

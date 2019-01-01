@@ -1,0 +1,18 @@
+HUDtext("some text", 5, 2, 30, red, true).
+vecdraw(v(0,0,0), TargetVector, Green, "Label", 1.0, true, 0.2).
+
+Planned Features
+___________
+
+High Priority:
+
+Med Priority:
+- mun -> minmus "Interplanetary" transfer
+- for phase angle / ejection angle / angle from retrograde:
+  check if time warp is too fast or too slow
+
+Low priority :
+- edit readme to include what to do when script is outta date
+- For hillclimb function: if same step has been made 5 times in a row make that step BIGGER
+- DV penalty for hillclimb
+- Calculate when phase angle / ejection angle / angle from retrograde is using positionat

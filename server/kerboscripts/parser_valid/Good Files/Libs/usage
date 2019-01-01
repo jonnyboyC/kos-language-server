@@ -1,0 +1,82 @@
+_______________________________________________________________________________________________________________
+
+lib_dvcalc: calculates the delta v on the current stage:
+  -------------------------------------------------------------------------------------------------------------
+  + PartMassListMaker() makes essential lists and parameters which only need to be made once.
+  -------------------------------------------------------------------------------------------------------------
+  + TankNumberGetter() checks which tank is the curent tank.
+  -------------------------------------------------------------------------------------------------------------
+  + TagParameterSetter(TagNumber) sets all tags to tankx, engx, othx.
+  -------------------------------------------------------------------------------------------------------------
+  + FuelMassGetter() gets the mass of all the fuel in tanks with the tag set by TagParameterSetter(x).
+  ------------------------------------------------------------------------------------------------------------
+  + PartMassGetter() gets the mass of all parts with the tag set by TagParameterSetter(x).
+  -------------------------------------------------------------------------------------------------------------
+  + ISPTotalGetter() gets the total ISP by dividing the sum of all the thrust and the thrust ISP.
+  ------------------------------------------------------------------------------------------------------------
+  + DvGetter() does current stage delta v calculations.
+  ------------------------------------------------------------------------------------------------------------
+  + DvTotGetter() cycles through the tags and adds up stage delta v.
+  ------------------------------------------------------------------------------------------------------------
+Notes: - tag ALL parts, top starts with xxxx0, next stage xxxx1, xxxx2 etc.
+       - for NON asparagus vehicles only.
+
+_______________________________________________________________________________________________________________
+
+
+lib_mancalc: calculates and can perform maneuvers without ever setting them up.
+  -------------------------------------------------------------------------------------------------------------
+  + ManDvCalc(StartRadius, EndSMA) uses vis-viva equation to calculate delta v needed and end delta v using
+    lib_dvcalc to calculate current ISP and total delta v.
+  -------------------------------------------------------------------------------------------------------------
+  + TimeTillManeuverBurn(StartTime, DvNeeded, ThrustLimit) calculates the time till the maneuver.
+  -------------------------------------------------------------------------------------------------------------
+  + PerformBurn() performs burn.
+  -------------------------------------------------------------------------------------------------------------
+Notes: PerformBurn() may be slow due to constantly calculating the current delta v using lib_dvcalc.
+_______________________________________________________________________________________________________________
+
+lib_science: gives the option to perform and transmit science experiments:
+  -------------------------------------------------------------------------------------------------------------
+  + ScienceCollect(True/False) performs ALL the available experiments and puts them in the module list.
+  -------------------------------------------------------------------------------------------------------------
+  + TransmitData() takes all entries from the module list and transmits them (and clears the list).
+  -------------------------------------------------------------------------------------------------------------
+Notes: - dumps experiments which are runnable once by default to prevent transmission
+       - dumps experiments which, when transmitted, have a science value under 0.1 science.
+       - list of experiments to transmit get cleared when performing ScienceCollect().
+
+_______________________________________________________________________________________________________________
+
+lib_stage: detects when to stage and can stage until heat shield stage, also good for launching stuff:
+  -------------------------------------------------------------------------------------------------------------
+  + StageCheck() checks if current thrust is lower than first set thrust, if so, stage and reset thrust check,
+                 also checks if the max thrust is 0, if so, stage.
+  -------------------------------------------------------------------------------------------------------------
+  + EndStage(LastStage)  stages until at desired stage, keep in mind 0th stage! Useful for reentry stuff.
+  -------------------------------------------------------------------------------------------------------------
+  + LaunchStage() stages until the available thrust is higher than 0 (k)N.
+  -------------------------------------------------------------------------------------------------------------
+
+_______________________________________________________________________________________________________________
+
+lib_steering: various steering positions:
+  -------------------------------------------------------------------------------------------------------------
+  + SteeringOrbitRet() locks steering to the ship's current retrograde.
+  -------------------------------------------------------------------------------------------------------------
+  + SteeringOrbitPro() locks steering to the ship's current prograde.
+  -------------------------------------------------------------------------------------------------------------
+  + SteeringOrbitNorm() locks steering to the ship's current normal.
+  -------------------------------------------------------------------------------------------------------------
+  + SteeringOrbitAntNorm() locks steering to the ship's current anti-normal.
+  -------------------------------------------------------------------------------------------------------------
+  + SteeringTargetPro(TarShip) locks steering to relative prograde.
+  -------------------------------------------------------------------------------------------------------------
+  + SteeringTargetRet(TarShip) locks steering to relative prograde.
+  -------------------------------------------------------------------------------------------------------------
+  + SteeringTarget(TarShip) locks steering to target.
+  -------------------------------------------------------------------------------------------------------------
+  + SteeringAntiTarget(TarShip) locks steering to anti-target.
+  -------------------------------------------------------------------------------------------------------------
+Notes: - Has a check to see if ship is in the right position.
+       - Normal and anti-normal vector stay at the same place.
