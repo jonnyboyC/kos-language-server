@@ -365,7 +365,7 @@ export class GroupingExpr extends Expr {
 export class AnonymousFunctionExpr extends Expr {
   constructor(
     public readonly open: IToken,
-    public readonly instruction: IInst[],
+    public readonly instructions: IInst[],
     public readonly close: IToken) {
     super();
   }
@@ -379,11 +379,11 @@ export class AnonymousFunctionExpr extends Expr {
   }
 
   public get ranges(): Range[] {
-    return [this.open, ...this.instruction, this.close];
+    return [this.open, ...this.instructions, this.close];
   }
 
   public toString(): string {
-    return `{${this.instruction.map(i => i.toString()).join(' ')}}`;
+    return `{${this.instructions.map(i => i.toString()).join(' ')}}`;
   }
 
   public accept<T>(visitor: IExprVisitor<T>): T {

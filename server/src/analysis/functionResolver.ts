@@ -448,7 +448,7 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
   }
 
   public visitAnonymousFunction(expr: AnonymousFunctionExpr): Errors {
-    return this.resolveInsts(expr.instruction);
+    return this.resolveInsts(expr.instructions);
   }
 }
 

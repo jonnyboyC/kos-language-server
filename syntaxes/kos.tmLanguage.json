@@ -334,13 +334,13 @@
             }]
         },
         "wait-statement": {
-            "begin": "(?i)(?<![_[:alnum:]\\:])(wait)\\s+(\\b(wait)\\s)?",
+            "begin": "(?i)(?<![_[:alnum:]\\:])(wait)\\s+(\\b(until)\\s)?",
             "beginCaptures": {
                 "1": {
                     "name": "keyword.control.wait.kos"
                 },
                 "2": {
-                    "name": "keyword.control.wait.kos"
+                    "name": "keyword.control.until.kos"
                 }
             },
             "end": "\\.",

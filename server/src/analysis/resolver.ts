@@ -559,7 +559,11 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   }
 
   public visitAnonymousFunction(expr: AnonymousFunctionExpr): Errors {
-    return this.resolveInsts(expr.instruction);
+    this.scopeMan.beginScope(expr);
+    const errors = this.resolveInsts(expr.instructions);
+    this.scopeMan.endScope();
+
+    return errors;
   }
 }
 
