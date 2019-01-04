@@ -27,8 +27,8 @@ export class LocalResolver implements IExprVisitor<IToken[]> {
       .concat(this.resolveExpr(expr.exponent));
   }
   public visitSuffix(expr: SuffixExpr): IToken[] {
-    return this.resolveExpr(expr.suffix);
-    //  .concat(this.resolveExpr(expr.trailer));
+    return this.resolveExpr(expr.suffix)
+      .concat(this.resolveExpr(expr.trailer));
   }
   public visitCall(expr: CallExpr): IToken[] {
     if (expr.isTrailer) {
@@ -60,7 +60,7 @@ export class LocalResolver implements IExprVisitor<IToken[]> {
     return [];
   }
   public visitVariable(expr: VariableExpr): IToken[] {
-    return [expr.token];
+    return expr.isTrailer ? [] : [expr.token];
   }
   public visitGrouping(expr: GroupingExpr): IToken[] {
     return this.resolveExpr(expr.expr);

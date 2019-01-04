@@ -30,15 +30,20 @@ export interface IGlobalScopePosition {
 type IScopePosition = IRealScopePosition | IGlobalScopePosition;
 
 export interface IScopeNode {
-  position: IScopePosition;
-  scope: IScope;
-  children: IScopeNode[];
+  readonly position: IScopePosition;
+  readonly scope: IScope;
+  readonly children: IScopeNode[];
 }
 
 export interface IResolverError extends Range {
   readonly token: IToken;
   readonly message: string;
   readonly otherInfo: string[];
+}
+
+export interface ISetResolverResult {
+  readonly set: Maybe<IToken>;
+  readonly used: IToken[];
 }
 
 export type KsEntity = KsVariable | KsFunction | KsLock | KsParameter;

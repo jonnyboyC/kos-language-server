@@ -280,7 +280,9 @@ export class DelegateExpr extends Expr {
 }
 
 export class LiteralExpr extends Expr {
-  constructor(public readonly token: IToken) {
+  constructor(
+    public readonly token: IToken,
+    public readonly isTrailer: boolean) {
     super();
   }
 
@@ -307,7 +309,8 @@ export class LiteralExpr extends Expr {
 
 export class VariableExpr extends Expr {
   constructor(
-    public readonly token: IToken) {
+    public readonly token: IToken,
+    public readonly isTrailer: boolean) {
     super();
   }
 
@@ -341,7 +344,8 @@ export class GroupingExpr extends Expr {
   constructor(
     public readonly open: IToken,
     public readonly expr: IExpr,
-    public readonly close: IToken) {
+    public readonly close: IToken,
+    public readonly isTrailer: boolean) {
     super();
   }
 
@@ -370,7 +374,8 @@ export class AnonymousFunctionExpr extends Expr {
   constructor(
     public readonly open: IToken,
     public readonly instructions: IInst[],
-    public readonly close: IToken) {
+    public readonly close: IToken,
+    public readonly isTrailer: boolean) {
     super();
   }
 

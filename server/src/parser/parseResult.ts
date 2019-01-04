@@ -9,6 +9,6 @@ export const nodeResult = <T>(inst: T, ...errors: IParseError[][]):
 
   return {
     value: inst,
-    errors: errors.reduce((acc, curr) => acc.concat(curr), [] as IParseError[]),
+    errors: errors.reduce((acc, curr) => acc.concat(curr), []),
   };
 };

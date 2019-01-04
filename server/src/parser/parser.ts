@@ -1139,7 +1139,7 @@ export class Parser {
   // parse suffix term expression
   private suffixTerm = (isTrailer: boolean): INodeResult<IExpr> => {
     // parse primary
-    let expr = this.atom();
+    let expr = this.atom(isTrailer);
 
     // parse any trailers that exist
     while (true) {
@@ -1234,7 +1234,7 @@ export class Parser {
   }
 
   // parse anonymouse function
-  private anonymousFunction = (): INodeResult<AnonymousFunctionExpr> => {
+  private anonymousFunction = (isTrailer: boolean): INodeResult<AnonymousFunctionExpr> => {
     const open = this.previous();
     const declarations: Inst[] = [];
     let parseErrors: IParseError[] = [];
@@ -1257,23 +1257,23 @@ export class Parser {
       throw error;
     }
     return nodeResult(
-      new AnonymousFunctionExpr(open, declarations, close),
+      new AnonymousFunctionExpr(open, declarations, close, isTrailer),
       parseErrors,
     );
   }
 
   // match atom expressions literals, identifers, list, and parenthesis
-  private atom = (): INodeResult<IExpr> => {
+  private atom = (isTrailer: boolean): INodeResult<IExpr> => {
     // match all literals
     if (this.matchToken(
       TokenType.false, TokenType.true,
       TokenType.string, TokenType.integer, TokenType.double)) {
-      return nodeResult(new LiteralExpr(this.previous()));
+      return nodeResult(new LiteralExpr(this.previous(), isTrailer));
     }
 
     // match identifiers TODO identifier all keywords that can be used here
     if (isValidIdentifier(this.peek().type) || this.check(TokenType.fileIdentifier)) {
-      return nodeResult(new VariableExpr(this.advance()));
+      return nodeResult(new VariableExpr(this.advance(), isTrailer));
     }
 
     // match grouping expression
@@ -1283,14 +1283,14 @@ export class Parser {
       const close = this.consumeTokenThrow('Expect ")" after expression', TokenType.bracketClose);
 
       return nodeResult(
-        new GroupingExpr(open, expr.value, close),
+        new GroupingExpr(open, expr.value, close, isTrailer),
         expr.errors,
       );
     }
 
     // match anonymous function
     if (this.matchToken(TokenType.curlyOpen)) {
-      return this.anonymousFunction();
+      return this.anonymousFunction(isTrailer);
     }
 
     // valid expression not found

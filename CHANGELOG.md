@@ -1,3 +1,16 @@
+## [0.2.0] (2019-1-3)
+- **Goto Definition** Added support for Goto definition or variables, parameters, locks, and functions
+- **Auto Complete** Added initial set of suggestions for auto complete. These included keywords as well as variables, functions etc that are detected in scope
+- **Find Unused Variable** Indicate variables that where declared but may not used
+- **Find Unitialized Variable** Indicate when a variable is used that may not exist
+
+### Bug Fixes
+- **number parsing** Fixed an issue when a number followed by a variable e would be interpreted as a number
+- **parser** Fixed an issue where sometimes variable, parameter, lock or function declarations were not property parsed
+- **defined keyword** Previously defined keyword was not correctly identified as one
+- **node commands** Previously node commands were not highlighed correctly
+
+
 ## [0.1.3] (2018-12-1)
 
 ### Bug Fixes
