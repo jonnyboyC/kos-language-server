@@ -1,7 +1,7 @@
 import { ScopeType } from '../parser/types';
-import { FunctionState } from '../analysis/types';
 import { IToken } from './types';
 import { KsParameter } from './parameters';
+import { EntityState } from '../analysis/types';
 
 export class KsFunction {
   public readonly requiredParameters: number;
@@ -11,7 +11,7 @@ export class KsFunction {
     public readonly name: IToken,
     public readonly parameters: KsParameter[],
     public readonly returnValue: boolean,
-    public state: FunctionState,
+    public state: EntityState,
   ) {
     this.requiredParameters = parameters
       .filter(parameter => !parameter.defaulted)

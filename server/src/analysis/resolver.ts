@@ -116,7 +116,10 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
 
   // attempt to use ever variable in the expression
   private useLocals(expr: IExpr): Errors {
+    // TODO note this may also change in future
+    // we'll ignore call expr and have the call vist handle it
     return this.localResolver.resolveExpr(expr)
+      .filter(entity => !(entity instanceof CallExpr))
       .map(entity => this.scopeMan.useEntity(entity))
       .filter(this.filterError);
   }
@@ -213,18 +216,13 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   }
 
   public visitExpr(inst: ExprInst): Errors {
-    const useErrors = this.useLocals(inst.suffix);
-    const resolveErrors = this.resolveExpr(inst.suffix);
-
-    return useErrors.concat(resolveErrors);
+    return this.useLocals(inst.suffix).concat(
+      this.resolveExpr(inst.suffix));
   }
 
   public visitOnOff(inst: OnOffInst): Errors {
-    const useErrors = this.useLocals(inst.suffix);
-    const resolveErrors = this.resolveExpr(inst.suffix);
-
-    return useErrors.concat(resolveErrors)
-            .filter(this.filterError);
+    return this.useLocals(inst.suffix)
+      .concat(this.resolveExpr(inst.suffix));
   }
 
   // tslint:disable-next-line:variable-name
@@ -233,11 +231,8 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   }
 
   public visitCommandExpr(inst: CommandExpressionInst): Errors {
-    const useErrors = this.useLocals(inst.expression);
-    const resolveErrors = this.resolveExpr(inst.expression);
-
-    return useErrors.concat(resolveErrors)
-            .filter(this.filterError);
+    return this.useLocals(inst.expression).concat(
+      this.resolveExpr(inst.expression));
   }
 
   public visitUnset(inst: UnsetInst): Errors {
@@ -253,8 +248,8 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   public visitSet(inst: SetInst): Errors {
     const varToken = this.setResolver.resolveExpr(inst.suffix);
     if (empty(varToken)) {
-      const tokens = this.localResolver.resolveExpr(inst.suffix);
-      return [new ResolverError(tokens[0], `cannot assign to variable ${tokens[0].lexeme}`, [])];
+      const [token] = this.localResolver.resolveExpr(inst.suffix);
+      return [new ResolverError(token, `cannot assign to variable ${token.lexeme}`, [])];
     }
 
     if (!this.lazyGlobalOff) {
@@ -263,13 +258,13 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
       }
     }
 
-    const defineError = this.scopeMan.defineVariable(varToken);
+    const defineError = this.scopeMan.defineBinding(varToken);
     const useErrors = this.useLocals(inst.value);
     const resolveErrors = this.resolveExpr(inst.value);
 
     return !empty(defineError)
-            ? useErrors.concat(resolveErrors, defineError)
-            : useErrors.concat(resolveErrors);
+      ? useErrors.concat(resolveErrors, defineError)
+      : useErrors.concat(resolveErrors);
   }
 
   public visitLazyGlobalInst(inst: LazyGlobalInst): Errors {
@@ -285,17 +280,16 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   }
 
   public visitIf(inst: IfInst): Errors {
-    const useErrors = this.useLocals(inst.condition);
-
-    let resolveErrors = this.resolveExpr(inst.condition)
-      .concat(this.resolveInst(inst.instruction));
+    const errors = this.useLocals(inst.condition).concat(
+      this.resolveExpr(inst.condition),
+      this.resolveInst(inst.instruction));
 
     if (inst.elseInst) {
-      resolveErrors = resolveErrors.concat(
+      return errors.concat(
         this.resolveInst(inst.elseInst));
     }
 
-    return useErrors.concat(resolveErrors);
+    return errors;
   }
 
   public visitElse(inst: ElseInst): Errors {
@@ -317,8 +311,9 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   }
 
   public visitWhen(inst: WhenInst): Errors {
-    return this.resolveExpr(inst.condition)
-      .concat(this.resolveInst(inst.instruction));
+    return this.useLocals(inst.condition).concat(
+      this.resolveExpr(inst.condition),
+      this.resolveInst(inst.instruction));
   }
 
   public visitReturn(inst: ReturnInst): Errors {
@@ -372,23 +367,63 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   }
 
   public visitLog(inst: LogInst): Errors {
+    let useErrors: Errors = [];
+
+    // check target expression
+    if (inst.target instanceof LiteralExpr) {
+      switch (inst.target.token.type) {
+        case TokenType.string:
+        case TokenType.fileIdentifier:
+          // TODO may need check some about path here
+          break;
+        default:
+          useErrors = this.useLocals(inst.target);
+      }
+    }
+
     return this.useLocals(inst.expression).concat(
+      useErrors,
       this.resolveExpr(inst.expression),
-      this.useLocals(inst.target),
       this.resolveExpr(inst.target));
   }
 
   public visitCopy(inst: CopyInst): Errors {
+    let useErrors: Errors = [];
+
+    // check from expression
+    if (inst.expression instanceof LiteralExpr) {
+      switch (inst.expression.token.type) {
+        case TokenType.string:
+        case TokenType.fileIdentifier:
+          // TODO may need check some about path here
+          break;
+        default:
+          useErrors = this.useLocals(inst.expression);
+      }
+    }
+
+    // check the target location
+    if (inst.target instanceof LiteralExpr) {
+      switch (inst.target.token.type) {
+        case TokenType.string:
+        case TokenType.fileIdentifier:
+          // TODO may need check some about path here
+          break;
+        default:
+          useErrors = this.useLocals(inst.target);
+      }
+    }
+
     return this.useLocals(inst.expression).concat(
+      useErrors,
       this.resolveExpr(inst.expression),
-      this.useLocals(inst.target),
       this.resolveExpr(inst.target));
   }
 
   public visitRename(inst: RenameInst): Errors {
     return this.useLocals(inst.expression).concat(
-      this.resolveExpr(inst.expression),
       this.useLocals(inst.target),
+      this.resolveExpr(inst.expression),
       this.resolveExpr(inst.target));
   }
 
@@ -399,8 +434,8 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
     }
 
     return this.useLocals(inst.expression).concat(
-      this.resolveExpr(inst.expression),
       this.useLocals(inst.target),
+      this.resolveExpr(inst.expression),
       this.resolveExpr(inst.target));
   }
 
@@ -409,8 +444,16 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
       return [];
     }
 
-    return accumulateErrors(inst.args, this.useLocals.bind(this)).concat(
+    const argError = accumulateErrors(inst.args, this.useLocals.bind(this)).concat(
       accumulateErrors(inst.args, this.resolveExpr.bind(this)));
+
+    if (empty(inst.expr)) {
+      return argError;
+    }
+
+    return this.useLocals(inst.expr).concat(
+      this.resolveExpr(inst.expr),
+      argError);
   }
 
   public visitRunPath(inst: RunPathInst): Errors {
@@ -444,12 +487,11 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
     }
 
     return this.useLocals(inst.expression).concat(
-      this.resolveExpr(inst.expression),
       this.useLocals(inst.target),
+      this.resolveExpr(inst.expression),
       this.resolveExpr(inst.target));
   }
 
-  // tslint:disable-next-line:variable-name
   public visitList(inst: ListInst): Errors {
     // list generates new variable when target is used
     if (empty(inst.target)) {
@@ -482,8 +524,8 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   }
 
   public visitBinary(expr: BinaryExpr): Errors {
-    return this.resolveExpr(expr.left)
-      .concat(this.resolveExpr(expr.right));
+    return this.resolveExpr(expr.left).concat(
+      this.resolveExpr(expr.right));
   }
 
   public visitUnary(expr: UnaryExpr): Errors {
@@ -491,44 +533,49 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   }
 
   public visitFactor(expr: FactorExpr): Errors {
-    return this.resolveExpr(expr.suffix)
-      .concat(this.resolveExpr(expr.exponent));
+    return this.resolveExpr(expr.suffix).concat(
+      this.resolveExpr(expr.exponent));
   }
 
   public visitSuffix(expr: SuffixExpr): Errors {
-    return this.resolveExpr(expr.suffix)
-      .concat(this.resolveExpr(expr.trailer));
+    return this.resolveExpr(expr.suffix).concat(
+      this.resolveExpr(expr.trailer));
   }
 
   public visitCall(expr: CallExpr): Errors {
     const { callee } = expr;
-    const errors: Errors = [];
+    let errors: Errors = [];
 
-    if (callee instanceof VariableExpr) {
-      const func = this.scopeMan.lookupFunction(callee.token, ScopeType.global);
-      if (empty(func)) {
-        errors.push(new ResolverError(
-          callee.token,
-          `Function ${callee.token.lexeme} may not exist`, []));
+    if (!expr.isTrailer) {
+      if (callee instanceof VariableExpr) {
+        const func = this.scopeMan.lookupFunction(callee.token, ScopeType.global);
+        if (empty(func)) {
+          errors.push(new ResolverError(
+            callee.token,
+            `Function ${callee.token.lexeme} may not exist`, []));
+        }
+        // else {
+        //   const max = func.parameters.length;
+        //   const min = func.requiredParameters;
+
+        //   if (expr.args.length < min) {
+        //     errors.push(new ResolverError(
+        //       callee.token,
+        //       `Function ${callee.token.lexeme} requires at least ${min} parameters`, []));
+        //   }
+        //   if (expr.args.length > max) {
+        //     errors.push(new ResolverError(
+        //       callee.token,
+        //       `Function ${callee.token.lexeme} accepts at most ${max} parameters`, []));
+        //   }
+        // }
       } else {
-        const max = func.parameters.length;
-        const min = func.requiredParameters;
-
-        if (expr.args.length < min) {
-          errors.push(new ResolverError(
-            callee.token,
-            `Function ${callee.token.lexeme} requires at least ${min} parameters`, []));
-        }
-        if (expr.args.length > max) {
-          errors.push(new ResolverError(
-            callee.token,
-            `Function ${callee.token.lexeme} accepts at most ${max} parameters`, []));
-        }
+        errors = this.resolveExpr(expr.callee);
       }
     }
 
-    return this.resolveExpr(expr.callee)
-      .concat(accumulateErrors(expr.args, this.resolveExpr.bind(this)));
+    return errors.concat(
+      accumulateErrors(expr.args, this.resolveExpr.bind(this)));
   }
 
   public visitArrayIndex(expr: ArrayIndexExpr): Errors {
@@ -536,8 +583,8 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   }
 
   public visitArrayBracket(expr: ArrayBracketExpr): Errors {
-    return this.resolveExpr(expr.array)
-      .concat(this.resolveExpr(expr.index));
+    return this.resolveExpr(expr.array).concat(
+      this.resolveExpr(expr.index));
   }
 
   public visitDelegate(expr: DelegateExpr): Errors {

@@ -5,17 +5,7 @@ import { IToken } from '../entities/types';
 import { KsParameter } from '../entities/parameters';
 import { Range } from 'vscode-languageserver';
 
-export const enum FunctionState {
-  declared,
-  used,
-}
-
-export const enum VariableState {
-  declared,
-  used,
-}
-
-export const enum ParameterState {
+export const enum EntityState {
   declared,
   used,
 }

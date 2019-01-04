@@ -1115,7 +1115,7 @@ export class Parser {
 
   // parse suffix
   private suffix = (): INodeResult<IExpr> => {
-    let expr = this.suffixTerm();
+    let expr = this.suffixTerm(false);
 
     // while colons are found parse all trailers
     while (this.matchToken(TokenType.colon)) {
@@ -1129,7 +1129,7 @@ export class Parser {
   // parse suffix trailer expression
   private suffixTrailer = (suffix: Expr): INodeResult<SuffixExpr> => {
     const colon = this.previous();
-    const trailer = this.suffixTerm();
+    const trailer = this.suffixTerm(true);
     return nodeResult(
       new SuffixExpr(suffix, colon, trailer.value),
       trailer.errors,
@@ -1137,24 +1137,24 @@ export class Parser {
   }
 
   // parse suffix term expression
-  private suffixTerm = (): INodeResult<IExpr> => {
+  private suffixTerm = (isTrailer: boolean): INodeResult<IExpr> => {
     // parse primary
     let expr = this.atom();
 
     // parse any trailers that exist
     while (true) {
       if (this.matchToken(TokenType.arrayIndex)) {
-        const index = this.arrayIndex(expr.value);
+        const index = this.arrayIndex(expr.value, isTrailer);
         expr = nodeResult(index.value, expr.errors, index.errors);
       } else if (this.matchToken(TokenType.squareOpen)) {
-        const bracket = this.arrayBracket(expr.value);
+        const bracket = this.arrayBracket(expr.value, isTrailer);
         expr = nodeResult(bracket.value, expr.errors, bracket.errors);
       } else if (this.matchToken(TokenType.bracketOpen)) {
-        const trailer = this.functionTrailer(expr.value);
+        const trailer = this.functionTrailer(expr.value, isTrailer);
         expr = nodeResult(trailer.value, expr.errors, trailer.errors);
       } else if (this.matchToken(TokenType.atSign)) {
         return nodeResult(
-          new DelegateExpr(expr.value, this.previous()),
+          new DelegateExpr(expr.value, this.previous(), isTrailer),
           expr.errors,
         );
       } else {
@@ -1166,13 +1166,13 @@ export class Parser {
   }
 
   // function call
-  private functionTrailer = (callee: Expr): INodeResult<CallExpr> => {
+  private functionTrailer = (callee: Expr, isTrailer: boolean): INodeResult<CallExpr> => {
     const open = this.previous();
     const args = this.arguments();
     const close = this.consumeTokenThrow('Expect ")" after arguments.', TokenType.bracketClose);
 
     return nodeResult(
-      new CallExpr(callee, open, args.value, close),
+      new CallExpr(callee, open, args.value, close, isTrailer),
       args.errors,
     );
   }
@@ -1209,20 +1209,20 @@ export class Parser {
   }
 
   // generate array bracket expression
-  private arrayBracket = (array: Expr): INodeResult<ArrayBracketExpr> => {
+  private arrayBracket = (array: Expr, isTrailer: boolean): INodeResult<ArrayBracketExpr> => {
     const open = this.previous();
     const index = this.expression();
 
     const close = this.consumeTokenThrow(
       'Expected "]" at end of array index.', TokenType.squareClose);
     return nodeResult(
-      new ArrayBracketExpr(array, open, index.value, close),
+      new ArrayBracketExpr(array, open, index.value, close, isTrailer),
       index.errors,
     );
   }
 
   // generate array index expression
-  private arrayIndex = (array: Expr): INodeResult<ArrayIndexExpr> => {
+  private arrayIndex = (array: Expr, isTrailer: boolean): INodeResult<ArrayIndexExpr> => {
     const indexer = this.previous();
 
     // check for integer or identifier
@@ -1230,7 +1230,7 @@ export class Parser {
       'Expected integer or identifer.',
       TokenType.integer, TokenType.identifier);
 
-    return nodeResult(new ArrayIndexExpr(array, indexer, index));
+    return nodeResult(new ArrayIndexExpr(array, indexer, index, isTrailer));
   }
 
   // parse anonymouse function

@@ -31,11 +31,11 @@ import { ResolverError } from './resolverError';
 import { DeclVariable, DeclLock, DeclFunction, DeclParameter } from '../parser/declare';
 import { empty } from '../utilities/typeGuards';
 import { ScopeManager } from './scopeManager';
-import { ParameterState } from './types';
 import { SyntaxTree } from '../entities/syntaxTree';
 import { KsParameter } from '../entities/parameters';
 import { TokenType } from '../entities/tokentypes';
 import { mockLogger, mockTracer } from '../utilities/logger';
+import { EntityState } from './types';
 
 // tslint:disable-next-line:prefer-array-literal
 export type Errors = Array<ResolverError>;
@@ -171,12 +171,12 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
             parameter.identifier,
             'Normal parameters cannot occur after defaulted parameters', []));
         }
-        parameters.push(new KsParameter(parameter.identifier, false, ParameterState.declared));
+        parameters.push(new KsParameter(parameter.identifier, false, EntityState.declared));
       }
 
       for (const parameter of decl.defaultParameters) {
         defaulted = true;
-        parameters.push(new KsParameter(parameter.identifier, true, ParameterState.declared));
+        parameters.push(new KsParameter(parameter.identifier, true, EntityState.declared));
       }
     }
 

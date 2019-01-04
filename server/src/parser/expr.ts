@@ -161,7 +161,8 @@ export class CallExpr extends Expr {
     public readonly callee: IExpr,
     public readonly open: IToken,
     public readonly args: IExpr[],
-    public readonly close: IToken) {
+    public readonly close: IToken,
+    public readonly isTrailer: boolean) {
     super();
   }
 
@@ -191,7 +192,8 @@ export class ArrayIndexExpr extends Expr {
   constructor(
     public readonly array: IExpr,
     public readonly indexer: IToken,
-    public readonly index: IToken) {
+    public readonly index: IToken,
+    public readonly isTrailer: boolean) {
     super();
   }
 
@@ -221,7 +223,8 @@ export class ArrayBracketExpr extends Expr {
     public readonly array: IExpr,
     public readonly open: IToken,
     public readonly index: IExpr,
-    public readonly close: IToken) {
+    public readonly close: IToken,
+    public readonly isTrailer: boolean) {
     super();
   }
 
@@ -250,7 +253,8 @@ export class ArrayBracketExpr extends Expr {
 export class DelegateExpr extends Expr {
   constructor (
     public readonly variable: IExpr,
-    public readonly atSign: IToken) {
+    public readonly atSign: IToken,
+    public readonly isTrailer: boolean) {
     super();
   }
 

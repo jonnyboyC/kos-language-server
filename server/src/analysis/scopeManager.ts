@@ -2,9 +2,8 @@ import { ResolverError } from './resolverError';
 import { empty } from '../utilities/typeGuards';
 import { ScopeType } from '../parser/types';
 import { KsVariable } from '../entities/variable';
-import { VariableState, IScope, IScopeNode,
-  KsEntity, IStack, FunctionState, LockState,
-  ParameterState,
+import { EntityState, IScope, IScopeNode,
+  KsEntity, IStack, LockState,
 } from './types';
 import { KsFunction } from '../entities/function';
 import { KsLock } from '../entities/lock';
@@ -104,7 +103,7 @@ export class ScopeManager {
     this.backTrackPath = [...this.activeScopePath];
   }
 
-    // pop a scope and check entity validity
+  // pop a scope and check entity validity
   public endScope(): ResolverError[] {
     const { scope, position } = this.activeScopeNode();
     this.activeScopePath.pop();
@@ -121,7 +120,7 @@ export class ScopeManager {
             entity;
             break;
           case 'variable':
-            if (entity.state !== VariableState.used) {
+            if (entity.state !== EntityState.used) {
               errors.push(new ResolverError(
                 entity.name,
                 `Variable ${entity.name.lexeme} was not used.`, []));
@@ -139,12 +138,13 @@ export class ScopeManager {
     return errors;
   }
 
+  // get entity at a position
   public entityAtPosition(pos: Position, name: string): Maybe<KsEntity> {
     const entities = this.entitiesAtPosition(pos);
     return entities.find(entity => entity.name.lexeme === name);
   }
 
-    // get all entities in scope at a position
+  // get all entities in scope at a position
   public entitiesAtPosition(pos: Position): KsEntity[] {
     const entities = Array.from(this.scopesRoot.scope.values())
       .concat(...Array.from(this.childScopes.values())
@@ -210,14 +210,43 @@ export class ScopeManager {
     // check the appropriate lookup for the entity
     switch (entity.tag) {
       case 'parameter':
-        return this.checkUseParameter(name, entity);
+        return this.checkUseEntity(name, entity, 'Parameter', EntityState.used);
       case 'function':
-        return this.checkUseFunction(name, entity);
+        return this.checkUseEntity(name, entity, 'Function', EntityState.used);
       case 'variable':
-        return this.checkUseVariable(name, entity, VariableState.used);
+        return this.checkUseEntity(name, entity, 'Variable', EntityState.used);
       case 'lock':
         return this.checkUseLock(name, entity, LockState.used);
     }
+  }
+
+  // use a variable
+  public useVariable(name: IToken): Maybe<ResolverError> {
+    const variable = this.lookupVariable(name, ScopeType.global);
+
+    return this.checkUseEntity(name, variable, 'Variable', EntityState.used);
+  }
+
+  // define a variable
+  public useFunction(name: IToken): Maybe<ResolverError> {
+    const func = this.lookupFunction(name, ScopeType.global);
+
+    return this.checkUseEntity(name, func, 'Function', EntityState.used);
+  }
+
+  // use a variable
+  public useLock(name: IToken, newState: LockState.unlocked | LockState.used):
+    Maybe<ResolverError> {
+    const lock = this.lookupLock(name, ScopeType.global);
+
+    return this.checkUseLock(name, lock, newState);
+  }
+
+  // use a parameter
+  public useParameter(name: IToken): Maybe<ResolverError> {
+    const parameter = this.lookupParameter(name, ScopeType.global);
+
+    return this.checkUseEntity(name, parameter, 'Parameter', EntityState.used);
   }
 
   // declare a variable
@@ -231,36 +260,8 @@ export class ScopeManager {
 
     const scope = this.selectScope(scopeType);
 
-    scope.set(name.lexeme, new KsVariable(scopeType, name, VariableState.declared));
+    scope.set(name.lexeme, new KsVariable(scopeType, name, EntityState.declared));
     this.logger.info(`declare variable ${name.lexeme} at ${JSON.stringify(name.start)}`);
-    return undefined;
-  }
-
-  // use a variable
-  public useVariable(name: IToken): Maybe<ResolverError> {
-    const variable = this.lookupVariable(name, ScopeType.global);
-
-    return this.checkUseVariable(name, variable, VariableState.used);
-  }
-
-  // define a variable
-  public defineVariable(name: IToken): Maybe<ResolverError> {
-    const variable = this.lookupVariable(name, ScopeType.global);
-
-    const state = empty(variable) ? VariableState.declared : variable.state;
-    return this.checkUseVariable(name, variable, state);
-  }
-
-  // check if a variable exist then use it
-  public checkUseVariable(name: IToken, variable: Maybe<KsVariable>, state: VariableState):
-    Maybe<ResolverError> {
-    // check that variable has already been defined
-    if (empty(variable)) {
-      return new ResolverError(name, `Variable ${name.lexeme} may not exist.`, []);
-    }
-
-    variable.state = state;
-    this.logger.info(`use variable ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
 
@@ -279,30 +280,11 @@ export class ScopeManager {
 
     const scope = this.selectScope(scopeType);
     scope.set(name.lexeme, new KsFunction(
-            scopeType, name,
-            parameters, returnValue,
-            FunctionState.declared));
+      scopeType, name,
+      parameters, returnValue,
+      EntityState.declared));
 
     this.logger.info(`declare function ${name.lexeme} at ${JSON.stringify(name.start)}`);
-    return undefined;
-  }
-
-  // define a variable
-  public useFunction(name: IToken): Maybe<ResolverError> {
-    const func = this.lookupFunction(name, ScopeType.global);
-
-    return this.checkUseFunction(name, func);
-  }
-
-  // check that a function exists then use it
-  private checkUseFunction(name: IToken, func: Maybe<KsFunction>): Maybe<ResolverError> {
-    // check that function has already been defined
-    if (empty(func)) {
-      return new ResolverError(name, `Function ${name.lexeme} may not exist.`, []);
-    }
-
-    func.state = FunctionState.used;
-    this.logger.info(`use function ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
 
@@ -323,44 +305,6 @@ export class ScopeManager {
     return undefined;
   }
 
-  // locks with side effects are considerd used immediatly
-  private lockState(lockName: string): LockState {
-    switch (lockName) {
-      case 'throttle':
-      case 'steering':
-      case 'wheelthrottle':
-      case 'wheelsteering':
-        return LockState.used;
-      default:
-        return LockState.locked;
-    }
-  }
-
-  // use a variable
-  public useLock(name: IToken, newState: LockState.unlocked | LockState.used):
-    Maybe<ResolverError> {
-    const lock = this.lookupLock(name, ScopeType.global);
-
-    return this.checkUseLock(name, lock, newState);
-  }
-
-  // check that the lock can be used in the current state
-  private checkUseLock(name: IToken, lock: Maybe<KsLock>, newState: LockState) {
-
-    // check that variable has already been defined
-    if (empty(lock)) {
-      return new ResolverError(name, `Lock ${name.lexeme} may not exist.`, []);
-    }
-
-    if (lock.state === LockState.unlocked) {
-      return new ResolverError(name, `Lock ${name.lexeme} is unlocked.`, []);
-    }
-
-    lock.state = newState;
-    this.logger.info(`use lock ${name.lexeme} at ${JSON.stringify(name.start)}`);
-    return undefined;
-  }
-
   // declare a parameter
   public declareParameter(
     scopeType: ScopeType,
@@ -374,29 +318,74 @@ export class ScopeManager {
     }
 
     const scope = this.selectScope(scopeType);
-    scope.set(name.lexeme, new KsParameter(name, defaulted, ParameterState.declared));
+    scope.set(name.lexeme, new KsParameter(name, defaulted, EntityState.declared));
     this.logger.info(`declare parameter ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
 
-  // use a parameter
-  public useParameter(name: IToken): Maybe<ResolverError> {
-    const parameter = this.lookupParameter(name, ScopeType.global);
+  // define a variable
+  public defineBinding(name: IToken): Maybe<ResolverError> {
+    const binding = this.lookupBinding(name, ScopeType.global);
 
-    return this.checkUseParameter(name, parameter);
+    // Note we are currently setting to used because we can't
+    // suffixes yet
+    // const state = empty(binding) ? EntityState.declared : binding.state;
+    return this.checkUseEntity(name, binding, 'entity', EntityState.used);
   }
 
-  // check that the parameter can be used in this state
-  private checkUseParameter(name: IToken, parameter: Maybe<KsParameter>): Maybe<ResolverError> {
-
-    // check that parmeter has already been defined
-    if (empty(parameter)) {
-      return new ResolverError(name, `Parameter ${name.lexeme} may not exist.`, []);
+  // check if a variable exist then use it
+  public checkUseEntity(
+    name: IToken,
+    entity: Maybe<KsVariable | KsFunction | KsParameter>,
+    type: string,
+    state: EntityState):
+    Maybe<ResolverError> {
+    // check that variable has already been defined
+    if (empty(entity)) {
+      return new ResolverError(name, `${type} ${name.lexeme} may not exist.`, []);
     }
 
-    parameter.state = ParameterState.used;
-    this.logger.info(`use parameter ${name.lexeme} at ${JSON.stringify(name.start)}`);
+    entity.state = state;
+    this.logger.info(`Use ${type} ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
+  }
+
+  // check that the lock can be used in the current state
+  private checkUseLock(name: IToken, lock: Maybe<KsLock>, newState: LockState) {
+
+    // check that variable has already been defined
+    if (empty(lock)) {
+      return new ResolverError(name, `Lock ${name.lexeme} may not exist.`, []);
+    }
+
+    if (lock.state === LockState.unlocked) {
+      return new ResolverError(name, `Lock ${name.lexeme} may be unlocked.`, []);
+    }
+
+    lock.state = newState;
+    this.logger.info(`use lock ${name.lexeme} at ${JSON.stringify(name.start)}`);
+    return undefined;
+  }
+
+  // locks with side effects are considerd used immediatly
+  private lockState(lockName: string): LockState {
+    switch (lockName) {
+      case 'throttle':
+      case 'steering':
+      case 'wheelthrottle':
+      case 'wheelsteering':
+        return LockState.used;
+      default:
+        return LockState.locked;
+    }
+  }
+
+  public lookupBinding (token: IToken, scope: ScopeType):
+  Maybe<KsVariable | KsParameter> {
+    const entity = this.lookup(token, scope);
+    return !empty(entity) && (entity.tag === 'variable' || entity.tag === 'parameter')
+      ? entity
+      : undefined;
   }
 
   // attempt a variable lookup

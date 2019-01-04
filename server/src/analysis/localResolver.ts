@@ -20,8 +20,7 @@ export class LocalResolver implements IExprVisitor<IToken[]> {
       .concat(this.resolveExpr(expr.right));
   }
   public visitUnary(expr: UnaryExpr): IToken[] {
-    return this.resolveExpr(expr.factor)
-      .concat(this.resolveExpr(expr.factor));
+    return this.resolveExpr(expr.factor);
   }
   public visitFactor(expr: FactorExpr): IToken[] {
     return this.resolveExpr(expr.suffix)
@@ -32,18 +31,29 @@ export class LocalResolver implements IExprVisitor<IToken[]> {
     //  .concat(this.resolveExpr(expr.trailer));
   }
   public visitCall(expr: CallExpr): IToken[] {
+    if (expr.isTrailer) {
+      if (expr.args.length === 0) {
+        return [];
+      }
+
+      return expr.args.reduce(
+        (acc, curr) => acc.concat(this.resolveExpr(curr)),
+        [] as IToken[]);
+    }
+
     return this.resolveExpr(expr.callee)
       .concat(...expr.args.map(arg => this.resolveExpr(arg)));
   }
   public visitArrayIndex(expr: ArrayIndexExpr): IToken[] {
-    return this.resolveExpr(expr.array);
+    return expr.isTrailer ? [] : this.resolveExpr(expr.array);
   }
   public visitArrayBracket(expr: ArrayBracketExpr): IToken[] {
-    return this.resolveExpr(expr.array)
-      .concat(this.resolveExpr(expr.index));
+    return expr.isTrailer
+      ? this.resolveExpr(expr.index)
+      : this.resolveExpr(expr.array).concat(this.resolveExpr(expr.index));
   }
   public visitDelegate(expr: DelegateExpr): IToken[] {
-    return this.resolveExpr(expr.variable);
+    return expr.isTrailer ? [] : this.resolveExpr(expr.variable);
   }
   // tslint:disable-next-line:variable-name
   public visitLiteral(_expr: LiteralExpr): IToken[] {

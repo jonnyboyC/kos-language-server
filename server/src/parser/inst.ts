@@ -417,9 +417,9 @@ export class ReturnInst extends Inst {
   }
 
   public get ranges(): Range[] {
-    const ranges = [this.returnToken];
+    let ranges: Range[] = [this.returnToken];
     if (!empty(this.value)) {
-      this.ranges.push(this.value);
+      ranges = ranges.concat(this.value.ranges);
     }
 
     return ranges;

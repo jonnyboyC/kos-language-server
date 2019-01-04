@@ -858,27 +858,27 @@
         "expression-operators": {
             "patterns": [{
                     "name": "keyword.operator.expression.or.kos",
-                    "match": "or"
+                    "match": "(or)(?![_[:alnum:]\\:])"
                 },
                 {
                     "name": "keyword.operator.expression.and.kos",
-                    "match": "and"
+                    "match": "(and)(?![_[:alnum:]\\:])"
                 },
                 {
                     "name": "keyword.operator.expression.not.kos",
-                    "match": "not"
+                    "match": "(not)(?![_[:alnum:]\\:])"
                 },
                 {
                     "name": "keyword.operator.expression.defined.kos",
-                    "match": "defined"
+                    "match": "(defined)(?![_[:alnum:]\\:])"
                 },
                 {
                     "name": "keyword.operator.expression.on.kos",
-                    "match": "on"
+                    "match": "(on)(?![_[:alnum:]\\:])"
                 },
                 {
                     "name": "keyword.operator.expression.off.kos",
-                    "match": "off"
+                    "match": "(off)(?![_[:alnum:]\\:])"
                 },
                 {
                     "name": "keyword.operator.power.kos",
