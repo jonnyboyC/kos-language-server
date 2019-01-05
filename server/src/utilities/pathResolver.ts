@@ -14,7 +14,7 @@ export const resolveUri = (
   inst: RunInstType): Maybe<ILoadData> => {
 
   // get realtive an run path from file
-  const relativePath = relative(volumne0Uri, dirname(uri));
+  const relativePath = relative(volumne0Uri, dirname(uri)).replace('%20', ' ');
   const runPath = instPath(inst);
 
   if (empty(runPath)) {
