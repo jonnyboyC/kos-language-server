@@ -1,0 +1,9 @@
+{
+    "iconThemes": [
+        {
+            "id": "kos-file-icon",
+            "label": "KOS File Icon",
+            "path": "./fileicons/kos-file-icon.json"
+        }
+    ]
+}

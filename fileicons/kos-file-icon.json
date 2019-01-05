@@ -1,0 +1,10 @@
+{
+    "iconDefinitions": {
+        "kos_file": {
+            "iconPath": "./images/kos-file-icon.svg"
+        }
+    },
+    "fileExtensions": {
+        "ks": "kos_file"
+    }
+}

@@ -1,0 +1,7 @@
+<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .style { font: bold 23px sans-serif; fill: white; }
+  </style>
+
+  <text x="0" y="21" class="style">KS</text>
+</svg>

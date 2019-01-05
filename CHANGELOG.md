@@ -1,8 +1,9 @@
-## [0.2.0] (2019-1-3)
-- **Goto Definition** Added support for Goto definition or variables, parameters, locks, and functions
-- **Auto Complete** Added initial set of suggestions for auto complete. These included keywords as well as variables, functions etc that are detected in scope
-- **Find Unused Variable** Indicate variables that where declared but may not used
-- **Find Unitialized Variable** Indicate when a variable is used that may not exist
+## [0.2.0] (2019-1-5)
+- **goto definition** Added support for Goto definition or variables, parameters, locks, and functions
+- **auto complete** Added initial set of suggestions for auto complete. These included keywords as well as variables, functions etc that are detected in scope
+- **find unused variable** Indicate variables that where declared but may not used
+- **find unitialized variable** Indicate when a variable is used that may not exist
+- **find file symbols** Using `CTRL + SHIFT + O` 
 
 ### Bug Fixes
 - **number parsing** Fixed an issue when a number followed by a variable e would be interpreted as a number

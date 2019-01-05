@@ -1,17 +1,25 @@
 {
     "name": "kos-vscode",
-    "description": "Language support for KOS in vscode",
+    "displayName": "KOS",
+    "description": "Syntax highlighting, auto-complete, and language diagnostics for KerboScript in Kerbal Operating System.",
     "author": "John Chabot",
     "license": "MIT",
     "version": "0.2.0",
+    "galleryBanner": {
+        "color": "#a3a3a3",
+        "theme": "dark"
+    },
+    "icon": "images/kos_extension_logo.png",
     "repository": {
         "type": "git",
         "url": "https://github.com/jonnyboyC/kos-language-server"
     },
     "publisher": "JohnChabot",
-    "categories": [],
+    "categories": ["Programming Languages"],
     "keywords": [
+        "Kerbal Operating System",
         "kos",
+        "Kerbal Space Program",
         "ksp",
         "language-server"
     ],
