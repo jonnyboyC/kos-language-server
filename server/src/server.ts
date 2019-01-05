@@ -20,6 +20,9 @@ import {
   DidOpenTextDocumentParams,
   DidChangeTextDocumentParams,
   DidCloseTextDocumentParams,
+  DocumentSymbolParams,
+  SymbolInformation,
+  SymbolKind,
 } from 'vscode-languageserver';
 import { empty } from './utilities/typeGuards';
 import { Analyzer } from './analyzer';
@@ -67,9 +70,30 @@ connection.onInitialize((params: InitializeParams) => {
         triggerCharacters: ['(', ','],
       },
 
+      documentSymbolProvider: true,
       definitionProvider: true,
     },
   };
+});
+
+// monitor when the editor opens a document
+connection.onDidOpenTextDocument((param: DidOpenTextDocumentParams) => {
+  connection.console.log(`We received ${param.textDocument.uri} was opened`);
+});
+
+// monitor when a text document is changed
+connection.onDidChangeTextDocument((param: DidChangeTextDocumentParams) => {
+  connection.console.log(`We received ${param.contentChanges.length} file changes`);
+});
+
+// monitor file change events
+connection.onDidChangeWatchedFiles((change: DidChangeWatchedFilesParams) => {
+  connection.console.log(`We received ${change.changes.length} file change events`);
+});
+
+// monitor when a text document is closed
+connection.onDidCloseTextDocument((param: DidCloseTextDocumentParams) => {
+  connection.console.log(`We received ${param.textDocument.uri} was closed`);
 });
 
 // The content of a text document has changed. This event is emitted
@@ -103,34 +127,39 @@ documents.onDidChangeContent(async (change) => {
   }
 });
 
-// monitor when the editor opens a document
-connection.onDidOpenTextDocument((param: DidOpenTextDocumentParams) => {
-  connection.console.log(`We received ${param.textDocument.uri} was opened`);
-});
-
-// monitor when a text document is changed
-connection.onDidChangeTextDocument((param: DidChangeTextDocumentParams) => {
-  connection.console.log(`We received ${param.contentChanges.length} file changes`);
-});
-
-// monitor file change events
-connection.onDidChangeWatchedFiles((change: DidChangeWatchedFilesParams) => {
-  connection.console.log(`We received ${change.changes.length} file change events`);
-});
-
-// monitor when a text document is closed
-connection.onDidCloseTextDocument((param: DidCloseTextDocumentParams) => {
-  connection.console.log(`We received ${param.textDocument.uri} was closed`);
-});
-
-// This handler provides definition help
-connection.onDefinition(
-  (documentPosition: TextDocumentPositionParams): Maybe<Location> => {
+// This handler provides the initial list of the completion items.
+connection.onCompletion(
+  (documentPosition: TextDocumentPositionParams): CompletionItem[] => {
     const { position } = documentPosition;
     const { uri } = documentPosition.textDocument;
+    const entities = analyzer.getEntitiesAtPosition(uri, position);
 
-    const name = analyzer.getTokenAtPosition(uri, position);
-    return name && Location.create(name.uri || uri, name);
+    return entities.map((entity) => {
+      let kind: Maybe<CompletionItemKind> = undefined;
+      switch (entity.tag) {
+        case 'function':
+          kind = CompletionItemKind.Function;
+          break;
+        case 'parameter':
+          kind = CompletionItemKind.Variable;
+          break;
+        case 'lock':
+          kind = CompletionItemKind.Variable;
+          break;
+        case 'variable':
+          kind = CompletionItemKind.Variable;
+          break;
+        default:
+          throw new Error('Unknown entity type');
+      }
+
+      return {
+        kind,
+        label: entity.name.lexeme,
+        data: entity,
+      } as CompletionItem;
+    })
+    .concat(keywordCompletions);
   },
 );
 
@@ -159,49 +188,47 @@ connection.onSignatureHelp(
   },
 );
 
-const defaultSigniture = (): SignatureHelp => ({
-  signatures: [],
-  activeParameter: null,
-  activeSignature: null,
-});
+connection.onDocumentSymbol(
+  (documentSymbol: DocumentSymbolParams): Maybe<SymbolInformation[]> => {
+    const { uri } = documentSymbol.textDocument;
 
-// This handler provides the initial list of the completion items.
-connection.onCompletion(
-  (documentPosition: TextDocumentPositionParams): CompletionItem[] => {
-    // The pass parameter contains the position of the text document in
-    // which code complete got requested. For the example we ignore this
-    // info and always provide the same completion items.
-
-    const { position } = documentPosition;
-    const { uri } = documentPosition.textDocument;
-    const entities = analyzer.getEntitiesAtPosition(uri, position);
-
+    const entities = analyzer.getAllFileEntities(uri);
     return entities.map((entity) => {
-      let kind: Maybe<CompletionItemKind> = undefined;
+      let kind: Maybe<SymbolKind> = undefined;
       switch (entity.tag) {
         case 'function':
-          kind = CompletionItemKind.Function;
+          kind = SymbolKind.Function;
           break;
         case 'parameter':
-          kind = CompletionItemKind.Variable;
+          kind = SymbolKind.Variable;
           break;
         case 'lock':
-          kind = CompletionItemKind.Variable;
+          kind = SymbolKind.Variable;
           break;
         case 'variable':
-          kind = CompletionItemKind.Variable;
+          kind = SymbolKind.Variable;
           break;
         default:
-          throw new Error();
+          throw new Error('Unknown entity type');
       }
 
       return {
         kind,
-        label: entity.name.lexeme,
-        data: entity,
-      } as CompletionItem;
-    })
-    .concat(keywordCompletions);
+        name: entity.name.lexeme,
+        location: Location.create(entity.name.uri || uri, entity.name),
+      } as SymbolInformation;
+    });
+  },
+);
+
+// This handler provides definition help
+connection.onDefinition(
+  (documentPosition: TextDocumentPositionParams): Maybe<Location> => {
+    const { position } = documentPosition;
+    const { uri } = documentPosition.textDocument;
+
+    const name = analyzer.getTokenAtPosition(uri, position);
+    return name && Location.create(name.uri || uri, name);
   },
 );
 
@@ -213,6 +240,12 @@ connection.onCompletionResolve(
     return item;
   },
 );
+
+const defaultSigniture = (): SignatureHelp => ({
+  signatures: [],
+  activeParameter: null,
+  activeSignature: null,
+});
 
 // Make the text document manager listen on the connection
 // for open, change and close text document events

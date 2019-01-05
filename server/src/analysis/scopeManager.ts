@@ -147,6 +147,12 @@ export class ScopeManager implements GraphNode<ScopeManager> {
     return errors;
   }
 
+  // get every entity in the file
+  public allFileEntities(): KsEntity[] {
+    return Array.from(this.scopesRoot.scope.values()).concat(
+      this.allFileEntitiesDepth(this.scopesRoot.children));
+  }
+
   // get entity at a position
   public entityAtPosition(pos: Position, name: string): Maybe<KsEntity> {
     const entities = this.entitiesAtPosition(pos);
@@ -155,13 +161,26 @@ export class ScopeManager implements GraphNode<ScopeManager> {
 
   // get all entities in scope at a position
   public entitiesAtPosition(pos: Position): KsEntity[] {
-    const entities = Array.from(this.scopesRoot.scope.values())
-      .concat(...Array.from(this.outScopes.values())
+    const entities = Array.from(this.scopesRoot.scope.values()).concat(
+      ...Array.from(this.outScopes.values())
         .map(scope => Array.from(scope.scopesRoot.scope.values())),
-      );
+    );
 
     return this.entitiesAtPositionDepth(pos, this.scopesRoot.children)
       .concat(entities);
+  }
+
+  // recursively move down scopes for every entity
+  private allFileEntitiesDepth(nodes: IScopeNode[]): KsEntity[] {
+    let entities: KsEntity[] = [];
+
+    for (const node of nodes) {
+      entities = entities.concat(
+        Array.from(node.scope.values()),
+        this.allFileEntitiesDepth(node.children));
+    }
+
+    return entities;
   }
 
   // recursively move down scopes for more relevant entities

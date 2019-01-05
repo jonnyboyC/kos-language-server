@@ -40,7 +40,8 @@ export class Analyzer {
   }
 
   // main validation code
-  public async validateDocument(uri: string, text: string): Promise<IValidateResult> {
+  public async validateDocument(uri: string, text: string, depth: number = 0):
+    Promise<IValidateResult> {
     const { syntaxTree, parseErrors, scanErrors, runInsts } = await this.parseDocument(uri, text);
     let validateResults: IValidateResult[] = [];
 
@@ -49,7 +50,7 @@ export class Analyzer {
       const loadDatas = this.getValidUri(uri, runInsts);
 
       validateResults = await Promise.all(loadDatas
-        .map(loadData => this.loadAndValidateDocument(uri, loadData)));
+        .map(loadData => this.loadAndValidateDocument(uri, loadData, depth)));
     }
 
     // flatten all child diagnostics
@@ -172,6 +173,17 @@ export class Analyzer {
     return [];
   }
 
+  // get all file entities
+  public getAllFileEntities(uri: string): KsEntity[] {
+    const documentInfo = this.documentInfos.get(uri);
+
+    if (!empty(documentInfo) && !empty(documentInfo.scopeManager)) {
+      return documentInfo.scopeManager.allFileEntities();
+    }
+
+    return [];
+  }
+
   // get function at position
   public getFunctionAtPosition(uri: string, pos: Position):
     Maybe<{func: KsFunction, index: number}> {
@@ -287,9 +299,17 @@ export class Analyzer {
   }
 
   // load an validate a file from disk
-  private async loadAndValidateDocument(parentUri: string, { uri, inst, path }: ILoadData):
-    Promise<IValidateResult> {
+  private async loadAndValidateDocument(
+    parentUri: string,
+    { uri, inst, path }: ILoadData,
+    depth: number): Promise<IValidateResult> {
     try {
+      // non ideal fix for depedency cycle
+      // TODO we need to actually check for cycles and do something else
+      if (depth > 10) {
+        return { diagnostics: [] };
+      }
+
       // if cache not found attempt to find file from disk
       const validated = this.tryFindDocument(path, uri);
       if (empty(validated)) {
@@ -305,7 +325,7 @@ export class Analyzer {
 
       // attempt to read file from disk
       const fileResult = await readFileAsync(validated.path, 'utf-8');
-      return await this.validateDocument(validated.uri, fileResult);
+      return await this.validateDocument(validated.uri, fileResult, depth + 1);
     } catch (err) {
       // if we already checked for the file exists but failed anyways??
       return {
