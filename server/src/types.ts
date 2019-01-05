@@ -6,6 +6,7 @@ import { Diagnostic } from 'vscode-languageserver';
 export interface IDocumentInfo {
   syntaxTree: SyntaxTree;
   scopeManager: ScopeManager;
+  diagnostics: IDiagnosticUri[];
 }
 
 export interface ILoadData {

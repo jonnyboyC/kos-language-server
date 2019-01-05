@@ -4,13 +4,14 @@ import { RunInstType } from '../parser/types';
 import { LiteralExpr } from '../parser/expr';
 import { empty } from './typeGuards';
 import { TokenType } from '../entities/tokentypes';
+import { ILoadData } from '../types';
 
 // resolve uri from run statments
 export const resolveUri = (
   volume0Path: string,
   volumne0Uri: string,
   uri: string,
-  inst: RunInstType): Maybe<{uri: string, path: string}> => {
+  inst: RunInstType): Maybe<ILoadData> => {
 
   // get realtive an run path from file
   const relativePath = relative(volumne0Uri, dirname(uri));
@@ -25,6 +26,7 @@ export const resolveUri = (
   const [possibleVolumne, ...remaining] = runPath.split(sep);
   if (possibleVolumne === '0:') {
     return {
+      inst,
       path: join(volume0Path, ...remaining),
       uri: join(volumne0Uri, ...remaining),
     };
@@ -32,6 +34,7 @@ export const resolveUri = (
 
   // if no volumne do a relative lookup
   return {
+    inst,
     path: join(volume0Path, relativePath, possibleVolumne, ...remaining),
     uri: join(volumne0Uri, relativePath, possibleVolumne, ...remaining),
   };

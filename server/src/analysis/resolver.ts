@@ -306,11 +306,17 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   }
 
   public visitFrom(inst: FromInst): Errors {
-    return this.resolveInsts(inst.initializer.instructions).concat(
-      this.useExprLocals(inst.condition),
+    this.scopeMan.beginScope(inst);
+
+    const resolverErrors = this.resolveInsts(inst.initializer.instructions).concat(
       this.resolveExpr(inst.condition),
       this.resolveInsts(inst.increment.instructions),
       this.resolveInst(inst.instruction));
+
+    const useErrors = this.useExprLocals(inst.condition);
+    const scopeErrors = this.scopeMan.endScope();
+
+    return resolverErrors.concat(useErrors, scopeErrors);
   }
 
   public visitWhen(inst: WhenInst): Errors {

@@ -29,6 +29,11 @@ export interface IGlobalScopePosition {
 
 type IScopePosition = IRealScopePosition | IGlobalScopePosition;
 
+export interface GraphNode<T> {
+  value: T;
+  adjacentNodes: GraphNode<T>[];
+}
+
 export interface IScopeNode {
   readonly position: IScopePosition;
   readonly scope: IScope;

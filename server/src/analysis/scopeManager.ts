@@ -3,7 +3,7 @@ import { empty } from '../utilities/typeGuards';
 import { ScopeType } from '../parser/types';
 import { KsVariable } from '../entities/variable';
 import { EntityState, IScope, IScopeNode,
-  KsEntity, IStack, LockState,
+  KsEntity, IStack, LockState, GraphNode,
 } from './types';
 import { KsFunction } from '../entities/function';
 import { KsLock } from '../entities/lock';
@@ -14,14 +14,14 @@ import { positionAfterEqual, positionBeforeEqual } from '../utilities/positionHe
 import { ScopePosition } from './scopePosition';
 import { mockLogger } from '../utilities/logger';
 
-export class ScopeManager {
+export class ScopeManager implements GraphNode<ScopeManager> {
   private readonly global: IScope;
   private readonly scopesRoot: IScopeNode;
   private activeScopePath: IStack<number>;
   private backTrackPath: IStack<number>;
 
-  public childScopes: Set<ScopeManager>;
-  public parentScopes: Set<ScopeManager>;
+  public outScopes: Set<ScopeManager>;
+  public inScopes: Set<ScopeManager>;
   public logger: ILogger;
 
   constructor(logger: ILogger = mockLogger) {
@@ -34,8 +34,8 @@ export class ScopeManager {
     };
     this.activeScopePath = [];
     this.backTrackPath = [];
-    this.childScopes = new Set();
-    this.parentScopes = new Set();
+    this.outScopes = new Set();
+    this.inScopes = new Set();
   }
 
   // rewind scope to entry point for multiple passes
@@ -44,41 +44,50 @@ export class ScopeManager {
     this.backTrackPath = [];
   }
 
+  // used for graph interface
+  public get value(): ScopeManager {
+    return this;
+  }
+
+  public get adjacentNodes(): GraphNode<ScopeManager>[] {
+    return Array.from(this.outScopes);
+  }
+
   // add a child scope manager from a file run in this file
-  public addChild(childMan: ScopeManager): void {
-    this.childScopes.add(childMan);
-    childMan.parentScopes.add(this);
+  public addScope(scopeMan: ScopeManager): void {
+    this.outScopes.add(scopeMan);
+    scopeMan.inScopes.add(this);
   }
 
   // should be called when the associated file is closed
   public closeSelf(): void {
     // remove childern if no parents
-    if (this.parentScopes.size === 0) {
+    if (this.inScopes.size === 0) {
       // remove references from child scopes
-      for (const child of this.childScopes) {
-        child.parentScopes.delete(this);
+      for (const child of this.outScopes) {
+        child.inScopes.delete(this);
       }
 
       // clear own references
-      this.childScopes.clear();
+      this.outScopes.clear();
     }
   }
 
   // should be called when the associated file is deleted
-  public deleteSelf(): void {
+  public removeSelf(): void {
     // remove refernces from parent scopes
-    for (const parent of this.parentScopes) {
-      parent.childScopes.delete(this);
+    for (const parent of this.inScopes) {
+      parent.outScopes.delete(this);
     }
 
     // remove references from child scopes
-    for (const child of this.childScopes) {
-      child.parentScopes.delete(this);
+    for (const child of this.outScopes) {
+      child.inScopes.delete(this);
     }
 
     // clear own references
-    this.childScopes.clear();
-    this.parentScopes.clear();
+    this.outScopes.clear();
+    this.inScopes.clear();
   }
 
   // push new scope onto scope stack
@@ -147,7 +156,7 @@ export class ScopeManager {
   // get all entities in scope at a position
   public entitiesAtPosition(pos: Position): KsEntity[] {
     const entities = Array.from(this.scopesRoot.scope.values())
-      .concat(...Array.from(this.childScopes.values())
+      .concat(...Array.from(this.outScopes.values())
         .map(scope => Array.from(scope.scopesRoot.scope.values())),
       );
 
@@ -437,7 +446,7 @@ export class ScopeManager {
     }
 
     // check child scopes entity is in another file
-    for (const child of this.childScopes) {
+    for (const child of this.outScopes) {
       const entity = child.scopesRoot.scope.get(token.lexeme);
       if (!empty(entity)) {
         return entity;

@@ -11,7 +11,7 @@ import { IParseError, SyntaxTreeResult, RunInstType } from './parser/types';
 import { IResolverError, KsEntity } from './analysis/types';
 import { mockLogger, mockTracer } from './utilities/logger';
 import { IToken } from './entities/types';
-import { empty } from './utilities/typeGuards';
+import { empty, notEmpty } from './utilities/typeGuards';
 import { SyntaxTreeFind } from './parser/syntaxTreeFind';
 import { KsFunction } from './entities/function';
 import { InvalidInst } from './parser/inst';
@@ -61,12 +61,12 @@ export class Analyzer {
     // add child scopes
     for (const validateResult of validateResults) {
       if (!empty(validateResult.scopeManager)) {
-        scopeMan.addChild(validateResult.scopeManager);
+        scopeMan.addScope(validateResult.scopeManager);
       }
     }
 
     // add standard library
-    scopeMan.addChild(standardLibrary);
+    scopeMan.addScope(standardLibrary);
 
     // generate resolvers
     const funcResolver = new FuncResolver();
@@ -112,15 +112,17 @@ export class Analyzer {
     this.logger.log('-------- performance ---------');
     this.logger.log(`Function Resolver took ${funcResolverMeasure.duration} ms`);
     this.logger.log(`Resolver took ${resolverMeasure.duration} ms`);
+    this.logger.log('------------------------------');
 
     // make sure to delete references so scope manager can be gc'ed
     const documentInfo = this.documentInfos.get(uri);
     if (!empty(documentInfo)) {
-      documentInfo.scopeManager.deleteSelf();
+      documentInfo.scopeManager.removeSelf();
     }
 
     this.documentInfos.set(uri, {
       syntaxTree,
+      diagnostics,
       scopeManager: scopeMan,
     });
 
@@ -261,6 +263,7 @@ export class Analyzer {
     this.logger.log('-------- performance ---------');
     this.logger.log(`Scanner took ${scannerMeasure.duration} ms`);
     this.logger.log(`Parser took ${parserMeasure.duration} ms`);
+    this.logger.log('------------------------------');
 
     return {
       scanErrors,
@@ -276,46 +279,26 @@ export class Analyzer {
       return [];
     }
 
-    // get uri data
-    const uriInsts = runInsts
-      .map((inst) => {
-
-        // resolve uri from instruction and root info
-        const result = resolveUri(this.volumne0Path, volumne0Uri, uri, inst);
-        if (empty(result)) {
-          return { inst, uri: undefined, path: undefined };
-        }
-
-        return { inst, ...result };
-      });
-
-    // filter out data that does not have a path and uri
-    const filteredUri: ILoadData[] = [];
-    for (const uriInst of uriInsts) {
-      const { uri, inst, path } = uriInst;
-
-      if (!empty(uri) && !empty(path)) {
-        filteredUri.push({ uri, inst, path });
-      }
-    }
-
-    // filter out documents that have already been loaded
-    return filteredUri.filter(uriInsts => !this.documentInfos.has(uriInsts.uri));
+    // generate uris then remove empty or preloaded documents
+    return runInsts
+      .map(inst => resolveUri(this.volumne0Path, volumne0Uri, uri, inst))
+      .filter(notEmpty)
+      .filter(uriInsts => !this.documentInfos.has(uriInsts.uri));
   }
 
   // load an validate a file from disk
   private async loadAndValidateDocument(parentUri: string, { uri, inst, path }: ILoadData):
     Promise<IValidateResult> {
     try {
+      // if cache not found attempt to find file from disk
       const validated = this.tryFindDocument(path, uri);
-
       if (empty(validated)) {
         return {
           diagnostics: [{
             uri: parentUri,
             range: { start: inst.start, end: inst.end },
             severity: DiagnosticSeverity.Error,
-            message: `Unable to find ${uri}`,
+            message: `Unable to find ${path}`,
           }],
         };
       }
@@ -324,14 +307,13 @@ export class Analyzer {
       const fileResult = await readFileAsync(validated.path, 'utf-8');
       return await this.validateDocument(validated.uri, fileResult);
     } catch (err) {
-
-      // if we already checked for the file and failed ??
+      // if we already checked for the file exists but failed anyways??
       return {
         diagnostics: [{
           uri: parentUri,
           range: { start: inst.start, end: inst.end },
           severity: DiagnosticSeverity.Error,
-          message: `Unable to read ${uri}`,
+          message: `Unable to read ${path}`,
         }],
       };
     }
