@@ -17,3 +17,5 @@ interface ILogger {
 interface ITracer {
   log(message: string, verbose?: string): void;
 }
+
+type Constructor<T = {}> = new (...args: any[]) => T;

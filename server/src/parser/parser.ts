@@ -4,7 +4,11 @@ import {
   IParseError, TokenResult,
   IExpr, IDeclScope, IInst, INodeResult, RunInstType, ParseResult,
 } from './types';
-import { ParseError } from './parserError';
+import {
+  ParseError, FailedConstructor,
+  failedUnknown, failedExpr,
+  failedInst,
+} from './parserError';
 import { Expr, LiteralExpr, GroupingExpr,
   VariableExpr, CallExpr, DelegateExpr,
   ArrayBracketExpr, ArrayIndexExpr,
@@ -34,6 +38,8 @@ import { SyntaxTree } from '../entities/syntaxTree';
 import { nodeResult } from './parseResult';
 import { Token, Marker } from '../entities/token';
 import { mockLogger, mockTracer } from '../utilities/logger';
+
+type NodeConstructor = Constructor<Expr> | Constructor<Inst> | Constructor;
 
 export class Parser {
   private tokens: IToken[];
@@ -94,7 +100,7 @@ export class Parser {
       return this.expression();
     } catch (error) {
       if (error instanceof ParseError) {
-        this.synchronize();
+        this.synchronize(error.failed);
 
         return {
           errors: [error],
@@ -147,7 +153,7 @@ export class Parser {
       return this.instruction();
     } catch (error) {
       if (error instanceof ParseError) {
-        this.synchronize();
+        this.synchronize(error.failed);
 
         return {
           errors: [error],
@@ -188,15 +194,15 @@ export class Parser {
     }
 
     throw this.error(
-      this.peek(),
+      this.peek(), DeclScope,
       'Expected function parameter or variable declaration.',
-      'Example: "local function exampleFunc { ...", "global x is 0"');
+      'Example: "local function exampleFunc { ... }", "global x is 0"');
   }
 
   // parse function declaration
   private declareFunction = (scope?: IDeclScope): INodeResult<DeclFunction> => {
     const functionToken = this.previous();
-    const functionIdentiifer = this.consumeIdentifierThrow('Expected identifier');
+    const functionIdentiifer = this.consumeIdentifierThrow('Expected identifier', DeclFunction);
 
     // match function body
     if (this.matchToken(TokenType.curlyOpen)) {
@@ -211,6 +217,7 @@ export class Parser {
 
     throw this.error(
       this.peek(),
+      DeclFunction,
       'Expected function instruction block starting with "{"',
       'Example: local function { print "hi". }');
   }
@@ -221,7 +228,7 @@ export class Parser {
 
     const parameters = this.declareNormalParameters();
     const defaultParameters = this.declaredDefaultedParameters();
-    this.terminal();
+    this.terminal(DeclParameter);
 
     return nodeResult(
       new DeclParameter(parameterToken, parameters, defaultParameters.value, scope),
@@ -239,7 +246,7 @@ export class Parser {
       if (this.checkNext(TokenType.is) || this.checkNext(TokenType.to)) break;
 
       const identifer = this.consumeIdentifierThrow(
-        'Expected additional identiifer following comma.');
+        'Expected additional identiifer following comma.', Parameter);
 
       parameters.push(new Parameter(identifer));
     } while (this.matchToken(TokenType.comma));
@@ -257,10 +264,10 @@ export class Parser {
       if (!this.checkNext(TokenType.is) && !this.checkNext(TokenType.to)) break;
 
       const identifer = this.consumeIdentifierThrow(
-        'Expected identifier following comma.');
+        'Expected identifier following comma.', DefaultParameter);
       const toIs = this.consumeTokenThrow(
         'Expected default parameter using keyword "to" or "is".',
-        TokenType.to, TokenType.is);
+        DefaultParameter, TokenType.to, TokenType.is);
       const valueResult = this.expression();
       defaultParameters.push(new DefaultParameter(identifer, toIs, valueResult.value));
       errors.push(valueResult.errors);
@@ -273,12 +280,12 @@ export class Parser {
   private declareLock = (scope?: IDeclScope): INodeResult<DeclLock> => {
     const lock = this.previous();
     const identifer = this.consumeIdentifierThrow(
-      'Expected identifier following lock keyword.');
+      'Expected identifier following lock keyword.', DeclLock);
     const to = this.consumeTokenThrow(
       'Expected keyword "to" following lock.',
-      TokenType.to);
-    const valueResult = this.expression();
-    this.terminal();
+      DeclLock, TokenType.to);
+    const valueResult = this.expression(DeclLock);
+    this.terminal(DeclLock);
 
     return nodeResult(
       new DeclLock(lock, identifer, to, valueResult.value, scope),
@@ -288,13 +295,13 @@ export class Parser {
 
   // parse a variable declaration, scoping occurs elseware
   private declareVariable = (scope: IDeclScope): INodeResult<DeclVariable> => {
-    const suffix = this.suffix();
+    const suffix = this.suffixCatch(DeclVariable);
 
     const toIs = this.consumeTokenThrow(
       'Expected keyword "to" or "is" following declare.',
-      TokenType.to, TokenType.is);
-    const valueResult = this.expression();
-    this.terminal();
+      DeclVariable, TokenType.to, TokenType.is);
+    const valueResult = this.expression(DeclVariable);
+    this.terminal(DeclVariable);
 
     return nodeResult(
       new DeclVariable(suffix.value, toIs, valueResult.value, scope),
@@ -411,7 +418,7 @@ export class Parser {
         return nodeResult(new EmptyInst(this.advance()));
       default:
         throw this.error(
-          this.peek(),
+          this.peek(), undefined,
           'Unknown instruction found',
           'Examples: "print "hi"", "LIST.", "RUN "example.ks""');
     }
@@ -434,7 +441,7 @@ export class Parser {
     // check closing curly is found
     const close = this.consumeTokenReturn(
       'Expected "}" to finish instruction block',
-      TokenType.curlyClose);
+      BlockInst, TokenType.curlyClose);
 
     // throw and bundle inner error if close not found
     if (close.tag === 'parseError') {
@@ -447,13 +454,13 @@ export class Parser {
 
   // parse an instruction lead with a identifier
   private identifierLedInstruction = (): INodeResult<IInst> => {
-    const suffix = this.suffix();
+    const suffix = this.suffixCatch(ExprInst);
 
     if (this.matchToken(TokenType.on, TokenType.off)) {
       const onOff = this.onOff(suffix.value);
       return nodeResult(onOff.value, suffix.errors, onOff.errors);
     }
-    this.terminal();
+    this.terminal(ExprInst);
 
     return nodeResult(
       new ExprInst(suffix.value),
@@ -464,7 +471,7 @@ export class Parser {
   // parse on off statement
   private onOff = (suffix: IExpr): INodeResult<OnOffInst> => {
     const onOff = this.previous();
-    this.terminal();
+    this.terminal(OnOffInst);
 
     return nodeResult(new OnOffInst(suffix, onOff));
   }
@@ -472,7 +479,7 @@ export class Parser {
   // parse command instruction
   private command = (): INodeResult<CommandInst> => {
     const command = this.previous();
-    this.terminal();
+    this.terminal(CommandInst);
 
     return nodeResult(new CommandInst(command));
   }
@@ -480,8 +487,8 @@ export class Parser {
   // parse command instruction
   private commandExpression = (): INodeResult<CommandExpressionInst> => {
     const command = this.previous();
-    const expr = this.expression();
-    this.terminal();
+    const expr = this.expression(CommandExpressionInst);
+    this.terminal(CommandExpressionInst);
 
     return nodeResult(
       new CommandExpressionInst(command, expr.value),
@@ -494,8 +501,8 @@ export class Parser {
     const unset = this.previous();
     const identifer = this.consumeTokenThrow(
       'Excpeted identifier or "all" following keyword "unset".',
-      TokenType.identifier, TokenType.all);
-    this.terminal();
+      UnsetInst, TokenType.identifier, TokenType.all);
+    this.terminal(UnsetInst);
 
     return nodeResult(new UnsetInst(unset, identifer));
   }
@@ -505,8 +512,8 @@ export class Parser {
     const unlock = this.previous();
     const identifer = this.consumeTokenThrow(
       'Excpeted identifier or "all" following keyword "unlock".',
-      TokenType.identifier, TokenType.all);
-    this.terminal();
+      UnlockInst, TokenType.identifier, TokenType.all);
+    this.terminal(UnlockInst);
 
     return nodeResult(new UnlockInst(unlock, identifer));
   }
@@ -514,12 +521,12 @@ export class Parser {
   // parse set instruction
   private set = (): INodeResult<SetInst> => {
     const set = this.previous();
-    const suffix = this.suffix();
+    const suffix = this.suffixCatch(SetInst);
     const to = this.consumeTokenThrow(
       'Expected "to" following keyword "set".',
-      TokenType.to);
-    const valueResult = this.expression();
-    this.terminal();
+      SetInst, TokenType.to);
+    const valueResult = this.expression(SetInst);
+    this.terminal(SetInst);
 
     return nodeResult(
       new SetInst(set, suffix.value, to, valueResult.value),
@@ -533,12 +540,12 @@ export class Parser {
     const atSign = this.previous();
     const lazyGlobal = this.consumeTokenThrow(
       'Expected keyword "lazyGlobal" following @.',
-      TokenType.lazyGlobal);
+      LazyGlobalInst, TokenType.lazyGlobal);
 
     const onOff = this.consumeTokenThrow(
       'Expected "on" or "off" following lazy global directive.',
-      TokenType.on, TokenType.off);
-    this.terminal();
+      LazyGlobalInst, TokenType.on, TokenType.off);
+    this.terminal(LazyGlobalInst);
 
     return nodeResult(new LazyGlobalInst(atSign, lazyGlobal, onOff));
   }
@@ -546,7 +553,7 @@ export class Parser {
   // parse if instruction
   private ifInst = (): INodeResult<IfInst> => {
     const ifToken = this.previous();
-    const conditionResult = this.expression();
+    const conditionResult = this.expression(IfInst);
 
     const inst = this.declaration();
     this.matchToken(TokenType.period);
@@ -575,7 +582,7 @@ export class Parser {
   // parse until instruction
   private until = (): INodeResult<UntilInst> => {
     const until = this.previous();
-    const conditionResult = this.expression();
+    const conditionResult = this.expression(UntilInst);
     const inst = this.declaration();
     this.matchToken(TokenType.period);
 
@@ -593,16 +600,16 @@ export class Parser {
       const initResult = this.instructionBlock();
       const until = this.consumeTokenThrow(
         'Expected "until" expression following from.',
-        TokenType.until);
-      const conditionResult = this.expression();
+        FromInst, TokenType.until);
+      const conditionResult = this.expression(FromInst);
       const step = this.consumeTokenThrow(
         'Expected "step" statment following until.',
-        TokenType.step);
+        FromInst, TokenType.step);
       if (this.matchToken(TokenType.curlyOpen)) {
         const incrementResult = this.instructionBlock();
         const doToken = this.consumeTokenThrow(
           'Expected "do" block following step.',
-          TokenType.Do);
+          FromInst, TokenType.Do);
         const inst = this.declaration();
         return nodeResult(
           new FromInst(
@@ -616,12 +623,12 @@ export class Parser {
         );
       }
       throw this.error(
-        this.peek(),
+        this.peek(), FromInst,
         'Expected "{" followed by step block logic.',
         'Example: FROM {LOCAL x is 0.} UNTIL x >= 10 STEP { set x to x + 1. } { print x. }');
     }
     throw this.error(
-      this.peek(),
+      this.peek(), FromInst,
       'Expected "{" followed by initializer logic',
       'Example: FROM {LOCAL x is 0.} UNTIL x >= 10 STEP { set x to x + 1. } { print x. }');
   }
@@ -629,11 +636,11 @@ export class Parser {
   // parse when instruction
   private when = (): INodeResult<WhenInst> => {
     const when = this.previous();
-    const conditionResult = this.expression();
+    const conditionResult = this.expression(WhenInst);
 
     const then = this.consumeTokenThrow(
       'Expected "then" following "when" condition.',
-      TokenType.then);
+      WhenInst, TokenType.then);
     const inst = this.declaration();
     this.matchToken(TokenType.period);
 
@@ -648,9 +655,9 @@ export class Parser {
   private returnInst = (): INodeResult<ReturnInst> => {
     const returnToken = this.previous();
     const valueResult = !this.check(TokenType.period)
-      ? this.expression()
+      ? this.expression(ReturnInst)
       : undefined;
-    this.terminal();
+    this.terminal(ReturnInst);
 
     if (empty(valueResult)) {
       return nodeResult(new ReturnInst(returnToken, valueResult));
@@ -665,7 +672,7 @@ export class Parser {
   // parse return instruction
   private breakInst = (): INodeResult<BreakInst> => {
     const breakToken = this.previous();
-    this.terminal();
+    this.terminal(BreakInst);
 
     return nodeResult(new BreakInst(breakToken));
   }
@@ -674,9 +681,10 @@ export class Parser {
   private switchInst = (): INodeResult<SwitchInst> => {
     const switchToken = this.previous();
     const to = this.consumeTokenThrow(
-      'Expected "to" following keyword "switch".', TokenType.to);
-    const targetResult = this.expression();
-    this.terminal();
+      'Expected "to" following keyword "switch".',
+      SwitchInst, TokenType.to);
+    const targetResult = this.expression(SwitchInst);
+    this.terminal(SwitchInst);
 
     return nodeResult(
       new SwitchInst(switchToken, to, targetResult.value),
@@ -688,11 +696,11 @@ export class Parser {
   private forInst = (): INodeResult<ForInst> => {
     const forToken = this.previous();
     const identifer = this.consumeIdentifierThrow(
-      'Expected identifier. following keyword "for"');
+      'Expected identifier. following keyword "for"', ForInst);
     const inToken = this.consumeTokenThrow(
       'Expected "in" after "for" loop variable.',
-      TokenType.in);
-    const suffix = this.suffix();
+      ForInst, TokenType.in);
+    const suffix = this.suffixCatch(ForInst);
     const inst = this.declaration();
     this.matchToken(TokenType.period);
 
@@ -706,7 +714,7 @@ export class Parser {
   // parse on instruction
   private on = (): INodeResult<OnInst> => {
     const on = this.previous();
-    const suffix = this.suffix();
+    const suffix = this.suffixCatch(OnInst);
     const inst = this.declaration();
 
     return nodeResult(
@@ -719,8 +727,8 @@ export class Parser {
   // parse toggle instruction
   private toggle = (): INodeResult<ToggleInst> => {
     const toggle = this.previous();
-    const suffix = this.suffix();
-    this.terminal();
+    const suffix = this.suffixCatch(ToggleInst);
+    this.terminal(ToggleInst);
 
     return nodeResult(
       new ToggleInst(toggle, suffix.value),
@@ -735,8 +743,8 @@ export class Parser {
       ? this.previous()
       : undefined;
 
-    const expr = this.expression();
-    this.terminal();
+    const expr = this.expression(WaitInst);
+    this.terminal(WaitInst);
 
     return nodeResult(
       new WaitInst(wait, expr.value, until),
@@ -747,12 +755,12 @@ export class Parser {
   // parse log instruction
   private log = (): INodeResult<LogInst> => {
     const log = this.previous();
-    const expr = this.expression();
+    const expr = this.expression(LogInst);
     const to = this.consumeTokenThrow(
       'Expected "to" following "log" expression.',
-      TokenType.to);
-    const targetResult = this.expression();
-    this.terminal();
+      LogInst, TokenType.to);
+    const targetResult = this.expression(LogInst);
+    this.terminal(LogInst);
 
     return nodeResult(
       new LogInst(log, expr.value, to, targetResult.value),
@@ -764,12 +772,12 @@ export class Parser {
   // parse copy instruction
   private copy = (): INodeResult<CopyInst> => {
     const copy = this.previous();
-    const expr = this.expression();
+    const expr = this.expression(CopyInst);
     const toFrom = this.consumeTokenThrow(
       'Expected "to" or "from" following "copy" expression.',
-      TokenType.from, TokenType.to);
-    const targetResult = this.expression();
-    this.terminal();
+      CopyInst, TokenType.from, TokenType.to);
+    const targetResult = this.expression(CopyInst);
+    this.terminal(CopyInst);
 
     return nodeResult(
       new CopyInst(copy, expr.value, toFrom, targetResult.value),
@@ -783,14 +791,14 @@ export class Parser {
     const rename = this.previous();
     const ioIdentifier = this.consumeTokenThrow(
       'Expected identifier or file identifier following keyword "rename"',
-      TokenType.identifier, TokenType.fileIdentifier);
+      RenameInst, TokenType.identifier, TokenType.fileIdentifier);
 
-    const expr = this.expression();
+    const expr = this.expression(RenameInst);
     const to = this.consumeTokenThrow(
       'Expected "to" following keyword "rename".',
-      TokenType.to);
-    const targetResult = this.expression();
-    this.terminal();
+      RenameInst, TokenType.to);
+    const targetResult = this.expression(RenameInst);
+    this.terminal(RenameInst);
 
     return nodeResult(
       new RenameInst(rename, ioIdentifier, expr.value, to, targetResult.value),
@@ -802,12 +810,12 @@ export class Parser {
   // parse delete instruction
   private delete = (): INodeResult<DeleteInst> => {
     const deleteToken = this.previous();
-    const expr = this.expression();
+    const expr = this.expression(DeleteInst);
 
     if (this.matchToken(TokenType.from)) {
       const from = this.previous();
-      const targetResult = this.expression();
-      this.terminal();
+      const targetResult = this.expression(DeleteInst);
+      this.terminal(DeleteInst);
 
       return nodeResult(
         new DeleteInst(deleteToken, expr.value, from, targetResult.value),
@@ -816,7 +824,7 @@ export class Parser {
       );
     }
 
-    this.terminal();
+    this.terminal(DeleteInst);
     return nodeResult(
       new DeleteInst(deleteToken, expr.value),
       expr.errors,
@@ -831,7 +839,7 @@ export class Parser {
       : undefined;
 
     const identifier = this.consumeTokenThrow(
-      'Expected string or fileidentifier following keyword "run".',
+      'Expected string or fileidentifier following keyword "run".', RunInst,
       TokenType.string, TokenType.identifier, TokenType.fileIdentifier);
 
     let open = undefined;
@@ -844,6 +852,7 @@ export class Parser {
       args = this.arguments();
       close = this.consumeTokenThrow(
         'Expected ")" after "run" arguments.',
+        RunInst,
         TokenType.bracketClose);
     }
 
@@ -854,10 +863,10 @@ export class Parser {
     if (this.matchToken(TokenType.on)) {
       on = this.previous();
       args = this.arguments();
-      expr = this.expression();
+      expr = this.expression(RunInst);
     }
 
-    this.terminal();
+    this.terminal(RunInst);
     // handle all the cases
     if (empty(expr)) {
       if (empty(args)) {
@@ -891,16 +900,17 @@ export class Parser {
     const runPath = this.previous();
     const open = this.consumeTokenThrow(
       'Expected "(" after keyword "runPath".',
+      RunPathInst,
       TokenType.bracketOpen);
-    const expr = this.expression();
+    const expr = this.expression(RunPathInst);
     const args = this.matchToken(TokenType.comma)
       ? this.arguments()
       : undefined;
 
     const close = this.consumeTokenThrow(
       'Expected ")" after runPath arguments.',
-      TokenType.bracketClose);
-    this.terminal();
+      RunPathInst, TokenType.bracketClose);
+    this.terminal(RunPathInst);
 
     if (empty(args)) {
       return this.addRunInst(
@@ -921,16 +931,16 @@ export class Parser {
     const runPath = this.previous();
     const open = this.consumeTokenThrow(
       'Expected "(" after keyword "runPathOnce".',
-      TokenType.bracketOpen);
-    const expr = this.expression();
+      RunPathOnceInst, TokenType.bracketOpen);
+    const expr = this.expression(RunPathOnceInst);
     const args = this.matchToken(TokenType.comma)
       ? this.arguments()
       : undefined;
 
     const close = this.consumeTokenThrow(
       'Expected ")" after runPathOnce arugments.',
-      TokenType.bracketClose);
-    this.terminal();
+      RunPathOnceInst, TokenType.bracketClose);
+    this.terminal(RunPathOnceInst);
 
     if (empty(args)) {
       return this.addRunInst(
@@ -949,11 +959,11 @@ export class Parser {
   // parse compile instruction
   private compile = (): INodeResult<CompileInst> => {
     const compile = this.previous();
-    const expr = this.expression();
+    const expr = this.expression(CompileInst);
     if (this.matchToken(TokenType.to)) {
       const to = this.previous();
-      const targetResult = this.expression();
-      this.terminal();
+      const targetResult = this.expression(CompileInst);
+      this.terminal(CompileInst);
 
       return nodeResult(
         new CompileInst(compile, expr.value, to, targetResult.value),
@@ -962,7 +972,7 @@ export class Parser {
       );
     }
 
-    this.terminal();
+    this.terminal(CompileInst);
     return nodeResult(
       new CompileInst(compile, expr.value),
       expr.errors,
@@ -981,10 +991,10 @@ export class Parser {
       if (this.matchToken(TokenType.in)) {
         inToken = this.previous();
         target = this.consumeIdentifierThrow(
-          'Expected identifier after "in" keyword in "list" command');
+          'Expected identifier after "in" keyword in "list" command', ListInst);
       }
     }
-    this.terminal();
+    this.terminal(ListInst);
 
     return nodeResult(new ListInst(list, identifier, inToken, target));
   }
@@ -992,17 +1002,19 @@ export class Parser {
   // parse print instruction
   private print = (): INodeResult<PrintInst> => {
     const print = this.previous();
-    const expr = this.expression();
+    const expr = this.expression(PrintInst);
 
     if (this.matchToken(TokenType.at)) {
       const at = this.previous();
-      const open = this.consumeTokenThrow('Expected "(".', TokenType.bracketOpen);
-      const xResult = this.expression();
-      this.consumeTokenThrow('Expected ",".', TokenType.comma);
-      const yResult = this.expression();
-      const close = this.consumeTokenThrow('Expected ")".', TokenType.bracketClose);
+      const open = this.consumeTokenThrow(
+        'Expected "(".', PrintInst, TokenType.bracketOpen);
+      const xResult = this.expression(PrintInst);
+      this.consumeTokenThrow('Expected ",".', PrintInst, TokenType.comma);
+      const yResult = this.expression(PrintInst);
+      const close = this.consumeTokenThrow(
+        'Expected ")".', PrintInst, TokenType.bracketClose);
 
-      this.terminal();
+      this.terminal(PrintInst);
       return nodeResult(
         new PrintInst(print, expr.value, at, open, xResult.value, yResult.value, close),
         expr.errors,
@@ -1011,7 +1023,7 @@ export class Parser {
       );
     }
 
-    this.terminal();
+    this.terminal(PrintInst);
     return nodeResult(
       new PrintInst(print, expr.value),
       expr.errors,
@@ -1019,8 +1031,17 @@ export class Parser {
   }
 
   // parse any expression
-  private expression = (): INodeResult<IExpr> => {
-    return this.or();
+  private expression = (inst?: Constructor<Inst>): INodeResult<IExpr> => {
+    try {
+      return this.or();
+    } catch (error) {
+      if (error instanceof ParseError) {
+        error.failed.inst = inst;
+        throw error;
+      }
+
+      throw error;
+    }
   }
 
   // parse or expression
@@ -1113,6 +1134,20 @@ export class Parser {
     return expr;
   }
 
+  // parse suffix for use in inst directly, will catch
+  private suffixCatch = (inst: Constructor<Inst>): INodeResult<IExpr> => {
+    try {
+      return this.suffix();
+    } catch (error) {
+      if (error instanceof ParseError) {
+        error.failed.inst = inst;
+        throw error;
+      }
+
+      throw error;
+    }
+  }
+
   // parse suffix
   private suffix = (): INodeResult<IExpr> => {
     let expr = this.suffixTerm(false);
@@ -1169,7 +1204,9 @@ export class Parser {
   private functionTrailer = (callee: Expr, isTrailer: boolean): INodeResult<CallExpr> => {
     const open = this.previous();
     const args = this.arguments();
-    const close = this.consumeTokenThrow('Expect ")" after arguments.', TokenType.bracketClose);
+    const close = this.consumeTokenThrow(
+      'Expect ")" after arguments.',
+      CallExpr, TokenType.bracketClose);
 
     return nodeResult(
       new CallExpr(callee, open, args.value, close, isTrailer),
@@ -1214,7 +1251,9 @@ export class Parser {
     const index = this.expression();
 
     const close = this.consumeTokenThrow(
-      'Expected "]" at end of array index.', TokenType.squareClose);
+      'Expected "]" at end of array index.',
+      ArrayBracketExpr, TokenType.squareClose);
+
     return nodeResult(
       new ArrayBracketExpr(array, open, index.value, close, isTrailer),
       index.errors,
@@ -1228,7 +1267,7 @@ export class Parser {
     // check for integer or identifier
     const index = this.consumeTokenThrow(
       'Expected integer or identifer.',
-      TokenType.integer, TokenType.identifier);
+      ArrayIndexExpr, TokenType.integer, TokenType.identifier);
 
     return nodeResult(new ArrayIndexExpr(array, indexer, index, isTrailer));
   }
@@ -1248,11 +1287,13 @@ export class Parser {
 
     // check closing curly is found
     const close = this.consumeTokenThrow(
-      'Expected "}" to finish instruction block', TokenType.curlyClose);
+      'Expected "}" to finish instruction block',
+      AnonymousFunctionExpr, TokenType.curlyClose);
 
     // if inner errors found bundle and throw
     if (parseErrors.length > 0) {
-      const error = this.error(open, 'Error found in this block.');
+      const error = this.error(
+        open, AnonymousFunctionExpr, 'Error found in this block.');
       error.inner = parseErrors;
       throw error;
     }
@@ -1280,7 +1321,9 @@ export class Parser {
     if (this.matchToken(TokenType.bracketOpen)) {
       const open = this.previous();
       const expr = this.expression();
-      const close = this.consumeTokenThrow('Expect ")" after expression', TokenType.bracketClose);
+      const close = this.consumeTokenThrow(
+        'Expect ")" after expression',
+        GroupingExpr, TokenType.bracketClose);
 
       return nodeResult(
         new GroupingExpr(open, expr.value, close, isTrailer),
@@ -1294,7 +1337,7 @@ export class Parser {
     }
 
     // valid expression not found
-    throw this.error(this.peek(), 'Expected expression.');
+    throw this.error(this.peek(), undefined, 'Expected expression.');
   }
 
   private addRunInst = <T extends RunInstType>(inst: T, ...errors: IParseError[][]):
@@ -1304,30 +1347,35 @@ export class Parser {
   }
 
   // check for period
-  private terminal = (): TokenResult => {
-    return this.consumeTokenThrow('Expected ".".', TokenType.period);
+  private terminal = (failed: NodeConstructor): TokenResult => {
+    return this.consumeTokenThrow('Expected ".".', failed, TokenType.period);
   }
 
   // check for any valid identifier
   // throws errors if incorrect token is found
-  private consumeIdentifierThrow = (message: string): IToken => {
+  private consumeIdentifierThrow = (message: string, failed: NodeConstructor): IToken => {
     if (this.matchIdentifier()) return this.previous();
-    throw this.error(this.previous(), message);
+    throw this.error(this.previous(), failed, message);
   }
 
   // consume current token if it matches type.
   // throws errors if incorrect token is found
-  private consumeTokenThrow = (message: string, ...tokenType: TokenType[]): IToken => {
+  private consumeTokenThrow = (
+    message: string,
+    failed: NodeConstructor,
+    ...tokenType: TokenType[]): IToken => {
     if (this.matchToken(...tokenType)) return this.previous();
-    throw this.error(this.previous(), message);
+    throw this.error(this.previous(), failed, message);
   }
 
   // consume current token if it matches type.
   // returns errors if incorrect token is found
-  private consumeTokenReturn = (message: string, ...tokenType: TokenType[])
-    : IToken | IParseError => {
+  private consumeTokenReturn = (
+    message: string,
+    failed: NodeConstructor,
+    ...tokenType: TokenType[]): IToken | IParseError => {
     if (this.matchToken(...tokenType)) return this.previous();
-    return this.error(this.previous(), message);
+    return this.error(this.previous(), failed, message);
   }
 
   // was identifier matched
@@ -1397,16 +1445,31 @@ export class Parser {
   }
 
   // report parse error
-  private error = (token: IToken, message: string, ...extraInfo: string[]): IParseError => {
-    return new ParseError(token, message, extraInfo);
+  private error = (
+    token: IToken,
+    failed: Maybe<NodeConstructor>,
+    message: string,
+    ...extraInfo: string[]): IParseError => {
+    if (empty(failed)) {
+      return new ParseError(token, failedUnknown(), message, extraInfo);
+    }
+
+    if (failed.prototype instanceof Expr) {
+      return new ParseError(token, failedExpr(failed as {new(): Expr}), message, extraInfo);
+    }
+    if (failed.prototype instanceof Inst) {
+      return new ParseError(token, failedInst(failed as {new(): Inst}), message, extraInfo);
+    }
+
+    return new ParseError(token, failedUnknown(), message, extraInfo);
   }
 
   // attempt to synchronize parser
-  private synchronize(): void {
+  private synchronize(failed: FailedConstructor): void {
     // need to confirm this is the only case
-    this.advance();
-    // if (this.peek().type === TokenType.CurlyClose) {
-    // }
+    if (empty(failed.inst)) {
+      this.advance();
+    }
 
     while (!this.isAtEnd()) {
       if (this.previous().type === TokenType.period) return;
@@ -1461,6 +1524,9 @@ export class Parser {
         case TokenType.compile:
         case TokenType.list:
         case TokenType.print:
+
+        // close scope
+        case TokenType.curlyClose:
           return;
         default:
           break;
