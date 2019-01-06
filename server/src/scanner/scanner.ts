@@ -1,6 +1,6 @@
 import { TokenType } from '../entities/tokentypes';
 import { ITokenMap, ScanResult, IScannerError, IScanResult } from './types';
-import { Token, Marker, MutableMarker } from '../entities/token';
+import { Token, MutableMarker } from '../entities/token';
 import { WhiteSpace } from './whitespace';
 import { ScannerError } from './ScannerError';
 import { IToken } from '../entities/types';
@@ -40,7 +40,9 @@ export class Scanner {
       // begin scanning
       while (!this.isAtEnd()) {
         this.start = this.current;
-        this.startPosition = this.currentPosition;
+        this.startPosition.character  = this.currentPosition.character;
+        this.startPosition.line = this.currentPosition.line;
+
         const result = this.scanToken();
         switch (result.tag) {
           case 'token':
@@ -267,12 +269,8 @@ export class Scanner {
 
     return new Token(
       type, text, literal,
-      new Marker(
-        this.startPosition.line,
-        this.startPosition.character),
-      new Marker(
-        this.currentPosition.line,
-        this.currentPosition.character),
+      this.startPosition.toImmutable(),
+      this.currentPosition.toImmutable(),
       this.uri,
     );
   }
