@@ -334,13 +334,13 @@
             }]
         },
         "wait-statement": {
-            "begin": "(?i)(?<![_[:alnum:]\\:])(wait)\\s+(\\b(wait)\\s)?",
+            "begin": "(?i)(?<![_[:alnum:]\\:])(wait)\\s+(\\b(until)\\s)?",
             "beginCaptures": {
                 "1": {
                     "name": "keyword.control.wait.kos"
                 },
                 "2": {
-                    "name": "keyword.control.wait.kos"
+                    "name": "keyword.control.until.kos"
                 }
             },
             "end": "\\.",
@@ -395,6 +395,9 @@
                 },
                 {
                     "include": "#command-instructions"
+                },
+                {
+                    "include": "#node-instructions"
                 },
                 {
                     "include": "#block"
@@ -755,6 +758,76 @@
                 }
             ]
         },
+        "node-instructions": {
+            "patterns": [
+                {
+                    "include": "#node-add"
+                },
+                {
+                    "include": "#node-remove"
+                },
+                {
+                    "include": "#node-edit"
+                }
+            ]
+        },
+        "node-add": {
+            "name": "meta.node.add.kos",
+            "begin": "(?i)\\b(add)(?![_[:alnum:]\\:])",
+            "beginCaptures": {
+                "1": {
+                    "name": "keyword.command.add.kos"
+                }
+            },
+            "end": "\\.",
+            "endCaptures": {
+                "1": {
+                    "name": "punctuation.terminator.statement.kos"
+                }
+            },
+            "patterns": [{
+                    "include": "#expression"
+                }
+            ]
+        },
+        "node-edit": {
+            "name": "meta.node.edit.kos",
+            "begin": "(?i)\\b(edit)(?![_[:alnum:]\\:])",
+            "beginCaptures": {
+                "1": {
+                    "name": "keyword.command.edit.kos"
+                }
+            },
+            "end": "\\.",
+            "endCaptures": {
+                "1": {
+                    "name": "punctuation.terminator.statement.kos"
+                }
+            },
+            "patterns": [{
+                    "include": "#expression"
+                }
+            ]
+        },
+        "node-remove": {
+            "name": "meta.node.remove.kos",
+            "begin": "(?i)\\b(remove)(?![_[:alnum:]\\:])",
+            "beginCaptures": {
+                "1": {
+                    "name": "keyword.command.add.kos"
+                }
+            },
+            "end": "\\.",
+            "endCaptures": {
+                "1": {
+                    "name": "punctuation.terminator.statement.kos"
+                }
+            },
+            "patterns": [{
+                    "include": "#expression"
+                }
+            ]
+        },
         "expression": {
             "patterns": [{
                     "include": "#expressions-without-identifiers"
@@ -785,23 +858,27 @@
         "expression-operators": {
             "patterns": [{
                     "name": "keyword.operator.expression.or.kos",
-                    "match": "or"
+                    "match": "(or)(?![_[:alnum:]\\:])"
                 },
                 {
                     "name": "keyword.operator.expression.and.kos",
-                    "match": "and"
+                    "match": "(and)(?![_[:alnum:]\\:])"
                 },
                 {
                     "name": "keyword.operator.expression.not.kos",
-                    "match": "not"
+                    "match": "(not)(?![_[:alnum:]\\:])"
+                },
+                {
+                    "name": "keyword.operator.expression.defined.kos",
+                    "match": "(defined)(?![_[:alnum:]\\:])"
                 },
                 {
                     "name": "keyword.operator.expression.on.kos",
-                    "match": "on"
+                    "match": "(on)(?![_[:alnum:]\\:])"
                 },
                 {
                     "name": "keyword.operator.expression.off.kos",
-                    "match": "off"
+                    "match": "(off)(?![_[:alnum:]\\:])"
                 },
                 {
                     "name": "keyword.operator.power.kos",
@@ -1016,11 +1093,11 @@
                 },
                 {
                     "name": "constant.language.true.kos",
-                    "match": "\\btrue"
+                    "match": "\\btrue(?![_[:alnum:]\\:])"
                 },
                 {
                     "name": "constant.language.false.kos",
-                    "match": "\\bfalse"
+                    "match": "\\bfalse(?![_[:alnum:]\\:])"
                 }
             ]
         },
