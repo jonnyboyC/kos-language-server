@@ -1,7 +1,7 @@
 {
     "name": "kos-language-server",
     "description": "A Language server for Kerbal Operating System. A mod for Kerbal Space Program.",
-    "version": "0.2.1",
+    "version": "0.2.2",
     "main": "out/server.js",
     "types": "out/server.d.ts",
     "author": "John Chabot",
@@ -16,5 +16,12 @@
     "dependencies": {
         "vscode-languageserver": "5.1.0"
     },
+    "keywords": [
+        "Kerbal Operating System",
+        "kos",
+        "Kerbal Space Program",
+        "ksp",
+        "language-server"
+    ],
     "scripts": {}
 }
