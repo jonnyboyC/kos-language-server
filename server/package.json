@@ -7,7 +7,7 @@
     "author": "John Chabot",
     "license": "MIT",
     "engines": {
-        "node": "*"
+        "node": ">=8.9.0"
     },
     "repository": {
         "type": "git",
@@ -16,6 +16,5 @@
     "dependencies": {
         "vscode-languageserver": "5.1.0"
     },
-    "scripts": {},
-    "exc"
+    "scripts": {}
 }
