@@ -6,7 +6,7 @@
     "moduleResolution": "node",
     "outDir": "out",
     "rootDir": "src",
-    "lib": ["esnext"],
+    "lib": ["es6"],
     "sourceMap": true,
     "strict": true,
   },
