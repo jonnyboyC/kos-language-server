@@ -3,4 +3,4 @@
 
 '.source.kos':
   'editor':
-    'commentStart': '//'
+    'commentStart': '// '

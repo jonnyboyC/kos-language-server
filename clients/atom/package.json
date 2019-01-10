@@ -17,9 +17,9 @@
   "engines": {
     "atom": ">=1.0.0 <2.0.0"
   },
-  "activationCommands": {
-    "atom-workspace": "language-kos:toggle"
-  },
+  "activationHooks": [
+    "language-kos:grammar-used"
+  ],
   "dependencies": {
     "atom-languageclient": "^0.9.9",
     "kos-language-server": "^0.2.2"
