@@ -7,7 +7,7 @@
   },
   "typescript.tsdk": "./node_modules/typescript/lib",
   "typescript.tsc.autoDetect": "off",
-  "npm.exclude": ["**/client", "**/server"],
+  "npm.exclude": ["**/clients", "**/server"],
   "npm.enableScriptExplorer": true,
   "python.linting.pylintEnabled": true
 }

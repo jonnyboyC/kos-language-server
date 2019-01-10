@@ -1,0 +1,23 @@
+{
+  "name": "kos-language",
+  "version": "0.0.1",
+  "description": "Atom client for the KOS-language-server",
+  "author": "John Chabot",
+  "main": "lib/main.js",
+  "keywords": [
+    "language",
+    "grammar"
+  ],
+  "activationHooks": [
+    "kos-language:grammar-used"
+  ],
+  "repository": "https://github.com/jonnyboyC/kos-language-server",
+  "license": "MIT",
+  "engines": {
+    "atom": ">=1.0.0 <2.0.0"
+  },
+  "dependencies": {
+    "atom-languageclient": "^0.9.9",
+    "kos-language-server": "^0.2.2"
+  }
+}

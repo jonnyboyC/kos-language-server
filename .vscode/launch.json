@@ -4,12 +4,12 @@
     {
 			"type": "extensionHost",
 			"request": "launch",
-			"name": "Launch Client",
+			"name": "Launch VSCode Client",
 			"runtimeExecutable": "${execPath}",
 			"args": ["--extensionDevelopmentPath=${workspaceRoot}"],
 			"stopOnEntry": false,
 			"sourceMaps": true,
-			"outFiles": ["${workspaceRoot}/client/out/**/*.js"],
+			"outFiles": ["${workspaceRoot}/clients/vscode/out/**/*.js"],
 			"preLaunchTask": "npm: compile"
 		},
 		{
@@ -37,8 +37,8 @@
 	],
 	"compounds": [
 		{
-			"name": "Client + Server",
-			"configurations": ["Launch Client", "Attach to Server"]
+			"name": "VSCode + Server",
+			"configurations": ["Launch VSCode Client", "Attach to Server"]
 		}
 	]
 }
