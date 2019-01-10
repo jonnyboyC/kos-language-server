@@ -1,20 +1,24 @@
 {
-  "name": "kos-language",
+  "name": "language-kos",
   "version": "0.0.1",
   "description": "Atom client for the KOS-language-server",
   "author": "John Chabot",
   "main": "lib/main.js",
   "keywords": [
-    "language",
-    "grammar"
-  ],
-  "activationHooks": [
-    "kos-language:grammar-used"
+    "Kerbal Space Program",
+    "KSP",
+    "Kerbal Operating System",
+    "KOS",
+    "Language",
+    "Syntax"
   ],
   "repository": "https://github.com/jonnyboyC/kos-language-server",
   "license": "MIT",
   "engines": {
     "atom": ">=1.0.0 <2.0.0"
+  },
+  "activationCommands": {
+    "atom-workspace": "language-kos:toggle"
   },
   "dependencies": {
     "atom-languageclient": "^0.9.9",
