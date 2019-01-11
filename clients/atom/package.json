@@ -3,7 +3,6 @@
   "version": "0.0.1",
   "description": "Atom client for the KOS-language-server",
   "author": "John Chabot",
-  "main": "lib/main.js",
   "keywords": [
     "Kerbal Space Program",
     "KSP",
