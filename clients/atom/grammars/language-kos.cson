@@ -2,6 +2,9 @@
     "version": "",
     "name": "Kerbal Operating System",
     "scopeName": "source.kos",
+    'fileTypes': [
+        'ks'
+    ]
     "patterns": [{
         "include": "#statements"
     }],
