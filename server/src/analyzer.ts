@@ -23,6 +23,7 @@ import { extname } from 'path';
 import { flatten } from './utilities/arrayUtilities';
 import { readFileAsync } from './utilities/fsUtilities';
 import { standardLibrary } from './analysis/standardLibrary';
+import { terminalStructType } from './typeChecker/terminalStruct';
 
 export class Analyzer {
   public volumne0Path: string;
@@ -57,17 +58,17 @@ export class Analyzer {
     const childDiagnostics = flatten(validateResults.map(result => result.diagnostics));
 
     // generate a scope manager for resolving
-    const scopeMan = new ScopeManager(this.logger);
+    const scopeManager = new ScopeManager(this.logger);
 
     // add child scopes
     for (const validateResult of validateResults) {
       if (!empty(validateResult.scopeManager)) {
-        scopeMan.addScope(validateResult.scopeManager);
+        scopeManager.addScope(validateResult.scopeManager);
       }
     }
 
     // add standard library
-    scopeMan.addScope(standardLibrary);
+    scopeManager.addScope(standardLibrary);
 
     // generate resolvers
     const funcResolver = new FuncResolver();
@@ -77,15 +78,20 @@ export class Analyzer {
     this.logger.log(`Function resolving ${uri}`);
     this.logger.log('');
     performance.mark('func-resolver-start');
-    let resolverErrors = funcResolver.resolve(syntaxTree, scopeMan);
+    let resolverErrors = funcResolver.resolve(syntaxTree, scopeManager);
     performance.mark('func-resolver-end');
 
     // perform an initial function pass
     this.logger.log(`Resolving ${uri}`);
     this.logger.log('');
 
+    const lexicon = terminalStructType;
+    if (lexicon) {
+      console.log('');
+    }
+
     performance.mark('resolver-start');
-    resolverErrors = resolverErrors.concat(resolver.resolve(syntaxTree, scopeMan));
+    resolverErrors = resolverErrors.concat(resolver.resolve(syntaxTree, scopeManager));
     performance.mark('resolver-end');
 
     performance.measure('func-resolver', 'func-resolver-start', 'func-resolver-end');
@@ -124,7 +130,7 @@ export class Analyzer {
     this.documentInfos.set(uri, {
       syntaxTree,
       diagnostics,
-      scopeManager: scopeMan,
+      scopeManager,
     });
 
     performance.clearMarks();
@@ -132,7 +138,7 @@ export class Analyzer {
 
     return {
       diagnostics,
-      scopeManager: scopeMan,
+      scopeManager,
     };
   }
 

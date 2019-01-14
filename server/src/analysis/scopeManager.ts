@@ -106,7 +106,7 @@ export class ScopeManager implements GraphNode<ScopeManager> {
       });
     }
 
-    this.logger.info(`begin scope at ${JSON.stringify(range.start)}`);
+    // this.logger.info(`begin scope at ${JSON.stringify(range.start)}`);
 
     this.activeScopePath.push(next);
     this.backTrackPath = [...this.activeScopePath];
@@ -142,7 +142,7 @@ export class ScopeManager implements GraphNode<ScopeManager> {
     }
 
     if (position.tag === 'real') {
-      this.logger.info(`end scope at ${JSON.stringify(position.end)}`);
+      // this.logger.info(`end scope at ${JSON.stringify(position.end)}`);
     }
     return errors;
   }
@@ -289,7 +289,7 @@ export class ScopeManager implements GraphNode<ScopeManager> {
     const scope = this.selectScope(scopeType);
 
     scope.set(name.lexeme, new KsVariable(scopeType, name, EntityState.declared));
-    this.logger.info(`declare variable ${name.lexeme} at ${JSON.stringify(name.start)}`);
+    // this.logger.info(`declare variable ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
 
@@ -312,7 +312,7 @@ export class ScopeManager implements GraphNode<ScopeManager> {
       parameters, returnValue,
       EntityState.declared));
 
-    this.logger.info(`declare function ${name.lexeme} at ${JSON.stringify(name.start)}`);
+    // this.logger.info(`declare function ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
 
@@ -329,7 +329,7 @@ export class ScopeManager implements GraphNode<ScopeManager> {
     const state = this.lockState(name.lexeme);
 
     scope.set(name.lexeme, new KsLock(scopeType, name, state));
-    this.logger.info(`declare lock ${name.lexeme} at ${JSON.stringify(name.start)}`);
+    // this.logger.info(`declare lock ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
 
@@ -347,7 +347,7 @@ export class ScopeManager implements GraphNode<ScopeManager> {
 
     const scope = this.selectScope(scopeType);
     scope.set(name.lexeme, new KsParameter(name, defaulted, EntityState.declared));
-    this.logger.info(`declare parameter ${name.lexeme} at ${JSON.stringify(name.start)}`);
+    // this.logger.info(`declare parameter ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
 
@@ -374,7 +374,7 @@ export class ScopeManager implements GraphNode<ScopeManager> {
     }
 
     entity.state = state;
-    this.logger.info(`Use ${type} ${name.lexeme} at ${JSON.stringify(name.start)}`);
+    // this.logger.info(`Use ${type} ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
 
@@ -391,7 +391,7 @@ export class ScopeManager implements GraphNode<ScopeManager> {
     }
 
     lock.state = newState;
-    this.logger.info(`use lock ${name.lexeme} at ${JSON.stringify(name.start)}`);
+    // this.logger.info(`use lock ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
 

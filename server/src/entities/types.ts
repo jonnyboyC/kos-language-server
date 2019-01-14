@@ -11,21 +11,3 @@ export interface IToken extends Range {
   readonly uri?: string;
   toString: () => string;
 }
-
-export interface IType {
-  readonly name: string;
-  params?: IType[] | IVarType;
-  returns?: IType;
-  inherentsFrom?: IType;
-  suffixes: ISuffixMap;
-  tag: 'type';
-}
-
-export interface ISuffixMap {
-  [name: string]: IType;
-}
-
-export interface IVarType {
-  type: IType;
-  tag: 'varType';
-}
