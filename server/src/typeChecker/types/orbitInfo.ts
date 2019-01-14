@@ -1,12 +1,10 @@
 import { IType } from './types';
-import { createStructureType, createSuffixType, createArgSuffixType } from './ksType';
+import { createStructureType, createSuffixType } from './ksType';
 import { addPrototype, addSuffixes } from './typeUitlities';
-import { serializableStructureType, structureType } from './structure';
+import { structureType } from './structure';
 import { stringType, scalarType, booleanType } from './primitives';
-import { directionType } from './direction';
 import { vectorType } from './collections/vector';
-import { geoCoordinatesType } from './geoCoordinates';
-import { listType } from './collections/list';
+import { bodyTargetType } from './orbital/bodyTarget';
 
 export const orbitInfoType: IType = createStructureType('orbitInfo');
 addPrototype(orbitInfoType, structureType);
@@ -16,7 +14,7 @@ addSuffixes(
   createSuffixType('name', stringType),
   createSuffixType('apoapsis', scalarType),
   createSuffixType('periapsis', scalarType),
-  createSuffixType('body', /* TODO */ scalarType),
+  createSuffixType('body', bodyTargetType),
   createSuffixType('period', scalarType),
   createSuffixType('inclination', scalarType),
   createSuffixType('eccentricity', scalarType),

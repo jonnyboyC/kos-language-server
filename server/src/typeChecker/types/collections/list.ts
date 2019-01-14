@@ -1,4 +1,4 @@
-import { IGenericType } from '../types';
+import { IGenericType, IType } from '../types';
 import {
   createArgSuffixType, createGenericStructureType,
   tType, createGenericArgSuffixType,
@@ -6,11 +6,11 @@ import {
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { collectionType } from './collection';
 import { scalarType } from '../primitives';
+import { structureType } from '../structure';
 
 export const listType: IGenericType = createGenericStructureType('list');
 
 addPrototype(listType, collectionType);
-
 addSuffixes(
   listType,
   createGenericArgSuffixType('copy', listType),
@@ -23,3 +23,5 @@ addSuffixes(
   createGenericArgSuffixType('lastIndexOf', scalarType, tType),
   createGenericArgSuffixType('findLast', scalarType, tType),
 );
+
+export const userListType: IType = listType.toConcreteType(structureType);

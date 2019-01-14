@@ -1,12 +1,15 @@
-import { IType } from './types';
-import { createStructureType, createSuffixType, createArgSuffixType } from './ksType';
-import { addPrototype, addSuffixes } from './typeUitlities';
-import { serializableStructureType, structureType } from './structure';
-import { stringType, scalarType, booleanType } from './primitives';
-import { directionType } from './direction';
-import { vectorType } from './collections/vector';
-import { geoCoordinatesType } from './geoCoordinates';
-import { listType } from './collections/list';
+import { IType } from '../types';
+import { createStructureType, createSuffixType, createArgSuffixType } from '../ksType';
+import { addPrototype, addSuffixes } from '../typeUitlities';
+import { serializableStructureType } from '../structure';
+import { stringType, scalarType, booleanType } from '../primitives';
+import { directionType } from '../direction';
+import { vectorType } from '../collections/vector';
+import { geoCoordinatesType } from '../geoCoordinates';
+import { userListType } from '../collections/list';
+import { bodyTargetType } from './bodyTarget';
+import { orbitInfoType } from '../orbitInfo';
+import { orbitableVelocityType } from '../orbitalVelocity';
 
 export const orbitableType: IType = createStructureType('orbitable');
 addPrototype(orbitableType, serializableStructureType);
@@ -16,7 +19,7 @@ addSuffixes(
   createSuffixType('name', stringType),
   createSuffixType('apoapsis', scalarType),
   createSuffixType('periapsis', scalarType),
-  createSuffixType('body', /* TODO */ scalarType),
+  createSuffixType('body', bodyTargetType),
   createArgSuffixType('hasBody', booleanType),
   createArgSuffixType('hasObt', booleanType),
   createArgSuffixType('hasOrbit', booleanType),
@@ -26,15 +29,15 @@ addSuffixes(
   createSuffixType('retrograde', directionType),
   createSuffixType('srfPrograde', directionType),
   createSuffixType('srfRetrograde', directionType),
-  createSuffixType('obt', /* TODO */ scalarType),
-  createSuffixType('orbit',  /* TODO */ scalarType),
+  createSuffixType('obt', orbitInfoType),
+  createSuffixType('orbit', orbitInfoType),
   createSuffixType('position', vectorType),
-  createSuffixType('velocity', /* TODO */ scalarType),
+  createSuffixType('velocity', orbitableVelocityType),
   createSuffixType('distance', scalarType),
   createSuffixType('direction', directionType),
   createSuffixType('latitude', scalarType),
   createSuffixType('longitude', scalarType),
   createSuffixType('altitude', scalarType),
   createSuffixType('geoPosition', geoCoordinatesType),
-  createSuffixType('patches', listType.toConcreteType(structureType)),
+  createSuffixType('patches', userListType),
 );

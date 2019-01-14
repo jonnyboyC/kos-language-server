@@ -1,12 +1,12 @@
-import { IType } from './types';
-import { createStructureType, createArgSuffixType, createSuffixType } from './ksType';
-import { addPrototype, addSuffixes } from './typeUitlities';
-import { structureType } from './structure';
-import { booleanType, stringType, scalarType } from './primitives';
+import { IType } from '../types';
+import { createStructureType, createArgSuffixType, createSuffixType } from '../ksType';
+import { addPrototype, addSuffixes } from '../typeUitlities';
+import { structureType } from '../structure';
+import { booleanType, stringType, scalarType } from '../primitives';
 import { orbitableType } from './orbitable';
-import { listType } from './collections/list';
-import { vectorType } from './collections/vector';
-import { geoCoordinatesType } from './geoCoordinates';
+import { userListType } from '../collections/list';
+import { vectorType } from '../collections/vector';
+import { geoCoordinatesType } from '../geoCoordinates';
 
 export const bodyTargetType: IType = createStructureType('bodyTarget');
 addPrototype(bodyTargetType, orbitableType);
@@ -18,7 +18,7 @@ addSuffixes(
   createSuffixType('mass', scalarType),
   createSuffixType('hasOcean', booleanType),
   createSuffixType('hasSolidSurface', booleanType),
-  createSuffixType('orbitingChildren', listType.toConcreteType(structureType)),
+  createSuffixType('orbitingChildren', userListType),
   createSuffixType('altitude', scalarType),
   createSuffixType('radius', scalarType),
   createSuffixType('mu', scalarType),

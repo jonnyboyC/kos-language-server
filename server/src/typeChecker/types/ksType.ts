@@ -9,7 +9,7 @@ import {
   ITypeCore,
   IGenericSuffixMap,
 } from './types';
-import { empty } from '../utilities/typeGuards';
+import { empty } from '../../utilities/typeGuards';
 import { createVarType, isFullType, isFullVarType } from './typeUitlities';
 
 export class TypeCoreGeneric implements IGenericTypeCore {

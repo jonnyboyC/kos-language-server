@@ -1,6 +1,6 @@
 import { IType, IVarType, IGenericType, IGenericVarType } from './types';
-import { empty } from '../utilities/typeGuards';
-import { memoize } from '../utilities/memoize';
+import { empty } from '../../utilities/typeGuards';
+import { memoize } from '../../utilities/memoize';
 
 // check to see type is a sub type of target type
 export const isSubType = (targetType: IType, type: IType): boolean => {

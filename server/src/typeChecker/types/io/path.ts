@@ -7,7 +7,7 @@ import { addPrototype, addSuffixes, createVarType } from '../typeUitlities';
 import { serializableStructureType, structureType } from '../structure';
 import { booleanType, stringType, integarType } from '../primitives';
 import { volumeType } from './volume';
-import { listType } from '../collections/list';
+import { userListType } from '../collections/list';
 
 export const pathType: IType = createStructureType('path');
 addPrototype(pathType, serializableStructureType);
@@ -15,7 +15,7 @@ addPrototype(pathType, serializableStructureType);
 addSuffixes(
   pathType,
   createSuffixType('volume', volumeType),
-  createSuffixType('segments', listType.toConcreteType(structureType)),
+  createSuffixType('segments', userListType),
   createSuffixType('length', integarType),
   createSuffixType('name', stringType),
   createSuffixType('hasExtension', booleanType),

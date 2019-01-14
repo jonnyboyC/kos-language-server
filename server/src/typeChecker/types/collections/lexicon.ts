@@ -9,7 +9,7 @@ import { addPrototype, addSuffixes } from '../typeUitlities';
 import { structureType, serializableStructureType } from '../structure';
 import { booleanType, scalarType } from '../primitives';
 import { voidType } from '../void';
-import { listType } from './list';
+import { userListType } from './list';
 
 export const lexiconType: IType = createStructureType('lexicon');
 addPrototype(lexiconType, serializableStructureType);
@@ -17,10 +17,10 @@ addPrototype(lexiconType, serializableStructureType);
 addSuffixes(
   lexiconType,
   createArgSuffixType('clear', voidType),
-  createSuffixType('keys', listType.toConcreteType(structureType)),
+  createSuffixType('keys', userListType),
   createArgSuffixType('haskey', booleanType, structureType),
   createArgSuffixType('hasvalue', booleanType, structureType),
-  createSuffixType('values', listType.toConcreteType(structureType)),
+  createSuffixType('values', userListType),
   createArgSuffixType('copy', lexiconType),
   createArgSuffixType('length', scalarType),
   createArgSuffixType('remove', structureType, booleanType),
