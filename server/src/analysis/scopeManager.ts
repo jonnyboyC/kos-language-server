@@ -3,7 +3,7 @@ import { empty } from '../utilities/typeGuards';
 import { ScopeType } from '../parser/types';
 import { KsVariable } from '../entities/variable';
 import { EntityState, IScope, IScopeNode,
-  KsEntity, IStack, LockState, GraphNode,
+  KsEntity, IStack, GraphNode, IKsEntityTracker,
 } from './types';
 import { KsFunction } from '../entities/function';
 import { KsLock } from '../entities/lock';
@@ -13,6 +13,8 @@ import { KsParameter } from '../entities/parameters';
 import { positionAfterEqual, positionBeforeEqual } from '../utilities/positionHelpers';
 import { ScopePosition } from './scopePosition';
 import { mockLogger } from '../utilities/logger';
+import { Scope } from './scope';
+import { createTracker, createUsage } from './tracker';
 
 export class ScopeManager implements GraphNode<ScopeManager> {
   private readonly global: IScope;
@@ -26,7 +28,7 @@ export class ScopeManager implements GraphNode<ScopeManager> {
 
   constructor(logger: ILogger = mockLogger) {
     this.logger = logger;
-    this.global = new Map();
+    this.global = new Scope();
     this.scopesRoot = {
       scope: this.global,
       children: [],
@@ -100,7 +102,7 @@ export class ScopeManager implements GraphNode<ScopeManager> {
 
     if (empty(activeNode.children[next])) {
       activeNode.children.push({
-        scope: new Map(),
+        scope: new Scope(),
         position: new ScopePosition(range.start, range.end),
         children: [],
       });
@@ -119,20 +121,29 @@ export class ScopeManager implements GraphNode<ScopeManager> {
 
     const errors = [];
     if (!empty(scope)) {
-      for (const entity of scope.values()) {
-        switch (entity.tag) {
+      for (const tracker of scope.values()) {
+        switch (tracker.declared.entity.tag) {
           case 'function':
             break;
           case 'parameter':
+            if (tracker.usages.length === 0) {
+              errors.push(new ResolverError(
+                tracker.declared.entity.name,
+                `Parameter ${tracker.declared.entity.name.lexeme} was not used.`, []));
+            }
             break;
           case 'lock':
-            entity;
+            if (!tracker.declared.entity.cooked && tracker.usages.length === 0) {
+              errors.push(new ResolverError(
+                tracker.declared.entity.name,
+                `Lock ${tracker.declared.entity.name.lexeme} was not used.`, []));
+            }
             break;
           case 'variable':
-            if (entity.state !== EntityState.used) {
+            if (tracker.usages.length === 0) {
               errors.push(new ResolverError(
-                entity.name,
-                `Variable ${entity.name.lexeme} was not used.`, []));
+                tracker.declared.entity.name,
+                `Variable ${tracker.declared.entity.name.lexeme} was not used.`, []));
             }
             break;
           default:
@@ -149,7 +160,7 @@ export class ScopeManager implements GraphNode<ScopeManager> {
 
   // get every entity in the file
   public allFileEntities(): KsEntity[] {
-    return Array.from(this.scopesRoot.scope.values()).concat(
+    return Array.from(this.scopesRoot.scope.entities()).concat(
       this.allFileEntitiesDepth(this.scopesRoot.children));
   }
 
@@ -161,9 +172,9 @@ export class ScopeManager implements GraphNode<ScopeManager> {
 
   // get all entities in scope at a position
   public entitiesAtPosition(pos: Position): KsEntity[] {
-    const entities = Array.from(this.scopesRoot.scope.values()).concat(
+    const entities = Array.from(this.scopesRoot.scope.entities()).concat(
       ...Array.from(this.outScopes.values())
-        .map(scope => Array.from(scope.scopesRoot.scope.values())),
+        .map(scope => Array.from(scope.scopesRoot.scope.entities())),
     );
 
     return this.entitiesAtPositionDepth(pos, this.scopesRoot.children)
@@ -176,7 +187,7 @@ export class ScopeManager implements GraphNode<ScopeManager> {
 
     for (const node of nodes) {
       entities = entities.concat(
-        Array.from(node.scope.values()),
+        Array.from(node.scope.entities()),
         this.allFileEntitiesDepth(node.children));
     }
 
@@ -193,7 +204,7 @@ export class ScopeManager implements GraphNode<ScopeManager> {
         // if global it is available
         case 'global':
           entities = entities.concat(
-            Array.from(node.scope.values()),
+            Array.from(node.scope.entities()),
             this.entitiesAtPositionDepth(pos, node.children));
           break;
         // if the scope has a real position check if we're in the bounds
@@ -202,7 +213,7 @@ export class ScopeManager implements GraphNode<ScopeManager> {
           if (positionBeforeEqual(start, pos) && positionAfterEqual(end, pos)) {
 
             entities = entities.concat(
-              Array.from(node.scope.values()),
+              Array.from(node.scope.entities()),
               this.entitiesAtPositionDepth(pos, node.children));
           }
       }
@@ -228,67 +239,67 @@ export class ScopeManager implements GraphNode<ScopeManager> {
 
   // attempt to use an entity
   public useEntity(name: IToken): Maybe<ResolverError> {
-    const entity = this.lookup(name, ScopeType.global);
+    const tracker = this.lookup(name, ScopeType.global);
 
     // check if entity exists
-    if (empty(entity)) {
+    if (empty(tracker)) {
       return new ResolverError(name, `Entity ${name.lexeme} may not exist`, []);
     }
 
     // check the appropriate lookup for the entity
-    switch (entity.tag) {
+    switch (tracker.declared.entity.tag) {
       case 'parameter':
-        return this.checkUseEntity(name, entity, 'Parameter', EntityState.used);
+        return this.checkUseEntity(name, tracker, 'Parameter');
       case 'function':
-        return this.checkUseEntity(name, entity, 'Function', EntityState.used);
+        return this.checkUseEntity(name, tracker, 'Function');
       case 'variable':
-        return this.checkUseEntity(name, entity, 'Variable', EntityState.used);
+        return this.checkUseEntity(name, tracker, 'Variable');
       case 'lock':
-        return this.checkUseLock(name, entity, LockState.used);
+        return this.checkUseEntity(name, tracker, 'Lock');
     }
   }
 
   // use a variable
   public useVariable(name: IToken): Maybe<ResolverError> {
-    const variable = this.lookupVariable(name, ScopeType.global);
+    const variable = this.lookupVariableTracker(name, ScopeType.global);
 
-    return this.checkUseEntity(name, variable, 'Variable', EntityState.used);
+    return this.checkUseEntity(name, variable, 'Variable');
   }
 
   // define a variable
   public useFunction(name: IToken): Maybe<ResolverError> {
-    const func = this.lookupFunction(name, ScopeType.global);
+    const func = this.lookupFunctionTracker(name, ScopeType.global);
 
-    return this.checkUseEntity(name, func, 'Function', EntityState.used);
+    return this.checkUseEntity(name, func, 'Function');
   }
 
   // use a variable
-  public useLock(name: IToken, newState: LockState.unlocked | LockState.used):
+  public useLock(name: IToken):
     Maybe<ResolverError> {
-    const lock = this.lookupLock(name, ScopeType.global);
+    const lock = this.lookupLockTracker(name, ScopeType.global);
 
-    return this.checkUseLock(name, lock, newState);
+    return this.checkUseEntity(name, lock, 'Lock');
   }
 
   // use a parameter
   public useParameter(name: IToken): Maybe<ResolverError> {
-    const parameter = this.lookupParameter(name, ScopeType.global);
+    const parameter = this.lookupParameterTracker(name, ScopeType.global);
 
-    return this.checkUseEntity(name, parameter, 'Parameter', EntityState.used);
+    return this.checkUseEntity(name, parameter, 'Parameter');
   }
 
   // declare a variable
   public declareVariable(scopeType: ScopeType, name: IToken): Maybe<ResolverError> {
-    const entity = this.lookup(name, ScopeType.local);
+    const tracker = this.lookup(name, ScopeType.local);
 
     // check if variable has already been defined
-    if (!empty(entity)) {
-      return this.localConflictError(name, entity);
+    if (!empty(tracker)) {
+      return this.localConflictError(name, tracker.declared.entity);
     }
 
     const scope = this.selectScope(scopeType);
 
-    scope.set(name.lexeme, new KsVariable(scopeType, name, EntityState.declared));
+    scope.set(name.lexeme, createTracker(new KsVariable(scopeType, name)));
     // this.logger.info(`declare variable ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
@@ -299,18 +310,17 @@ export class ScopeManager implements GraphNode<ScopeManager> {
     name: IToken,
     parameters: KsParameter[],
     returnValue: boolean): Maybe<ResolverError> {
-    const entity = this.lookup(name, ScopeType.local);
+    const tracker = this.lookup(name, ScopeType.local);
 
     // check if variable has already been defined
-    if (!empty(entity)) {
-      return this.localConflictError(name, entity);
+    if (!empty(tracker)) {
+      return this.localConflictError(name, tracker.declared.entity);
     }
 
     const scope = this.selectScope(scopeType);
-    scope.set(name.lexeme, new KsFunction(
+    scope.set(name.lexeme, createTracker(new KsFunction(
       scopeType, name,
-      parameters, returnValue,
-      EntityState.declared));
+      parameters, returnValue)));
 
     // this.logger.info(`declare function ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
@@ -318,17 +328,16 @@ export class ScopeManager implements GraphNode<ScopeManager> {
 
   // declare a variable
   public declareLock(scopeType: ScopeType, name: IToken): Maybe<ResolverError> {
-    const entity = this.lookup(name, ScopeType.local);
+    const tracker = this.lookup(name, ScopeType.local);
 
     // check if variable has already been defined
-    if (!empty(entity) && entity.tag !== 'lock') {
-      return this.localConflictError(name, entity);
+    if (!empty(tracker)) {
+      return this.localConflictError(name, tracker.declared.entity);
     }
 
     const scope = this.selectScope(scopeType);
-    const state = this.lockState(name.lexeme);
 
-    scope.set(name.lexeme, new KsLock(scopeType, name, state));
+    scope.set(name.lexeme, createTracker(new KsLock(scopeType, name)));
     // this.logger.info(`declare lock ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
@@ -338,118 +347,130 @@ export class ScopeManager implements GraphNode<ScopeManager> {
     scopeType: ScopeType,
     name: IToken,
     defaulted: boolean): Maybe<ResolverError> {
-    const entity = this.lookup(name, ScopeType.local);
+    const tracker = this.lookup(name, ScopeType.local);
 
     // check if variable has already been defined
-    if (!empty(entity)) {
-      return this.localConflictError(name, entity);
+    if (!empty(tracker)) {
+      return this.localConflictError(name, tracker.declared.entity);
     }
 
     const scope = this.selectScope(scopeType);
-    scope.set(name.lexeme, new KsParameter(name, defaulted, EntityState.declared));
+    scope.set(name.lexeme, createTracker(new KsParameter(name, defaulted, EntityState.declared)));
     // this.logger.info(`declare parameter ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
 
   // define a variable
   public defineBinding(name: IToken): Maybe<ResolverError> {
-    const binding = this.lookupBinding(name, ScopeType.global);
+    const binding = this.lookup(name, ScopeType.global);
 
     // Note we are currently setting to used because we can't
     // suffixes yet
     // const state = empty(binding) ? EntityState.declared : binding.state;
-    return this.checkUseEntity(name, binding, 'entity', EntityState.used);
+    return this.checkUseEntity(name, binding, 'entity');
   }
 
   // check if a variable exist then use it
   public checkUseEntity(
     name: IToken,
-    entity: Maybe<KsVariable | KsFunction | KsParameter>,
-    type: string,
-    state: EntityState):
+    tracker: Maybe<IKsEntityTracker>,
+    type: string):
     Maybe<ResolverError> {
     // check that variable has already been defined
-    if (empty(entity)) {
+    if (empty(tracker)) {
       return new ResolverError(name, `${type} ${name.lexeme} may not exist.`, []);
     }
 
-    entity.state = state;
+    tracker.usages.push(createUsage(name));
     // this.logger.info(`Use ${type} ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
 
-  // check that the lock can be used in the current state
-  private checkUseLock(name: IToken, lock: Maybe<KsLock>, newState: LockState) {
-
-    // check that variable has already been defined
-    if (empty(lock)) {
-      return new ResolverError(name, `Lock ${name.lexeme} may not exist.`, []);
-    }
-
-    if (lock.state === LockState.unlocked) {
-      return new ResolverError(name, `Lock ${name.lexeme} may be unlocked.`, []);
-    }
-
-    lock.state = newState;
-    // this.logger.info(`use lock ${name.lexeme} at ${JSON.stringify(name.start)}`);
-    return undefined;
-  }
-
-  // locks with side effects are considerd used immediatly
-  private lockState(lockName: string): LockState {
-    switch (lockName) {
-      case 'throttle':
-      case 'steering':
-      case 'wheelthrottle':
-      case 'wheelsteering':
-        return LockState.used;
-      default:
-        return LockState.locked;
-    }
-  }
-
+  // lookup a binding
   public lookupBinding (token: IToken, scope: ScopeType):
   Maybe<KsVariable | KsParameter> {
-    const entity = this.lookup(token, scope);
-    return !empty(entity) && (entity.tag === 'variable' || entity.tag === 'parameter')
-      ? entity
-      : undefined;
+    const tracker = this.lookupBindingTracker(token, scope);
+    return tracker && tracker.declared.entity;
   }
 
-  // attempt a variable lookup
+  // lookup a variable
   public lookupVariable(token: IToken, scope: ScopeType): Maybe<KsVariable> {
-    const entity = this.lookup(token, scope);
-    return !empty(entity) && entity.tag === 'variable'
-      ? entity
-      : undefined;
+    const tracker = this.lookupVariableTracker(token, scope);
+    return tracker && tracker.declared.entity;
   }
 
   // lockup a function
   public lookupFunction(token: IToken, scope: ScopeType): Maybe<KsFunction> {
-    const entity = this.lookup(token, scope);
-    return !empty(entity) && entity.tag === 'function'
-      ? entity
-      : undefined;
+    const tracker = this.lookupFunctionTracker(token, scope);
+    return tracker && tracker.declared.entity;
   }
 
   // lookup a lock
   public lookupLock(token: IToken, scope: ScopeType): Maybe<KsLock> {
-    const entity = this.lookup(token, scope);
-    return !empty(entity) && entity.tag === 'lock'
-      ? entity
-      : undefined;
+    const tracker = this.lookupLockTracker(token, scope);
+    return tracker && tracker.declared.entity;
   }
 
   // lookup a parameter
   public lookupParameter(token: IToken, scope: ScopeType): Maybe<KsParameter> {
-    const entity = this.lookup(token, scope);
-    return !empty(entity) && entity.tag === 'parameter'
-      ? entity
+    const tracker = this.lookupParameterTracker(token, scope);
+    return tracker && tracker.declared.entity;
+  }
+
+  // lookup a binding tracker
+  public lookupBindingTracker(token: IToken, scope: ScopeType):
+    Maybe<IKsEntityTracker<KsVariable | KsParameter>> {
+    const tracker = this.lookup(token, scope);
+
+    return !empty(tracker)
+      && (tracker.declared.entity.tag === 'variable'
+      || tracker.declared.entity.tag === 'parameter')
+      ? tracker as IKsEntityTracker<KsVariable | KsParameter>
+      : undefined;
+  }
+
+  // lookup a variable tracker
+  public lookupVariableTracker(token: IToken, scope: ScopeType):
+    Maybe<IKsEntityTracker<KsVariable>> {
+    const tracker = this.lookup(token, scope);
+
+    return !empty(tracker) && tracker.declared.entity.tag === 'variable'
+      ? tracker as IKsEntityTracker<KsVariable>
+      : undefined;
+  }
+
+  // lockup a function tracker
+  public lookupFunctionTracker(token: IToken, scope: ScopeType):
+    Maybe<IKsEntityTracker<KsFunction>> {
+    const tracker = this.lookup(token, scope);
+
+    return !empty(tracker) && tracker.declared.entity.tag === 'variable'
+      ? tracker as IKsEntityTracker<KsFunction>
+      : undefined;
+  }
+
+  // lookup a lock tracker
+  public lookupLockTracker(token: IToken, scope: ScopeType):
+    Maybe<IKsEntityTracker<KsLock>> {
+    const tracker = this.lookup(token, scope);
+
+    return !empty(tracker) && tracker.declared.entity.tag === 'lock'
+      ? tracker as IKsEntityTracker<KsLock>
+      : undefined;
+  }
+
+  // lookup a parameter tracker
+  public lookupParameterTracker(token: IToken, scope: ScopeType):
+    Maybe<IKsEntityTracker<KsParameter>> {
+    const tracker = this.lookup(token, scope);
+
+    return !empty(tracker) && tracker.declared.entity.tag === 'parameter'
+      ? tracker as IKsEntityTracker<KsParameter>
       : undefined;
   }
 
   // attempt a entity lookup
-  private lookup(token: IToken, scope: ScopeType): Maybe<KsEntity> {
+  private lookup(token: IToken, scope: ScopeType): Maybe<IKsEntityTracker> {
     if (scope === ScopeType.local) {
       return this.peekScope().get(token.lexeme);
     }
@@ -458,17 +479,17 @@ export class ScopeManager implements GraphNode<ScopeManager> {
     // tslint:disable-next-line:no-increment-decrement
     for (let i = scopes.length - 1; i >= 0; i--) {
       const scope = scopes[i];
-      const entity = scope.get(token.lexeme);
-      if (!empty(entity)) {
-        return entity;
+      const tracker = scope.get(token.lexeme);
+      if (!empty(tracker)) {
+        return tracker;
       }
     }
 
     // check child scopes entity is in another file
     for (const child of this.outScopes) {
-      const entity = child.scopesRoot.scope.get(token.lexeme);
-      if (!empty(entity)) {
-        return entity;
+      const tracker = child.scopesRoot.scope.get(token.lexeme);
+      if (!empty(tracker)) {
+        return tracker;
       }
     }
 

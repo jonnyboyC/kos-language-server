@@ -34,7 +34,6 @@ import { LocalResolver } from './localResolver';
 import { SetResolver } from './setResolver';
 import { ScopeManager } from './scopeManager';
 import { TokenType } from '../entities/tokentypes';
-import { LockState } from './types';
 import { SyntaxTree } from '../entities/syntaxTree';
 import { mockLogger, mockTracer } from '../utilities/logger';
 import { IToken } from '../entities/types';
@@ -244,7 +243,7 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   }
 
   public visitUnlock(inst: UnlockInst): Errors {
-    const error = this.scopeMan.useLock(inst.identifier, LockState.unlocked);
+    const error = this.scopeMan.useLock(inst.identifier);
     return empty(error) ? [] : [error];
   }
 

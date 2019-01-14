@@ -23,7 +23,6 @@ import { extname } from 'path';
 import { flatten } from './utilities/arrayUtilities';
 import { readFileAsync } from './utilities/fsUtilities';
 import { standardLibrary } from './analysis/standardLibrary';
-import { terminalStructType } from './typeChecker/terminalStruct';
 
 export class Analyzer {
   public volumne0Path: string;
@@ -84,11 +83,6 @@ export class Analyzer {
     // perform an initial function pass
     this.logger.log(`Resolving ${uri}`);
     this.logger.log('');
-
-    const lexicon = terminalStructType;
-    if (lexicon) {
-      console.log('');
-    }
 
     performance.mark('resolver-start');
     resolverErrors = resolverErrors.concat(resolver.resolve(syntaxTree, scopeManager));

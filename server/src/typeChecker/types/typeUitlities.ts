@@ -1,4 +1,4 @@
-import { IType, IVarType, IGenericType, IGenericVarType } from './types';
+import { IType, IVarType, IGenericType, IGenericVarType, ISuffixMap } from './types';
 import { empty } from '../../utilities/typeGuards';
 import { memoize } from '../../utilities/memoize';
 
@@ -24,14 +24,19 @@ export const hasSuffix = (type: IType, suffix: string): boolean => {
 };
 
 export const allSuffixes = (type: IType): IType[] => {
-  let suffixes: IType[] = [];
+  const suffixes: ISuffixMap = new Map();
 
   moveDownPrototype(type, false, (currentType) => {
-    suffixes = suffixes.concat(Object.values(currentType.suffixes));
+    for (const [name, suffix] of currentType.suffixes) {
+      if (!suffixes.has(name)) {
+        suffixes.set(name, suffix);
+      }
+    }
+
     return undefined;
   });
 
-  return suffixes;
+  return Array.from(suffixes.values());
 };
 
 const moveDownPrototype = <T>(
@@ -75,6 +80,10 @@ export const addPrototype = <T extends IGenericType>(type: T, parent: T): void =
 
 export const addSuffixes = <T extends IGenericType>(type: T, ...suffixes: T[]): void => {
   for (const suffix of suffixes) {
+    if (type.suffixes.has(suffix.name)) {
+      throw new Error('duplicate suffix added to type');
+    }
+
     type.suffixes.set(suffix.name, suffix);
   }
 };
