@@ -7,7 +7,7 @@ export class CSharpLanguageClient extends AutoLanguageClient {
   getConnectionType(): ConnectionType { return 'ipc'; }
 
   startServerProcess () {
-    const server = require.resolve('kos-language-server/server');
+    const server = require.resolve('kos-language-server/src/server');
     return super.spawnChildNode([server, '--node-ipc'], {
       stdio: [null, null, null, 'ipc'],
     });

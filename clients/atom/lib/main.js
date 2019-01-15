@@ -7,7 +7,7 @@ class CSharpLanguageClient extends atom_languageclient_1.AutoLanguageClient {
     getServerName() { return 'kos-language-server'; }
     getConnectionType() { return 'ipc'; }
     startServerProcess() {
-        const server = require.resolve('kos-language-server/server');
+        const server = require.resolve('kos-language-server/src/server');
         return super.spawnChildNode([server, '--node-ipc'], {
             stdio: [null, null, null, 'ipc'],
         });
