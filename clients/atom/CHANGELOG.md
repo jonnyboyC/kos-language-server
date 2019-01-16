@@ -1,3 +1,2 @@
-## 0.1.0 - First Release
-* Every feature added
-* Every bug fixed
+## 0.1.0 - Atom Client First Release
+* Initial Syntax Highlight
