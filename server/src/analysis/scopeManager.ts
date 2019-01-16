@@ -15,6 +15,7 @@ import { ScopePosition } from './scopePosition';
 import { mockLogger } from '../utilities/logger';
 import { Scope } from './scope';
 import { createTracker, createUsage } from './tracker';
+import { IType } from '../typeChecker/types/types';
 
 export class ScopeManager implements GraphNode<ScopeManager> {
   private readonly global: IScope;
@@ -170,11 +171,23 @@ export class ScopeManager implements GraphNode<ScopeManager> {
     return entities.find(entity => entity.name.lexeme === name);
   }
 
+  // get tracker at a position
+  public trackerAtPosition(pos: Position, name: string): Maybe<IKsEntityTracker> {
+    const trackers = this.trackersAtPositions(pos);
+    return trackers.find(tracker => tracker.declared.entity.name.lexeme === name);
+  }
+
   // get all entities in scope at a position
   public entitiesAtPosition(pos: Position): KsEntity[] {
-    const entities = Array.from(this.scopesRoot.scope.entities()).concat(
+    return this.trackersAtPositions(pos)
+      .map(tracker => tracker.declared.entity);
+  }
+
+  // get all entity trackers in scope at a position
+  public trackersAtPositions(pos: Position): IKsEntityTracker[] {
+    const entities = Array.from(this.scopesRoot.scope.values()).concat(
       ...Array.from(this.outScopes.values())
-        .map(scope => Array.from(scope.scopesRoot.scope.entities())),
+        .map(scope => Array.from(scope.scopesRoot.scope.values())),
     );
 
     return this.entitiesAtPositionDepth(pos, this.scopesRoot.children)
@@ -195,8 +208,8 @@ export class ScopeManager implements GraphNode<ScopeManager> {
   }
 
   // recursively move down scopes for more relevant entities
-  private entitiesAtPositionDepth(pos: Position, nodes: IScopeNode[]): KsEntity[] {
-    let entities: KsEntity[] = [];
+  private entitiesAtPositionDepth(pos: Position, nodes: IScopeNode[]): IKsEntityTracker[] {
+    let entities: IKsEntityTracker[] = [];
 
     for (const node of nodes) {
       const { position } = node;
@@ -204,7 +217,7 @@ export class ScopeManager implements GraphNode<ScopeManager> {
         // if global it is available
         case 'global':
           entities = entities.concat(
-            Array.from(node.scope.entities()),
+            Array.from(node.scope.values()),
             this.entitiesAtPositionDepth(pos, node.children));
           break;
         // if the scope has a real position check if we're in the bounds
@@ -213,7 +226,7 @@ export class ScopeManager implements GraphNode<ScopeManager> {
           if (positionBeforeEqual(start, pos) && positionAfterEqual(end, pos)) {
 
             entities = entities.concat(
-              Array.from(node.scope.entities()),
+              Array.from(node.scope.values()),
               this.entitiesAtPositionDepth(pos, node.children));
           }
       }
@@ -289,7 +302,7 @@ export class ScopeManager implements GraphNode<ScopeManager> {
   }
 
   // declare a variable
-  public declareVariable(scopeType: ScopeType, name: IToken): Maybe<ResolverError> {
+  public declareVariable(scopeType: ScopeType, name: IToken, type?: IType): Maybe<ResolverError> {
     const tracker = this.lookup(name, ScopeType.local);
 
     // check if variable has already been defined
@@ -299,7 +312,7 @@ export class ScopeManager implements GraphNode<ScopeManager> {
 
     const scope = this.selectScope(scopeType);
 
-    scope.set(name.lexeme, createTracker(new KsVariable(scopeType, name)));
+    scope.set(name.lexeme, createTracker(new KsVariable(scopeType, name), type));
     // this.logger.info(`declare variable ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }

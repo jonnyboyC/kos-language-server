@@ -65,7 +65,12 @@ export class GenericType implements IGenericType {
     return this.core.name;
   }
 
+  public toTypeString(): string {
+    return `${this.core.name}<T>`;
+  }
+
   public toConcreteType(type: IType): IType {
+    // check cache
     const cache = this.concreteTypes.get(type);
     if (!empty(cache)) {
       return cache;
@@ -73,6 +78,7 @@ export class GenericType implements IGenericType {
 
     const { name, params, returns, set, call } = this.core;
 
+    // generate concete parameters
     let newParams: Maybe<IType[] | IVarType> = undefined;
     if (!empty(params)) {
       if (Array.isArray(params)) {
@@ -87,6 +93,7 @@ export class GenericType implements IGenericType {
       }
     }
 
+    // generate concrete return
     const newReturns: Maybe<IType> = !empty(returns) && isFullType(returns)
       ? returns
       : type;
@@ -129,6 +136,10 @@ export class Type extends GenericType implements IType {
     return newType;
   }
 
+  public toTypeString(): string {
+    return this.core.name;
+  }
+
   get tag(): 'type' {
     return 'type';
   }
@@ -158,19 +169,19 @@ export const createGenericArgSuffixType = (
   name: string,
   returns?: IGenericType,
   ...params: IGenericType[]): IGenericType => {
-  return new GenericType(new TypeCoreGeneric(name, false, false, params, returns));
+  return new GenericType(new TypeCoreGeneric(name, true, false, params, returns));
 };
 
 export const createArgSuffixType = (name: string, returns?: IType, ...params: IType[]): IType => {
-  return new Type(new TypeCore(name, false, false, params, returns));
+  return new Type(new TypeCore(name, true, false, params, returns));
 };
 
 export const createSuffixType = (name: string, returns?: IType): IType => {
-  return new Type(new TypeCore(name, true, false, undefined, returns));
+  return new Type(new TypeCore(name, false, false, undefined, returns));
 };
 
 export const createSetSuffixType = (name: string, returns?: IType): IType => {
-  return new Type(new TypeCore(name, true, false, undefined, returns));
+  return new Type(new TypeCore(name, false, true, undefined, returns));
 };
 
 export const createVarSuffixType = (name: string, returns?: IType, params?: IVarType): IType => {

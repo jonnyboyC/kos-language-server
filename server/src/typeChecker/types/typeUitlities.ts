@@ -61,6 +61,7 @@ const moveDownPrototype = <T>(
 export const isFullVarType = (type: IGenericVarType): type is IVarType => {
   return isFullType(type.type);
 };
+
 export const isFullType = (type: IGenericType): type is IType => {
   const { tag } = type as IType;
   return !empty(tag) && tag === 'type';

@@ -8,6 +8,7 @@ import { vectorType } from '../collections/vector';
 import { directionType } from '../direction';
 import { voidType } from '../void';
 import { uniqueSetType } from '../collections/uniqueset';
+import { partType } from '../part';
 
 export const vesselTargetType: IType = createStructureType('vesselTarget');
 addPrototype(vesselTargetType, orbitableType);
@@ -26,7 +27,7 @@ addSuffixes(
   createArgSuffixType('partStagged', userListType, stringType),
   createArgSuffixType('partStaggedPattern', userListType, stringType),
   createArgSuffixType('allTaggedParts', userListType),
-  createArgSuffixType('parts', listType.toConcreteType(scalarType)), /* TODO */
+  createArgSuffixType('parts', listType.toConcreteType(partType)),
   createArgSuffixType('dockingPorts', listType.toConcreteType(scalarType)), /* TODO */
   createArgSuffixType('decouplers', listType.toConcreteType(scalarType)), /* TODO */
   createArgSuffixType('separators', listType.toConcreteType(scalarType)), /* TODO */
@@ -48,14 +49,14 @@ addSuffixes(
   createSuffixType('shipName', stringType),
   createSuffixType('name', stringType),
   createSuffixType('type', stringType),
-  createSuffixType('sensors', /* TODO */ scalarType),
+  createSuffixType('sensors', vesselTargetType),
   createSuffixType('termVelocity', scalarType),
   createSuffixType('dynamicPressure', scalarType),
   createSuffixType('q', scalarType),
   createSuffixType('loaded', booleanType),
   createSuffixType('unpacked', booleanType),
-  createSuffixType('rootPart', /* TODO */ scalarType),
-  createSuffixType('controlPart',  /* TODO */ scalarType),
+  createSuffixType('rootPart', partType),
+  createSuffixType('controlPart', partType),
   createSuffixType('dryMass', scalarType),
   createSuffixType('wetMass', scalarType),
   createSuffixType('resources', listType.toConcreteType(scalarType)), /* TODO */

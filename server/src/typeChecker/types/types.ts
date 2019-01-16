@@ -12,6 +12,7 @@ export interface IGenericType {
   inherentsFrom?: IGenericType;
   suffixes: IGenericSuffixMap;
   toConcreteType(type: IType): IType;
+  toTypeString(): string;
 }
 
 export interface ITypeCore extends IGenericTypeCore {
@@ -24,7 +25,6 @@ export interface IType extends IGenericType {
   readonly core: ITypeCore;
   inherentsFrom?: IType;
   suffixes: ISuffixMap;
-  toConcreteType(type: IType): IType;
   tag: 'type';
 }
 

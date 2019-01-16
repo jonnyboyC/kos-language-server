@@ -28,6 +28,7 @@ import { empty } from './utilities/typeGuards';
 import { Analyzer } from './analyzer';
 import { IDiagnosticUri } from './types';
 import { keywordCompletions } from './utilities/constants';
+import { KsEntity } from './analysis/types';
 
 // Create a connection for the server. The connection uses Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -236,7 +237,20 @@ connection.onDefinition(
 // the completion list.
 connection.onCompletionResolve(
   (item: CompletionItem): CompletionItem => {
+    const entity = item.data as KsEntity;
+
     // this would be a possible spot to pull in doc string if present.
+    if (!empty(entity) && !empty(entity.name.uri)) {
+      const tracker = analyzer.getTrackerAtPosition(
+        entity.name.uri,
+        entity.name.start,
+        entity.name.lexeme);
+
+      if (!empty(tracker)) {
+        item.detail = `${tracker.declared.type.toTypeString()} ${item.label}`;
+      }
+    }
+
     return item;
   },
 );

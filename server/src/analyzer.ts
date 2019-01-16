@@ -8,7 +8,7 @@ import { Scanner } from './scanner/scanner';
 import { Resolver } from './analysis/resolver';
 import { IScannerError } from './scanner/types';
 import { IParseError, SyntaxTreeResult, RunInstType } from './parser/types';
-import { IResolverError, KsEntity } from './analysis/types';
+import { IResolverError, KsEntity, IKsEntityTracker } from './analysis/types';
 import { mockLogger, mockTracer } from './utilities/logger';
 import { IToken } from './entities/types';
 import { empty, notEmpty } from './utilities/typeGuards';
@@ -160,6 +160,17 @@ export class Analyzer {
     }
 
     return entity.name;
+  }
+
+  public getTrackerAtPosition(uri: string, pos: Position, name: string):
+    Maybe<IKsEntityTracker<KsEntity>> {
+    const documentInfo = this.documentInfos.get(uri);
+
+    if (!empty(documentInfo) && !empty(documentInfo.scopeManager)) {
+      return documentInfo.scopeManager.trackerAtPosition(pos, name);
+    }
+
+    return undefined;
   }
 
   // get entities at position
