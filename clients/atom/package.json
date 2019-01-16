@@ -18,6 +18,20 @@
     "atom": ">=1.0.0 <2.0.0",
     "node": "*"
   },
+  "configSchema": {
+    "kosServer": {
+      "title": "KOS server",
+      "type": "object",
+      "properties": {
+        "path": {
+          "title": "KOS server path",
+          "type": "string",
+          "default": "node_modules/kos-language-server/out/server.js",
+          "description": "Path to a kos-language-server `server.js` the language server will use to process TypeScript. Defaults to the bundled version."
+        }
+      }
+    }
+  },
   "enhancedScopes": [
     "source.kos"
   ],
