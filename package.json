@@ -15,7 +15,9 @@
         "url": "https://github.com/jonnyboyC/kos-language-server"
     },
     "publisher": "JohnChabot",
-    "categories": ["Programming Languages"],
+    "categories": [
+        "Programming Languages"
+    ],
     "keywords": [
         "Kerbal Operating System",
         "kos",
@@ -29,7 +31,7 @@
     "activationEvents": [
         "onLanguage:kos"
     ],
-    "main": "./client/out/extension",
+    "main": "./clients/vscode/out/extension",
     "contributes": {
         "languages": [
             {
@@ -48,28 +50,30 @@
             {
                 "language": "kos",
                 "scopeName": "source.kos",
-                "path": "./syntaxes/kos.tmLanguage.json"
+                "path": "./clients/vscode/grammars/kos.tmLanguage.json"
             }
         ]
     },
     "scripts": {
-        "vscode:prepublish": "cd client && npm run update-vscode && cd .. && npm run compile",
-        "compile:client": "tsc -p ./client/tsconfig.json",
+        "vscode:prepublish": "cd clients/vscode && npm run update-vscode && cd ../.. && npm run compile",
+        "compile:vscode": "tsc -p ./clients/vscode/tsconfig.json",
+        "compile:atom": "tsc -p ./clients/atom/tsconfig.json",
         "compile:server": "tsc -p ./server/tsconfig.json",
         "test": "ava",
-        "watch:client": "tsc -w -p ./client/tsconfig.json",
+        "watch:vscode": "tsc -w -p ./clients/vscode/tsconfig.json",
+        "watch:atom": "tsc -w -p ./clients/atom/tsconfig.json",
         "watch:server": "tsc -w -p ./server/tsconfig.json",
-        "compile": "npm run compile:client && npm run compile:server",
-        "postinstall": "cd client && npm install && cd ../server && npm install && cd .."
+        "compile": "npm run compile:vscode && npm run compile:atom && npm run compile:server",
+        "postinstall": "cd clients/vscode && npm install && cd ../atom && npm install && cd ../../server && npm install && cd .."
     },
     "ava": {
         "files": [
             "server/out/**/*.spec.js",
-            "client/out/**/*.spec.js"
+            "clients/vscode/out/**/*.spec.js"
         ],
         "sources": [
             "server/out/**/*.js",
-            "client/out/**/*.js"
+            "clients/vscode/out/**/*.js"
         ]
     },
     "bugs": {
@@ -77,6 +81,7 @@
     },
     "homepage": "https://github.com/jonnyboyC/kos-language-server#readme",
     "devDependencies": {
+        "@types/atom": "^1.31.0",
         "@types/mocha": "~5.2.0",
         "@types/node": "~10.12.11",
         "ava": "^0.25.0",

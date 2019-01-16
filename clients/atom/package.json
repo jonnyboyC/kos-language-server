@@ -1,0 +1,45 @@
+{
+  "name": "language-kos",
+  "main": "./lib/main.js",
+  "version": "0.1.0",
+  "description": "Atom client for the KOS-language-server",
+  "author": "John Chabot",
+  "keywords": [
+    "Kerbal Space Program",
+    "KSP",
+    "Kerbal Operating System",
+    "KOS",
+    "Language",
+    "Syntax"
+  ],  
+  "repository": "https://github.com/jonnyboyC/kos-language-server",
+  "license": "MIT",
+  "engines": {
+    "atom": ">=1.0.0 <2.0.0",
+    "node": "*"
+  },
+  "configSchema": {
+    "kosServer": {
+      "title": "KOS server",
+      "type": "object",
+      "properties": {
+        "path": {
+          "title": "KOS server path",
+          "type": "string",
+          "default": "node_modules/kos-language-server/out/server.js",
+          "description": "Path to a kos-language-server `server.js` the language server will use to process TypeScript. Defaults to the bundled version."
+        }
+      }
+    }
+  },
+  "enhancedScopes": [
+    "source.kos"
+  ],
+  "activationHooks": [
+    "language-kos:grammar-used"
+  ],
+  "dependencies": {
+    "atom-languageclient": "^0.9.9",
+    "kos-language-server": "^0.2.2"
+  }
+}
