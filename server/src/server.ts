@@ -23,12 +23,15 @@ import {
   DocumentSymbolParams,
   SymbolInformation,
   SymbolKind,
+  CompletionParams,
+  CompletionTriggerKind,
 } from 'vscode-languageserver';
 import { empty } from './utilities/typeGuards';
 import { Analyzer } from './analyzer';
 import { IDiagnosticUri } from './types';
 import { keywordCompletions } from './utilities/constants';
 import { KsEntity } from './analysis/types';
+import { entityCompletionItems } from './serverUtils';
 
 // Create a connection for the server. The connection uses Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -64,7 +67,7 @@ connection.onInitialize((params: InitializeParams) => {
       // Tell the client that the server supports code completion
       completionProvider: {
         resolveProvider: true,
-        // triggerCharacters: [':'],
+        triggerCharacters: [':'],
       },
 
       signatureHelpProvider: {
@@ -130,37 +133,16 @@ documents.onDidChangeContent(async (change) => {
 
 // This handler provides the initial list of the completion items.
 connection.onCompletion(
-  (documentPosition: TextDocumentPositionParams): CompletionItem[] => {
-    const { position } = documentPosition;
-    const { uri } = documentPosition.textDocument;
-    const entities = analyzer.getEntitiesAtPosition(uri, position);
+  (completionParams: CompletionParams): CompletionItem[] => {
+    const { context } = completionParams;
 
-    return entities.map((entity) => {
-      let kind: Maybe<CompletionItemKind> = undefined;
-      switch (entity.tag) {
-        case 'function':
-          kind = CompletionItemKind.Function;
-          break;
-        case 'parameter':
-          kind = CompletionItemKind.Variable;
-          break;
-        case 'lock':
-          kind = CompletionItemKind.Variable;
-          break;
-        case 'variable':
-          kind = CompletionItemKind.Variable;
-          break;
-        default:
-          throw new Error('Unknown entity type');
-      }
+    if (empty(context) || context.triggerKind !== CompletionTriggerKind.TriggerCharacter) {
+      return entityCompletionItems(analyzer, completionParams)
+        .concat(keywordCompletions);
+    }
 
-      return {
-        kind,
-        label: entity.name.lexeme,
-        data: entity,
-      } as CompletionItem;
-    })
-    .concat(keywordCompletions);
+    
+    return [];
   },
 );
 

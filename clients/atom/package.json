@@ -11,7 +11,7 @@
     "KOS",
     "Language",
     "Syntax"
-  ],  
+  ],
   "repository": "https://github.com/jonnyboyC/kos-language-server",
   "license": "MIT",
   "engines": {
