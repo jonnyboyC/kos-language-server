@@ -24,11 +24,11 @@ export class KosLanguageClient extends AutoLanguageClient {
   validateKosServerPath(): boolean {
     const kosSpecifiedPath = atom.config.get('language-kos.kosServer.path');
     const isAbsolutelySpecified = isAbsolute(kosSpecifiedPath);
-    const tsAbsolutePath = isAbsolutelySpecified
+    const kosAbsolutePath = isAbsolutelySpecified
       ? kosSpecifiedPath
       : join(__dirname, '..', kosSpecifiedPath);
 
-    if (existsSync(tsAbsolutePath)) return true;
+    if (existsSync(kosAbsolutePath)) return true;
 
     atom.notifications.addError('language-kos could not locate the kos-language-server', {
       dismissable: true,
@@ -36,7 +36,7 @@ export class KosLanguageClient extends AutoLanguageClient {
         { text: 'Set KOS server path', onDidClick: () => this.openPackageSettings() },
       ],
       description:
-        `No KOS server could be found at <b>${tsAbsolutePath}</b>`,
+        `No KOS server could be found at <b>${kosAbsolutePath}</b>`,
     });
 
     return false;
