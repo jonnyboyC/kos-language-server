@@ -1,3 +1,4 @@
+import { TextEditor } from 'atom';
 import { AutoLanguageClient, ConnectionType } from 'atom-languageclient';
 import { isAbsolute, join } from 'path';
 import { existsSync } from 'fs';
@@ -39,5 +40,9 @@ export class KosLanguageClient extends AutoLanguageClient {
     });
 
     return false;
+  }
+
+  openPackageSettings() {
+    atom.workspace.open('atom://config/packages/language-kos');
   }
 }

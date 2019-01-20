@@ -33,6 +33,9 @@ class KosLanguageClient extends atom_languageclient_1.AutoLanguageClient {
         });
         return false;
     }
+    openPackageSettings() {
+        atom.workspace.open('atom://config/packages/language-kos');
+    }
 }
 exports.KosLanguageClient = KosLanguageClient;
 //# sourceMappingURL=main.js.map
