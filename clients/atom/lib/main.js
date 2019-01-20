@@ -9,9 +9,11 @@ class KosLanguageClient extends atom_languageclient_1.AutoLanguageClient {
     getServerName() { return 'kos-language-server'; }
     getConnectionType() { return 'ipc'; }
     startServerProcess() {
+        console.log('I happened');
         return super.spawnChildNode([atom.config.get('language-kos.kosServer.path'), '--node-ipc'], { stdio: [null, null, null, 'ipc'] });
     }
     shouldStartForEditor(editor) {
+        console.log('I happened');
         if (!this.validateKosServerPath())
             return false;
         return super.shouldStartForEditor(editor);
@@ -32,6 +34,9 @@ class KosLanguageClient extends atom_languageclient_1.AutoLanguageClient {
             description: `No KOS server could be found at <b>${tsAbsolutePath}</b>`,
         });
         return false;
+    }
+    openPackageSettings() {
+        atom.workspace.open('atom://config/packages/language-kos');
     }
 }
 exports.KosLanguageClient = KosLanguageClient;
