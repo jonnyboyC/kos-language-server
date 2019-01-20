@@ -3,7 +3,7 @@
     "name": "Kerbal Operating System",
     "scopeName": "source.kos",
     "fileTypes": [
-        "ks"
+      "ks"
     ],
     "patterns": [{
         "include": "#statements"
@@ -127,7 +127,7 @@
             "patterns": [
                 {
                     "include": "#comment"
-                },    
+                },
                 {
                     "include": "#expression"
                 }

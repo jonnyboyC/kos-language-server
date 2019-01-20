@@ -1,3 +1,6 @@
 # KOS Atom Client
 
-TODO Fill this in
+
+For full support you will need to install atom-ide-ui using the following command
+
+    apm install atom-ide-ui
