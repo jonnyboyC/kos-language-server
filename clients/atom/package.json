@@ -1,5 +1,5 @@
 {
-  "name": "language-kos",
+  "name": "ide-kos",
   "main": "./lib/main.js",
   "version": "0.1.0",
   "description": "Atom client for the KOS-language-server",
@@ -11,7 +11,7 @@
     "KOS",
     "Language",
     "Syntax"
-  ],  
+  ],
   "repository": "https://github.com/jonnyboyC/kos-language-server",
   "license": "MIT",
   "engines": {
@@ -27,7 +27,7 @@
           "title": "KOS server path",
           "type": "string",
           "default": "node_modules/kos-language-server/out/server.js",
-          "description": "Path to a kos-language-server `server.js` the language server will use to process TypeScript. Defaults to the bundled version."
+          "description": "Path to a kos-language-server `server.js` the language server will use to process KerboScript. Defaults to the bundled version."
         }
       }
     }
@@ -35,11 +35,52 @@
   "enhancedScopes": [
     "source.kos"
   ],
-  "activationHooks": [
-    "language-kos:grammar-used"
-  ],
   "dependencies": {
     "atom-languageclient": "^0.9.9",
     "kos-language-server": "^0.2.2"
+  },
+  "consumedServices": {
+    "console": {
+      "versions": {
+        "0.1.0": "consumeConsole"
+      }
+    },
+    "datatip": {
+      "versions": {
+        "0.1.0": "consumeDatatip"
+      }
+    },
+    "signature-help": {
+      "versions": {
+        "0.1.0": "consumeSignatureHelp"
+      }
+    }
+  },
+  "providedServices": {
+    "autocomplete.provider": {
+      "versions": {
+        "2.0.0": "provideAutocomplete"
+      }
+    },
+    "code-actions": {
+      "versions": {
+        "0.1.0": "provideCodeActions"
+      }
+    },
+    "definitions": {
+      "versions": {
+        "0.1.0": "provideDefinitions"
+      }
+    },
+    "find-references": {
+      "versions": {
+        "0.1.0": "provideFindReferences"
+      }
+    },
+    "outline-view": {
+      "versions": {
+        "0.1.0": "provideOutlines"
+      }
+    }
   }
 }
