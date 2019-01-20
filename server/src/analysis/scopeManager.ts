@@ -171,6 +171,12 @@ export class ScopeManager implements GraphNode<ScopeManager> {
     return entities.find(entity => entity.name.lexeme === name);
   }
 
+  // get a global tracker
+  public globalTracker(name: string): Maybe<IKsEntityTracker> {
+    return Array.from(this.scopesRoot.scope.values())
+      .find(tracker => tracker.declared.entity.name.lexeme === name);
+  }
+
   // get tracker at a position
   public trackerAtPosition(pos: Position, name: string): Maybe<IKsEntityTracker> {
     const trackers = this.trackersAtPositions(pos);
@@ -322,7 +328,8 @@ export class ScopeManager implements GraphNode<ScopeManager> {
     scopeType: ScopeType,
     name: IToken,
     parameters: KsParameter[],
-    returnValue: boolean): Maybe<ResolverError> {
+    returnValue: boolean,
+    type?: IType): Maybe<ResolverError> {
     const tracker = this.lookup(name, ScopeType.local);
 
     // check if variable has already been defined
@@ -331,9 +338,11 @@ export class ScopeManager implements GraphNode<ScopeManager> {
     }
 
     const scope = this.selectScope(scopeType);
-    scope.set(name.lexeme, createTracker(new KsFunction(
-      scopeType, name,
-      parameters, returnValue)));
+    scope.set(name.lexeme, createTracker(
+      new KsFunction(
+        scopeType, name,
+        parameters, returnValue),
+      type));
 
     // this.logger.info(`declare function ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;

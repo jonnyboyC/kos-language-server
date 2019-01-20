@@ -162,6 +162,10 @@ export class Analyzer {
     return entity.name;
   }
 
+  public getGlobalTracker(name: string): Maybe<IKsEntityTracker<KsEntity>> {
+    return standardLibrary.globalTracker(name);
+  }
+
   public getTrackerAtPosition(uri: string, pos: Position, name: string):
     Maybe<IKsEntityTracker<KsEntity>> {
     const documentInfo = this.documentInfos.get(uri);

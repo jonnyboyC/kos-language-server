@@ -2,6 +2,7 @@ import { IType } from './types';
 import { createStructureType, createArgSuffixType } from './ksType';
 import { structureType } from './structure';
 import { addPrototype, addSuffixes } from './typeUitlities';
+import { voidType } from './void';
 
 // ---------- base of all primitive types --------------
 export const primitiveType: IType = createStructureType('primitive');
@@ -38,7 +39,7 @@ addSuffixes(
   createArgSuffixType('padright', stringType, scalarType),
   createArgSuffixType('remove', stringType, scalarType, scalarType),
   createArgSuffixType('replace', stringType, stringType, stringType),
-  createArgSuffixType('split', undefined, stringType),
+  createArgSuffixType('split', voidType, stringType),
   createArgSuffixType('startswith', booleanType, stringType),
   createArgSuffixType('tolower', stringType),
   createArgSuffixType('toupper', stringType),

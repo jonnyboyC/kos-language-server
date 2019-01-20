@@ -1,7 +1,8 @@
-import { IConstantType } from './types';
-import { ConstantType, TypeCoreConstant } from './ksType';
-import { addPrototype } from './typeUitlities';
+import { IConstantType, IType } from './types';
+import { ConstantType, TypeCoreConstant, createStructureType } from './ksType';
+import { addPrototype, addSuffixes } from './typeUitlities';
 import { doubleType } from './primitives';
+import { structureType } from './structure';
 
 export const gType: IConstantType<number>
   = new ConstantType(new TypeCoreConstant('g', false, false, 6.67384e-11));
@@ -37,3 +38,18 @@ export const radToDegType: IConstantType<number>
   = new ConstantType(new TypeCoreConstant(
     'radtodeg', false, false, 57.295779513082320876798154814105));
 addPrototype(radToDegType, doubleType);
+
+export const constantType: IType = createStructureType('constant');
+addPrototype(constantType, structureType);
+
+addSuffixes(
+  constantType,
+  gType,
+  eType,
+  piType,
+  cType,
+  atmToKpaType,
+  kpaToAtmType,
+  degToRadType,
+  radToDegType,
+);

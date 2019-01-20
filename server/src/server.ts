@@ -247,7 +247,16 @@ connection.onCompletionResolve(
         entity.name.lexeme);
 
       if (!empty(tracker)) {
-        item.detail = `${tracker.declared.type.toTypeString()} ${item.label}`;
+        item.detail = `${item.label}: ${tracker.declared.type.toTypeString()}`;
+      }
+    }
+
+    if (!empty(entity)) {
+      const tracker = analyzer.getGlobalTracker(
+        entity.name.lexeme);
+
+      if (!empty(tracker)) {
+        item.detail = `${item.label}: ${tracker.declared.type.toTypeString()}`;
       }
     }
 

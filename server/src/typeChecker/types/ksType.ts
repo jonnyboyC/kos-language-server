@@ -44,8 +44,8 @@ export class TypeCoreConstant<T> extends TypeCore {
     call: boolean,
     set: boolean,
     public readonly value: T,
-    params?: IType[] | IVarType,
-    returns?: IType) {
+    returns?: IType,
+    params?: IType[] | IVarType) {
 
     super(name, call, set, params, returns);
   }
@@ -65,22 +65,46 @@ export class GenericType implements IGenericType {
     return this.core.name;
   }
 
-  public toTypeString(): string {
-    return `${this.core.name}<T>`;
+  protected returnTypeString() {
+    return empty(this.core.returns)
+      ? 'void'
+      : this.core.returns.toTypeString();
   }
 
-  public toConcreteType(type: IType): IType {
-    // check cache
-    const cache = this.concreteTypes.get(type);
-    if (!empty(cache)) {
-      return cache;
+  protected parameterTypeString() {
+    // empty string for no params
+    if (empty(this.core.params)) {
+      return '';
     }
 
-    const { name, params, returns, set, call } = this.core;
+    // string separated i
+    if (Array.isArray(this.core.params)) {
+      return this.core.params
+        .map(param => param.toTypeString())
+        .join(', ');
+    }
 
-    // generate concete parameters
-    let newParams: Maybe<IType[] | IVarType> = undefined;
+    return `...${this.core.params.type.toTypeString()}`;
+  }
+
+  public toTypeString(): string {
+    if (!this.core.call) {
+      return `${this.core.name}<T>`;
+    }
+
+    const returnString = this.returnTypeString();
+    const paramsString = this.parameterTypeString();
+
+    return `<T>(${paramsString}) => ${returnString}`;
+  }
+
+  private newParameters(params: Maybe<IGenericType[] | IGenericVarType>, type: IType):
+    Maybe<IType[] | IVarType> {
+
+    let newParams: Maybe<IType[] | IVarType>;
     if (!empty(params)) {
+
+      // if array we know params are not a var type
       if (Array.isArray(params)) {
         newParams = [];
         for (const param of params) {
@@ -93,10 +117,29 @@ export class GenericType implements IGenericType {
       }
     }
 
-    // generate concrete return
-    const newReturns: Maybe<IType> = !empty(returns) && isFullType(returns)
+    return newParams;
+  }
+
+  private newReturn(returns: Maybe<IGenericType>, type: IType): Maybe<IType> {
+    return !empty(returns) && isFullType(returns)
       ? returns
       : type;
+  }
+
+  public toConcreteType(type: IType): IType {
+    // check cache
+    const cache = this.concreteTypes.get(type);
+    if (!empty(cache)) {
+      return cache;
+    }
+
+    const { name, params, returns, set, call } = this.core;
+
+    // generate concete parameters
+    const newParams = this.newParameters(params, type);
+
+    // generate concrete return
+    const newReturns = this.newReturn(returns, type);
 
     const newType = new Type(new TypeCore(name, call, set, newParams, newReturns));
     const newInherentsFrom = !empty(this.inherentsFrom)
@@ -137,7 +180,14 @@ export class Type extends GenericType implements IType {
   }
 
   public toTypeString(): string {
-    return this.core.name;
+    if (!this.core.call) {
+      return this.core.name;
+    }
+
+    const returnString = this.returnTypeString();
+    const paramsString = this.parameterTypeString();
+
+    return `(${paramsString}) => ${returnString}`;
   }
 
   get tag(): 'type' {

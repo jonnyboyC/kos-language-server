@@ -14,7 +14,7 @@ addPrototype(queueType, enumerableType);
 addSuffixes(
   queueType,
   createGenericArgSuffixType('copy', queueType),
-  createGenericArgSuffixType('push', undefined, tType),
+  createGenericArgSuffixType('push', voidType, tType),
   createGenericArgSuffixType('pop', tType),
   createGenericArgSuffixType('peek', tType),
   createGenericArgSuffixType('clear', voidType),

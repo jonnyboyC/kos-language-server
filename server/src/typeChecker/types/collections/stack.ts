@@ -13,7 +13,7 @@ addPrototype(stackType, enumerableType);
 addSuffixes(
   stackType,
   createGenericArgSuffixType('copy', stackType),
-  createGenericArgSuffixType('push', undefined, tType),
+  createGenericArgSuffixType('push', voidType, tType),
   createGenericArgSuffixType('pop', tType),
   createGenericArgSuffixType('peek', tType),
   createGenericArgSuffixType('clear', voidType),

@@ -7,6 +7,7 @@ import { addPrototype, addSuffixes } from '../typeUitlities';
 import { collectionType } from './collection';
 import { scalarType } from '../primitives';
 import { structureType } from '../structure';
+import { voidType } from '../void';
 
 export const listType: IGenericType = createGenericStructureType('list');
 
@@ -14,9 +15,9 @@ addPrototype(listType, collectionType);
 addSuffixes(
   listType,
   createGenericArgSuffixType('copy', listType),
-  createGenericArgSuffixType('add', undefined, tType),
-  createGenericArgSuffixType('insert', undefined, scalarType, tType),
-  createArgSuffixType('remove', undefined, scalarType),
+  createGenericArgSuffixType('add', voidType, tType),
+  createGenericArgSuffixType('insert', voidType, scalarType, tType),
+  createArgSuffixType('remove', voidType, scalarType),
   createGenericArgSuffixType('sublist', listType, scalarType, scalarType),
   createGenericArgSuffixType('indexOf', scalarType, tType),
   createGenericArgSuffixType('find', scalarType, tType),

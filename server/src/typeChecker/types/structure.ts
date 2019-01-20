@@ -2,6 +2,7 @@ import { IType } from './types';
 import { createStructureType, createArgSuffixType } from './ksType';
 import { addSuffixes, addPrototype } from './typeUitlities';
 import { stringType, booleanType } from './primitives';
+import { voidType } from './void';
 
 export const structureType: IType = createStructureType('structure');
 export const serializableStructureType: IType = createStructureType('serializableStructure');
@@ -11,7 +12,7 @@ addSuffixes(
   structureType,
   createArgSuffixType('tostring', stringType),
   createArgSuffixType('hassuffix', booleanType, stringType),
-  createArgSuffixType('suffixnames', undefined),
+  createArgSuffixType('suffixnames', voidType),
   createArgSuffixType('isserializable', booleanType),
   createArgSuffixType('typename', stringType),
   createArgSuffixType('istype', booleanType, stringType),

@@ -8,6 +8,7 @@ import { structureType } from './structure';
 import { booleanType, stringType } from './primitives';
 import { userListType } from './collections/list';
 import { partType } from './part';
+import { voidType } from './void';
 
 export const partModuleFields: IType = createStructureType('partModuleFields');
 addPrototype(partModuleFields, structureType);
@@ -26,7 +27,7 @@ addSuffixes(
   createSuffixType('allActionNames', userListType),
   createArgSuffixType('hasAction', booleanType, stringType),
   createArgSuffixType('getField', structureType, stringType),
-  createArgSuffixType('setField', undefined, structureType, stringType),
-  createArgSuffixType('doEvent', undefined, stringType),
-  createArgSuffixType('doAction', undefined, stringType, booleanType),
+  createArgSuffixType('setField', voidType, structureType, stringType),
+  createArgSuffixType('doEvent', voidType, stringType),
+  createArgSuffixType('doAction', voidType, stringType, booleanType),
 );

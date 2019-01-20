@@ -3,63 +3,95 @@ import { ScopeType } from '../parser/types';
 import { Token, Marker } from '../entities/token';
 import { TokenType } from '../entities/tokentypes';
 import { createFunctionType, createVarFunctionType } from '../typeChecker/types/functions/function';
-import { scalarType, stringType, doubleType, booleanType } from '../typeChecker/types/primitives';
+import {
+  scalarType, stringType,
+  booleanType, integarType, doubleType,
+} from '../typeChecker/types/primitives';
 import { queueType } from '../typeChecker/types/collections/queue';
 import { structureType } from '../typeChecker/types/structure';
 import { createVarType } from '../typeChecker/types/typeUitlities';
-import { userListType } from '../typeChecker/types/collections/list';
+import { userListType, listType } from '../typeChecker/types/collections/list';
 import { stackType } from '../typeChecker/types/collections/stack';
 import { uniqueSetType } from '../typeChecker/types/collections/uniqueset';
+import { createArgSuffixType } from '../typeChecker/types/ksType';
+import { voidType } from '../typeChecker/types/void';
+import { nodeType } from '../typeChecker/types/node';
+import { partType } from '../typeChecker/types/part';
+import { constantType } from '../typeChecker/types/constant';
+import { pathType } from '../typeChecker/types/io/path';
+import { volumeType } from '../typeChecker/types/io/volume';
+import { vectorType } from '../typeChecker/types/collections/vector';
+import { rgbaType } from '../typeChecker/types/rgba';
+import { directionType } from '../typeChecker/types/direction';
+import { kacAlarmType } from '../typeChecker/types/kacAlarmWrapper';
+import { geoCoordinatesType } from '../typeChecker/types/geoCoordinates';
+import { vesselTargetType } from '../typeChecker/types/orbital/vesselTarget';
+import { bodyTargetType } from '../typeChecker/types/orbital/bodyTarget';
+import { bodyAtmosphereType } from '../typeChecker/types/bodyatmosphere';
+import { noteType } from '../typeChecker/types/note';
+import { voiceType } from '../typeChecker/types/voice';
+import { hsvaType } from '../typeChecker/types/hsva';
+import { vectorRendererType } from '../typeChecker/types/vectorRenderer';
+import { guiWidgetType } from '../typeChecker/types/gui/guiWidget';
+import { orbitableType } from '../typeChecker/types/orbital/orbitable';
+import { timeSpanType } from '../typeChecker/types/timespan';
+import { highlightType } from '../typeChecker/types/highlight';
+import { orbitInfoType } from '../typeChecker/types/orbitInfo';
+import { careerType } from '../typeChecker/types/career';
+import { waypointType } from '../typeChecker/types/waypoint';
+import { resourceTransferType } from '../typeChecker/types/resourceTransfer';
 
 export const standardLibrary = new ScopeManager();
-const functionNames = [
+const functionTypes = [
   createFunctionType('abs', scalarType, scalarType),
-  createFunctionType('add', /* TODO */ scalarType),
-  createFunctionType('addAlarm', /* TODO */ scalarType),
-  createFunctionType('allwaypoints', /* TODO */ scalarType),
+  createFunctionType('add', voidType, nodeType),
+  createFunctionType('addAlarm', kacAlarmType, stringType, stringType, doubleType, stringType),
+  createFunctionType('allwaypoints', listType.toConcreteType(waypointType)),
   createFunctionType('angleaxis', /* TODO */ scalarType),
   createFunctionType('anglediff', scalarType, scalarType, scalarType),
   createFunctionType('arccos', scalarType),
   createFunctionType('arcsin', scalarType),
   createFunctionType('arctan', scalarType),
   createFunctionType('arctan2', scalarType),
-  createFunctionType('body', /* TODO */ scalarType),
-  createFunctionType('bodyatmosphere', /* TODO */ scalarType),
+  createFunctionType('body', bodyTargetType, stringType),
+  createFunctionType('bodyatmosphere', bodyAtmosphereType, stringType),
   createFunctionType('buildlist', /* TODO */ scalarType),
-  createFunctionType('career', /* TODO */ scalarType),
-  createFunctionType('cd', /* TODO */ scalarType),
+  createFunctionType('career', careerType),
+  createFunctionType('cd', voidType, stringType),
   createFunctionType('ceiling', scalarType, scalarType),
   createFunctionType('char', stringType, scalarType),
-  createFunctionType('chdir', /* TODO */ scalarType),
-  createFunctionType('clearguis', /* TODO */ scalarType),
+  createFunctionType('chdir', voidType, stringType),
+  createFunctionType('clearguis', voidType),
   createFunctionType('clearscreen', undefined),
-  createFunctionType('clearvecdraws', /* TODO */ scalarType),
-  createFunctionType('constant', /* TODO */ scalarType),
+  createFunctionType('clearvecdraws', voidType),
+  createFunctionType('constant', constantType),
   createFunctionType('copy_deprecated', /* TODO */ scalarType),
-  createFunctionType('copypath', /* TODO */ scalarType),
+  createFunctionType('copypath', voidType, stringType, stringType),
   createFunctionType('cos', scalarType),
   createFunctionType('create', /* TODO */ scalarType),
   createFunctionType('createdir', /* TODO */ scalarType),
   createFunctionType('debugdump', undefined),
   createFunctionType('debugfreezegame', scalarType),
   createFunctionType('delete_deprecated', /* TODO */ scalarType),
-  createFunctionType('deleteAlarm', /* TODO */ scalarType),
-  createFunctionType('deletepath', /* TODO */ scalarType),
-  createFunctionType('edit', /* TODO */ scalarType),
+  createFunctionType('deleteAlarm', booleanType, stringType),
+  createFunctionType('deletepath', voidType, stringType, stringType),
+  createFunctionType('edit', voidType, pathType),
   createFunctionType('exists', /* TODO */ scalarType),
   createFunctionType('floor', scalarType, scalarType),
-  createFunctionType('GetVoice', /* TODO */ scalarType),
-  createFunctionType('gui', /* TODO */ scalarType),
-  createFunctionType('heading', /* TODO */ scalarType),
-  createFunctionType('highlight', /* TODO */ scalarType),
-  createFunctionType('hsv', /* TODO */ scalarType),
-  createFunctionType('hsva', /* TODO */ scalarType),
-  createFunctionType('hudtext', /* TODO */ scalarType),
-  createFunctionType('latlng', /* TODO */ scalarType),
+  createFunctionType('GetVoice', voiceType, integarType),
+  createFunctionType('gui', guiWidgetType, integarType, integarType),
+  createFunctionType('heading', directionType, doubleType, doubleType),
+  createFunctionType('highlight', highlightType, structureType, rgbaType),
+  createFunctionType('hsv', hsvaType, doubleType, doubleType, doubleType),
+  createFunctionType('hsva', hsvaType, doubleType, doubleType, doubleType, doubleType),
+  createArgSuffixType(
+    'hudtext', undefined, stringType, integarType,
+    integarType, /* TODO */scalarType, booleanType),
+  createFunctionType('latlng', geoCoordinatesType, doubleType, doubleType),
   createFunctionType('lex', /* TODO */ scalarType),
   createFunctionType('lexicon', /* TODO */ scalarType),
   createVarFunctionType('list', userListType, createVarType(structureType)),
-  createFunctionType('listAlarms', /* TODO */ scalarType),
+  createFunctionType('listAlarms', listType.toConcreteType(kacAlarmType), stringType),
   createFunctionType('ln', scalarType, scalarType),
   createFunctionType('log10', scalarType, scalarType),
   createFunctionType('logfile', undefined, stringType, stringType),
@@ -68,66 +100,79 @@ const functionNames = [
   createFunctionType('max', scalarType, scalarType, scalarType),
   createFunctionType('min', scalarType, scalarType, scalarType),
   createFunctionType('mod', scalarType, scalarType),
-  createFunctionType('movepath', /* TODO */ scalarType),
-  createFunctionType('node', /* TODO */ scalarType),
-  createFunctionType('note', /* TODO */ scalarType),
+  createFunctionType('movepath', voidType, stringType, stringType),
+  createFunctionType('node', nodeType, doubleType, doubleType, doubleType, doubleType),
+  createFunctionType('note', noteType, doubleType, doubleType, doubleType, doubleType),
   createFunctionType('open', /* TODO */ scalarType),
-  createFunctionType('orbitat', /* TODO */ scalarType),
-  createFunctionType('path', /* TODO */ scalarType),
+  createFunctionType('orbitat', orbitInfoType, orbitableType, timeSpanType),
+  createFunctionType('path', pathType, stringType),
   createFunctionType('pidloop', /* TODO */ scalarType),
-  createFunctionType('positionat', /* TODO */ scalarType),
+  createFunctionType('positionat', vectorType, orbitableType, timeSpanType),
   createFunctionType('print', structureType),
   createFunctionType('printat', structureType, scalarType, scalarType),
-  createFunctionType('printlist', /* TODO */ scalarType),
-  createFunctionType('processor', /* TODO */ scalarType),
-  createFunctionType('profileresult', undefined),
-  createFunctionType('q', /* TODO */ scalarType),
-  createVarFunctionType('queue', queueType.toConcreteType(structureType), createVarType(structureType)),
-  createFunctionType('r', /* TODO */ scalarType),
+  createFunctionType('printlist', voidType, stringType),
+  createFunctionType('processor', partType, /* TODO Union Type */ stringType),
+  createFunctionType('profileresult', voidType),
+  createFunctionType('q', directionType, doubleType, doubleType, doubleType, doubleType),
+  createVarFunctionType(
+    'queue', queueType.toConcreteType(structureType), createVarType(structureType)),
+  createFunctionType('r', directionType, doubleType, doubleType, doubleType),
   createFunctionType('random', scalarType),
-  createFunctionType('range', /* TODO */ scalarType),
+  createFunctionType('range', /* TODO */ scalarType, integarType, integarType, integarType),
   createFunctionType('readjson', /* TODO */ scalarType),
-  createFunctionType('reboot', undefined),
-  createFunctionType('remove', /* TODO */ scalarType),
+  createFunctionType('reboot', voidType),
+  createFunctionType('remove', voidType, nodeType),
   createFunctionType('rename_file_deprecated', /* TODO */ scalarType),
   createFunctionType('rename_volume_deprecated', /* TODO */ scalarType),
-  createFunctionType('rgb', /* TODO */ scalarType),
-  createFunctionType('rgba', /* TODO */ scalarType),
+  createFunctionType('rgb', rgbaType, doubleType, doubleType, doubleType),
+  createFunctionType('rgba', rgbaType, doubleType, doubleType, doubleType, doubleType),
   createFunctionType('rotatefromto', /* TODO */ scalarType),
   createFunctionType('round', scalarType, scalarType),
   createFunctionType('run', /* TODO */ scalarType),
-  createFunctionType('scriptpath', /* TODO */ scalarType),
-  createFunctionType('selectautopilotmode', undefined, stringType),
-  createFunctionType('shutdown', undefined),
+  createFunctionType('scriptpath', pathType),
+  createFunctionType('selectautopilotmode', voidType, stringType),
+  createFunctionType('shutdown', voidType),
   createFunctionType('sin', scalarType),
-  createFunctionType('slidenote', /* TODO */ scalarType),
+  createFunctionType(
+    'slidenote', noteType, doubleType,
+    doubleType, doubleType, doubleType, doubleType),
   createFunctionType('sqrt', scalarType, scalarType),
-  createVarFunctionType('stack', stackType.toConcreteType(structureType), createVarType(structureType)),
-  createFunctionType('stage', /* TODO */ scalarType),
-  createFunctionType('StopAllVoices', /* TODO */ scalarType),
-  createFunctionType('switch', /* TODO */ scalarType),
+  createVarFunctionType(
+    'stack', stackType.toConcreteType(structureType), createVarType(structureType)),
+  createFunctionType('stage', voidType),
+  createFunctionType('StopAllVoices', voidType),
+  createFunctionType('switch', stringType),
   createFunctionType('tan', scalarType),
-  createFunctionType('toggleflybywire', undefined, stringType, booleanType),
-  createFunctionType('transfer', /* TODO */ scalarType),
-  createFunctionType('transferall', /* TODO */ scalarType),
+  createFunctionType('toggleflybywire', voidType, stringType, booleanType),
+  createFunctionType(
+    'transfer', resourceTransferType,
+    stringType, structureType, structureType,  doubleType),
+  createFunctionType(
+    'transferall', resourceTransferType,
+    stringType, structureType, structureType),
   createFunctionType('unchar', scalarType, stringType),
-  createFunctionType('uniqueset', uniqueSetType.toConcreteType(structureType), createVarType(structureType)),
-  createFunctionType('v', /* TODO */ scalarType),
-  createFunctionType('vang', /* TODO */ scalarType),
-  createFunctionType('vcrs', /* TODO */ scalarType),
-  createFunctionType('vdot', /* TODO */ scalarType),
-  createFunctionType('vecdraw', /* TODO */ scalarType),
-  createFunctionType('vecdrawargs', /* TODO */ scalarType),
+  createVarFunctionType(
+    'uniqueset', uniqueSetType.toConcreteType(structureType), createVarType(structureType)),
+  createFunctionType('v', vectorType, doubleType, doubleType, doubleType),
+  createFunctionType('vang', vectorType, vectorType, vectorType),
+  createFunctionType('vcrs', vectorType, vectorType, vectorType),
+  createFunctionType('vdot', vectorType, vectorType, vectorType),
+  createFunctionType(
+    'vecdraw', vectorRendererType, vectorType, vectorType, rgbaType,
+    stringType, doubleType, booleanType, doubleType),
+  createFunctionType(
+    'vecdrawargs', vectorRendererType, vectorType, vectorType, rgbaType,
+    stringType, doubleType, booleanType, doubleType),
   createFunctionType('vectorangle', /* TODO */ scalarType),
-  createFunctionType('vectorcrossproduct', /* TODO */ scalarType),
-  createFunctionType('vectordotproduct', /* TODO */ scalarType),
-  createFunctionType('vectorexclude', /* TODO */ scalarType),
-  createFunctionType('velocityat', /* TODO */ scalarType),
-  createFunctionType('vessel', /* TODO */ scalarType),
-  createFunctionType('volume', /* TODO */ scalarType),
-  createFunctionType('vxcl', /* TODO */ scalarType),
-  createFunctionType('warpto', /* TODO */ scalarType),
-  createFunctionType('waypoint', /* TODO */ scalarType),
+  createFunctionType('vectorcrossproduct', vectorType, vectorType, vectorType),
+  createFunctionType('vectordotproduct', vectorType, vectorType, vectorType),
+  createFunctionType('vectorexclude', vectorType, vectorType, vectorType),
+  createFunctionType('velocityat', vectorType, orbitableType, timeSpanType),
+  createFunctionType('vessel', vesselTargetType, stringType),
+  createFunctionType('volume', volumeType, stringType),
+  createFunctionType('vxcl', vectorType, vectorType, vectorType),
+  createFunctionType('warpto', voidType, doubleType),
+  createFunctionType('waypoint', waypointType, stringType),
   createFunctionType('writejson', /* TODO */ scalarType),
 ];
 
@@ -242,19 +287,20 @@ const variables = [
   'yellow',
 ];
 
-for (const functionName of functionNames) {
+for (const functionType of functionTypes) {
   standardLibrary.declareFunction(
     ScopeType.global,
     new Token(
       TokenType.identifier,
-      functionName,
+      functionType.name,
       undefined,
       new Marker(0, 0),
       new Marker(0, 0),
       undefined,
     ),
     [],
-    false);
+    false,
+    functionType);
 }
 
 for (const variable of variables) {
