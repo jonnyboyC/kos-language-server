@@ -14,6 +14,14 @@ interface ILogger {
   log(message: string): void;
 }
 
+const enum LogLevel {
+  Info,
+  Warn,
+  Error,
+  Log,
+  None,
+}
+
 interface ITracer {
   log(message: string, verbose?: string): void;
 }

@@ -40,6 +40,9 @@ import { orbitInfoType } from '../typeChecker/types/orbitInfo';
 import { careerType } from '../typeChecker/types/career';
 import { waypointType } from '../typeChecker/types/waypoint';
 import { resourceTransferType } from '../typeChecker/types/resourceTransfer';
+import { builtIn } from '../utilities/constants';
+import { lexiconType } from '../typeChecker/types/collections/lexicon';
+import { rangeType } from '../typeChecker/types/collections/range';
 
 export const standardLibrary = new ScopeManager();
 const functionTypes = [
@@ -62,7 +65,7 @@ const functionTypes = [
   createFunctionType('char', stringType, scalarType),
   createFunctionType('chdir', voidType, stringType),
   createFunctionType('clearguis', voidType),
-  createFunctionType('clearscreen', undefined),
+  createFunctionType('clearscreen', voidType),
   createFunctionType('clearvecdraws', voidType),
   createFunctionType('constant', constantType),
   createFunctionType('copy_deprecated', /* TODO */ scalarType),
@@ -70,7 +73,7 @@ const functionTypes = [
   createFunctionType('cos', scalarType),
   createFunctionType('create', /* TODO */ scalarType),
   createFunctionType('createdir', /* TODO */ scalarType),
-  createFunctionType('debugdump', undefined),
+  createFunctionType('debugdump', voidType),
   createFunctionType('debugfreezegame', scalarType),
   createFunctionType('delete_deprecated', /* TODO */ scalarType),
   createFunctionType('deleteAlarm', booleanType, stringType),
@@ -85,16 +88,16 @@ const functionTypes = [
   createFunctionType('hsv', hsvaType, doubleType, doubleType, doubleType),
   createFunctionType('hsva', hsvaType, doubleType, doubleType, doubleType, doubleType),
   createArgSuffixType(
-    'hudtext', undefined, stringType, integarType,
+    'hudtext', voidType, stringType, integarType,
     integarType, /* TODO */scalarType, booleanType),
   createFunctionType('latlng', geoCoordinatesType, doubleType, doubleType),
-  createFunctionType('lex', /* TODO */ scalarType),
-  createFunctionType('lexicon', /* TODO */ scalarType),
+  createVarFunctionType('lex', lexiconType, createVarType(structureType)),
+  createVarFunctionType('lexicon', lexiconType, createVarType(structureType)),
   createVarFunctionType('list', userListType, createVarType(structureType)),
   createFunctionType('listAlarms', listType.toConcreteType(kacAlarmType), stringType),
   createFunctionType('ln', scalarType, scalarType),
   createFunctionType('log10', scalarType, scalarType),
-  createFunctionType('logfile', undefined, stringType, stringType),
+  createFunctionType('logfile', voidType, stringType, stringType),
   createFunctionType('lookdirup', /* TODO */ scalarType),
   createFunctionType('makebuiltindelegate', /* TODO */ scalarType, stringType),
   createFunctionType('max', scalarType, scalarType, scalarType),
@@ -118,7 +121,7 @@ const functionTypes = [
     'queue', queueType.toConcreteType(structureType), createVarType(structureType)),
   createFunctionType('r', directionType, doubleType, doubleType, doubleType),
   createFunctionType('random', scalarType),
-  createFunctionType('range', /* TODO */ scalarType, integarType, integarType, integarType),
+  createFunctionType('range', rangeType, integarType, integarType, integarType),
   createFunctionType('readjson', /* TODO */ scalarType),
   createFunctionType('reboot', voidType),
   createFunctionType('remove', voidType, nodeType),
@@ -163,7 +166,7 @@ const functionTypes = [
   createFunctionType(
     'vecdrawargs', vectorRendererType, vectorType, vectorType, rgbaType,
     stringType, doubleType, booleanType, doubleType),
-  createFunctionType('vectorangle', /* TODO */ scalarType),
+  createFunctionType('vectorangle', scalarType, vectorType, vectorType),
   createFunctionType('vectorcrossproduct', vectorType, vectorType, vectorType),
   createFunctionType('vectordotproduct', vectorType, vectorType, vectorType),
   createFunctionType('vectorexclude', vectorType, vectorType, vectorType),
@@ -296,7 +299,7 @@ for (const functionType of functionTypes) {
       undefined,
       new Marker(0, 0),
       new Marker(0, 0),
-      undefined,
+      builtIn,
     ),
     [],
     false,
@@ -312,7 +315,7 @@ for (const variable of variables) {
       undefined,
       new Marker(0, 0),
       new Marker(0, 0),
-      undefined,
+      builtIn,
     ));
 }
 
@@ -325,6 +328,6 @@ for (const lock of locks) {
       undefined,
       new Marker(0, 0),
       new Marker(0, 0),
-      undefined,
+      builtIn,
     ));
 }

@@ -84,7 +84,7 @@ export class GenericType implements IGenericType {
         .join(', ');
     }
 
-    return `...${this.core.params.type.toTypeString()}`;
+    return `...${this.core.params.type.toTypeString()}[]`;
   }
 
   public toTypeString(): string {

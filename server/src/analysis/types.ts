@@ -3,7 +3,7 @@ import { KsFunction } from '../entities/function';
 import { KsLock } from '../entities/lock';
 import { IToken } from '../entities/types';
 import { KsParameter } from '../entities/parameters';
-import { Range } from 'vscode-languageserver';
+import { Range, Location } from 'vscode-languageserver';
 import { IType } from '../typeChecker/types/types';
 
 export const enum EntityState {
@@ -32,7 +32,7 @@ export interface IKsDeclared<T extends KsEntity> {
 }
 
 export interface IKsUsage {
-  range: Range;
+  loc: Location;
   type: IType;
 }
 

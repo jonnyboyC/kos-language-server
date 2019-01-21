@@ -130,6 +130,7 @@ export class Parser {
         TokenType.eof, '', undefined,
         new Marker(0, 0),
         new Marker(0, 1),
+        '',
       );
     }
 
@@ -138,6 +139,7 @@ export class Parser {
       TokenType.eof, '', undefined,
       new Marker(last.end.line + 1, 0),
       new Marker(last.end.line + 1, 1),
+      last.uri,
     );
   }
 

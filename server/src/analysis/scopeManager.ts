@@ -109,7 +109,7 @@ export class ScopeManager implements GraphNode<ScopeManager> {
       });
     }
 
-    // this.logger.info(`begin scope at ${JSON.stringify(range.start)}`);
+    this.logger.info(`begin scope at ${JSON.stringify(range.start)}`);
 
     this.activeScopePath.push(next);
     this.backTrackPath = [...this.activeScopePath];
@@ -154,21 +154,27 @@ export class ScopeManager implements GraphNode<ScopeManager> {
     }
 
     if (position.tag === 'real') {
-      // this.logger.info(`end scope at ${JSON.stringify(position.end)}`);
+      this.logger.info(`end scope at ${JSON.stringify(position.end)}`);
     }
     return errors;
   }
 
   // get every entity in the file
-  public allFileEntities(): KsEntity[] {
+  public fileEntities(): KsEntity[] {
     return Array.from(this.scopesRoot.scope.entities()).concat(
-      this.allFileEntitiesDepth(this.scopesRoot.children));
+      this.fileEntitiesDepth(this.scopesRoot.children));
   }
 
   // get entity at a position
-  public entityAtPosition(pos: Position, name: string): Maybe<KsEntity> {
-    const entities = this.entitiesAtPosition(pos);
+  public scopedEntity(pos: Position, name: string): Maybe<KsEntity> {
+    const entities = this.scopedEntities(pos);
     return entities.find(entity => entity.name.lexeme === name);
+  }
+
+  // get all entities in scope at a position
+  public scopedEntities(pos: Position): KsEntity[] {
+    return this.scopedTrackers(pos)
+      .map(tracker => tracker.declared.entity);
   }
 
   // get a global tracker
@@ -178,43 +184,37 @@ export class ScopeManager implements GraphNode<ScopeManager> {
   }
 
   // get tracker at a position
-  public trackerAtPosition(pos: Position, name: string): Maybe<IKsEntityTracker> {
-    const trackers = this.trackersAtPositions(pos);
+  public scopedTracker(pos: Position, name: string): Maybe<IKsEntityTracker> {
+    const trackers = this.scopedTrackers(pos);
     return trackers.find(tracker => tracker.declared.entity.name.lexeme === name);
   }
 
-  // get all entities in scope at a position
-  public entitiesAtPosition(pos: Position): KsEntity[] {
-    return this.trackersAtPositions(pos)
-      .map(tracker => tracker.declared.entity);
-  }
-
   // get all entity trackers in scope at a position
-  public trackersAtPositions(pos: Position): IKsEntityTracker[] {
+  public scopedTrackers(pos: Position): IKsEntityTracker[] {
     const entities = Array.from(this.scopesRoot.scope.values()).concat(
       ...Array.from(this.outScopes.values())
         .map(scope => Array.from(scope.scopesRoot.scope.values())),
     );
 
-    return this.entitiesAtPositionDepth(pos, this.scopesRoot.children)
+    return this.scopedTrackersDepth(pos, this.scopesRoot.children)
       .concat(entities);
   }
 
   // recursively move down scopes for every entity
-  private allFileEntitiesDepth(nodes: IScopeNode[]): KsEntity[] {
+  private fileEntitiesDepth(nodes: IScopeNode[]): KsEntity[] {
     let entities: KsEntity[] = [];
 
     for (const node of nodes) {
       entities = entities.concat(
         Array.from(node.scope.entities()),
-        this.allFileEntitiesDepth(node.children));
+        this.fileEntitiesDepth(node.children));
     }
 
     return entities;
   }
 
   // recursively move down scopes for more relevant entities
-  private entitiesAtPositionDepth(pos: Position, nodes: IScopeNode[]): IKsEntityTracker[] {
+  private scopedTrackersDepth(pos: Position, nodes: IScopeNode[]): IKsEntityTracker[] {
     let entities: IKsEntityTracker[] = [];
 
     for (const node of nodes) {
@@ -224,7 +224,7 @@ export class ScopeManager implements GraphNode<ScopeManager> {
         case 'global':
           entities = entities.concat(
             Array.from(node.scope.values()),
-            this.entitiesAtPositionDepth(pos, node.children));
+            this.scopedTrackersDepth(pos, node.children));
           break;
         // if the scope has a real position check if we're in the bounds
         case 'real':
@@ -233,7 +233,7 @@ export class ScopeManager implements GraphNode<ScopeManager> {
 
             entities = entities.concat(
               Array.from(node.scope.values()),
-              this.entitiesAtPositionDepth(pos, node.children));
+              this.scopedTrackersDepth(pos, node.children));
           }
       }
     }
@@ -319,7 +319,7 @@ export class ScopeManager implements GraphNode<ScopeManager> {
     const scope = this.selectScope(scopeType);
 
     scope.set(name.lexeme, createTracker(new KsVariable(scopeType, name), type));
-    // this.logger.info(`declare variable ${name.lexeme} at ${JSON.stringify(name.start)}`);
+    this.logger.info(`declare variable ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
 
@@ -344,7 +344,7 @@ export class ScopeManager implements GraphNode<ScopeManager> {
         parameters, returnValue),
       type));
 
-    // this.logger.info(`declare function ${name.lexeme} at ${JSON.stringify(name.start)}`);
+    this.logger.info(`declare function ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
 
@@ -360,7 +360,7 @@ export class ScopeManager implements GraphNode<ScopeManager> {
     const scope = this.selectScope(scopeType);
 
     scope.set(name.lexeme, createTracker(new KsLock(scopeType, name)));
-    // this.logger.info(`declare lock ${name.lexeme} at ${JSON.stringify(name.start)}`);
+    this.logger.info(`declare lock ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
 
@@ -378,7 +378,7 @@ export class ScopeManager implements GraphNode<ScopeManager> {
 
     const scope = this.selectScope(scopeType);
     scope.set(name.lexeme, createTracker(new KsParameter(name, defaulted, EntityState.declared)));
-    // this.logger.info(`declare parameter ${name.lexeme} at ${JSON.stringify(name.start)}`);
+    this.logger.info(`declare parameter ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
 
@@ -403,8 +403,8 @@ export class ScopeManager implements GraphNode<ScopeManager> {
       return new ResolverError(name, `${type} ${name.lexeme} may not exist.`, []);
     }
 
-    tracker.usages.push(createUsage(name));
-    // this.logger.info(`Use ${type} ${name.lexeme} at ${JSON.stringify(name.start)}`);
+    tracker.usages.push(createUsage(name.location()));
+    this.logger.info(`Use ${type} ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
 

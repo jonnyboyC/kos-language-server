@@ -1,5 +1,5 @@
 import { TokenType } from './tokentypes';
-import { Position } from 'vscode-languageserver';
+import { Position, Location } from 'vscode-languageserver';
 import { IToken } from './types';
 
 export class Token implements IToken {
@@ -8,7 +8,7 @@ export class Token implements IToken {
   public readonly literal: any;
   public readonly start: Marker;
   public readonly end: Marker;
-  public readonly uri?: string;
+  public readonly uri: string;
 
   constructor(
     type: TokenType,
@@ -16,7 +16,7 @@ export class Token implements IToken {
     literal: any,
     start: Marker,
     end: Marker,
-    uri?: string) {
+    uri: string) {
     this.type = type;
     this.lexeme = lexeme;
     this.literal = literal;
@@ -31,6 +31,16 @@ export class Token implements IToken {
 
   public get typeString(): string {
     return TokenType[this.type];
+  }
+
+  public location(): Location {
+    return {
+      uri: this.uri,
+      range: {
+        start: this.start,
+        end: this.end,
+      },
+    };
   }
 
   public toString(): string {

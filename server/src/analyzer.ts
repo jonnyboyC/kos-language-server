@@ -1,4 +1,4 @@
-import { DiagnosticSeverity, Position } from 'vscode-languageserver';
+import { DiagnosticSeverity, Position, Location } from 'vscode-languageserver';
 import { IDocumentInfo, ILoadData, IDiagnosticUri, IValidateResult } from './types';
 import { performance } from 'perf_hooks';
 import { Parser } from './parser/parser';
@@ -10,7 +10,6 @@ import { IScannerError } from './scanner/types';
 import { IParseError, SyntaxTreeResult, RunInstType } from './parser/types';
 import { IResolverError, KsEntity, IKsEntityTracker } from './analysis/types';
 import { mockLogger, mockTracer } from './utilities/logger';
-import { IToken } from './entities/types';
 import { empty, notEmpty } from './utilities/typeGuards';
 import { SyntaxTreeFind } from './parser/syntaxTreeFind';
 import { KsFunction } from './entities/function';
@@ -23,6 +22,8 @@ import { extname } from 'path';
 import { flatten } from './utilities/arrayUtilities';
 import { readFileAsync } from './utilities/fsUtilities';
 import { standardLibrary } from './analysis/standardLibrary';
+import { builtIn } from './utilities/constants';
+import { IType } from './typeChecker/types/types';
 
 export class Analyzer {
   public volumne0Path: string;
@@ -137,7 +138,7 @@ export class Analyzer {
   }
 
   // get a token at a position in a document
-  public getTokenAtPosition(uri: string, pos: Position): Maybe<IToken> {
+  public getDeclarationLocation(pos: Position, uri: string): Maybe<Location> {
     const documentInfo = this.documentInfos.get(uri);
     if (empty(documentInfo)
       || empty(documentInfo.scopeManager)
@@ -145,6 +146,7 @@ export class Analyzer {
       return undefined;
     }
 
+    // try to find an entity at the position
     const { scopeManager, syntaxTree } = documentInfo;
     const finder = new SyntaxTreeFind();
     const result = finder.find(syntaxTree, pos);
@@ -153,36 +155,80 @@ export class Analyzer {
       return undefined;
     }
 
+    // check if entity exists
     const { token } = result;
-    const entity = scopeManager.entityAtPosition(pos, token.lexeme);
+    const entity = scopeManager.scopedEntity(pos, token.lexeme);
     if (empty(entity)) {
       return undefined;
     }
 
-    return entity.name;
+    // exit if undefiend
+    if (entity.name.uri === builtIn) {
+      return undefined;
+    }
+
+    return entity.name.location();
   }
 
+  public getUsagesLocations(pos: Position, uri: string): Maybe<Location[]> {
+    const documentInfo = this.documentInfos.get(uri);
+    if (empty(documentInfo)
+      || empty(documentInfo.scopeManager)
+      || empty(documentInfo.syntaxTree)) {
+      return undefined;
+    }
+
+    // try to find the entity at the position
+    const { scopeManager, syntaxTree } = documentInfo;
+    const finder = new SyntaxTreeFind();
+    const result = finder.find(syntaxTree, pos);
+
+    if (empty(result)) {
+      return undefined;
+    }
+
+    // try to find the tracker at a given position
+    const { token } = result;
+    const tracker = scopeManager.scopedTracker(pos, token.lexeme);
+    if (empty(tracker)) {
+      return undefined;
+    }
+
+    return tracker.usages.map(usage => usage.loc)
+      .concat(tracker.declared.entity.name.location())
+      .filter(location => location.uri !== builtIn);
+  }
+
+  // get all global trackers
   public getGlobalTracker(name: string): Maybe<IKsEntityTracker<KsEntity>> {
     return standardLibrary.globalTracker(name);
   }
 
-  public getTrackerAtPosition(uri: string, pos: Position, name: string):
-    Maybe<IKsEntityTracker<KsEntity>> {
+  // get all tracker at position
+  public getType(pos: Position, name: string, uri?: string):
+    Maybe<IType> {
+    if (empty(uri)) {
+      const tracker = this.getGlobalTracker(name);
+      return tracker && tracker.declared.type;
+    }
+
     const documentInfo = this.documentInfos.get(uri);
 
     if (!empty(documentInfo) && !empty(documentInfo.scopeManager)) {
-      return documentInfo.scopeManager.trackerAtPosition(pos, name);
+      const tracker = documentInfo.scopeManager.scopedTracker(pos, name);
+      return tracker && tracker.declared.type;
     }
 
-    return undefined;
+    const tracker = this.getGlobalTracker(name);
+    return tracker && tracker.declared.type;
   }
 
   // get entities at position
-  public getEntitiesAtPosition(uri: string, pos: Position): KsEntity[] {
+  public getScopedEntities(pos: Position, uri: string): KsEntity[] {
     const documentInfo = this.documentInfos.get(uri);
 
     if (!empty(documentInfo) && !empty(documentInfo.scopeManager)) {
-      return documentInfo.scopeManager.entitiesAtPosition(pos);
+      return documentInfo.scopeManager.scopedEntities(pos);
     }
 
     return [];
@@ -193,14 +239,14 @@ export class Analyzer {
     const documentInfo = this.documentInfos.get(uri);
 
     if (!empty(documentInfo) && !empty(documentInfo.scopeManager)) {
-      return documentInfo.scopeManager.allFileEntities();
+      return documentInfo.scopeManager.fileEntities();
     }
 
     return [];
   }
 
   // get function at position
-  public getFunctionAtPosition(uri: string, pos: Position):
+  public getFunctionAtPosition(pos: Position, uri: string):
     Maybe<{func: KsFunction, index: number}> {
     // we need the document info to lookup a signiture
     const documentInfo = this.documentInfos.get(uri);
@@ -210,7 +256,7 @@ export class Analyzer {
     const finder = new SyntaxTreeFind();
 
     // attempt to find a token here get surround invalid inst context
-    const result = finder.find(syntaxTree, pos, InvalidInst);
+    const result = finder.find(syntaxTree, pos, InvalidInst, CallExpr);
 
     // currently we only support invalid instructions for signiture completion
     // we could possible support call expressions as well
@@ -228,7 +274,7 @@ export class Analyzer {
       const { identifier, index } = identifierIndex;
 
       // resolve the token to make sure it's actually a function
-      const ksFunction = documentInfo.scopeManager.entityAtPosition(pos, identifier);
+      const ksFunction = documentInfo.scopeManager.scopedEntity(pos, identifier);
       if (empty(ksFunction) || ksFunction.tag !== 'function') {
         return undefined;
       }

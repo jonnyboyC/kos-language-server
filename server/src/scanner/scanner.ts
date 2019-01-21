@@ -13,7 +13,7 @@ export class Scanner {
   private current: number;
   private currentPosition: MutableMarker;
   private startPosition: MutableMarker;
-  private uri?: string;
+  private uri: string;
   private readonly logger: ILogger;
   private readonly tracer: ITracer;
 
@@ -26,10 +26,11 @@ export class Scanner {
     this.currentPosition = new MutableMarker(0, 0);
     this.logger = logger;
     this.tracer = tracer;
+    this.uri = '';
   }
 
   // scan all available tokens
-  public scanTokens(source: string, uri?: string): IScanResult {
+  public scanTokens(source: string, uri: string = ''): IScanResult {
     try {
       this.setSource(source, uri);
 
@@ -68,7 +69,7 @@ export class Scanner {
     }
   }
 
-  private setSource(source: string, uri?: string) {
+  private setSource(source: string, uri: string) {
     this.source = source;
     this.start = 0;
     this.current = 0;

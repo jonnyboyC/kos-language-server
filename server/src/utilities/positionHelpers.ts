@@ -71,6 +71,12 @@ export const rangeAfter = (range: Range, pos: Position): boolean => {
   return false;
 };
 
+export const rangeIntersection = (range1: Range, range2: Range): boolean => {
+  if (rangeAfter(range1, range2.end)) return false;
+  if (rangeBefore(range2, range2.end)) return false;
+  return true;
+};
+
 export const binarySearch = <T extends Range>(ranges: T[], pos: Position): Maybe<T> => {
   const index = binarySearchIndex(ranges, pos);
 

@@ -1,4 +1,4 @@
-import { Position, Range } from 'vscode-languageserver';
+import { Position, Range, Location } from 'vscode-languageserver';
 import { TokenType } from './tokentypes';
 
 export interface IToken extends Range {
@@ -8,6 +8,7 @@ export interface IToken extends Range {
   readonly literal: any;
   readonly start: Position;
   readonly end: Position;
-  readonly uri?: string;
+  readonly uri: string;
+  location: () => Location;
   toString: () => string;
 }

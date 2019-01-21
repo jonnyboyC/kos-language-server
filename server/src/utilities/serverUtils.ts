@@ -1,4 +1,4 @@
-import { Analyzer } from './analyzer';
+import { Analyzer } from '../analyzer';
 import {
   TextDocumentPositionParams,
   CompletionItemKind,
@@ -12,7 +12,7 @@ export const entityCompletionItems = (
   const { position } = documentPosition;
   const { uri } = documentPosition.textDocument;
 
-  const entities = analyzer.getEntitiesAtPosition(uri, position);
+  const entities = analyzer.getScopedEntities(position, uri);
   return entities.map((entity) => {
     let kind: Maybe<CompletionItemKind> = undefined;
     switch (entity.tag) {

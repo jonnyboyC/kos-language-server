@@ -29,19 +29,19 @@ export class SyntaxTreeFind implements
   IInstVisitor<Maybe<IFindResult>> {
 
   private pos: Position;
-  private context: Maybe<Function>;
+  private contexts: Function[];
 
   constructor() {
     this.pos = {
       line: 0,
       character: 0,
     };
-    this.context = undefined;
+    this.contexts = [];
   }
 
-  public find(syntaxNode: INode, pos: Position, context?: Function): Maybe<IFindResult> {
+  public find(syntaxNode: INode, pos: Position, ...contexts: Function[]): Maybe<IFindResult> {
     this.pos = pos;
-    this.context = context;
+    this.contexts = contexts;
     return this.findNode(syntaxNode);
   }
 
@@ -92,8 +92,9 @@ export class SyntaxTreeFind implements
     return empty(findResult.node) && this.isContext(node);
   }
 
+  // is the correct context
   private isContext(node: INode): boolean {
-    return !empty(this.context) && node instanceof this.context;
+    return this.contexts.some(context => node instanceof context);
   }
 
   // find an instruction

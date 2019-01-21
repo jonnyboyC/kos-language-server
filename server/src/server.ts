@@ -11,7 +11,6 @@ import {
   InitializeParams,
   CompletionItem,
   TextDocumentPositionParams,
-  CompletionItemKind,
   SignatureHelp,
   Location,
   DidChangeWatchedFilesParams,
@@ -25,13 +24,15 @@ import {
   SymbolKind,
   CompletionParams,
   CompletionTriggerKind,
+  ReferenceParams,
 } from 'vscode-languageserver';
 import { empty } from './utilities/typeGuards';
 import { Analyzer } from './analyzer';
 import { IDiagnosticUri } from './types';
 import { keywordCompletions } from './utilities/constants';
 import { KsEntity } from './analysis/types';
-import { entityCompletionItems } from './serverUtils';
+import { entityCompletionItems, suffixCompletionItems } from './utilities/serverUtils';
+import { Logger } from './utilities/logger';
 
 // Create a connection for the server. The connection uses Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -40,7 +41,7 @@ export const connection = createConnection(ProposedFeatures.all);
 // Create a simple text document manager. The text document manager
 // supports full document sync only
 let workspaceFolder: string = '';
-const analyzer = new Analyzer(connection.console, connection.tracer);
+const analyzer = new Analyzer(new Logger(connection.console, LogLevel.Warn), connection.tracer);
 const documents: TextDocuments = new TextDocuments();
 
 connection.onInitialize((params: InitializeParams) => {
@@ -74,6 +75,7 @@ connection.onInitialize((params: InitializeParams) => {
         triggerCharacters: ['(', ','],
       },
 
+      referencesProvider: true,
       documentSymbolProvider: true,
       definitionProvider: true,
     },
@@ -141,10 +143,17 @@ connection.onCompletion(
         .concat(keywordCompletions);
     }
 
-    
-    return [];
+    return suffixCompletionItems(analyzer, completionParams);
   },
 );
+
+// This handler providers find all references capabilities
+connection.onReferences((referenceParams: ReferenceParams): Maybe<Location[]> => {
+  const { position } = referenceParams;
+  const { uri } = referenceParams.textDocument;
+
+  return analyzer.getUsagesLocations(position, uri);
+});
 
 // This handler provides signature help
 connection.onSignatureHelp(
@@ -152,7 +161,7 @@ connection.onSignatureHelp(
     const { position } = documentPosition;
     const { uri } = documentPosition.textDocument;
 
-    const result = analyzer.getFunctionAtPosition(uri, position);
+    const result = analyzer.getFunctionAtPosition(position, uri);
     if (empty(result)) return defaultSigniture();
 
     const { func, index } = result;
@@ -171,6 +180,7 @@ connection.onSignatureHelp(
   },
 );
 
+// This handler provider document symbols in file
 connection.onDocumentSymbol(
   (documentSymbol: DocumentSymbolParams): Maybe<SymbolInformation[]> => {
     const { uri } = documentSymbol.textDocument;
@@ -210,8 +220,7 @@ connection.onDefinition(
     const { position } = documentPosition;
     const { uri } = documentPosition.textDocument;
 
-    const name = analyzer.getTokenAtPosition(uri, position);
-    return name && Location.create(name.uri || uri, name);
+    return analyzer.getDeclarationLocation(position, uri);
   },
 );
 
@@ -222,23 +231,14 @@ connection.onCompletionResolve(
     const entity = item.data as KsEntity;
 
     // this would be a possible spot to pull in doc string if present.
-    if (!empty(entity) && !empty(entity.name.uri)) {
-      const tracker = analyzer.getTrackerAtPosition(
-        entity.name.uri,
-        entity.name.start,
-        entity.name.lexeme);
-
-      if (!empty(tracker)) {
-        item.detail = `${item.label}: ${tracker.declared.type.toTypeString()}`;
-      }
-    }
-
     if (!empty(entity)) {
-      const tracker = analyzer.getGlobalTracker(
-        entity.name.lexeme);
+      const type = analyzer.getType(
+        entity.name.start,
+        entity.name.lexeme,
+        entity.name.uri);
 
-      if (!empty(tracker)) {
-        item.detail = `${item.label}: ${tracker.declared.type.toTypeString()}`;
+      if (!empty(type)) {
+        item.detail = `${item.label}: ${type.toTypeString()}`;
       }
     }
 
