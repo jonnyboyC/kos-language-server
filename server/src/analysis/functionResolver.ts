@@ -30,37 +30,37 @@ import {
 import { ResolverError } from './resolverError';
 import { DeclVariable, DeclLock, DeclFunction, DeclParameter } from '../parser/declare';
 import { empty } from '../utilities/typeGuards';
-import { ScopeManager } from './scopeManager';
 import { SyntaxTree } from '../entities/syntaxTree';
 import { KsParameter } from '../entities/parameters';
 import { TokenType } from '../entities/tokentypes';
 import { mockLogger, mockTracer } from '../utilities/logger';
 import { EntityState } from './types';
+import { ScopeBuilder } from './scopeBuilder';
 
 // tslint:disable-next-line:prefer-array-literal
 export type Errors = Array<ResolverError>;
 
 export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   private syntaxTree: SyntaxTree;
-  private scopeMan: ScopeManager;
+  private scopeBuilder: ScopeBuilder;
   private readonly logger: ILogger;
   private readonly tracer: ITracer;
 
   constructor(logger: ILogger = mockLogger, tracer: ITracer = mockTracer) {
     this.syntaxTree = new SyntaxTree([]);
-    this.scopeMan = new ScopeManager();
+    this.scopeBuilder = new ScopeBuilder();
     this.logger = logger;
     this.tracer = tracer;
   }
 
   // resolve the sequence of instructions
-  public resolve(syntaxTree: SyntaxTree, scopeMan: ScopeManager): Errors {
+  public resolve(syntaxTree: SyntaxTree, scopeMan: ScopeBuilder): Errors {
     try {
       this.setSyntaxTree(syntaxTree, scopeMan);
-      this.scopeMan.beginScope(this.syntaxTree);
+      this.scopeBuilder.beginScope(this.syntaxTree);
 
       const resolveErrors = this.resolveInsts(this.syntaxTree.insts);
-      const scopeErrors = this.scopeMan.endScope();
+      const scopeErrors = this.scopeBuilder.endScope();
 
       return resolveErrors.concat(scopeErrors);
     } catch (err) {
@@ -72,10 +72,10 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
   }
 
   // set the syntax tree and scope manager
-  private setSyntaxTree(syntaxTree: SyntaxTree, scopeMan: ScopeManager): void {
+  private setSyntaxTree(syntaxTree: SyntaxTree, scopeMan: ScopeBuilder): void {
     this.syntaxTree = syntaxTree;
-    this.scopeMan = scopeMan;
-    this.scopeMan.rewindScope();
+    this.scopeBuilder = scopeMan;
+    this.scopeBuilder.rewindScope();
   }
 
   // resolve the given set of instructions
@@ -118,7 +118,7 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
 
     // functions are default global at file scope and local everywhere else
     if (empty(scopeToken)) {
-      scopeType = this.scopeMan.isFileScope()
+      scopeType = this.scopeBuilder.isFileScope()
         ? ScopeType.global
         : ScopeType.local;
     } else {
@@ -150,7 +150,7 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
       }
     }
     const [parameters, errors] = this.buildParameters(parameterDecls);
-    const declareErrors = this.scopeMan.declareFunction(
+    const declareErrors = this.scopeBuilder.declareFunction(
       scopeType, decl.functionIdentifier, parameters, returnValue);
     const instErrors = this.resolveInst(decl.instructionBlock);
 
@@ -201,9 +201,9 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
   }
 
   public visitBlock(inst: BlockInst): Errors {
-    this.scopeMan.beginScope(inst);
+    this.scopeBuilder.beginScope(inst);
     const errors = this.resolveInsts(inst.instructions);
-    this.scopeMan.endScope();
+    this.scopeBuilder.endScope();
 
     return errors;
   }

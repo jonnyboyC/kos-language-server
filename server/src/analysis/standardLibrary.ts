@@ -1,4 +1,3 @@
-import { ScopeManager } from './scopeManager';
 import { ScopeType } from '../parser/types';
 import { Token, Marker } from '../entities/token';
 import { TokenType } from '../entities/tokentypes';
@@ -8,7 +7,7 @@ import {
   booleanType, integarType, doubleType,
 } from '../typeChecker/types/primitives';
 import { queueType } from '../typeChecker/types/collections/queue';
-import { structureType } from '../typeChecker/types/structure';
+import { structureType, serializableStructureType } from '../typeChecker/types/structure';
 import { createVarType } from '../typeChecker/types/typeUitlities';
 import { userListType, listType } from '../typeChecker/types/collections/list';
 import { stackType } from '../typeChecker/types/collections/stack';
@@ -43,8 +42,11 @@ import { resourceTransferType } from '../typeChecker/types/resourceTransfer';
 import { builtIn } from '../utilities/constants';
 import { lexiconType } from '../typeChecker/types/collections/lexicon';
 import { rangeType } from '../typeChecker/types/collections/range';
+import { ScopeBuilder } from './scopeBuilder';
+import { volumeFileType } from '../typeChecker/types/io/volumneFile';
+import { pidLoopType } from '../typeChecker/types/pidLoop';
 
-export const standardLibrary = new ScopeManager();
+const libraryBuilder = new ScopeBuilder();
 const functionTypes = [
   createFunctionType('abs', scalarType, scalarType),
   createFunctionType('add', voidType, nodeType),
@@ -109,7 +111,9 @@ const functionTypes = [
   createFunctionType('open', /* TODO */ scalarType),
   createFunctionType('orbitat', orbitInfoType, orbitableType, timeSpanType),
   createFunctionType('path', pathType, stringType),
-  createFunctionType('pidloop', /* TODO */ scalarType),
+  createFunctionType(
+    'pidloop', pidLoopType, scalarType,
+    scalarType, scalarType, scalarType, scalarType),
   createFunctionType('positionat', vectorType, orbitableType, timeSpanType),
   createFunctionType('print', structureType),
   createFunctionType('printat', structureType, scalarType, scalarType),
@@ -122,7 +126,7 @@ const functionTypes = [
   createFunctionType('r', directionType, doubleType, doubleType, doubleType),
   createFunctionType('random', scalarType),
   createFunctionType('range', rangeType, integarType, integarType, integarType),
-  createFunctionType('readjson', /* TODO */ scalarType),
+  createFunctionType('readjson', serializableStructureType, stringType),
   createFunctionType('reboot', voidType),
   createFunctionType('remove', voidType, nodeType),
   createFunctionType('rename_file_deprecated', /* TODO */ scalarType),
@@ -176,7 +180,7 @@ const functionTypes = [
   createFunctionType('vxcl', vectorType, vectorType, vectorType),
   createFunctionType('warpto', voidType, doubleType),
   createFunctionType('waypoint', waypointType, stringType),
-  createFunctionType('writejson', /* TODO */ scalarType),
+  createFunctionType('writejson', volumeFileType, serializableStructureType, stringType),
 ];
 
 const locks = [
@@ -291,7 +295,7 @@ const variables = [
 ];
 
 for (const functionType of functionTypes) {
-  standardLibrary.declareFunction(
+  libraryBuilder.declareFunction(
     ScopeType.global,
     new Token(
       TokenType.identifier,
@@ -307,7 +311,7 @@ for (const functionType of functionTypes) {
 }
 
 for (const variable of variables) {
-  standardLibrary.declareVariable(
+  libraryBuilder.declareVariable(
     ScopeType.global,
     new Token(
       TokenType.identifier,
@@ -320,7 +324,7 @@ for (const variable of variables) {
 }
 
 for (const lock of locks) {
-  standardLibrary.declareLock(
+  libraryBuilder.declareLock(
     ScopeType.global,
     new Token(
       TokenType.identifier,
@@ -331,3 +335,5 @@ for (const lock of locks) {
       builtIn,
     ));
 }
+
+export const standardLibrary = libraryBuilder.build();

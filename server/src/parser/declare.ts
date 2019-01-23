@@ -67,7 +67,7 @@ export class DeclScope implements IDeclScope {
 
 export class DeclVariable extends Decl {
   constructor(
-    public readonly suffix: IExpr,
+    public readonly identifier: IToken,
     public readonly toIs: IToken,
     public readonly expression: IExpr,
     public readonly scope: IDeclScope) {
@@ -83,7 +83,7 @@ export class DeclVariable extends Decl {
   }
 
   public get ranges(): Range[] {
-    return [this.scope, this.suffix, this.toIs, this.expression];
+    return [this.scope, this.identifier, this.toIs, this.expression];
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {

@@ -1,4 +1,4 @@
-import { CompletionItemKind, CompletionItem } from "vscode-languageserver";
+import { CompletionItemKind, CompletionItem } from 'vscode-languageserver';
 
 export const builtIn = 'builtIn';
 

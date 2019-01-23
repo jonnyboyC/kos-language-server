@@ -9,7 +9,7 @@ declaration -> ( instruction
     | parameterDeclaration
 )
 
-variableDeclaration -> scope suffix ( 'to' | 'is' ) expression '.'
+variableDeclaration -> scope idenitifer ( 'to' | 'is' ) expression '.'
 lockDeclaration -> scope? 'lock' idenitifer 'to' expression '.'
 parameterDeclaration -> scope? 'parameter' parameters '.'
 functionDeclaration -> scope? 'function' instructionBlock '.'?

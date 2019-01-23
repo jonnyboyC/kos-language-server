@@ -1,8 +1,7 @@
 import { DiagnosticSeverity, Position, Location } from 'vscode-languageserver';
-import { IDocumentInfo, ILoadData, IDiagnosticUri, IValidateResult } from './types';
+import { IDocumentInfo, ILoadData, IDiagnosticUri, ValidateResult } from './types';
 import { performance } from 'perf_hooks';
 import { Parser } from './parser/parser';
-import { ScopeManager } from './analysis/scopeManager';
 import { FuncResolver } from './analysis/functionResolver';
 import { Scanner } from './scanner/scanner';
 import { Resolver } from './analysis/resolver';
@@ -19,11 +18,12 @@ import { CallExpr } from './parser/expr';
 import { resolveUri } from './utilities/pathResolver';
 import { existsSync } from 'fs';
 import { extname } from 'path';
-import { flatten } from './utilities/arrayUtilities';
 import { readFileAsync } from './utilities/fsUtilities';
 import { standardLibrary } from './analysis/standardLibrary';
 import { builtIn } from './utilities/constants';
 import { IType } from './typeChecker/types/types';
+import { ScopeBuilder } from './analysis/scopeBuilder';
+import { ScopeManager } from './analysis/scopeManager';
 
 export class Analyzer {
   public volumne0Path: string;
@@ -40,35 +40,54 @@ export class Analyzer {
     this.documentInfos = new Map();
   }
 
+  public async* validateDocument(uri: string, text: string, depth: number = 0):
+    AsyncIterableIterator<IDiagnosticUri[]> {
+    for await (const result of this.validateDocument_(uri, text, depth)) {
+      if (Array.isArray(result)) {
+        yield result;
+      }
+    }
+  }
+
   // main validation code
-  public async validateDocument(uri: string, text: string, depth: number = 0):
-    Promise<IValidateResult> {
+  private async* validateDocument_(uri: string, text: string, depth: number):
+    AsyncIterableIterator<ValidateResult> {
     const { syntaxTree, parseErrors, scanErrors, runInsts } = await this.parseDocument(uri, text);
-    let validateResults: IValidateResult[] = [];
+    const scopeManagers: ScopeManager[] = [];
+
+    yield scanErrors.map(scanError => scanToDiagnostics(scanError, uri));
+    yield parseErrors.length === 0 ? [] : parseErrors.map(error => error.inner.concat(error))
+      .reduce((acc, current) => acc.concat(current))
+      .map(error => parseToDiagnostics(error, uri));
 
     // if any run instruction exist get uri then load
     if (runInsts.length > 0 && !empty(this.volumne0Uri)) {
       const loadDatas = this.getValidUri(uri, runInsts);
 
-      validateResults = await Promise.all(loadDatas
-        .map(loadData => this.loadAndValidateDocument(uri, loadData, depth)));
-    }
+      // for each document run validate and yield any results
+      for await (const validateResult of loadDatas
+        .map(loadData => this.loadAndValidateDocument(uri, loadData, depth))) {
 
-    // flatten all child diagnostics
-    const childDiagnostics = flatten(validateResults.map(result => result.diagnostics));
-
-    // generate a scope manager for resolving
-    const scopeManager = new ScopeManager(this.logger);
-
-    // add child scopes
-    for (const validateResult of validateResults) {
-      if (!empty(validateResult.scopeManager)) {
-        scopeManager.addScope(validateResult.scopeManager);
+        for await (const result of validateResult) {
+          if (Array.isArray(result)) {
+            yield result;
+          } else {
+            scopeManagers.push(result);
+          }
+        }
       }
     }
 
+    // generate a scope manager for resolving
+    const scopeBuilder = new ScopeBuilder(this.logger);
+
+    // add child scopes
+    for (const scopeManager of scopeManagers) {
+      scopeBuilder.addScope(scopeManager);
+    }
+
     // add standard library
-    scopeManager.addScope(standardLibrary);
+    scopeBuilder.addScope(standardLibrary);
 
     // generate resolvers
     const funcResolver = new FuncResolver();
@@ -78,7 +97,11 @@ export class Analyzer {
     this.logger.log(`Function resolving ${uri}`);
     this.logger.log('');
     performance.mark('func-resolver-start');
-    let resolverErrors = funcResolver.resolve(syntaxTree, scopeManager);
+    const functionErrors = funcResolver.resolve(syntaxTree, scopeBuilder)
+      .map(error => resolverToDiagnostics(error, uri));
+
+    yield functionErrors;
+
     performance.mark('func-resolver-end');
 
     // perform an initial function pass
@@ -86,7 +109,10 @@ export class Analyzer {
     this.logger.log('');
 
     performance.mark('resolver-start');
-    resolverErrors = resolverErrors.concat(resolver.resolve(syntaxTree, scopeManager));
+    const resolverErrors = resolver.resolve(syntaxTree, scopeBuilder)
+      .map(error => resolverToDiagnostics(error, uri));
+
+    yield resolverErrors;
     performance.mark('resolver-end');
 
     performance.measure('func-resolver', 'func-resolver-start', 'func-resolver-end');
@@ -95,16 +121,6 @@ export class Analyzer {
     if (resolverErrors.length > 0) {
       this.logger.warn(`Resolver encountered ${resolverErrors.length} Errors.`);
     }
-
-    // generate all diagnostics
-    const diagnostics = childDiagnostics.concat(
-      scanErrors.map(error => scanToDiagnostics(error, uri)),
-      parseErrors.length === 0 ? [] : parseErrors.map(error => error.inner.concat(error))
-        .reduce((acc, current) => acc.concat(current))
-        .map(error => parseToDiagnostics(error, uri)),
-      resolverErrors
-        .map(error => resolverToDiagnostics(error, uri)),
-      );
 
     // log performance
     const [funcResolverMeasure] = performance.getEntriesByName('func-resolver');
@@ -122,19 +138,17 @@ export class Analyzer {
       documentInfo.scopeManager.removeSelf();
     }
 
+    const scopeManager = scopeBuilder.build();
+
     this.documentInfos.set(uri, {
       syntaxTree,
-      diagnostics,
       scopeManager,
     });
 
     performance.clearMarks();
     performance.clearMeasures();
 
-    return {
-      diagnostics,
-      scopeManager,
-    };
+    return scopeManager;
   }
 
   // get a token at a position in a document
@@ -360,10 +374,10 @@ export class Analyzer {
   }
 
   // load an validate a file from disk
-  private async loadAndValidateDocument(
+  private async* loadAndValidateDocument(
     parentUri: string,
     { uri, inst, path }: ILoadData,
-    depth: number): Promise<IValidateResult> {
+    depth: number): AsyncIterableIterator<ValidateResult> {
     try {
       // non ideal fix for depedency cycle
       // TODO we need to actually check for cycles and do something else
@@ -386,7 +400,7 @@ export class Analyzer {
 
       // attempt to read file from disk
       const fileResult = await readFileAsync(validated.path, 'utf-8');
-      return await this.validateDocument(validated.uri, fileResult, depth + 1);
+      return await this.validateDocument_(validated.uri, fileResult, depth + 1);
     } catch (err) {
       // if we already checked for the file exists but failed anyways??
       return {

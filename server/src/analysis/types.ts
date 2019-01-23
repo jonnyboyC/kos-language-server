@@ -5,6 +5,7 @@ import { IToken } from '../entities/types';
 import { KsParameter } from '../entities/parameters';
 import { Range, Location } from 'vscode-languageserver';
 import { IType } from '../typeChecker/types/types';
+import { IExpr } from '../parser/types';
 
 export const enum EntityState {
   declared,
@@ -17,22 +18,29 @@ export const enum LockState {
   unlocked,
 }
 
+export interface ILocalResult {
+  token: IToken;
+  expr: IExpr;
+}
+
 export interface IScope extends Map<string, IKsEntityTracker> {
   entities(): KsEntity[];
 }
 
 export interface IKsEntityTracker<T extends KsEntity = KsEntity> {
   declared: IKsDeclared<T>;
-  usages: IKsUsage[];
+  sets: IKsChange[];
+  usages: IKsChange[];
+}
+
+export interface IKsChange {
+  loc: Location;
+  type: IType;
+  expr?: IExpr;
 }
 
 export interface IKsDeclared<T extends KsEntity> {
   entity: T;
-  type: IType;
-}
-
-export interface IKsUsage {
-  loc: Location;
   type: IType;
 }
 
@@ -65,7 +73,7 @@ export interface IResolverError extends Range {
 
 export interface ISetResolverResult {
   readonly set: Maybe<IToken>;
-  readonly used: IToken[];
+  readonly used: ILocalResult[];
 }
 
 export type KsEntity = KsVariable | KsFunction | KsLock | KsParameter;

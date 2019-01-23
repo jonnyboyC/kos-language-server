@@ -297,7 +297,7 @@ export class Parser {
 
   // parse a variable declaration, scoping occurs elseware
   private declareVariable = (scope: IDeclScope): INodeResult<DeclVariable> => {
-    const suffix = this.suffixCatch(DeclVariable);
+    const identifer = this.consumeIdentifierThrow('Expected identifier.', DeclVariable);
 
     const toIs = this.consumeTokenThrow(
       'Expected keyword "to" or "is" following declare.',
@@ -306,8 +306,7 @@ export class Parser {
     this.terminal(DeclVariable);
 
     return nodeResult(
-      new DeclVariable(suffix.value, toIs, valueResult.value, scope),
-      suffix.errors,
+      new DeclVariable(identifer, toIs, valueResult.value, scope),
       valueResult.errors,
     );
   }

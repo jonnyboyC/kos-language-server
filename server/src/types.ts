@@ -6,7 +6,6 @@ import { Diagnostic } from 'vscode-languageserver';
 export interface IDocumentInfo {
   syntaxTree: SyntaxTree;
   scopeManager: ScopeManager;
-  diagnostics: IDiagnosticUri[];
 }
 
 export interface ILoadData {
@@ -15,10 +14,7 @@ export interface ILoadData {
   inst: RunInstType;
 }
 
-export interface IValidateResult {
-  diagnostics: IDiagnosticUri[];
-  scopeManager?: ScopeManager;
-}
+export type ValidateResult = IDiagnosticUri[] | ScopeManager;
 
 export interface IDiagnosticUri extends Diagnostic {
   uri: string;

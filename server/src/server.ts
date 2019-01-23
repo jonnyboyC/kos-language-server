@@ -105,30 +105,36 @@ connection.onDidCloseTextDocument((param: DidCloseTextDocumentParams) => {
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent(async (change) => {
-  const { diagnostics } = await analyzer
+
+  const diagnosticResults = analyzer
     .validateDocument(change.document.uri, change.document.getText());
 
-  if (diagnostics.length === 0) {
-    connection.sendDiagnostics({
-      uri: change.document.uri,
-      diagnostics: [],
-    });
-    return;
-  }
+  let total = 0;
+  for await (const diagnostics of diagnosticResults) {
+    total += diagnostics.length;
 
-  const diagnosticMap: { [uri: string]: IDiagnosticUri[] } = {};
-  for (const diagnostic of diagnostics) {
-    if (!diagnosticMap.hasOwnProperty(diagnostic.uri)) {
-      diagnosticMap[diagnostic.uri] = [diagnostic];
-    } else {
-      diagnosticMap[diagnostic.uri].push(diagnostic);
+    const diagnosticMap: { [uri: string]: IDiagnosticUri[] } = {};
+    for (const diagnostic of diagnostics) {
+      if (!diagnosticMap.hasOwnProperty(diagnostic.uri)) {
+        diagnosticMap[diagnostic.uri] = [diagnostic];
+      } else {
+        diagnosticMap[diagnostic.uri].push(diagnostic);
+      }
+    }
+
+    for (const uri in diagnosticMap) {
+      connection.sendDiagnostics({
+        uri,
+        diagnostics: diagnosticMap[uri],
+      });
     }
   }
 
-  for (const uri in diagnosticMap) {
+  // if not problems found clear out diagnostics
+  if (total === 0) {
     connection.sendDiagnostics({
-      uri,
-      diagnostics: diagnosticMap[uri],
+      uri: change.document.uri,
+      diagnostics: [],
     });
   }
 });
