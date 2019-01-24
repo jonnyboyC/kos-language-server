@@ -20,8 +20,8 @@ ava('scan all', (t) => {
   walkDir(testDir, (filePath) => {
     const kosFile = readFileSync(filePath, 'utf8');
 
-    const scanner = new Scanner();
-    const { tokens, scanErrors } = scanner.scanTokens(kosFile);
+    const scanner = new Scanner(kosFile);
+    const { tokens, scanErrors } = scanner.scanTokens();
     const errorResult = scanErrors.map(error => ({ filePath, ...error }));
 
     t.true(tokens.length > 0);

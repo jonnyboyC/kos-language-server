@@ -90,14 +90,14 @@ export class Analyzer {
     scopeBuilder.addScope(standardLibrary);
 
     // generate resolvers
-    const funcResolver = new FuncResolver();
-    const resolver = new Resolver();
+    const funcResolver = new FuncResolver(syntaxTree, scopeBuilder);
+    const resolver = new Resolver(syntaxTree, scopeBuilder);
 
     // resolve the rest of the script
     this.logger.log(`Function resolving ${uri}`);
     this.logger.log('');
     performance.mark('func-resolver-start');
-    const functionErrors = funcResolver.resolve(syntaxTree, scopeBuilder)
+    const functionErrors = funcResolver.resolve()
       .map(error => resolverToDiagnostics(error, uri));
 
     yield functionErrors;
@@ -109,7 +109,7 @@ export class Analyzer {
     this.logger.log('');
 
     performance.mark('resolver-start');
-    const resolverErrors = resolver.resolve(syntaxTree, scopeBuilder)
+    const resolverErrors = resolver.resolve()
       .map(error => resolverToDiagnostics(error, uri));
 
     yield resolverErrors;
@@ -313,8 +313,8 @@ export class Analyzer {
     this.logger.log('');
 
     performance.mark('scanner-start');
-    const scanner = new Scanner();
-    const { tokens, scanErrors } = scanner.scanTokens(text, uri);
+    const scanner = new Scanner(text, uri);
+    const { tokens, scanErrors } = scanner.scanTokens();
     performance.mark('scanner-end');
 
     // if scanner found errors report those immediately
@@ -327,8 +327,8 @@ export class Analyzer {
     this.logger.log('');
 
     performance.mark('parser-start');
-    const parser = new Parser();
-    const result = parser.parse(tokens);
+    const parser = new Parser(tokens);
+    const result = parser.parse();
     performance.mark('parser-end');
 
     // log errors

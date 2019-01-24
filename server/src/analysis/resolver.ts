@@ -36,10 +36,9 @@ import { TokenType } from '../entities/tokentypes';
 import { SyntaxTree } from '../entities/syntaxTree';
 import { mockLogger, mockTracer } from '../utilities/logger';
 import { ScopeBuilder } from './scopeBuilder';
-import { ILocalResult } from './types';
+import { ILocalResult, IResolverError } from './types';
 
-// tslint:disable-next-line:prefer-array-literal
-export type Errors = Array<ResolverError>;
+export type Errors = IResolverError[];
 
 export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   private syntaxTree: SyntaxTree;
@@ -51,9 +50,14 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   private lazyGlobalOff: boolean;
   private firstInst: boolean;
 
-  constructor(logger: ILogger = mockLogger, tracer: ITracer = mockTracer) {
-    this.syntaxTree = new SyntaxTree([]);
-    this.scopeBuilder = new ScopeBuilder();
+  constructor(
+    syntaxTree: SyntaxTree,
+    scopeBuilder: ScopeBuilder,
+    logger: ILogger = mockLogger,
+    tracer: ITracer = mockTracer) {
+
+    this.syntaxTree = syntaxTree;
+    this.scopeBuilder = scopeBuilder;
     this.localResolver = new LocalResolver();
     this.setResolver = new SetResolver(this.localResolver);
     this.lazyGlobalOff = false;
@@ -63,9 +67,8 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   }
 
   // resolve the sequence of instructions
-  public resolve(syntaxTree: SyntaxTree, scopeMan: ScopeBuilder): Errors {
+  public resolve(): Errors {
     try {
-      this.setSyntaxTree(syntaxTree, scopeMan);
       this.scopeBuilder.beginScope(this.syntaxTree);
       const [firstInst, ...restInsts] = this.syntaxTree.insts;
 
@@ -83,13 +86,6 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
 
       return [];
     }
-  }
-
-  // set the syntax tree and scope manager
-  private setSyntaxTree(syntaxTree: SyntaxTree, scopeBuilder: ScopeBuilder): void {
-    this.syntaxTree = syntaxTree;
-    this.scopeBuilder = scopeBuilder;
-    this.scopeBuilder.rewindScope();
   }
 
   // resolve the given set of instructions

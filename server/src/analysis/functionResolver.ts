@@ -46,17 +46,20 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
   private readonly logger: ILogger;
   private readonly tracer: ITracer;
 
-  constructor(logger: ILogger = mockLogger, tracer: ITracer = mockTracer) {
-    this.syntaxTree = new SyntaxTree([]);
-    this.scopeBuilder = new ScopeBuilder();
+  constructor(
+    syntaxTree: SyntaxTree,
+    scopeBuilder: ScopeBuilder,
+    logger: ILogger = mockLogger,
+    tracer: ITracer = mockTracer) {
+    this.syntaxTree = syntaxTree;
+    this.scopeBuilder = scopeBuilder;
     this.logger = logger;
     this.tracer = tracer;
   }
 
   // resolve the sequence of instructions
-  public resolve(syntaxTree: SyntaxTree, scopeMan: ScopeBuilder): Errors {
+  public resolve(): Errors {
     try {
-      this.setSyntaxTree(syntaxTree, scopeMan);
       this.scopeBuilder.beginScope(this.syntaxTree);
 
       const resolveErrors = this.resolveInsts(this.syntaxTree.insts);
@@ -69,13 +72,6 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
 
       return[];
     }
-  }
-
-  // set the syntax tree and scope manager
-  private setSyntaxTree(syntaxTree: SyntaxTree, scopeMan: ScopeBuilder): void {
-    this.syntaxTree = syntaxTree;
-    this.scopeBuilder = scopeMan;
-    this.scopeBuilder.rewindScope();
   }
 
   // resolve the given set of instructions

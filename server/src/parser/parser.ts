@@ -48,8 +48,8 @@ export class Parser {
   private readonly logger: ILogger;
   private readonly tracer: ITracer;
 
-  constructor(logger: ILogger = mockLogger, tracer: ITracer = mockTracer) {
-    this.tokens = [];
+  constructor(tokens: IToken[], logger: ILogger = mockLogger, tracer: ITracer = mockTracer) {
+    this.tokens = tokens.concat(this.eof(tokens));
     this.current = 0;
     this.runInsts = [];
     this.logger = logger;
@@ -57,10 +57,8 @@ export class Parser {
   }
 
   // parse tokens
-  public parse = (tokens: IToken[]): ParseResult => {
+  public parse = (): ParseResult => {
     try {
-      this.setTokens(tokens);
-
       const instructions: Inst[] = [];
       let parseErrors: IParseError[] = [];
 
@@ -87,15 +85,12 @@ export class Parser {
   }
 
   // testing function / utility
-  public parseInstruction = (tokens: IToken[]): INodeResult<IInst> => {
-    this.setTokens(tokens);
+  public parseInstruction = (): INodeResult<IInst> => {
     return this.declaration();
   }
 
   // testing function / utility
-  public parseExpression = (tokens: IToken[]): INodeResult<IExpr> => {
-    this.setTokens(tokens);
-
+  public parseExpression = (): INodeResult<IExpr> => {
     try {
       return this.expression();
     } catch (error) {
@@ -111,16 +106,8 @@ export class Parser {
     }
   }
 
-  public parseArgCount = (tokens: IToken[]): INodeResult<number> => {
-    this.setTokens(tokens);
+  public parseArgCount = (): INodeResult<number> => {
     return this.partialArgumentsCount();
-  }
-
-  // set the tokens
-  private setTokens = (tokens: IToken[]): void => {
-    this.current = 0;
-    this.tokens = tokens.concat(this.eof(tokens));
-    this.runInsts = [];
   }
 
   // generate a placholder token as a fake end of file

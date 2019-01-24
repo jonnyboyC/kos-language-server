@@ -18,22 +18,24 @@ export class Scanner {
   private readonly tracer: ITracer;
 
   // scanner initializer
-  constructor(logger: ILogger = mockLogger, tracer: ITracer = mockTracer) {
-    this.source = '';
+  constructor(
+    source: string,
+    uri: string = '',
+    logger: ILogger = mockLogger,
+    tracer: ITracer = mockTracer) {
+    this.source = source;
+    this.logger = logger;
+    this.tracer = tracer;
+    this.uri = uri;
     this.start = 0;
     this.current = 0;
     this.startPosition = new MutableMarker(0, 0);
     this.currentPosition = new MutableMarker(0, 0);
-    this.logger = logger;
-    this.tracer = tracer;
-    this.uri = '';
   }
 
   // scan all available tokens
-  public scanTokens(source: string, uri: string = ''): IScanResult {
+  public scanTokens(): IScanResult {
     try {
-      this.setSource(source, uri);
-
       // create arrays for valid tokens and encountered errors
       const tokens: IToken[] = [];
       const scanErrors: IScannerError[] = [];
@@ -67,15 +69,6 @@ export class Scanner {
         scanErrors: [],
       };
     }
-  }
-
-  private setSource(source: string, uri: string) {
-    this.source = source;
-    this.start = 0;
-    this.current = 0;
-    this.startPosition = new MutableMarker(0, 0);
-    this.currentPosition = new MutableMarker(0, 0);
-    this.uri = uri;
   }
 
   private scanToken(): ScanResult {

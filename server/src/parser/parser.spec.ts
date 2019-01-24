@@ -10,15 +10,15 @@ import { join } from 'path';
 
 // scan source file
 const scan = (source: string) : IScanResult => {
-  const scanner = new Scanner();
-  return scanner.scanTokens(source);
+  const scanner = new Scanner(source);
+  return scanner.scanTokens();
 };
 
 // parse source
 const parseExpression = (source: string): [INodeResult<IExpr>, IScannerError[]] => {
   const { tokens, scanErrors } = scan(source);
-  const parser = new Parser();
-  return [parser.parseExpression(tokens), scanErrors];
+  const parser = new Parser(tokens);
+  return [parser.parseExpression(), scanErrors];
 };
 
 const testDir = join(__dirname, '../../../server/kerboscripts/parser_valid/');
@@ -38,12 +38,12 @@ ava('parse all', (t) => {
   walkDir(testDir, (filePath) => {
     const kosFile = readFileSync(filePath, 'utf8');
 
-    const scanner = new Scanner();
-    const { tokens, scanErrors } = scanner.scanTokens(kosFile, filePath);
+    const scanner = new Scanner(kosFile, filePath);
+    const { tokens, scanErrors } = scanner.scanTokens();
 
     t.true(scanErrors.length === 0);
-    const parser = new Parser();
-    const { parseErrors } = parser.parse(tokens);
+    const parser = new Parser(tokens);
+    const { parseErrors } = parser.parse();
 
     t.true(parseErrors.length === 0);
   });
