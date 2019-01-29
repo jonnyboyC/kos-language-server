@@ -25,6 +25,7 @@ import {
   CompletionParams,
   CompletionTriggerKind,
   ReferenceParams,
+  Hover,
 } from 'vscode-languageserver';
 import { empty } from './utilities/typeGuards';
 import { Analyzer } from './analyzer';
@@ -75,6 +76,7 @@ connection.onInitialize((params: InitializeParams) => {
         triggerCharacters: ['(', ','],
       },
 
+      hoverProvider: true,
       referencesProvider: true,
       documentSymbolProvider: true,
       definitionProvider: true,
@@ -110,22 +112,25 @@ documents.onDidChangeContent(async (change) => {
     .validateDocument(change.document.uri, change.document.getText());
 
   let total = 0;
+  const diagnosticMap: Map<string, IDiagnosticUri[]> = new Map();
+
   for await (const diagnostics of diagnosticResults) {
     total += diagnostics.length;
 
-    const diagnosticMap: { [uri: string]: IDiagnosticUri[] } = {};
     for (const diagnostic of diagnostics) {
-      if (!diagnosticMap.hasOwnProperty(diagnostic.uri)) {
-        diagnosticMap[diagnostic.uri] = [diagnostic];
-      } else {
-        diagnosticMap[diagnostic.uri].push(diagnostic);
+      let uriDiagnostics = diagnosticMap.get(diagnostic.uri);
+      if (empty(uriDiagnostics)) {
+        uriDiagnostics = [];
       }
+
+      uriDiagnostics.push(diagnostic);
+      diagnosticMap.set(diagnostic.uri, uriDiagnostics);
     }
 
-    for (const uri in diagnosticMap) {
+    for (const [uri, uriDiagnostics] of diagnosticMap.entries()) {
       connection.sendDiagnostics({
         uri,
-        diagnostics: diagnosticMap[uri],
+        diagnostics: uriDiagnostics,
       });
     }
   }
@@ -152,6 +157,28 @@ connection.onCompletion(
     return suffixCompletionItems(analyzer, completionParams);
   },
 );
+
+connection.onHover((positionParmas: TextDocumentPositionParams): Maybe<Hover> => {
+  const { position } = positionParmas;
+  const { uri } = positionParmas.textDocument;
+
+  const token = analyzer.getToken(position, uri);
+  if (empty(token)) {
+    return undefined;
+  }
+
+  const tracker = analyzer.getScopedTracker(position, token.lexeme, uri);
+  const type = analyzer.getType(position, token.lexeme, uri);
+
+  if (empty(tracker) || empty(type)) {
+    return undefined;
+  }
+
+  return {
+    contents: `(${tracker.declared.entity.tag}) ${type.toTypeString()} ${token.lexeme}`,
+    range: token,
+  };
+});
 
 // This handler providers find all references capabilities
 connection.onReferences((referenceParams: ReferenceParams): Maybe<Location[]> => {

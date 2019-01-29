@@ -49,6 +49,10 @@ export interface IRangeSequence extends Range {
   ranges: Range[];
 }
 
+export interface ISuffix extends IExpr {
+  isSuffix: true;
+}
+
 export interface IExpr extends IExprVisitable, IRangeSequence {
   tag: 'expr';
   toString(): string;

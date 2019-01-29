@@ -1,9 +1,12 @@
 import { IScopeNode,
   KsEntity, GraphNode, IKsEntityTracker,
 } from './types';
-import { Position } from 'vscode-languageserver';
+import { Position, Range } from 'vscode-languageserver';
 import { positionAfterEqual, positionBeforeEqual } from '../utilities/positionHelpers';
 import { mockLogger } from '../utilities/logger';
+import { empty } from '../utilities/typeGuards';
+import { IType } from '../typeChecker/types/types';
+import { KsFunction } from '../entities/function';
 
 export class ScopeManager implements GraphNode<ScopeManager> {
   public inScopes: Set<ScopeManager>;
@@ -11,6 +14,7 @@ export class ScopeManager implements GraphNode<ScopeManager> {
   constructor(
     public readonly scopesRoot: IScopeNode,
     public readonly outScopes: Set<ScopeManager>,
+    public readonly uri: string,
     public readonly logger: ILogger = mockLogger) {
     this.inScopes = new Set();
 
@@ -66,6 +70,24 @@ export class ScopeManager implements GraphNode<ScopeManager> {
     this.inScopes.clear();
   }
 
+  // get the type
+  public getType(range: Range, name: string): Maybe<IType> {
+    const tracker = this.scopedTracker(range.start, name);
+    if (!empty(tracker)) {
+      return tracker.getType({ range, uri: this.uri });
+    }
+
+    return undefined;
+  }
+
+  // set the type
+  public setType(range: Range, name: string, type: IType): void {
+    const tracker = this.scopedTracker(range.start, name);
+    if (!empty(tracker)) {
+      tracker.setType({ range, uri: this.uri }, type);
+    }
+  }
+
   // get every entity in the file
   public fileEntities(): KsEntity[] {
     return Array.from(this.scopesRoot.scope.entities()).concat(
@@ -88,6 +110,16 @@ export class ScopeManager implements GraphNode<ScopeManager> {
   public globalTracker(name: string): Maybe<IKsEntityTracker> {
     return Array.from(this.scopesRoot.scope.values())
       .find(tracker => tracker.declared.entity.name.lexeme === name);
+  }
+
+  // get function tracker at position
+  public scopedFunctionTracker(pos: Position, name: string): Maybe<IKsEntityTracker<KsFunction>> {
+    const tracker = this.scopedTracker(pos, name);
+    if (!empty(tracker) && tracker.declared.entity.tag === 'function') {
+      return tracker as IKsEntityTracker<KsFunction>;
+    }
+
+    return undefined;
   }
 
   // get tracker at a position

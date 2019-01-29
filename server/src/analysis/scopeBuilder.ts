@@ -13,7 +13,7 @@ import { KsParameter } from '../entities/parameters';
 import { ScopePosition } from './scopePosition';
 import { mockLogger } from '../utilities/logger';
 import { Scope } from './scope';
-import { createTracker, createUsage } from './tracker';
+import { KsEntityTracker, createEnitityChange } from './tracker';
 import { IType } from '../typeChecker/types/types';
 import { ScopeManager } from './scopeManager';
 
@@ -26,7 +26,7 @@ export class ScopeBuilder {
   public outScopes: Set<ScopeManager>;
   public logger: ILogger;
 
-  constructor(logger: ILogger = mockLogger) {
+  constructor(public readonly uri: string, logger: ILogger = mockLogger) {
     this.logger = logger;
     this.global = new Scope();
     this.scopesRoot = {
@@ -43,6 +43,7 @@ export class ScopeBuilder {
     return new ScopeManager(
       this.scopesRoot,
       this.outScopes,
+      this.uri,
       this.logger,
     );
   }
@@ -202,7 +203,7 @@ export class ScopeBuilder {
 
     const scope = this.selectScope(scopeType);
 
-    scope.set(name.lexeme, createTracker(new KsVariable(scopeType, name), type));
+    scope.set(name.lexeme, new KsEntityTracker(new KsVariable(scopeType, name), type));
     this.logger.info(`declare variable ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
@@ -222,7 +223,7 @@ export class ScopeBuilder {
     }
 
     const scope = this.selectScope(scopeType);
-    scope.set(name.lexeme, createTracker(
+    scope.set(name.lexeme, new KsEntityTracker(
       new KsFunction(
         scopeType, name,
         parameters, returnValue),
@@ -245,7 +246,7 @@ export class ScopeBuilder {
 
     scope.set(
       name.lexeme,
-      createTracker(new KsLock(scopeType, name)));
+      new KsEntityTracker(new KsLock(scopeType, name)));
     this.logger.info(`declare lock ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
@@ -265,7 +266,7 @@ export class ScopeBuilder {
     const scope = this.selectScope(scopeType);
     scope.set(
       name.lexeme,
-      createTracker(new KsParameter(name, defaulted, EntityState.declared)));
+      new KsEntityTracker(new KsParameter(name, defaulted, EntityState.declared)));
     this.logger.info(`declare parameter ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
@@ -274,26 +275,29 @@ export class ScopeBuilder {
   public defineBinding(name: IToken, expr?: IExpr): Maybe<ResolverError> {
     const binding = this.lookup(name, ScopeType.global);
 
-    // Note we are currently setting to used because we can't
-    // suffixes yet
-    // const state = empty(binding) ? EntityState.declared : binding.state;
-    return this.checkUseEntity(name, binding, 'entity', expr);
+    if (empty(binding)) {
+      return new ResolverError(name, `entity ${name.lexeme} may not exist.`, []);
+    }
+
+    binding.sets.push(createEnitityChange(name.location(), expr));
+    this.logger.info(`Set entity ${name.lexeme} at ${JSON.stringify(name.start)}`);
+    return undefined;
   }
 
   // check if a variable exist then use it
   public checkUseEntity(
     name: IToken,
     tracker: Maybe<IKsEntityTracker>,
-    type: string,
+    entityType: string,
     expr?: IExpr):
     Maybe<ResolverError> {
     // check that variable has already been defined
     if (empty(tracker)) {
-      return new ResolverError(name, `${type} ${name.lexeme} may not exist.`, []);
+      return new ResolverError(name, `${entityType} ${name.lexeme} may not exist.`, []);
     }
 
-    tracker.usages.push(createUsage(name.location(), expr));
-    this.logger.info(`Use ${type} ${name.lexeme} at ${JSON.stringify(name.start)}`);
+    tracker.usages.push(createEnitityChange(name.location(), expr));
+    this.logger.info(`Use ${entityType} ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
 

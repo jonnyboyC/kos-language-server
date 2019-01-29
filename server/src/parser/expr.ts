@@ -1,4 +1,4 @@
-import { IExpr, IInst, IExprVisitor } from './types';
+import { IExpr, IInst, IExprVisitor, ISuffix } from './types';
 import { TokenType } from '../entities/tokentypes';
 import { IToken } from '../entities/types';
 import { Range, Position } from 'vscode-languageserver';
@@ -13,6 +13,12 @@ export abstract class Expr implements IExpr {
   public abstract get start(): Position;
   public abstract get end(): Position;
   public abstract accept<T>(visitor: IExprVisitor<T>): T;
+}
+
+export abstract class Suffix extends Expr implements ISuffix {
+  get isSuffix(): true {
+    return true;
+  }
 }
 
 export class InvalidExpr extends Expr {
@@ -127,7 +133,7 @@ export class FactorExpr extends Expr {
   }
 }
 
-export class SuffixExpr extends Expr {
+export class SuffixExpr extends Suffix {
   constructor(
     public readonly suffix: IExpr,
     public readonly colon: IToken,
@@ -156,7 +162,7 @@ export class SuffixExpr extends Expr {
   }
 }
 
-export class CallExpr extends Expr {
+export class CallExpr extends Suffix {
   constructor(
     public readonly callee: IExpr,
     public readonly open: IToken,
@@ -188,7 +194,7 @@ export class CallExpr extends Expr {
   }
 }
 
-export class ArrayIndexExpr extends Expr {
+export class ArrayIndexExpr extends Suffix {
   constructor(
     public readonly array: IExpr,
     public readonly indexer: IToken,
@@ -218,7 +224,7 @@ export class ArrayIndexExpr extends Expr {
   }
 }
 
-export class ArrayBracketExpr extends Expr {
+export class ArrayBracketExpr extends Suffix {
   constructor(
     public readonly array: IExpr,
     public readonly open: IToken,
@@ -250,7 +256,7 @@ export class ArrayBracketExpr extends Expr {
   }
 }
 
-export class DelegateExpr extends Expr {
+export class DelegateExpr extends Suffix {
   constructor (
     public readonly variable: IExpr,
     public readonly atSign: IToken,
@@ -279,7 +285,7 @@ export class DelegateExpr extends Expr {
   }
 }
 
-export class LiteralExpr extends Expr {
+export class LiteralExpr extends Suffix {
   constructor(
     public readonly token: IToken,
     public readonly isTrailer: boolean) {
@@ -307,7 +313,7 @@ export class LiteralExpr extends Expr {
   }
 }
 
-export class VariableExpr extends Expr {
+export class VariableExpr extends Suffix {
   constructor(
     public readonly token: IToken,
     public readonly isTrailer: boolean) {
@@ -340,7 +346,7 @@ export class VariableExpr extends Expr {
   }
 }
 
-export class GroupingExpr extends Expr {
+export class GroupingExpr extends Suffix {
   constructor(
     public readonly open: IToken,
     public readonly expr: IExpr,
@@ -374,8 +380,7 @@ export class AnonymousFunctionExpr extends Expr {
   constructor(
     public readonly open: IToken,
     public readonly instructions: IInst[],
-    public readonly close: IToken,
-    public readonly isTrailer: boolean) {
+    public readonly close: IToken) {
     super();
   }
 

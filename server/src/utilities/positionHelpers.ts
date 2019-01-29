@@ -1,4 +1,4 @@
-import { Position, Range } from 'vscode-languageserver';
+import { Position, Range, Location } from 'vscode-languageserver';
 import { empty } from './typeGuards';
 
 export const positionAfter = (pos1: Position, pos2: Position): boolean => {
@@ -44,6 +44,11 @@ export const positionEqual = (pos1: Position, pos2: Position): boolean => {
     && pos1.character === pos2.character;
 };
 
+export const rangeEqual = (range1: Range, range2: Range): boolean => {
+  if (!positionEqual(range1.start, range2.start)) return false;
+  return positionEqual(range1.end, range2.end);
+};
+
 export const rangeContains = (range: Range, pos: Position): boolean => {
   if (pos.line < range.start.line) return false;
   if (pos.line === range.start.line && pos.character < range.start.character) return false;
@@ -77,6 +82,15 @@ export const rangeIntersection = (range1: Range, range2: Range): boolean => {
   return true;
 };
 
+export const rangeToString = (range: Range): string => {
+  if (range.start.line === range.end.line) {
+    return `line: ${range.start.line} characters ${range.start.character}-${range.end.character}`;
+  }
+
+  return `line: ${range.start.line} character: ${range.start.character} to `
+    + `line: ${range.end.line} character: ${range.end.character}`;
+};
+
 export const binarySearch = <T extends Range>(ranges: T[], pos: Position): Maybe<T> => {
   const index = binarySearchIndex(ranges, pos);
 
@@ -103,4 +117,9 @@ export const binarySearchIndex = <T extends Range>(ranges: T[], pos: Position): 
   }
 
   return undefined;
+};
+
+export const locationEqual = (loc1: Location, loc2: Location): boolean => {
+  if (loc1.uri !== loc2.uri) return false;
+  return rangeEqual(loc1.range, loc2.range);
 };

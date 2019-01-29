@@ -31,6 +31,9 @@ export interface IKsEntityTracker<T extends KsEntity = KsEntity> {
   declared: IKsDeclared<T>;
   sets: IKsChange[];
   usages: IKsChange[];
+
+  getType(loc: Location): Maybe<IType>;
+  setType(loc: Location, type: IType): void;
 }
 
 export interface IKsChange {

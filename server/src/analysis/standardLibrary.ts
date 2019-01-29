@@ -46,7 +46,7 @@ import { ScopeBuilder } from './scopeBuilder';
 import { volumeFileType } from '../typeChecker/types/io/volumneFile';
 import { pidLoopType } from '../typeChecker/types/pidLoop';
 
-const libraryBuilder = new ScopeBuilder();
+const libraryBuilder = new ScopeBuilder(builtIn);
 const functionTypes = [
   createFunctionType('abs', scalarType, scalarType),
   createFunctionType('add', voidType, nodeType),

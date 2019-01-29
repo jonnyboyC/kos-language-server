@@ -14,7 +14,7 @@ import { SyntaxTreeFind } from './parser/syntaxTreeFind';
 import { KsFunction } from './entities/function';
 import { InvalidInst } from './parser/inst';
 import { signitureHelper } from './utilities/signitureHelper';
-import { CallExpr } from './parser/expr';
+import { CallExpr, InvalidExpr } from './parser/expr';
 import { resolveUri } from './utilities/pathResolver';
 import { existsSync } from 'fs';
 import { extname } from 'path';
@@ -24,6 +24,9 @@ import { builtIn } from './utilities/constants';
 import { IType } from './typeChecker/types/types';
 import { ScopeBuilder } from './analysis/scopeBuilder';
 import { ScopeManager } from './analysis/scopeManager';
+import { TypeChecker } from './typeChecker/typeChecker';
+import { ITypeError } from './typeChecker/types';
+import { IToken } from './entities/types';
 
 export class Analyzer {
   public volumne0Path: string;
@@ -79,7 +82,7 @@ export class Analyzer {
     }
 
     // generate a scope manager for resolving
-    const scopeBuilder = new ScopeBuilder(this.logger);
+    const scopeBuilder = new ScopeBuilder(uri, this.logger);
 
     // add child scopes
     for (const scopeManager of scopeManagers) {
@@ -90,8 +93,8 @@ export class Analyzer {
     scopeBuilder.addScope(standardLibrary);
 
     // generate resolvers
-    const funcResolver = new FuncResolver(syntaxTree, scopeBuilder);
-    const resolver = new Resolver(syntaxTree, scopeBuilder);
+    const funcResolver = new FuncResolver(syntaxTree, scopeBuilder, this.logger, this.tracer);
+    const resolver = new Resolver(syntaxTree, scopeBuilder, this.logger, this.tracer);
 
     // resolve the rest of the script
     this.logger.log(`Function resolving ${uri}`);
@@ -101,7 +104,6 @@ export class Analyzer {
       .map(error => resolverToDiagnostics(error, uri));
 
     yield functionErrors;
-
     performance.mark('func-resolver-end');
 
     // perform an initial function pass
@@ -115,8 +117,20 @@ export class Analyzer {
     yield resolverErrors;
     performance.mark('resolver-end');
 
+    const typeChecker = new TypeChecker(syntaxTree, scopeBuilder.build(), this.logger, this.tracer);
+    this.logger.log(`Type checking ${uri}`);
+    this.logger.log('');
+    performance.mark('type-checking-start');
+
+    const typeErrors = typeChecker.check()
+      .map(error => typeCheckerToDiagnostics(error, uri));
+
+    yield typeErrors;
+    performance.mark('type-checking-end');
+
     performance.measure('func-resolver', 'func-resolver-start', 'func-resolver-end');
     performance.measure('resolver', 'resolver-start', 'resolver-end');
+    performance.measure('type-checking', 'type-checking-start', 'type-checking-end');
 
     if (resolverErrors.length > 0) {
       this.logger.warn(`Resolver encountered ${resolverErrors.length} Errors.`);
@@ -125,11 +139,13 @@ export class Analyzer {
     // log performance
     const [funcResolverMeasure] = performance.getEntriesByName('func-resolver');
     const [resolverMeasure] = performance.getEntriesByName('resolver');
+    const [typeCheckingMeasure] = performance.getEntriesByName('type-checking');
 
     this.logger.log('');
     this.logger.log('-------- performance ---------');
     this.logger.log(`Function Resolver took ${funcResolverMeasure.duration} ms`);
     this.logger.log(`Resolver took ${resolverMeasure.duration} ms`);
+    this.logger.log(`Type Checking took ${typeCheckingMeasure.duration} ms`);
     this.logger.log('------------------------------');
 
     // make sure to delete references so scope manager can be gc'ed
@@ -151,12 +167,25 @@ export class Analyzer {
     return scopeManager;
   }
 
+  // get the token at a position
+  public getToken(pos: Position, uri: string): Maybe<IToken> {
+    const documentInfo = this.documentInfos.get(uri);
+    if (empty(documentInfo)) {
+      return undefined;
+    }
+
+    // try to find an entity at the position
+    const { syntaxTree } = documentInfo;
+    const finder = new SyntaxTreeFind();
+    const result = finder.find(syntaxTree, pos);
+
+    return result && result.token;
+  }
+
   // get a token at a position in a document
   public getDeclarationLocation(pos: Position, uri: string): Maybe<Location> {
     const documentInfo = this.documentInfos.get(uri);
-    if (empty(documentInfo)
-      || empty(documentInfo.scopeManager)
-      || empty(documentInfo.syntaxTree)) {
+    if (empty(documentInfo)) {
       return undefined;
     }
 
@@ -213,7 +242,25 @@ export class Analyzer {
       .filter(location => location.uri !== builtIn);
   }
 
-  // get all global trackers
+  // get a scoped trackers
+  public getScopedTracker(pos: Position, name: string, uri?: string):
+    Maybe<IKsEntityTracker<KsEntity>> {
+    if (empty(uri)) {
+      return this.getGlobalTracker(name);
+    }
+
+    const documentInfo = this.documentInfos.get(uri);
+
+    if (!empty(documentInfo) && !empty(documentInfo.scopeManager)) {
+      const tracker = documentInfo.scopeManager.scopedTracker(pos, name);
+      return tracker;
+    }
+
+    const tracker = this.getGlobalTracker(name);
+    return tracker;
+  }
+
+  // get a global trackers
   public getGlobalTracker(name: string): Maybe<IKsEntityTracker<KsEntity>> {
     return standardLibrary.globalTracker(name);
   }
@@ -221,19 +268,7 @@ export class Analyzer {
   // get all tracker at position
   public getType(pos: Position, name: string, uri?: string):
     Maybe<IType> {
-    if (empty(uri)) {
-      const tracker = this.getGlobalTracker(name);
-      return tracker && tracker.declared.type;
-    }
-
-    const documentInfo = this.documentInfos.get(uri);
-
-    if (!empty(documentInfo) && !empty(documentInfo.scopeManager)) {
-      const tracker = documentInfo.scopeManager.scopedTracker(pos, name);
-      return tracker && tracker.declared.type;
-    }
-
-    const tracker = this.getGlobalTracker(name);
+    const tracker = this.getScopedTracker(pos, name, uri);
     return tracker && tracker.declared.type;
   }
 
@@ -270,7 +305,7 @@ export class Analyzer {
     const finder = new SyntaxTreeFind();
 
     // attempt to find a token here get surround invalid inst context
-    const result = finder.find(syntaxTree, pos, InvalidInst, CallExpr);
+    const result = finder.find(syntaxTree, pos, InvalidInst, InvalidExpr, CallExpr);
 
     // currently we only support invalid instructions for signiture completion
     // we could possible support call expressions as well
@@ -300,6 +335,10 @@ export class Analyzer {
     }
 
     if (node instanceof CallExpr) {
+      // TODO figure out this case
+    }
+
+    if (node instanceof InvalidExpr) {
       // TODO figure out this case
     }
 
@@ -463,6 +502,17 @@ const resolverToDiagnostics = (error: IResolverError, uri: string): IDiagnosticU
   return {
     uri,
     severity: DiagnosticSeverity.Warning,
+    range: { start: error.start, end: error.end },
+    message: error.message,
+    source: 'kos-language-server',
+  };
+};
+
+// convert type checking error to diagnostic
+const typeCheckerToDiagnostics = (error: ITypeError, uri: string): IDiagnosticUri => {
+  return {
+    uri,
+    severity: DiagnosticSeverity.Hint,
     range: { start: error.start, end: error.end },
     message: error.message,
     source: 'kos-language-server',

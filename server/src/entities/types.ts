@@ -9,6 +9,7 @@ export interface IToken extends Range {
   readonly start: Position;
   readonly end: Position;
   readonly uri: string;
+  readonly typeString: string;
   location: () => Location;
   toString: () => string;
 }

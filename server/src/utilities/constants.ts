@@ -1,6 +1,7 @@
 import { CompletionItemKind, CompletionItem } from 'vscode-languageserver';
 
 export const builtIn = 'builtIn';
+export const iterator = 'iterator';
 
 export const keywords = [
   'add',

@@ -1,4 +1,4 @@
-import { IInst, IExpr, IInstVisitor } from './types';
+import { IInst, IExpr, IInstVisitor, ISuffix } from './types';
 import { IToken } from '../entities/types';
 import { Range, Position } from 'vscode-languageserver';
 import { empty } from '../utilities/typeGuards';
@@ -205,7 +205,7 @@ export class UnlockInst extends Inst {
 export class SetInst extends Inst {
   constructor(
     public readonly set: IToken,
-    public readonly suffix: IExpr,
+    public readonly suffix: ISuffix,
     public readonly to: IToken,
     public readonly value: IExpr) {
     super();
@@ -483,7 +483,7 @@ export class ForInst extends Inst {
     public readonly forToken: IToken,
     public readonly identifier: IToken,
     public readonly inToken: IToken,
-    public readonly suffix: IExpr,
+    public readonly suffix: ISuffix,
     public readonly instruction: IInst) {
     super();
   }
@@ -512,7 +512,7 @@ export class ForInst extends Inst {
 export class OnInst extends Inst {
   constructor(
     public readonly on: IToken,
-    public readonly suffix: IExpr,
+    public readonly suffix: ISuffix,
     public readonly instruction: IInst) {
     super();
   }
@@ -540,7 +540,7 @@ export class ToggleInst extends Inst {
   }
   constructor(
     public readonly toggle: IToken,
-    public readonly suffix: IExpr) {
+    public readonly suffix: ISuffix) {
     super();
   }
 
@@ -645,6 +645,7 @@ export class CopyInst extends Inst {
 export class RenameInst extends Inst {
   constructor(
     public readonly rename: IToken,
+    public readonly fileVolume: IToken,
     public readonly ioIdentifer: IToken,
     public readonly expression: IExpr,
     public readonly to: IToken,

@@ -2,7 +2,7 @@
 import { TokenType, isValidIdentifier } from '../entities/tokentypes';
 import {
   IParseError, TokenResult,
-  IExpr, IDeclScope, IInst, INodeResult, RunInstType, ParseResult,
+  IExpr, IDeclScope, IInst, INodeResult, RunInstType, ParseResult, ISuffix,
 } from './types';
 import {
   ParseError, FailedConstructor,
@@ -457,7 +457,7 @@ export class Parser {
   }
 
   // parse on off statement
-  private onOff = (suffix: IExpr): INodeResult<OnOffInst> => {
+  private onOff = (suffix: ISuffix): INodeResult<OnOffInst> => {
     const onOff = this.previous();
     this.terminal(OnOffInst);
 
@@ -777,6 +777,10 @@ export class Parser {
   // parse rename instruction
   private rename = (): INodeResult<RenameInst> => {
     const rename = this.previous();
+    const fileVolume = this.consumeTokenThrow(
+      'Expected file or volume following keyword "rename"',
+      RenameInst, TokenType.volume, TokenType.file);
+
     const ioIdentifier = this.consumeTokenThrow(
       'Expected identifier or file identifier following keyword "rename"',
       RenameInst, TokenType.identifier, TokenType.fileIdentifier);
@@ -789,7 +793,7 @@ export class Parser {
     this.terminal(RenameInst);
 
     return nodeResult(
-      new RenameInst(rename, ioIdentifier, expr.value, to, targetResult.value),
+      new RenameInst(rename, fileVolume, ioIdentifier, expr.value, to, targetResult.value),
       expr.errors,
       targetResult.errors,
     );
@@ -1021,6 +1025,12 @@ export class Parser {
   // parse any expression
   private expression = (inst?: Constructor<Inst>): INodeResult<IExpr> => {
     try {
+      // match anonymous function
+      if (this.matchToken(TokenType.curlyOpen)) {
+        return this.anonymousFunction();
+      }
+
+      // other match conditional
       return this.or();
     } catch (error) {
       if (error instanceof ParseError) {
@@ -1107,7 +1117,7 @@ export class Parser {
   // parse factor expression
   private factor = (): INodeResult<IExpr> => {
     // parse suffix
-    let expr = this.suffix();
+    let expr: INodeResult<IExpr> = this.suffix();
 
     // parse seqeunce of factors if they exist
     while (this.matchToken(TokenType.power)) {
@@ -1123,7 +1133,7 @@ export class Parser {
   }
 
   // parse suffix for use in inst directly, will catch
-  private suffixCatch = (inst: Constructor<Inst>): INodeResult<IExpr> => {
+  private suffixCatch = (inst: Constructor<Inst>): INodeResult<ISuffix> => {
     try {
       return this.suffix();
     } catch (error) {
@@ -1137,7 +1147,7 @@ export class Parser {
   }
 
   // parse suffix
-  private suffix = (): INodeResult<IExpr> => {
+  private suffix = (): INodeResult<ISuffix> => {
     let expr = this.suffixTerm(false);
 
     // while colons are found parse all trailers
@@ -1160,7 +1170,7 @@ export class Parser {
   }
 
   // parse suffix term expression
-  private suffixTerm = (isTrailer: boolean): INodeResult<IExpr> => {
+  private suffixTerm = (isTrailer: boolean): INodeResult<ISuffix> => {
     // parse primary
     let expr = this.atom(isTrailer);
 
@@ -1260,8 +1270,8 @@ export class Parser {
     return nodeResult(new ArrayIndexExpr(array, indexer, index, isTrailer));
   }
 
-  // parse anonymouse function
-  private anonymousFunction = (isTrailer: boolean): INodeResult<AnonymousFunctionExpr> => {
+  // parse anonymous function
+  private anonymousFunction = (): INodeResult<AnonymousFunctionExpr> => {
     const open = this.previous();
     const declarations: Inst[] = [];
     let parseErrors: IParseError[] = [];
@@ -1286,22 +1296,22 @@ export class Parser {
       throw error;
     }
     return nodeResult(
-      new AnonymousFunctionExpr(open, declarations, close, isTrailer),
+      new AnonymousFunctionExpr(open, declarations, close),
       parseErrors,
     );
   }
 
   // match atom expressions literals, identifers, list, and parenthesis
-  private atom = (isTrailer: boolean): INodeResult<IExpr> => {
+  private atom = (isTrailer: boolean): INodeResult<ISuffix> => {
     // match all literals
     if (this.matchToken(
-      TokenType.false, TokenType.true,
+      TokenType.false, TokenType.true, TokenType.fileIdentifier,
       TokenType.string, TokenType.integer, TokenType.double)) {
       return nodeResult(new LiteralExpr(this.previous(), isTrailer));
     }
 
     // match identifiers TODO identifier all keywords that can be used here
-    if (isValidIdentifier(this.peek().type) || this.check(TokenType.fileIdentifier)) {
+    if (isValidIdentifier(this.peek().type)) {
       return nodeResult(new VariableExpr(this.advance(), isTrailer));
     }
 
@@ -1317,11 +1327,6 @@ export class Parser {
         new GroupingExpr(open, expr.value, close, isTrailer),
         expr.errors,
       );
-    }
-
-    // match anonymous function
-    if (this.matchToken(TokenType.curlyOpen)) {
-      return this.anonymousFunction(isTrailer);
     }
 
     // valid expression not found
