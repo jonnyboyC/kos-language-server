@@ -1,5 +1,5 @@
 import { TokenType } from './tokentypes';
-import { Position, Location } from 'vscode-languageserver';
+import { Position, Range } from 'vscode-languageserver';
 import { IToken } from './types';
 
 export class Token implements IToken {
@@ -33,13 +33,10 @@ export class Token implements IToken {
     return TokenType[this.type];
   }
 
-  public location(): Location {
+  public get range(): Range {
     return {
-      uri: this.uri,
-      range: {
-        start: this.start,
-        end: this.end,
-      },
+      start: this.start,
+      end: this.end,
     };
   }
 

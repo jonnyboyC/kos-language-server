@@ -158,6 +158,7 @@ connection.onCompletion(
   },
 );
 
+// This handler provides on hover capabilities
 connection.onHover((positionParmas: TextDocumentPositionParams): Maybe<Hover> => {
   const { position } = positionParmas;
   const { uri } = positionParmas.textDocument;
@@ -175,7 +176,7 @@ connection.onHover((positionParmas: TextDocumentPositionParams): Maybe<Hover> =>
   }
 
   return {
-    contents: `(${tracker.declared.entity.tag}) ${type.toTypeString()} ${token.lexeme}`,
+    contents: `(${tracker.declared.entity.tag}) ${token.lexeme}: ${type.toTypeString()} `,
     range: token,
   };
 });

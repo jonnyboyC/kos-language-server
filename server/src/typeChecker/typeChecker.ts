@@ -31,6 +31,7 @@ import { booleanType, stringType, scalarType, integarType, doubleType } from './
 import { KsTypeError } from './typeError';
 import { iterator } from '../utilities/constants';
 import { TokenType } from '../entities/tokentypes';
+import { nodeType } from './types/node';
 
 type TypeErrors = ITypeError[];
 
@@ -166,6 +167,32 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
   }
   public visitCommandExpr(inst: CommandExpressionInst): TypeErrors {
     const result = this.checkExpr(inst.expression);
+    const errors: TypeErrors = result.errors;
+
+    switch (inst.command.type) {
+      case TokenType.add:
+      case TokenType.remove:
+        if (!coerce(result.type, nodeType)) {
+          const command = inst.command.type === TokenType.add
+            ? 'add'
+            : 'remove';
+
+          errors.push(new KsTypeError(
+            inst.expression, `${command} expected a node.` +
+            ' Node may not able to be  be coerced into node type',
+            []));
+        }
+        break;
+      case TokenType.edit:
+        if (!coerce(result.type, nodeType)) {
+          errors.push(new KsTypeError(
+            inst.expression, 'Path may not be coerced into string type', []));
+        }
+        break;
+      default:
+        throw new Error('Unexpected token type found in command expression');
+    }
+
     return result.errors;
   }
   // tslint:disable-next-line:variable-name
@@ -177,9 +204,13 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
     return [];
   }
   public visitSet(inst: SetInst): TypeErrors {
-    // const result = this.checkExpr(inst.value);
-    if (inst) { }
-    return [];
+    const result = this.checkExpr(inst.value);
+    if (inst.suffix instanceof VariableExpr) {
+      this.scopeManager.setType(inst.suffix.token, inst.suffix.token.lexeme, result.type);
+    } else {
+      // TODO suffix case
+    }
+    return result.errors;
   }
   // tslint:disable-next-line:variable-name
   public visitLazyGlobalInst(_inst: LazyGlobalInst): TypeErrors {
@@ -214,7 +245,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
 
     if (!coerce(conditionResult.type, booleanType)) {
       errors.push(new KsTypeError(
-        inst.condition, 'Condition may not able to be  be coerced into boolean type', []));
+        inst.condition, 'Condition may not able to be coerced into boolean type', []));
     }
 
     return errors.concat(this.checkInst(inst.instruction));
@@ -249,10 +280,13 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
   }
 
   // visit return
-  // tslint:disable-next-line:variable-name
-  public visitReturn(_inst: ReturnInst): TypeErrors {
-    // TODO may need this function signiture
-    return [];
+  public visitReturn(inst: ReturnInst): TypeErrors {
+    const errors: TypeErrors = [];
+    if (!empty(inst.value)) {
+
+    }
+
+    return errors;
   }
 
   // visit break
@@ -402,9 +436,32 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
     return { type: structureType, errors: [] };
   }
   public visitBinary(expr: BinaryExpr): ITypeResult {
+    const rightResult = this.checkExpr(expr.right);
+    const leftResult = this.checkExpr(expr.left);
+
     switch (expr.operator.type) {
-      case TokenType.add:
       case TokenType.minus:
+      case TokenType.multi:
+      case TokenType.div:
+        break;
+      case TokenType.add:
+        break;
+      case TokenType.less:
+      case TokenType.lessEqual:
+      case TokenType.greater:
+      case TokenType.greaterEqual:
+        break;
+      case TokenType.add:
+      case TokenType.or:
+        break;
+      case TokenType.equal:
+      case TokenType.notEqual:
+        if (!coerce(rightResult.type, leftResult.type)
+          && !coerce(rightResult.type, leftResult.type)) {
+
+        }
+
+        break;
     }
 
     if (expr) { }
@@ -446,8 +503,25 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
     return { errors , type: finalType };
   }
   public visitFactor(expr: FactorExpr): ITypeResult {
-    if (expr) { }
-    return { type: structureType, errors: [] };
+    const suffixResult = this.checkExpr(expr.suffix);
+    const exponentResult = this.checkExpr(expr.exponent);
+    const errors = suffixResult.errors.concat(exponentResult.errors);
+
+    if (coerce(suffixResult.type, scalarType)) {
+      errors.push(new KsTypeError(
+        expr.suffix, 'Can only use scalars as base of power' +
+        'This may not able to be coerced into scalar type',
+        []));
+    }
+
+    if (coerce(exponentResult.type, scalarType)) {
+      errors.push(new KsTypeError(
+        expr.exponent, 'Can only use scalars as exponent of power' +
+        'This may not able to be coerced into scalar type',
+        []));
+    }
+
+    return {  errors, type: scalarType };
   }
   public visitSuffix(expr: SuffixExpr): ITypeResult {
     if (expr) { }
@@ -495,8 +569,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
     return { type: empty(type) ? structureType : type, errors: [] };
   }
   public visitGrouping(expr: GroupingExpr): ITypeResult {
-    if (expr) { }
-    return { type: structureType, errors: [] };
+    return this.checkExpr(expr.expr);
   }
   public visitAnonymousFunction(expr: AnonymousFunctionExpr): ITypeResult {
     if (expr) { }

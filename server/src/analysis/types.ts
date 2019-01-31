@@ -36,13 +36,12 @@ export interface IKsEntityTracker<T extends KsEntity = KsEntity> {
   setType(loc: Location, type: IType): void;
 }
 
-export interface IKsChange {
-  loc: Location;
+export interface IKsChange extends Location {
   type: IType;
   expr?: IExpr;
 }
 
-export interface IKsDeclared<T extends KsEntity> {
+export interface IKsDeclared<T extends KsEntity> extends Location {
   entity: T;
   type: IType;
 }

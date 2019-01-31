@@ -45,6 +45,8 @@ import { rangeType } from '../typeChecker/types/collections/range';
 import { ScopeBuilder } from './scopeBuilder';
 import { volumeFileType } from '../typeChecker/types/io/volumneFile';
 import { pidLoopType } from '../typeChecker/types/pidLoop';
+import { volumeItemType } from '../typeChecker/types/io/volumeItem';
+import { volumeDirectoryType } from '../typeChecker/types/io/volumeDirectory';
 
 const libraryBuilder = new ScopeBuilder(builtIn);
 const functionTypes = [
@@ -52,7 +54,7 @@ const functionTypes = [
   createFunctionType('add', voidType, nodeType),
   createFunctionType('addAlarm', kacAlarmType, stringType, stringType, doubleType, stringType),
   createFunctionType('allwaypoints', listType.toConcreteType(waypointType)),
-  createFunctionType('angleaxis', /* TODO */ scalarType),
+  createFunctionType('angleaxis', directionType, vectorType, doubleType),
   createFunctionType('anglediff', scalarType, scalarType, scalarType),
   createFunctionType('arccos', scalarType),
   createFunctionType('arcsin', scalarType),
@@ -70,18 +72,16 @@ const functionTypes = [
   createFunctionType('clearscreen', voidType),
   createFunctionType('clearvecdraws', voidType),
   createFunctionType('constant', constantType),
-  createFunctionType('copy_deprecated', /* TODO */ scalarType),
   createFunctionType('copypath', voidType, stringType, stringType),
   createFunctionType('cos', scalarType),
-  createFunctionType('create', /* TODO */ scalarType),
-  createFunctionType('createdir', /* TODO */ scalarType),
+  createFunctionType('create', volumeFileType, stringType),
+  createFunctionType('createdir', volumeDirectoryType, stringType),
   createFunctionType('debugdump', voidType),
   createFunctionType('debugfreezegame', scalarType),
-  createFunctionType('delete_deprecated', /* TODO */ scalarType),
   createFunctionType('deleteAlarm', booleanType, stringType),
   createFunctionType('deletepath', voidType, stringType, stringType),
   createFunctionType('edit', voidType, pathType),
-  createFunctionType('exists', /* TODO */ scalarType),
+  createFunctionType('exists', booleanType, stringType),
   createFunctionType('floor', scalarType, scalarType),
   createFunctionType('GetVoice', voiceType, integarType),
   createFunctionType('gui', guiWidgetType, integarType, integarType),
@@ -100,7 +100,7 @@ const functionTypes = [
   createFunctionType('ln', scalarType, scalarType),
   createFunctionType('log10', scalarType, scalarType),
   createFunctionType('logfile', voidType, stringType, stringType),
-  createFunctionType('lookdirup', /* TODO */ scalarType),
+  createFunctionType('lookdirup', directionType, vectorType, vectorType),
   createFunctionType('makebuiltindelegate', /* TODO */ scalarType, stringType),
   createFunctionType('max', scalarType, scalarType, scalarType),
   createFunctionType('min', scalarType, scalarType, scalarType),
@@ -108,7 +108,7 @@ const functionTypes = [
   createFunctionType('movepath', voidType, stringType, stringType),
   createFunctionType('node', nodeType, doubleType, doubleType, doubleType, doubleType),
   createFunctionType('note', noteType, doubleType, doubleType, doubleType, doubleType),
-  createFunctionType('open', /* TODO */ scalarType),
+  createFunctionType('open', volumeItemType, stringType),
   createFunctionType('orbitat', orbitInfoType, orbitableType, timeSpanType),
   createFunctionType('path', pathType, stringType),
   createFunctionType(
@@ -129,13 +129,10 @@ const functionTypes = [
   createFunctionType('readjson', serializableStructureType, stringType),
   createFunctionType('reboot', voidType),
   createFunctionType('remove', voidType, nodeType),
-  createFunctionType('rename_file_deprecated', /* TODO */ scalarType),
-  createFunctionType('rename_volume_deprecated', /* TODO */ scalarType),
   createFunctionType('rgb', rgbaType, doubleType, doubleType, doubleType),
   createFunctionType('rgba', rgbaType, doubleType, doubleType, doubleType, doubleType),
-  createFunctionType('rotatefromto', /* TODO */ scalarType),
+  createFunctionType('rotatefromto', directionType, vectorType, vectorType),
   createFunctionType('round', scalarType, scalarType),
-  createFunctionType('run', /* TODO */ scalarType),
   createFunctionType('scriptpath', pathType),
   createFunctionType('selectautopilotmode', voidType, stringType),
   createFunctionType('shutdown', voidType),
@@ -182,6 +179,12 @@ const functionTypes = [
   createFunctionType('waypoint', waypointType, stringType),
   createFunctionType('writejson', volumeFileType, serializableStructureType, stringType),
 ];
+
+// createFunctionType('rename_file_deprecated', /* TODO */ scalarType),
+// createFunctionType('rename_volume_deprecated', /* TODO */ scalarType),
+// createFunctionType('copy_deprecated', /* TODO */ scalarType),
+// createFunctionType('delete_deprecated', /* TODO */ scalarType),
+// createFunctionType('run', /* TODO */ scalarType),
 
 const locks = [
   'throttle',

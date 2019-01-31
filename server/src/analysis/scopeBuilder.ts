@@ -279,7 +279,7 @@ export class ScopeBuilder {
       return new ResolverError(name, `entity ${name.lexeme} may not exist.`, []);
     }
 
-    binding.sets.push(createEnitityChange(name.location(), expr));
+    binding.sets.push(createEnitityChange(name, expr));
     this.logger.info(`Set entity ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
@@ -296,7 +296,7 @@ export class ScopeBuilder {
       return new ResolverError(name, `${entityType} ${name.lexeme} may not exist.`, []);
     }
 
-    tracker.usages.push(createEnitityChange(name.location(), expr));
+    tracker.usages.push(createEnitityChange(name, expr));
     this.logger.info(`Use ${entityType} ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }

@@ -210,7 +210,7 @@ export class Analyzer {
       return undefined;
     }
 
-    return entity.name.location();
+    return entity.name;
   }
 
   public getUsagesLocations(pos: Position, uri: string): Maybe<Location[]> {
@@ -237,8 +237,8 @@ export class Analyzer {
       return undefined;
     }
 
-    return tracker.usages.map(usage => usage.loc)
-      .concat(tracker.declared.entity.name.location())
+    return tracker.usages.map(usage => usage as Location)
+      .concat(tracker.declared.entity.name)
       .filter(location => location.uri !== builtIn);
   }
 

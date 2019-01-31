@@ -25,7 +25,7 @@ const partialArgs = (tokens: IToken[], pos: Position): Maybe<[IToken, IToken[]]>
   let identifier: Maybe<IToken> = undefined;
   const posIdx = binarySearchIndex(tokens, pos);
 
-  if (empty(posIdx)) {
+  if (Array.isArray(posIdx)) {
     return undefined;
   }
 

@@ -21,6 +21,18 @@ export interface ITypeCore extends IGenericTypeCore {
   tag: 'core';
 }
 
+export interface ITypeGenericBetter {
+  readonly name: string;
+  suffixes: ISuffixMap;
+  inherentsFrom?: IType;
+  toConcreteType(type: ITypeBetter): ITypeBetter;
+  toTypeString(): string;
+}
+
+export interface ITypeBetter extends ITypeGenericBetter {
+  tag: 'type';
+}
+
 export interface IType extends IGenericType {
   readonly core: ITypeCore;
   inherentsFrom?: IType;

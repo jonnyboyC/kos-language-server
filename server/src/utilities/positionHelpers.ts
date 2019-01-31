@@ -1,5 +1,4 @@
 import { Position, Range, Location } from 'vscode-languageserver';
-import { empty } from './typeGuards';
 
 export const positionAfter = (pos1: Position, pos2: Position): boolean => {
   if (pos1.line > pos2.line) {
@@ -93,13 +92,47 @@ export const rangeToString = (range: Range): string => {
 
 export const binarySearch = <T extends Range>(ranges: T[], pos: Position): Maybe<T> => {
   const index = binarySearchIndex(ranges, pos);
-
-  return empty(index)
-    ? index
+  return Array.isArray(index)
+    ? undefined
     : ranges[index];
 };
 
-export const binarySearchIndex = <T extends Range>(ranges: T[], pos: Position): Maybe<number> => {
+export const binaryRight = <T extends Range>(ranges: T[], pos: Position): Maybe<T> => {
+  if (rangeAfter(ranges[0], pos)) {
+    return undefined;
+  }
+  const index = binarySearchIndex(ranges, pos);
+
+  return Array.isArray(index)
+    ? ranges[index[1]]
+    : ranges[index];
+};
+
+export const binaryLeftIndex = <T extends Range>(ranges: T[], pos: Position): Maybe<T> => {
+  if (rangeBefore(ranges[rangeAfter.length - 1], pos)) {
+    return undefined;
+  }
+  const index = binarySearchIndex(ranges, pos);
+
+  return Array.isArray(index)
+    ? ranges[index[0]]
+    : ranges[index];
+};
+
+export const binaryRightKeyIndex = <T>(ranges: T[], pos: Position, key: (range: T) => Range):
+  Maybe<T> => {
+  if (rangeAfter(key(ranges[0]), pos)) {
+    return undefined;
+  }
+  const index = binarySearchKeyIndex(ranges, pos, key);
+
+  return Array.isArray(index)
+    ? ranges[index[1]]
+    : ranges[index];
+};
+
+export const binarySearchIndex = <T extends Range>(ranges: T[], pos: Position):
+  number | [number, number] => {
   let left = 0;
   let right = ranges.length - 1;
 
@@ -112,11 +145,32 @@ export const binarySearchIndex = <T extends Range>(ranges: T[], pos: Position): 
     } else if (rangeContains(ranges[mid], pos)) {
       return mid;
     } else {
-      return undefined;
+      return [left, right];
     }
   }
 
-  return undefined;
+  return [left, right];
+};
+
+export const binarySearchKeyIndex = <T>(ranges: T[], pos: Position, key: (range: T) => Range):
+  number | [number, number] => {
+  let left = 0;
+  let right = ranges.length - 1;
+
+  while (left <= right) {
+    const mid = Math.floor((right + left) / 2);
+    if (rangeBefore(key(ranges[mid]), pos)) {
+      left = mid + 1;
+    } else if (rangeAfter(key(ranges[mid]), pos)) {
+      right = mid - 1;
+    } else if (rangeContains(key(ranges[mid]), pos)) {
+      return mid;
+    } else {
+      return [left, right];
+    }
+  }
+
+  return [left, right];
 };
 
 export const locationEqual = (loc1: Location, loc2: Location): boolean => {

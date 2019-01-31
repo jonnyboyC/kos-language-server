@@ -3,8 +3,8 @@ import { structureType } from '../typeChecker/types/structure';
 import { Location } from 'vscode-languageserver';
 import { IExpr } from '../parser/types';
 import { IType } from '../typeChecker/types/types';
-import { locationEqual } from '../utilities/positionHelpers';
 import { empty } from '../utilities/typeGuards';
+import { binaryRightKeyIndex } from '../utilities/positionHelpers';
 
 export class KsEntityTracker<T extends KsEntity> implements IKsEntityTracker {
   public readonly declared: IKsDeclared<T>;
@@ -17,38 +17,26 @@ export class KsEntityTracker<T extends KsEntity> implements IKsEntityTracker {
     this.declared = {
       entity,
       type,
+      uri: entity.name.uri,
+      range: entity.name.range,
     };
     this.sets = [];
     this.usages = [];
   }
 
   public getLocation(loc: Location): Maybe<IKsChange | IKsDeclared<T>> {
-    const { name } = this.declared.entity;
-    if (locationEqual(name.location(), loc)) {
-      return this.declared;
-    }
+    const ranges = this.declared.entity.name.uri === loc.uri
+      ? [this.declared, ...this.sets.filter(set => set.uri === loc.uri)]
+      : this.sets.filter(set => set.uri === loc.uri);
 
-    for (const set of this.sets) {
-      if (locationEqual(set.loc, loc)) {
-        return set;
-      }
-    }
-
-    for (const usage of this.usages) {
-      if (locationEqual(usage.loc, loc)) {
-        return usage;
-      }
-    }
-
-    return undefined;
-    // throw new Error(`location ${loc.uri} ${rangeToString(loc.range)}`
-    // + ` is not a usage or declaration of ${this.declared.entity.name.lexeme}`);
+    return binaryRightKeyIndex(ranges, loc.range.start, x => x.range);
   }
 
   public getType(loc: Location): Maybe<IType> {
     const locationEntity = this.getLocation(loc);
     return empty(locationEntity) ? undefined : locationEntity.type;
   }
+
   public setType(loc: Location, type: IType): void {
     const locationEntity = this.getLocation(loc);
     if (!empty(locationEntity)) {
@@ -58,4 +46,4 @@ export class KsEntityTracker<T extends KsEntity> implements IKsEntityTracker {
 }
 
 export const createEnitityChange = (loc: Location, expr?: IExpr, type = structureType):
-  IKsChange => ({ loc, type, expr });
+  IKsChange => ({ type, expr, uri: loc.uri, range: loc.range });
