@@ -1,4 +1,4 @@
-import { IType } from '../types';
+import { IArgumentType } from '../types';
 import {
   createSetSuffixType, createStructureType,
 } from '../ksType';
@@ -7,7 +7,7 @@ import { addPrototype, addSuffixes } from '../typeUitlities';
 import { boxType } from './box';
 import { widgetSkinType } from './widgetSkin';
 
-export const guiWidgetType: IType = createStructureType('gui');
+export const guiWidgetType: IArgumentType = createStructureType('gui');
 addPrototype(guiWidgetType, boxType);
 
 addSuffixes(

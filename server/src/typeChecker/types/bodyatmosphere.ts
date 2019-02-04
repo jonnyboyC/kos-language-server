@@ -1,10 +1,10 @@
-import { IType } from './types';
+import { IArgumentType } from './types';
 import { createStructureType, createArgSuffixType, createSuffixType } from './ksType';
 import { addPrototype, addSuffixes } from './typeUitlities';
 import { structureType } from './structure';
 import { booleanType, stringType, scalarType } from './primitives';
 
-export const bodyAtmosphereType: IType = createStructureType('bodyAtmosphere');
+export const bodyAtmosphereType: IArgumentType = createStructureType('bodyAtmosphere');
 addPrototype(bodyAtmosphereType, structureType);
 
 addSuffixes(

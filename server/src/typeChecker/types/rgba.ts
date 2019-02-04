@@ -1,10 +1,10 @@
-import { IType } from './types';
+import { IArgumentType } from './types';
 import { createStructureType, createArgSuffixType, createSetSuffixType } from './ksType';
 import { addPrototype, addSuffixes } from './typeUitlities';
 import { structureType } from './structure';
 import { scalarType } from './primitives';
 
-export const rgbaType: IType = createStructureType('rgba');
+export const rgbaType: IArgumentType = createStructureType('rgba');
 addPrototype(rgbaType, structureType);
 
 addSuffixes(

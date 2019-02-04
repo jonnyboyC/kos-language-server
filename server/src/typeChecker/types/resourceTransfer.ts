@@ -1,10 +1,10 @@
-import { IType } from './types';
+import { IArgumentType } from './types';
 import { createStructureType, createSuffixType, createSetSuffixType } from './ksType';
 import { addPrototype, addSuffixes } from './typeUitlities';
 import { structureType } from './structure';
 import { booleanType, scalarType, stringType } from './primitives';
 
-export const resourceTransferType: IType = createStructureType('transfer');
+export const resourceTransferType: IArgumentType = createStructureType('transfer');
 addPrototype(resourceTransferType, structureType);
 
 addSuffixes(

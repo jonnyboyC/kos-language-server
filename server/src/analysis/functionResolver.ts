@@ -60,6 +60,7 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
   // resolve the sequence of instructions
   public resolve(): Errors {
     try {
+      this.scopeBuilder.rewindScope();
       this.scopeBuilder.beginScope(this.syntaxTree);
 
       const resolveErrors = this.resolveInsts(this.syntaxTree.insts);

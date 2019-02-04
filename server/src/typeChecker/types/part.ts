@@ -1,4 +1,4 @@
-import { IType } from './types';
+import { IArgumentType } from './types';
 import {
   createStructureType, createArgSuffixType,
   createSuffixType, createSetSuffixType,
@@ -12,7 +12,7 @@ import { vectorType } from './collections/vector';
 import { userListType, listType } from './collections/list';
 import { vesselTargetType } from './orbital/vesselTarget';
 
-export const partType: IType = createStructureType('part');
+export const partType: IArgumentType = createStructureType('part');
 addPrototype(partType, structureType);
 
 addSuffixes(

@@ -1,57 +1,81 @@
-export interface IGenericTypeCore {
-  readonly name: string;
-  readonly call: boolean;
-  readonly set: boolean;
-  params?: IGenericType[] | IGenericVarType;
-  returns?: IGenericType;
-}
 
-export interface IGenericType {
-  readonly name: string;
-  readonly core: IGenericTypeCore;
-  inherentsFrom?: IGenericType;
-  suffixes: IGenericSuffixMap;
-  toConcreteType(type: IType): IType;
+interface ITypeMeta<T> {
   toTypeString(): string;
+  toConcreteType(type: IArgumentType): T;
 }
 
-export interface ITypeCore extends IGenericTypeCore {
-  params?: IType[] | IVarType;
-  returns?: IType;
-  tag: 'core';
+export const enum SuffixCallType {
+  get,
+  set,
+  call,
 }
 
-export interface ITypeGenericBetter {
-  readonly name: string;
-  suffixes: ISuffixMap;
-  inherentsFrom?: IType;
-  toConcreteType(type: ITypeBetter): ITypeBetter;
-  toTypeString(): string;
+// Could possible delete but does provide a constraint
+export interface ITemplateBasicType<TSuffixType, TConcreteType>
+  extends ITypeMeta<TConcreteType> {
+  name: string;
+  suffixes: Map<string, TSuffixType>;
+  inherentsFrom?: ITemplateBasicType<TSuffixType, TConcreteType>;
 }
 
-export interface ITypeBetter extends ITypeGenericBetter {
+// Could possible delete but does provide a constraint
+export interface ITemplateSuffixType<TBasicType, TVariadicType, TConcreteType>
+  extends ITypeMeta<TConcreteType> {
+  name: string;
+  callType: SuffixCallType;
+  params: TBasicType[] | TVariadicType;
+  returns: TBasicType;
+}
+
+export interface IGenericBasicType
+  extends ITemplateBasicType<IGenericSuffixType, IArgumentType> {
   tag: 'type';
 }
 
-export interface IType extends IGenericType {
-  readonly core: ITypeCore;
-  inherentsFrom?: IType;
-  suffixes: ISuffixMap;
+export interface IGenericSuffixType
+  extends ITemplateSuffixType<IGenericArgumentType, IGenericVariadicType, ISuffixType> {
+  tag: 'suffix';
+}
+
+export interface IGenericVariadicType extends ITypeMeta<IVariadicType> {
+  type: IGenericBasicType;
+  tag: 'variadic';
+}
+
+export type IGenericArgumentType = IGenericBasicType;
+
+export interface IBasicType extends IGenericBasicType {
+  inherentsFrom?: IArgumentType;
+  suffixes: Map<string, ISuffixType>;
+  fullType: true;
   tag: 'type';
 }
 
-export interface IConstantType<T> extends IType {
+export interface ISuffixType extends IGenericSuffixType {
+  params: IArgumentType[] | IVariadicType;
+  returns: IArgumentType;
+  fullType: true;
+  tag: 'suffix';
+}
+
+export interface IVariadicType extends IGenericVariadicType {
+  type: IBasicType;
+  fullType: true;
+  tag: 'variadic';
+}
+
+export type IArgumentType = IBasicType;
+
+export interface IConstantType<T> extends IBasicType {
   value: T;
 }
 
-export type ISuffixMap = Map<string, IType>;
-export type IGenericSuffixMap = Map<string, IGenericType>;
-
-export interface IGenericVarType {
-  type: IGenericType;
+export interface IFunctionType extends ITypeMeta<IFunctionType> {
+  name: string;
+  params: IArgumentType[] | IVariadicType;
+  returns: IArgumentType;
+  fullType: true;
+  tag: 'function';
 }
 
-export interface IVarType {
-  type: IType;
-  tag: 'varType';
-}
+export type IType = IArgumentType | IFunctionType;

@@ -1,4 +1,4 @@
-import { IType } from '../types';
+import { IArgumentType } from '../types';
 import {
   createStructureType,
   createArgSuffixType,
@@ -11,7 +11,7 @@ import { booleanType, scalarType } from '../primitives';
 import { voidType } from '../void';
 import { userListType } from './list';
 
-export const lexiconType: IType = createStructureType('lexicon');
+export const lexiconType: IArgumentType = createStructureType('lexicon');
 addPrototype(lexiconType, serializableStructureType);
 
 addSuffixes(

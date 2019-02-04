@@ -21,12 +21,12 @@ import { extname } from 'path';
 import { readFileAsync } from './utilities/fsUtilities';
 import { standardLibrary } from './analysis/standardLibrary';
 import { builtIn } from './utilities/constants';
-import { IType } from './typeChecker/types/types';
 import { ScopeBuilder } from './analysis/scopeBuilder';
 import { ScopeManager } from './analysis/scopeManager';
 import { TypeChecker } from './typeChecker/typeChecker';
 import { ITypeError } from './typeChecker/types';
 import { IToken } from './entities/types';
+import { IType } from './typeChecker/types/types';
 
 export class Analyzer {
   public volumne0Path: string;
@@ -266,8 +266,7 @@ export class Analyzer {
   }
 
   // get all tracker at position
-  public getType(pos: Position, name: string, uri?: string):
-    Maybe<IType> {
+  public getType(pos: Position, name: string, uri?: string): Maybe<IType> {
     const tracker = this.getScopedTracker(pos, name, uri);
     return tracker && tracker.declared.type;
   }

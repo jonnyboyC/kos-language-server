@@ -14,7 +14,7 @@ import { ScopePosition } from './scopePosition';
 import { mockLogger } from '../utilities/logger';
 import { Scope } from './scope';
 import { KsEntityTracker, createEnitityChange } from './tracker';
-import { IType } from '../typeChecker/types/types';
+import { IArgumentType, IFunctionType } from '../typeChecker/types/types';
 import { ScopeManager } from './scopeManager';
 
 export class ScopeBuilder {
@@ -192,7 +192,7 @@ export class ScopeBuilder {
   }
 
   // declare a variable
-  public declareVariable(scopeType: ScopeType, name: IToken, type?: IType):
+  public declareVariable(scopeType: ScopeType, name: IToken, type?: IArgumentType):
     Maybe<ResolverError> {
     const tracker = this.lookup(name, ScopeType.local);
 
@@ -214,7 +214,7 @@ export class ScopeBuilder {
     name: IToken,
     parameters: KsParameter[],
     returnValue: boolean,
-    type?: IType): Maybe<ResolverError> {
+    type?: IFunctionType): Maybe<ResolverError> {
     const tracker = this.lookup(name, ScopeType.local);
 
     // check if variable has already been defined
@@ -276,7 +276,7 @@ export class ScopeBuilder {
     const binding = this.lookup(name, ScopeType.global);
 
     if (empty(binding)) {
-      return new ResolverError(name, `entity ${name.lexeme} may not exist.`, []);
+      return new ResolverError(name, `Entity ${name.lexeme} may not exist.`, []);
     }
 
     binding.sets.push(createEnitityChange(name, expr));

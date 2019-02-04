@@ -1,11 +1,11 @@
-import { IType } from './types';
+import { IArgumentType } from './types';
 import { createStructureType, createSuffixType } from './ksType';
 import { addPrototype, addSuffixes } from './typeUitlities';
 import { structureType } from './structure';
 import { scalarType } from './primitives';
 import { vectorType } from './collections/vector';
 
-export const vesselSensorsType: IType = createStructureType('vesselSensors');
+export const vesselSensorsType: IArgumentType = createStructureType('vesselSensors');
 addPrototype(vesselSensorsType, structureType);
 
 addSuffixes(

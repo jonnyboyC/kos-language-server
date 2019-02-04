@@ -1,7 +1,7 @@
-import { IType } from './types';
+import { IArgumentType } from './types';
 import { createStructureType } from './ksType';
 import { addPrototype } from './typeUitlities';
 import { delegateType } from './delegate';
 
-export const userDelegateType: IType = createStructureType('userDelegate');
+export const userDelegateType: IArgumentType = createStructureType('userDelegate');
 addPrototype(userDelegateType, delegateType);

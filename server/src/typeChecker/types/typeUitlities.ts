@@ -1,11 +1,20 @@
-import { IType, IVarType, IGenericType, IGenericVarType, ISuffixMap } from './types';
 import { empty } from '../../utilities/typeGuards';
 import { memoize } from '../../utilities/memoize';
+import {
+  IArgumentType,
+  IGenericArgumentType,
+  IGenericVariadicType,
+  IGenericSuffixType,
+  ISuffixType,
+  IVariadicType,
+  IGenericBasicType,
+} from './types';
+import { VariadicType } from './ksType';
 
 // check to see type is a sub type of target type
-export const isSubType = (type: IType, targetType: IType): boolean => {
+export const isSubType = (type: IArgumentType, targetType: IArgumentType): boolean => {
   return moveDownPrototype(type, false, (currentType) => {
-    if (currentType.core === targetType.core) {
+    if (currentType === targetType) {
       return true;
     }
 
@@ -13,7 +22,7 @@ export const isSubType = (type: IType, targetType: IType): boolean => {
   });
 };
 
-export const hasSuffix = (type: IType, suffix: string): boolean => {
+export const hasSuffix = (type: IArgumentType, suffix: string): boolean => {
   return moveDownPrototype(type, false, (currentType) => {
     if (!empty(currentType.suffixes.get(suffix))) {
       return true;
@@ -23,8 +32,8 @@ export const hasSuffix = (type: IType, suffix: string): boolean => {
   });
 };
 
-export const allSuffixes = (type: IType): IType[] => {
-  const suffixes: ISuffixMap = new Map();
+export const allSuffixes = (type: IArgumentType): ISuffixType[] => {
+  const suffixes: Map<string, ISuffixType> = new Map();
 
   moveDownPrototype(type, false, (currentType) => {
     for (const [name, suffix] of currentType.suffixes) {
@@ -40,9 +49,9 @@ export const allSuffixes = (type: IType): IType[] => {
 };
 
 const moveDownPrototype = <T>(
-  type: IType,
+  type: IArgumentType,
   nullValue: T,
-  func: (currentType: IType) => Maybe<T>): T => {
+  func: (currentType: IArgumentType) => Maybe<T>): T => {
 
   let currentType = type;
   while (true) {
@@ -58,28 +67,26 @@ const moveDownPrototype = <T>(
   }
 };
 
-export const isFullVarType = (type: IGenericVarType): type is IVarType => {
+export const isFullVarType = (type: IGenericVariadicType):type is IVariadicType => {
   return isFullType(type.type);
 };
 
-export const isFullType = (type: IGenericType): type is IType => {
-  const { tag } = type as IType;
-  return !empty(tag) && tag === 'type';
+export const isFullType = (type: IGenericArgumentType): type is IArgumentType => {
+  const check = type as IArgumentType;
+  return !empty(check.fullType) && check.fullType;
 };
 
-export const createVarType = memoize((type: IType): IVarType => {
-  return {
-    type,
-    tag: 'varType',
-  };
+export const createVarType = memoize((type: IArgumentType): IVariadicType => {
+  return new VariadicType(type);
 });
 
 // add prototype to type
-export const addPrototype = <T extends IGenericType>(type: T, parent: T): void => {
+export const addPrototype = <T extends IGenericBasicType>(type: T, parent: T): void => {
   type.inherentsFrom = parent;
 };
 
-export const addSuffixes = <T extends IGenericType>(type: T, ...suffixes: T[]): void => {
+export const addSuffixes = <T extends IGenericBasicType, S extends IGenericSuffixType>(
+  type: T, ...suffixes: S[]): void => {
   for (const suffix of suffixes) {
     if (type.suffixes.has(suffix.name)) {
       throw new Error('duplicate suffix added to type');

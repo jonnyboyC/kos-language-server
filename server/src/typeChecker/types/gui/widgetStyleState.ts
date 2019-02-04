@@ -1,4 +1,4 @@
-import { IType } from '../types';
+import { IArgumentType } from '../types';
 import { structureType } from '../structure';
 import {
   createSetSuffixType, createStructureType,
@@ -7,7 +7,7 @@ import { stringType } from '../primitives';
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { rgbaType } from '../rgba';
 
-export const widgetStyleStateType: IType = createStructureType('styleState');
+export const widgetStyleStateType: IArgumentType = createStructureType('styleState');
 addPrototype(widgetStyleStateType, structureType);
 
 addSuffixes(

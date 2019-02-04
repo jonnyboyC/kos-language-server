@@ -1,11 +1,11 @@
 import { createStructureType, createSetSuffixType } from '../../ksType';
-import { IType } from '../../types';
+import { IArgumentType } from '../../types';
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { widgetType } from '../widget';
 import { stringType } from '../../primitives';
 import { userDelegateType } from '../../userDelegate';
 
-export const labelType: IType = createStructureType('label');
+export const labelType: IArgumentType = createStructureType('label');
 addPrototype(labelType, widgetType);
 
 addSuffixes(

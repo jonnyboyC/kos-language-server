@@ -1,11 +1,11 @@
 import { createStructureType, createSetSuffixType } from '../../ksType';
-import { IType } from '../../types';
+import { IArgumentType } from '../../types';
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { scalarType } from '../../primitives';
 import { userDelegateType } from '../../userDelegate';
 import { widgetType } from '../widget';
 
-export const sliderType: IType = createStructureType('slider');
+export const sliderType: IArgumentType = createStructureType('slider');
 addPrototype(sliderType, widgetType);
 
 addSuffixes(

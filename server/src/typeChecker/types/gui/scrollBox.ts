@@ -1,4 +1,4 @@
-import { IType } from '../types';
+import { IArgumentType } from '../types';
 import {
   createSetSuffixType, createStructureType,
 } from '../ksType';
@@ -7,7 +7,7 @@ import { addPrototype, addSuffixes } from '../typeUitlities';
 import { boxType } from './box';
 import { vectorType } from '../collections/vector';
 
-export const scrollBoxType: IType = createStructureType('scrollBox');
+export const scrollBoxType: IArgumentType = createStructureType('scrollBox');
 addPrototype(scrollBoxType, boxType);
 
 addSuffixes(

@@ -109,7 +109,7 @@ export const binaryRight = <T extends Range>(ranges: T[], pos: Position): Maybe<
 };
 
 export const binaryLeftIndex = <T extends Range>(ranges: T[], pos: Position): Maybe<T> => {
-  if (rangeBefore(ranges[rangeAfter.length - 1], pos)) {
+  if (ranges.length === 0 || rangeBefore(ranges[rangeAfter.length - 1], pos)) {
     return undefined;
   }
   const index = binarySearchIndex(ranges, pos);
@@ -121,7 +121,7 @@ export const binaryLeftIndex = <T extends Range>(ranges: T[], pos: Position): Ma
 
 export const binaryRightKeyIndex = <T>(ranges: T[], pos: Position, key: (range: T) => Range):
   Maybe<T> => {
-  if (rangeAfter(key(ranges[0]), pos)) {
+  if (ranges.length === 0 || rangeAfter(key(ranges[0]), pos)) {
     return undefined;
   }
   const index = binarySearchKeyIndex(ranges, pos, key);
@@ -176,4 +176,11 @@ export const binarySearchKeyIndex = <T>(ranges: T[], pos: Position, key: (range:
 export const locationEqual = (loc1: Location, loc2: Location): boolean => {
   if (loc1.uri !== loc2.uri) return false;
   return rangeEqual(loc1.range, loc2.range);
+};
+
+export const locationCopy = (loc: Location): Location => {
+  return {
+    range: loc.range,
+    uri: loc.uri,
+  };
 };

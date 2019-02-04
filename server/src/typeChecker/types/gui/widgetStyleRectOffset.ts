@@ -1,4 +1,4 @@
-import { IType } from '../types';
+import { IArgumentType } from '../types';
 import { structureType } from '../structure';
 import {
   createSetSuffixType, createStructureType,
@@ -6,7 +6,7 @@ import {
 import { integarType } from '../primitives';
 import { addPrototype, addSuffixes } from '../typeUitlities';
 
-export const widgetStyleRectOffsetType: IType = createStructureType('styleRectOffset');
+export const widgetStyleRectOffsetType: IArgumentType = createStructureType('styleRectOffset');
 addPrototype(widgetStyleRectOffsetType, structureType);
 
 addSuffixes(

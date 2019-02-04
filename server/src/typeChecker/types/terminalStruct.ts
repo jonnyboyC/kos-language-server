@@ -1,4 +1,4 @@
-import { IType } from './types';
+import { IArgumentType } from './types';
 import {
   createStructureType, createArgSuffixType,
   createSuffixType, createSetSuffixType,
@@ -9,7 +9,7 @@ import { booleanType, scalarType } from './primitives';
 import { uniqueSetType } from './collections/uniqueset';
 import { terminalInputType } from './terminalInput';
 
-export const terminalStructType: IType = createStructureType('terminalStruct');
+export const terminalStructType: IArgumentType = createStructureType('terminalStruct');
 addPrototype(terminalStructType, structureType);
 
 addSuffixes(

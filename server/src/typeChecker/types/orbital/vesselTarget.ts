@@ -1,4 +1,4 @@
-import { IType } from '../types';
+import { IArgumentType } from '../types';
 import { createStructureType, createArgSuffixType, createSuffixType } from '../ksType';
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { booleanType, stringType, scalarType } from '../primitives';
@@ -10,7 +10,7 @@ import { voidType } from '../void';
 import { uniqueSetType } from '../collections/uniqueset';
 import { partType } from '../part';
 
-export const vesselTargetType: IType = createStructureType('vesselTarget');
+export const vesselTargetType: IArgumentType = createStructureType('vesselTarget');
 addPrototype(vesselTargetType, orbitableType);
 
 addSuffixes(

@@ -22,8 +22,10 @@ import { mockLogger, mockTracer } from '../utilities/logger';
 import { SyntaxTree } from '../entities/syntaxTree';
 import { ScopeManager } from '../analysis/scopeManager';
 import { empty } from '../utilities/typeGuards';
-import { createFunctionType } from './types/functions/function';
-import { IType } from './types/types';
+import {
+  IArgumentType, IType,
+  IBasicType, IVariadicType,
+} from './types/types';
 import { structureType } from './types/structure';
 import { voidType } from './types/void';
 import { coerce } from './coerce';
@@ -32,6 +34,10 @@ import { KsTypeError } from './typeError';
 import { iterator } from '../utilities/constants';
 import { TokenType } from '../entities/tokentypes';
 import { nodeType } from './types/node';
+import { createFunctionType } from './types/ksType';
+import { userListType } from './types/collections/list';
+import { lexiconType } from './types/collections/lexicon';
+import { zip } from '../utilities/arrayUtilities';
 
 type TypeErrors = ITypeError[];
 
@@ -101,7 +107,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
     // TODO may need to report if we can't find function tracker
     if (!empty(funcTracker)) {
       const { entity } = funcTracker.declared;
-      const paramsTypes: IType[] = [];
+      const paramsTypes: IArgumentType[] = [];
       // tslint:disable-next-line:no-increment-decrement
       for (let i = 0; i < entity.parameters.length; i++) {
         paramsTypes.push(structureType);
@@ -311,7 +317,8 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
     const result = this.checkExpr(inst.suffix);
     let errors: TypeErrors = [];
 
-    if (!result.type.suffixes.has(iterator)) {
+    const { type } = result;
+    if (type.tag !== 'type' || !type.suffixes.has(iterator)) {
       errors = errors.concat(new KsTypeError(
         inst.suffix, 'May not be a valid enumerable type', []));
     }
@@ -470,7 +477,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
   public visitUnary(expr: UnaryExpr): ITypeResult {
     const result = this.checkExpr(expr.factor);
     const errors: TypeErrors = result.errors;
-    let finalType: Maybe<IType> = undefined;
+    let finalType: Maybe<IArgumentType> = undefined;
 
     switch (expr.operator.type) {
       case TokenType.plus:
@@ -528,16 +535,122 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
     return { type: structureType, errors: [] };
   }
   public visitCall(expr: CallExpr): ITypeResult {
-    if (expr) { }
-    return { type: structureType, errors: [] };
+    if (expr.callee instanceof VariableExpr) {
+      const functionType = this.scopeManager.getType(expr.callee.token, expr.callee.token.lexeme);
+      return this.resolveCall(expr, functionType, 'function');
+    }
+
+    const result = this.checkExpr(expr.callee);
+    return this.resolveCall(expr, result.type, 'suffix');
   }
+
+  private resolveCall(
+    expr: CallExpr,
+    type: Maybe<IType>,
+    callType: 'function' | 'suffix'): ITypeResult {
+    if (empty(type) || type.tag !== callType) {
+      return {
+        type: structureType,
+        errors: [new KsTypeError(expr.callee, `Unable to determine ${callType} type`, [])],
+      };
+    }
+
+    if (!Array.isArray(type.params)) {
+      return this.resolveVaradic(type.params, type.returns, expr);
+    }
+
+    return this.resolveParameters(type.params, type.returns, expr);
+  }
+
+  private resolveVaradic(
+    params: IVariadicType, returns: IBasicType, expr: CallExpr): ITypeResult {
+    const errors: ITypeError[] = [];
+
+    for (const arg of expr.args) {
+      const result = this.checkExpr(arg);
+      if (!coerce(result.type, params.type)) {
+        errors.push(new KsTypeError(
+          arg, `Function argument could not be coerced into ${params.type.name}`, []));
+      }
+    }
+
+    return { errors, type: returns };
+  }
+
+  private resolveParameters(params: IType[], returns: IBasicType, expr: CallExpr): ITypeResult {
+    const errors: ITypeError[] = [];
+
+    for (const [arg, param] of zip(expr.args, params)) {
+      const result = this.checkExpr(arg);
+      if (!coerce(result.type, param)) {
+        errors.push(new KsTypeError(
+          arg, `Function argument could not be coerced into ${param.name}`, []));
+      }
+    }
+
+    // TODO length difference
+
+    return { errors, type: returns };
+  }
+
   public visitArrayIndex(expr: ArrayIndexExpr): ITypeResult {
+    const errors: ITypeError[] = [];
+
+    switch (expr.indexer.type) {
+      case TokenType.integer:
+        break;
+      case TokenType.identifier:
+        const type = this.scopeManager.getType(expr.indexer, expr.indexer.lexeme);
+        if (empty(type) || !coerce(type, integarType)) {
+          errors.push(new KsTypeError(
+            expr.indexer,
+            `${expr.indexer.lexeme} is not a scalar type. Can only use scalar to index with #`,
+            []));
+        }
+
+        break;
+      default:
+        errors.push(new KsTypeError(
+          expr.indexer, 'Cannot index array with # other than with scalars or variables', []));
+    }
+
     if (expr) { }
     return { type: structureType, errors: [] };
   }
   public visitArrayBracket(expr: ArrayBracketExpr): ITypeResult {
-    if (expr) { }
-    return { type: structureType, errors: [] };
+    const arrayResult = this.checkExpr(expr.array);
+    const indexResult = this.checkExpr(expr.index);
+    const errors = arrayResult.errors.concat(indexResult.errors);
+
+    if (coerce(arrayResult.type, userListType)) {
+      if (!coerce(indexResult.type, scalarType)) {
+        errors.push(new KsTypeError(
+          expr.index, 'Can only use scalars as list index' +
+          'This may not able to be coerced into scalar type',
+          []));
+
+        return { errors, type: structureType };
+      }
+    }
+
+    if (coerce(arrayResult.type, lexiconType)) {
+      if (!coerce(indexResult.type, stringType)) {
+        errors.push(new KsTypeError(
+          expr.index, 'Can only use string as lexicon index' +
+          'This may not able to be coerced into string type',
+          []));
+
+        return { errors, type: structureType };
+      }
+    }
+
+    if (!coerce(indexResult.type, stringType) && !coerce(indexResult.type, scalarType)) {
+      errors.push(new KsTypeError(
+        expr.index, 'Can only use string or scalar as index' +
+        'This may not able to be coerced into string or scalar type',
+        []));
+    }
+    return { errors, type: structureType };
   }
   public visitDelegate(expr: DelegateExpr): ITypeResult {
     if (expr) { }

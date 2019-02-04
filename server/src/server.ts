@@ -34,6 +34,7 @@ import { keywordCompletions } from './utilities/constants';
 import { KsEntity } from './analysis/types';
 import { entityCompletionItems, suffixCompletionItems } from './utilities/serverUtils';
 import { Logger } from './utilities/logger';
+import { locationCopy } from './utilities/positionHelpers';
 
 // Create a connection for the server. The connection uses Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -177,7 +178,10 @@ connection.onHover((positionParmas: TextDocumentPositionParams): Maybe<Hover> =>
 
   return {
     contents: `(${tracker.declared.entity.tag}) ${token.lexeme}: ${type.toTypeString()} `,
-    range: token,
+    range: {
+      start: token.start,
+      end: token.end,
+    },
   };
 });
 
@@ -186,7 +190,8 @@ connection.onReferences((referenceParams: ReferenceParams): Maybe<Location[]> =>
   const { position } = referenceParams;
   const { uri } = referenceParams.textDocument;
 
-  return analyzer.getUsagesLocations(position, uri);
+  const locations = analyzer.getUsagesLocations(position, uri);
+  return locations && locations.map(loc => locationCopy(loc));
 });
 
 // This handler provides signature help
@@ -254,7 +259,8 @@ connection.onDefinition(
     const { position } = documentPosition;
     const { uri } = documentPosition.textDocument;
 
-    return analyzer.getDeclarationLocation(position, uri);
+    const location = analyzer.getDeclarationLocation(position, uri);
+    return location && locationCopy(location);
   },
 );
 

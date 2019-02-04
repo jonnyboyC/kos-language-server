@@ -1,10 +1,10 @@
-import { IType } from './types';
+import { IArgumentType } from './types';
 import { createStructureType, createSetSuffixType } from './ksType';
 import { addPrototype, addSuffixes } from './typeUitlities';
 import { scalarType } from './primitives';
 import { rgbaType } from './rgba';
 
-export const hsvaType: IType = createStructureType('hsva');
+export const hsvaType: IArgumentType = createStructureType('hsva');
 addPrototype(hsvaType, rgbaType);
 
 addSuffixes(

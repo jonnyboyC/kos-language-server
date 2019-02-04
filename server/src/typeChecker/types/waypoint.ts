@@ -1,4 +1,4 @@
-import { IType } from './types';
+import { IArgumentType } from './types';
 import { createStructureType, createArgSuffixType } from './ksType';
 import { addPrototype, addSuffixes } from './typeUitlities';
 import { structureType } from './structure';
@@ -7,7 +7,7 @@ import { bodyTargetType } from './orbital/bodyTarget';
 import { geoCoordinatesType } from './geoCoordinates';
 import { vectorType } from './collections/vector';
 
-export const waypointType: IType = createStructureType('waypoint');
+export const waypointType: IArgumentType = createStructureType('waypoint');
 addPrototype(waypointType, structureType);
 
 addSuffixes(

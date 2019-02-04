@@ -1,4 +1,4 @@
-import { IType } from '../types';
+import { IArgumentType } from '../types';
 import { createStructureType, createSuffixType, createArgSuffixType } from '../ksType';
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { serializableStructureType } from '../structure';
@@ -11,7 +11,7 @@ import { bodyTargetType } from './bodyTarget';
 import { orbitInfoType } from '../orbitInfo';
 import { orbitableVelocityType } from '../orbitalVelocity';
 
-export const orbitableType: IType = createStructureType('orbitable');
+export const orbitableType: IArgumentType = createStructureType('orbitable');
 addPrototype(orbitableType, serializableStructureType);
 
 addSuffixes(

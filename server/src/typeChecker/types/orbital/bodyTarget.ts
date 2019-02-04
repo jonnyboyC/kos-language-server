@@ -1,4 +1,4 @@
-import { IType } from '../types';
+import { IArgumentType } from '../types';
 import { createStructureType, createArgSuffixType, createSuffixType } from '../ksType';
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { structureType } from '../structure';
@@ -8,7 +8,7 @@ import { userListType } from '../collections/list';
 import { vectorType } from '../collections/vector';
 import { geoCoordinatesType } from '../geoCoordinates';
 
-export const bodyTargetType: IType = createStructureType('bodyTarget');
+export const bodyTargetType: IArgumentType = createStructureType('bodyTarget');
 addPrototype(bodyTargetType, orbitableType);
 
 addSuffixes(

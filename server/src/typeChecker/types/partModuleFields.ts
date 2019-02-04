@@ -1,4 +1,4 @@
-import { IType } from './types';
+import { IArgumentType } from './types';
 import {
   createStructureType, createArgSuffixType,
   createSuffixType,
@@ -10,7 +10,7 @@ import { userListType } from './collections/list';
 import { partType } from './part';
 import { voidType } from './void';
 
-export const partModuleFields: IType = createStructureType('partModuleFields');
+export const partModuleFields: IArgumentType = createStructureType('partModuleFields');
 addPrototype(partModuleFields, structureType);
 
 addSuffixes(

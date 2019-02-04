@@ -1,10 +1,10 @@
-import { IType } from './types';
+import { IArgumentType } from './types';
 import { createStructureType, createSuffixType } from './ksType';
 import { addPrototype, addSuffixes } from './typeUitlities';
 import { structureType } from './structure';
 import { scalarType } from './primitives';
 
-export const versionInfoType: IType = createStructureType('versioninfo');
+export const versionInfoType: IArgumentType = createStructureType('versioninfo');
 addPrototype(versionInfoType, structureType);
 
 addSuffixes(

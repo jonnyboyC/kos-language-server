@@ -1,4 +1,4 @@
-import { IType } from '../types';
+import { IArgumentType } from '../types';
 import { createStructureType, createArgSuffixType, createSuffixType } from '../ksType';
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { structureType } from '../structure';
@@ -7,7 +7,7 @@ import { volumeItemType } from './volumeItem';
 import { voidType } from '../void';
 import { fileContentType } from './fileContent';
 
-export const volumeFileType: IType = createStructureType('volumefile');
+export const volumeFileType: IArgumentType = createStructureType('volumefile');
 addPrototype(volumeFileType, volumeItemType);
 
 addSuffixes(

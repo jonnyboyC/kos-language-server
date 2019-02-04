@@ -1,4 +1,4 @@
-import { IType } from './types';
+import { IArgumentType } from './types';
 import {
   createStructureType, createArgSuffixType,
   createSuffixType, createSetSuffixType,
@@ -8,7 +8,7 @@ import { structureType } from './structure';
 import { scalarType } from './primitives';
 import { voidType } from './void';
 
-export const pidLoopType: IType = createStructureType('pidLoop');
+export const pidLoopType: IArgumentType = createStructureType('pidLoop');
 addPrototype(pidLoopType, structureType);
 
 addSuffixes(

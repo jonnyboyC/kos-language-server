@@ -1,4 +1,4 @@
-import { IGenericType } from '../types';
+import { IGenericArgumentType } from '../types';
 import {
   createArgSuffixType, createGenericStructureType,
   tType, createGenericArgSuffixType,
@@ -9,7 +9,7 @@ import { scalarType, booleanType, stringType } from '../primitives';
 import { enumeratorType } from './enumerator';
 import { iterator } from '../../../utilities/constants';
 
-export const enumerableType: IGenericType = createGenericStructureType('enumerable');
+export const enumerableType: IGenericArgumentType = createGenericStructureType('enumerable');
 addPrototype(enumerableType, serializableStructureType);
 
 addSuffixes(

@@ -1,4 +1,4 @@
-import { IType } from './types';
+import { IArgumentType } from './types';
 import { createStructureType, createSuffixType, createSetSuffixType } from './ksType';
 import { addPrototype, addSuffixes } from './typeUitlities';
 import { structureType } from './structure';
@@ -6,7 +6,7 @@ import { scalarType } from './primitives';
 import { vectorType } from './collections/vector';
 import { orbitInfoType } from './orbitInfo';
 
-export const nodeType: IType = createStructureType('node');
+export const nodeType: IArgumentType = createStructureType('node');
 addPrototype(nodeType, structureType);
 
 addSuffixes(

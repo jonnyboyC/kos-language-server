@@ -1,4 +1,4 @@
-import { IType } from '../types';
+import { IArgumentType } from '../types';
 import {
   createSetSuffixType, createSuffixType, createStructureType,
 } from '../ksType';
@@ -6,7 +6,7 @@ import { addPrototype, addSuffixes } from '../typeUitlities';
 import { scalarType } from '../primitives';
 import { serializableStructureType } from '../structure';
 
-export const vectorType: IType = createStructureType('vector');
+export const vectorType: IArgumentType = createStructureType('vector');
 
 addPrototype(vectorType, serializableStructureType);
 

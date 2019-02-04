@@ -1,29 +1,29 @@
-import { IType } from './types';
+import { IArgumentType } from './types';
 import { createStructureType, createArgSuffixType } from './ksType';
 import { structureType } from './structure';
 import { addPrototype, addSuffixes } from './typeUitlities';
 import { voidType } from './void';
 
 // ---------- base of all primitive types --------------
-export const primitiveType: IType = createStructureType('primitive');
+export const primitiveType: IArgumentType = createStructureType('primitive');
 addPrototype(primitiveType, structureType);
 
 // ---------- base of number types ---------------------
-export const scalarType: IType = createStructureType('scalar');
+export const scalarType: IArgumentType = createStructureType('scalar');
 addPrototype(scalarType, primitiveType);
 
-export const integarType: IType = createStructureType('int');
+export const integarType: IArgumentType = createStructureType('int');
 addPrototype(integarType, scalarType);
 
-export const doubleType: IType = createStructureType('double');
+export const doubleType: IArgumentType = createStructureType('double');
 addPrototype(doubleType, scalarType);
 
 // ---------- base of boolean types --------------------
-export const booleanType: IType = createStructureType('boolean');
+export const booleanType: IArgumentType = createStructureType('boolean');
 addPrototype(booleanType, primitiveType);
 
 // ---------- base of string types ---------------------
-export const stringType: IType = createStructureType('string');
+export const stringType: IArgumentType = createStructureType('string');
 addPrototype(stringType, primitiveType);
 
 addSuffixes(

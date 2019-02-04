@@ -1,4 +1,4 @@
-import { IGenericType } from '../types';
+import { IGenericArgumentType } from '../types';
 import {
   createGenericStructureType,
   tType, createGenericArgSuffixType,
@@ -7,7 +7,7 @@ import { addPrototype, addSuffixes } from '../typeUitlities';
 import { enumerableType } from './enumerable';
 import { voidType } from '../void';
 
-export const queueType: IGenericType = createGenericStructureType('queue');
+export const queueType: IGenericArgumentType = createGenericStructureType('queue');
 
 addPrototype(queueType, enumerableType);
 

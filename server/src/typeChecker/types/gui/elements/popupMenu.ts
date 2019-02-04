@@ -1,5 +1,5 @@
 import { createStructureType, createSetSuffixType, createArgSuffixType } from '../../ksType';
-import { IType } from '../../types';
+import { IArgumentType } from '../../types';
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { booleanType, integarType, stringType } from '../../primitives';
 import { userDelegateType } from '../../userDelegate';
@@ -8,7 +8,7 @@ import { userListType } from '../../collections/list';
 import { structureType } from '../../structure';
 import { voidType } from '../../void';
 
-export const popupMenuType: IType = createStructureType('popupMenu');
+export const popupMenuType: IArgumentType = createStructureType('popupMenu');
 addPrototype(popupMenuType, buttonType);
 
 addSuffixes(

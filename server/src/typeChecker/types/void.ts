@@ -1,3 +1,3 @@
-import { IType } from './types';
+import { createStructureType } from './ksType';
 
-export const voidType: Maybe<IType> = undefined;
+export const voidType = createStructureType('void');

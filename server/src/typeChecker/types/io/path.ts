@@ -1,4 +1,4 @@
-import { IType } from '../types';
+import { IArgumentType } from '../types';
 import {
   createStructureType, createSuffixType,
   createArgSuffixType, createVarSuffixType,
@@ -9,7 +9,7 @@ import { booleanType, stringType, integarType } from '../primitives';
 import { volumeType } from './volume';
 import { userListType } from '../collections/list';
 
-export const pathType: IType = createStructureType('path');
+export const pathType: IArgumentType = createStructureType('path');
 addPrototype(pathType, serializableStructureType);
 
 addSuffixes(

@@ -1,7 +1,6 @@
 import { ScopeType } from '../parser/types';
 import { Token, Marker } from '../entities/token';
 import { TokenType } from '../entities/tokentypes';
-import { createFunctionType, createVarFunctionType } from '../typeChecker/types/functions/function';
 import {
   scalarType, stringType,
   booleanType, integarType, doubleType,
@@ -12,7 +11,6 @@ import { createVarType } from '../typeChecker/types/typeUitlities';
 import { userListType, listType } from '../typeChecker/types/collections/list';
 import { stackType } from '../typeChecker/types/collections/stack';
 import { uniqueSetType } from '../typeChecker/types/collections/uniqueset';
-import { createArgSuffixType } from '../typeChecker/types/ksType';
 import { voidType } from '../typeChecker/types/void';
 import { nodeType } from '../typeChecker/types/node';
 import { partType } from '../typeChecker/types/part';
@@ -47,6 +45,7 @@ import { volumeFileType } from '../typeChecker/types/io/volumneFile';
 import { pidLoopType } from '../typeChecker/types/pidLoop';
 import { volumeItemType } from '../typeChecker/types/io/volumeItem';
 import { volumeDirectoryType } from '../typeChecker/types/io/volumeDirectory';
+import { createFunctionType, createVarFunctionType } from '../typeChecker/types/ksType';
 
 const libraryBuilder = new ScopeBuilder(builtIn);
 const functionTypes = [
@@ -89,7 +88,7 @@ const functionTypes = [
   createFunctionType('highlight', highlightType, structureType, rgbaType),
   createFunctionType('hsv', hsvaType, doubleType, doubleType, doubleType),
   createFunctionType('hsva', hsvaType, doubleType, doubleType, doubleType, doubleType),
-  createArgSuffixType(
+  createFunctionType(
     'hudtext', voidType, stringType, integarType,
     integarType, /* TODO */scalarType, booleanType),
   createFunctionType('latlng', geoCoordinatesType, doubleType, doubleType),

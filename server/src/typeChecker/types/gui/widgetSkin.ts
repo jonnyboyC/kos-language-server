@@ -1,4 +1,4 @@
-import { IType } from '../types';
+import { IArgumentType } from '../types';
 import {
   createSetSuffixType, createStructureType, createArgSuffixType,
 } from '../ksType';
@@ -8,7 +8,7 @@ import { structureType } from '../structure';
 import { rgbaType } from '../rgba';
 import { widgetStyleType } from './widgetStyle';
 
-export const widgetSkinType: IType = createStructureType('skin');
+export const widgetSkinType: IArgumentType = createStructureType('skin');
 addPrototype(widgetSkinType, structureType);
 
 const builtIns = [

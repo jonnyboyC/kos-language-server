@@ -1,4 +1,4 @@
-import { IType } from '../types';
+import { IArgumentType } from '../types';
 import {
   createSetSuffixType, createSuffixType,
   createArgSuffixType, createStructureType,
@@ -17,7 +17,7 @@ import { buttonType } from './elements/button';
 import { popupMenuType } from './elements/popupMenu';
 import { sliderType } from './elements/slider';
 
-export const boxType: IType = createStructureType('box');
+export const boxType: IArgumentType = createStructureType('box');
 addPrototype(boxType, widgetType);
 
 addSuffixes(

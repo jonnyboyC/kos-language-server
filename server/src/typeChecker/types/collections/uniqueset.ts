@@ -1,4 +1,4 @@
-import { IGenericType } from '../types';
+import { IGenericArgumentType } from '../types';
 import {
   createGenericStructureType,
   tType, createGenericArgSuffixType,
@@ -8,7 +8,7 @@ import { collectionType } from './collection';
 import { scalarType } from '../primitives';
 import { voidType } from '../void';
 
-export const uniqueSetType: IGenericType = createGenericStructureType('uniqueSet');
+export const uniqueSetType: IGenericArgumentType = createGenericStructureType('uniqueSet');
 
 addPrototype(uniqueSetType, collectionType);
 

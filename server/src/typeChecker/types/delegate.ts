@@ -1,10 +1,10 @@
-import { IType } from './types';
+import { IArgumentType } from './types';
 import { createStructureType, createArgSuffixType, createVarSuffixType } from './ksType';
 import { addPrototype, addSuffixes, createVarType } from './typeUitlities';
 import { structureType } from './structure';
 import { booleanType } from './primitives';
 
-export const delegateType: IType = createStructureType('delegate');
+export const delegateType: IArgumentType = createStructureType('delegate');
 addPrototype(delegateType, structureType);
 
 addSuffixes(

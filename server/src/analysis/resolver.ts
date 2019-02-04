@@ -69,6 +69,7 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   // resolve the sequence of instructions
   public resolve(): Errors {
     try {
+      this.scopeBuilder.rewindScope();
       this.scopeBuilder.beginScope(this.syntaxTree);
       const [firstInst, ...restInsts] = this.syntaxTree.insts;
 

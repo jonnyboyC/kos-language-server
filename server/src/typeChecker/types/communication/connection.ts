@@ -1,10 +1,10 @@
-import { IType } from '../types';
+import { IArgumentType } from '../types';
 import { createStructureType, createArgSuffixType, createSuffixType } from '../ksType';
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { structureType } from '../structure';
 import { booleanType, scalarType } from '../primitives';
 
-export const connectionType: IType = createStructureType('connection');
+export const connectionType: IArgumentType = createStructureType('connection');
 addPrototype(connectionType, structureType);
 
 addSuffixes(

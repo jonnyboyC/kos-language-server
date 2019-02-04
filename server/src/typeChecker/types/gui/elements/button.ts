@@ -1,11 +1,11 @@
 import { createStructureType, createSetSuffixType } from '../../ksType';
-import { IType } from '../../types';
+import { IArgumentType } from '../../types';
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { booleanType } from '../../primitives';
 import { userDelegateType } from '../../userDelegate';
 import { labelType } from './label';
 
-export const buttonType: IType = createStructureType('button');
+export const buttonType: IArgumentType = createStructureType('button');
 addPrototype(buttonType, labelType);
 
 addSuffixes(

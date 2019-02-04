@@ -1,4 +1,4 @@
-import { IType } from './types';
+import { IArgumentType } from './types';
 import { createStructureType, createSetSuffixType } from './ksType';
 import { addPrototype, addSuffixes } from './typeUitlities';
 import { structureType } from './structure';
@@ -7,7 +7,7 @@ import { vectorType } from './collections/vector';
 import { userDelegateType } from './userDelegate';
 import { rgbaType } from './rgba';
 
-export const vectorRendererType: IType = createStructureType('vecDraw');
+export const vectorRendererType: IArgumentType = createStructureType('vecDraw');
 addPrototype(vectorRendererType, structureType);
 
 addSuffixes(

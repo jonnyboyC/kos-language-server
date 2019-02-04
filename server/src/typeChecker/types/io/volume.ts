@@ -1,4 +1,4 @@
-import { IType } from '../types';
+import { IArgumentType } from '../types';
 import {
   createStructureType,
   createArgSuffixType,
@@ -12,7 +12,7 @@ import { volumeDirectoryType } from './volumeDirectory';
 import { volumeFileType } from './volumneFile';
 import { lexiconType } from '../collections/lexicon';
 
-export const volumeType: IType = createStructureType('volume');
+export const volumeType: IArgumentType = createStructureType('volume');
 addPrototype(volumeType, structureType);
 
 addSuffixes(
