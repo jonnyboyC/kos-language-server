@@ -1,6 +1,5 @@
 import { IExprVisitor, IInstVisitor, IInst, IExpr, IFindResult, INode } from './types';
-import { IToken } from '../entities/types';
-import { DeclVariable, DeclLock, DeclFunction, DeclParameter } from './declare';
+import { DeclVariable, DeclLock, DeclFunction, DeclParameter, Parameter } from './declare';
 import {
   BlockInst, ExprInst, OnOffInst,
   CommandInst, CommandExpressionInst,
@@ -75,13 +74,22 @@ export class SyntaxTreeFind implements
       return findResult;
     }
 
+    if (searchResult instanceof Parameter) {
+      return {
+        node: this.isContext(node)
+          ? node
+          : undefined,
+        token: searchResult.identifier,
+      };
+    }
+
     // return result if token found
     if (searchResult instanceof Token) {
       return {
         node: this.isContext(node)
           ? node
           : undefined,
-        token: searchResult as IToken,
+        token: searchResult,
       };
     }
 

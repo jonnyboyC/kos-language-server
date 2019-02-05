@@ -24,7 +24,7 @@ import { ScopeManager } from '../analysis/scopeManager';
 import { empty } from '../utilities/typeGuards';
 import {
   IArgumentType, IType,
-  IBasicType, IVariadicType,
+  IBasicType, IVariadicType, Operator, SuffixCallType,
 } from './types/types';
 import { structureType } from './types/structure';
 import { voidType } from './types/void';
@@ -38,6 +38,7 @@ import { createFunctionType } from './types/ksType';
 import { userListType } from './types/collections/list';
 import { lexiconType } from './types/collections/lexicon';
 import { zip } from '../utilities/arrayUtilities';
+import { isSubType, hasOperator, getSuffix } from './types/typeUitlities';
 
 type TypeErrors = ITypeError[];
 
@@ -448,32 +449,95 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
 
     switch (expr.operator.type) {
       case TokenType.minus:
+        return this.checkOperator(expr, leftResult, rightResult, Operator.subtract);
       case TokenType.multi:
+        return this.checkOperator(expr, leftResult, rightResult, Operator.multiply);
       case TokenType.div:
-        break;
-      case TokenType.add:
-        break;
+        return this.checkOperator(expr, leftResult, rightResult, Operator.divide);
+      case TokenType.plus:
+        return this.checkOperator(expr, leftResult, rightResult, Operator.plus);
       case TokenType.less:
+        return this.checkOperator(expr, leftResult, rightResult, Operator.lessThan);
       case TokenType.lessEqual:
+        return this.checkOperator(expr, leftResult, rightResult, Operator.lessThanEqual);
       case TokenType.greater:
+        return this.checkOperator(expr, leftResult, rightResult, Operator.greaterThan);
       case TokenType.greaterEqual:
-        break;
-      case TokenType.add:
+        return this.checkOperator(expr, leftResult, rightResult, Operator.greaterThanEqual);
+      case TokenType.and:
       case TokenType.or:
-        break;
-      case TokenType.equal:
-      case TokenType.notEqual:
-        if (!coerce(rightResult.type, leftResult.type)
-          && !coerce(rightResult.type, leftResult.type)) {
-
+        const errors = leftResult.errors.concat(rightResult.errors);
+        if (!isSubType(leftResult.type, booleanType) || !isSubType(leftResult.type, booleanType)) {
+          errors.push(new KsTypeError(
+            expr,
+            '"and" and "or" require boolean types. May not be able to coerce one or other', []));
         }
-
-        break;
+        return { errors, type: booleanType };
+      case TokenType.equal:
+        return this.checkOperator(expr, leftResult, rightResult, Operator.equal);
+      case TokenType.notEqual:
+        return this.checkOperator(expr, leftResult, rightResult, Operator.notEqual);
     }
 
-    if (expr) { }
-    return { type: structureType, errors: [] };
+    throw new Error(
+      `Unexpected token ${expr.operator.typeString} type encountered in binary expression`);
   }
+
+  private checkOperator(
+    expr: IExpr,
+    leftResult: ITypeResult,
+    rightResult: ITypeResult,
+    operator: Operator): ITypeResult {
+
+    const leftType = leftResult.type;
+    const rightType = rightResult.type;
+    const errors = leftResult.errors.concat(rightResult.errors);
+    let calcType: Maybe<IArgumentType> = undefined;
+
+    // TODO could be more efficient
+    if (isSubType(leftType, scalarType)
+      && isSubType(rightType, scalarType)) {
+      calcType = scalarType;
+    } else if (isSubType(leftType, stringType)
+      || isSubType(rightType, stringType)) {
+      calcType = stringType;
+    } else if (isSubType(leftType, booleanType)
+      || isSubType(rightType, booleanType)) {
+      calcType = booleanType;
+    } else {
+      const leftOp = hasOperator(leftType, operator);
+      const rightOp = hasOperator(rightType, operator);
+
+      if (empty(leftOp) && empty(rightOp)) {
+        return {
+          type: structureType,
+          errors: errors.concat(
+            new KsTypeError(expr, `${leftType.name} nor ${rightType.name} have TODO operator`, [])),
+        };
+      }
+
+      if (!empty(leftOp)) {
+        return { errors, type: leftOp };
+      }
+      if (!empty(rightOp)) {
+        return { errors, type: rightOp };
+      }
+
+      return { errors, type: structureType };
+    }
+
+    const returnType = calcType.operators.get(operator);
+    if (empty(returnType)) {
+      return {
+        type: structureType,
+        errors: errors.concat(
+          new KsTypeError(expr, `${calcType.name} type does not have TODO operator`, [])),
+      };
+    }
+
+    return { errors, type: returnType };
+  }
+
   public visitUnary(expr: UnaryExpr): ITypeResult {
     const result = this.checkExpr(expr.factor);
     const errors: TypeErrors = result.errors;
@@ -531,9 +595,77 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
     return {  errors, type: scalarType };
   }
   public visitSuffix(expr: SuffixExpr): ITypeResult {
-    if (expr) { }
-    return { type: structureType, errors: [] };
+    if (expr.isSuffix) {
+      // debugger;
+    }
+
+    const result = this.checkExpr(expr.suffix);
+
+    if (result.type.tag === 'function') {
+      return this.errors(
+        new KsTypeError(expr, 'found function type', []),
+        ...result.errors,
+      );
+    }
+
+    const { type, errors } = this.resolveTrailer(result.type, expr.trailer);
+    return { type, errors: errors.concat(result.errors) };
   }
+  private resolveTrailer(type: IArgumentType, expr: IExpr): ITypeResult {
+    if (expr instanceof VariableExpr) {
+      return this.resolveVariableTrailer(type, expr);
+    }
+
+    if (expr instanceof ArrayBracketExpr) {
+      return this.resolveArrayBracketTrailer(type, expr);
+    }
+
+    return this.errors();
+  }
+
+  private resolveVariableTrailer(type: IArgumentType, expr: VariableExpr): ITypeResult {
+    const suffix = getSuffix(type, expr.token.lexeme);
+
+    // may need to pass sommething in about if we're in get set context
+    if (empty(suffix))  {
+      return this.errors(
+        new KsTypeError(
+          expr,
+          `Could not find suffix ${expr.token.lexeme} for type ${type.name}`, []));
+    }
+
+    if (suffix.callType === SuffixCallType.call) {
+      return this.errors(new KsTypeError(
+        expr,
+        `Suffix ${expr.token.lexeme} is missing call signiture ${suffix.toTypeString()}`, []));
+    }
+
+    return this.result(suffix.returns);
+  }
+
+  private resolveArrayBracketTrailer(_: IArgumentType, __: ArrayBracketExpr): ITypeResult {
+    // const arrayResult = this.checkExpr(expr.array);
+    // const indexResult = this.checkExpr(expr.index);
+
+    // const suffix = getSuffix(type, expr.);
+
+    // // may need to pass sommething in about if we're in get set context
+    // if (empty(suffix))  {
+    //   return this.errors(
+    //     new KsTypeError(
+    //       expr,
+    //       `Could not find suffix ${expr.token.lexeme} for type ${type.name}`, []));
+    // }
+
+    // if (suffix.callType === SuffixCallType.call) {
+    //   return this.errors(new KsTypeError(
+    //     expr,
+    //     `Suffix ${expr.token.lexeme} is missing call signiture ${suffix.toTypeString()}`, []));
+    // }
+
+    return this.errors(); // this.result(suffix.returns);
+  }
+
   public visitCall(expr: CallExpr): ITypeResult {
     if (expr.callee instanceof VariableExpr) {
       const functionType = this.scopeManager.getType(expr.callee.token, expr.callee.token.lexeme);
@@ -549,10 +681,10 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
     type: Maybe<IType>,
     callType: 'function' | 'suffix'): ITypeResult {
     if (empty(type) || type.tag !== callType) {
-      return {
-        type: structureType,
-        errors: [new KsTypeError(expr.callee, `Unable to determine ${callType} type`, [])],
-      };
+      return this.result(
+        structureType,
+        new KsTypeError(expr.callee, `Unable to determine ${callType} type`, []),
+      );
     }
 
     if (!Array.isArray(type.params)) {
@@ -574,7 +706,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
       }
     }
 
-    return { errors, type: returns };
+    return this.result(returns, ...errors);
   }
 
   private resolveParameters(params: IType[], returns: IBasicType, expr: CallExpr): ITypeResult {
@@ -590,7 +722,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
 
     // TODO length difference
 
-    return { errors, type: returns };
+    return this.result(returns, ...errors);
   }
 
   public visitArrayIndex(expr: ArrayIndexExpr): ITypeResult {
@@ -614,8 +746,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
           expr.indexer, 'Cannot index array with # other than with scalars or variables', []));
     }
 
-    if (expr) { }
-    return { type: structureType, errors: [] };
+    return this.result(structureType, ...errors);
   }
   public visitArrayBracket(expr: ArrayBracketExpr): ITypeResult {
     const arrayResult = this.checkExpr(expr.array);
@@ -629,7 +760,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
           'This may not able to be coerced into scalar type',
           []));
 
-        return { errors, type: structureType };
+        return this.result(structureType, ...errors);
       }
     }
 
@@ -640,7 +771,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
           'This may not able to be coerced into string type',
           []));
 
-        return { errors, type: structureType };
+        return this.result(structureType, ...errors);
       }
     }
 
@@ -650,11 +781,11 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
         'This may not able to be coerced into string or scalar type',
         []));
     }
-    return { errors, type: structureType };
+    return this.result(structureType, ...errors);
   }
   public visitDelegate(expr: DelegateExpr): ITypeResult {
     if (expr) { }
-    return { type: structureType, errors: [] };
+    return this.errors();
   }
 
   // visit literal expression
@@ -662,15 +793,14 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
     switch (expr.token.type) {
       case TokenType.true:
       case TokenType.false:
-        return { type: booleanType, errors: [] };
+        return this.result(booleanType);
       case TokenType.string:
-        return { type: stringType, errors: [] };
       case TokenType.fileIdentifier:
-        return { type: stringType, errors: [] };
+        return this.result(stringType);
       case TokenType.integer:
-        return { type: integarType, errors: [] };
+        return this.result(integarType);
       case TokenType.double:
-        return { type: doubleType, errors: [] };
+        return this.result(doubleType);
       default:
         throw new Error('Unexpected Literally token type encountered');
     }
@@ -686,7 +816,14 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
   }
   public visitAnonymousFunction(expr: AnonymousFunctionExpr): ITypeResult {
     if (expr) { }
-    return { type: structureType, errors: [] };
+    return this.errors();
+  }
+
+  private errors(...errors: ITypeError[]): ITypeResult {
+    return this.result(structureType, ...errors);
+  }
+  private result(type: IType, ...errors: ITypeError[]): ITypeResult {
+    return { type, errors };
   }
 }
 

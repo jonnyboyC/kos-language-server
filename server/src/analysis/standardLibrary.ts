@@ -46,6 +46,7 @@ import { pidLoopType } from '../typeChecker/types/pidLoop';
 import { volumeItemType } from '../typeChecker/types/io/volumeItem';
 import { volumeDirectoryType } from '../typeChecker/types/io/volumeDirectory';
 import { createFunctionType, createVarFunctionType } from '../typeChecker/types/ksType';
+import { IArgumentType } from '../typeChecker/types/types';
 
 const libraryBuilder = new ScopeBuilder(builtIn);
 const functionTypes = [
@@ -185,11 +186,11 @@ const functionTypes = [
 // createFunctionType('delete_deprecated', /* TODO */ scalarType),
 // createFunctionType('run', /* TODO */ scalarType),
 
-const locks = [
-  'throttle',
-  'steering',
-  'wheelthrottle',
-  'wheelsteering',
+const locks: [string, IArgumentType][] = [
+  ['throttle', scalarType],
+  ['steering', directionType],
+  ['wheelthrottle', scalarType],
+  ['wheelsteering', directionType],
 ];
 
 const variables = [
@@ -325,17 +326,18 @@ for (const variable of variables) {
     ));
 }
 
-for (const lock of locks) {
+for (const [identifier, type] of locks) {
   libraryBuilder.declareLock(
     ScopeType.global,
     new Token(
       TokenType.identifier,
-      lock,
+      identifier,
       undefined,
       new Marker(0, 0),
       new Marker(0, 0),
       builtIn,
-    ));
+    ),
+    type);
 }
 
 export const standardLibrary = libraryBuilder.build();

@@ -8,14 +8,35 @@ import {
   ISuffixType,
   IVariadicType,
   IGenericBasicType,
+  Operator,
+  IType,
+  IBasicType,
 } from './types';
 import { VariadicType } from './ksType';
 
 // check to see type is a sub type of target type
-export const isSubType = (type: IArgumentType, targetType: IArgumentType): boolean => {
+export const isSubType = (type: IType, targetType: IType): boolean => {
+  if (type.tag === 'function') {
+    return type === targetType;
+  }
+
   return moveDownPrototype(type, false, (currentType) => {
     if (currentType === targetType) {
       return true;
+    }
+
+    return undefined;
+  });
+};
+
+export const hasOperator = (type: IType, operator: Operator): Maybe<IArgumentType> => {
+  if (type.tag === 'function') {
+    return undefined;
+  }
+
+  return moveDownPrototype(type, undefined, (currentType) => {
+    if (!empty(currentType.operators.has(operator))) {
+      return type;
     }
 
     return undefined;
@@ -29,6 +50,12 @@ export const hasSuffix = (type: IArgumentType, suffix: string): boolean => {
     }
 
     return undefined;
+  });
+};
+
+export const getSuffix = (type: IArgumentType, suffix: string): Maybe<ISuffixType> => {
+  return moveDownPrototype(type, undefined, (currentType) => {
+    return currentType.suffixes.get(suffix);
   });
 };
 
@@ -85,11 +112,24 @@ export const addPrototype = <T extends IGenericBasicType>(type: T, parent: T): v
   type.inherentsFrom = parent;
 };
 
+export const addOperators = <T extends IGenericBasicType>(
+  type: T,
+  ...operators: [Operator, IBasicType][]): void => {
+
+  for (const [operator, returnType] of operators) {
+    if (type.operators.has(operator)) {
+      throw new Error(`duplicate operator ${operator} added to type`);
+    }
+
+    type.operators.set(operator, returnType);
+  }
+};
+
 export const addSuffixes = <T extends IGenericBasicType, S extends IGenericSuffixType>(
   type: T, ...suffixes: S[]): void => {
   for (const suffix of suffixes) {
     if (type.suffixes.has(suffix.name)) {
-      throw new Error('duplicate suffix added to type');
+      throw new Error(`duplicate suffix ${suffix.name} added to type`);
     }
 
     type.suffixes.set(suffix.name, suffix);

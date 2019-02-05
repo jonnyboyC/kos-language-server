@@ -10,11 +10,26 @@ export const enum SuffixCallType {
   call,
 }
 
+export const enum Operator {
+  plus,
+  subtract,
+  multiply,
+  divide,
+  power,
+  greaterThan,
+  lessThan,
+  greaterThanEqual,
+  lessThanEqual,
+  notEqual,
+  equal,
+}
+
 // Could possible delete but does provide a constraint
 export interface ITemplateBasicType<TSuffixType, TConcreteType>
   extends ITypeMeta<TConcreteType> {
   name: string;
   suffixes: Map<string, TSuffixType>;
+  operators: Map<Operator, TConcreteType>;
   inherentsFrom?: ITemplateBasicType<TSuffixType, TConcreteType>;
 }
 

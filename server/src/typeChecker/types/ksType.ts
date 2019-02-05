@@ -12,17 +12,20 @@ import {
   ISuffixType,
   IVariadicType,
   IFunctionType,
+  Operator,
 } from './types';
 import { memoize } from '../../utilities/memoize';
 
 export class GenericType implements IGenericBasicType {
   private concreteTypes: Map<IArgumentType, IBasicType>;
+  public operators: Map<Operator, IBasicType>;
   public suffixes: Map<string, IGenericSuffixType>;
   public inherentsFrom?: IGenericArgumentType;
 
   constructor(public readonly name: string) {
     this.suffixes = new Map();
     this.concreteTypes = new Map();
+    this.operators = new Map();
   }
 
   public toTypeString(): string {
@@ -37,6 +40,7 @@ export class GenericType implements IGenericBasicType {
     }
 
     const newType = new Type(this.name);
+
     const newInherentsFrom = !empty(this.inherentsFrom)
       ? this.inherentsFrom.toConcreteType(type)
       : undefined;
@@ -45,6 +49,7 @@ export class GenericType implements IGenericBasicType {
     for (const [name, suffixType] of this.suffixes.entries()) {
       newType.suffixes.set(name, suffixType.toConcreteType(type));
     }
+    newType.operators = new Map(this.operators);
     newType.inherentsFrom = newInherentsFrom;
 
     this.concreteTypes.set(type, newType);
@@ -131,8 +136,10 @@ export class GenericSuffixType implements IGenericSuffixType {
 export class Type implements IBasicType {
   public suffixes: Map<string, ISuffixType>;
   public inherentsFrom?: IArgumentType;
+  public operators: Map<Operator, IBasicType>;
   constructor(public readonly name: string) {
     this.suffixes = new Map();
+    this.operators = new Map();
   }
 
   // tslint:disable-next-line:variable-name
@@ -287,7 +294,8 @@ const parameterTypeString = (params: IGenericArgumentType[] | IGenericVariadicTy
     .join(', ');
 };
 
-export const createGenericStructureType = (name: string): IGenericArgumentType => {
+export const createGenericStructureType = (name: string):
+  IGenericArgumentType => {
   return new GenericType(name);
 };
 

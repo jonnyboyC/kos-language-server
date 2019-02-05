@@ -187,11 +187,12 @@ export class Parameter implements Range {
   }
 }
 
-export class DefaultParameter implements Range {
+export class DefaultParameter extends Parameter {
   constructor(
-    public readonly identifier: IToken,
+    identifier: IToken,
     public readonly toIs: IToken,
     public readonly value: IExpr) {
+    super(identifier);
   }
 
   public get start(): Position {

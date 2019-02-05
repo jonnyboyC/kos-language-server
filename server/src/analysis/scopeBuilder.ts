@@ -234,7 +234,10 @@ export class ScopeBuilder {
   }
 
   // declare a variable
-  public declareLock(scopeType: ScopeType, name: IToken): Maybe<ResolverError> {
+  public declareLock(
+    scopeType: ScopeType,
+    name: IToken,
+    type?: IArgumentType): Maybe<ResolverError> {
     const tracker = this.lookup(name, ScopeType.local);
 
     // check if variable has already been defined
@@ -246,7 +249,7 @@ export class ScopeBuilder {
 
     scope.set(
       name.lexeme,
-      new KsEntityTracker(new KsLock(scopeType, name)));
+      new KsEntityTracker(new KsLock(scopeType, name), type));
     this.logger.info(`declare lock ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
