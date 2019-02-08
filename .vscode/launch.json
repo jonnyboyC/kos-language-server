@@ -13,6 +13,17 @@
 			"preLaunchTask": "npm: compile"
 		},
 		{
+			"type": "extensionHost",
+			"request": "launch",
+			"name": "Launch VSCode Client Fast",
+			"runtimeExecutable": "${execPath}",
+			"args": ["--extensionDevelopmentPath=${workspaceRoot}"],
+			"stopOnEntry": false,
+			"sourceMaps": true,
+			"outFiles": ["${workspaceRoot}/clients/vscode/out/**/*.js"],
+			"preLaunchTask": "npm: compile:server"
+		},
+		{
 			"type": "node",
 			"request": "attach",
 			"name": "Attach to Server",
@@ -39,6 +50,10 @@
 		{
 			"name": "VSCode + Server",
 			"configurations": ["Launch VSCode Client", "Attach to Server"]
+		},
+		{
+			"name": "VSCode + Server Fast",
+			"configurations": ["Launch VSCode Client Fast", "Attach to Server"]
 		}
 	]
 }

@@ -63,7 +63,7 @@ export class Block extends Inst {
 
 export class Expr extends Inst {
   constructor(
-    public readonly suffix: IExpr) {
+    public readonly suffix: ISuffix) {
     super();
   }
 

@@ -1250,6 +1250,7 @@ export class Parser {
     return nodeResult(new Expr.ArrayIndex(array, indexer, index, isTrailer));
   }
 
+  // TODO this returns a delegate
   // parse anonymous function
   private anonymousFunction = (): INodeResult<Expr.AnonymousFunction> => {
     const open = this.previous();

@@ -1,4 +1,4 @@
-import { IInstVisitor, IExprVisitor, IExpr, IInst, ScopeType } from '../parser/types';
+import { IInstVisitor, IExprVisitor, IInst, ScopeType, IExpr } from '../parser/types';
 import * as Expr from '../parser/expr';
 import * as Inst from '../parser/inst';
 import { ResolverError } from './resolverError';

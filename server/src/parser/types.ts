@@ -39,6 +39,10 @@ export interface IExpr extends IExprVisitable, IRangeSequence {
   toString(): string;
 }
 
+export interface IExprClass extends Constructor<IExpr> {
+  classAccept<T>(visitor: IExprClassVisitor<T>): T;
+}
+
 export interface IInst extends IInstVisitable, IRangeSequence {
   tag: 'inst';
 }
@@ -67,6 +71,22 @@ export interface IExprVisitor<T> {
   visitVariable(expr: Expr.Variable): T;
   visitGrouping(expr: Expr.Grouping): T;
   visitAnonymousFunction(expr: Expr.AnonymousFunction): T;
+}
+
+export interface IExprClassVisitor<T> {
+  visitExprInvalid(expr: Constructor<Expr.Invalid>): T;
+  visitBinary(expr: Constructor<Expr.Binary>): T;
+  visitUnary(expr: Constructor<Expr.Unary>): T;
+  visitFactor(expr: Constructor<Expr.Factor>): T;
+  visitSuffix(expr: Constructor<Expr.Suffix>): T;
+  visitCall(expr: Constructor<Expr.Call>): T;
+  visitArrayIndex(expr: Constructor<Expr.ArrayIndex>): T;
+  visitArrayBracket(expr: Constructor<Expr.ArrayBracket>): T;
+  visitDelegate(expr: Constructor<Expr.Delegate>): T;
+  visitLiteral(expr: Constructor<Expr.Literal>): T;
+  visitVariable(expr: Constructor<Expr.Variable>): T;
+  visitGrouping(expr: Constructor<Expr.Grouping>): T;
+  visitAnonymousFunction(expr: Constructor<Expr.AnonymousFunction>): T;
 }
 
 export interface IInstVisitable {

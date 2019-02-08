@@ -1,4 +1,4 @@
-import { IExpr, IInst, IExprVisitor, ISuffix } from './types';
+import { IExprClass, IInst, IExprVisitor, ISuffix, IExpr, IExprClassVisitor } from './types';
 import { TokenType } from '../entities/tokentypes';
 import { IToken } from '../entities/types';
 import { Range, Position } from 'vscode-languageserver';
@@ -45,6 +45,10 @@ export class Invalid extends Expr {
   public accept<T>(visitor: IExprVisitor<T>): T {
     return visitor.visitExprInvalid(this);
   }
+
+  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
+    return visitor.visitExprInvalid(this);
+  }
 }
 
 export class Binary extends Expr {
@@ -74,6 +78,10 @@ export class Binary extends Expr {
   public accept<T>(visitor: IExprVisitor<T>): T {
     return visitor.visitBinary(this);
   }
+
+  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
+    return visitor.visitBinary(this);
+  }
 }
 
 export class Unary extends Expr {
@@ -100,6 +108,10 @@ export class Unary extends Expr {
   }
 
   public accept<T>(visitor: IExprVisitor<T>): T {
+    return visitor.visitUnary(this);
+  }
+
+  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
     return visitor.visitUnary(this);
   }
 }
@@ -131,6 +143,10 @@ export class Factor extends Expr {
   public accept<T>(visitor: IExprVisitor<T>): T {
     return visitor.visitFactor(this);
   }
+
+  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
+    return visitor.visitFactor(this);
+  }
 }
 
 export class Suffix extends SuffixBase {
@@ -158,6 +174,10 @@ export class Suffix extends SuffixBase {
   }
 
   public accept<T>(visitor: IExprVisitor<T>): T {
+    return visitor.visitSuffix(this);
+  }
+
+  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
     return visitor.visitSuffix(this);
   }
 }
@@ -192,6 +212,10 @@ export class Call extends SuffixBase {
   public accept<T>(visitor: IExprVisitor<T>): T {
     return visitor.visitCall(this);
   }
+
+  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
+    return visitor.visitCall(this);
+  }
 }
 
 export class ArrayIndex extends SuffixBase {
@@ -220,6 +244,10 @@ export class ArrayIndex extends SuffixBase {
   }
 
   public accept<T>(visitor: IExprVisitor<T>): T {
+    return visitor.visitArrayIndex(this);
+  }
+
+  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
     return visitor.visitArrayIndex(this);
   }
 }
@@ -254,6 +282,10 @@ export class ArrayBracket extends SuffixBase {
   public accept<T>(visitor: IExprVisitor<T>): T {
     return visitor.visitArrayBracket(this);
   }
+
+  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
+    return visitor.visitArrayBracket(this);
+  }
 }
 
 export class Delegate extends SuffixBase {
@@ -283,6 +315,10 @@ export class Delegate extends SuffixBase {
   public accept<T>(visitor: IExprVisitor<T>): T {
     return visitor.visitDelegate(this);
   }
+
+  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
+    return visitor.visitDelegate(this);
+  }
 }
 
 export class Literal extends SuffixBase {
@@ -309,6 +345,10 @@ export class Literal extends SuffixBase {
   }
 
   public accept<T>(visitor: IExprVisitor<T>): T {
+    return visitor.visitLiteral(this);
+  }
+
+  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
     return visitor.visitLiteral(this);
   }
 }
@@ -344,6 +384,10 @@ export class Variable extends SuffixBase {
   public accept<T>(visitor: IExprVisitor<T>): T {
     return visitor.visitVariable(this);
   }
+
+  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
+    return visitor.visitVariable(this);
+  }
 }
 
 export class Grouping extends SuffixBase {
@@ -374,8 +418,13 @@ export class Grouping extends SuffixBase {
   public accept<T>(visitor: IExprVisitor<T>): T {
     return visitor.visitGrouping(this);
   }
+
+  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
+    return visitor.visitGrouping(this);
+  }
 }
 
+// TODO this returns a delegate
 export class AnonymousFunction extends Expr {
   constructor(
     public readonly open: IToken,
@@ -403,4 +452,23 @@ export class AnonymousFunction extends Expr {
   public accept<T>(visitor: IExprVisitor<T>): T {
     return visitor.visitAnonymousFunction(this);
   }
+
+  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
+    return visitor.visitAnonymousFunction(this);
+  }
 }
+
+export const validExprTypes: IExprClass[] = [
+  Binary,
+  Unary,
+  Factor,
+  Suffix,
+  Call,
+  ArrayIndex,
+  ArrayBracket,
+  Delegate,
+  Literal,
+  Variable,
+  Grouping,
+  AnonymousFunction,
+];
