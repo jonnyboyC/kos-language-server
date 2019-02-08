@@ -1,16 +1,10 @@
 // dummy logger we may need for testing or just performance
 export const mockLogger: ILogger = {
-  // tslint:disable-next-line:variable-name
-  error: (_message: string) => {},
-
-  // tslint:disable-next-line:variable-name
-  warn: (_message: string) => {},
-
-  // tslint:disable-next-line:variable-name
-  info: (_message: string) => {},
-
-  // tslint:disable-next-line:variable-name
-  log: (_message: string) => {},
+  error: (_: string) => {},
+  warn: (_: string) => {},
+  info: (_: string) => {},
+  log: (_: string) => {},
+  verbose: (_: string) => {},
 };
 
 export const mockTracer: ITracer = {
@@ -21,29 +15,35 @@ export const mockTracer: ITracer = {
 // wrapper class for logger to implement logging levels
 export class Logger implements ILogger {
   constructor(
-    private readonly connection: ILogger,
+    private readonly connection: ILoggerBase,
     public logLevel: LogLevel) { }
 
+  verbose(message: string) {
+    if (this.logLevel <= LogLevel.verbose) {
+      this.connection.info(message);
+    }
+  }
+
   log(message: string) {
-    if (this.logLevel <= LogLevel.Log) {
+    if (this.logLevel <= LogLevel.log) {
       this.connection.log(message);
     }
   }
 
   error(message: string) {
-    if (this.logLevel <= LogLevel.Error) {
+    if (this.logLevel <= LogLevel.error) {
       this.connection.error(message);
     }
   }
 
   warn(message: string) {
-    if (this.logLevel <= LogLevel.Warn) {
+    if (this.logLevel <= LogLevel.warn) {
       this.connection.warn(message);
     }
   }
 
   info(message: string) {
-    if (this.logLevel <= LogLevel.Info) {
+    if (this.logLevel <= LogLevel.info) {
       this.connection.info(message);
     }
   }

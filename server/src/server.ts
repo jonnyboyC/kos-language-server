@@ -43,7 +43,7 @@ export const connection = createConnection(ProposedFeatures.all);
 // Create a simple text document manager. The text document manager
 // supports full document sync only
 let workspaceFolder: string = '';
-const analyzer = new Analyzer(new Logger(connection.console, LogLevel.Warn), connection.tracer);
+const analyzer = new Analyzer(new Logger(connection.console, LogLevel.info), connection.tracer);
 const documents: TextDocuments = new TextDocuments();
 
 connection.onInitialize((params: InitializeParams) => {
@@ -109,39 +109,52 @@ connection.onDidCloseTextDocument((param: DidCloseTextDocumentParams) => {
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent(async (change) => {
 
-  const diagnosticResults = analyzer
+  try {
+    const diagnosticResults = analyzer
     .validateDocument(change.document.uri, change.document.getText());
 
-  let total = 0;
-  const diagnosticMap: Map<string, IDiagnosticUri[]> = new Map();
+    let total = 0;
+    const diagnosticMap: Map<string, IDiagnosticUri[]> = new Map();
 
-  for await (const diagnostics of diagnosticResults) {
-    total += diagnostics.length;
+    for await (const diagnostics of diagnosticResults) {
+      total += diagnostics.length;
 
-    for (const diagnostic of diagnostics) {
-      let uriDiagnostics = diagnosticMap.get(diagnostic.uri);
-      if (empty(uriDiagnostics)) {
-        uriDiagnostics = [];
+      for (const diagnostic of diagnostics) {
+        let uriDiagnostics = diagnosticMap.get(diagnostic.uri);
+        if (empty(uriDiagnostics)) {
+          uriDiagnostics = [];
+        }
+
+        uriDiagnostics.push(diagnostic);
+        diagnosticMap.set(diagnostic.uri, uriDiagnostics);
       }
 
-      uriDiagnostics.push(diagnostic);
-      diagnosticMap.set(diagnostic.uri, uriDiagnostics);
+      for (const [uri, uriDiagnostics] of diagnosticMap.entries()) {
+        connection.sendDiagnostics({
+          uri,
+          diagnostics: uriDiagnostics,
+        });
+      }
     }
 
-    for (const [uri, uriDiagnostics] of diagnosticMap.entries()) {
+    // if not problems found clear out diagnostics
+    if (total === 0) {
       connection.sendDiagnostics({
-        uri,
-        diagnostics: uriDiagnostics,
+        uri: change.document.uri,
+        diagnostics: [],
       });
     }
-  }
+  } catch (e) {
+    connection.console.error('kos-language-server Error occured:');
+    if (e instanceof Error) {
+      connection.console.error(e.message);
 
-  // if not problems found clear out diagnostics
-  if (total === 0) {
-    connection.sendDiagnostics({
-      uri: change.document.uri,
-      diagnostics: [],
-    });
+      if (!empty(e.stack)) {
+        connection.console.error(e.stack);
+      }
+    } else {
+      connection.console.error(JSON.stringify(e));
+    }
   }
 });
 

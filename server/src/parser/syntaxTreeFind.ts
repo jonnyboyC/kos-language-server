@@ -1,5 +1,5 @@
 import { IExprVisitor, IInstVisitor, IInst, IExpr, IFindResult, INode } from './types';
-import { DeclVariable, DeclLock, DeclFunction, DeclParameter, Parameter } from './declare';
+import * as Decl from './declare';
 import * as Inst from './inst';
 import * as Expr from './expr';
 import { Position } from 'vscode-languageserver';
@@ -7,12 +7,14 @@ import { binarySearch } from '../utilities/positionHelpers';
 import { empty } from '../utilities/typeGuards';
 import { Token } from '../entities/token';
 
+type Contexts = Constructor<Expr.Expr> | Constructor<Inst.Inst>;
+
 export class SyntaxTreeFind implements
   IExprVisitor<Maybe<IFindResult>>,
   IInstVisitor<Maybe<IFindResult>> {
 
   private pos: Position;
-  private contexts: Function[];
+  private contexts: Contexts[];
 
   constructor() {
     this.pos = {
@@ -22,7 +24,7 @@ export class SyntaxTreeFind implements
     this.contexts = [];
   }
 
-  public find(syntaxNode: INode, pos: Position, ...contexts: Function[]): Maybe<IFindResult> {
+  public find(syntaxNode: INode, pos: Position, ...contexts: Contexts[]): Maybe<IFindResult> {
     this.pos = pos;
     this.contexts = contexts;
     return this.findNode(syntaxNode);
@@ -58,7 +60,7 @@ export class SyntaxTreeFind implements
       return findResult;
     }
 
-    if (searchResult instanceof Parameter) {
+    if (searchResult instanceof Decl.Parameter) {
       return {
         node: this.isContext(node)
           ? node
@@ -99,16 +101,16 @@ export class SyntaxTreeFind implements
     return expr.accept(this);
   }
 
-  visitDeclVariable(decl: DeclVariable): Maybe<IFindResult> {
+  visitDeclVariable(decl: Decl.Var): Maybe<IFindResult> {
     return this.findNode(decl);
   }
-  visitDeclLock(decl: DeclLock): Maybe<IFindResult> {
+  visitDeclLock(decl: Decl.Lock): Maybe<IFindResult> {
     return this.findNode(decl);
   }
-  visitDeclFunction(decl: DeclFunction): Maybe<IFindResult> {
+  visitDeclFunction(decl: Decl.Func): Maybe<IFindResult> {
     return this.findNode(decl);
   }
-  visitDeclParameter(decl: DeclParameter): Maybe<IFindResult> {
+  visitDeclParameter(decl: Decl.Param): Maybe<IFindResult> {
     return this.findNode(decl);
   }
   visitInstInvalid(inst: Inst.Invalid): Maybe<IFindResult> {

@@ -2,7 +2,7 @@ import { IInstVisitor, IExprVisitor, IExpr, IInst, ScopeType } from '../parser/t
 import * as Expr from '../parser/expr';
 import * as Inst from '../parser/inst';
 import { ResolverError } from './resolverError';
-import { DeclVariable, DeclLock, DeclFunction, DeclParameter } from '../parser/declare';
+import { Var, Lock, Func, Param } from '../parser/declare';
 import { empty } from '../utilities/typeGuards';
 import { LocalResolver } from './localResolver';
 import { SetResolver } from './setResolver';
@@ -102,7 +102,7 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   ----------------------------------------------*/
 
   // check variable declaration
-  public visitDeclVariable(decl: DeclVariable): Errors {
+  public visitDeclVariable(decl: Var): Errors {
 
     // determine scope type
     const scopeType = !empty(decl.scope)
@@ -119,7 +119,7 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   }
 
   // check lock declaration
-  public visitDeclLock(decl: DeclLock): ResolverError[] {
+  public visitDeclLock(decl: Lock): ResolverError[] {
 
     // determine scope type
     const scopeType = !empty(decl.scope)
@@ -136,12 +136,12 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   }
 
   // check function declaration
-  public visitDeclFunction(decl: DeclFunction): ResolverError[] {
+  public visitDeclFunction(decl: Func): ResolverError[] {
     return this.resolveInst(decl.instructionBlock);
   }
 
   // check parameter declaration
-  public visitDeclParameter(decl: DeclParameter): ResolverError[] {
+  public visitDeclParameter(decl: Param): ResolverError[] {
     const scopeError: Maybe<ResolverError>[] = [];
 
     // check that parameter isn't declared global

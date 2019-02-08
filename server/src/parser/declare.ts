@@ -11,7 +11,7 @@ export abstract class Decl extends Inst {
   }
 }
 
-export class DeclScope implements IDeclScope {
+export class Scope implements IDeclScope {
   constructor(
     public readonly scope?: IToken,
     public readonly declare?: IToken) {
@@ -65,7 +65,7 @@ export class DeclScope implements IDeclScope {
   }
 }
 
-export class DeclVariable extends Decl {
+export class Var extends Decl {
   constructor(
     public readonly identifier: IToken,
     public readonly toIs: IToken,
@@ -91,7 +91,7 @@ export class DeclVariable extends Decl {
   }
 }
 
-export class DeclLock extends Decl {
+export class Lock extends Decl {
   constructor(
     public readonly lock: IToken,
     public readonly identifier: IToken,
@@ -131,7 +131,7 @@ export class DeclLock extends Decl {
   }
 }
 
-export class DeclFunction extends Decl {
+export class Func extends Decl {
   constructor(
     public readonly functionToken: IToken,
     public readonly functionIdentifier: IToken,
@@ -187,7 +187,7 @@ export class Parameter implements Range {
   }
 }
 
-export class DefaultParameter extends Parameter {
+export class DefaultParam extends Parameter {
   constructor(
     identifier: IToken,
     public readonly toIs: IToken,
@@ -208,11 +208,11 @@ export class DefaultParameter extends Parameter {
   }
 }
 
-export class DeclParameter extends Decl {
+export class Param extends Decl {
   constructor(
     public readonly parameterToken: IToken,
     public readonly parameters: Parameter[],
-    public readonly defaultParameters: DefaultParameter[],
+    public readonly defaultParameters: DefaultParam[],
     public readonly scope?: IDeclScope) {
     super();
   }

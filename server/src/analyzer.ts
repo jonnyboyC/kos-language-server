@@ -1,6 +1,6 @@
 import { DiagnosticSeverity, Position, Location } from 'vscode-languageserver';
 import { IDocumentInfo, ILoadData, IDiagnosticUri, ValidateResult } from './types';
-import { performance } from 'perf_hooks';
+import { performance, PerformanceObserver } from 'perf_hooks';
 import { Parser } from './parser/parser';
 import { FuncResolver } from './analysis/functionResolver';
 import { Scanner } from './scanner/scanner';
@@ -34,6 +34,7 @@ export class Analyzer {
   public readonly documentInfos: Map<string, IDocumentInfo>;
   public readonly logger: ILogger;
   public readonly tracer: ITracer;
+  public readonly observer: PerformanceObserver;
 
   constructor(logger: ILogger = mockLogger, tracer: ITracer = mockTracer) {
     this.volumne0Path = process.cwd();
@@ -41,6 +42,15 @@ export class Analyzer {
     this.logger = logger;
     this.tracer = tracer;
     this.documentInfos = new Map();
+    this.observer = new PerformanceObserver((list) => {
+      this.logger.info('');
+      this.logger.info('-------- performance ---------');
+      for (const entry of list.getEntries()) {
+        this.logger.info(`${entry.name} took ${entry.duration} ms`);
+      }
+      this.logger.info('------------------------------');
+    });
+    this.observer.observe({ entryTypes: ['measure'], buffered: true });
   }
 
   public async* validateDocument(uri: string, text: string, depth: number = 0):
@@ -98,7 +108,6 @@ export class Analyzer {
 
     // resolve the rest of the script
     this.logger.log(`Function resolving ${uri}`);
-    this.logger.log('');
     performance.mark('func-resolver-start');
     const functionErrors = funcResolver.resolve()
       .map(error => resolverToDiagnostics(error, uri));
@@ -108,7 +117,6 @@ export class Analyzer {
 
     // perform an initial function pass
     this.logger.log(`Resolving ${uri}`);
-    this.logger.log('');
 
     performance.mark('resolver-start');
     const resolverErrors = resolver.resolve()
@@ -128,25 +136,14 @@ export class Analyzer {
     yield typeErrors;
     performance.mark('type-checking-end');
 
-    performance.measure('func-resolver', 'func-resolver-start', 'func-resolver-end');
-    performance.measure('resolver', 'resolver-start', 'resolver-end');
-    performance.measure('type-checking', 'type-checking-start', 'type-checking-end');
+    // measure performance
+    performance.measure('Function Resolver', 'func-resolver-start', 'func-resolver-end');
+    performance.measure('Resolver', 'resolver-start', 'resolver-end');
+    performance.measure('Type Checking', 'type-checking-start', 'type-checking-end');
 
     if (resolverErrors.length > 0) {
       this.logger.warn(`Resolver encountered ${resolverErrors.length} Errors.`);
     }
-
-    // log performance
-    const [funcResolverMeasure] = performance.getEntriesByName('func-resolver');
-    const [resolverMeasure] = performance.getEntriesByName('resolver');
-    const [typeCheckingMeasure] = performance.getEntriesByName('type-checking');
-
-    this.logger.log('');
-    this.logger.log('-------- performance ---------');
-    this.logger.log(`Function Resolver took ${funcResolverMeasure.duration} ms`);
-    this.logger.log(`Resolver took ${resolverMeasure.duration} ms`);
-    this.logger.log(`Type Checking took ${typeCheckingMeasure.duration} ms`);
-    this.logger.log('------------------------------');
 
     // make sure to delete references so scope manager can be gc'ed
     const documentInfo = this.documentInfos.get(uri);
@@ -162,7 +159,6 @@ export class Analyzer {
     });
 
     performance.clearMarks();
-    performance.clearMeasures();
 
     return scopeManager;
   }
@@ -348,7 +344,6 @@ export class Analyzer {
   private async parseDocument(uri: string, text: string): Promise<SyntaxTreeResult> {
     this.logger.log('');
     this.logger.log(`Scanning ${uri}`);
-    this.logger.log('');
 
     performance.mark('scanner-start');
     const scanner = new Scanner(text, uri);
@@ -362,7 +357,6 @@ export class Analyzer {
 
     // parse scanned tokens
     this.logger.log(`Parsing ${uri}`);
-    this.logger.log('');
 
     performance.mark('parser-start');
     const parser = new Parser(tokens);
@@ -374,21 +368,10 @@ export class Analyzer {
       this.logger.warn(`Parser encountered ${result.parseErrors.length} Errors.`);
     }
 
-    // log performance
-    performance.measure('scanner', 'scanner-start', 'scanner-end');
-    performance.measure('parser', 'parser-start', 'parser-end');
-
-    const [scannerMeasure] = performance.getEntriesByName('scanner');
-    const [parserMeasure] = performance.getEntriesByName('parser');
-
+    // measure performance
+    performance.measure('Scanner', 'scanner-start', 'scanner-end');
+    performance.measure('Parser', 'parser-start', 'parser-end');
     performance.clearMarks();
-    performance.clearMeasures();
-
-    this.logger.log('');
-    this.logger.log('-------- performance ---------');
-    this.logger.log(`Scanner took ${scannerMeasure.duration} ms`);
-    this.logger.log(`Parser took ${parserMeasure.duration} ms`);
-    this.logger.log('------------------------------');
 
     return {
       scanErrors,

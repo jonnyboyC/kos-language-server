@@ -1,6 +1,6 @@
 import * as Expr from './expr';
 import * as Inst from './inst';
-import { DeclVariable, DeclLock, DeclFunction, DeclParameter } from './declare';
+import { Var, Lock, Func, Param } from './declare';
 import { IToken } from '../entities/types';
 import { Range } from 'vscode-languageserver';
 import { SyntaxTree } from '../entities/syntaxTree';
@@ -74,10 +74,10 @@ export interface IInstVisitable {
 }
 
 export interface IInstVisitor<T> {
-  visitDeclVariable(decl: DeclVariable): T;
-  visitDeclLock(decl: DeclLock): T;
-  visitDeclFunction(decl: DeclFunction): T;
-  visitDeclParameter(decl: DeclParameter): T;
+  visitDeclVariable(decl: Var): T;
+  visitDeclLock(decl: Lock): T;
+  visitDeclFunction(decl: Func): T;
+  visitDeclParameter(decl: Param): T;
 
   visitInstInvalid(inst: Inst.Invalid): T;
   visitBlock(inst: Inst.Block): T;

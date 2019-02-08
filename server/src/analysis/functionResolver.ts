@@ -2,7 +2,7 @@ import { IInstVisitor, IExprVisitor, IExpr, IInst, ScopeType } from '../parser/t
 import * as Expr from '../parser/expr';
 import * as Inst from '../parser/inst';
 import { ResolverError } from './resolverError';
-import { DeclVariable, DeclLock, DeclFunction, DeclParameter } from '../parser/declare';
+import { Var, Lock, Func, Param } from '../parser/declare';
 import { empty } from '../utilities/typeGuards';
 import { SyntaxTree } from '../entities/syntaxTree';
 import { KsParameter } from '../entities/parameters';
@@ -71,18 +71,18 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
   ----------------------------------------------*/
 
   // check variable declaration
-  public visitDeclVariable(decl: DeclVariable): Errors {
+  public visitDeclVariable(decl: Var): Errors {
     return this.resolveExpr(decl.expression);
   }
 
   // check lock declaration
   // tslint:disable-next-line:variable-name
-  public visitDeclLock(_decl: DeclLock): ResolverError[] {
+  public visitDeclLock(_decl: Lock): ResolverError[] {
     return [];
   }
 
   // check function declaration
-  public visitDeclFunction(decl: DeclFunction): ResolverError[] {
+  public visitDeclFunction(decl: Func): ResolverError[] {
     const scopeToken = decl.scope && decl.scope.scope;
 
     let scopeType: ScopeType;
@@ -106,11 +106,11 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
     }
 
     let returnValue = false;
-    const parameterDecls: DeclParameter[] = [];
+    const parameterDecls: Param[] = [];
     for (const inst of decl.instructionBlock.instructions) {
 
       // get parameters for this function
-      if (inst instanceof DeclParameter) {
+      if (inst instanceof Param) {
         parameterDecls.push(inst);
         continue;
       }
@@ -130,7 +130,7 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
       : instErrors.concat(errors, declareErrors);
   }
 
-  private buildParameters(decls: DeclParameter[]): [KsParameter[], Errors] {
+  private buildParameters(decls: Param[]): [KsParameter[], Errors] {
     const parameters: KsParameter[] = [];
     const errors: Errors = [];
     let defaulted = false;
@@ -156,7 +156,7 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
 
   // check parameter declaration
   // tslint:disable-next-line:variable-name
-  public visitDeclParameter(_decl: DeclParameter): ResolverError[] {
+  public visitDeclParameter(_decl: Param): ResolverError[] {
     return [];
   }
 

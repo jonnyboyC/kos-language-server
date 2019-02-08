@@ -75,7 +75,7 @@ export class ScopeBuilder {
       });
     }
 
-    this.logger.info(`begin scope at ${JSON.stringify(range.start)}`);
+    this.logger.verbose(`begin scope at ${JSON.stringify(range.start)}`);
 
     this.activeScopePath.push(next);
     this.backTrackPath = [...this.activeScopePath];
@@ -120,7 +120,7 @@ export class ScopeBuilder {
     }
 
     if (position.tag === 'real') {
-      this.logger.info(`end scope at ${JSON.stringify(position.end)}`);
+      this.logger.verbose(`end scope at ${JSON.stringify(position.end)}`);
     }
     return errors;
   }
@@ -204,7 +204,7 @@ export class ScopeBuilder {
     const scope = this.selectScope(scopeType);
 
     scope.set(name.lexeme, new KsEntityTracker(new KsVariable(scopeType, name), type));
-    this.logger.info(`declare variable ${name.lexeme} at ${JSON.stringify(name.start)}`);
+    this.logger.verbose(`declare variable ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
 
@@ -229,7 +229,7 @@ export class ScopeBuilder {
         parameters, returnValue),
       type));
 
-    this.logger.info(`declare function ${name.lexeme} at ${JSON.stringify(name.start)}`);
+    this.logger.verbose(`declare function ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
 
@@ -250,7 +250,7 @@ export class ScopeBuilder {
     scope.set(
       name.lexeme,
       new KsEntityTracker(new KsLock(scopeType, name), type));
-    this.logger.info(`declare lock ${name.lexeme} at ${JSON.stringify(name.start)}`);
+    this.logger.verbose(`declare lock ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
 
@@ -270,7 +270,7 @@ export class ScopeBuilder {
     scope.set(
       name.lexeme,
       new KsEntityTracker(new KsParameter(name, defaulted, EntityState.declared)));
-    this.logger.info(`declare parameter ${name.lexeme} at ${JSON.stringify(name.start)}`);
+    this.logger.verbose(`declare parameter ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
 
@@ -283,7 +283,7 @@ export class ScopeBuilder {
     }
 
     binding.sets.push(createEnitityChange(name, expr));
-    this.logger.info(`Set entity ${name.lexeme} at ${JSON.stringify(name.start)}`);
+    this.logger.verbose(`Set entity ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
 
@@ -300,7 +300,7 @@ export class ScopeBuilder {
     }
 
     tracker.usages.push(createEnitityChange(name, expr));
-    this.logger.info(`Use ${entityType} ${name.lexeme} at ${JSON.stringify(name.start)}`);
+    this.logger.verbose(`Use ${entityType} ${name.lexeme} at ${JSON.stringify(name.start)}`);
     return undefined;
   }
 

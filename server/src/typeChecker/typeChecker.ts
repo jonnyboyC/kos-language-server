@@ -1,8 +1,8 @@
 import { IExprVisitor, IInstVisitor, IInst, IExpr } from '../parser/types';
 import * as Expr from '../parser/expr';
 import * as Inst from '../parser/inst';
+import * as Decl from '../parser/declare';
 import { ITypeError, ITypeResult } from './types';
-import { DeclVariable, DeclLock, DeclFunction, DeclParameter } from '../parser/declare';
 import { mockLogger, mockTracer } from '../utilities/logger';
 import { SyntaxTree } from '../entities/syntaxTree';
 import { ScopeManager } from '../analysis/scopeManager';
@@ -72,21 +72,21 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
   }
 
   // visit declare variable
-  visitDeclVariable(decl: DeclVariable): TypeErrors {
+  visitDeclVariable(decl: Decl.Var): TypeErrors {
     const result = this.checkExpr(decl.expression);
     this.scopeManager.setType(decl.identifier, decl.identifier.lexeme, result.type);
     return result.errors;
   }
 
   // visit declare lock
-  visitDeclLock(decl: DeclLock): TypeErrors {
+  visitDeclLock(decl: Decl.Lock): TypeErrors {
     const result = this.checkExpr(decl.value);
     this.scopeManager.setType(decl.identifier, decl.identifier.lexeme, result.type);
     return result.errors;
   }
 
   // visit declare function
-  visitDeclFunction(decl: DeclFunction): TypeErrors {
+  visitDeclFunction(decl: Decl.Func): TypeErrors {
     const funcTracker = this.scopeManager
       .scopedFunctionTracker(decl.start, decl.functionIdentifier.lexeme);
 
@@ -111,7 +111,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
   }
 
   // visit declare parameter
-  visitDeclParameter(decl: DeclParameter): TypeErrors {
+  visitDeclParameter(decl: Decl.Param): TypeErrors {
     let errors: TypeErrors = [];
 
     // loop over defaulted parameters

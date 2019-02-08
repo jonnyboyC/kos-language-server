@@ -11,10 +11,7 @@ import {
 } from './parserError';
 import * as Expr from './expr';
 import * as Inst from './inst';
-import { DeclScope, DeclFunction,
-  DefaultParameter, DeclParameter,
-  DeclVariable, DeclLock, Parameter,
-} from './declare';
+import * as Decl from './declare';
 import { empty } from '../utilities/typeGuards';
 import { IToken } from '../entities/types';
 import { SyntaxTree } from '../entities/syntaxTree';
@@ -148,7 +145,7 @@ export class Parser {
       : undefined;
 
     const scopeDeclare = declare || scope
-      ? new DeclScope(scope, declare)
+      ? new Decl.Scope(scope, declare)
       : undefined;
 
     // match declaration
@@ -166,15 +163,15 @@ export class Parser {
     }
 
     throw this.error(
-      this.peek(), DeclScope,
+      this.peek(), Decl.Scope,
       'Expected function parameter or variable declaration.',
       'Example: "local function exampleFunc { ... }", "global x is 0"');
   }
 
   // parse function declaration
-  private declareFunction = (scope?: IDeclScope): INodeResult<DeclFunction> => {
+  private declareFunction = (scope?: IDeclScope): INodeResult<Decl.Func> => {
     const functionToken = this.previous();
-    const functionIdentiifer = this.consumeIdentifierThrow('Expected identifier', DeclFunction);
+    const functionIdentiifer = this.consumeIdentifierThrow('Expected identifier', Decl.Func);
 
     // match function body
     if (this.matchToken(TokenType.curlyOpen)) {
@@ -182,34 +179,34 @@ export class Parser {
       this.matchToken(TokenType.period);
 
       return nodeResult(
-        new DeclFunction(functionToken, functionIdentiifer, blockResult.value, scope),
+        new Decl.Func(functionToken, functionIdentiifer, blockResult.value, scope),
         blockResult.errors,
       );
     }
 
     throw this.error(
       this.peek(),
-      DeclFunction,
+      Decl.Func,
       'Expected function instruction block starting with "{"',
       'Example: local function { print "hi". }');
   }
 
   // parse parameter declaration
-  private declareParameter = (scope?: IDeclScope): INodeResult<DeclParameter> => {
+  private declareParameter = (scope?: IDeclScope): INodeResult<Decl.Param> => {
     const parameterToken = this.previous();
 
     const parameters = this.declareNormalParameters();
     const defaultParameters = this.declaredDefaultedParameters();
-    this.terminal(DeclParameter);
+    this.terminal(Decl.Param);
 
     return nodeResult(
-      new DeclParameter(parameterToken, parameters, defaultParameters.value, scope),
+      new Decl.Param(parameterToken, parameters, defaultParameters.value, scope),
       defaultParameters.errors,
     );
   }
 
   // parse regular parameters
-  private declareNormalParameters = (): Parameter[] => {
+  private declareNormalParameters = (): Decl.Parameter[] => {
     const parameters = [];
 
     // parse paremter until defaulted
@@ -218,16 +215,16 @@ export class Parser {
       if (this.checkNext(TokenType.is) || this.checkNext(TokenType.to)) break;
 
       const identifer = this.consumeIdentifierThrow(
-        'Expected additional identiifer following comma.', Parameter);
+        'Expected additional identiifer following comma.', Decl.Parameter);
 
-      parameters.push(new Parameter(identifer));
+      parameters.push(new Decl.Parameter(identifer));
     } while (this.matchToken(TokenType.comma));
 
     return parameters;
   }
 
   // parse defaulted parameters
-  private declaredDefaultedParameters = (): INodeResult<DefaultParameter[]> => {
+  private declaredDefaultedParameters = (): INodeResult<Decl.DefaultParam[]> => {
     const defaultParameters = [];
     const errors: IParseError[][] = [];
 
@@ -236,12 +233,12 @@ export class Parser {
       if (!this.checkNext(TokenType.is) && !this.checkNext(TokenType.to)) break;
 
       const identifer = this.consumeIdentifierThrow(
-        'Expected identifier following comma.', DefaultParameter);
+        'Expected identifier following comma.', Decl.DefaultParam);
       const toIs = this.consumeTokenThrow(
         'Expected default parameter using keyword "to" or "is".',
-        DefaultParameter, TokenType.to, TokenType.is);
+        Decl.DefaultParam, TokenType.to, TokenType.is);
       const valueResult = this.expression();
-      defaultParameters.push(new DefaultParameter(identifer, toIs, valueResult.value));
+      defaultParameters.push(new Decl.DefaultParam(identifer, toIs, valueResult.value));
       errors.push(valueResult.errors);
     } while (this.matchToken(TokenType.comma));
 
@@ -249,34 +246,34 @@ export class Parser {
   }
 
   // parse lock instruction
-  private declareLock = (scope?: IDeclScope): INodeResult<DeclLock> => {
+  private declareLock = (scope?: IDeclScope): INodeResult<Decl.Lock> => {
     const lock = this.previous();
     const identifer = this.consumeIdentifierThrow(
-      'Expected identifier following lock keyword.', DeclLock);
+      'Expected identifier following lock keyword.', Decl.Lock);
     const to = this.consumeTokenThrow(
       'Expected keyword "to" following lock.',
-      DeclLock, TokenType.to);
-    const valueResult = this.expression(DeclLock);
-    this.terminal(DeclLock);
+      Decl.Lock, TokenType.to);
+    const valueResult = this.expression(Decl.Lock);
+    this.terminal(Decl.Lock);
 
     return nodeResult(
-      new DeclLock(lock, identifer, to, valueResult.value, scope),
+      new Decl.Lock(lock, identifer, to, valueResult.value, scope),
       valueResult.errors,
     );
   }
 
   // parse a variable declaration, scoping occurs elseware
-  private declareVariable = (scope: IDeclScope): INodeResult<DeclVariable> => {
-    const identifer = this.consumeIdentifierThrow('Expected identifier.', DeclVariable);
+  private declareVariable = (scope: IDeclScope): INodeResult<Decl.Var> => {
+    const identifer = this.consumeIdentifierThrow('Expected identifier.', Decl.Var);
 
     const toIs = this.consumeTokenThrow(
       'Expected keyword "to" or "is" following declare.',
-      DeclVariable, TokenType.to, TokenType.is);
-    const valueResult = this.expression(DeclVariable);
-    this.terminal(DeclVariable);
+      Decl.Var, TokenType.to, TokenType.is);
+    const valueResult = this.expression(Decl.Var);
+    this.terminal(Decl.Var);
 
     return nodeResult(
-      new DeclVariable(identifer, toIs, valueResult.value, scope),
+      new Decl.Var(identifer, toIs, valueResult.value, scope),
       valueResult.errors,
     );
   }
