@@ -1,17 +1,8 @@
 import { IExprVisitor, IInstVisitor, IInst, IExpr } from '../parser/types';
 import * as Expr from '../parser/expr';
+import * as Inst from '../parser/inst';
 import { ITypeError, ITypeResult } from './types';
 import { DeclVariable, DeclLock, DeclFunction, DeclParameter } from '../parser/declare';
-import { InvalidInst, BlockInst, ExprInst, OnOffInst,
-  CommandInst, CommandExpressionInst, UnsetInst,
-  UnlockInst, SetInst, LazyGlobalInst, IfInst,
-  ElseInst, UntilInst, FromInst, WhenInst,
-  ReturnInst, BreakInst, SwitchInst, ForInst,
-  OnInst, ToggleInst, WaitInst, LogInst, CopyInst,
-  RenameInst, DeleteInst, RunInst, RunPathInst,
-  RunPathOnceInst, CompileInst, ListInst,
-  EmptyInst, PrintInst,
-} from '../parser/inst';
 import { mockLogger, mockTracer } from '../utilities/logger';
 import { SyntaxTree } from '../entities/syntaxTree';
 import { ScopeManager } from '../analysis/scopeManager';
@@ -148,25 +139,25 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
     return errors;
   }
   // tslint:disable-next-line:variable-name
-  public visitInstInvalid(_inst: InvalidInst): TypeErrors {
+  public visitInstInvalid(_inst: Inst.Invalid): TypeErrors {
     return [];
   }
-  public visitBlock(inst: BlockInst): TypeErrors {
+  public visitBlock(inst: Inst.Block): TypeErrors {
     return accumulateErrors(inst.instructions, this.checkInst.bind(this));
   }
-  public visitExpr(inst: ExprInst): TypeErrors {
+  public visitExpr(inst: Inst.Expr): TypeErrors {
     const result = this.checkExpr(inst.suffix);
     return result.errors;
   }
-  public visitOnOff(inst: OnOffInst): TypeErrors {
+  public visitOnOff(inst: Inst.OnOff): TypeErrors {
     const result = this.checkExpr(inst.suffix);
     return result.errors;
   }
   // tslint:disable-next-line:variable-name
-  public visitCommand(_inst: CommandInst): TypeErrors {
+  public visitCommand(_inst: Inst.Command): TypeErrors {
     return [];
   }
-  public visitCommandExpr(inst: CommandExpressionInst): TypeErrors {
+  public visitCommandExpr(inst: Inst.CommandExpr): TypeErrors {
     const result = this.checkExpr(inst.expression);
     const errors: TypeErrors = result.errors;
 
@@ -197,14 +188,14 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
     return result.errors;
   }
   // tslint:disable-next-line:variable-name
-  public visitUnset(_inst: UnsetInst): TypeErrors {
+  public visitUnset(_inst: Inst.Unset): TypeErrors {
     return [];
   }
   // tslint:disable-next-line:variable-name
-  public visitUnlock(_inst: UnlockInst): TypeErrors {
+  public visitUnlock(_inst: Inst.Unlock): TypeErrors {
     return [];
   }
-  public visitSet(inst: SetInst): TypeErrors {
+  public visitSet(inst: Inst.Set): TypeErrors {
     const result = this.checkExpr(inst.value);
     if (inst.suffix instanceof Expr.Variable) {
       this.scopeManager.setType(inst.suffix.token, inst.suffix.token.lexeme, result.type);
@@ -214,12 +205,12 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
     return result.errors;
   }
   // tslint:disable-next-line:variable-name
-  public visitLazyGlobalInst(_inst: LazyGlobalInst): TypeErrors {
+  public visitLazyGlobalInst(_inst: Inst.LazyGlobal): TypeErrors {
     return [];
   }
 
   // visit if instruction
-  public visitIf(inst: IfInst): TypeErrors {
+  public visitIf(inst: Inst.If): TypeErrors {
     const conditionResult = this.checkExpr(inst.condition);
     const errors: TypeErrors = conditionResult.errors;
 
@@ -235,12 +226,12 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
   }
 
   // visit else instruction
-  public visitElse(inst: ElseInst): TypeErrors {
+  public visitElse(inst: Inst.Else): TypeErrors {
     return this.checkInst(inst.instruction);
   }
 
   // visit until instruction
-  public visitUntil(inst: UntilInst): TypeErrors {
+  public visitUntil(inst: Inst.Until): TypeErrors {
     const conditionResult = this.checkExpr(inst.condition);
     const errors = conditionResult.errors;
 
@@ -253,7 +244,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
   }
 
   // visit from loop
-  public visitFrom(inst: FromInst): TypeErrors {
+  public visitFrom(inst: Inst.From): TypeErrors {
     let errors: TypeErrors = this.checkInst(inst.initializer);
     const conditionResult = this.checkExpr(inst.condition);
     errors = errors.concat(conditionResult.errors);
@@ -268,7 +259,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
   }
 
   // vist when statment
-  public visitWhen(inst: WhenInst): TypeErrors {
+  public visitWhen(inst: Inst.When): TypeErrors {
     const conditionResult = this.checkExpr(inst.condition);
     const errors = conditionResult.errors;
 
@@ -281,7 +272,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
   }
 
   // visit return
-  public visitReturn(inst: ReturnInst): TypeErrors {
+  public visitReturn(inst: Inst.Return): TypeErrors {
     const errors: TypeErrors = [];
     if (!empty(inst.value)) {
 
@@ -292,12 +283,12 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
 
   // visit break
   // tslint:disable-next-line:variable-name
-  public visitBreak(_inst: BreakInst): TypeErrors {
+  public visitBreak(_inst: Inst.Break): TypeErrors {
     return [];
   }
 
   // visit switch
-  public visitSwitch(inst: SwitchInst): TypeErrors {
+  public visitSwitch(inst: Inst.Switch): TypeErrors {
     const result = this.checkExpr(inst.target);
     let errors = result.errors;
 
@@ -308,7 +299,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
 
     return errors;
   }
-  public visitFor(inst: ForInst): TypeErrors {
+  public visitFor(inst: Inst.For): TypeErrors {
     const result = this.checkExpr(inst.suffix);
     let errors: TypeErrors = [];
 
@@ -322,7 +313,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
     this.scopeManager.setType(inst.identifier, inst.identifier.lexeme, structureType);
     return errors.concat(this.checkInst(inst.instruction));
   }
-  public visitOn(inst: OnInst): TypeErrors {
+  public visitOn(inst: Inst.On): TypeErrors {
     const result = this.checkExpr(inst.suffix);
     let errors: TypeErrors = [];
 
@@ -333,11 +324,11 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
 
     return errors.concat(this.checkInst(inst.instruction));
   }
-  public visitToggle(inst: ToggleInst): TypeErrors {
+  public visitToggle(inst: Inst.Toggle): TypeErrors {
     const result = this.checkExpr(inst.suffix);
     return result.errors;
   }
-  public visitWait(inst: WaitInst): TypeErrors {
+  public visitWait(inst: Inst.Wait): TypeErrors {
     const result = this.checkExpr(inst.expression);
     let errors: TypeErrors = result.errors;
 
@@ -359,7 +350,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
 
     return errors;
   }
-  public visitLog(inst: LogInst): TypeErrors {
+  public visitLog(inst: Inst.Log): TypeErrors {
     const exprResult = this.checkExpr(inst.expression);
     let errors: TypeErrors = exprResult.errors;
 
@@ -380,47 +371,47 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
 
     return errors;
   }
-  public visitCopy(inst: CopyInst): TypeErrors {
+  public visitCopy(inst: Inst.Copy): TypeErrors {
     if (inst) { }
     return [];
   }
-  public visitRename(inst: RenameInst): TypeErrors {
+  public visitRename(inst: Inst.Rename): TypeErrors {
     if (inst) { }
     return [];
   }
-  public visitDelete(inst: DeleteInst): TypeErrors {
+  public visitDelete(inst: Inst.Delete): TypeErrors {
     if (inst) { }
     return [];
   }
-  public visitRun(inst: RunInst): TypeErrors {
+  public visitRun(inst: Inst.Run): TypeErrors {
     if (inst) { }
     return [];
   }
-  public visitRunPath(inst: RunPathInst): TypeErrors {
+  public visitRunPath(inst: Inst.RunPath): TypeErrors {
     if (inst) { }
     return [];
   }
-  public visitRunPathOnce(inst: RunPathOnceInst): TypeErrors {
+  public visitRunPathOnce(inst: Inst.RunPathOnce): TypeErrors {
     if (inst) { }
     return [];
   }
-  public visitCompile(inst: CompileInst): TypeErrors {
+  public visitCompile(inst: Inst.Compile): TypeErrors {
     if (inst) { }
     return [];
   }
-  public visitList(inst: ListInst): TypeErrors {
+  public visitList(inst: Inst.List): TypeErrors {
     if (inst) { }
     return [];
   }
 
   // visit empty instruction
   // tslint:disable-next-line:variable-name
-  public visitEmpty(_inst: EmptyInst): TypeErrors {
+  public visitEmpty(_inst: Inst.Empty): TypeErrors {
     return [];
   }
 
   // vist print instruction
-  public visitPrint(inst: PrintInst): TypeErrors {
+  public visitPrint(inst: Inst.Print): TypeErrors {
     const result = this.checkExpr(inst.expression);
     const errors = result.errors;
 

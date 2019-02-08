@@ -152,7 +152,8 @@ export class Scanner {
       while (this.isAlphaNumeric(this.peek())) this.advance();
     }
 
-    return this.generateToken(TokenType.fileIdentifier, undefined, true);
+    const value = this.source.substr(this.start, this.current - this.start).toLowerCase();
+    return this.generateToken(TokenType.fileIdentifier, value, true);
   }
 
   // extract string

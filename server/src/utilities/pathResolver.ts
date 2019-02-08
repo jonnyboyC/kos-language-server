@@ -1,4 +1,4 @@
-import { RunInst, RunPathInst, RunPathOnceInst } from '../parser/inst';
+import { Run, RunPath, RunPathOnce } from '../parser/inst';
 import { relative, join, sep, dirname } from 'path';
 import { RunInstType } from '../parser/types';
 import { Literal } from '../parser/expr';
@@ -42,7 +42,7 @@ export const resolveUri = (
 
 // based on run type determine how to get file path
 const instPath = (inst: RunInstType): Maybe<string> => {
-  if (inst instanceof RunInst) {
+  if (inst instanceof Run) {
     const { identifier } = inst;
 
     switch (identifier.type) {
@@ -57,13 +57,13 @@ const instPath = (inst: RunInstType): Maybe<string> => {
   }
 
   // for run path varients check for literal
-  if (inst instanceof RunPathInst) {
+  if (inst instanceof RunPath) {
     if (inst.expression instanceof Literal) {
       return literalPath(inst.expression);
     }
   }
 
-  if (inst instanceof RunPathOnceInst) {
+  if (inst instanceof RunPathOnce) {
     if (inst.expression instanceof Literal) {
       return literalPath(inst.expression);
     }

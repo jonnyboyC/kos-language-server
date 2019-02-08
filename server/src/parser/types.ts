@@ -1,17 +1,5 @@
 import * as Expr from './expr';
-import {
-  BlockInst, ExprInst, OnOffInst,
-  CommandInst, CommandExpressionInst,
-  UnsetInst, UnlockInst, SetInst,
-  LazyGlobalInst, IfInst, ElseInst,
-  UntilInst, FromInst, WhenInst,
-  ReturnInst, BreakInst, SwitchInst,
-  ForInst, OnInst, ToggleInst, WaitInst,
-  LogInst, CopyInst, RenameInst,
-  DeleteInst, RunInst, RunPathInst,
-  RunPathOnceInst, CompileInst,
-  ListInst, EmptyInst, PrintInst, InvalidInst,
-} from './inst';
+import * as Inst from './inst';
 import { DeclVariable, DeclLock, DeclFunction, DeclParameter } from './declare';
 import { IToken } from '../entities/types';
 import { Range } from 'vscode-languageserver';
@@ -36,7 +24,7 @@ export interface SyntaxTreeResult extends ParseResult {
   scanErrors: IScannerError[];
 }
 
-export type RunInstType = RunInst | RunPathInst | RunPathOnceInst;
+export type RunInstType = Inst.Run | Inst.RunPath | Inst.RunPathOnce;
 
 export interface IRangeSequence extends Range {
   ranges: Range[];
@@ -91,39 +79,39 @@ export interface IInstVisitor<T> {
   visitDeclFunction(decl: DeclFunction): T;
   visitDeclParameter(decl: DeclParameter): T;
 
-  visitInstInvalid(inst: InvalidInst): T;
-  visitBlock(inst: BlockInst): T;
-  visitExpr(inst: ExprInst): T;
-  visitOnOff(inst: OnOffInst): T;
-  visitCommand(inst: CommandInst): T;
-  visitCommandExpr(inst: CommandExpressionInst): T;
-  visitUnset(inst: UnsetInst): T;
-  visitUnlock(inst: UnlockInst): T;
-  visitSet(inst: SetInst): T;
-  visitLazyGlobalInst(inst: LazyGlobalInst): T;
-  visitIf(inst: IfInst): T;
-  visitElse(inst: ElseInst): T;
-  visitUntil(inst: UntilInst): T;
-  visitFrom(inst: FromInst): T;
-  visitWhen(inst: WhenInst): T;
-  visitReturn(inst: ReturnInst): T;
-  visitBreak(inst: BreakInst): T;
-  visitSwitch(inst: SwitchInst): T;
-  visitFor(inst: ForInst): T;
-  visitOn(inst: OnInst): T;
-  visitToggle(inst: ToggleInst): T;
-  visitWait(inst: WaitInst): T;
-  visitLog(inst: LogInst): T;
-  visitCopy(inst: CopyInst): T;
-  visitRename(inst: RenameInst): T;
-  visitDelete(inst: DeleteInst): T;
-  visitRun(inst: RunInst): T;
-  visitRunPath(inst: RunPathInst): T;
-  visitRunPathOnce(inst: RunPathOnceInst): T;
-  visitCompile(inst: CompileInst): T;
-  visitList(inst: ListInst): T;
-  visitEmpty(inst: EmptyInst): T;
-  visitPrint(inst: PrintInst): T;
+  visitInstInvalid(inst: Inst.Invalid): T;
+  visitBlock(inst: Inst.Block): T;
+  visitExpr(inst: Inst.Expr): T;
+  visitOnOff(inst: Inst.OnOff): T;
+  visitCommand(inst: Inst.Command): T;
+  visitCommandExpr(inst: Inst.CommandExpr): T;
+  visitUnset(inst: Inst.Unset): T;
+  visitUnlock(inst: Inst.Unlock): T;
+  visitSet(inst: Inst.Set): T;
+  visitLazyGlobalInst(inst: Inst.LazyGlobal): T;
+  visitIf(inst: Inst.If): T;
+  visitElse(inst: Inst.Else): T;
+  visitUntil(inst: Inst.Until): T;
+  visitFrom(inst: Inst.From): T;
+  visitWhen(inst: Inst.When): T;
+  visitReturn(inst: Inst.Return): T;
+  visitBreak(inst: Inst.Break): T;
+  visitSwitch(inst: Inst.Switch): T;
+  visitFor(inst: Inst.For): T;
+  visitOn(inst: Inst.On): T;
+  visitToggle(inst: Inst.Toggle): T;
+  visitWait(inst: Inst.Wait): T;
+  visitLog(inst: Inst.Log): T;
+  visitCopy(inst: Inst.Copy): T;
+  visitRename(inst: Inst.Rename): T;
+  visitDelete(inst: Inst.Delete): T;
+  visitRun(inst: Inst.Run): T;
+  visitRunPath(inst: Inst.RunPath): T;
+  visitRunPathOnce(inst: Inst.RunPathOnce): T;
+  visitCompile(inst: Inst.Compile): T;
+  visitList(inst: Inst.List): T;
+  visitEmpty(inst: Inst.Empty): T;
+  visitPrint(inst: Inst.Print): T;
 }
 
 export interface IFindResult {

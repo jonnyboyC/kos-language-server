@@ -1,17 +1,6 @@
 import { IExprVisitor, IInstVisitor, IInst, IExpr, IFindResult, INode } from './types';
 import { DeclVariable, DeclLock, DeclFunction, DeclParameter, Parameter } from './declare';
-import {
-  BlockInst, ExprInst, OnOffInst,
-  CommandInst, CommandExpressionInst,
-  UnsetInst, UnlockInst, SetInst,
-  LazyGlobalInst, IfInst, ElseInst,
-  UntilInst, FromInst, WhenInst, ReturnInst,
-  BreakInst, SwitchInst, ForInst, OnInst,
-  ToggleInst, WaitInst, LogInst, CopyInst,
-  RenameInst, DeleteInst, RunInst,
-  RunPathInst, RunPathOnceInst, CompileInst,
-  ListInst, EmptyInst, PrintInst, Inst, InvalidInst,
-} from './inst';
+import * as Inst from './inst';
 import * as Expr from './expr';
 import { Position } from 'vscode-languageserver';
 import { binarySearch } from '../utilities/positionHelpers';
@@ -58,7 +47,7 @@ export class SyntaxTreeFind implements
     }
 
     // search instruction if instruction
-    if (searchResult instanceof Inst) {
+    if (searchResult instanceof Inst.Inst) {
       const findResult = this.findInst(searchResult);
 
       // add context if not set yet
@@ -122,103 +111,103 @@ export class SyntaxTreeFind implements
   visitDeclParameter(decl: DeclParameter): Maybe<IFindResult> {
     return this.findNode(decl);
   }
-  visitInstInvalid(inst: InvalidInst): Maybe<IFindResult> {
+  visitInstInvalid(inst: Inst.Invalid): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitBlock(inst: BlockInst): Maybe<IFindResult> {
+  visitBlock(inst: Inst.Block): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitExpr(inst: ExprInst): Maybe<IFindResult> {
+  visitExpr(inst: Inst.Expr): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitOnOff(inst: OnOffInst): Maybe<IFindResult> {
+  visitOnOff(inst: Inst.OnOff): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitCommand(inst: CommandInst): Maybe<IFindResult> {
+  visitCommand(inst: Inst.Command): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitCommandExpr(inst: CommandExpressionInst): Maybe<IFindResult> {
+  visitCommandExpr(inst: Inst.CommandExpr): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitUnset(inst: UnsetInst): Maybe<IFindResult> {
+  visitUnset(inst: Inst.Unset): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitUnlock(inst: UnlockInst): Maybe<IFindResult> {
+  visitUnlock(inst: Inst.Unlock): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitSet(inst: SetInst): Maybe<IFindResult> {
+  visitSet(inst: Inst.Set): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitLazyGlobalInst(inst: LazyGlobalInst): Maybe<IFindResult> {
+  visitLazyGlobalInst(inst: Inst.LazyGlobal): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitIf(inst: IfInst): Maybe<IFindResult> {
+  visitIf(inst: Inst.If): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitElse(inst: ElseInst): Maybe<IFindResult> {
+  visitElse(inst: Inst.Else): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitUntil(inst: UntilInst): Maybe<IFindResult> {
+  visitUntil(inst: Inst.Until): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitFrom(inst: FromInst): Maybe<IFindResult> {
+  visitFrom(inst: Inst.From): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitWhen(inst: WhenInst): Maybe<IFindResult> {
+  visitWhen(inst: Inst.When): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitReturn(inst: ReturnInst): Maybe<IFindResult> {
+  visitReturn(inst: Inst.Return): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitBreak(inst: BreakInst): Maybe<IFindResult> {
+  visitBreak(inst: Inst.Break): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitSwitch(inst: SwitchInst): Maybe<IFindResult> {
+  visitSwitch(inst: Inst.Switch): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitFor(inst: ForInst): Maybe<IFindResult> {
+  visitFor(inst: Inst.For): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitOn(inst: OnInst): Maybe<IFindResult> {
+  visitOn(inst: Inst.On): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitToggle(inst: ToggleInst): Maybe<IFindResult> {
+  visitToggle(inst: Inst.Toggle): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitWait(inst: WaitInst): Maybe<IFindResult> {
+  visitWait(inst: Inst.Wait): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitLog(inst: LogInst): Maybe<IFindResult> {
+  visitLog(inst: Inst.Log): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitCopy(inst: CopyInst): Maybe<IFindResult> {
+  visitCopy(inst: Inst.Copy): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitRename(inst: RenameInst): Maybe<IFindResult> {
+  visitRename(inst: Inst.Rename): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitDelete(inst: DeleteInst): Maybe<IFindResult> {
+  visitDelete(inst: Inst.Delete): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitRun(inst: RunInst): Maybe<IFindResult> {
+  visitRun(inst: Inst.Run): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitRunPath(inst: RunPathInst): Maybe<IFindResult> {
+  visitRunPath(inst: Inst.RunPath): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitRunPathOnce(inst: RunPathOnceInst): Maybe<IFindResult> {
+  visitRunPathOnce(inst: Inst.RunPathOnce): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitCompile(inst: CompileInst): Maybe<IFindResult> {
+  visitCompile(inst: Inst.Compile): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitList(inst: ListInst): Maybe<IFindResult> {
+  visitList(inst: Inst.List): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitEmpty(inst: EmptyInst): Maybe<IFindResult> {
+  visitEmpty(inst: Inst.Empty): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitPrint(inst: PrintInst): Maybe<IFindResult> {
+  visitPrint(inst: Inst.Print): Maybe<IFindResult> {
     return this.findNode(inst);
   }
   visitExprInvalid(expr: Expr.Invalid): Maybe<IFindResult> {

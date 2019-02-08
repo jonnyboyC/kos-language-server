@@ -1,25 +1,6 @@
 import { IInstVisitor, IExprVisitor, IExpr, IInst, ScopeType } from '../parser/types';
 import * as Expr from '../parser/expr';
-import {
-  BlockInst, ExprInst,
-  OnOffInst, CommandInst,
-  CommandExpressionInst,
-  UnsetInst, UnlockInst,
-  SetInst, LazyGlobalInst,
-  IfInst, ElseInst,
-  UntilInst, FromInst,
-  WhenInst, ReturnInst,
-  BreakInst, SwitchInst,
-  ForInst, OnInst,
-  ToggleInst, WaitInst,
-  LogInst, CopyInst,
-  RenameInst, DeleteInst,
-  RunInst, RunPathInst,
-  RunPathOnceInst, CompileInst,
-  ListInst, EmptyInst,
-  PrintInst,
-  InvalidInst,
-} from '../parser/inst';
+import * as Inst from '../parser/inst';
 import { ResolverError } from './resolverError';
 import { DeclVariable, DeclLock, DeclFunction, DeclParameter } from '../parser/declare';
 import { empty } from '../utilities/typeGuards';
@@ -135,7 +116,7 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
       }
 
       // determine if return exists
-      if (inst instanceof ReturnInst) {
+      if (inst instanceof Inst.Return) {
         returnValue = true;
       }
     }
@@ -186,11 +167,11 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
   ----------------------------------------------*/
 
   // tslint:disable-next-line:variable-name
-  public visitInstInvalid(_inst: InvalidInst): Errors {
+  public visitInstInvalid(_inst: Inst.Invalid): Errors {
     return [];
   }
 
-  public visitBlock(inst: BlockInst): Errors {
+  public visitBlock(inst: Inst.Block): Errors {
     this.scopeBuilder.beginScope(inst);
     const errors = this.resolveInsts(inst.instructions);
     this.scopeBuilder.endScope();
@@ -198,43 +179,43 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
     return errors;
   }
 
-  public visitExpr(inst: ExprInst): Errors {
+  public visitExpr(inst: Inst.Expr): Errors {
     return this.resolveExpr(inst.suffix);
   }
 
-  public visitOnOff(inst: OnOffInst): Errors {
+  public visitOnOff(inst: Inst.OnOff): Errors {
     return this.resolveExpr(inst.suffix);
   }
 
   // tslint:disable-next-line:variable-name
-  public visitCommand(_inst: CommandInst): Errors {
+  public visitCommand(_inst: Inst.Command): Errors {
     return [];
   }
 
-  public visitCommandExpr(inst: CommandExpressionInst): Errors {
+  public visitCommandExpr(inst: Inst.CommandExpr): Errors {
     return this.resolveExpr(inst.expression);
   }
 
   // tslint:disable-next-line:variable-name
-  public visitUnset(_inst: UnsetInst): Errors {
+  public visitUnset(_inst: Inst.Unset): Errors {
     return [];
   }
 
   // tslint:disable-next-line:variable-name
-  public visitUnlock(_inst: UnlockInst): Errors {
+  public visitUnlock(_inst: Inst.Unlock): Errors {
     return [];
   }
 
-  public visitSet(inst: SetInst): Errors {
+  public visitSet(inst: Inst.Set): Errors {
     return this.resolveExpr(inst.value);
   }
 
   // tslint:disable-next-line:variable-name
-  public visitLazyGlobalInst(_inst: LazyGlobalInst): Errors {
+  public visitLazyGlobalInst(_inst: Inst.LazyGlobal): Errors {
     return [];
   }
 
-  public visitIf(inst: IfInst): Errors {
+  public visitIf(inst: Inst.If): Errors {
     let resolveErrors = this.resolveExpr(inst.condition)
       .concat(this.resolveInst(inst.instruction));
 
@@ -246,28 +227,28 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
     return resolveErrors;
   }
 
-  public visitElse(inst: ElseInst): Errors {
+  public visitElse(inst: Inst.Else): Errors {
     return this.resolveInst(inst.instruction);
   }
 
-  public visitUntil(inst: UntilInst): Errors {
+  public visitUntil(inst: Inst.Until): Errors {
     return this.resolveExpr(inst.condition).concat(
       this.resolveInst(inst.instruction));
   }
 
-  public visitFrom(inst: FromInst): Errors {
+  public visitFrom(inst: Inst.From): Errors {
     return this.resolveInsts(inst.initializer.instructions).concat(
       this.resolveExpr(inst.condition),
       this.resolveInsts(inst.increment.instructions),
       this.resolveInst(inst.instruction));
   }
 
-  public visitWhen(inst: WhenInst): Errors {
+  public visitWhen(inst: Inst.When): Errors {
     return this.resolveExpr(inst.condition)
       .concat(this.resolveInst(inst.instruction));
   }
 
-  public visitReturn(inst: ReturnInst): Errors {
+  public visitReturn(inst: Inst.Return): Errors {
     if (inst.value) {
       return this.resolveExpr(inst.value);
     }
@@ -276,48 +257,48 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
   }
 
   // tslint:disable-next-line:variable-name
-  public visitBreak(_inst: BreakInst): Errors {
+  public visitBreak(_inst: Inst.Break): Errors {
     return [];
   }
 
-  public visitSwitch(inst: SwitchInst): Errors {
+  public visitSwitch(inst: Inst.Switch): Errors {
     return this.resolveExpr(inst.target);
   }
 
-  public visitFor(inst: ForInst): Errors {
+  public visitFor(inst: Inst.For): Errors {
     return this.resolveExpr(inst.suffix).concat(
       this.resolveInst(inst.instruction));
   }
 
-  public visitOn(inst: OnInst): Errors {
+  public visitOn(inst: Inst.On): Errors {
     return this.resolveExpr(inst.suffix).concat(
       this.resolveInst(inst.instruction));
   }
 
-  public visitToggle(inst: ToggleInst): Errors {
+  public visitToggle(inst: Inst.Toggle): Errors {
     return this.resolveExpr(inst.suffix);
   }
 
-  public visitWait(inst: WaitInst): Errors {
+  public visitWait(inst: Inst.Wait): Errors {
     return this.resolveExpr(inst.expression);
   }
 
-  public visitLog(inst: LogInst): Errors {
+  public visitLog(inst: Inst.Log): Errors {
     return this.resolveExpr(inst.expression).concat(
       this.resolveExpr(inst.target));
   }
 
-  public visitCopy(inst: CopyInst): Errors {
+  public visitCopy(inst: Inst.Copy): Errors {
     return this.resolveExpr(inst.expression).concat(
       this.resolveExpr(inst.target));
   }
 
-  public visitRename(inst: RenameInst): Errors {
+  public visitRename(inst: Inst.Rename): Errors {
     return this.resolveExpr(inst.expression).concat(
       this.resolveExpr(inst.target));
   }
 
-  public visitDelete(inst: DeleteInst): Errors {
+  public visitDelete(inst: Inst.Delete): Errors {
     if (empty(inst.target)) {
       return this.resolveExpr(inst.expression);
     }
@@ -326,7 +307,7 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
       this.resolveExpr(inst.target));
   }
 
-  public visitRun(inst: RunInst): Errors {
+  public visitRun(inst: Inst.Run): Errors {
     if (empty(inst.args)) {
       return [];
     }
@@ -334,7 +315,7 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
     return accumulateErrors(inst.args, this.resolveExpr.bind(this));
   }
 
-  public visitRunPath(inst: RunPathInst): Errors {
+  public visitRunPath(inst: Inst.RunPath): Errors {
     if (empty(inst.args)) {
       return this.resolveExpr(inst.expression);
     }
@@ -343,7 +324,7 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
       accumulateErrors(inst.args, this.resolveExpr.bind(this)));
   }
 
-  public visitRunPathOnce(inst: RunPathOnceInst): Errors {
+  public visitRunPathOnce(inst: Inst.RunPathOnce): Errors {
     if (empty(inst.args)) {
       return this.resolveExpr(inst.expression);
     }
@@ -352,7 +333,7 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
       accumulateErrors(inst.args, this.resolveExpr.bind(this)));
   }
 
-  public visitCompile(inst: CompileInst): Errors {
+  public visitCompile(inst: Inst.Compile): Errors {
     if (empty(inst.target)) {
       return this.resolveExpr(inst.expression);
     }
@@ -362,16 +343,16 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
   }
 
   // tslint:disable-next-line:variable-name
-  public visitList(_inst: ListInst): Errors {
+  public visitList(_inst: Inst.List): Errors {
     return [];
   }
 
   // tslint:disable-next-line:variable-name
-  public visitEmpty(_inst: EmptyInst): Errors {
+  public visitEmpty(_inst: Inst.Empty): Errors {
     return [];
   }
 
-  public visitPrint(inst: PrintInst): Errors {
+  public visitPrint(inst: Inst.Print): Errors {
     return this.resolveExpr(inst.expression);
   }
 
