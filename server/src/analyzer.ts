@@ -14,7 +14,7 @@ import { SyntaxTreeFind } from './parser/syntaxTreeFind';
 import { KsFunction } from './entities/function';
 import { InvalidInst } from './parser/inst';
 import { signitureHelper } from './utilities/signitureHelper';
-import { CallExpr, InvalidExpr } from './parser/expr';
+import * as Expr from './parser/expr';
 import { resolveUri } from './utilities/pathResolver';
 import { existsSync } from 'fs';
 import { extname } from 'path';
@@ -304,7 +304,7 @@ export class Analyzer {
     const finder = new SyntaxTreeFind();
 
     // attempt to find a token here get surround invalid inst context
-    const result = finder.find(syntaxTree, pos, InvalidInst, InvalidExpr, CallExpr);
+    const result = finder.find(syntaxTree, pos, InvalidInst, Expr.Invalid, Expr.Call);
 
     // currently we only support invalid instructions for signiture completion
     // we could possible support call expressions as well
@@ -333,11 +333,11 @@ export class Analyzer {
       };
     }
 
-    if (node instanceof CallExpr) {
+    if (node instanceof Expr.Call) {
       // TODO figure out this case
     }
 
-    if (node instanceof InvalidExpr) {
+    if (node instanceof Expr.Invalid) {
       // TODO figure out this case
     }
 

@@ -3,7 +3,7 @@ import { Scanner } from '../scanner/scanner';
 import { Parser } from './parser';
 import { IScannerError, IScanResult } from '../scanner/types';
 import { IExpr, INodeResult } from './types';
-import { LiteralExpr, VariableExpr, CallExpr } from './expr';
+import { Literal, Variable, Call } from './expr';
 import { TokenType } from '../entities/tokentypes';
 import { readdirSync, statSync, readFileSync } from 'fs';
 import { join } from 'path';
@@ -76,11 +76,11 @@ ava('basic valid literal', (t) => {
 
   for (const expression of validExpressions) {
     const [{ value, errors }, scanErrors] = parseExpression(expression.source);
-    t.true(value instanceof LiteralExpr);
+    t.true(value instanceof Literal);
     t.true(errors.length === 0);
     t.true(scanErrors.length === 0);
 
-    if (value instanceof LiteralExpr) {
+    if (value instanceof Literal) {
       t.deepEqual(expression.type, value.token.type);
       t.deepEqual(expression.literal, value.token.literal);
     }
@@ -96,7 +96,7 @@ ava('basic invalid literal', (t) => {
 
   for (const expression of validExpressions) {
     const [{ value, errors }, scanErrors] = parseExpression(expression.source);
-    t.false(value instanceof LiteralExpr);
+    t.false(value instanceof Literal);
     t.true(errors.length > 0 || scanErrors.length > 0);
   }
 });
@@ -113,10 +113,10 @@ ava('basic valid identifier', (t) => {
 
   for (const expression of validExpressions) {
     const [{ value }, scannerErrors] = parseExpression(expression.source);
-    t.true(value instanceof VariableExpr);
+    t.true(value instanceof Variable);
     t.true(scannerErrors.length === 0);
 
-    if (value instanceof VariableExpr) {
+    if (value instanceof Variable) {
       t.deepEqual(expression.type, value.token.type);
       t.deepEqual(expression.literal, value.token.literal);
     }
@@ -133,7 +133,7 @@ ava('basic invalid identifier', (t) => {
 
   for (const expression of validExpressions) {
     const [{ value, errors }] = parseExpression(expression.source);
-    t.false(value instanceof VariableExpr);
+    t.false(value instanceof Variable);
     t.true(errors.length >= 0);
   }
 });
@@ -155,20 +155,20 @@ const callTest = (source: string, callee: string, args: Function[]): CallTestInt
 // test basic identifier
 ava('valid call', (t) => {
   const validExpressions = [
-    callTest('test(4, "car")', 'test', [LiteralExpr, LiteralExpr]),
-    callTest('БНЯД(varName, 14.3)', 'бняд', [VariableExpr, LiteralExpr]),
+    callTest('test(4, "car")', 'test', [Literal, Literal]),
+    callTest('БНЯД(varName, 14.3)', 'бняд', [Variable, Literal]),
     callTest('_variableName()', '_variablename', []),
   ];
 
   for (const expression of validExpressions) {
     const [{ value, errors }, scannerErrors] = parseExpression(expression.source);
-    t.true(value instanceof CallExpr);
+    t.true(value instanceof Call);
     t.true(errors.length === 0);
     t.true(scannerErrors.length === 0);
 
-    if (value instanceof CallExpr) {
-      t.true(value.callee instanceof VariableExpr);
-      if (value.callee instanceof VariableExpr) {
+    if (value instanceof Call) {
+      t.true(value.callee instanceof Variable);
+      if (value.callee instanceof Variable) {
         t.deepEqual(expression.callee, value.callee.token.lexeme);
         t.deepEqual(expression.args.length, value.args.length);
 
@@ -191,7 +191,7 @@ ava('invalid call', (t) => {
 
   for (const expression of validExpressions) {
     const [{ value }, scannerErrors] = parseExpression(expression.source);
-    t.false(value instanceof VariableExpr);
+    t.false(value instanceof Variable);
     t.true(scannerErrors.length === 0);
   }
 });

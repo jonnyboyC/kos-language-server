@@ -1,11 +1,4 @@
-import {
-  BinaryExpr, UnaryExpr, FactorExpr,
-  SuffixExpr, CallExpr, ArrayIndexExpr,
-  ArrayBracketExpr, DelegateExpr, LiteralExpr,
-  VariableExpr, GroupingExpr,
-  AnonymousFunctionExpr,
-  InvalidExpr,
-} from './expr';
+import * as Expr from './expr';
 import {
   BlockInst, ExprInst, OnOffInst,
   CommandInst, CommandExpressionInst,
@@ -73,19 +66,19 @@ export interface IExprVisitable {
 }
 
 export interface IExprVisitor<T> {
-  visitExprInvalid(expr: InvalidExpr): T;
-  visitBinary(expr: BinaryExpr): T;
-  visitUnary(expr: UnaryExpr): T;
-  visitFactor(expr: FactorExpr): T;
-  visitSuffix(expr: SuffixExpr): T;
-  visitCall(expr: CallExpr): T;
-  visitArrayIndex(expr: ArrayIndexExpr): T;
-  visitArrayBracket(expr: ArrayBracketExpr): T;
-  visitDelegate(expr: DelegateExpr): T;
-  visitLiteral(expr: LiteralExpr): T;
-  visitVariable(expr: VariableExpr): T;
-  visitGrouping(expr: GroupingExpr): T;
-  visitAnonymousFunction(expr: AnonymousFunctionExpr): T;
+  visitExprInvalid(expr: Expr.Invalid): T;
+  visitBinary(expr: Expr.Binary): T;
+  visitUnary(expr: Expr.Unary): T;
+  visitFactor(expr: Expr.Factor): T;
+  visitSuffix(expr: Expr.Suffix): T;
+  visitCall(expr: Expr.Call): T;
+  visitArrayIndex(expr: Expr.ArrayIndex): T;
+  visitArrayBracket(expr: Expr.ArrayBracket): T;
+  visitDelegate(expr: Expr.Delegate): T;
+  visitLiteral(expr: Expr.Literal): T;
+  visitVariable(expr: Expr.Variable): T;
+  visitGrouping(expr: Expr.Grouping): T;
+  visitAnonymousFunction(expr: Expr.AnonymousFunction): T;
 }
 
 export interface IInstVisitable {

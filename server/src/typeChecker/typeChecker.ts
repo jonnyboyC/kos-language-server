@@ -1,11 +1,5 @@
 import { IExprVisitor, IInstVisitor, IInst, IExpr } from '../parser/types';
-import {
-  InvalidExpr, BinaryExpr,
-  UnaryExpr, FactorExpr, SuffixExpr,
-  CallExpr, ArrayIndexExpr, ArrayBracketExpr,
-  DelegateExpr, LiteralExpr, VariableExpr,
-  GroupingExpr, AnonymousFunctionExpr,
-} from '../parser/expr';
+import * as Expr from '../parser/expr';
 import { ITypeError, ITypeResult } from './types';
 import { DeclVariable, DeclLock, DeclFunction, DeclParameter } from '../parser/declare';
 import { InvalidInst, BlockInst, ExprInst, OnOffInst,
@@ -212,7 +206,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
   }
   public visitSet(inst: SetInst): TypeErrors {
     const result = this.checkExpr(inst.value);
-    if (inst.suffix instanceof VariableExpr) {
+    if (inst.suffix instanceof Expr.Variable) {
       this.scopeManager.setType(inst.suffix.token, inst.suffix.token.lexeme, result.type);
     } else {
       // TODO suffix case
@@ -440,10 +434,10 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
 
   // visit invalid expression
   // tslint:disable-next-line:variable-name
-  public visitExprInvalid(_expr: InvalidExpr): ITypeResult {
+  public visitExprInvalid(_expr: Expr.Invalid): ITypeResult {
     return { type: structureType, errors: [] };
   }
-  public visitBinary(expr: BinaryExpr): ITypeResult {
+  public visitBinary(expr: Expr.Binary): ITypeResult {
     const rightResult = this.checkExpr(expr.right);
     const leftResult = this.checkExpr(expr.left);
 
@@ -538,7 +532,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
     return { errors, type: returnType };
   }
 
-  public visitUnary(expr: UnaryExpr): ITypeResult {
+  public visitUnary(expr: Expr.Unary): ITypeResult {
     const result = this.checkExpr(expr.factor);
     const errors: TypeErrors = result.errors;
     let finalType: Maybe<IArgumentType> = undefined;
@@ -573,7 +567,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
 
     return { errors , type: finalType };
   }
-  public visitFactor(expr: FactorExpr): ITypeResult {
+  public visitFactor(expr: Expr.Factor): ITypeResult {
     const suffixResult = this.checkExpr(expr.suffix);
     const exponentResult = this.checkExpr(expr.exponent);
     const errors = suffixResult.errors.concat(exponentResult.errors);
@@ -594,7 +588,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
 
     return {  errors, type: scalarType };
   }
-  public visitSuffix(expr: SuffixExpr): ITypeResult {
+  public visitSuffix(expr: Expr.Suffix): ITypeResult {
     if (expr.isSuffix) {
       // debugger;
     }
@@ -612,13 +606,13 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
     return { type, errors: errors.concat(result.errors) };
   }
   private visitSuffixTrailer(type: IArgumentType, expr: IExpr): ITypeResult {
-    if (expr instanceof VariableExpr) {
+    if (expr instanceof Expr.Variable) {
       return this.visitVariableTrailer(type, expr, SuffixCallType.get);
     }
 
-    if (expr instanceof ArrayBracketExpr ||
-      expr instanceof ArrayIndexExpr ||
-      expr instanceof CallExpr) {
+    if (expr instanceof Expr.ArrayBracket ||
+      expr instanceof Expr.ArrayIndex ||
+      expr instanceof Expr.Call) {
       return this.visitSuffixTermTrailer(type, expr, SuffixCallType.get);
     }
 
@@ -627,7 +621,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
 
   private visitVariableTrailer(
     type: IArgumentType,
-    expr: VariableExpr,
+    expr: Expr.Variable,
     callType: SuffixCallType): ITypeResult {
     const suffix = getSuffix(type, expr.token.lexeme);
 
@@ -652,32 +646,32 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
     type: IArgumentType,
     expr: IExpr,
     callType: SuffixCallType): ITypeResult {
-    if (expr instanceof CallExpr) {
+    if (expr instanceof Expr.Call) {
       const trailerResult = this.visitSuffixTermTrailer(type, expr.callee, SuffixCallType.call);
       const callResults = this.resolveCall(expr, trailerResult.type, 'suffix');
       return this.result(callResults.type, ...callResults.errors, ...trailerResult.errors);
     }
 
-    if (expr instanceof ArrayIndexExpr) {
+    if (expr instanceof Expr.ArrayIndex) {
       const trailerResult = this.visitSuffixTermTrailer(type, expr.array, callType);
       const indexResult = this.resolveArrayIndex(expr);
       return this.result(indexResult.type, ...indexResult.errors, ...trailerResult.errors);
     }
 
-    if (expr instanceof ArrayBracketExpr) {
+    if (expr instanceof Expr.ArrayBracket) {
       const result = this.visitSuffixTermTrailer(type, expr.array, callType);
       return result;
     }
 
-    if (expr instanceof VariableExpr) {
+    if (expr instanceof Expr.Variable) {
       return this.visitVariableTrailer(type, expr, callType);
     }
 
     throw Error(`Invalid suffix term trailer in ${expr.toString()}`);
   }
 
-  public visitCall(expr: CallExpr): ITypeResult {
-    if (expr.callee instanceof VariableExpr) {
+  public visitCall(expr: Expr.Call): ITypeResult {
+    if (expr.callee instanceof Expr.Variable) {
       const functionType = this.scopeManager.getType(expr.callee.token, expr.callee.token.lexeme);
       return this.resolveCall(expr, functionType, 'function');
     }
@@ -687,7 +681,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
   }
 
   private resolveCall(
-    expr: CallExpr,
+    expr: Expr.Call,
     type: Maybe<IType>,
     callType: 'function' | 'suffix'): ITypeResult {
     if (empty(type) || type.tag !== callType) {
@@ -705,7 +699,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
   }
 
   private resolveVaradic(
-    params: IVariadicType, returns: IBasicType, expr: CallExpr): ITypeResult {
+    params: IVariadicType, returns: IBasicType, expr: Expr.Call): ITypeResult {
     const errors: ITypeError[] = [];
 
     for (const arg of expr.args) {
@@ -719,7 +713,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
     return this.result(returns, ...errors);
   }
 
-  private resolveParameters(params: IType[], returns: IBasicType, expr: CallExpr): ITypeResult {
+  private resolveParameters(params: IType[], returns: IBasicType, expr: Expr.Call): ITypeResult {
     const errors: ITypeError[] = [];
 
     for (const [arg, param] of zip(expr.args, params)) {
@@ -735,11 +729,11 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
     return this.result(returns, ...errors);
   }
 
-  public visitArrayIndex(expr: ArrayIndexExpr): ITypeResult {
+  public visitArrayIndex(expr: Expr.ArrayIndex): ITypeResult {
     return this.resolveArrayIndex(expr);
   }
 
-  private resolveArrayIndex(expr: ArrayIndexExpr): ITypeResult {
+  private resolveArrayIndex(expr: Expr.ArrayIndex): ITypeResult {
     const errors: ITypeError[] = [];
 
     switch (expr.indexer.type) {
@@ -763,7 +757,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
     return this.result(structureType, ...errors);
   }
 
-  public visitArrayBracket(expr: ArrayBracketExpr): ITypeResult {
+  public visitArrayBracket(expr: Expr.ArrayBracket): ITypeResult {
     const arrayResult = this.checkExpr(expr.array);
     const indexResult = this.checkExpr(expr.index);
     const errors = arrayResult.errors.concat(indexResult.errors);
@@ -798,13 +792,13 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
     }
     return this.result(structureType, ...errors);
   }
-  public visitDelegate(expr: DelegateExpr): ITypeResult {
+  public visitDelegate(expr: Expr.Delegate): ITypeResult {
     if (expr) { }
     return this.errors();
   }
 
   // visit literal expression
-  public visitLiteral(expr: LiteralExpr): ITypeResult {
+  public visitLiteral(expr: Expr.Literal): ITypeResult {
     switch (expr.token.type) {
       case TokenType.true:
       case TokenType.false:
@@ -822,14 +816,14 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
   }
 
   // visit variable expression
-  public visitVariable(expr: VariableExpr): ITypeResult {
+  public visitVariable(expr: Expr.Variable): ITypeResult {
     const type = this.scopeManager.getType(expr.token, expr.token.lexeme);
     return { type: empty(type) ? structureType : type, errors: [] };
   }
-  public visitGrouping(expr: GroupingExpr): ITypeResult {
+  public visitGrouping(expr: Expr.Grouping): ITypeResult {
     return this.checkExpr(expr.expr);
   }
-  public visitAnonymousFunction(expr: AnonymousFunctionExpr): ITypeResult {
+  public visitAnonymousFunction(expr: Expr.AnonymousFunction): ITypeResult {
     if (expr) { }
     return this.errors();
   }

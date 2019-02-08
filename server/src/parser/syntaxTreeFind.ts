@@ -12,12 +12,7 @@ import {
   RunPathInst, RunPathOnceInst, CompileInst,
   ListInst, EmptyInst, PrintInst, Inst, InvalidInst,
 } from './inst';
-import {
-  BinaryExpr, UnaryExpr, FactorExpr, SuffixExpr,
-  CallExpr, ArrayIndexExpr, ArrayBracketExpr,
-  DelegateExpr, LiteralExpr, VariableExpr,
-  GroupingExpr, AnonymousFunctionExpr, Expr, InvalidExpr,
-} from './expr';
+import * as Expr from './expr';
 import { Position } from 'vscode-languageserver';
 import { binarySearch } from '../utilities/positionHelpers';
 import { empty } from '../utilities/typeGuards';
@@ -51,7 +46,7 @@ export class SyntaxTreeFind implements
     }
 
     // search expression if expression
-    if (searchResult instanceof Expr) {
+    if (searchResult instanceof Expr.Expr) {
       const findResult = this.findExpr(searchResult);
 
       // add context if not set yet
@@ -226,43 +221,43 @@ export class SyntaxTreeFind implements
   visitPrint(inst: PrintInst): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitExprInvalid(expr: InvalidExpr): Maybe<IFindResult> {
+  visitExprInvalid(expr: Expr.Invalid): Maybe<IFindResult> {
     return this.findNode(expr);
   }
-  visitBinary(expr: BinaryExpr): Maybe<IFindResult> {
+  visitBinary(expr: Expr.Binary): Maybe<IFindResult> {
     return this.findNode(expr);
   }
-  visitUnary(expr: UnaryExpr): Maybe<IFindResult> {
+  visitUnary(expr: Expr.Unary): Maybe<IFindResult> {
     return this.findNode(expr);
   }
-  visitFactor(expr: FactorExpr): Maybe<IFindResult> {
+  visitFactor(expr: Expr.Factor): Maybe<IFindResult> {
     return this.findNode(expr);
   }
-  visitSuffix(expr: SuffixExpr): Maybe<IFindResult> {
+  visitSuffix(expr: Expr.Suffix): Maybe<IFindResult> {
     return this.findNode(expr);
   }
-  visitCall(expr: CallExpr): Maybe<IFindResult> {
+  visitCall(expr: Expr.Call): Maybe<IFindResult> {
     return this.findNode(expr);
   }
-  visitArrayIndex(expr: ArrayIndexExpr): Maybe<IFindResult> {
+  visitArrayIndex(expr: Expr.ArrayIndex): Maybe<IFindResult> {
     return this.findNode(expr);
   }
-  visitArrayBracket(expr: ArrayBracketExpr): Maybe<IFindResult> {
+  visitArrayBracket(expr: Expr.ArrayBracket): Maybe<IFindResult> {
     return this.findNode(expr);
   }
-  visitDelegate(expr: DelegateExpr): Maybe<IFindResult> {
+  visitDelegate(expr: Expr.Delegate): Maybe<IFindResult> {
     return this.findNode(expr);
   }
-  visitLiteral(expr: LiteralExpr): Maybe<IFindResult> {
+  visitLiteral(expr: Expr.Literal): Maybe<IFindResult> {
     return this.findNode(expr);
   }
-  visitVariable(expr: VariableExpr): Maybe<IFindResult> {
+  visitVariable(expr: Expr.Variable): Maybe<IFindResult> {
     return this.findNode(expr);
   }
-  visitGrouping(expr: GroupingExpr): Maybe<IFindResult> {
+  visitGrouping(expr: Expr.Grouping): Maybe<IFindResult> {
     return this.findNode(expr);
   }
-  visitAnonymousFunction(expr: AnonymousFunctionExpr): Maybe<IFindResult> {
+  visitAnonymousFunction(expr: Expr.AnonymousFunction): Maybe<IFindResult> {
     return this.findNode(expr);
   }
 }

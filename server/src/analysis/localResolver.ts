@@ -1,10 +1,5 @@
 import { IExprVisitor, IExpr } from '../parser/types';
-import {
-  BinaryExpr, UnaryExpr, FactorExpr, SuffixExpr,
-  CallExpr, ArrayIndexExpr, ArrayBracketExpr, DelegateExpr,
-  LiteralExpr, VariableExpr, GroupingExpr, AnonymousFunctionExpr,
-  InvalidExpr,
-} from '../parser/expr';
+import * as Expr from '../parser/expr';
 import { ILocalResult } from './types';
 
 export class LocalResolver implements IExprVisitor<ILocalResult[]> {
@@ -12,25 +7,25 @@ export class LocalResolver implements IExprVisitor<ILocalResult[]> {
     return expr.accept(this);
   }
   // tslint:disable-next-line:variable-name
-  public visitExprInvalid(_expr: InvalidExpr): ILocalResult[] {
+  public visitExprInvalid(_expr: Expr.Invalid): ILocalResult[] {
     return [];
   }
-  public visitBinary(expr: BinaryExpr): ILocalResult[] {
+  public visitBinary(expr: Expr.Binary): ILocalResult[] {
     return this.resolveExpr(expr.left)
       .concat(this.resolveExpr(expr.right));
   }
-  public visitUnary(expr: UnaryExpr): ILocalResult[] {
+  public visitUnary(expr: Expr.Unary): ILocalResult[] {
     return this.resolveExpr(expr.factor);
   }
-  public visitFactor(expr: FactorExpr): ILocalResult[] {
+  public visitFactor(expr: Expr.Factor): ILocalResult[] {
     return this.resolveExpr(expr.suffix)
       .concat(this.resolveExpr(expr.exponent));
   }
-  public visitSuffix(expr: SuffixExpr): ILocalResult[] {
+  public visitSuffix(expr: Expr.Suffix): ILocalResult[] {
     return this.resolveExpr(expr.suffix)
       .concat(this.resolveExpr(expr.trailer));
   }
-  public visitCall(expr: CallExpr): ILocalResult[] {
+  public visitCall(expr: Expr.Call): ILocalResult[] {
     if (expr.isTrailer) {
       if (expr.args.length === 0) {
         return [];
@@ -44,29 +39,29 @@ export class LocalResolver implements IExprVisitor<ILocalResult[]> {
     return this.resolveExpr(expr.callee)
       .concat(...expr.args.map(arg => this.resolveExpr(arg)));
   }
-  public visitArrayIndex(expr: ArrayIndexExpr): ILocalResult[] {
+  public visitArrayIndex(expr: Expr.ArrayIndex): ILocalResult[] {
     return expr.isTrailer ? [] : this.resolveExpr(expr.array);
   }
-  public visitArrayBracket(expr: ArrayBracketExpr): ILocalResult[] {
+  public visitArrayBracket(expr: Expr.ArrayBracket): ILocalResult[] {
     return expr.isTrailer
       ? this.resolveExpr(expr.index)
       : this.resolveExpr(expr.array).concat(this.resolveExpr(expr.index));
   }
-  public visitDelegate(expr: DelegateExpr): ILocalResult[] {
+  public visitDelegate(expr: Expr.Delegate): ILocalResult[] {
     return expr.isTrailer ? [] : this.resolveExpr(expr.variable);
   }
   // tslint:disable-next-line:variable-name
-  public visitLiteral(_expr: LiteralExpr): ILocalResult[] {
+  public visitLiteral(_expr: Expr.Literal): ILocalResult[] {
     return [];
   }
-  public visitVariable(expr: VariableExpr): ILocalResult[] {
+  public visitVariable(expr: Expr.Variable): ILocalResult[] {
     return expr.isTrailer ? [] : [{ expr, token: expr.token }];
   }
-  public visitGrouping(expr: GroupingExpr): ILocalResult[] {
+  public visitGrouping(expr: Expr.Grouping): ILocalResult[] {
     return this.resolveExpr(expr.expr);
   }
   // tslint:disable-next-line:variable-name
-  public visitAnonymousFunction(_expr: AnonymousFunctionExpr): ILocalResult[] {
+  public visitAnonymousFunction(_expr: Expr.AnonymousFunction): ILocalResult[] {
     return [];
   }
 }

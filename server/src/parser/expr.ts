@@ -15,13 +15,13 @@ export abstract class Expr implements IExpr {
   public abstract accept<T>(visitor: IExprVisitor<T>): T;
 }
 
-export abstract class Suffix extends Expr implements ISuffix {
+export abstract class SuffixBase extends Expr implements ISuffix {
   get isSuffix(): true {
     return true;
   }
 }
 
-export class InvalidExpr extends Expr {
+export class Invalid extends Expr {
   constructor(public readonly tokens: IToken[]) {
     super();
   }
@@ -47,7 +47,7 @@ export class InvalidExpr extends Expr {
   }
 }
 
-export class BinaryExpr extends Expr {
+export class Binary extends Expr {
   constructor(
     public readonly left: IExpr,
     public readonly operator: IToken,
@@ -76,7 +76,7 @@ export class BinaryExpr extends Expr {
   }
 }
 
-export class UnaryExpr extends Expr {
+export class Unary extends Expr {
   constructor(
     public readonly operator: IToken,
     public readonly factor: IExpr) {
@@ -104,7 +104,7 @@ export class UnaryExpr extends Expr {
   }
 }
 
-export class FactorExpr extends Expr {
+export class Factor extends Expr {
   constructor(
     public readonly suffix: IExpr,
     public readonly power: IToken,
@@ -133,7 +133,7 @@ export class FactorExpr extends Expr {
   }
 }
 
-export class SuffixExpr extends Suffix {
+export class Suffix extends SuffixBase {
   constructor(
     public readonly suffix: IExpr,
     public readonly colon: IToken,
@@ -162,7 +162,7 @@ export class SuffixExpr extends Suffix {
   }
 }
 
-export class CallExpr extends Suffix {
+export class Call extends SuffixBase {
   constructor(
     public readonly callee: IExpr,
     public readonly open: IToken,
@@ -194,7 +194,7 @@ export class CallExpr extends Suffix {
   }
 }
 
-export class ArrayIndexExpr extends Suffix {
+export class ArrayIndex extends SuffixBase {
   constructor(
     public readonly array: IExpr,
     public readonly indexer: IToken,
@@ -224,7 +224,7 @@ export class ArrayIndexExpr extends Suffix {
   }
 }
 
-export class ArrayBracketExpr extends Suffix {
+export class ArrayBracket extends SuffixBase {
   constructor(
     public readonly array: IExpr,
     public readonly open: IToken,
@@ -256,7 +256,7 @@ export class ArrayBracketExpr extends Suffix {
   }
 }
 
-export class DelegateExpr extends Suffix {
+export class Delegate extends SuffixBase {
   constructor (
     public readonly variable: IExpr,
     public readonly atSign: IToken,
@@ -285,7 +285,7 @@ export class DelegateExpr extends Suffix {
   }
 }
 
-export class LiteralExpr extends Suffix {
+export class Literal extends SuffixBase {
   constructor(
     public readonly token: IToken,
     public readonly isTrailer: boolean) {
@@ -313,7 +313,7 @@ export class LiteralExpr extends Suffix {
   }
 }
 
-export class VariableExpr extends Suffix {
+export class Variable extends SuffixBase {
   constructor(
     public readonly token: IToken,
     public readonly isTrailer: boolean) {
@@ -346,7 +346,7 @@ export class VariableExpr extends Suffix {
   }
 }
 
-export class GroupingExpr extends Suffix {
+export class Grouping extends SuffixBase {
   constructor(
     public readonly open: IToken,
     public readonly expr: IExpr,
@@ -376,7 +376,7 @@ export class GroupingExpr extends Suffix {
   }
 }
 
-export class AnonymousFunctionExpr extends Expr {
+export class AnonymousFunction extends Expr {
   constructor(
     public readonly open: IToken,
     public readonly instructions: IInst[],

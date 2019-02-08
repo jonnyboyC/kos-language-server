@@ -1,12 +1,5 @@
 import { IInstVisitor, IExprVisitor, IExpr, IInst, ScopeType } from '../parser/types';
-import {
-    BinaryExpr, UnaryExpr,
-    FactorExpr, SuffixExpr,
-    CallExpr, ArrayIndexExpr,
-    ArrayBracketExpr, DelegateExpr,
-    LiteralExpr, VariableExpr,
-    GroupingExpr, AnonymousFunctionExpr, InvalidExpr,
-} from '../parser/expr';
+import * as Expr from '../parser/expr';
 import {
     BlockInst, ExprInst,
     OnOffInst, CommandInst,
@@ -375,7 +368,7 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
     let useErrors: Errors = [];
 
     // check target expression
-    if (inst.target instanceof LiteralExpr) {
+    if (inst.target instanceof Expr.Literal) {
       switch (inst.target.token.type) {
         case TokenType.string:
         case TokenType.fileIdentifier:
@@ -396,7 +389,7 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
     let useErrors: Errors = [];
 
     // check from expression
-    if (inst.expression instanceof LiteralExpr) {
+    if (inst.expression instanceof Expr.Literal) {
       switch (inst.expression.token.type) {
         case TokenType.string:
         case TokenType.fileIdentifier:
@@ -408,7 +401,7 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
     }
 
     // check the target location
-    if (inst.target instanceof LiteralExpr) {
+    if (inst.target instanceof Expr.Literal) {
       switch (inst.target.token.type) {
         case TokenType.string:
         case TokenType.fileIdentifier:
@@ -524,90 +517,62 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   ----------------------------------------------*/
 
   // tslint:disable-next-line:variable-name
-  public visitExprInvalid(_expr: InvalidExpr): Errors {
+  public visitExprInvalid(_expr: Expr.Invalid): Errors {
     return [];
   }
 
-  public visitBinary(expr: BinaryExpr): Errors {
+  public visitBinary(expr: Expr.Binary): Errors {
     return this.resolveExpr(expr.left).concat(
       this.resolveExpr(expr.right));
   }
 
-  public visitUnary(expr: UnaryExpr): Errors {
+  public visitUnary(expr: Expr.Unary): Errors {
     return this.resolveExpr(expr.factor);
   }
 
-  public visitFactor(expr: FactorExpr): Errors {
+  public visitFactor(expr: Expr.Factor): Errors {
     return this.resolveExpr(expr.suffix).concat(
       this.resolveExpr(expr.exponent));
   }
 
-  public visitSuffix(expr: SuffixExpr): Errors {
+  public visitSuffix(expr: Expr.Suffix): Errors {
     return this.resolveExpr(expr.suffix).concat(
       this.resolveExpr(expr.trailer));
   }
 
-  public visitCall(expr: CallExpr): Errors {
-    // if (!expr.isTrailer) {
-    //   if (callee instanceof VariableExpr) {
-    //     const func = this.scopeMan.lookupFunction(callee.token, ScopeType.global);
-    //     if (empty(func)) {
-    //       errors.push(new ResolverError(
-    //         callee.token,
-    //         `Function ${callee.token.lexeme} may not exist`, []));
-    //     }
-    //     else {
-    //       const max = func.parameters.length;
-    //       const min = func.requiredParameters;
-
-    //       if (expr.args.length < min) {
-    //         errors.push(new ResolverError(
-    //           callee.token,
-    //           `Function ${callee.token.lexeme} requires at least ${min} parameters`, []));
-    //       }
-    //       if (expr.args.length > max) {
-    //         errors.push(new ResolverError(
-    //           callee.token,
-    //           `Function ${callee.token.lexeme} accepts at most ${max} parameters`, []));
-    //       }
-    //     }
-    //   } else {
-    //     errors = this.resolveExpr(expr.callee);
-    //   }
-    // }
-
+  public visitCall(expr: Expr.Call): Errors {
     return this.resolveExpr(expr.callee).concat(
       accumulateErrors(expr.args, this.resolveExpr.bind(this)));
   }
 
-  public visitArrayIndex(expr: ArrayIndexExpr): Errors {
+  public visitArrayIndex(expr: Expr.ArrayIndex): Errors {
     return this.resolveExpr(expr.array);
   }
 
-  public visitArrayBracket(expr: ArrayBracketExpr): Errors {
+  public visitArrayBracket(expr: Expr.ArrayBracket): Errors {
     return this.resolveExpr(expr.array).concat(
       this.resolveExpr(expr.index));
   }
 
-  public visitDelegate(expr: DelegateExpr): Errors {
+  public visitDelegate(expr: Expr.Delegate): Errors {
     return this.resolveExpr(expr.variable);
   }
 
   // tslint:disable-next-line:variable-name
-  public visitLiteral(_expr: LiteralExpr): Errors {
+  public visitLiteral(_expr: Expr.Literal): Errors {
     return [];
   }
 
   // tslint:disable-next-line:variable-name
-  public visitVariable(_expr: VariableExpr): Errors {
+  public visitVariable(_expr: Expr.Variable): Errors {
     return [];
   }
 
-  public visitGrouping(expr: GroupingExpr): Errors {
+  public visitGrouping(expr: Expr.Grouping): Errors {
     return this.resolveExpr(expr.expr);
   }
 
-  public visitAnonymousFunction(expr: AnonymousFunctionExpr): Errors {
+  public visitAnonymousFunction(expr: Expr.AnonymousFunction): Errors {
     this.scopeBuilder.beginScope(expr);
     const errors = this.resolveInsts(expr.instructions);
     this.scopeBuilder.endScope();
