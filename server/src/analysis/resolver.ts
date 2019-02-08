@@ -241,6 +241,7 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
 
   public visitSet(inst: SetInst): Errors {
     const { set, used } = this.setResolver.resolveExpr(inst.suffix);
+    let created = false;
     if (empty(set)) {
       const [{ token }] = this.localResolver.resolveExpr(inst.suffix);
       return [new ResolverError(token, `cannot assign to variable ${token.lexeme}`, [])];
@@ -249,10 +250,14 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
     if (!this.lazyGlobalOff) {
       if (empty(this.scopeBuilder.lookupVariable(set, ScopeType.global))) {
         this.scopeBuilder.declareVariable(ScopeType.global, set);
+        created = true;
       }
     }
 
-    const defineError = this.scopeBuilder.defineBinding(set);
+    let defineError: Maybe<ResolverError> = undefined;
+    if (!created) {
+      defineError = this.scopeBuilder.defineBinding(set);
+    }
     const useErrors = this.useExprLocals(inst.value).concat(this.useTokens(used));
     const resolveErrors = this.resolveExpr(inst.value);
 

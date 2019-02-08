@@ -608,22 +608,27 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
       );
     }
 
-    const { type, errors } = this.resolveTrailer(result.type, expr.trailer);
+    const { type, errors } = this.visitSuffixTrailer(result.type, expr.trailer);
     return { type, errors: errors.concat(result.errors) };
   }
-  private resolveTrailer(type: IArgumentType, expr: IExpr): ITypeResult {
+  private visitSuffixTrailer(type: IArgumentType, expr: IExpr): ITypeResult {
     if (expr instanceof VariableExpr) {
-      return this.resolveVariableTrailer(type, expr);
+      return this.visitVariableTrailer(type, expr, SuffixCallType.get);
     }
 
-    if (expr instanceof ArrayBracketExpr) {
-      return this.resolveArrayBracketTrailer(type, expr);
+    if (expr instanceof ArrayBracketExpr ||
+      expr instanceof ArrayIndexExpr ||
+      expr instanceof CallExpr) {
+      return this.visitSuffixTermTrailer(type, expr, SuffixCallType.get);
     }
 
-    return this.errors();
+    throw new Error('Invalid suffix trailer');
   }
 
-  private resolveVariableTrailer(type: IArgumentType, expr: VariableExpr): ITypeResult {
+  private visitVariableTrailer(
+    type: IArgumentType,
+    expr: VariableExpr,
+    callType: SuffixCallType): ITypeResult {
     const suffix = getSuffix(type, expr.token.lexeme);
 
     // may need to pass sommething in about if we're in get set context
@@ -634,7 +639,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
           `Could not find suffix ${expr.token.lexeme} for type ${type.name}`, []));
     }
 
-    if (suffix.callType === SuffixCallType.call) {
+    if (suffix.callType !== callType) {
       return this.errors(new KsTypeError(
         expr,
         `Suffix ${expr.token.lexeme} is missing call signiture ${suffix.toTypeString()}`, []));
@@ -643,27 +648,32 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
     return this.result(suffix.returns);
   }
 
-  private resolveArrayBracketTrailer(_: IArgumentType, __: ArrayBracketExpr): ITypeResult {
-    // const arrayResult = this.checkExpr(expr.array);
-    // const indexResult = this.checkExpr(expr.index);
+  private visitSuffixTermTrailer(
+    type: IArgumentType,
+    expr: IExpr,
+    callType: SuffixCallType): ITypeResult {
+    if (expr instanceof CallExpr) {
+      const trailerResult = this.visitSuffixTermTrailer(type, expr.callee, SuffixCallType.call);
+      const callResults = this.resolveCall(expr, trailerResult.type, 'suffix');
+      return this.result(callResults.type, ...callResults.errors, ...trailerResult.errors);
+    }
 
-    // const suffix = getSuffix(type, expr.);
+    if (expr instanceof ArrayIndexExpr) {
+      const trailerResult = this.visitSuffixTermTrailer(type, expr.array, callType);
+      const indexResult = this.resolveArrayIndex(expr);
+      return this.result(indexResult.type, ...indexResult.errors, ...trailerResult.errors);
+    }
 
-    // // may need to pass sommething in about if we're in get set context
-    // if (empty(suffix))  {
-    //   return this.errors(
-    //     new KsTypeError(
-    //       expr,
-    //       `Could not find suffix ${expr.token.lexeme} for type ${type.name}`, []));
-    // }
+    if (expr instanceof ArrayBracketExpr) {
+      const result = this.visitSuffixTermTrailer(type, expr.array, callType);
+      return result;
+    }
 
-    // if (suffix.callType === SuffixCallType.call) {
-    //   return this.errors(new KsTypeError(
-    //     expr,
-    //     `Suffix ${expr.token.lexeme} is missing call signiture ${suffix.toTypeString()}`, []));
-    // }
+    if (expr instanceof VariableExpr) {
+      return this.visitVariableTrailer(type, expr, callType);
+    }
 
-    return this.errors(); // this.result(suffix.returns);
+    throw Error(`Invalid suffix term trailer in ${expr.toString()}`);
   }
 
   public visitCall(expr: CallExpr): ITypeResult {
@@ -726,6 +736,10 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
   }
 
   public visitArrayIndex(expr: ArrayIndexExpr): ITypeResult {
+    return this.resolveArrayIndex(expr);
+  }
+
+  private resolveArrayIndex(expr: ArrayIndexExpr): ITypeResult {
     const errors: ITypeError[] = [];
 
     switch (expr.indexer.type) {
@@ -748,6 +762,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
 
     return this.result(structureType, ...errors);
   }
+
   public visitArrayBracket(expr: ArrayBracketExpr): ITypeResult {
     const arrayResult = this.checkExpr(expr.array);
     const indexResult = this.checkExpr(expr.index);
