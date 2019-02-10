@@ -1,7 +1,7 @@
-import { RunInst, RunPathInst, RunPathOnceInst } from '../parser/inst';
+import { Run, RunPath, RunPathOnce } from '../parser/inst';
 import { relative, join, sep, dirname } from 'path';
 import { RunInstType } from '../parser/types';
-import { LiteralExpr } from '../parser/expr';
+import { Literal } from '../parser/expr';
 import { empty } from './typeGuards';
 import { TokenType } from '../entities/tokentypes';
 import { ILoadData } from '../types';
@@ -42,7 +42,7 @@ export const resolveUri = (
 
 // based on run type determine how to get file path
 const instPath = (inst: RunInstType): Maybe<string> => {
-  if (inst instanceof RunInst) {
+  if (inst instanceof Run) {
     const { identifier } = inst;
 
     switch (identifier.type) {
@@ -57,14 +57,14 @@ const instPath = (inst: RunInstType): Maybe<string> => {
   }
 
   // for run path varients check for literal
-  if (inst instanceof RunPathInst) {
-    if (inst.expression instanceof LiteralExpr) {
+  if (inst instanceof RunPath) {
+    if (inst.expression instanceof Literal) {
       return literalPath(inst.expression);
     }
   }
 
-  if (inst instanceof RunPathOnceInst) {
-    if (inst.expression instanceof LiteralExpr) {
+  if (inst instanceof RunPathOnce) {
+    if (inst.expression instanceof Literal) {
       return literalPath(inst.expression);
     }
   }
@@ -73,7 +73,7 @@ const instPath = (inst: RunInstType): Maybe<string> => {
 };
 
 // determine which string to return for the filepath
-const literalPath = (expr: LiteralExpr): Maybe<string> => {
+const literalPath = (expr: Literal): Maybe<string> => {
   const { token } = expr;
 
   switch (token.type) {

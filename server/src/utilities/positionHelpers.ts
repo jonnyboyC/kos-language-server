@@ -1,5 +1,4 @@
-import { Position, Range } from 'vscode-languageserver';
-import { empty } from './typeGuards';
+import { Position, Range, Location } from 'vscode-languageserver';
 
 export const positionAfter = (pos1: Position, pos2: Position): boolean => {
   if (pos1.line > pos2.line) {
@@ -44,6 +43,11 @@ export const positionEqual = (pos1: Position, pos2: Position): boolean => {
     && pos1.character === pos2.character;
 };
 
+export const rangeEqual = (range1: Range, range2: Range): boolean => {
+  if (!positionEqual(range1.start, range2.start)) return false;
+  return positionEqual(range1.end, range2.end);
+};
+
 export const rangeContains = (range: Range, pos: Position): boolean => {
   if (pos.line < range.start.line) return false;
   if (pos.line === range.start.line && pos.character < range.start.character) return false;
@@ -71,15 +75,64 @@ export const rangeAfter = (range: Range, pos: Position): boolean => {
   return false;
 };
 
+export const rangeIntersection = (range1: Range, range2: Range): boolean => {
+  if (rangeAfter(range1, range2.end)) return false;
+  if (rangeBefore(range2, range2.end)) return false;
+  return true;
+};
+
+export const rangeToString = (range: Range): string => {
+  if (range.start.line === range.end.line) {
+    return `line: ${range.start.line} characters ${range.start.character}-${range.end.character}`;
+  }
+
+  return `line: ${range.start.line} character: ${range.start.character} to `
+    + `line: ${range.end.line} character: ${range.end.character}`;
+};
+
 export const binarySearch = <T extends Range>(ranges: T[], pos: Position): Maybe<T> => {
   const index = binarySearchIndex(ranges, pos);
-
-  return empty(index)
-    ? index
+  return Array.isArray(index)
+    ? undefined
     : ranges[index];
 };
 
-export const binarySearchIndex = <T extends Range>(ranges: T[], pos: Position): Maybe<number> => {
+export const binaryRight = <T extends Range>(ranges: T[], pos: Position): Maybe<T> => {
+  if (rangeAfter(ranges[0], pos)) {
+    return undefined;
+  }
+  const index = binarySearchIndex(ranges, pos);
+
+  return Array.isArray(index)
+    ? ranges[index[1]]
+    : ranges[index];
+};
+
+export const binaryLeftIndex = <T extends Range>(ranges: T[], pos: Position): Maybe<T> => {
+  if (ranges.length === 0 || rangeBefore(ranges[rangeAfter.length - 1], pos)) {
+    return undefined;
+  }
+  const index = binarySearchIndex(ranges, pos);
+
+  return Array.isArray(index)
+    ? ranges[index[0]]
+    : ranges[index];
+};
+
+export const binaryRightKeyIndex = <T>(ranges: T[], pos: Position, key: (range: T) => Range):
+  Maybe<T> => {
+  if (ranges.length === 0 || rangeAfter(key(ranges[0]), pos)) {
+    return undefined;
+  }
+  const index = binarySearchKeyIndex(ranges, pos, key);
+
+  return Array.isArray(index)
+    ? ranges[index[1]]
+    : ranges[index];
+};
+
+export const binarySearchIndex = <T extends Range>(ranges: T[], pos: Position):
+  number | [number, number] => {
   let left = 0;
   let right = ranges.length - 1;
 
@@ -92,9 +145,42 @@ export const binarySearchIndex = <T extends Range>(ranges: T[], pos: Position): 
     } else if (rangeContains(ranges[mid], pos)) {
       return mid;
     } else {
-      return undefined;
+      return [left, right];
     }
   }
 
-  return undefined;
+  return [left, right];
+};
+
+export const binarySearchKeyIndex = <T>(ranges: T[], pos: Position, key: (range: T) => Range):
+  number | [number, number] => {
+  let left = 0;
+  let right = ranges.length - 1;
+
+  while (left <= right) {
+    const mid = Math.floor((right + left) / 2);
+    if (rangeBefore(key(ranges[mid]), pos)) {
+      left = mid + 1;
+    } else if (rangeAfter(key(ranges[mid]), pos)) {
+      right = mid - 1;
+    } else if (rangeContains(key(ranges[mid]), pos)) {
+      return mid;
+    } else {
+      return [left, right];
+    }
+  }
+
+  return [left, right];
+};
+
+export const locationEqual = (loc1: Location, loc2: Location): boolean => {
+  if (loc1.uri !== loc2.uri) return false;
+  return rangeEqual(loc1.range, loc2.range);
+};
+
+export const locationCopy = (loc: Location): Location => {
+  return {
+    range: loc.range,
+    uri: loc.uri,
+  };
 };

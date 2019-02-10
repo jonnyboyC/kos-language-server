@@ -25,13 +25,12 @@ const partialArgs = (tokens: IToken[], pos: Position): Maybe<[IToken, IToken[]]>
   let identifier: Maybe<IToken> = undefined;
   const posIdx = binarySearchIndex(tokens, pos);
 
-  if (empty(posIdx)) {
+  if (Array.isArray(posIdx)) {
     return undefined;
   }
 
   let i = posIdx;
-  // tslint:disable-next-line:no-increment-decrement
-  for (; i >= 0; i--) {
+  for (; i >= 0; i -= 1) {
     const token = tokens[i];
 
     if (depth < 0) {
@@ -61,7 +60,7 @@ const partialArgs = (tokens: IToken[], pos: Position): Maybe<[IToken, IToken[]]>
 };
 
 const argPosition = (partialArgs: IToken[]): number => {
-  const parser = new Parser();
-  const args = parser.parseArgCount(partialArgs);
+  const parser = new Parser(partialArgs);
+  const args = parser.parseArgCount();
   return args.value;
 };

@@ -1,7 +1,7 @@
-import { IInst, IRangeSequence } from '../parser/types';
+import { IInst, IScript } from '../parser/types';
 import { Range, Position } from 'vscode-languageserver';
 
-export class SyntaxTree implements IRangeSequence {
+export class Script implements IScript {
   constructor(public readonly insts: IInst[])
   { }
 
@@ -15,5 +15,9 @@ export class SyntaxTree implements IRangeSequence {
 
   public get ranges(): Range[] {
     return [...this.insts];
+  }
+
+  public get tag(): 'script' {
+    return 'script';
   }
 }

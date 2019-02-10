@@ -9,7 +9,7 @@ declaration -> ( instruction
     | parameterDeclaration
 )
 
-variableDeclaration -> scope suffix ( 'to' | 'is' ) expression '.'
+variableDeclaration -> scope idenitifer ( 'to' | 'is' ) expression '.'
 lockDeclaration -> scope? 'lock' idenitifer 'to' expression '.'
 parameterDeclaration -> scope? 'parameter' parameters '.'
 functionDeclaration -> scope? 'function' instructionBlock '.'?
@@ -85,7 +85,7 @@ unlock -> 'unlock' ( 'all' | idenitifer ) '.'
 copy -> 'copy' expression ( 'to' | 'from' ) expression '.'
 switch -> 'switch' 'to' expression '.'
 log -> 'log' expression 'to' expression '.'
-rename -> 'rename' ioIdentifier expression 'to' expression '.'
+rename -> 'rename' ( 'volume' | 'file' ) ioIdentifier expression 'to' expression '.'
 delete -> 'delete' expression ('from' expression)? '.'
 compile -> 'compile' expression ('to' expression)? '.'
 run -> 'run' 'once'? ( string | fileIdentifier ) ('(' arguments ')')? ('on', expresion)? '.'

@@ -9,11 +9,9 @@ class KosLanguageClient extends atom_languageclient_1.AutoLanguageClient {
     getServerName() { return 'kos-language-server'; }
     getConnectionType() { return 'ipc'; }
     startServerProcess() {
-        console.log('I happened');
         return super.spawnChildNode([atom.config.get('language-kos.kosServer.path'), '--node-ipc'], { stdio: [null, null, null, 'ipc'] });
     }
     shouldStartForEditor(editor) {
-        console.log('I happened');
         if (!this.validateKosServerPath())
             return false;
         return super.shouldStartForEditor(editor);
@@ -21,17 +19,17 @@ class KosLanguageClient extends atom_languageclient_1.AutoLanguageClient {
     validateKosServerPath() {
         const kosSpecifiedPath = atom.config.get('language-kos.kosServer.path');
         const isAbsolutelySpecified = path_1.isAbsolute(kosSpecifiedPath);
-        const tsAbsolutePath = isAbsolutelySpecified
+        const kosAbsolutePath = isAbsolutelySpecified
             ? kosSpecifiedPath
             : path_1.join(__dirname, '..', kosSpecifiedPath);
-        if (fs_1.existsSync(tsAbsolutePath))
+        if (fs_1.existsSync(kosAbsolutePath))
             return true;
         atom.notifications.addError('language-kos could not locate the kos-language-server', {
             dismissable: true,
             buttons: [
                 { text: 'Set KOS server path', onDidClick: () => this.openPackageSettings() },
             ],
-            description: `No KOS server could be found at <b>${tsAbsolutePath}</b>`,
+            description: `No KOS server could be found at <b>${kosAbsolutePath}</b>`,
         });
         return false;
     }

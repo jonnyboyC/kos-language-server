@@ -1,12 +1,10 @@
-import { SyntaxTree } from './entities/syntaxTree';
 import { ScopeManager } from './analysis/scopeManager';
-import { RunInstType } from './parser/types';
+import { RunInstType, IScript } from './parser/types';
 import { Diagnostic } from 'vscode-languageserver';
 
 export interface IDocumentInfo {
-  syntaxTree: SyntaxTree;
+  script: IScript;
   scopeManager: ScopeManager;
-  diagnostics: IDiagnosticUri[];
 }
 
 export interface ILoadData {
@@ -15,10 +13,7 @@ export interface ILoadData {
   inst: RunInstType;
 }
 
-export interface IValidateResult {
-  diagnostics: IDiagnosticUri[];
-  scopeManager?: ScopeManager;
-}
+export type ValidateResult = IDiagnosticUri[] | ScopeManager;
 
 export interface IDiagnosticUri extends Diagnostic {
   uri: string;

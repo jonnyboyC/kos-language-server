@@ -7,11 +7,24 @@ interface IdentifierIndex {
   index: number;
 }
 
-interface ILogger {
+interface ILoggerBase {
   error(message: string): void;
   warn(message: string): void;
   info(message: string): void;
   log(message: string): void;
+}
+
+interface ILogger extends ILoggerBase {
+  verbose(message: string): void;
+}
+
+const enum LogLevel {
+  verbose,
+  info,
+  warn,
+  error,
+  log,
+  none,
 }
 
 interface ITracer {

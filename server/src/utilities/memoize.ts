@@ -1,6 +1,7 @@
 import { empty } from './typeGuards';
 
-export const memoize = <T1, TReturn>(func: (arg1: T1) => TReturn): (arg1: T1) => TReturn => {
+export const memoize = <T1, TReturn>(func: (arg1: T1) => TReturn):
+  (arg1: T1) => TReturn => {
   const memory: Map<T1, TReturn> = new Map();
 
   return (arg1: T1): TReturn => {

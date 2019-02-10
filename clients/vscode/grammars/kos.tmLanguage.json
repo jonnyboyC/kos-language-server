@@ -516,10 +516,13 @@
         },
         "rename-instruction": {
             "name": "meta.rename.kos",
-            "begin": "(?i)\\b(rename)(?![_[:alnum:]\\:])",
+            "begin": "(?i)\\b(rename)\\s+\\b(file|volume)\\s+",
             "beginCaptures": {
                 "1": {
                     "name": "keyword.command.rename.kos"
+                },
+                "2": {
+                    "name": "keyword.other.fileVolume.kos"
                 }
             },
             "end": "\\.",

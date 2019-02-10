@@ -1,7 +1,15 @@
-import { IExpr, IInst, IExprVisitor } from './types';
+import {
+  IExprClass, IInst, IExprVisitor,
+  ISuffix, IExpr, IExprClassVisitor, GrammarNode, Distribution,
+} from './types';
 import { TokenType } from '../entities/tokentypes';
 import { IToken } from '../entities/types';
 import { Range, Position } from 'vscode-languageserver';
+import {
+  createGrammarUnion, createGrammarOptional,
+  createGrammarRepeat, createConstant,
+  createExponential, createNormal, createGamma,
+} from './grammarNodes';
 
 export abstract class Expr implements IExpr {
   get tag(): 'expr' {
@@ -15,7 +23,13 @@ export abstract class Expr implements IExpr {
   public abstract accept<T>(visitor: IExprVisitor<T>): T;
 }
 
-export class InvalidExpr extends Expr {
+export abstract class SuffixBase extends Expr implements ISuffix {
+  get isSuffix(): true {
+    return true;
+  }
+}
+
+export class Invalid extends Expr {
   constructor(public readonly tokens: IToken[]) {
     super();
   }
@@ -39,9 +53,15 @@ export class InvalidExpr extends Expr {
   public accept<T>(visitor: IExprVisitor<T>): T {
     return visitor.visitExprInvalid(this);
   }
+
+  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
+    return visitor.visitExprInvalid(this);
+  }
 }
 
-export class BinaryExpr extends Expr {
+export class Binary extends Expr {
+  public static grammar: GrammarNode[];
+
   constructor(
     public readonly left: IExpr,
     public readonly operator: IToken,
@@ -68,9 +88,15 @@ export class BinaryExpr extends Expr {
   public accept<T>(visitor: IExprVisitor<T>): T {
     return visitor.visitBinary(this);
   }
+
+  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
+    return visitor.visitBinary(this);
+  }
 }
 
-export class UnaryExpr extends Expr {
+export class Unary extends Expr {
+  public static grammar: GrammarNode[];
+
   constructor(
     public readonly operator: IToken,
     public readonly factor: IExpr) {
@@ -96,9 +122,15 @@ export class UnaryExpr extends Expr {
   public accept<T>(visitor: IExprVisitor<T>): T {
     return visitor.visitUnary(this);
   }
+
+  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
+    return visitor.visitUnary(this);
+  }
 }
 
-export class FactorExpr extends Expr {
+export class Factor extends Expr {
+  public static grammar: GrammarNode[];
+
   constructor(
     public readonly suffix: IExpr,
     public readonly power: IToken,
@@ -125,9 +157,15 @@ export class FactorExpr extends Expr {
   public accept<T>(visitor: IExprVisitor<T>): T {
     return visitor.visitFactor(this);
   }
+
+  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
+    return visitor.visitFactor(this);
+  }
 }
 
-export class SuffixExpr extends Expr {
+export class Suffix extends SuffixBase {
+  public static grammar: GrammarNode[];
+
   constructor(
     public readonly suffix: IExpr,
     public readonly colon: IToken,
@@ -154,9 +192,15 @@ export class SuffixExpr extends Expr {
   public accept<T>(visitor: IExprVisitor<T>): T {
     return visitor.visitSuffix(this);
   }
+
+  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
+    return visitor.visitSuffix(this);
+  }
 }
 
-export class CallExpr extends Expr {
+export class Call extends SuffixBase {
+  public static grammar: GrammarNode[];
+
   constructor(
     public readonly callee: IExpr,
     public readonly open: IToken,
@@ -186,9 +230,15 @@ export class CallExpr extends Expr {
   public accept<T>(visitor: IExprVisitor<T>): T {
     return visitor.visitCall(this);
   }
+
+  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
+    return visitor.visitCall(this);
+  }
 }
 
-export class ArrayIndexExpr extends Expr {
+export class ArrayIndex extends SuffixBase {
+  public static grammar: GrammarNode[];
+
   constructor(
     public readonly array: IExpr,
     public readonly indexer: IToken,
@@ -216,9 +266,15 @@ export class ArrayIndexExpr extends Expr {
   public accept<T>(visitor: IExprVisitor<T>): T {
     return visitor.visitArrayIndex(this);
   }
+
+  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
+    return visitor.visitArrayIndex(this);
+  }
 }
 
-export class ArrayBracketExpr extends Expr {
+export class ArrayBracket extends SuffixBase {
+  public static grammar: GrammarNode[];
+
   constructor(
     public readonly array: IExpr,
     public readonly open: IToken,
@@ -248,9 +304,15 @@ export class ArrayBracketExpr extends Expr {
   public accept<T>(visitor: IExprVisitor<T>): T {
     return visitor.visitArrayBracket(this);
   }
+
+  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
+    return visitor.visitArrayBracket(this);
+  }
 }
 
-export class DelegateExpr extends Expr {
+export class Delegate extends SuffixBase {
+  public static grammar: GrammarNode[];
+
   constructor (
     public readonly variable: IExpr,
     public readonly atSign: IToken,
@@ -277,9 +339,15 @@ export class DelegateExpr extends Expr {
   public accept<T>(visitor: IExprVisitor<T>): T {
     return visitor.visitDelegate(this);
   }
+
+  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
+    return visitor.visitDelegate(this);
+  }
 }
 
-export class LiteralExpr extends Expr {
+export class Literal extends SuffixBase {
+  public static grammar: GrammarNode[];
+
   constructor(
     public readonly token: IToken,
     public readonly isTrailer: boolean) {
@@ -305,9 +373,15 @@ export class LiteralExpr extends Expr {
   public accept<T>(visitor: IExprVisitor<T>): T {
     return visitor.visitLiteral(this);
   }
+
+  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
+    return visitor.visitLiteral(this);
+  }
 }
 
-export class VariableExpr extends Expr {
+export class Variable extends SuffixBase {
+  public static grammar: GrammarNode[];
+
   constructor(
     public readonly token: IToken,
     public readonly isTrailer: boolean) {
@@ -338,9 +412,15 @@ export class VariableExpr extends Expr {
   public accept<T>(visitor: IExprVisitor<T>): T {
     return visitor.visitVariable(this);
   }
+
+  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
+    return visitor.visitVariable(this);
+  }
 }
 
-export class GroupingExpr extends Expr {
+export class Grouping extends SuffixBase {
+  public static grammar: GrammarNode[];
+
   constructor(
     public readonly open: IToken,
     public readonly expr: IExpr,
@@ -368,14 +448,20 @@ export class GroupingExpr extends Expr {
   public accept<T>(visitor: IExprVisitor<T>): T {
     return visitor.visitGrouping(this);
   }
+
+  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
+    return visitor.visitGrouping(this);
+  }
 }
 
-export class AnonymousFunctionExpr extends Expr {
+// TODO this returns a delegate
+export class AnonymousFunction extends Expr {
+  public static grammar: GrammarNode[];
+
   constructor(
     public readonly open: IToken,
     public readonly instructions: IInst[],
-    public readonly close: IToken,
-    public readonly isTrailer: boolean) {
+    public readonly close: IToken) {
     super();
   }
 
@@ -398,4 +484,147 @@ export class AnonymousFunctionExpr extends Expr {
   public accept<T>(visitor: IExprVisitor<T>): T {
     return visitor.visitAnonymousFunction(this);
   }
+
+  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
+    return visitor.visitAnonymousFunction(this);
+  }
 }
+
+export const validExprTypes: [IExprClass, Distribution][] = [
+  [Binary, createConstant(1)],
+  [Unary, createConstant(1)],
+  [Factor, createConstant(1)],
+  [Suffix, createConstant(1)],
+  [Call, createConstant(1)],
+  [ArrayIndex, createConstant(1)],
+  [ArrayBracket, createConstant(1)],
+  [Delegate, createConstant(1)],
+  [Literal, createConstant(1)],
+  [Variable, createConstant(1)],
+  [Grouping, createConstant(1)],
+  [AnonymousFunction, createConstant(0)],
+];
+
+const expr = createGrammarUnion(...validExprTypes);
+
+Binary.grammar = [
+  expr,
+  createGrammarUnion(
+    [TokenType.plus, createConstant(1)],
+    [TokenType.minus, createConstant(1)],
+    [TokenType.multi, createConstant(1)],
+    [TokenType.div, createConstant(1)],
+    [TokenType.equal, createConstant(1)],
+    [TokenType.notEqual, createConstant(1)],
+    [TokenType.less, createConstant(1)],
+    [TokenType.lessEqual, createConstant(1)],
+    [TokenType.greater, createConstant(1)],
+    [TokenType.greaterEqual, createConstant(1)],
+    [TokenType.or, createConstant(1)],
+    [TokenType.and, createConstant(1)],
+  ),
+  expr,
+];
+
+Unary.grammar = [
+  createGrammarOptional(
+    createConstant(0.2),
+    createGrammarUnion(
+      [TokenType.plus, createConstant(1)],
+      [TokenType.minus, createConstant(1)],
+      [TokenType.not, createConstant(1)],
+      [TokenType.defined, createConstant(1)],
+    ),
+  ),
+  Factor,
+];
+
+Factor.grammar = [
+  Suffix,
+  createGrammarOptional(
+    createExponential(2),
+    TokenType.power,
+    Suffix,
+  ),
+];
+
+const suffixTerm = createGrammarUnion(
+  [Literal, createNormal(1.3, 1)],
+  [Variable, createNormal(3, 1)],
+  [Grouping, createNormal(0.4, 0.2)],
+  [Call, createNormal(0.5, 0.5)],
+  [ArrayIndex, createNormal(0.5, 0.5)],
+  [ArrayBracket, createNormal(0.1, 0.1)],
+);
+
+Suffix.grammar = [
+  suffixTerm,
+  createGrammarRepeat(
+    createExponential(2),
+    TokenType.colon,
+    suffixTerm,
+  ),
+];
+
+Call.grammar = [
+  suffixTerm,
+  TokenType.bracketOpen,
+  createGrammarOptional(
+    createExponential(3),
+    createGrammarUnion(...validExprTypes),
+    createGrammarRepeat(
+      createGamma(1.5, 0.4),
+      TokenType.comma,
+      createGrammarUnion(...validExprTypes),
+    ),
+  ),
+  TokenType.bracketClose,
+];
+
+ArrayIndex.grammar = [
+  suffixTerm,
+  TokenType.arrayIndex,
+  createGrammarUnion(
+    [TokenType.integer, createNormal(3, 1)],
+    [TokenType.identifier, createNormal(1, 1)],
+  ),
+];
+
+ArrayBracket.grammar = [
+  suffixTerm,
+  TokenType.bracketOpen,
+  expr,
+  TokenType.bracketClose,
+];
+
+Delegate.grammar = [
+  suffixTerm,
+  TokenType.atSign,
+];
+
+Literal.grammar = [
+  createGrammarUnion(
+    [TokenType.integer, createConstant(1)],
+    [TokenType.double, createConstant(1.5)],
+    [TokenType.true, createConstant(0.5)],
+    [TokenType.false, createConstant(0.5)],
+    [TokenType.fileIdentifier, createConstant(0.1)],
+    [TokenType.string, createConstant(2)],
+  ),
+];
+
+Variable.grammar = [
+  TokenType.identifier,
+];
+
+Grouping.grammar = [
+  TokenType.bracketOpen,
+  expr,
+  TokenType.bracketClose,
+];
+
+AnonymousFunction.grammar = [
+  TokenType.curlyOpen,
+  //
+  TokenType.curlyClose,
+];

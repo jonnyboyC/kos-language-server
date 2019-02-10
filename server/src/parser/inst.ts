@@ -1,4 +1,4 @@
-import { IInst, IExpr, IInstVisitor } from './types';
+import { IInst, IExpr, IInstVisitor, ISuffix } from './types';
 import { IToken } from '../entities/types';
 import { Range, Position } from 'vscode-languageserver';
 import { empty } from '../utilities/typeGuards';
@@ -14,7 +14,7 @@ export abstract class Inst implements IInst {
   public abstract accept<T>(visitor: IInstVisitor<T>): T;
 }
 
-export class InvalidInst extends Inst {
+export class Invalid extends Inst {
   constructor(public readonly tokens: IToken[]) {
     super();
   }
@@ -36,7 +36,7 @@ export class InvalidInst extends Inst {
   }
 }
 
-export class BlockInst extends Inst {
+export class Block extends Inst {
   constructor(
     public readonly open: IToken,
     public readonly instructions: Inst[],
@@ -61,9 +61,9 @@ export class BlockInst extends Inst {
   }
 }
 
-export class ExprInst extends Inst {
+export class Expr extends Inst {
   constructor(
-    public readonly suffix: IExpr) {
+    public readonly suffix: ISuffix) {
     super();
   }
 
@@ -84,7 +84,7 @@ export class ExprInst extends Inst {
   }
 }
 
-export class OnOffInst extends Inst {
+export class OnOff extends Inst {
   constructor(
     public readonly suffix: IExpr,
     public readonly onOff: IToken) {
@@ -108,7 +108,7 @@ export class OnOffInst extends Inst {
   }
 }
 
-export class CommandInst extends Inst {
+export class Command extends Inst {
   constructor(public readonly command: IToken) {
     super();
   }
@@ -130,7 +130,7 @@ export class CommandInst extends Inst {
   }
 }
 
-export class CommandExpressionInst extends Inst {
+export class CommandExpr extends Inst {
   constructor(
     public readonly command: IToken,
     public readonly expression: IExpr) {
@@ -154,7 +154,7 @@ export class CommandExpressionInst extends Inst {
   }
 }
 
-export class UnsetInst extends Inst {
+export class Unset extends Inst {
   constructor(
     public readonly unset: IToken,
     public readonly identifier: IToken) {
@@ -178,7 +178,7 @@ export class UnsetInst extends Inst {
   }
 }
 
-export class UnlockInst extends Inst {
+export class Unlock extends Inst {
   constructor(
     public readonly unlock: IToken,
     public readonly identifier: IToken) {
@@ -202,10 +202,10 @@ export class UnlockInst extends Inst {
   }
 }
 
-export class SetInst extends Inst {
+export class Set extends Inst {
   constructor(
     public readonly set: IToken,
-    public readonly suffix: IExpr,
+    public readonly suffix: ISuffix,
     public readonly to: IToken,
     public readonly value: IExpr) {
     super();
@@ -228,7 +228,7 @@ export class SetInst extends Inst {
   }
 }
 
-export class LazyGlobalInst extends Inst {
+export class LazyGlobal extends Inst {
   constructor(
     public readonly atSign: IToken,
     public readonly lazyGlobal: IToken,
@@ -253,7 +253,7 @@ export class LazyGlobalInst extends Inst {
   }
 }
 
-export class IfInst extends Inst {
+export class If extends Inst {
   constructor(
     public readonly ifToken: IToken,
     public readonly condition: IExpr,
@@ -286,7 +286,7 @@ export class IfInst extends Inst {
   }
 }
 
-export class ElseInst extends Inst {
+export class Else extends Inst {
   constructor(
     public readonly elseToken: IToken,
     public readonly instruction: IInst) {
@@ -310,7 +310,7 @@ export class ElseInst extends Inst {
   }
 }
 
-export class UntilInst extends Inst {
+export class Until extends Inst {
   constructor(
     public readonly until: IToken,
     public readonly condition: IExpr,
@@ -335,14 +335,14 @@ export class UntilInst extends Inst {
   }
 }
 
-export class FromInst extends Inst {
+export class From extends Inst {
   constructor(
     public readonly from: IToken,
-    public readonly initializer: BlockInst,
+    public readonly initializer: Block,
     public readonly until: IToken,
     public readonly condition: IExpr,
     public readonly step: IToken,
-    public readonly increment: BlockInst,
+    public readonly increment: Block,
     public readonly doToken: IToken,
     public readonly instruction: IInst) {
     super();
@@ -370,7 +370,7 @@ export class FromInst extends Inst {
   }
 }
 
-export class WhenInst extends Inst {
+export class When extends Inst {
   constructor(
     public readonly when: IToken,
     public readonly condition: IExpr,
@@ -399,7 +399,7 @@ export class WhenInst extends Inst {
   }
 }
 
-export class ReturnInst extends Inst {
+export class Return extends Inst {
   constructor(
     public readonly returnToken: IToken,
     public readonly value?: IExpr) {
@@ -430,7 +430,7 @@ export class ReturnInst extends Inst {
   }
 }
 
-export class BreakInst extends Inst {
+export class Break extends Inst {
   constructor(
     public readonly breakToken: IToken) {
     super();
@@ -453,7 +453,7 @@ export class BreakInst extends Inst {
   }
 }
 
-export class SwitchInst extends Inst {
+export class Switch extends Inst {
   constructor(
     public readonly switchToken: IToken,
     public readonly to: IToken,
@@ -478,12 +478,12 @@ export class SwitchInst extends Inst {
   }
 }
 
-export class ForInst extends Inst {
+export class For extends Inst {
   constructor(
     public readonly forToken: IToken,
     public readonly identifier: IToken,
     public readonly inToken: IToken,
-    public readonly suffix: IExpr,
+    public readonly suffix: ISuffix,
     public readonly instruction: IInst) {
     super();
   }
@@ -509,10 +509,10 @@ export class ForInst extends Inst {
   }
 }
 
-export class OnInst extends Inst {
+export class On extends Inst {
   constructor(
     public readonly on: IToken,
-    public readonly suffix: IExpr,
+    public readonly suffix: ISuffix,
     public readonly instruction: IInst) {
     super();
   }
@@ -534,13 +534,13 @@ export class OnInst extends Inst {
   }
 }
 
-export class ToggleInst extends Inst {
+export class Toggle extends Inst {
   public declared(): IterableIterator<IToken> {
     throw new Error('Method not implemented.');
   }
   constructor(
     public readonly toggle: IToken,
-    public readonly suffix: IExpr) {
+    public readonly suffix: ISuffix) {
     super();
   }
 
@@ -561,7 +561,7 @@ export class ToggleInst extends Inst {
   }
 }
 
-export class WaitInst extends Inst {
+export class Wait extends Inst {
   constructor(
     public readonly wait: IToken,
     public readonly expression: IExpr,
@@ -590,7 +590,7 @@ export class WaitInst extends Inst {
   }
 }
 
-export class LogInst extends Inst {
+export class Log extends Inst {
   constructor(
     public readonly log: IToken,
     public readonly expression: IExpr,
@@ -616,7 +616,7 @@ export class LogInst extends Inst {
   }
 }
 
-export class CopyInst extends Inst {
+export class Copy extends Inst {
   constructor(
     public readonly copy: IToken,
     public readonly expression: IExpr,
@@ -642,9 +642,10 @@ export class CopyInst extends Inst {
   }
 }
 
-export class RenameInst extends Inst {
+export class Rename extends Inst {
   constructor(
     public readonly rename: IToken,
+    public readonly fileVolume: IToken,
     public readonly ioIdentifer: IToken,
     public readonly expression: IExpr,
     public readonly to: IToken,
@@ -673,7 +674,7 @@ export class RenameInst extends Inst {
   }
 }
 
-export class DeleteInst extends Inst {
+export class Delete extends Inst {
   public declared(): IterableIterator<IToken> {
     throw new Error('Method not implemented.');
   }
@@ -710,7 +711,7 @@ export class DeleteInst extends Inst {
   }
 }
 
-export class RunInst extends Inst {
+export class Run extends Inst {
   constructor(
     public readonly run: IToken,
     public readonly identifier: IToken,
@@ -763,7 +764,7 @@ export class RunInst extends Inst {
   }
 }
 
-export class RunPathInst extends Inst {
+export class RunPath extends Inst {
   constructor(
     public readonly runPath: IToken,
     public readonly open: IToken,
@@ -798,7 +799,7 @@ export class RunPathInst extends Inst {
   }
 }
 
-export class RunPathOnceInst extends Inst {
+export class RunPathOnce extends Inst {
   constructor(
     public readonly runPath: IToken,
     public readonly open: IToken,
@@ -833,7 +834,7 @@ export class RunPathOnceInst extends Inst {
   }
 }
 
-export class CompileInst extends Inst {
+export class Compile extends Inst {
   constructor(
     public readonly compile: IToken,
     public readonly expression: IExpr,
@@ -867,7 +868,7 @@ export class CompileInst extends Inst {
   }
 }
 
-export class ListInst extends Inst {
+export class List extends Inst {
   constructor(
     public readonly list: IToken,
     public readonly identifier?: IToken,
@@ -908,7 +909,7 @@ export class ListInst extends Inst {
   }
 }
 
-export class EmptyInst extends Inst {
+export class Empty extends Inst {
   constructor(public readonly empty: IToken) {
     super();
   }
@@ -930,7 +931,7 @@ export class EmptyInst extends Inst {
   }
 }
 
-export class PrintInst extends Inst {
+export class Print extends Inst {
   constructor(
     public readonly print: IToken,
     public readonly expression: IExpr,

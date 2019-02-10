@@ -12,6 +12,7 @@ import {
   LanguageClientOptions,
   ServerOptions,
   TransportKind,
+  ForkOptions,
 } from 'vscode-languageclient';
 
 let client: LanguageClient;
@@ -24,12 +25,29 @@ export function activate(context: ExtensionContext) {
   // The debug options for the server
   // --inspect=6009: runs the server in Node's
   // Inspector mode so VS Code can attach to the server for debugging
-  const debugOptions = { execArgv: ['--nolazy', '--inspect=6009'] };
+
+  const { version } = process;
+  const [major] = version.slice(1)
+    .split('.')
+    .map(x => parseInt(x, 10));
+
+  const debugOptions: ForkOptions = { execArgv: ['--nolazy', '--inspect=6009'] };
+  const runOptions: ForkOptions = { execArgv: [] };
+
+  // async generators become default in node 10
+  if (major < 10) {
+    if (debugOptions.execArgv) debugOptions.execArgv.push('--harmony_async_iteration');
+    if (runOptions.execArgv) runOptions.execArgv.push('--harmony_async_iteration');
+  }
 
   // If the extension is launched in debug mode then the debug server options are used
   // Otherwise the run options are used
   const serverOptions: ServerOptions = {
-    run: { module: serverModule, transport: TransportKind.ipc },
+    run: {
+      module: serverModule,
+      transport: TransportKind.ipc,
+      options: runOptions,
+    },
     debug: {
       module: serverModule,
       transport: TransportKind.ipc,
