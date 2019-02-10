@@ -24,3 +24,4 @@ In development I'm looking at the follow features
 - suffix suggestions
 - function signiture help
 - basic type inference 
+- fuzzy testing of language server

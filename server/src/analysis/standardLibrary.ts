@@ -47,6 +47,10 @@ import { volumeItemType } from '../typeChecker/types/io/volumeItem';
 import { volumeDirectoryType } from '../typeChecker/types/io/volumeDirectory';
 import { createFunctionType, createVarFunctionType } from '../typeChecker/types/ksType';
 import { IArgumentType } from '../typeChecker/types/types';
+import { delegateType } from '../typeChecker/types/delegate';
+import { kUniverseType } from '../typeChecker/types/kUniverse';
+import { homeConnectionType } from '../typeChecker/types/communication/homeConnection';
+import { controlConnectionType } from '../typeChecker/types/communication/controlConnection';
 
 const libraryBuilder = new ScopeBuilder(builtIn);
 const functionTypes = [
@@ -191,110 +195,112 @@ const locks: [string, IArgumentType][] = [
   ['steering', directionType],
   ['wheelthrottle', scalarType],
   ['wheelsteering', directionType],
+  ['sasMode', stringType],
+  ['navMode', stringType],
 ];
 
-const variables = [
-  'abort',
-  'activeship',
-  'addons',
-  'ag1',
-  'ag10',
-  'ag2',
-  'ag3',
-  'ag4',
-  'ag5',
-  'ag6',
-  'ag7',
-  'ag8',
-  'ag9',
-  'airspeed',
-  'allnodes',
-  'alt',
-  'altitude',
-  'angularmomentum',
-  'angularvel',
-  'angularvelocity',
-  'apoapsis',
-  'archive',
-  'availablethrust',
-  'bays',
-  'black',
-  'blue',
-  'body',
-  'brakes',
-  'chutes',
-  'chutessafe',
-  'config',
-  'constant',
-  'controlconnection',
-  'core',
-  'cyan',
-  'deploydrills',
-  'donothing',
-  'drills',
-  'encounter',
-  'eta',
-  'facing',
-  'fuelcells',
-  'gear',
-  'geoposition',
-  'gray',
-  'green',
-  'grey',
-  'groundspeed',
-  'hasnode',
-  'hastarget',
-  'heading',
-  'homeconnection',
-  'intakes',
-  'isru',
-  'kuniverse',
-  'ladders',
-  'latitude',
-  'legs',
-  'lights',
-  'longitude',
-  'magenta',
-  'mapview',
-  'mass',
-  'maxthrust',
-  'missiontime',
-  'nextnode',
-  'north',
-  'obt',
-  'orbit',
-  'panels',
-  'periapsis',
-  'prograde',
-  'purple',
-  'radiators',
-  'rcs',
-  'red',
-  'retrograde',
-  'sas',
-  'sensor',
-  'sessiontime',
-  'ship',
-  'shipname',
-  'solarprimevector',
-  'srfprograde',
-  'srfretrograde',
-  'stage',
-  'status',
-  'steeringmanager',
-  'surfacespeed',
-  'target',
-  'terminal',
-  'time',
-  'up',
-  'velocity',
-  'version',
-  'verticalspeed',
-  'volume:name',
-  'warp',
-  'warpmode',
-  'white',
-  'yellow',
+const variables: [string, IArgumentType][] = [
+  ['abort', structureType], // TODO
+  ['activeship', structureType], // TODO
+  ['addons', structureType], // TODO
+  ['ag1', structureType], // TODO
+  ['ag10', structureType], // TODO
+  ['ag2', structureType], // TODO
+  ['ag3', structureType], // TODO
+  ['ag4', structureType], // TODO
+  ['ag5', structureType], // TODO
+  ['ag6', structureType], // TODO
+  ['ag7', structureType], // TODO
+  ['ag8', structureType], // TODO
+  ['ag9', structureType], // TODO
+  ['airspeed', structureType], // TODO
+  ['allnodes', structureType], // TODO
+  ['alt', structureType], // TODO
+  ['altitude', structureType], // TODO
+  ['angularmomentum', vectorType], // TODO
+  ['angularvel', structureType], // TODO
+  ['angularvelocity', structureType], // TODO
+  ['apoapsis', structureType], // TODO
+  ['archive', structureType], // TODO
+  ['availablethrust', structureType], // TODO
+  ['bays', structureType], // TODO
+  ['black', rgbaType],
+  ['blue', structureType],
+  ['body', structureType], // TODO
+  ['brakes', structureType], // TODO
+  ['chutes', structureType], // TODO
+  ['chutessafe', structureType], // TODO
+  ['config', structureType], // TODO
+  ['constant', constantType],
+  ['controlconnection', controlConnectionType],
+  ['core', structureType], // TODO
+  ['cyan', structureType], // TODO
+  ['deploydrills', structureType], // TODO
+  ['donothing', delegateType], // TODO
+  ['drills', structureType], // TODO
+  ['encounter', structureType], // TODO
+  ['eta', structureType], // TODO
+  ['facing', structureType], // TODO
+  ['fuelcells', structureType], // TODO
+  ['gear', structureType], // TODO
+  ['geoposition', structureType], // TODO
+  ['gray', rgbaType],
+  ['green', rgbaType],
+  ['grey', rgbaType],
+  ['groundspeed', structureType], // TODO
+  ['hasnode', structureType], // TODO
+  ['hastarget', structureType], // TODO
+  ['heading', scalarType], // TODO
+  ['homeconnection', homeConnectionType],
+  ['intakes', structureType], // TODO
+  ['isru', structureType], // TODO
+  ['kuniverse', kUniverseType], // TODO
+  ['ladders', structureType], // TODO
+  ['latitude', structureType], // TODO
+  ['legs', structureType], // TODO
+  ['lights', structureType], // TODO
+  ['longitude', structureType], // TODO
+  ['magenta', rgbaType],
+  ['mapview', structureType], // TODO
+  ['mass', structureType], // TODO
+  ['maxthrust', structureType], // TODO
+  ['missiontime', structureType], // TODO
+  ['nextnode', structureType], // TODO
+  ['north', structureType], // TODO
+  ['obt', structureType], // TODO
+  ['orbit', structureType], // TODO
+  ['panels', structureType], // TODO
+  ['periapsis', structureType], // TODO
+  ['prograde', directionType], // TODO
+  ['purple', rgbaType],
+  ['radiators', structureType], // TODO
+  ['rcs', structureType], // TODO
+  ['red', structureType],
+  ['retrograde', structureType], // TODO
+  ['sas', structureType], // TODO
+  ['sensor', structureType], // TODO
+  ['sessiontime', structureType], // TODO
+  ['ship', structureType], // TODO
+  ['shipname', structureType], // TODO
+  ['solarprimevector', vectorType],
+  ['srfprograde', directionType], // TODO
+  ['srfretrograde', directionType], // TODO
+  ['stage', structureType], // TODO
+  ['status', structureType], // TODO
+  ['steeringmanager', structureType], // TODO
+  ['surfacespeed', structureType], // TODO
+  ['target', structureType], // TODO
+  ['terminal', structureType], // TODO
+  ['time', structureType], // TODO
+  ['up', structureType], // TODO
+  ['velocity', structureType], // TODO
+  ['version', structureType], // TODO
+  ['verticalspeed', structureType], // TODO
+  ['volume:name', structureType], // TODO
+  ['warp', structureType], // TODO
+  ['warpmode', structureType], // TODO
+  ['white', rgbaType],
+  ['yellow', rgbaType],
 ];
 
 for (const functionType of functionTypes) {
