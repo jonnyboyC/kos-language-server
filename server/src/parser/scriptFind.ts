@@ -1,4 +1,4 @@
-import { IExprVisitor, IInstVisitor, IInst, IExpr, IFindResult, INode } from './types';
+import { IExprVisitor, IInstVisitor, IInst, IExpr, IFindResult, TreeNode } from './types';
 import * as Decl from './declare';
 import * as Inst from './inst';
 import * as Expr from './expr';
@@ -9,7 +9,7 @@ import { Token } from '../entities/token';
 
 type Contexts = Constructor<Expr.Expr> | Constructor<Inst.Inst>;
 
-export class SyntaxTreeFind implements
+export class ScriptFind implements
   IExprVisitor<Maybe<IFindResult>>,
   IInstVisitor<Maybe<IFindResult>> {
 
@@ -24,13 +24,13 @@ export class SyntaxTreeFind implements
     this.contexts = [];
   }
 
-  public find(syntaxNode: INode, pos: Position, ...contexts: Contexts[]): Maybe<IFindResult> {
+  public find(syntaxNode: TreeNode, pos: Position, ...contexts: Contexts[]): Maybe<IFindResult> {
     this.pos = pos;
     this.contexts = contexts;
     return this.findNode(syntaxNode);
   }
 
-  private findNode(node: INode): Maybe<IFindResult> {
+  private findNode(node: TreeNode): Maybe<IFindResult> {
     const searchResult = binarySearch(node.ranges, this.pos);
     if (empty(searchResult)) {
       return searchResult;
@@ -82,12 +82,12 @@ export class SyntaxTreeFind implements
     throw new Error('Unexpected result found.');
   }
 
-  private addContext(findResult: IFindResult, node: INode): boolean {
+  private addContext(findResult: IFindResult, node: TreeNode): boolean {
     return empty(findResult.node) && this.isContext(node);
   }
 
   // is the correct context
-  private isContext(node: INode): boolean {
+  private isContext(node: TreeNode): boolean {
     return this.contexts.some(context => node instanceof context);
   }
 

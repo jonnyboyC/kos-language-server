@@ -7,7 +7,7 @@ import { empty } from '../utilities/typeGuards';
 import { LocalResolver } from './localResolver';
 import { SetResolver } from './setResolver';
 import { TokenType } from '../entities/tokentypes';
-import { SyntaxTree } from '../entities/syntaxTree';
+import { Script } from '../entities/script';
 import { mockLogger, mockTracer } from '../utilities/logger';
 import { ScopeBuilder } from './scopeBuilder';
 import { ILocalResult, IResolverError } from './types';
@@ -15,7 +15,7 @@ import { ILocalResult, IResolverError } from './types';
 export type Errors = IResolverError[];
 
 export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
-  private syntaxTree: SyntaxTree;
+  private syntaxTree: Script;
   private scopeBuilder: ScopeBuilder;
   private readonly logger: ILogger;
   private readonly tracer: ITracer;
@@ -25,7 +25,7 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   private firstInst: boolean;
 
   constructor(
-    syntaxTree: SyntaxTree,
+    syntaxTree: Script,
     scopeBuilder: ScopeBuilder,
     logger: ILogger = mockLogger,
     tracer: ITracer = mockTracer) {

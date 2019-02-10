@@ -168,8 +168,7 @@ ava('valid call', (t) => {
         t.deepEqual(expression.callee, value.callee.token.lexeme);
         t.deepEqual(expression.args.length, value.args.length);
 
-        // tslint:disable-next-line:no-increment-decrement
-        for (let i = 0; i < expression.args.length; i++) {
+        for (let i = 0; i < expression.args.length; i += 1) {
           t.true(value.args[i] instanceof expression.args[i]);
         }
       }

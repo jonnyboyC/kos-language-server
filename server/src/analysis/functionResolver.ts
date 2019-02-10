@@ -4,7 +4,7 @@ import * as Inst from '../parser/inst';
 import { ResolverError } from './resolverError';
 import { Var, Lock, Func, Param } from '../parser/declare';
 import { empty } from '../utilities/typeGuards';
-import { SyntaxTree } from '../entities/syntaxTree';
+import { Script } from '../entities/script';
 import { KsParameter } from '../entities/parameters';
 import { TokenType } from '../entities/tokentypes';
 import { mockLogger, mockTracer } from '../utilities/logger';
@@ -15,13 +15,13 @@ import { ScopeBuilder } from './scopeBuilder';
 export type Errors = Array<ResolverError>;
 
 export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
-  private syntaxTree: SyntaxTree;
+  private syntaxTree: Script;
   private scopeBuilder: ScopeBuilder;
   private readonly logger: ILogger;
   private readonly tracer: ITracer;
 
   constructor(
-    syntaxTree: SyntaxTree,
+    syntaxTree: Script,
     scopeBuilder: ScopeBuilder,
     logger: ILogger = mockLogger,
     tracer: ITracer = mockTracer) {

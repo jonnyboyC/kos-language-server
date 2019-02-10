@@ -4,7 +4,7 @@ import * as Inst from '../parser/inst';
 import * as Decl from '../parser/declare';
 import { ITypeError, ITypeResult } from './types';
 import { mockLogger, mockTracer } from '../utilities/logger';
-import { SyntaxTree } from '../entities/syntaxTree';
+import { Script } from '../entities/script';
 import { ScopeManager } from '../analysis/scopeManager';
 import { empty } from '../utilities/typeGuards';
 import {
@@ -30,11 +30,11 @@ type TypeErrors = ITypeError[];
 export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<TypeErrors> {
   private readonly logger: ILogger;
   private readonly tracer: ITracer;
-  private readonly syntaxTree: SyntaxTree;
+  private readonly syntaxTree: Script;
   private readonly scopeManager: ScopeManager;
 
   constructor(
-    syntaxTree: SyntaxTree,
+    syntaxTree: Script,
     scopeManager: ScopeManager,
     logger: ILogger = mockLogger,
     tracer: ITracer = mockTracer) {
@@ -94,8 +94,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
     if (!empty(funcTracker)) {
       const { entity } = funcTracker.declared;
       const paramsTypes: IArgumentType[] = [];
-      // tslint:disable-next-line:no-increment-decrement
-      for (let i = 0; i < entity.parameters.length; i++) {
+      for (let i = 0; i < entity.parameters.length; i += 1) {
         paramsTypes.push(structureType);
       }
       const returnType = entity.returnValue ? structureType : voidType;

@@ -1,8 +1,8 @@
 
 import { TokenType, isValidIdentifier } from '../entities/tokentypes';
 import {
-  IParseError, TokenResult,
-  IExpr, IDeclScope, IInst, INodeResult, RunInstType, ParseResult, ISuffix,
+  IParseError, IExpr, IDeclScope, IInst,
+  INodeResult, RunInstType, ParseResult, ISuffix,
 } from './types';
 import {
   ParseError, FailedConstructor,
@@ -14,7 +14,7 @@ import * as Inst from './inst';
 import * as Decl from './declare';
 import { empty } from '../utilities/typeGuards';
 import { IToken } from '../entities/types';
-import { SyntaxTree } from '../entities/syntaxTree';
+import { Script } from '../entities/script';
 import { nodeResult } from './parseResult';
 import { Token, Marker } from '../entities/token';
 import { mockLogger, mockTracer } from '../utilities/logger';
@@ -50,7 +50,7 @@ export class Parser {
       return {
         parseErrors,
         runInsts: this.runInsts,
-        syntaxTree: new SyntaxTree(instructions),
+        script: new Script(instructions),
       };
     } catch (err) {
       this.logger.error(`Error occured in parser ${err}`);
@@ -58,7 +58,7 @@ export class Parser {
 
       return {
         runInsts: [],
-        syntaxTree: new SyntaxTree([]),
+        script: new Script([]),
         parseErrors: [],
       };
     }
@@ -577,7 +577,7 @@ export class Parser {
         const incrementResult = this.instructionBlock();
         const doToken = this.consumeTokenThrow(
           'Expected "do" block following step.',
-          Inst.From, TokenType.Do);
+          Inst.From, TokenType.do);
         const inst = this.declaration();
         return nodeResult(
           new Inst.From(
@@ -1321,7 +1321,7 @@ export class Parser {
   }
 
   // check for period
-  private terminal = (failed: NodeConstructor): TokenResult => {
+  private terminal = (failed: NodeConstructor): IToken => {
     return this.consumeTokenThrow('Expected ".".', failed, TokenType.period);
   }
 

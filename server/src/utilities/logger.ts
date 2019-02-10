@@ -8,8 +8,19 @@ export const mockLogger: ILogger = {
 };
 
 export const mockTracer: ITracer = {
-  // tslint:disable-next-line:variable-name
-  log: (_message: string, _verbose?: string) => {},
+  log: (_: string, __?: string) => {},
+};
+
+export const consoleLogger: ILogger = {
+  error: (message: string) => console.error(message),
+  warn: (message: string) => console.warn(message),
+  info: (message: string) => console.info(message),
+  log: (message: string) => console.log(message),
+  verbose: (message: string) => console.log(message),
+};
+
+export const consoleTracer: ITracer = {
+  log: (message: string, verbose?: string) => console.trace(message, verbose),
 };
 
 // wrapper class for logger to implement logging levels

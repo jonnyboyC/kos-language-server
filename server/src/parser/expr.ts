@@ -1,7 +1,15 @@
-import { IExprClass, IInst, IExprVisitor, ISuffix, IExpr, IExprClassVisitor } from './types';
+import {
+  IExprClass, IInst, IExprVisitor,
+  ISuffix, IExpr, IExprClassVisitor, GrammarNode, Distribution,
+} from './types';
 import { TokenType } from '../entities/tokentypes';
 import { IToken } from '../entities/types';
 import { Range, Position } from 'vscode-languageserver';
+import {
+  createGrammarUnion, createGrammarOptional,
+  createGrammarRepeat, createConstant,
+  createExponential, createNormal, createGamma,
+} from './grammarNodes';
 
 export abstract class Expr implements IExpr {
   get tag(): 'expr' {
@@ -52,6 +60,8 @@ export class Invalid extends Expr {
 }
 
 export class Binary extends Expr {
+  public static grammar: GrammarNode[];
+
   constructor(
     public readonly left: IExpr,
     public readonly operator: IToken,
@@ -85,6 +95,8 @@ export class Binary extends Expr {
 }
 
 export class Unary extends Expr {
+  public static grammar: GrammarNode[];
+
   constructor(
     public readonly operator: IToken,
     public readonly factor: IExpr) {
@@ -117,6 +129,8 @@ export class Unary extends Expr {
 }
 
 export class Factor extends Expr {
+  public static grammar: GrammarNode[];
+
   constructor(
     public readonly suffix: IExpr,
     public readonly power: IToken,
@@ -150,6 +164,8 @@ export class Factor extends Expr {
 }
 
 export class Suffix extends SuffixBase {
+  public static grammar: GrammarNode[];
+
   constructor(
     public readonly suffix: IExpr,
     public readonly colon: IToken,
@@ -183,6 +199,8 @@ export class Suffix extends SuffixBase {
 }
 
 export class Call extends SuffixBase {
+  public static grammar: GrammarNode[];
+
   constructor(
     public readonly callee: IExpr,
     public readonly open: IToken,
@@ -219,6 +237,8 @@ export class Call extends SuffixBase {
 }
 
 export class ArrayIndex extends SuffixBase {
+  public static grammar: GrammarNode[];
+
   constructor(
     public readonly array: IExpr,
     public readonly indexer: IToken,
@@ -253,6 +273,8 @@ export class ArrayIndex extends SuffixBase {
 }
 
 export class ArrayBracket extends SuffixBase {
+  public static grammar: GrammarNode[];
+
   constructor(
     public readonly array: IExpr,
     public readonly open: IToken,
@@ -289,6 +311,8 @@ export class ArrayBracket extends SuffixBase {
 }
 
 export class Delegate extends SuffixBase {
+  public static grammar: GrammarNode[];
+
   constructor (
     public readonly variable: IExpr,
     public readonly atSign: IToken,
@@ -322,6 +346,8 @@ export class Delegate extends SuffixBase {
 }
 
 export class Literal extends SuffixBase {
+  public static grammar: GrammarNode[];
+
   constructor(
     public readonly token: IToken,
     public readonly isTrailer: boolean) {
@@ -354,6 +380,8 @@ export class Literal extends SuffixBase {
 }
 
 export class Variable extends SuffixBase {
+  public static grammar: GrammarNode[];
+
   constructor(
     public readonly token: IToken,
     public readonly isTrailer: boolean) {
@@ -391,6 +419,8 @@ export class Variable extends SuffixBase {
 }
 
 export class Grouping extends SuffixBase {
+  public static grammar: GrammarNode[];
+
   constructor(
     public readonly open: IToken,
     public readonly expr: IExpr,
@@ -426,6 +456,8 @@ export class Grouping extends SuffixBase {
 
 // TODO this returns a delegate
 export class AnonymousFunction extends Expr {
+  public static grammar: GrammarNode[];
+
   constructor(
     public readonly open: IToken,
     public readonly instructions: IInst[],
@@ -458,17 +490,141 @@ export class AnonymousFunction extends Expr {
   }
 }
 
-export const validExprTypes: IExprClass[] = [
-  Binary,
-  Unary,
+export const validExprTypes: [IExprClass, Distribution][] = [
+  [Binary, createConstant(1)],
+  [Unary, createConstant(1)],
+  [Factor, createConstant(1)],
+  [Suffix, createConstant(1)],
+  [Call, createConstant(1)],
+  [ArrayIndex, createConstant(1)],
+  [ArrayBracket, createConstant(1)],
+  [Delegate, createConstant(1)],
+  [Literal, createConstant(1)],
+  [Variable, createConstant(1)],
+  [Grouping, createConstant(1)],
+  [AnonymousFunction, createConstant(0)],
+];
+
+const expr = createGrammarUnion(...validExprTypes);
+
+Binary.grammar = [
+  expr,
+  createGrammarUnion(
+    [TokenType.plus, createConstant(1)],
+    [TokenType.minus, createConstant(1)],
+    [TokenType.multi, createConstant(1)],
+    [TokenType.div, createConstant(1)],
+    [TokenType.equal, createConstant(1)],
+    [TokenType.notEqual, createConstant(1)],
+    [TokenType.less, createConstant(1)],
+    [TokenType.lessEqual, createConstant(1)],
+    [TokenType.greater, createConstant(1)],
+    [TokenType.greaterEqual, createConstant(1)],
+    [TokenType.or, createConstant(1)],
+    [TokenType.and, createConstant(1)],
+  ),
+  expr,
+];
+
+Unary.grammar = [
+  createGrammarOptional(
+    createConstant(0.2),
+    createGrammarUnion(
+      [TokenType.plus, createConstant(1)],
+      [TokenType.minus, createConstant(1)],
+      [TokenType.not, createConstant(1)],
+      [TokenType.defined, createConstant(1)],
+    ),
+  ),
   Factor,
+];
+
+Factor.grammar = [
   Suffix,
-  Call,
-  ArrayIndex,
-  ArrayBracket,
-  Delegate,
-  Literal,
-  Variable,
-  Grouping,
-  AnonymousFunction,
+  createGrammarOptional(
+    createExponential(2),
+    TokenType.power,
+    Suffix,
+  ),
+];
+
+const suffixTerm = createGrammarUnion(
+  [Literal, createNormal(1.3, 1)],
+  [Variable, createNormal(3, 1)],
+  [Grouping, createNormal(0.4, 0.2)],
+  [Call, createNormal(0.5, 0.5)],
+  [ArrayIndex, createNormal(0.5, 0.5)],
+  [ArrayBracket, createNormal(0.1, 0.1)],
+);
+
+Suffix.grammar = [
+  suffixTerm,
+  createGrammarRepeat(
+    createExponential(2),
+    TokenType.colon,
+    suffixTerm,
+  ),
+];
+
+Call.grammar = [
+  suffixTerm,
+  TokenType.bracketOpen,
+  createGrammarOptional(
+    createExponential(3),
+    createGrammarUnion(...validExprTypes),
+    createGrammarRepeat(
+      createGamma(1.5, 0.4),
+      TokenType.comma,
+      createGrammarUnion(...validExprTypes),
+    ),
+  ),
+  TokenType.bracketClose,
+];
+
+ArrayIndex.grammar = [
+  suffixTerm,
+  TokenType.arrayIndex,
+  createGrammarUnion(
+    [TokenType.integer, createNormal(3, 1)],
+    [TokenType.identifier, createNormal(1, 1)],
+  ),
+];
+
+ArrayBracket.grammar = [
+  suffixTerm,
+  TokenType.bracketOpen,
+  expr,
+  TokenType.bracketClose,
+];
+
+Delegate.grammar = [
+  suffixTerm,
+  TokenType.atSign,
+];
+
+Literal.grammar = [
+  createGrammarUnion(
+    [TokenType.integer, createConstant(1)],
+    [TokenType.double, createConstant(1.5)],
+    [TokenType.true, createConstant(0.5)],
+    [TokenType.false, createConstant(0.5)],
+    [TokenType.fileIdentifier, createConstant(0.1)],
+    [TokenType.string, createConstant(2)],
+  ),
+];
+
+Variable.grammar = [
+  TokenType.identifier,
+];
+
+Grouping.grammar = [
+  TokenType.bracketOpen,
+  expr,
+  TokenType.bracketClose,
+];
+
+AnonymousFunction.grammar = [
+  TokenType.curlyOpen,
+  //
+  TokenType.curlyClose,
 ];

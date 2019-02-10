@@ -129,10 +129,10 @@ export class Scanner {
 
   // extract any identifiers
   private identifier(): Token {
-    while (this.isAlphaNumeric(this.peek())) this.advance();
+    while (this.isAlpha(this.peek())) this.advance();
 
     // if "." immediatily followed by alpha numeri
-    if (this.peek() === '.' && this.isAlphaNumeric(this.peekNext())) {
+    if (this.peek() === '.' && this.isAlpha(this.peekNext())) {
       return this.fileIdentifier();
     }
 
@@ -447,7 +447,7 @@ const keywords: ITokenMap = new Map([
   ['clearscreen', { type: TokenType.clearscreen }],
   ['compile', { type: TokenType.compile }],
   ['copy', { type: TokenType.copy }],
-  ['do', { type: TokenType.Do }],
+  ['do', { type: TokenType.do }],
   ['declare', { type: TokenType.declare }],
   ['defined', { type: TokenType.defined }],
   ['delete', { type: TokenType.delete }],

@@ -3,31 +3,17 @@ import * as Inst from './inst';
 import { Var, Lock, Func, Param } from './declare';
 import { IToken } from '../entities/types';
 import { Range } from 'vscode-languageserver';
-import { SyntaxTree } from '../entities/syntaxTree';
 import { IScannerError } from '../scanner/types';
-
-export interface IParseError extends Range {
-  tag: 'parseError';
-  token: IToken;
-  otherInfo: string[];
-  message: string;
-  inner: IParseError[];
-}
-
-export interface ParseResult {
-  syntaxTree: SyntaxTree;
-  runInsts: RunInstType[];
-  parseErrors: IParseError[];
-}
-
-export interface SyntaxTreeResult extends ParseResult {
-  scanErrors: IScannerError[];
-}
-
-export type RunInstType = Inst.Run | Inst.RunPath | Inst.RunPathOnce;
+import { TokenType } from '../entities/tokentypes';
 
 export interface IRangeSequence extends Range {
   ranges: Range[];
+}
+
+export interface IDeclScope extends Range {
+  declare?: IToken;
+  scope?: IToken;
+  type: ScopeType;
 }
 
 export interface ISuffix extends IExpr {
@@ -39,19 +25,106 @@ export interface IExpr extends IExprVisitable, IRangeSequence {
   toString(): string;
 }
 
-export interface IExprClass extends Constructor<IExpr> {
-  classAccept<T>(visitor: IExprClassVisitor<T>): T;
-}
-
 export interface IInst extends IInstVisitable, IRangeSequence {
   tag: 'inst';
 }
 
-export interface IDeclScope extends Range {
-  declare?: IToken;
-  scope?: IToken;
-  type: ScopeType;
+export interface IScript extends IRangeSequence {
+  insts: IInst[];
+  tag: 'script';
 }
+
+export interface IExprClass<T = Expr.Expr> extends Constructor<T>, IExprVisitableClass {
+  grammar: GrammarNode[];
+}
+
+export interface IInstClass extends Constructor<Inst.Inst>, IExprVisitableClass {
+  grammar: GrammarNode[];
+}
+
+export interface IGrammarOptional {
+  nodes: GrammarNode[];
+  dist: Distribution;
+  tag: 'optional';
+}
+
+export interface IGrammarRepeat {
+  nodes: GrammarNode[];
+  dist: Distribution;
+  tag: 'repeat';
+}
+
+export interface IGrammarUnion {
+  node: [GrammarNode, Distribution][];
+  tag: 'union';
+}
+
+export type Distribution = INormalDistribution
+  | IGammaDistribution
+  | IExponentialDistribution
+  | IConstantDistribution;
+
+export interface INormalDistribution {
+  mean: number;
+  std: number;
+  tag: 'normal';
+}
+
+export interface IGammaDistribution {
+  shape: number;
+  scale: number;
+  tag: 'gamma';
+}
+
+export interface IExponentialDistribution {
+  rate: number;
+  tag: 'exp';
+}
+
+export interface IConstantDistribution {
+  value: number;
+  tag: 'constant';
+}
+
+export interface IParseError extends Range {
+  tag: 'parseError';
+  token: IToken;
+  otherInfo: string[];
+  message: string;
+  inner: IParseError[];
+}
+
+export interface ParseResult {
+  script: IScript;
+  runInsts: RunInstType[];
+  parseErrors: IParseError[];
+}
+
+export interface ScriptResult extends ParseResult {
+  scanErrors: IScannerError[];
+}
+
+export interface IFindResult {
+  node?: TreeNode;
+  token: IToken;
+}
+
+export interface INodeResult<T> {
+  errors: IParseError[];
+  value: T;
+}
+
+export enum ScopeType {
+  local,
+  global,
+}
+
+export type GrammarNode = IExprClass
+  | IInstClass | TokenType
+  | IGrammarOptional | IGrammarRepeat | IGrammarUnion;
+
+export type RunInstType = Inst.Run | Inst.RunPath | Inst.RunPathOnce;
+export type TreeNode = IExpr | IInst | IScript;
 
 export interface IExprVisitable {
   accept<T>(visitor: IExprVisitor<T>): T;
@@ -73,20 +146,24 @@ export interface IExprVisitor<T> {
   visitAnonymousFunction(expr: Expr.AnonymousFunction): T;
 }
 
+export interface IExprVisitableClass {
+  classAccept<T>(visitor: IExprClassVisitor<T>): T;
+}
+
 export interface IExprClassVisitor<T> {
-  visitExprInvalid(expr: Constructor<Expr.Invalid>): T;
-  visitBinary(expr: Constructor<Expr.Binary>): T;
-  visitUnary(expr: Constructor<Expr.Unary>): T;
-  visitFactor(expr: Constructor<Expr.Factor>): T;
-  visitSuffix(expr: Constructor<Expr.Suffix>): T;
-  visitCall(expr: Constructor<Expr.Call>): T;
-  visitArrayIndex(expr: Constructor<Expr.ArrayIndex>): T;
-  visitArrayBracket(expr: Constructor<Expr.ArrayBracket>): T;
-  visitDelegate(expr: Constructor<Expr.Delegate>): T;
-  visitLiteral(expr: Constructor<Expr.Literal>): T;
-  visitVariable(expr: Constructor<Expr.Variable>): T;
-  visitGrouping(expr: Constructor<Expr.Grouping>): T;
-  visitAnonymousFunction(expr: Constructor<Expr.AnonymousFunction>): T;
+  visitExprInvalid(exprClass: Constructor<Expr.Invalid>): T;
+  visitBinary(exprClass: Constructor<Expr.Binary>): T;
+  visitUnary(exprClass: Constructor<Expr.Unary>): T;
+  visitFactor(exprClass: Constructor<Expr.Factor>): T;
+  visitSuffix(exprClass: Constructor<Expr.Suffix>): T;
+  visitCall(exprClass: Constructor<Expr.Call>): T;
+  visitArrayIndex(exprClass: Constructor<Expr.ArrayIndex>): T;
+  visitArrayBracket(exprClass: Constructor<Expr.ArrayBracket>): T;
+  visitDelegate(exprClass: Constructor<Expr.Delegate>): T;
+  visitLiteral(exprClass: Constructor<Expr.Literal>): T;
+  visitVariable(exprClass: Constructor<Expr.Variable>): T;
+  visitGrouping(exprClass: Constructor<Expr.Grouping>): T;
+  visitAnonymousFunction(exprClass: Constructor<Expr.AnonymousFunction>): T;
 }
 
 export interface IInstVisitable {
@@ -133,25 +210,3 @@ export interface IInstVisitor<T> {
   visitEmpty(inst: Inst.Empty): T;
   visitPrint(inst: Inst.Print): T;
 }
-
-export interface IFindResult {
-  node?: INode;
-  token: IToken;
-}
-
-export interface INodeResult<T> {
-  errors: IParseError[];
-  value: T;
-}
-
-export enum ScopeType {
-  local,
-  global,
-}
-
-export type Result<T> = T | IParseError;
-export type INode = IExpr | IInst | SyntaxTree;
-
-export type ExprResult = Result<IExpr>;
-export type InstResult = Result<IInst>;
-export type TokenResult = Result<IToken>;

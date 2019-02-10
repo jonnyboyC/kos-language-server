@@ -1,10 +1,9 @@
-import { SyntaxTree } from './entities/syntaxTree';
 import { ScopeManager } from './analysis/scopeManager';
-import { RunInstType } from './parser/types';
+import { RunInstType, IScript } from './parser/types';
 import { Diagnostic } from 'vscode-languageserver';
 
 export interface IDocumentInfo {
-  syntaxTree: SyntaxTree;
+  script: IScript;
   scopeManager: ScopeManager;
 }
 

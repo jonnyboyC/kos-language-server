@@ -394,8 +394,7 @@ export class ScopeBuilder {
     }
 
     const scopes = this.activeScopeStack();
-    // tslint:disable-next-line:no-increment-decrement
-    for (let i = scopes.length - 1; i >= 0; i--) {
+    for (let i = scopes.length - 1; i >= 0; i -= 1) {
       const scope = scopes[i];
       const tracker = scope.get(token.lexeme);
       if (!empty(tracker)) {

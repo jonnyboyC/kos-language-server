@@ -30,8 +30,7 @@ const partialArgs = (tokens: IToken[], pos: Position): Maybe<[IToken, IToken[]]>
   }
 
   let i = posIdx;
-  // tslint:disable-next-line:no-increment-decrement
-  for (; i >= 0; i--) {
+  for (; i >= 0; i -= 1) {
     const token = tokens[i];
 
     if (depth < 0) {

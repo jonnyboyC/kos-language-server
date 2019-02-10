@@ -6,11 +6,11 @@ import { FuncResolver } from './analysis/functionResolver';
 import { Scanner } from './scanner/scanner';
 import { Resolver } from './analysis/resolver';
 import { IScannerError } from './scanner/types';
-import { IParseError, SyntaxTreeResult, RunInstType } from './parser/types';
+import { IParseError, ScriptResult, RunInstType } from './parser/types';
 import { IResolverError, KsEntity, IKsEntityTracker } from './analysis/types';
 import { mockLogger, mockTracer } from './utilities/logger';
 import { empty, notEmpty } from './utilities/typeGuards';
-import { SyntaxTreeFind } from './parser/syntaxTreeFind';
+import { ScriptFind } from './parser/scriptFind';
 import { KsFunction } from './entities/function';
 import { Invalid } from './parser/inst';
 import { signitureHelper } from './utilities/signitureHelper';
@@ -65,7 +65,7 @@ export class Analyzer {
   // main validation code
   private async* validateDocument_(uri: string, text: string, depth: number):
     AsyncIterableIterator<ValidateResult> {
-    const { syntaxTree, parseErrors, scanErrors, runInsts } = await this.parseDocument(uri, text);
+    const { script, parseErrors, scanErrors, runInsts } = await this.parseDocument(uri, text);
     const scopeManagers: ScopeManager[] = [];
 
     yield scanErrors.map(scanError => scanToDiagnostics(scanError, uri));
@@ -103,8 +103,8 @@ export class Analyzer {
     scopeBuilder.addScope(standardLibrary);
 
     // generate resolvers
-    const funcResolver = new FuncResolver(syntaxTree, scopeBuilder, this.logger, this.tracer);
-    const resolver = new Resolver(syntaxTree, scopeBuilder, this.logger, this.tracer);
+    const funcResolver = new FuncResolver(script, scopeBuilder, this.logger, this.tracer);
+    const resolver = new Resolver(script, scopeBuilder, this.logger, this.tracer);
 
     // resolve the rest of the script
     this.logger.log(`Function resolving ${uri}`);
@@ -125,7 +125,7 @@ export class Analyzer {
     yield resolverErrors;
     performance.mark('resolver-end');
 
-    const typeChecker = new TypeChecker(syntaxTree, scopeBuilder.build(), this.logger, this.tracer);
+    const typeChecker = new TypeChecker(script, scopeBuilder.build(), this.logger, this.tracer);
     this.logger.log(`Type checking ${uri}`);
     this.logger.log('');
     performance.mark('type-checking-start');
@@ -154,7 +154,7 @@ export class Analyzer {
     const scopeManager = scopeBuilder.build();
 
     this.documentInfos.set(uri, {
-      syntaxTree,
+      script,
       scopeManager,
     });
 
@@ -171,9 +171,9 @@ export class Analyzer {
     }
 
     // try to find an entity at the position
-    const { syntaxTree } = documentInfo;
-    const finder = new SyntaxTreeFind();
-    const result = finder.find(syntaxTree, pos);
+    const { script } = documentInfo;
+    const finder = new ScriptFind();
+    const result = finder.find(script, pos);
 
     return result && result.token;
   }
@@ -186,9 +186,9 @@ export class Analyzer {
     }
 
     // try to find an entity at the position
-    const { scopeManager, syntaxTree } = documentInfo;
-    const finder = new SyntaxTreeFind();
-    const result = finder.find(syntaxTree, pos);
+    const { scopeManager, script } = documentInfo;
+    const finder = new ScriptFind();
+    const result = finder.find(script, pos);
 
     if (empty(result)) {
       return undefined;
@@ -213,14 +213,14 @@ export class Analyzer {
     const documentInfo = this.documentInfos.get(uri);
     if (empty(documentInfo)
       || empty(documentInfo.scopeManager)
-      || empty(documentInfo.syntaxTree)) {
+      || empty(documentInfo.script)) {
       return undefined;
     }
 
     // try to find the entity at the position
-    const { scopeManager, syntaxTree } = documentInfo;
-    const finder = new SyntaxTreeFind();
-    const result = finder.find(syntaxTree, pos);
+    const { scopeManager, script } = documentInfo;
+    const finder = new ScriptFind();
+    const result = finder.find(script, pos);
 
     if (empty(result)) {
       return undefined;
@@ -296,11 +296,11 @@ export class Analyzer {
     const documentInfo = this.documentInfos.get(uri);
     if (empty(documentInfo)) return undefined;
 
-    const { syntaxTree } = documentInfo;
-    const finder = new SyntaxTreeFind();
+    const { script } = documentInfo;
+    const finder = new ScriptFind();
 
     // attempt to find a token here get surround invalid inst context
-    const result = finder.find(syntaxTree, pos, Invalid, Expr.Invalid, Expr.Call);
+    const result = finder.find(script, pos, Invalid, Expr.Invalid, Expr.Call);
 
     // currently we only support invalid instructions for signiture completion
     // we could possible support call expressions as well
@@ -341,7 +341,7 @@ export class Analyzer {
   }
 
   // generate the ast from the document string
-  private async parseDocument(uri: string, text: string): Promise<SyntaxTreeResult> {
+  private async parseDocument(uri: string, text: string): Promise<ScriptResult> {
     this.logger.log('');
     this.logger.log(`Scanning ${uri}`);
 

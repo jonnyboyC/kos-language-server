@@ -44,6 +44,14 @@
       ],
       "skipFiles": ["<node_internals>/**/*.js"],
       "runtimeArgs": ["--nolazy"]
+		}
+		{
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Visible Compiled Script",
+      "program": "${file}",
+      "skipFiles": ["<node_internals>/**/*.js"],
+      "runtimeArgs": ["--nolazy"]
     }
 	],
 	"compounds": [
