@@ -51,6 +51,10 @@ import { delegateType } from '../typeChecker/types/delegate';
 import { kUniverseType } from '../typeChecker/types/kUniverse';
 import { homeConnectionType } from '../typeChecker/types/communication/homeConnection';
 import { controlConnectionType } from '../typeChecker/types/communication/controlConnection';
+import { vesselAltType } from '../typeChecker/types/vessel/vesselAlt';
+import { vesselEtaType } from '../typeChecker/types/vessel/vesselEta';
+import { stageType } from '../typeChecker/types/vessel/stage';
+import { steeringManagerType } from '../typeChecker/types/steeringManager';
 
 const libraryBuilder = new ScopeBuilder(builtIn);
 const functionTypes = [
@@ -201,7 +205,7 @@ const locks: [string, IArgumentType][] = [
 
 const variables: [string, IArgumentType][] = [
   ['abort', structureType], // TODO
-  ['activeship', structureType], // TODO
+  ['activeship', vesselTargetType],
   ['addons', structureType], // TODO
   ['ag1', structureType], // TODO
   ['ag10', structureType], // TODO
@@ -214,8 +218,8 @@ const variables: [string, IArgumentType][] = [
   ['ag8', structureType], // TODO
   ['ag9', structureType], // TODO
   ['airspeed', structureType], // TODO
-  ['allnodes', structureType], // TODO
-  ['alt', structureType], // TODO
+  ['allnodes', listType.toConcreteType(nodeType)],
+  ['alt', vesselAltType],
   ['altitude', structureType], // TODO
   ['angularmomentum', vectorType], // TODO
   ['angularvel', structureType], // TODO
@@ -238,8 +242,8 @@ const variables: [string, IArgumentType][] = [
   ['deploydrills', structureType], // TODO
   ['donothing', delegateType], // TODO
   ['drills', structureType], // TODO
-  ['encounter', structureType], // TODO
-  ['eta', structureType], // TODO
+  ['encounter', orbitInfoType], // TODO Union
+  ['eta', vesselEtaType],
   ['facing', structureType], // TODO
   ['fuelcells', structureType], // TODO
   ['gear', structureType], // TODO
@@ -248,8 +252,8 @@ const variables: [string, IArgumentType][] = [
   ['green', rgbaType],
   ['grey', rgbaType],
   ['groundspeed', structureType], // TODO
-  ['hasnode', structureType], // TODO
-  ['hastarget', structureType], // TODO
+  ['hasnode', booleanType],
+  ['hastarget', booleanType],
   ['heading', scalarType], // TODO
   ['homeconnection', homeConnectionType],
   ['intakes', structureType], // TODO
@@ -265,10 +269,10 @@ const variables: [string, IArgumentType][] = [
   ['mass', structureType], // TODO
   ['maxthrust', structureType], // TODO
   ['missiontime', structureType], // TODO
-  ['nextnode', structureType], // TODO
+  ['nextnode', nodeType],
   ['north', structureType], // TODO
-  ['obt', structureType], // TODO
-  ['orbit', structureType], // TODO
+  ['obt', orbitInfoType],
+  ['orbit', orbitInfoType],
   ['panels', structureType], // TODO
   ['periapsis', structureType], // TODO
   ['prograde', directionType], // TODO
@@ -280,18 +284,18 @@ const variables: [string, IArgumentType][] = [
   ['sas', structureType], // TODO
   ['sensor', structureType], // TODO
   ['sessiontime', structureType], // TODO
-  ['ship', structureType], // TODO
-  ['shipname', structureType], // TODO
+  ['ship', vesselTargetType],
+  ['shipname', stringType],
   ['solarprimevector', vectorType],
   ['srfprograde', directionType], // TODO
   ['srfretrograde', directionType], // TODO
-  ['stage', structureType], // TODO
-  ['status', structureType], // TODO
-  ['steeringmanager', structureType], // TODO
+  ['stage', stageType],
+  ['status', stringType],
+  ['steeringmanager', steeringManagerType],
   ['surfacespeed', structureType], // TODO
-  ['target', structureType], // TODO
+  ['target', structureType], // TODO Union
   ['terminal', structureType], // TODO
-  ['time', structureType], // TODO
+  ['time', timeSpanType],
   ['up', structureType], // TODO
   ['velocity', structureType], // TODO
   ['version', structureType], // TODO
@@ -319,17 +323,18 @@ for (const functionType of functionTypes) {
     functionType);
 }
 
-for (const variable of variables) {
+for (const [identifier, type] of variables) {
   libraryBuilder.declareVariable(
     ScopeType.global,
     new Token(
       TokenType.identifier,
-      variable,
+      identifier,
       undefined,
       new Marker(0, 0),
       new Marker(0, 0),
       builtIn,
-    ));
+    ),
+    type);
 }
 
 for (const [identifier, type] of locks) {

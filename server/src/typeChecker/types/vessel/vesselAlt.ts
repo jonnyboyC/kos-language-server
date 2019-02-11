@@ -1,8 +1,8 @@
-import { IArgumentType } from './types';
-import { createStructureType, createSuffixType, createArgSuffixType } from './ksType';
-import { addPrototype, addSuffixes } from './typeUitlities';
-import { structureType } from './structure';
-import { scalarType } from './primitives';
+import { IArgumentType } from '../types';
+import { createStructureType, createArgSuffixType } from '../ksType';
+import { addPrototype, addSuffixes } from '../typeUitlities';
+import { structureType } from '../structure';
+import { scalarType } from '../primitives';
 
 export const vesselAltType: IArgumentType = createStructureType('vesselAlt');
 addPrototype(vesselAltType, structureType);
