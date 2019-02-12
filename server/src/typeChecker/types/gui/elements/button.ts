@@ -1,7 +1,7 @@
 import { createStructureType, createSetSuffixType } from '../../ksType';
 import { IArgumentType } from '../../types';
 import { addPrototype, addSuffixes } from '../../typeUitlities';
-import { booleanType } from '../../primitives';
+import { booleanType } from '../../primitives/primitives';
 import { userDelegateType } from '../../userDelegate';
 import { labelType } from './label';
 

@@ -1,8 +1,8 @@
 import { IArgumentType } from './types';
 import { createStructureType, createArgSuffixType } from './ksType';
 import { addPrototype, addSuffixes } from './typeUitlities';
-import { structureType } from './structure';
-import { scalarType, stringType, booleanType } from './primitives';
+import { structureType } from './primitives/structure';
+import { scalarType, stringType, booleanType } from './primitives/primitives';
 import { bodyTargetType } from './orbital/bodyTarget';
 import { geoCoordinatesType } from './geoCoordinates';
 import { vectorType } from './collections/vector';

@@ -4,16 +4,16 @@ import {
   createSuffixType, createSetSuffixType,
 } from './ksType';
 import { addPrototype, addSuffixes } from './typeUitlities';
-import { structureType } from './structure';
-import { booleanType, stringType, scalarType } from './primitives';
-import { voidType } from './void';
+import { structureType } from './primitives/structure';
+import { booleanType, stringType, scalarType } from './primitives/primitives';
 import { userListType } from './collections/list';
 import { vesselTargetType } from './orbital/vesselTarget';
 import { uniqueSetType } from './collections/uniqueset';
-import { delegateType } from './delegate';
+import { delegateType } from './primitives/delegate';
 import { loadDistanceType } from './loadDistance';
 import { craftTemplateType } from './craftTemplate';
 import { timeWarpType } from './timewarp';
+import { voidType } from './primitives/void';
 
 export const kUniverseType: IArgumentType = createStructureType('kuniverse');
 addPrototype(kUniverseType, structureType);

@@ -4,11 +4,11 @@ import {
   createSetSuffixType, createSuffixType,
 } from './ksType';
 import { addPrototype, addSuffixes } from './typeUitlities';
-import { structureType } from './structure';
-import { scalarType, booleanType } from './primitives';
+import { structureType } from './primitives/structure';
+import { scalarType, booleanType } from './primitives/primitives';
 import { pidLoopType } from './pidLoop';
 import { directionType } from './direction';
-import { voidType } from './void';
+import { voidType } from './primitives/void';
 
 export const steeringManagerType: IArgumentType = createStructureType('steeringManager');
 addPrototype(steeringManagerType, structureType);

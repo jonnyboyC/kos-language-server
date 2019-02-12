@@ -2,7 +2,7 @@ import { IArgumentType } from '../types';
 import {
   createSetSuffixType, createStructureType,
 } from '../ksType';
-import { booleanType, scalarType } from '../primitives';
+import { booleanType, scalarType } from '../primitives/primitives';
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { boxType } from './box';
 import { widgetSkinType } from './widgetSkin';

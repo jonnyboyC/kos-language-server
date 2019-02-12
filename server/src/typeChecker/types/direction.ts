@@ -1,8 +1,8 @@
 import { IArgumentType } from './types';
 import { createStructureType, createSuffixType } from './ksType';
 import { addPrototype, addSuffixes } from './typeUitlities';
-import { structureType } from './structure';
-import { scalarType } from './primitives';
+import { structureType } from './primitives/structure';
+import { scalarType } from './primitives/primitives';
 import { vectorType } from './collections/vector';
 
 export const directionType: IArgumentType = createStructureType('direction');

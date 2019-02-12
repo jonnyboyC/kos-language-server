@@ -4,9 +4,9 @@ import {
   createSuffixType, createSetSuffixType,
 } from './ksType';
 import { addPrototype, addSuffixes } from './typeUitlities';
-import { structureType } from './structure';
-import { scalarType } from './primitives';
-import { voidType } from './void';
+import { structureType } from './primitives/structure';
+import { scalarType } from './primitives/primitives';
+import { voidType } from './primitives/void';
 
 export const pidLoopType: IArgumentType = createStructureType('pidLoop');
 addPrototype(pidLoopType, structureType);

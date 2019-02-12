@@ -5,7 +5,7 @@ import {
 } from '../ksType';
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { enumerableType } from './enumerable';
-import { voidType } from '../void';
+import { voidType } from '../primitives/void';
 
 export const stackType: IGenericArgumentType = createGenericStructureType('stack');
 addPrototype(stackType, enumerableType);

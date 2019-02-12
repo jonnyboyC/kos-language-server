@@ -4,11 +4,11 @@ import {
   createSuffixType,
 } from './ksType';
 import { addPrototype, addSuffixes } from './typeUitlities';
-import { structureType } from './structure';
-import { booleanType, stringType } from './primitives';
+import { structureType } from './primitives/structure';
+import { booleanType, stringType } from './primitives/primitives';
 import { userListType } from './collections/list';
 import { partType } from './part';
-import { voidType } from './void';
+import { voidType } from './primitives/void';
 
 export const partModuleFields: IArgumentType = createStructureType('partModuleFields');
 addPrototype(partModuleFields, structureType);

@@ -4,8 +4,8 @@ import {
   tType, createGenericArgSuffixType,
 } from '../ksType';
 import { addPrototype, addSuffixes } from '../typeUitlities';
-import { serializableStructureType } from '../structure';
-import { scalarType, booleanType, stringType } from '../primitives';
+import { serializableStructureType } from '../primitives/structure';
+import { scalarType, booleanType, stringType } from '../primitives/primitives';
 import { enumeratorType } from './enumerator';
 import { iterator } from '../../../utilities/constants';
 

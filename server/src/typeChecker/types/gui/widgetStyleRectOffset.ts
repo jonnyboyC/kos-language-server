@@ -1,9 +1,9 @@
 import { IArgumentType } from '../types';
-import { structureType } from '../structure';
+import { structureType } from '../primitives/structure';
 import {
   createSetSuffixType, createStructureType,
 } from '../ksType';
-import { integarType } from '../primitives';
+import { integarType } from '../primitives/primitives';
 import { addPrototype, addSuffixes } from '../typeUitlities';
 
 export const widgetStyleRectOffsetType: IArgumentType = createStructureType('styleRectOffset');

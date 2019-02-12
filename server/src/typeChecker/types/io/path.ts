@@ -4,8 +4,8 @@ import {
   createArgSuffixType, createVarSuffixType,
 } from '../ksType';
 import { addPrototype, addSuffixes, createVarType } from '../typeUitlities';
-import { serializableStructureType, structureType } from '../structure';
-import { booleanType, stringType, integarType } from '../primitives';
+import { serializableStructureType, structureType } from '../primitives/structure';
+import { booleanType, stringType, integarType } from '../primitives/primitives';
 import { volumeType } from './volume';
 import { userListType } from '../collections/list';
 

@@ -1,8 +1,8 @@
 import { IArgumentType } from './types';
 import { createStructureType, createSuffixType } from './ksType';
 import { addPrototype, addSuffixes } from './typeUitlities';
-import { structureType } from './structure';
-import { stringType, scalarType } from './primitives';
+import { structureType } from './primitives/structure';
+import { stringType, scalarType } from './primitives/primitives';
 import { userListType } from './collections/list';
 
 export const aggregateResourceType: IArgumentType = createStructureType('aggregateResource');

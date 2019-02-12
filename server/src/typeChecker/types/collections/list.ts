@@ -5,9 +5,9 @@ import {
 } from '../ksType';
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { collectionType } from './collection';
-import { scalarType } from '../primitives';
-import { structureType } from '../structure';
-import { voidType } from '../void';
+import { scalarType } from '../primitives/primitives';
+import { structureType } from '../primitives/structure';
+import { voidType } from '../primitives/void';
 
 export const listType: IGenericArgumentType = createGenericStructureType('list');
 

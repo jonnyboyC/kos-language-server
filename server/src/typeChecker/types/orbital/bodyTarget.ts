@@ -1,8 +1,8 @@
 import { IArgumentType } from '../types';
 import { createStructureType, createArgSuffixType, createSuffixType } from '../ksType';
 import { addPrototype, addSuffixes } from '../typeUitlities';
-import { structureType } from '../structure';
-import { booleanType, stringType, scalarType } from '../primitives';
+import { structureType } from '../primitives/structure';
+import { booleanType, stringType, scalarType } from '../primitives/primitives';
 import { orbitableType } from './orbitable';
 import { userListType } from '../collections/list';
 import { vectorType } from '../collections/vector';

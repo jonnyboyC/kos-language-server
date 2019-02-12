@@ -1,8 +1,8 @@
 import { IArgumentType } from './types';
 import { createStructureType, createSuffixType } from './ksType';
 import { addPrototype, addSuffixes } from './typeUitlities';
-import { structureType } from './structure';
-import { booleanType, scalarType } from './primitives';
+import { structureType } from './primitives/structure';
+import { booleanType, scalarType } from './primitives/primitives';
 
 export const careerType: IArgumentType = createStructureType('career');
 addPrototype(careerType, structureType);

@@ -1,10 +1,10 @@
 import { IArgumentType } from '../types';
-import { createStructureType, createArgSuffixType, createSuffixType } from '../ksType';
+import { createStructureType, createArgSuffixType } from '../ksType';
 import { addPrototype, addSuffixes } from '../typeUitlities';
-import { structureType } from '../structure';
-import { booleanType, scalarType } from '../primitives';
+import { structureType } from '../primitives/structure';
+import { booleanType, scalarType } from '../primitives/primitives';
 import { messageType } from './message';
-import { voidType } from '../void';
+import { voidType } from '../primitives/void';
 
 export const messageQueueType: IArgumentType = createStructureType('messageQueue');
 addPrototype(messageQueueType, structureType);

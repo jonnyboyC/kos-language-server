@@ -4,14 +4,15 @@ import { TokenType } from '../entities/tokentypes';
 import {
   scalarType, stringType,
   booleanType, integarType, doubleType,
-} from '../typeChecker/types/primitives';
+} from '../typeChecker/types/primitives/primitives';
 import { queueType } from '../typeChecker/types/collections/queue';
-import { structureType, serializableStructureType } from '../typeChecker/types/structure';
+import {
+  structureType, serializableStructureType,
+} from '../typeChecker/types/primitives/structure';
 import { createVarType } from '../typeChecker/types/typeUitlities';
 import { userListType, listType } from '../typeChecker/types/collections/list';
 import { stackType } from '../typeChecker/types/collections/stack';
 import { uniqueSetType } from '../typeChecker/types/collections/uniqueset';
-import { voidType } from '../typeChecker/types/void';
 import { nodeType } from '../typeChecker/types/node';
 import { partType } from '../typeChecker/types/part';
 import { constantType } from '../typeChecker/types/constant';
@@ -47,7 +48,7 @@ import { volumeItemType } from '../typeChecker/types/io/volumeItem';
 import { volumeDirectoryType } from '../typeChecker/types/io/volumeDirectory';
 import { createFunctionType, createVarFunctionType } from '../typeChecker/types/ksType';
 import { IArgumentType } from '../typeChecker/types/types';
-import { delegateType } from '../typeChecker/types/delegate';
+import { delegateType } from '../typeChecker/types/primitives/delegate';
 import { kUniverseType } from '../typeChecker/types/kUniverse';
 import { homeConnectionType } from '../typeChecker/types/communication/homeConnection';
 import { controlConnectionType } from '../typeChecker/types/communication/controlConnection';
@@ -56,6 +57,7 @@ import { vesselEtaType } from '../typeChecker/types/vessel/vesselEta';
 import { stageType } from '../typeChecker/types/vessel/stage';
 import { steeringManagerType } from '../typeChecker/types/steeringManager';
 import { terminalStructType } from '../typeChecker/types/terminalStruct';
+import { voidType } from '../typeChecker/types/primitives/void';
 
 const libraryBuilder = new ScopeBuilder(builtIn);
 const functionTypes = [

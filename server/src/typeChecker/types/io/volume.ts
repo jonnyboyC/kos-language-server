@@ -6,8 +6,8 @@ import {
   createSetSuffixType,
 } from '../ksType';
 import { addPrototype, addSuffixes } from '../typeUitlities';
-import { structureType } from '../structure';
-import { booleanType, scalarType, stringType } from '../primitives';
+import { structureType } from '../primitives/structure';
+import { booleanType, scalarType, stringType } from '../primitives/primitives';
 import { volumeDirectoryType } from './volumeDirectory';
 import { volumeFileType } from './volumneFile';
 import { lexiconType } from '../collections/lexicon';

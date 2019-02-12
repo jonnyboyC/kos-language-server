@@ -1,10 +1,10 @@
 import { IArgumentType } from '../types';
-import { structureType } from '../structure';
+import { structureType } from '../primitives/structure';
 import {
   createSetSuffixType, createSuffixType,
   createStructureType,
 } from '../ksType';
-import { booleanType, scalarType, stringType, integarType } from '../primitives';
+import { booleanType, scalarType, stringType, integarType } from '../primitives/primitives';
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { rgbaType } from '../rgba';
 import { widgetStyleStateType } from './widgetStyleState';

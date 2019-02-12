@@ -1,12 +1,12 @@
 import { createStructureType, createSetSuffixType, createArgSuffixType } from '../../ksType';
 import { IArgumentType } from '../../types';
 import { addPrototype, addSuffixes } from '../../typeUitlities';
-import { booleanType, integarType, stringType } from '../../primitives';
+import { booleanType, integarType, stringType } from '../../primitives/primitives';
 import { userDelegateType } from '../../userDelegate';
 import { buttonType } from './button';
 import { userListType } from '../../collections/list';
-import { structureType } from '../../structure';
-import { voidType } from '../../void';
+import { structureType } from '../../primitives/structure';
+import { voidType } from '../../primitives/void';
 
 export const popupMenuType: IArgumentType = createStructureType('popupMenu');
 addPrototype(popupMenuType, buttonType);

@@ -1,8 +1,8 @@
-import { IArgumentType, Operator } from './types';
-import { createStructureType, createArgSuffixType } from './ksType';
+import { IArgumentType, Operator } from '../types';
+import { createStructureType, createArgSuffixType } from '../ksType';
 import { structureType } from './structure';
-import { addPrototype, addSuffixes, addOperators } from './typeUitlities';
-import { voidType } from './void';
+import { addPrototype, addSuffixes, addOperators } from '../typeUitlities';
+import { voidType } from '../void';
 
 // ---------- base of all primitive types --------------
 export const primitiveType: IArgumentType = createStructureType('primitive');

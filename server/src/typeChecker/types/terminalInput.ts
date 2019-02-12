@@ -1,9 +1,9 @@
 import { IArgumentType } from './types';
 import { createStructureType, createArgSuffixType, createSuffixType } from './ksType';
 import { addPrototype, addSuffixes } from './typeUitlities';
-import { structureType } from './structure';
-import { booleanType, stringType } from './primitives';
-import { voidType } from './void';
+import { structureType } from './primitives/structure';
+import { booleanType, stringType } from './primitives/primitives';
+import { voidType } from './primitives/void';
 
 export const terminalInputType: IArgumentType = createStructureType('terminalInput');
 addPrototype(terminalInputType, structureType);

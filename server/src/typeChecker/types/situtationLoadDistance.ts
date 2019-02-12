@@ -1,8 +1,8 @@
 import { IArgumentType } from './types';
 import { createStructureType, createSetSuffixType } from './ksType';
 import { addPrototype, addSuffixes } from './typeUitlities';
-import { structureType } from './structure';
-import { scalarType } from './primitives';
+import { structureType } from './primitives/structure';
+import { scalarType } from './primitives/primitives';
 
 export const situationLoadDistanceType: IArgumentType
   = createStructureType('situationLoadDistance');

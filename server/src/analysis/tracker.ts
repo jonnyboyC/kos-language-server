@@ -1,5 +1,5 @@
 import { KsEntity, IKsEntityTracker, IKsChange, IKsDeclared } from './types';
-import { structureType } from '../typeChecker/types/structure';
+import { structureType } from '../typeChecker/types/primitives/structure';
 import { Location } from 'vscode-languageserver';
 import { IExpr } from '../parser/types';
 import { IArgumentType, IFunctionType } from '../typeChecker/types/types';

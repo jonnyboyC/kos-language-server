@@ -11,10 +11,13 @@ import {
   IArgumentType, IType,
   IBasicType, IVariadicType, Operator, SuffixCallType,
 } from './types/types';
-import { structureType } from './types/structure';
-import { voidType } from './types/void';
+import { structureType } from './types/primitives/structure';
 import { coerce } from './coerce';
-import { booleanType, stringType, scalarType, integarType, doubleType } from './types/primitives';
+import {
+  booleanType, stringType,
+  scalarType, integarType,
+  doubleType,
+} from './types/primitives/primitives';
 import { KsTypeError } from './typeError';
 import { iterator } from '../utilities/constants';
 import { TokenType } from '../entities/tokentypes';
@@ -24,6 +27,7 @@ import { userListType } from './types/collections/list';
 import { lexiconType } from './types/collections/lexicon';
 import { zip } from '../utilities/arrayUtilities';
 import { isSubType, hasOperator, getSuffix } from './types/typeUitlities';
+import { voidType } from './types/primitives/void';
 
 type TypeErrors = ITypeError[];
 

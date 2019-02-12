@@ -3,8 +3,7 @@ import {
   createSetSuffixType, createSuffixType,
   createArgSuffixType, createStructureType,
 } from '../ksType';
-import { stringType } from '../primitives';
-import { voidType } from '../void';
+import { stringType } from '../primitives/primitives';
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { widgetType } from './widget';
 import { userListType } from '../collections/list';
@@ -16,6 +15,7 @@ import { textFieldType } from './elements/textField';
 import { buttonType } from './elements/button';
 import { popupMenuType } from './elements/popupMenu';
 import { sliderType } from './elements/slider';
+import { voidType } from '../primitives/void';
 
 export const boxType: IArgumentType = createStructureType('box');
 addPrototype(boxType, widgetType);
