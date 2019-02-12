@@ -10,6 +10,7 @@ import {
   IGrammarOptional, IGrammarRepeat, Distribution,
 } from '../parser/types';
 import { TokenType } from '../entities/tokentypes';
+import { keywords } from '../utilities/constants';
 const jStat = require('jstat').jStat;
 
 const ALPHA_CHARSET = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -23,6 +24,9 @@ const ID_GAMMA_SCALE = 0.75;
 
 const STRING_GAMMA_SHAPE = 18;
 const STRING_GAMMA_SCALE = 0.75;
+
+const DOUBLE_LOGNORM_MEAN = 0;
+const DOUBLE_LOGNORM_SIGMA = 5;
 
 export class Generator implements IExprClassVisitor<string> {
   constructor(
@@ -189,7 +193,7 @@ export class Generator implements IExprClassVisitor<string> {
   }
 
   private generateDouble(): string {
-    const number = (Math.random() - 0.2) * 5000;
+    const number = jStat.lognormal.sample(DOUBLE_LOGNORM_MEAN, DOUBLE_LOGNORM_SIGMA) as number;
     let numberStr = number.toExponential(getRandomInt(20));
 
     const removeSign = Math.random();
@@ -211,17 +215,21 @@ export class Generator implements IExprClassVisitor<string> {
   }
 
   private generateIdentifier(): string {
-    const length = jStat.gamma.sample(ID_GAMMA_SHAPE, ID_GAMMA_SCALE);
+    const length = jStat.gamma.sample(ID_GAMMA_SHAPE, ID_GAMMA_SCALE) as number;
     let identifier = '';
 
     for (let i = 0; i < length; i += 1) {
       identifier += ALPHA_CHARSET[Math.floor(Math.random() * ALPHA_CHARSET.length)];
     }
+
+    if (keywords.has(identifier.toLowerCase())) {
+      return this.generateIdentifier();
+    }
     return identifier;
   }
 
   private generateString(): string {
-    const length = jStat.gamma.sample(STRING_GAMMA_SHAPE, STRING_GAMMA_SCALE);
+    const length = jStat.gamma.sample(STRING_GAMMA_SHAPE, STRING_GAMMA_SCALE) as number;
     return `"${this.generateRandomString(length)}"`;
   }
 

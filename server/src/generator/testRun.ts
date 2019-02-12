@@ -20,9 +20,15 @@ const parseExpression = (source: string): [INodeResult<IExpr>, IScannerError[]] 
   return [parser.parseExpression(), scanErrors];
 };
 
+let i = 0;
 while (true) {
   for (const exprClass of validExprTypes.slice(0, -1)) {
+    if (i % 100 === 0) {
+      console.log(i);
+    }
+
     const source = generator.generateExpr(exprClass[0]);
+    i += 1;
 
     try {
       const [{ errors }, scanErrors] = parseExpression(source);
