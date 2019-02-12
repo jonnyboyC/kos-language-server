@@ -14,7 +14,7 @@ import { keywords } from '../utilities/constants';
 const jStat = require('jstat').jStat;
 
 const ALPHA_CHARSET = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-// const ALPHA_NUMERIC_CHARSET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const ALPHA_NUMERIC_CHARSET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 const ASCII_LOW = 35;
 const ASCII_HIGH = 126;
@@ -215,11 +215,11 @@ export class Generator implements IExprClassVisitor<string> {
   }
 
   private generateIdentifier(): string {
-    const length = jStat.gamma.sample(ID_GAMMA_SHAPE, ID_GAMMA_SCALE) as number;
-    let identifier = '';
+    const length = Math.ceil(jStat.gamma.sample(ID_GAMMA_SHAPE, ID_GAMMA_SCALE)) as number;
+    let identifier = ALPHA_CHARSET[Math.floor(Math.random() * ALPHA_CHARSET.length)];
 
-    for (let i = 0; i < length; i += 1) {
-      identifier += ALPHA_CHARSET[Math.floor(Math.random() * ALPHA_CHARSET.length)];
+    for (let i = 1; i < length; i += 1) {
+      identifier += ALPHA_NUMERIC_CHARSET[Math.floor(Math.random() * ALPHA_NUMERIC_CHARSET.length)];
     }
 
     if (keywords.has(identifier.toLowerCase())) {

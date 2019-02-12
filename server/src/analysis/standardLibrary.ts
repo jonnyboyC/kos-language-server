@@ -55,6 +55,7 @@ import { vesselAltType } from '../typeChecker/types/vessel/vesselAlt';
 import { vesselEtaType } from '../typeChecker/types/vessel/vesselEta';
 import { stageType } from '../typeChecker/types/vessel/stage';
 import { steeringManagerType } from '../typeChecker/types/steeringManager';
+import { terminalStructType } from '../typeChecker/types/terminalStruct';
 
 const libraryBuilder = new ScopeBuilder(builtIn);
 const functionTypes = [
@@ -217,95 +218,97 @@ const variables: [string, IArgumentType][] = [
   ['ag7', structureType], // TODO
   ['ag8', structureType], // TODO
   ['ag9', structureType], // TODO
-  ['airspeed', structureType], // TODO
+  ['airspeed', scalarType],
   ['allnodes', listType.toConcreteType(nodeType)],
   ['alt', vesselAltType],
-  ['altitude', structureType], // TODO
-  ['angularmomentum', vectorType], // TODO
-  ['angularvel', structureType], // TODO
-  ['angularvelocity', structureType], // TODO
-  ['apoapsis', structureType], // TODO
+  ['altitude', scalarType],
+  ['angularmomentum', vectorType],
+  ['angularvel', vectorType],
+  ['angularvelocity', vectorType],
+  ['apoapsis', scalarType],
   ['archive', structureType], // TODO
   ['availablethrust', structureType], // TODO
-  ['bays', structureType], // TODO
+  ['bays', booleanType], // TODO
   ['black', rgbaType],
   ['blue', structureType],
-  ['body', structureType], // TODO
+  ['body', bodyTargetType],
   ['brakes', structureType], // TODO
-  ['chutes', structureType], // TODO
-  ['chutessafe', structureType], // TODO
+  ['chutes', booleanType],
+  ['chutessafe', booleanType],
   ['config', structureType], // TODO
   ['constant', constantType],
   ['controlconnection', controlConnectionType],
   ['core', structureType], // TODO
-  ['cyan', structureType], // TODO
-  ['deploydrills', structureType], // TODO
+  ['cyan', rgbaType],
+  ['deploydrills', booleanType],
   ['donothing', delegateType], // TODO
-  ['drills', structureType], // TODO
+  ['drills', booleanType],
   ['encounter', orbitInfoType], // TODO Union
   ['eta', vesselEtaType],
-  ['facing', structureType], // TODO
-  ['fuelcells', structureType], // TODO
+  ['facing', directionType],
+  ['fuelcells', booleanType],
   ['gear', structureType], // TODO
-  ['geoposition', structureType], // TODO
+  ['geoposition', geoCoordinatesType],
   ['gray', rgbaType],
   ['green', rgbaType],
   ['grey', rgbaType],
-  ['groundspeed', structureType], // TODO
   ['hasnode', booleanType],
   ['hastarget', booleanType],
-  ['heading', scalarType], // TODO
+  ['heading', scalarType],
   ['homeconnection', homeConnectionType],
-  ['intakes', structureType], // TODO
-  ['isru', structureType], // TODO
+  ['intakes', booleanType],
+  ['isru', booleanType],
   ['kuniverse', kUniverseType], // TODO
-  ['ladders', structureType], // TODO
-  ['latitude', structureType], // TODO
-  ['legs', structureType], // TODO
+  ['ladders', booleanType],
+  ['latitude', scalarType], // TODO
+  ['legs', booleanType],
   ['lights', structureType], // TODO
-  ['longitude', structureType], // TODO
+  ['longitude', scalarType],
   ['magenta', rgbaType],
   ['mapview', structureType], // TODO
-  ['mass', structureType], // TODO
-  ['maxthrust', structureType], // TODO
+  ['mass', scalarType],
+  ['maxthrust', scalarType],
   ['missiontime', structureType], // TODO
   ['nextnode', nodeType],
-  ['north', structureType], // TODO
+  ['north', directionType],
   ['obt', orbitInfoType],
   ['orbit', orbitInfoType],
-  ['panels', structureType], // TODO
-  ['periapsis', structureType], // TODO
+  ['panels', booleanType],
+  ['periapsis', scalarType],
   ['prograde', directionType], // TODO
   ['purple', rgbaType],
-  ['radiators', structureType], // TODO
+  ['radiators', booleanType],
   ['rcs', structureType], // TODO
   ['red', structureType],
-  ['retrograde', structureType], // TODO
+  ['retrograde', directionType], // TODO
   ['sas', structureType], // TODO
-  ['sensor', structureType], // TODO
-  ['sessiontime', structureType], // TODO
+  ['sensor', vesselTargetType], // TODO
+  ['sessiontime', doubleType], // TODO
   ['ship', vesselTargetType],
   ['shipname', stringType],
   ['solarprimevector', vectorType],
-  ['srfprograde', directionType], // TODO
-  ['srfretrograde', directionType], // TODO
+  ['srfprograde', directionType],
+  ['srfretrograde', directionType],
   ['stage', stageType],
   ['status', stringType],
   ['steeringmanager', steeringManagerType],
-  ['surfacespeed', structureType], // TODO
+  ['surfacespeed', scalarType],
   ['target', structureType], // TODO Union
-  ['terminal', structureType], // TODO
+  ['terminal', terminalStructType],
   ['time', timeSpanType],
-  ['up', structureType], // TODO
-  ['velocity', structureType], // TODO
+  ['up', directionType],
+  ['velocity', orbitableType],
   ['version', structureType], // TODO
-  ['verticalspeed', structureType], // TODO
-  ['volume:name', structureType], // TODO
-  ['warp', structureType], // TODO
-  ['warpmode', structureType], // TODO
+  ['verticalspeed', scalarType],
+  ['volume:name', stringType],
+  ['warp', integarType],
+  ['warpmode', stringType],
   ['white', rgbaType],
   ['yellow', rgbaType],
 ];
+
+// obsoleted
+//  ['groundspeed', scalarType],
 
 for (const functionType of functionTypes) {
   libraryBuilder.declareFunction(

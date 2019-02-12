@@ -129,10 +129,10 @@ export class Scanner {
 
   // extract any identifiers
   private identifier(): Token {
-    while (this.isAlpha(this.peek())) this.advance();
+    while (this.isAlphaNumeric(this.peek())) this.advance();
 
     // if "." immediatily followed by alpha numeri
-    if (this.peek() === '.' && this.isAlpha(this.peekNext())) {
+    if (this.peek() === '.' && this.isAlphaNumeric(this.peekNext())) {
       return this.fileIdentifier();
     }
 

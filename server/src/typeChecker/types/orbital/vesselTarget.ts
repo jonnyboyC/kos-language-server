@@ -9,6 +9,9 @@ import { directionType } from '../direction';
 import { voidType } from '../void';
 import { uniqueSetType } from '../collections/uniqueset';
 import { partType } from '../part';
+import { loadDistanceType } from '../loadDistance';
+import { vesselConnectionType } from '../communication/vesselConnection';
+import { messageQueueType } from '../communication/messageQueue';
 
 export const vesselTargetType: IArgumentType = createStructureType('vesselTarget');
 addPrototype(vesselTargetType, orbitableType);
@@ -60,7 +63,7 @@ addSuffixes(
   createSuffixType('dryMass', scalarType),
   createSuffixType('wetMass', scalarType),
   createSuffixType('resources', listType.toConcreteType(scalarType)), /* TODO */
-  createSuffixType('loadDistance', /* TODO */ scalarType),
+  createSuffixType('loadDistance', loadDistanceType),
   createArgSuffixType('isDead', booleanType),
   createSuffixType('status', stringType),
   createSuffixType('latitude', scalarType),
@@ -68,8 +71,8 @@ addSuffixes(
   createSuffixType('altitude', scalarType),
   createSuffixType('crew', userListType),
   createSuffixType('crewCapacity', scalarType),
-  createSuffixType('connection', /* TODO */ scalarType),
-  createSuffixType('messages', /* TODO */ scalarType),
+  createSuffixType('connection', vesselConnectionType),
+  createSuffixType('messages', messageQueueType),
   createArgSuffixType('startTracking', voidType),
   createArgSuffixType('soiChangeWatchers', uniqueSetType.toConcreteType(scalarType)), /* TODO */
 );

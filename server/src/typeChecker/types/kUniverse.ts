@@ -11,6 +11,9 @@ import { userListType } from './collections/list';
 import { vesselTargetType } from './orbital/vesselTarget';
 import { uniqueSetType } from './collections/uniqueset';
 import { delegateType } from './delegate';
+import { loadDistanceType } from './loadDistance';
+import { craftTemplateType } from './craftTemplate';
+import { timeWarpType } from './timewarp';
 
 export const kUniverseType: IArgumentType = createStructureType('kuniverse');
 addPrototype(kUniverseType, structureType);
@@ -29,18 +32,18 @@ addSuffixes(
   createArgSuffixType('quickLoadFrom', voidType, stringType),
   createSuffixType('quickSaveList', userListType),
   createSuffixType('originEditor', stringType),
-  createSuffixType('defaultLoadDistance',  /* TODO */ structureType),
+  createSuffixType('defaultLoadDistance',  loadDistanceType),
   createSetSuffixType('activeVessel', vesselTargetType),
   createArgSuffixType('forceSetActiveVessel', voidType, vesselTargetType),
   createArgSuffixType('forceActive', voidType, vesselTargetType),
   createArgSuffixType('hoursPerDay', scalarType),
   createArgSuffixType('debugLog', stringType),
-  createArgSuffixType('getCraft', /* TODO */ structureType, stringType, stringType),
-  createArgSuffixType('launchCraft', voidType, /* TODO */ structureType),
-  createArgSuffixType('launchCraftFrom', voidType, /* TODO */ structureType, stringType),
+  createArgSuffixType('getCraft', craftTemplateType, stringType, stringType),
+  createArgSuffixType('launchCraft', voidType, craftTemplateType),
+  createArgSuffixType('launchCraftFrom', voidType, craftTemplateType, stringType),
   createSuffixType('craftList', userListType),
   createArgSuffixType('switchVesselWatchers', uniqueSetType.toConcreteType(delegateType)),
-  createSuffixType('timewarp', /* TODO */ structureType),
+  createSuffixType('timewarp', timeWarpType),
   createSuffixType('realWorldTime', scalarType),
   createSuffixType('realTime', scalarType),
 );

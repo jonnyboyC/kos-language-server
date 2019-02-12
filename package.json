@@ -83,12 +83,12 @@
     "devDependencies": {
         "@types/atom": "^1.31.0",
         "@types/mocha": "~5.2.0",
-        "@types/node": "~10.12.11",
+        "@types/node": "^10.12.25",
         "ava": "^0.25.0",
         "tslint-config-airbnb": "^5.11.1",
         "typescript": "3.2.1"
     },
     "dependencies": {
-        "tslint": "^5.11.0"
+        "tslint": "^5.12.1"
     }
 }
