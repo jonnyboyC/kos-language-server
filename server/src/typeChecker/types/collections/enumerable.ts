@@ -5,9 +5,11 @@ import {
 } from '../ksType';
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { serializableStructureType } from '../primitives/structure';
-import { scalarType, booleanType, stringType } from '../primitives/primitives';
 import { enumeratorType } from './enumerator';
 import { iterator } from '../../../utilities/constants';
+import { scalarType } from '../primitives/scalar';
+import { booleanType } from '../primitives/boolean';
+import { stringType } from '../primitives/string';
 
 export const enumerableType: IGenericArgumentType = createGenericStructureType('enumerable');
 addPrototype(enumerableType, serializableStructureType);

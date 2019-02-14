@@ -2,7 +2,9 @@ import { IArgumentType } from './types';
 import { createStructureType, createSuffixType, createSetSuffixType } from './ksType';
 import { addPrototype, addSuffixes } from './typeUitlities';
 import { structureType } from './primitives/structure';
-import { booleanType, stringType, scalarType } from './primitives/primitives';
+import { stringType } from './primitives/string';
+import { scalarType } from './primitives/scalar';
+import { booleanType } from './primitives/boolean';
 
 export const kacAlarmType: IArgumentType = createStructureType('kacAlarm');
 addPrototype(kacAlarmType, structureType);

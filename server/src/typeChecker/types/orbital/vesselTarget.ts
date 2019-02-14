@@ -1,9 +1,8 @@
 import { IArgumentType } from '../types';
 import { createStructureType, createArgSuffixType, createSuffixType } from '../ksType';
 import { addPrototype, addSuffixes } from '../typeUitlities';
-import { booleanType, stringType, scalarType } from '../primitives/primitives';
 import { orbitableType } from './orbitable';
-import { listType, userListType } from '../collections/list';
+import { listType } from '../collections/list';
 import { vectorType } from '../collections/vector';
 import { directionType } from '../direction';
 import { uniqueSetType } from '../collections/uniqueset';
@@ -12,6 +11,10 @@ import { loadDistanceType } from '../loadDistance';
 import { vesselConnectionType } from '../communication/vesselConnection';
 import { messageQueueType } from '../communication/messageQueue';
 import { voidType } from '../primitives/void';
+import { userListType } from '../collections/userList';
+import { stringType } from '../primitives/string';
+import { scalarType } from '../primitives/scalar';
+import { booleanType } from '../primitives/boolean';
 
 export const vesselTargetType: IArgumentType = createStructureType('vesselTarget');
 addPrototype(vesselTargetType, orbitableType);

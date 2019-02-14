@@ -3,9 +3,9 @@ import { structureType } from '../primitives/structure';
 import {
   createSetSuffixType, createStructureType,
 } from '../ksType';
-import { stringType } from '../primitives/primitives';
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { rgbaType } from '../rgba';
+import { stringType } from '../primitives/string';
 
 export const widgetStyleStateType: IArgumentType = createStructureType('styleState');
 addPrototype(widgetStyleStateType, structureType);

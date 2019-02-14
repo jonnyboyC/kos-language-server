@@ -5,9 +5,10 @@ import {
 } from './ksType';
 import { addPrototype, addSuffixes } from './typeUitlities';
 import { structureType } from './primitives/structure';
-import { booleanType, scalarType } from './primitives/primitives';
 import { uniqueSetType } from './collections/uniqueset';
 import { terminalInputType } from './terminalInput';
+import { scalarType } from './primitives/scalar';
+import { booleanType } from './primitives/boolean';
 
 export const terminalStructType: IArgumentType = createStructureType('terminalStruct');
 addPrototype(terminalStructType, structureType);

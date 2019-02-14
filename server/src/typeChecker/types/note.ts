@@ -2,7 +2,7 @@ import { IArgumentType } from './types';
 import { createStructureType, createSuffixType } from './ksType';
 import { addPrototype, addSuffixes } from './typeUitlities';
 import { serializableStructureType } from './primitives/structure';
-import { doubleType } from './primitives/primitives';
+import { doubleType } from './primitives/scalar';
 
 export const noteType: IArgumentType = createStructureType('note');
 addPrototype(noteType, serializableStructureType);

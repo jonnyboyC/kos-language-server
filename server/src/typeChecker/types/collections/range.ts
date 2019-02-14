@@ -1,11 +1,11 @@
 import { IArgumentType } from '../types';
 import { createArgSuffixType, createStructureType } from '../ksType';
 import { addPrototype, addSuffixes } from '../typeUitlities';
-import { enumeratorType } from './enumerator';
-import { scalarType } from '../primitives/primitives';
+import { enumerableType } from './enumerable';
+import { scalarType } from '../primitives/scalar';
 
 export const rangeType: IArgumentType = createStructureType('range');
-addPrototype(rangeType, enumeratorType.toConcreteType(scalarType));
+addPrototype(rangeType, enumerableType.toConcreteType(scalarType));
 
 addSuffixes(
   rangeType,

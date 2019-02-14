@@ -3,8 +3,8 @@ import {
   createSetSuffixType, createSuffixType, createStructureType,
 } from '../ksType';
 import { addPrototype, addSuffixes } from '../typeUitlities';
-import { scalarType } from '../primitives/primitives';
 import { serializableStructureType } from '../primitives/structure';
+import { scalarType } from '../primitives/scalar';
 
 export const vectorType: IArgumentType = createStructureType('vector');
 

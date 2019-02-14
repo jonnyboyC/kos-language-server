@@ -1,8 +1,8 @@
 import { IArgumentType } from './types';
 import { createStructureType, createSetSuffixType } from './ksType';
 import { addPrototype, addSuffixes } from './typeUitlities';
-import { scalarType } from './primitives/primitives';
 import { rgbaType } from './rgba';
+import { scalarType } from './primitives/scalar';
 
 export const hsvaType: IArgumentType = createStructureType('hsva');
 addPrototype(hsvaType, rgbaType);

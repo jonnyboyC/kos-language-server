@@ -2,10 +2,11 @@ import { IArgumentType } from '../types';
 import { createStructureType, createArgSuffixType, createSuffixType } from '../ksType';
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { structureType } from '../primitives/structure';
-import { booleanType, stringType } from '../primitives/primitives';
 import { volumeItemType } from './volumeItem';
 import { fileContentType } from './fileContent';
 import { voidType } from '../primitives/void';
+import { booleanType } from '../primitives/boolean';
+import { stringType } from '../primitives/string';
 
 export const volumeFileType: IArgumentType = createStructureType('volumefile');
 addPrototype(volumeFileType, volumeItemType);

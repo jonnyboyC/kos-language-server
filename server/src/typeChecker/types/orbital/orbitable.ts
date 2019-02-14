@@ -2,14 +2,16 @@ import { IArgumentType } from '../types';
 import { createStructureType, createSuffixType, createArgSuffixType } from '../ksType';
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { serializableStructureType } from '../primitives/structure';
-import { stringType, scalarType, booleanType } from '../primitives/primitives';
 import { directionType } from '../direction';
 import { vectorType } from '../collections/vector';
 import { geoCoordinatesType } from '../geoCoordinates';
-import { userListType } from '../collections/list';
 import { bodyTargetType } from './bodyTarget';
 import { orbitInfoType } from '../orbitInfo';
 import { orbitableVelocityType } from '../orbitalVelocity';
+import { userListType } from '../collections/userList';
+import { stringType } from '../primitives/string';
+import { scalarType } from '../primitives/scalar';
+import { booleanType } from '../primitives/boolean';
 
 export const orbitableType: IArgumentType = createStructureType('orbitable');
 addPrototype(orbitableType, serializableStructureType);

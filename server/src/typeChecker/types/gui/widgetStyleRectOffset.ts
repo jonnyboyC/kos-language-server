@@ -3,8 +3,8 @@ import { structureType } from '../primitives/structure';
 import {
   createSetSuffixType, createStructureType,
 } from '../ksType';
-import { integarType } from '../primitives/primitives';
 import { addPrototype, addSuffixes } from '../typeUitlities';
+import { integarType } from '../primitives/scalar';
 
 export const widgetStyleRectOffsetType: IArgumentType = createStructureType('styleRectOffset');
 addPrototype(widgetStyleRectOffsetType, structureType);

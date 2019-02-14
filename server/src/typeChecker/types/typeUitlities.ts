@@ -99,8 +99,12 @@ export const isFullVarType = (type: IGenericVariadicType):type is IVariadicType 
 };
 
 export const isFullType = (type: IGenericArgumentType): type is IArgumentType => {
-  const check = type as IArgumentType;
-  return !empty(check.fullType) && check.fullType;
+  try {
+    return type.fullType;
+  } catch (e) {
+    debugger;
+    return false;
+  }
 };
 
 export const createVarType = memoize((type: IArgumentType): IVariadicType => {

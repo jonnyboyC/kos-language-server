@@ -31,6 +31,7 @@ export interface ITemplateBasicType<TSuffixType, TConcreteType>
   suffixes: Map<string, TSuffixType>;
   operators: Map<Operator, TConcreteType>;
   inherentsFrom?: ITemplateBasicType<TSuffixType, TConcreteType>;
+  fullType: boolean;
 }
 
 // Could possible delete but does provide a constraint
@@ -40,6 +41,7 @@ export interface ITemplateSuffixType<TBasicType, TVariadicType, TConcreteType>
   callType: SuffixCallType;
   params: TBasicType[] | TVariadicType;
   returns: TBasicType;
+  fullType: boolean;
 }
 
 export interface IGenericBasicType

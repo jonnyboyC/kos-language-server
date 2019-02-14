@@ -1,8 +1,8 @@
 import { IArgumentType } from './types';
 import { ConstantType, createStructureType, createSuffixType } from './ksType';
 import { addPrototype, addSuffixes } from './typeUitlities';
-import { doubleType } from './primitives/primitives';
 import { structureType } from './primitives/structure';
+import { doubleType } from './primitives/scalar';
 
 export const gType = new ConstantType('g', 6.67384e-11);
 addPrototype(gType, doubleType);

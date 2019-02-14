@@ -619,7 +619,7 @@ export class Log extends Inst {
 export class Copy extends Inst {
   constructor(
     public readonly copy: IToken,
-    public readonly expression: IExpr,
+    public readonly source: IExpr,
     public readonly toFrom: IToken,
     public readonly target: IExpr) {
     super();
@@ -634,7 +634,7 @@ export class Copy extends Inst {
   }
 
   public get ranges(): Range[] {
-    return [this.copy, this.expression, this.toFrom, this.target];
+    return [this.copy, this.source, this.toFrom, this.target];
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -647,7 +647,7 @@ export class Rename extends Inst {
     public readonly rename: IToken,
     public readonly fileVolume: IToken,
     public readonly ioIdentifer: IToken,
-    public readonly expression: IExpr,
+    public readonly source: IExpr,
     public readonly to: IToken,
     public readonly target: IExpr) {
     super();
@@ -664,7 +664,7 @@ export class Rename extends Inst {
   public get ranges(): Range[] {
     return [
       this.rename, this.ioIdentifer,
-      this.expression, this.to,
+      this.source, this.to,
       this.target,
     ];
   }

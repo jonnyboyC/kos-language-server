@@ -2,11 +2,14 @@ import { IArgumentType } from '../types';
 import { createStructureType, createArgSuffixType, createSuffixType } from '../ksType';
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { structureType } from '../primitives/structure';
-import { booleanType, stringType, scalarType } from '../primitives/primitives';
 import { orbitableType } from './orbitable';
-import { userListType } from '../collections/list';
 import { vectorType } from '../collections/vector';
 import { geoCoordinatesType } from '../geoCoordinates';
+import { userListType } from '../collections/userList';
+import { bodyAtmosphereType } from '../bodyatmosphere';
+import { stringType } from '../primitives/string';
+import { scalarType } from '../primitives/scalar';
+import { booleanType } from '../primitives/boolean';
 
 export const bodyTargetType: IArgumentType = createStructureType('bodyTarget');
 addPrototype(bodyTargetType, orbitableType);
@@ -23,7 +26,7 @@ addSuffixes(
   createSuffixType('radius', scalarType),
   createSuffixType('mu', scalarType),
   createSuffixType('rotationPeriod', scalarType),
-  createSuffixType('atm', /* TODO */ scalarType),
+  createSuffixType('atm', bodyAtmosphereType),
   createSuffixType('angularVel', vectorType),
   createSuffixType('soiRadius', scalarType),
   createSuffixType('rotationAngle', scalarType),

@@ -4,10 +4,12 @@ import {
   createSetSuffixType, createSuffixType,
   createStructureType,
 } from '../ksType';
-import { booleanType, scalarType, stringType, integarType } from '../primitives/primitives';
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { rgbaType } from '../rgba';
 import { widgetStyleStateType } from './widgetStyleState';
+import { scalarType, integarType } from '../primitives/scalar';
+import { booleanType } from '../primitives/boolean';
+import { stringType } from '../primitives/string';
 
 export const widgetStyleType: IArgumentType = createStructureType('widgetStyle');
 addPrototype(widgetStyleType, structureType);

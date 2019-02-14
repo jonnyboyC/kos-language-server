@@ -370,14 +370,14 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
     let useErrors: Errors = [];
 
     // check from expression
-    if (inst.expression instanceof Expr.Literal) {
-      switch (inst.expression.token.type) {
+    if (inst.source instanceof Expr.Literal) {
+      switch (inst.source.token.type) {
         case TokenType.string:
         case TokenType.fileIdentifier:
           // TODO may need check some about path here
           break;
         default:
-          useErrors = this.useExprLocals(inst.expression);
+          useErrors = this.useExprLocals(inst.source);
       }
     }
 
@@ -393,16 +393,16 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
       }
     }
 
-    return this.useExprLocals(inst.expression).concat(
+    return this.useExprLocals(inst.source).concat(
       useErrors,
-      this.resolveExpr(inst.expression),
+      this.resolveExpr(inst.source),
       this.resolveExpr(inst.target));
   }
 
   public visitRename(inst: Inst.Rename): Errors {
-    return this.useExprLocals(inst.expression).concat(
+    return this.useExprLocals(inst.source).concat(
       this.useExprLocals(inst.target),
-      this.resolveExpr(inst.expression),
+      this.resolveExpr(inst.source),
       this.resolveExpr(inst.target));
   }
 

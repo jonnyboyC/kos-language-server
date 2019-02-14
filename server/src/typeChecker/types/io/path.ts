@@ -5,9 +5,11 @@ import {
 } from '../ksType';
 import { addPrototype, addSuffixes, createVarType } from '../typeUitlities';
 import { serializableStructureType, structureType } from '../primitives/structure';
-import { booleanType, stringType, integarType } from '../primitives/primitives';
 import { volumeType } from './volume';
-import { userListType } from '../collections/list';
+import { userListType } from '../collections/userList';
+import { integarType } from '../primitives/scalar';
+import { stringType } from '../primitives/string';
+import { booleanType } from '../primitives/boolean';
 
 export const pathType: IArgumentType = createStructureType('path');
 addPrototype(pathType, serializableStructureType);

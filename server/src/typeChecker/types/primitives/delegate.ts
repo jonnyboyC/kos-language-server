@@ -2,7 +2,7 @@ import { IArgumentType } from '../types';
 import { createStructureType, createArgSuffixType, createVarSuffixType } from '../ksType';
 import { addPrototype, addSuffixes, createVarType } from '../typeUitlities';
 import { structureType } from './structure';
-import { booleanType } from './primitives';
+import { booleanType } from './boolean';
 
 export const delegateType: IArgumentType = createStructureType('delegate');
 addPrototype(delegateType, structureType);

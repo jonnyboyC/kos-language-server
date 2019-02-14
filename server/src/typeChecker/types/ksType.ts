@@ -56,6 +56,10 @@ export class GenericType implements IGenericBasicType {
     return newType;
   }
 
+  public get fullType(): boolean {
+    return false;
+  }
+
   public get tag(): 'type' {
     return 'type';
   }
@@ -128,6 +132,10 @@ export class GenericSuffixType implements IGenericSuffixType {
     return newType;
   }
 
+  public get fullType(): boolean {
+    return false;
+  }
+
   public get tag(): 'suffix' {
     return 'suffix';
   }
@@ -151,11 +159,11 @@ export class Type implements IBasicType {
     return this.name;
   }
 
-  get fullType(): true {
+  public get fullType(): true {
     return true;
   }
 
-  get tag(): 'type' {
+  public get tag(): 'type' {
     return 'type';
   }
 }

@@ -5,12 +5,15 @@ import {
 } from './ksType';
 import { addPrototype, addSuffixes } from './typeUitlities';
 import { structureType } from './primitives/structure';
-import { booleanType, stringType, scalarType } from './primitives/primitives';
 import { directionType } from './direction';
 import { vectorType } from './collections/vector';
-import { userListType, listType } from './collections/list';
+import { listType } from './collections/list';
 import { vesselTargetType } from './orbital/vesselTarget';
 import { voidType } from './primitives/void';
+import { userListType } from './collections/userList';
+import { stringType } from './primitives/string';
+import { scalarType } from './primitives/scalar';
+import { booleanType } from './primitives/boolean';
 
 export const partType: IArgumentType = createStructureType('part');
 addPrototype(partType, structureType);

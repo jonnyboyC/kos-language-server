@@ -5,8 +5,9 @@ import {
 } from '../ksType';
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { collectionType } from './collection';
-import { scalarType } from '../primitives/primitives';
+
 import { voidType } from '../primitives/void';
+import { scalarType } from '../primitives/scalar';
 
 export const uniqueSetType: IGenericArgumentType = createGenericStructureType('uniqueSet');
 

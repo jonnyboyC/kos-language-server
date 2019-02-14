@@ -1,16 +1,12 @@
 import { ScopeType } from '../parser/types';
 import { Token, Marker } from '../entities/token';
 import { TokenType } from '../entities/tokentypes';
-import {
-  scalarType, stringType,
-  booleanType, integarType, doubleType,
-} from '../typeChecker/types/primitives/primitives';
 import { queueType } from '../typeChecker/types/collections/queue';
 import {
   structureType, serializableStructureType,
 } from '../typeChecker/types/primitives/structure';
 import { createVarType } from '../typeChecker/types/typeUitlities';
-import { userListType, listType } from '../typeChecker/types/collections/list';
+import { listType } from '../typeChecker/types/collections/list';
 import { stackType } from '../typeChecker/types/collections/stack';
 import { uniqueSetType } from '../typeChecker/types/collections/uniqueset';
 import { nodeType } from '../typeChecker/types/node';
@@ -58,6 +54,10 @@ import { stageType } from '../typeChecker/types/vessel/stage';
 import { steeringManagerType } from '../typeChecker/types/steeringManager';
 import { terminalStructType } from '../typeChecker/types/terminalStruct';
 import { voidType } from '../typeChecker/types/primitives/void';
+import { userListType } from '../typeChecker/types/collections/userList';
+import { scalarType, doubleType, integarType } from '../typeChecker/types/primitives/scalar';
+import { stringType } from '../typeChecker/types/primitives/string';
+import { booleanType } from '../typeChecker/types/primitives/boolean';
 
 const libraryBuilder = new ScopeBuilder(builtIn);
 const functionTypes = [

@@ -1,7 +1,8 @@
 import { createStructureType, createArgSuffixType } from '../ksType';
 import { addSuffixes, addPrototype } from '../typeUitlities';
-import { stringType, booleanType } from './primitives';
 import { voidType } from './void';
+import { stringType } from './string';
+import { booleanType } from './boolean';
 
 export const structureType = createStructureType('structure');
 export const serializableStructureType = createStructureType('serializableStructure');

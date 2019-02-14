@@ -7,10 +7,12 @@ import {
 } from '../ksType';
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { structureType } from '../primitives/structure';
-import { booleanType, scalarType, stringType } from '../primitives/primitives';
 import { volumeDirectoryType } from './volumeDirectory';
 import { volumeFileType } from './volumneFile';
 import { lexiconType } from '../collections/lexicon';
+import { scalarType } from '../primitives/scalar';
+import { stringType } from '../primitives/string';
+import { booleanType } from '../primitives/boolean';
 
 export const volumeType: IArgumentType = createStructureType('volume');
 addPrototype(volumeType, structureType);
@@ -22,7 +24,6 @@ addSuffixes(
   createSetSuffixType('name', stringType),
   createSuffixType('renameable', booleanType),
   createSuffixType('powerrequirement', scalarType),
-
   createSuffixType('root', volumeDirectoryType),
   createArgSuffixType('exists', booleanType, stringType),
   createSuffixType('files', lexiconType),

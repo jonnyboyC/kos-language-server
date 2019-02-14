@@ -5,10 +5,11 @@ import {
 } from './ksType';
 import { addPrototype, addSuffixes } from './typeUitlities';
 import { structureType } from './primitives/structure';
-import { scalarType, booleanType } from './primitives/primitives';
 import { pidLoopType } from './pidLoop';
 import { directionType } from './direction';
 import { voidType } from './primitives/void';
+import { booleanType } from './primitives/boolean';
+import { scalarType } from './primitives/scalar';
 
 export const steeringManagerType: IArgumentType = createStructureType('steeringManager');
 addPrototype(steeringManagerType, structureType);

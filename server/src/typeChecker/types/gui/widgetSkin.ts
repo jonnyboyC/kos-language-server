@@ -2,11 +2,12 @@ import { IArgumentType } from '../types';
 import {
   createSetSuffixType, createStructureType, createArgSuffixType,
 } from '../ksType';
-import { booleanType, stringType } from '../primitives/primitives';
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { structureType } from '../primitives/structure';
 import { rgbaType } from '../rgba';
 import { widgetStyleType } from './widgetStyle';
+import { stringType } from '../primitives/string';
+import { booleanType } from '../primitives/boolean';
 
 export const widgetSkinType: IArgumentType = createStructureType('skin');
 addPrototype(widgetSkinType, structureType);

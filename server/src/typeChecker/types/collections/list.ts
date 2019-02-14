@@ -1,13 +1,12 @@
-import { IGenericArgumentType, IArgumentType } from '../types';
+import { IGenericArgumentType } from '../types';
 import {
   createArgSuffixType, createGenericStructureType,
   tType, createGenericArgSuffixType,
 } from '../ksType';
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { collectionType } from './collection';
-import { scalarType } from '../primitives/primitives';
-import { structureType } from '../primitives/structure';
 import { voidType } from '../primitives/void';
+import { scalarType } from '../primitives/scalar';
 
 export const listType: IGenericArgumentType = createGenericStructureType('list');
 
@@ -24,5 +23,3 @@ addSuffixes(
   createGenericArgSuffixType('lastIndexOf', scalarType, tType),
   createGenericArgSuffixType('findLast', scalarType, tType),
 );
-
-export const userListType: IArgumentType = listType.toConcreteType(structureType);

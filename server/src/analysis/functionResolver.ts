@@ -289,12 +289,12 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
   }
 
   public visitCopy(inst: Inst.Copy): Errors {
-    return this.resolveExpr(inst.expression).concat(
+    return this.resolveExpr(inst.source).concat(
       this.resolveExpr(inst.target));
   }
 
   public visitRename(inst: Inst.Rename): Errors {
-    return this.resolveExpr(inst.expression).concat(
+    return this.resolveExpr(inst.source).concat(
       this.resolveExpr(inst.target));
   }
 

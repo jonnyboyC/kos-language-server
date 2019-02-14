@@ -2,7 +2,7 @@ import { IArgumentType } from './types';
 import { createStructureType, createArgSuffixType, createSetSuffixType } from './ksType';
 import { addPrototype, addSuffixes } from './typeUitlities';
 import { structureType } from './primitives/structure';
-import { scalarType } from './primitives/primitives';
+import { scalarType } from './primitives/scalar';
 
 export const rgbaType: IArgumentType = createStructureType('rgba');
 addPrototype(rgbaType, structureType);

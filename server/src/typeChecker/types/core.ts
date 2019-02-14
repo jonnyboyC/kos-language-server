@@ -1,11 +1,11 @@
 import { IArgumentType } from './types';
 import { createStructureType, createArgSuffixType, createSetSuffixType } from './ksType';
 import { addPrototype, addSuffixes } from './typeUitlities';
-import { stringType } from './primitives/primitives';
 import { kosProcessorFields } from './kosProcessorFields';
 import { volumeType } from './io/volume';
 import { processorConnectionType } from './communication/processorConnection';
 import { voidType } from './primitives/void';
+import { stringType } from './primitives/string';
 
 export const coreType: IArgumentType = createStructureType('core');
 addPrototype(coreType, kosProcessorFields);
