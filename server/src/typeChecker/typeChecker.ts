@@ -1,4 +1,4 @@
-import { IExprVisitor, IInstVisitor, IInst, IExpr, ISuffix } from '../parser/types';
+import { IExprVisitor, IInstVisitor, IInst, IExpr } from '../parser/types';
 import * as Expr from '../parser/expr';
 import * as Inst from '../parser/inst';
 import * as Decl from '../parser/declare';
@@ -78,9 +78,9 @@ export class TypeChecker implements IExprVisitor<ITypeResult<IType>>, IInstVisit
   }
 
   // check for a suffix
-  private checkSuffix(expr: ISuffix): ITypeResult<IType> {
-    return expr.accept(this);
-  }
+  // private checkSuffix(expr: ISuffix): ITypeResult<IType> {
+  //   return expr.accept(this);
+  // }
 
   // visit declare variable
   visitDeclVariable(decl: Decl.Var): TypeErrors {

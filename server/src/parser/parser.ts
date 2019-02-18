@@ -445,8 +445,16 @@ export class Parser {
   }
 
   // parse command instruction
-  private command(): INodeResult<Inst.Command> {
+  private command(): INodeResult<IInst> {
     const command = this.previous();
+
+    // All commands besides preserve can be called as a function
+    if (command.type !== TokenType.preserve && this.check(TokenType.bracketOpen)) {
+      // Note this back only exists because of identifier led instrcution quarks
+      this.backup();
+      return this.identifierLedInstruction();
+    }
+
     this.terminal(Inst.Command);
 
     return nodeResult(new Inst.Command(command));
@@ -1402,6 +1410,16 @@ export class Parser {
       this.current += 1;
     }
     return this.previous();
+  }
+
+  // TODO REMOVE ME
+  // return current token and backup
+  private backup(): IToken {
+    const current = this.peek();
+    if (this.current !== 0) {
+      this.current -= 1;
+    }
+    return current;
   }
 
   // is parse at the end of file
