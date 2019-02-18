@@ -517,26 +517,26 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   }
 
   public visitSuffix(expr: Expr.Suffix): Errors {
-    return this.resolveExpr(expr.suffix).concat(
+    return this.resolveExpr(expr.base).concat(
       this.resolveExpr(expr.trailer));
   }
 
   public visitCall(expr: Expr.Call): Errors {
-    return this.resolveExpr(expr.callee).concat(
+    return this.resolveExpr(expr.base).concat(
       accumulateErrors(expr.args, this.resolveExpr.bind(this)));
   }
 
   public visitArrayIndex(expr: Expr.ArrayIndex): Errors {
-    return this.resolveExpr(expr.array);
+    return this.resolveExpr(expr.base);
   }
 
   public visitArrayBracket(expr: Expr.ArrayBracket): Errors {
-    return this.resolveExpr(expr.array).concat(
+    return this.resolveExpr(expr.base).concat(
       this.resolveExpr(expr.index));
   }
 
   public visitDelegate(expr: Expr.Delegate): Errors {
-    return this.resolveExpr(expr.variable);
+    return this.resolveExpr(expr.base);
   }
 
   // tslint:disable-next-line:variable-name

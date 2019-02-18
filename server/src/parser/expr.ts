@@ -167,14 +167,14 @@ export class Suffix extends SuffixBase {
   public static grammar: GrammarNode[];
 
   constructor(
-    public readonly suffix: IExpr,
+    public readonly base: ISuffix,
     public readonly colon: IToken,
-    public trailer: IExpr) {
+    public trailer: ISuffix) {
     super();
   }
 
   public get start(): Position {
-    return this.suffix.start;
+    return this.base.start;
   }
 
   public get end(): Position {
@@ -182,11 +182,11 @@ export class Suffix extends SuffixBase {
   }
 
   public get ranges(): Range[] {
-    return [this.suffix, this.colon, this.trailer];
+    return [this.base, this.colon, this.trailer];
   }
 
   public toString(): string {
-    return `${this.suffix.toString()}${this.colon.lexeme}${this.trailer.toString()}`;
+    return `${this.base.toString()}${this.colon.lexeme}${this.trailer.toString()}`;
   }
 
   public accept<T>(visitor: IExprVisitor<T>): T {
@@ -198,11 +198,34 @@ export class Suffix extends SuffixBase {
   }
 }
 
+export class SuffixTerm extends SuffixBase {
+  public ranges: Range[];  public toString(): string {
+    throw new Error("Method not implemented.");
+  }
+  public get start(): Position {
+    throw new Error();
+  }
+  public get end(): Position {
+    throw new Error();
+  }
+  public toString(): string {
+    return `${this.base.toString()}${this.open.lexeme}`
+     + `${this.args.map(a => a.toString()).join(', ')}${this.close.lexeme}`;
+  }
+  public accept<T>(visitor: IExprVisitor<T>): T {
+    return visitor.visitCall(this);
+  }
+  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
+    return visitor.visitCall(this);
+  }
+
+}
+
 export class Call extends SuffixBase {
   public static grammar: GrammarNode[];
 
   constructor(
-    public readonly callee: IExpr,
+    public readonly base: ISuffix,
     public readonly open: IToken,
     public readonly args: IExpr[],
     public readonly close: IToken,
@@ -211,7 +234,7 @@ export class Call extends SuffixBase {
   }
 
   public get start(): Position {
-    return this.callee.start;
+    return this.base.start;
   }
 
   public get end(): Position {
@@ -219,11 +242,11 @@ export class Call extends SuffixBase {
   }
 
   public get ranges(): Range[] {
-    return [this.callee, this.open, ...this.args, this.close];
+    return [this.base, this.open, ...this.args, this.close];
   }
 
   public toString(): string {
-    return `${this.callee.toString()}${this.open.lexeme}`
+    return `${this.base.toString()}${this.open.lexeme}`
      + `${this.args.map(a => a.toString()).join(', ')}${this.close.lexeme}`;
   }
 
@@ -240,7 +263,7 @@ export class ArrayIndex extends SuffixBase {
   public static grammar: GrammarNode[];
 
   constructor(
-    public readonly array: IExpr,
+    public readonly base: ISuffix,
     public readonly indexer: IToken,
     public readonly index: IToken,
     public readonly isTrailer: boolean) {
@@ -248,7 +271,7 @@ export class ArrayIndex extends SuffixBase {
   }
 
   public get start(): Position {
-    return this.array.start;
+    return this.base.start;
   }
 
   public get end(): Position {
@@ -256,11 +279,11 @@ export class ArrayIndex extends SuffixBase {
   }
 
   public get ranges(): Range[] {
-    return [this.array, this.indexer, this.index];
+    return [this.base, this.indexer, this.index];
   }
 
   public toString(): string {
-    return `${this.array.toString()}${this.indexer.lexeme}${this.index.lexeme}`;
+    return `${this.base.toString()}${this.indexer.lexeme}${this.index.lexeme}`;
   }
 
   public accept<T>(visitor: IExprVisitor<T>): T {
@@ -276,7 +299,7 @@ export class ArrayBracket extends SuffixBase {
   public static grammar: GrammarNode[];
 
   constructor(
-    public readonly array: IExpr,
+    public readonly base: ISuffix,
     public readonly open: IToken,
     public readonly index: IExpr,
     public readonly close: IToken,
@@ -285,7 +308,7 @@ export class ArrayBracket extends SuffixBase {
   }
 
   public get start(): Position {
-    return this.array.start;
+    return this.base.start;
   }
 
   public get end(): Position {
@@ -293,11 +316,11 @@ export class ArrayBracket extends SuffixBase {
   }
 
   public get ranges(): Range[] {
-    return [this.array, this.open, this.index, this.close];
+    return [this.base, this.open, this.index, this.close];
   }
 
   public toString(): string {
-    return `${this.array.toString()}${this.open.lexeme}`
+    return `${this.base.toString()}${this.open.lexeme}`
       + `${this.index.toString()}${this.close.lexeme}`;
   }
 
@@ -314,14 +337,14 @@ export class Delegate extends SuffixBase {
   public static grammar: GrammarNode[];
 
   constructor (
-    public readonly variable: IExpr,
+    public readonly base: ISuffix,
     public readonly atSign: IToken,
     public readonly isTrailer: boolean) {
     super();
   }
 
   public get start(): Position {
-    return this.variable.start;
+    return this.base.start;
   }
 
   public get end(): Position {
@@ -329,11 +352,11 @@ export class Delegate extends SuffixBase {
   }
 
   public get ranges(): Range[] {
-    return [this.variable, this.atSign];
+    return [this.base, this.atSign];
   }
 
   public toString(): string {
-    return `${this.variable.toString()}${this.atSign.lexeme}`;
+    return `${this.base.toString()}${this.atSign.lexeme}`;
   }
 
   public accept<T>(visitor: IExprVisitor<T>): T {

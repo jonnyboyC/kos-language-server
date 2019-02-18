@@ -28,7 +28,7 @@ export class SetResolver implements IExprVisitor<ISetResolverResult> {
     return setResult();
   }
   public visitSuffix(expr: Expr.Suffix): ISetResolverResult {
-    const result = this.resolveExpr(expr.suffix);
+    const result = this.resolveExpr(expr.base);
     return setResult(result.set, result.used, this.localResolver.resolveExpr(expr.trailer));
   }
   // tslint:disable-next-line:variable-name
@@ -36,17 +36,17 @@ export class SetResolver implements IExprVisitor<ISetResolverResult> {
     return setResult();
   }
   public visitArrayIndex(expr: Expr.ArrayIndex): ISetResolverResult {
-    const result = this.resolveExpr(expr.array);
+    const result = this.resolveExpr(expr.base);
 
     // TODO this isn't constrained correctly
     return setResult(result.set, result.used);
   }
   public visitArrayBracket(expr: Expr.ArrayBracket): ISetResolverResult {
-    const result = this.resolveExpr(expr.array);
+    const result = this.resolveExpr(expr.base);
     return setResult(result.set, result.used, this.localResolver.resolveExpr(expr.index));
   }
   public visitDelegate(expr: Expr.Delegate): ISetResolverResult {
-    return this.resolveExpr(expr.variable);
+    return this.resolveExpr(expr.base);
   }
   // tslint:disable-next-line:variable-name
   public visitLiteral(_expr: Expr.Literal): ISetResolverResult {

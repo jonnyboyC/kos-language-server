@@ -22,7 +22,7 @@ export class LocalResolver implements IExprVisitor<ILocalResult[]> {
       .concat(this.resolveExpr(expr.exponent));
   }
   public visitSuffix(expr: Expr.Suffix): ILocalResult[] {
-    return this.resolveExpr(expr.suffix)
+    return this.resolveExpr(expr.base)
       .concat(this.resolveExpr(expr.trailer));
   }
   public visitCall(expr: Expr.Call): ILocalResult[] {
@@ -36,19 +36,19 @@ export class LocalResolver implements IExprVisitor<ILocalResult[]> {
         [] as ILocalResult[]);
     }
 
-    return this.resolveExpr(expr.callee)
+    return this.resolveExpr(expr.base)
       .concat(...expr.args.map(arg => this.resolveExpr(arg)));
   }
   public visitArrayIndex(expr: Expr.ArrayIndex): ILocalResult[] {
-    return expr.isTrailer ? [] : this.resolveExpr(expr.array);
+    return expr.isTrailer ? [] : this.resolveExpr(expr.base);
   }
   public visitArrayBracket(expr: Expr.ArrayBracket): ILocalResult[] {
     return expr.isTrailer
       ? this.resolveExpr(expr.index)
-      : this.resolveExpr(expr.array).concat(this.resolveExpr(expr.index));
+      : this.resolveExpr(expr.base).concat(this.resolveExpr(expr.index));
   }
   public visitDelegate(expr: Expr.Delegate): ILocalResult[] {
-    return expr.isTrailer ? [] : this.resolveExpr(expr.variable);
+    return expr.isTrailer ? [] : this.resolveExpr(expr.base);
   }
   // tslint:disable-next-line:variable-name
   public visitLiteral(_expr: Expr.Literal): ILocalResult[] {

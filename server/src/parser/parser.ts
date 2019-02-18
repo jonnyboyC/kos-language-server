@@ -1197,7 +1197,7 @@ export class Parser {
   }
 
   // function call
-  private functionTrailer(callee: Expr.Expr, isTrailer: boolean): INodeResult<Expr.Call> {
+  private functionTrailer(callee: Expr.SuffixBase, isTrailer: boolean): INodeResult<Expr.Call> {
     const open = this.previous();
     const args = this.arguments();
     const close = this.consumeTokenThrow(
@@ -1242,7 +1242,7 @@ export class Parser {
   }
 
   // generate array bracket expression
-  private arrayBracket(array: Expr.Expr, isTrailer: boolean): INodeResult<Expr.ArrayBracket> {
+  private arrayBracket(array: Expr.SuffixBase, isTrailer: boolean): INodeResult<Expr.ArrayBracket> {
     const open = this.previous();
     const index = this.expression();
 
@@ -1257,7 +1257,7 @@ export class Parser {
   }
 
   // generate array index expression
-  private arrayIndex(array: Expr.Expr, isTrailer: boolean): INodeResult<Expr.ArrayIndex> {
+  private arrayIndex(array: Expr.SuffixBase, isTrailer: boolean): INodeResult<Expr.ArrayIndex> {
     const indexer = this.previous();
 
     // check for integer or identifier

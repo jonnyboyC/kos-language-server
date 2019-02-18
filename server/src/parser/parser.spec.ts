@@ -163,9 +163,9 @@ ava('valid call', (t) => {
     t.true(scannerErrors.length === 0);
 
     if (value instanceof Expr.Call) {
-      t.true(value.callee instanceof Expr.Variable);
-      if (value.callee instanceof Expr.Variable) {
-        t.deepEqual(expression.callee, value.callee.token.lexeme);
+      t.true(value.base instanceof Expr.Variable);
+      if (value.base instanceof Expr.Variable) {
+        t.deepEqual(expression.callee, value.base.token.lexeme);
         t.deepEqual(expression.args.length, value.args.length);
 
         for (let i = 0; i < expression.args.length; i += 1) {
