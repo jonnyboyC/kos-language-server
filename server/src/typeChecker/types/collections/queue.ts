@@ -3,7 +3,7 @@ import {
   createGenericStructureType,
   tType, createGenericArgSuffixType,
 } from '../ksType';
-import { addPrototype, addSuffixes } from '../typeUitlities';
+import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { enumerableType } from './enumerable';
 import { voidType } from '../primitives/void';
 

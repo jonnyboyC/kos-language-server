@@ -4,10 +4,11 @@ interface ITypeMeta<T> {
   toConcreteType(type: IArgumentType): T;
 }
 
-export const enum SuffixCallType {
+export const enum CallType {
   get,
   set,
   call,
+  optionalCall,
 }
 
 export const enum Operator {
@@ -38,7 +39,7 @@ export interface ITemplateBasicType<TSuffixType, TConcreteType>
 export interface ITemplateSuffixType<TBasicType, TVariadicType, TConcreteType>
   extends ITypeMeta<TConcreteType> {
   name: string;
-  callType: SuffixCallType;
+  callType: CallType;
   params: TBasicType[] | TVariadicType;
   returns: TBasicType;
   fullType: boolean;
@@ -89,10 +90,11 @@ export interface IConstantType<T> extends IBasicType {
 
 export interface IFunctionType extends ITypeMeta<IFunctionType> {
   name: string;
+  callType: CallType.call | CallType.optionalCall;
   params: IArgumentType[] | IVariadicType;
   returns: IArgumentType;
   fullType: true;
   tag: 'function';
 }
 
-export type IType = IArgumentType | IFunctionType;
+export type IType = IArgumentType | IFunctionType | ISuffixType;

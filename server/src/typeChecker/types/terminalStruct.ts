@@ -3,7 +3,7 @@ import {
   createStructureType, createArgSuffixType,
   createSuffixType, createSetSuffixType,
 } from './ksType';
-import { addPrototype, addSuffixes } from './typeUitlities';
+import { addPrototype, addSuffixes } from '../typeUitlities';
 import { structureType } from './primitives/structure';
 import { uniqueSetType } from './collections/uniqueset';
 import { terminalInputType } from './terminalInput';

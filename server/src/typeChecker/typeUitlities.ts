@@ -1,5 +1,5 @@
-import { empty } from '../../utilities/typeGuards';
-import { memoize } from '../../utilities/memoize';
+import { empty } from '../utilities/typeGuards';
+import { memoize } from '../utilities/memoize';
 import {
   IArgumentType,
   IGenericArgumentType,
@@ -11,41 +11,55 @@ import {
   Operator,
   IType,
   IBasicType,
-} from './types';
-import { VariadicType } from './ksType';
+  CallType,
+} from './types/types';
+import { VariadicType } from './types/ksType';
+
+export const isCorrectCallType = (callType: CallType, targetCallType: CallType): boolean => {
+  switch (callType) {
+    case CallType.optionalCall:
+      return targetCallType === CallType.get
+        || targetCallType === CallType.call
+        || targetCallType === CallType.optionalCall;
+    case CallType.get:
+    case CallType.set:
+    case CallType.call:
+      return targetCallType === callType;
+  }
+};
 
 // check to see type is a sub type of target type
 export const isSubType = (type: IType, targetType: IType): boolean => {
-  if (type.tag === 'function') {
-    return type === targetType;
+  if (type.tag === 'type' && targetType.tag === 'type') {
+    return moveDownPrototype(type, false, (currentType) => {
+      if (currentType === targetType) {
+        return true;
+      }
+
+      return undefined;
+    });
   }
 
-  return moveDownPrototype(type, false, (currentType) => {
-    if (currentType === targetType) {
-      return true;
-    }
-
-    return undefined;
-  });
+  return type === targetType;
 };
 
 export const hasOperator = (type: IType, operator: Operator): Maybe<IArgumentType> => {
-  if (type.tag === 'function') {
-    return undefined;
+  if (type.tag === 'type') {
+    return moveDownPrototype(type, undefined, (currentType) => {
+      if (!empty(currentType.operators.has(operator))) {
+        return type;
+      }
+
+      return undefined;
+    });
   }
 
-  return moveDownPrototype(type, undefined, (currentType) => {
-    if (!empty(currentType.operators.has(operator))) {
-      return type;
-    }
-
-    return undefined;
-  });
+  return undefined;
 };
 
 export const hasSuffix = (type: IArgumentType, suffix: string): boolean => {
   return moveDownPrototype(type, false, (currentType) => {
-    if (!empty(currentType.suffixes.get(suffix))) {
+    if (currentType.suffixes.has(suffix)) {
       return true;
     }
 
@@ -99,12 +113,7 @@ export const isFullVarType = (type: IGenericVariadicType):type is IVariadicType 
 };
 
 export const isFullType = (type: IGenericArgumentType): type is IArgumentType => {
-  try {
-    return type.fullType;
-  } catch (e) {
-    debugger;
-    return false;
-  }
+  return type.fullType;
 };
 
 export const createVarType = memoize((type: IArgumentType): IVariadicType => {

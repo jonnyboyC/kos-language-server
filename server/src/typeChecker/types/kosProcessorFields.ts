@@ -2,7 +2,7 @@ import { IArgumentType } from './types';
 import {
   createStructureType, createArgSuffixType,
 } from './ksType';
-import { addPrototype, addSuffixes } from './typeUitlities';
+import { addPrototype, addSuffixes } from '../typeUitlities';
 import { partModuleFields } from './partModuleFields';
 import { volumeType } from './io/volume';
 import { processorConnectionType } from './communication/processorConnection';

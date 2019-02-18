@@ -1,4 +1,4 @@
-import { IExprVisitor, IInstVisitor, IInst, IExpr } from '../parser/types';
+import { IExprVisitor, IInstVisitor, IInst, IExpr, ISuffix } from '../parser/types';
 import * as Expr from '../parser/expr';
 import * as Inst from '../parser/inst';
 import * as Decl from '../parser/declare';
@@ -9,7 +9,7 @@ import { ScopeManager } from '../analysis/scopeManager';
 import { empty } from '../utilities/typeGuards';
 import {
   IArgumentType, IType,
-  IBasicType, IVariadicType, Operator, SuffixCallType,
+  IBasicType, IVariadicType, Operator, CallType, ISuffixType, IFunctionType,
 } from './types/types';
 import { structureType } from './types/primitives/structure';
 import { coerce } from './coerce';
@@ -20,16 +20,20 @@ import { nodeType } from './types/node';
 import { createFunctionType } from './types/ksType';
 import { lexiconType } from './types/collections/lexicon';
 import { zip } from '../utilities/arrayUtilities';
-import { isSubType, hasOperator, getSuffix } from './types/typeUitlities';
+import { isSubType, hasOperator, getSuffix, hasSuffix, isCorrectCallType } from './typeUitlities';
 import { voidType } from './types/primitives/void';
 import { userListType } from './types/collections/userList';
 import { booleanType } from './types/primitives/boolean';
 import { stringType } from './types/primitives/string';
 import { scalarType, integarType, doubleType } from './types/primitives/scalar';
+import {
+  delegateCreation, arrayBracketIndexer,
+  suffixError, arrayIndexer,
+} from './types/typeHelpers';
 
 type TypeErrors = ITypeError[];
 
-export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<TypeErrors> {
+export class TypeChecker implements IExprVisitor<ITypeResult<IType>>, IInstVisitor<TypeErrors> {
   private readonly logger: ILogger;
   private readonly tracer: ITracer;
   private readonly syntaxTree: Script;
@@ -69,7 +73,12 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
   }
 
   // check for an expression
-  private checkExpr(expr: IExpr): ITypeResult {
+  private checkExpr(expr: IExpr): ITypeResult<IType> {
+    return expr.accept(this);
+  }
+
+  // check for a suffix
+  private checkSuffix(expr: ISuffix): ITypeResult<IType> {
     return expr.accept(this);
   }
 
@@ -139,12 +148,18 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
 
     return errors;
   }
+
+  // visit invalid inst
   public visitInstInvalid(_: Inst.Invalid): TypeErrors {
     return [];
   }
+
+  // visit block
   public visitBlock(inst: Inst.Block): TypeErrors {
     return accumulateErrors(inst.instructions, this.checkInst.bind(this));
   }
+
+  // visit expression instruction
   public visitExpr(inst: Inst.Expr): TypeErrors {
     const result = this.checkExpr(inst.suffix);
     return result.errors;
@@ -310,7 +325,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
     let errors: TypeErrors = [];
 
     const { type } = result;
-    if (type.tag !== 'type' || !type.suffixes.has(iterator)) {
+    if (type.tag !== 'type' || !hasSuffix(type, iterator)) {
       errors = errors.concat(new KsTypeError(
         inst.suffix, 'May not be a valid enumerable type', []));
     }
@@ -477,10 +492,10 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
   }
 
   // visit invalid expression
-  public visitExprInvalid(_: Expr.Invalid): ITypeResult {
+  public visitExprInvalid(_: Expr.Invalid): ITypeResult<IArgumentType> {
     return { type: structureType, errors: [] };
   }
-  public visitBinary(expr: Expr.Binary): ITypeResult {
+  public visitBinary(expr: Expr.Binary): ITypeResult<IArgumentType> {
     const rightResult = this.checkExpr(expr.right);
     const leftResult = this.checkExpr(expr.left);
 
@@ -523,9 +538,9 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
   // check if the left or right arm have the needed operator
   private checkOperator(
     expr: IExpr,
-    leftResult: ITypeResult,
-    rightResult: ITypeResult,
-    operator: Operator): ITypeResult {
+    leftResult: ITypeResult<IType>,
+    rightResult: ITypeResult<IType>,
+    operator: Operator): ITypeResult<IArgumentType> {
 
     const leftType = leftResult.type;
     const rightType = rightResult.type;
@@ -533,14 +548,11 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
     let calcType: Maybe<IArgumentType> = undefined;
 
     // TODO could be more efficient
-    if (isSubType(leftType, scalarType)
-      && isSubType(rightType, scalarType)) {
+    if (isSubType(leftType, scalarType) && isSubType(rightType, scalarType)) {
       calcType = scalarType;
-    } else if (isSubType(leftType, stringType)
-      || isSubType(rightType, stringType)) {
+    } else if (isSubType(leftType, stringType) || isSubType(rightType, stringType)) {
       calcType = stringType;
-    } else if (isSubType(leftType, booleanType)
-      || isSubType(rightType, booleanType)) {
+    } else if (isSubType(leftType, booleanType) || isSubType(rightType, booleanType)) {
       calcType = booleanType;
     } else {
       const leftOp = hasOperator(leftType, operator);
@@ -576,7 +588,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
     return { errors, type: returnType };
   }
 
-  public visitUnary(expr: Expr.Unary): ITypeResult {
+  public visitUnary(expr: Expr.Unary): ITypeResult<IArgumentType> {
     const result = this.checkExpr(expr.factor);
     const errors: TypeErrors = result.errors;
     let finalType: Maybe<IArgumentType> = undefined;
@@ -585,7 +597,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
       case TokenType.plus:
       case TokenType.minus:
         // TODO check if this is true
-        if (coerce(result.type, scalarType)) {
+        if (!coerce(result.type, scalarType)) {
           errors.push(new KsTypeError(
             expr.factor, '+/- only valid for a scalar type. ' +
             'This may not able to be coerced into scalar type',
@@ -594,7 +606,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
         finalType = scalarType;
         break;
       case TokenType.not:
-        if (coerce(result.type, booleanType)) {
+        if (!coerce(result.type, booleanType)) {
           errors.push(new KsTypeError(
             expr.factor, 'Can only "not" a boolean type. ' +
             'This may not able to be coerced into string type',
@@ -611,7 +623,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
 
     return { errors , type: finalType };
   }
-  public visitFactor(expr: Expr.Factor): ITypeResult {
+  public visitFactor(expr: Expr.Factor): ITypeResult<IArgumentType> {
     const suffixResult = this.checkExpr(expr.suffix);
     const exponentResult = this.checkExpr(expr.exponent);
     const errors = suffixResult.errors.concat(exponentResult.errors);
@@ -632,69 +644,90 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
 
     return {  errors, type: scalarType };
   }
-  public visitSuffix(expr: Expr.Suffix): ITypeResult {
+
+  public visitSuffix(expr: Expr.Suffix): ITypeResult<IArgumentType> {
     if (expr.isSuffix) {
       // debugger;
     }
 
     const result = this.checkExpr(expr.suffix);
-
-    if (result.type.tag === 'function') {
+    if (result.type.tag !== 'type') {
       return this.errors(
-        new KsTypeError(expr, 'found function type', []),
+        new KsTypeError(expr, 'Found function / suffix type instead of structure', []),
         ...result.errors,
       );
     }
 
-    const { type, errors } = this.visitSuffixTrailer(result.type, expr.trailer);
+    const { type, errors } = this.visitTrailer(result.type, expr.trailer, CallType.get);
     return { type, errors: errors.concat(result.errors) };
   }
-  private visitSuffixTrailer(type: IArgumentType, expr: IExpr): ITypeResult {
-    if (expr instanceof Expr.Variable) {
-      return this.visitVariableTrailer(type, expr, SuffixCallType.get);
+
+  private visitTrailer(type: IArgumentType, expr: IExpr, callType: CallType)
+    : ITypeResult<IArgumentType> {
+    if (expr instanceof Expr.Suffix) {
+      return this.visitSuffixTrailer(type, expr, callType);
     }
 
     if (expr instanceof Expr.ArrayBracket ||
       expr instanceof Expr.ArrayIndex ||
-      expr instanceof Expr.Call) {
-      return this.visitSuffixTermTrailer(type, expr, SuffixCallType.get);
+      expr instanceof Expr.Call ||
+      expr instanceof Expr.Variable) {
+      const trailer = this.visitSuffixTermTrailer(type, expr, callType);
+      return this.result(trailer.type.returns, ...trailer.errors);
     }
 
     throw new Error('Invalid suffix trailer');
   }
 
+  private visitSuffixTrailer(
+    type: IArgumentType,
+    expr: Expr.Suffix,
+    callType: CallType): ITypeResult<IArgumentType> {
+
+    const suffix = this.visitTrailer(type, expr.suffix, callType);
+
+    if (suffix.type.tag === 'type') {
+      const trailer = this.visitTrailer(suffix.type, expr.trailer, callType);
+      return this.result(trailer.type, ...suffix.errors, ...trailer.errors);
+    }
+
+    return this.errors(
+      ...suffix.errors,
+      new KsTypeError(expr.trailer, 'Could not find the the correct suffix type', []));
+  }
+
   private visitVariableTrailer(
     type: IArgumentType,
     expr: Expr.Variable,
-    callType: SuffixCallType): ITypeResult {
+    callType: CallType): ITypeResult<ISuffixType> {
     const suffix = getSuffix(type, expr.token.lexeme);
 
     // may need to pass sommething in about if we're in get set context
     if (empty(suffix))  {
-      return this.errors(
+      return this.suffixErrors(
         new KsTypeError(
           expr,
           `Could not find suffix ${expr.token.lexeme} for type ${type.name}`, []));
     }
 
-    if (suffix.callType !== callType) {
-      return this.errors(new KsTypeError(
+    if (!isCorrectCallType(suffix.callType, callType)) {
+      return this.suffixErrors(new KsTypeError(
         expr,
         `Suffix ${expr.token.lexeme} is missing call signiture ${suffix.toTypeString()}`, []));
     }
 
-    return this.result(suffix.returns);
+    return this.result(suffix);
   }
 
   private visitSuffixTermTrailer(
     type: IArgumentType,
     expr: IExpr,
-    callType: SuffixCallType): ITypeResult {
+    callType: CallType): ITypeResult<ISuffixType> {
 
     // resolve a call trailer
     if (expr instanceof Expr.Call) {
-      const trailerResult = this.visitSuffixTermTrailer(type, expr.callee, SuffixCallType.call);
-      const callResults = this.resolveCall(expr, trailerResult.type, 'suffix');
+      const trailerResult = this.visitSuffixTermTrailer(type, expr.callee, CallType.call);
+      const callResults = this.resolveCall(expr, trailerResult.type);
       return this.result(callResults.type, ...callResults.errors, ...trailerResult.errors);
     }
 
@@ -728,42 +761,40 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
     throw Error(`Invalid suffix term trailer in ${expr.toString()}`);
   }
 
-  public visitCall(expr: Expr.Call): ITypeResult {
+  public visitCall(expr: Expr.Call): ITypeResult<IBasicType> {
+    const result = this.checkExpr(expr.callee);
+    if (result.type.tag === 'type') {
+      return this.errors(new KsTypeError(expr.callee, 'Unable to find call type', []));
+    }
+
     // determine if callee is a function type then resolve
     if (expr.callee instanceof Expr.Variable) {
-      const result = this.checkExpr(expr.callee);
-      return this.resolveCall(expr, result.type, 'function');
+      const call = this.resolveCall(expr, result.type);
+      return this.result(call.type.returns, ...call.errors);
     }
 
     // determine suffix callee type then resolve
-    const result = this.checkExpr(expr.callee);
-    return this.resolveCall(expr, result.type, 'suffix');
+    const call = this.resolveCall(expr, result.type);
+    return this.result(call.type.returns, ...call.errors);
   }
 
-  private resolveCall(
+  private resolveCall<T extends ISuffixType | IFunctionType>(
     expr: Expr.Call,
-    type: Maybe<IType>,
-    callType: 'function' | 'suffix'): ITypeResult {
-
-    // if we're the wrong call type or we couldn't find the type error and return
-    if (empty(type) || type.tag !== callType) {
-      return this.result(
-        structureType,
-        new KsTypeError(expr.callee, `Unable to determine ${callType} type`, []),
-      );
-    }
+    type: T): ITypeResult<T> {
 
     // handle varadic functions
     if (!Array.isArray(type.params)) {
-      return this.resolveVaradic(type.params, type.returns, expr);
+      return this.resolveVaradic(type.params, type, expr);
     }
 
     // handle normal functions
-    return this.resolveParameters(type.params, type.returns, expr);
+    return this.resolveParameters(type.params, type, expr);
   }
 
-  private resolveVaradic(
-    params: IVariadicType, returns: IBasicType, expr: Expr.Call): ITypeResult {
+  private resolveVaradic<T extends ISuffixType | IFunctionType>(
+    params: IVariadicType,
+    type: T,
+    expr: Expr.Call): ITypeResult<T> {
     const errors: ITypeError[] = [];
 
     for (const arg of expr.args) {
@@ -774,10 +805,13 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
       }
     }
 
-    return this.result(returns, ...errors);
+    return this.result(type, ...errors);
   }
 
-  private resolveParameters(params: IType[], returns: IBasicType, expr: Expr.Call): ITypeResult {
+  private resolveParameters<T extends ISuffixType | IFunctionType>(
+    params: IType[],
+    type: T,
+    expr: Expr.Call): ITypeResult<T> {
     const errors: ITypeError[] = [];
 
     for (const [arg, param] of zip(expr.args, params)) {
@@ -789,102 +823,119 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
     }
 
     // TODO length difference
-
-    return this.result(returns, ...errors);
+    return this.result(type, ...errors);
   }
 
-  public visitArrayIndex(expr: Expr.ArrayIndex): ITypeResult {
+  public visitArrayIndex(expr: Expr.ArrayIndex): ITypeResult<IArgumentType> {
     // determine array type then resolve
     const result = this.checkExpr(expr.array);
-    return this.resolveArrayIndex(expr, result.type);
+    const array = this.resolveArrayIndex(expr, result.type);
+    return this.result(array.type.returns, ...array.errors);
   }
 
-  private resolveArrayIndex(expr: Expr.ArrayIndex, type: Maybe<IType>): ITypeResult {
-    const errors: ITypeError[] = [];
+  private resolveArrayIndex(expr: Expr.ArrayIndex, type: Maybe<IType>): ITypeResult<ISuffixType> {
     if (empty(type)) {
-      errors.push(new KsTypeError(expr.array, 'Unable to determine type', []));
-    } else {
-      // TODO confirm indexable types
-      if (!coerce(type, userListType)) {
-        errors.push(new KsTypeError(expr.array, 'indexing with # requires a list', []));
-      }
+      return this.suffixErrors(new KsTypeError(expr.array, 'Unable to determine type', []));
+    }
+    // TODO confirm indexable types
+    if (!coerce(type, userListType)) {
+      return this.suffixErrors(new KsTypeError(expr.array, 'indexing with # requires a list', []));
     }
 
     switch (expr.indexer.type) {
       case TokenType.integer:
-        break;
+        return this.result(arrayIndexer);
       case TokenType.identifier:
         const type = this.scopeManager.getType(expr.indexer, expr.indexer.lexeme);
         if (empty(type) || !coerce(type, integarType)) {
-          errors.push(new KsTypeError(
+          return this.suffixErrors(new KsTypeError(
             expr.indexer,
             `${expr.indexer.lexeme} is not a scalar type. Can only use scalar to index with #`,
             []));
         }
 
-        break;
+        return this.result(arrayIndexer);
       default:
-        errors.push(new KsTypeError(
+        return this.suffixErrors(new KsTypeError(
           expr.indexer, 'Cannot index array with # other than with scalars or variables', []));
     }
-
-    return this.result(structureType, ...errors);
   }
 
-  public visitArrayBracket(expr: Expr.ArrayBracket): ITypeResult {
+  public visitArrayBracket(expr: Expr.ArrayBracket): ITypeResult<IBasicType> {
     // determine arrray type then resolve
     const result = this.checkExpr(expr.array);
-    return this.resolveArrayBracket(expr, result.type);
+    const array = this.resolveArrayBracket(expr, result.type);
+    return this.result(array.type.returns, ...array.errors);
   }
 
-  public resolveArrayBracket(expr: Expr.ArrayBracket, type: Maybe<IType>): ITypeResult {
+  public resolveArrayBracket(expr: Expr.ArrayBracket, type: Maybe<IType>)
+    : ITypeResult<ISuffixType> {
     const indexResult = this.checkExpr(expr.index);
     const errors = indexResult.errors;
 
     if (empty(type)) {
-      errors.push(new KsTypeError(expr.array, 'Unable to determine type', []));
-    } else {
-      if (coerce(type, userListType) && !coerce(indexResult.type, scalarType)) {
-        errors.push(new KsTypeError(
-          expr.index, 'Can only use scalars as list index' +
-          'This may not able to be coerced into scalar type',
-          []));
-
-        return this.result(structureType, ...errors);
-      }
-
-      if (coerce(type, lexiconType) && !coerce(indexResult.type, stringType)) {
-        errors.push(new KsTypeError(
-          expr.index, 'Can only use string as lexicon index' +
-          'This may not able to be coerced into string type',
-          []));
-
-        return this.result(structureType, ...errors);
-      }
-
-      if (!coerce(type, stringType) && !coerce(indexResult.type, scalarType)) {
-        errors.push(new KsTypeError(
-          expr.index, 'Can only use string or scalar as index' +
-          'This may not able to be coerced into string or scalar type',
-          []));
-      }
+      return this.result(
+        suffixError,
+        new KsTypeError(expr.array, 'Unable to determine type', []),
+        ...errors);
     }
 
-    return this.result(structureType, ...errors);
+    if (coerce(type, userListType) && !coerce(indexResult.type, scalarType)) {
+      return this.result(
+        suffixError,
+        new KsTypeError(
+          expr.index, 'Can only use scalars as list index' +
+          'This may not able to be coerced into scalar type',
+          []),
+        ...errors);
+    }
+
+    if (coerce(type, lexiconType) && !coerce(indexResult.type, stringType)) {
+      return this.result(
+        suffixError,
+        new KsTypeError(
+          expr.index, 'Can only use string as lexicon index' +
+          'This may not able to be coerced into string type',
+          []),
+        ...errors);
+    }
+
+    if (!coerce(type, stringType) && !coerce(indexResult.type, scalarType)) {
+      return this.result(
+        suffixError,
+        new KsTypeError(
+          expr.index, 'Can only use string or scalar as index' +
+          'This may not able to be coerced into string or scalar type',
+          []),
+        ...errors);
+    }
+
+    return this.result(arrayBracketIndexer, ...errors);
   }
 
-  public visitDelegate(expr: Expr.Delegate): ITypeResult {
+  public visitDelegate(expr: Expr.Delegate): ITypeResult<IArgumentType> {
     // determine variable type then resolve
     const result = this.checkExpr(expr.variable);
-    return this.resolveDelegate(expr, result.type);
+    const delegate = this.resolveDelegate(expr, result.type);
+    return this.result(delegate.type.returns, ...delegate.errors);
   }
 
-  public resolveDelegate(_: Expr.Delegate, type: Maybe<IType>): ITypeResult {
-    return { type: type || structureType, errors: [] };
+  public resolveDelegate(delegate: Expr.Delegate, type: Maybe<IType>): ITypeResult<ISuffixType> {
+    if (empty(type)) {
+      return this.suffixErrors(new KsTypeError(
+        delegate.variable, `Unable to find the type for ${delegate.variable.toString()}`, []));
+    }
+
+    if (type.tag !== 'function') {
+      return this.suffixErrors(new KsTypeError(
+        delegate.variable, 'Can only create delegate of functions', []));
+    }
+
+    return this.result(delegateCreation);
   }
 
   // visit literal expression
-  public visitLiteral(expr: Expr.Literal): ITypeResult {
+  public visitLiteral(expr: Expr.Literal): ITypeResult<IArgumentType> {
     switch (expr.token.type) {
       case TokenType.true:
       case TokenType.false:
@@ -902,22 +953,41 @@ export class TypeChecker implements IExprVisitor<ITypeResult>, IInstVisitor<Type
   }
 
   // visit variable expression
-  public visitVariable(expr: Expr.Variable): ITypeResult {
+  public visitVariable(expr: Expr.Variable): ITypeResult<IArgumentType> {
     const type = this.scopeManager.getType(expr.token, expr.token.lexeme);
-    return { type: empty(type) ? structureType : type, errors: [] };
+    if (empty(type)) {
+      return this.errors(new KsTypeError(
+        expr.token, `Unable to find the type for ${expr.token.lexeme}`, []));
+    }
+
+    if (type.tag !== 'type') {
+      return this.errors(new KsTypeError(
+        expr.token, 'TODO', []));
+    }
+
+    return this.result(type);
   }
-  public visitGrouping(expr: Expr.Grouping): ITypeResult {
-    return this.checkExpr(expr.expr);
+  public visitGrouping(expr: Expr.Grouping): ITypeResult<IArgumentType> {
+    const { type, errors } = this.checkExpr(expr.expr);
+
+    // the grammer should almost certainly pervent this
+    if (type.tag !== 'type') {
+      return this.errors(new KsTypeError(expr.expr, 'TODO', []));
+    }
+
+    return this.result(type, ...errors);
   }
-  public visitAnonymousFunction(expr: Expr.AnonymousFunction): ITypeResult {
+  public visitAnonymousFunction(expr: Expr.AnonymousFunction): ITypeResult<IArgumentType> {
     if (expr) { }
     return this.errors();
   }
-
-  private errors(...errors: ITypeError[]): ITypeResult {
+  private suffixErrors(...errors: ITypeError[]): ITypeResult<ISuffixType> {
+    return this.result(suffixError, ...errors);
+  }
+  private errors(...errors: ITypeError[]): ITypeResult<IArgumentType> {
     return this.result(structureType, ...errors);
   }
-  private result(type: IType, ...errors: ITypeError[]): ITypeResult {
+  private result<T extends IType>(type: T, ...errors: ITypeError[]): ITypeResult<T> {
     return { type, errors };
   }
 }

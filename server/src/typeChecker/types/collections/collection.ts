@@ -1,6 +1,6 @@
 import { IGenericArgumentType } from '../types';
 import { createArgSuffixType, createGenericStructureType } from '../ksType';
-import { addPrototype, addSuffixes } from '../typeUitlities';
+import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { enumeratorType } from './enumerator';
 import { voidType } from '../primitives/void';
 

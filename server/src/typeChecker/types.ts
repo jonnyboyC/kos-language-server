@@ -8,7 +8,7 @@ export interface ITypeError extends Range {
   message: string;
 }
 
-export interface ITypeResult {
-  type: IType;
+export interface ITypeResult<T extends IType> {
+  type: T;
   errors: ITypeError[];
 }

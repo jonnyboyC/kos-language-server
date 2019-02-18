@@ -4,7 +4,7 @@ import {
   createSetSuffixType, createSuffixType,
   createArgSuffixType, createStructureType,
 } from '../ksType';
-import { addPrototype, addSuffixes } from '../typeUitlities';
+import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { widgetStyleType } from './widgetStyle';
 import { guiWidgetType } from './guiWidget';
 import { voidType } from '../primitives/void';

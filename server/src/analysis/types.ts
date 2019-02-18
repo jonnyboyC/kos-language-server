@@ -4,7 +4,7 @@ import { KsLock } from '../entities/lock';
 import { IToken } from '../entities/types';
 import { KsParameter } from '../entities/parameters';
 import { Range, Location } from 'vscode-languageserver';
-import { IArgumentType, IType } from '../typeChecker/types/types';
+import { IArgumentType, IType, IFunctionType } from '../typeChecker/types/types';
 import { IExpr } from '../parser/types';
 
 export const enum EntityState {
@@ -43,7 +43,7 @@ export interface IKsChange extends Location {
 
 export interface IKsDeclared<T extends KsEntity> extends Location {
   entity: T;
-  type: IType;
+  type: IArgumentType | IFunctionType;
 }
 
 export interface IRealScopePosition extends Range {

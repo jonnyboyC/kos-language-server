@@ -1,11 +1,11 @@
 import { empty } from '../../utilities/typeGuards';
-import { createVarType, isFullType, isFullVarType } from './typeUitlities';
+import { createVarType, isFullType, isFullVarType } from '../typeUitlities';
 import {
   IGenericArgumentType,
   IArgumentType,
   IGenericSuffixType,
   IGenericVariadicType,
-  SuffixCallType,
+  CallType,
   IGenericBasicType,
   IConstantType,
   IBasicType,
@@ -70,7 +70,7 @@ export class GenericSuffixType implements IGenericSuffixType {
 
   constructor(
     public readonly name: string,
-    public readonly callType: SuffixCallType,
+    public readonly callType: CallType,
     public readonly params: IGenericArgumentType[] | IGenericVariadicType,
     public readonly returns: IGenericArgumentType,
   ) {
@@ -78,7 +78,7 @@ export class GenericSuffixType implements IGenericSuffixType {
   }
 
   public toTypeString(): string {
-    if (this.callType !== SuffixCallType.call) {
+    if (this.callType !== CallType.call) {
       return `${this.name}<T>`;
     }
 
@@ -171,13 +171,13 @@ export class Type implements IBasicType {
 export class SuffixType implements ISuffixType {
   constructor(
     public readonly name: string,
-    public readonly callType: SuffixCallType,
+    public readonly callType: CallType,
     public readonly params: IArgumentType[] | IVariadicType,
     public readonly returns: IArgumentType) {
   }
 
   public toTypeString(): string {
-    if (this.callType !== SuffixCallType.call) {
+    if (this.callType !== CallType.call) {
       return `${this.name}`;
     }
 
@@ -255,6 +255,7 @@ export class VariadicType extends GenericVariadicType implements IVariadicType {
 export class FunctionType implements IFunctionType {
   constructor(
     public readonly name: string,
+    public readonly callType: CallType.call | CallType.optionalCall,
     public readonly params: IArgumentType[] | IVariadicType,
     public readonly returns: IArgumentType)
   { }
@@ -321,41 +322,57 @@ export const createGenericArgSuffixType = (
   name: string,
   returns: IGenericArgumentType,
   ...params: IGenericArgumentType[]): IGenericSuffixType => {
-  return new GenericSuffixType(name, SuffixCallType.call, params, returns);
+  const callType = params.length > 0
+    ? CallType.call
+    : CallType.optionalCall;
+
+  return new GenericSuffixType(
+    name.toLowerCase(), callType,
+    params, returns);
 };
 
 export const createArgSuffixType = (
   name: string,
   returns: IArgumentType,
   ...params: IArgumentType[]): ISuffixType => {
-  return new SuffixType(name, SuffixCallType.call, params, returns);
+  const callType = params.length > 0
+    ? CallType.call
+    : CallType.optionalCall;
+
+  return new SuffixType(
+    name.toLowerCase(), callType,
+    params, returns);
 };
 
 export const createSuffixType = (name: string, returns: IArgumentType): ISuffixType => {
-  return new SuffixType(name, SuffixCallType.get, [], returns);
+  return new SuffixType(name.toLowerCase(), CallType.get, [], returns);
 };
 
 export const createSetSuffixType = (name: string, returns: IArgumentType): ISuffixType => {
-  return new SuffixType(name, SuffixCallType.set, [], returns);
+  return new SuffixType(name.toLowerCase(), CallType.set, [], returns);
 };
 
 export const createVarSuffixType = (
   name: string,
   returns: IArgumentType,
   params: IVariadicType): ISuffixType => {
-  return new SuffixType(name, SuffixCallType.call, params, returns);
+  return new SuffixType(name.toLowerCase(), CallType.optionalCall, params, returns);
 };
 
 export const createFunctionType = (
   name: string,
   returns: IArgumentType,
   ...params: IArgumentType[]): IFunctionType => {
-  return new FunctionType(name, params, returns);
+  const callType = params.length > 0
+    ? CallType.call
+    : CallType.optionalCall;
+
+  return new FunctionType(name.toLowerCase(), callType, params, returns);
 };
 
 export const createVarFunctionType = (
   name: string,
   returns: IArgumentType,
   params: IVariadicType): IFunctionType => {
-  return new FunctionType(name, params, returns);
+  return new FunctionType(name.toLowerCase(), CallType.optionalCall, params, returns);
 };

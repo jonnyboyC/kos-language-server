@@ -169,7 +169,7 @@ export class Suffix extends SuffixBase {
   constructor(
     public readonly suffix: IExpr,
     public readonly colon: IToken,
-    public readonly trailer: IExpr) {
+    public trailer: IExpr) {
     super();
   }
 

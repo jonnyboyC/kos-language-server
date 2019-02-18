@@ -3,7 +3,7 @@ import {
   createStructureType, createSuffixType,
   createArgSuffixType, createVarSuffixType,
 } from '../ksType';
-import { addPrototype, addSuffixes, createVarType } from '../typeUitlities';
+import { addPrototype, addSuffixes, createVarType } from '../../typeUitlities';
 import { serializableStructureType, structureType } from '../primitives/structure';
 import { volumeType } from './volume';
 import { userListType } from '../collections/userList';

@@ -2,7 +2,7 @@ import { IArgumentType } from '../types';
 import {
   createSetSuffixType, createStructureType, createArgSuffixType,
 } from '../ksType';
-import { addPrototype, addSuffixes } from '../typeUitlities';
+import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { structureType } from '../primitives/structure';
 import { rgbaType } from '../rgba';
 import { widgetStyleType } from './widgetStyle';

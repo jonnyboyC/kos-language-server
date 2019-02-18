@@ -1,6 +1,6 @@
 import { IArgumentType, Operator } from '../types';
 import { createStructureType } from '../ksType';
-import { addOperators, addPrototype } from '../typeUitlities';
+import { addOperators, addPrototype } from '../../typeUitlities';
 
 import { booleanType } from './boolean';
 import { primitiveType } from './primitives';

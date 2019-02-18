@@ -5,7 +5,7 @@ import {
   createSuffixType,
   createSetSuffixType,
 } from '../ksType';
-import { addPrototype, addSuffixes } from '../typeUitlities';
+import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { structureType, serializableStructureType } from '../primitives/structure';
 import { voidType } from '../primitives/void';
 import { userListType } from './userList';

@@ -1,6 +1,6 @@
 import { IArgumentType } from './types';
 import { createStructureType, createSetSuffixType } from './ksType';
-import { addPrototype, addSuffixes } from './typeUitlities';
+import { addPrototype, addSuffixes } from '../typeUitlities';
 import { structureType } from './primitives/structure';
 import { vectorType } from './collections/vector';
 import { userDelegateType } from './userDelegate';

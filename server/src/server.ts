@@ -35,10 +35,16 @@ import { KsEntity } from './analysis/types';
 import { entityCompletionItems, suffixCompletionItems } from './utilities/serverUtils';
 import { Logger } from './utilities/logger';
 import { locationCopy } from './utilities/positionHelpers';
+import { addPrototype } from './typeChecker/typeUitlities';
+import { primitiveType } from './typeChecker/types/primitives/primitives';
+import { structureType } from './typeChecker/types/primitives/structure';
 
 // Create a connection for the server. The connection uses Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
 export const connection = createConnection(ProposedFeatures.all);
+
+// REMOVE ME TODO
+addPrototype(primitiveType, structureType);
 
 // Create a simple text document manager. The text document manager
 // supports full document sync only

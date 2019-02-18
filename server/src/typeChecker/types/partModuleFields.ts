@@ -3,7 +3,7 @@ import {
   createStructureType, createArgSuffixType,
   createSuffixType,
 } from './ksType';
-import { addPrototype, addSuffixes } from './typeUitlities';
+import { addPrototype, addSuffixes } from '../typeUitlities';
 import { structureType } from './primitives/structure';
 import { partType } from './part';
 import { voidType } from './primitives/void';

@@ -3,7 +3,7 @@ import {
   createArgSuffixType, createGenericStructureType,
   tType, createGenericArgSuffixType,
 } from '../ksType';
-import { addPrototype, addSuffixes } from '../typeUitlities';
+import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { serializableStructureType } from '../primitives/structure';
 import { enumeratorType } from './enumerator';
 import { iterator } from '../../../utilities/constants';

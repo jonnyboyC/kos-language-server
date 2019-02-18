@@ -1128,25 +1128,35 @@ export class Parser {
 
   // parse suffix
   private suffix(): INodeResult<ISuffix> {
-    let expr = this.suffixTerm(false);
+    const expr = this.suffixTerm(false);
 
-    // while colons are found parse all trailers
-    while (this.matchToken(TokenType.colon)) {
-      const trailer = this.suffixTrailer(expr.value);
-      expr = nodeResult(trailer.value, expr.errors, trailer.errors);
+    // check to see if expr is really a suffix
+    if (this.matchToken(TokenType.colon)) {
+
+      // parse first suffix term
+      let colon = this.previous();
+      let suffixTerm = this.suffixTerm(true);
+      let errors = expr.errors.concat(suffixTerm.errors);
+
+      // create return suffix
+      const suffix = new Expr.Suffix(expr.value, colon, suffixTerm.value);
+      let current = suffix;
+
+      // while there are more trailer parse down
+      while (this.matchToken(TokenType.colon)) {
+        colon = this.previous();
+        suffixTerm = this.suffixTerm(true);
+        const trailer = new Expr.Suffix(current.trailer, colon, suffixTerm.value);
+
+        current.trailer = trailer;
+        current = trailer;
+        errors = errors.concat(suffixTerm.errors);
+      }
+
+      return nodeResult(suffix, errors);
     }
 
     return expr;
-  }
-
-  // parse suffix trailer expression
-  private suffixTrailer(suffix: Expr.Expr): INodeResult<Expr.Suffix> {
-    const colon = this.previous();
-    const trailer = this.suffixTerm(true);
-    return nodeResult(
-      new Expr.Suffix(suffix, colon, trailer.value),
-      trailer.errors,
-    );
   }
 
   // parse suffix term expression

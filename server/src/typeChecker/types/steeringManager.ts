@@ -3,7 +3,7 @@ import {
   createStructureType, createArgSuffixType,
   createSetSuffixType, createSuffixType,
 } from './ksType';
-import { addPrototype, addSuffixes } from './typeUitlities';
+import { addPrototype, addSuffixes } from '../typeUitlities';
 import { structureType } from './primitives/structure';
 import { pidLoopType } from './pidLoop';
 import { directionType } from './direction';

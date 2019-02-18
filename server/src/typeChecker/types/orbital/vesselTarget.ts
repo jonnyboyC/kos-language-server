@@ -1,6 +1,6 @@
 import { IArgumentType } from '../types';
 import { createStructureType, createArgSuffixType, createSuffixType } from '../ksType';
-import { addPrototype, addSuffixes } from '../typeUitlities';
+import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { orbitableType } from './orbitable';
 import { listType } from '../collections/list';
 import { vectorType } from '../collections/vector';

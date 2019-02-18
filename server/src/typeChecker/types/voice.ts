@@ -1,6 +1,6 @@
 import { IArgumentType } from './types';
 import { createStructureType, createArgSuffixType, createSetSuffixType } from './ksType';
-import { addPrototype, addSuffixes } from './typeUitlities';
+import { addPrototype, addSuffixes } from '../typeUitlities';
 import { structureType } from './primitives/structure';
 import { voidType } from './primitives/void';
 import { scalarType } from './primitives/scalar';

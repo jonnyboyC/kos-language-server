@@ -1,5 +1,5 @@
 import { createStructureType, createArgSuffixType } from '../ksType';
-import { addSuffixes, addPrototype } from '../typeUitlities';
+import { addSuffixes, addPrototype } from '../../typeUitlities';
 import { voidType } from './void';
 import { stringType } from './string';
 import { booleanType } from './boolean';

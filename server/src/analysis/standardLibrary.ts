@@ -5,7 +5,7 @@ import { queueType } from '../typeChecker/types/collections/queue';
 import {
   structureType, serializableStructureType,
 } from '../typeChecker/types/primitives/structure';
-import { createVarType } from '../typeChecker/types/typeUitlities';
+import { createVarType } from '../typeChecker/typeUitlities';
 import { listType } from '../typeChecker/types/collections/list';
 import { stackType } from '../typeChecker/types/collections/stack';
 import { uniqueSetType } from '../typeChecker/types/collections/uniqueset';
@@ -58,6 +58,9 @@ import { userListType } from '../typeChecker/types/collections/userList';
 import { scalarType, doubleType, integarType } from '../typeChecker/types/primitives/scalar';
 import { stringType } from '../typeChecker/types/primitives/string';
 import { booleanType } from '../typeChecker/types/primitives/boolean';
+import { coreType } from '../typeChecker/types/core';
+import { versionInfoType } from '../typeChecker/types/versionInfo';
+import { configType } from '../typeChecker/types/config';
 
 const libraryBuilder = new ScopeBuilder(builtIn);
 const functionTypes = [
@@ -126,7 +129,7 @@ const functionTypes = [
     'pidloop', pidLoopType, scalarType,
     scalarType, scalarType, scalarType, scalarType),
   createFunctionType('positionat', vectorType, orbitableType, timeSpanType),
-  createFunctionType('print', structureType),
+  createFunctionType('print', voidType, structureType),
   createFunctionType('printat', structureType, scalarType, scalarType),
   createFunctionType('printlist', voidType, stringType),
   createFunctionType('processor', partType, /* TODO Union Type */ stringType),
@@ -210,16 +213,16 @@ const variables: [string, IArgumentType][] = [
   ['abort', structureType], // TODO
   ['activeship', vesselTargetType],
   ['addons', structureType], // TODO
-  ['ag1', structureType], // TODO
-  ['ag10', structureType], // TODO
-  ['ag2', structureType], // TODO
-  ['ag3', structureType], // TODO
-  ['ag4', structureType], // TODO
-  ['ag5', structureType], // TODO
-  ['ag6', structureType], // TODO
-  ['ag7', structureType], // TODO
-  ['ag8', structureType], // TODO
-  ['ag9', structureType], // TODO
+  ['ag1', booleanType], // TODO
+  ['ag10', booleanType], // TODO
+  ['ag2', booleanType], // TODO
+  ['ag3', booleanType], // TODO
+  ['ag4', booleanType], // TODO
+  ['ag5', booleanType], // TODO
+  ['ag6', booleanType], // TODO
+  ['ag7', booleanType], // TODO
+  ['ag8', booleanType], // TODO
+  ['ag9', booleanType], // TODO
   ['airspeed', scalarType],
   ['allnodes', listType.toConcreteType(nodeType)],
   ['alt', vesselAltType],
@@ -228,28 +231,28 @@ const variables: [string, IArgumentType][] = [
   ['angularvel', vectorType],
   ['angularvelocity', vectorType],
   ['apoapsis', scalarType],
-  ['archive', structureType], // TODO
+  ['archive', volumeType],
   ['availablethrust', structureType], // TODO
   ['bays', booleanType], // TODO
   ['black', rgbaType],
-  ['blue', structureType],
+  ['blue', rgbaType],
   ['body', bodyTargetType],
   ['brakes', structureType], // TODO
   ['chutes', booleanType],
   ['chutessafe', booleanType],
-  ['config', structureType], // TODO
+  ['config', configType], // TODO
   ['constant', constantType],
   ['controlconnection', controlConnectionType],
-  ['core', structureType], // TODO
+  ['core', coreType],
   ['cyan', rgbaType],
   ['deploydrills', booleanType],
-  ['donothing', delegateType], // TODO
+  ['donothing', delegateType],
   ['drills', booleanType],
   ['encounter', orbitInfoType], // TODO Union
   ['eta', vesselEtaType],
   ['facing', directionType],
   ['fuelcells', booleanType],
-  ['gear', structureType], // TODO
+  ['gear', booleanType], // TODO
   ['geoposition', geoCoordinatesType],
   ['gray', rgbaType],
   ['green', rgbaType],
@@ -260,32 +263,32 @@ const variables: [string, IArgumentType][] = [
   ['homeconnection', homeConnectionType],
   ['intakes', booleanType],
   ['isru', booleanType],
-  ['kuniverse', kUniverseType], // TODO
+  ['kuniverse', kUniverseType],
   ['ladders', booleanType],
-  ['latitude', scalarType], // TODO
+  ['latitude', scalarType],
   ['legs', booleanType],
-  ['lights', structureType], // TODO
+  ['lights', booleanType], // TODO
   ['longitude', scalarType],
   ['magenta', rgbaType],
-  ['mapview', structureType], // TODO
+  ['mapview', booleanType], // TODO
   ['mass', scalarType],
   ['maxthrust', scalarType],
-  ['missiontime', structureType], // TODO
+  ['missiontime', scalarType], // TODO
   ['nextnode', nodeType],
   ['north', directionType],
   ['obt', orbitInfoType],
   ['orbit', orbitInfoType],
   ['panels', booleanType],
   ['periapsis', scalarType],
-  ['prograde', directionType], // TODO
+  ['prograde', directionType],
   ['purple', rgbaType],
   ['radiators', booleanType],
-  ['rcs', structureType], // TODO
-  ['red', structureType],
-  ['retrograde', directionType], // TODO
-  ['sas', structureType], // TODO
+  ['rcs', booleanType], // TODO
+  ['red', rgbaType],
+  ['retrograde', directionType],
+  ['sas', booleanType], // TODO
   ['sensor', vesselTargetType], // TODO
-  ['sessiontime', doubleType], // TODO
+  ['sessiontime', doubleType],
   ['ship', vesselTargetType],
   ['shipname', stringType],
   ['solarprimevector', vectorType],
@@ -300,7 +303,7 @@ const variables: [string, IArgumentType][] = [
   ['time', timeSpanType],
   ['up', directionType],
   ['velocity', orbitableType],
-  ['version', structureType], // TODO
+  ['version', versionInfoType],
   ['verticalspeed', scalarType],
   ['volume:name', stringType],
   ['warp', integarType],

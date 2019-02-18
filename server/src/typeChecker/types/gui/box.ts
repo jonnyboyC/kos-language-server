@@ -3,7 +3,7 @@ import {
   createSetSuffixType, createSuffixType,
   createArgSuffixType, createStructureType,
 } from '../ksType';
-import { addPrototype, addSuffixes } from '../typeUitlities';
+import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { widgetType } from './widget';
 import { userDelegateType } from '../userDelegate';
 import { scrollBoxType } from './scrollBox';
