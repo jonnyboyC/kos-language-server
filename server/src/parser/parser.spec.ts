@@ -113,10 +113,10 @@ ava('basic valid identifier', (t) => {
 
   for (const expression of validExpressions) {
     const [{ value }, scannerErrors] = parseExpression(expression.source);
-    t.true(value instanceof Expr.Variable);
+    t.true(value instanceof Expr.Identifier);
     t.true(scannerErrors.length === 0);
 
-    if (value instanceof Expr.Variable) {
+    if (value instanceof Expr.Identifier) {
       t.deepEqual(expression.type, value.token.type);
       t.deepEqual(expression.literal, value.token.literal);
     }
@@ -134,7 +134,7 @@ ava('basic invalid identifier', (t) => {
 
   for (const expression of validExpressions) {
     const [{ value, errors }] = parseExpression(expression.source);
-    t.false(value instanceof Expr.Variable);
+    t.false(value instanceof Expr.Identifier);
     t.true(errors.length >= 0);
   }
 });
@@ -152,24 +152,31 @@ const callTest = (source: string, callee: string, args: Constructor<Expr.Expr>[]
 ava('valid call', (t) => {
   const validExpressions = [
     callTest('test(4, "car")', 'test', [Expr.Literal, Expr.Literal]),
-    callTest('БНЯД(varName, 14.3)', 'бняд', [Expr.Variable, Expr.Literal]),
+    callTest('БНЯД(varName, 14.3)', 'бняд', [Expr.Identifier, Expr.Literal]),
     callTest('_variableName()', '_variablename', []),
   ];
 
   for (const expression of validExpressions) {
     const [{ value, errors }, scannerErrors] = parseExpression(expression.source);
-    t.true(value instanceof Expr.Call);
+    t.true(value instanceof Expr.SuffixTerm);
     t.true(errors.length === 0);
     t.true(scannerErrors.length === 0);
 
-    if (value instanceof Expr.Call) {
-      t.true(value.base instanceof Expr.Variable);
-      if (value.base instanceof Expr.Variable) {
-        t.deepEqual(expression.callee, value.base.token.lexeme);
-        t.deepEqual(expression.args.length, value.args.length);
+    if (value instanceof Expr.SuffixTerm) {
+      t.true(value.atom instanceof Expr.Identifier);
+      if (value.atom instanceof Expr.Identifier) {
+        t.deepEqual(value.trailers.length, 1);
 
-        for (let i = 0; i < expression.args.length; i += 1) {
-          t.true(value.args[i] instanceof expression.args[i]);
+        const call = value.trailers[0];
+        t.true(call instanceof Expr.Call);
+
+        if (call instanceof Expr.Call) {
+          t.deepEqual(expression.callee, value.atom.token.lexeme);
+          t.deepEqual(expression.args.length, call.args.length);
+
+          for (let i = 0; i < expression.args.length; i += 1) {
+            t.true(call.args[i] instanceof expression.args[i]);
+          }
         }
       }
     }
@@ -186,7 +193,7 @@ ava('invalid call', (t) => {
 
   for (const expression of validExpressions) {
     const [{ value }, scannerErrors] = parseExpression(expression.source);
-    t.false(value instanceof Expr.Variable);
+    t.false(value instanceof Expr.Identifier);
     t.true(scannerErrors.length === 0);
   }
 });
@@ -238,7 +245,7 @@ ava('valid binary', (t) => {
     binaryTest(
       'variable <> false',
       TokenType.notEqual,
-      Expr.Variable,
+      Expr.Identifier,
       undefined,
       Expr.Literal,
       false),

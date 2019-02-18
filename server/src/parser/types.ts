@@ -20,6 +20,9 @@ export interface ISuffix extends IExpr {
   isSuffix: true;
 }
 
+export type SuffixTermTrailer = Expr.Call | Expr.ArrayBracket | Expr.ArrayIndex | Expr.Delegate;
+export type Atom = Expr.Literal | Expr.Identifier | Expr.Grouping;
+
 export interface IExpr extends IExprVisitable, IRangeSequence {
   tag: 'expr';
   toString(): string;
@@ -136,12 +139,13 @@ export interface IExprVisitor<T> {
   visitUnary(expr: Expr.Unary): T;
   visitFactor(expr: Expr.Factor): T;
   visitSuffix(expr: Expr.Suffix): T;
+  visitSuffixTerm(expr: Expr.SuffixTerm): T;
   visitCall(expr: Expr.Call): T;
   visitArrayIndex(expr: Expr.ArrayIndex): T;
   visitArrayBracket(expr: Expr.ArrayBracket): T;
   visitDelegate(expr: Expr.Delegate): T;
   visitLiteral(expr: Expr.Literal): T;
-  visitVariable(expr: Expr.Variable): T;
+  visitVariable(expr: Expr.Identifier): T;
   visitGrouping(expr: Expr.Grouping): T;
   visitAnonymousFunction(expr: Expr.AnonymousFunction): T;
 }
@@ -156,12 +160,13 @@ export interface IExprClassVisitor<T> {
   visitUnary(exprClass: Constructor<Expr.Unary>): T;
   visitFactor(exprClass: Constructor<Expr.Factor>): T;
   visitSuffix(exprClass: Constructor<Expr.Suffix>): T;
+  visitSuffixTerm(expr: Constructor<Expr.SuffixTerm>): T;
   visitCall(exprClass: Constructor<Expr.Call>): T;
   visitArrayIndex(exprClass: Constructor<Expr.ArrayIndex>): T;
   visitArrayBracket(exprClass: Constructor<Expr.ArrayBracket>): T;
   visitDelegate(exprClass: Constructor<Expr.Delegate>): T;
   visitLiteral(exprClass: Constructor<Expr.Literal>): T;
-  visitVariable(exprClass: Constructor<Expr.Variable>): T;
+  visitVariable(exprClass: Constructor<Expr.Identifier>): T;
   visitGrouping(exprClass: Constructor<Expr.Grouping>): T;
   visitAnonymousFunction(exprClass: Constructor<Expr.AnonymousFunction>): T;
 }

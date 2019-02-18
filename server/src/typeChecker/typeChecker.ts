@@ -227,7 +227,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult<IType>>, IInstVisit
   // visit set
   public visitSet(inst: Inst.Set): TypeErrors {
     const result = this.checkExpr(inst.value);
-    if (inst.suffix instanceof Expr.Variable) {
+    if (inst.suffix instanceof Expr.Identifier) {
       this.scopeManager.setType(inst.suffix.token, inst.suffix.token.lexeme, result.type);
     } else {
       // TODO suffix case
@@ -625,6 +625,10 @@ export class TypeChecker implements IExprVisitor<ITypeResult<IType>>, IInstVisit
     // return { type, errors: errors.concat(result.errors) };
   }
 
+  public visitSuffixTerm(expr: Expr.SuffixTerm): ITypeResult<IType> {
+    throw new Error("Method not implemented.");
+  }
+
   public visitCall(expr: Expr.Call): ITypeResult<IBasicType> {
     return this.checkSuffix(expr);
     // if (result.type.tag === 'type') {
@@ -676,7 +680,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult<IType>>, IInstVisit
   }
 
   // visit variable expression
-  public visitVariable(expr: Expr.Variable): ITypeResult<IArgumentType> {
+  public visitVariable(expr: Expr.Identifier): ITypeResult<IArgumentType> {
     return this.resolveIdentifier(expr, 'type', isArugmentType, this.errors.bind(this));
   }
 
@@ -704,7 +708,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult<IType>>, IInstVisit
       || expr instanceof Expr.ArrayBracket
       || expr instanceof Expr.Delegate
       || expr instanceof Expr.Suffix) {
-      const base = this.atomBaseCondition_(expr.base);
+      const base = this.atomBaseCondition_(expr.suffixTerm);
       const trailer = this.visitTrailer(base.type, expr, CallType.get);
       return this.result(
         trailer.type,
@@ -725,7 +729,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult<IType>>, IInstVisit
     if (expr instanceof Expr.ArrayBracket ||
       expr instanceof Expr.ArrayIndex ||
       expr instanceof Expr.Call ||
-      expr instanceof Expr.Variable) {
+      expr instanceof Expr.Identifier) {
       const trailer = this.resolveSuffixTerm(type, expr, callType);
       return this.result(trailer.type.returns, ...trailer.errors);
     }
@@ -738,7 +742,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult<IType>>, IInstVisit
     expr: Expr.Suffix,
     callType: CallType): ITypeResult<IArgumentType> {
 
-    const suffix = this.visitTrailer(type, expr.base, callType);
+    const suffix = this.visitTrailer(type, expr.suffixTerm, callType);
 
     if (suffix.type.tag === 'type') {
       const trailer = this.visitTrailer(suffix.type, expr.trailer, callType);
@@ -752,7 +756,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult<IType>>, IInstVisit
 
   private visitVariableTrailer(
     type: IArgumentType,
-    expr: Expr.Variable,
+    expr: Expr.Identifier,
     callType: CallType): ITypeResult<ISuffixType> {
     const suffix = getSuffix(type, expr.token.lexeme);
 
@@ -829,7 +833,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult<IType>>, IInstVisit
   }
 
   private atomBaseCondition(expr: ISuffix): ITypeResult<IArgumentType | ISuffixType> {
-    if (expr instanceof Expr.Variable) {
+    if (expr instanceof Expr.Identifier) {
       return this.resolveIdentifier(expr, 'Not function', isSuffixableType, this.errors.bind(this));
     }
 
@@ -849,7 +853,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult<IType>>, IInstVisit
     type: IArgumentType,
     expr: ISuffix,
     callType: CallType): ITypeResult<ISuffixType> {
-    if (expr instanceof Expr.Variable) {
+    if (expr instanceof Expr.Identifier) {
       return this.visitVariableTrailer(type, expr, callType);
     }
 
@@ -858,7 +862,7 @@ export class TypeChecker implements IExprVisitor<ITypeResult<IType>>, IInstVisit
   }
 
   private resolveIdentifier<T extends IType>(
-    expr: Expr.Variable,
+    expr: Expr.Identifier,
     expected: string,
     guard: (type: IType) => type is T,
     errors: (...errors: ITypeError[]) => ITypeResult<T>): ITypeResult<T> {

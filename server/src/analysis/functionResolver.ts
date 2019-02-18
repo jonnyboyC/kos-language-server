@@ -11,8 +11,7 @@ import { mockLogger, mockTracer } from '../utilities/logger';
 import { EntityState } from './types';
 import { ScopeBuilder } from './scopeBuilder';
 
-// tslint:disable-next-line:prefer-array-literal
-export type Errors = Array<ResolverError>;
+export type Errors = ResolverError[];
 
 export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   private syntaxTree: Script;
@@ -76,8 +75,7 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
   }
 
   // check lock declaration
-  // tslint:disable-next-line:variable-name
-  public visitDeclLock(_decl: Lock): ResolverError[] {
+  public visitDeclLock(_: Lock): ResolverError[] {
     return [];
   }
 
@@ -155,8 +153,7 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
   }
 
   // check parameter declaration
-  // tslint:disable-next-line:variable-name
-  public visitDeclParameter(_decl: Param): ResolverError[] {
+  public visitDeclParameter(_: Param): ResolverError[] {
     return [];
   }
 
@@ -166,8 +163,7 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
 
   ----------------------------------------------*/
 
-  // tslint:disable-next-line:variable-name
-  public visitInstInvalid(_inst: Inst.Invalid): Errors {
+  public visitInstInvalid(_: Inst.Invalid): Errors {
     return [];
   }
 
@@ -187,8 +183,7 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
     return this.resolveExpr(inst.suffix);
   }
 
-  // tslint:disable-next-line:variable-name
-  public visitCommand(_inst: Inst.Command): Errors {
+  public visitCommand(_: Inst.Command): Errors {
     return [];
   }
 
@@ -196,13 +191,11 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
     return this.resolveExpr(inst.expression);
   }
 
-  // tslint:disable-next-line:variable-name
-  public visitUnset(_inst: Inst.Unset): Errors {
+  public visitUnset(_: Inst.Unset): Errors {
     return [];
   }
 
-  // tslint:disable-next-line:variable-name
-  public visitUnlock(_inst: Inst.Unlock): Errors {
+  public visitUnlock(_: Inst.Unlock): Errors {
     return [];
   }
 
@@ -210,8 +203,7 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
     return this.resolveExpr(inst.value);
   }
 
-  // tslint:disable-next-line:variable-name
-  public visitLazyGlobalInst(_inst: Inst.LazyGlobal): Errors {
+  public visitLazyGlobalInst(_: Inst.LazyGlobal): Errors {
     return [];
   }
 
@@ -256,8 +248,7 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
     return [];
   }
 
-  // tslint:disable-next-line:variable-name
-  public visitBreak(_inst: Inst.Break): Errors {
+  public visitBreak(_: Inst.Break): Errors {
     return [];
   }
 
@@ -342,13 +333,11 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
       this.resolveExpr(inst.target));
   }
 
-  // tslint:disable-next-line:variable-name
-  public visitList(_inst: Inst.List): Errors {
+  public visitList(_: Inst.List): Errors {
     return [];
   }
 
-  // tslint:disable-next-line:variable-name
-  public visitEmpty(_inst: Inst.Empty): Errors {
+  public visitEmpty(_: Inst.Empty): Errors {
     return [];
   }
 
@@ -362,8 +351,7 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
 
   ----------------------------------------------*/
 
-  // tslint:disable-next-line:variable-name
-  public visitExprInvalid(_expr: Expr.Invalid): Errors {
+  public visitExprInvalid(_: Expr.Invalid): Errors {
     return [];
   }
 
@@ -382,35 +370,44 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
   }
 
   public visitSuffix(expr: Expr.Suffix): Errors {
-    return this.resolveExpr(expr.base)
+    if (empty(expr.trailer)) {
+      return this.resolveExpr(expr.suffixTerm);
+    }
+
+    return this.resolveExpr(expr.suffixTerm)
       .concat(this.resolveExpr(expr.trailer));
   }
 
+  visitSuffixTerm(expr: Expr.SuffixTerm): Errors {
+    let errors = this.resolveExpr(expr.atom);
+    for (const trailer of expr.trailers) {
+      errors = errors.concat(this.resolveExpr(trailer));
+    }
+
+    return errors;
+  }
+
   public visitCall(expr: Expr.Call): Errors {
-    return this.resolveExpr(expr.base)
-      .concat(accumulateErrors(expr.args, this.resolveExpr.bind(this)));
+    return accumulateErrors(expr.args, this.resolveExpr.bind(this));
   }
 
-  public visitArrayIndex(expr: Expr.ArrayIndex): Errors {
-    return this.resolveExpr(expr.base);
-  }
-
-  public visitArrayBracket(expr: Expr.ArrayBracket): Errors {
-    return this.resolveExpr(expr.base)
-      .concat(this.resolveExpr(expr.index));
-  }
-
-  public visitDelegate(expr: Expr.Delegate): Errors {
-    return this.resolveExpr(expr.base);
-  }
-
-  // tslint:disable-next-line:variable-name
-  public visitLiteral(_expr: Expr.Literal): Errors {
+  public visitArrayIndex(_: Expr.ArrayIndex): Errors {
     return [];
   }
 
-  // tslint:disable-next-line:variable-name
-  public visitVariable(_expr: Expr.Variable): Errors {
+  public visitArrayBracket(expr: Expr.ArrayBracket): Errors {
+    return this.resolveExpr(expr.index);
+  }
+
+  public visitDelegate(_: Expr.Delegate): Errors {
+    return [];
+  }
+
+  public visitLiteral(_: Expr.Literal): Errors {
+    return [];
+  }
+
+  public visitVariable(_: Expr.Identifier): Errors {
     return [];
   }
 

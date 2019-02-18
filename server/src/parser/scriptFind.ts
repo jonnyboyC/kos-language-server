@@ -227,6 +227,9 @@ export class ScriptFind implements
   visitSuffix(expr: Expr.Suffix): Maybe<IFindResult> {
     return this.findNode(expr);
   }
+  visitSuffixTerm(expr: Expr.SuffixTerm): Maybe<IFindResult> {
+    throw this.findNode(expr);
+  }
   visitCall(expr: Expr.Call): Maybe<IFindResult> {
     return this.findNode(expr);
   }
@@ -242,7 +245,7 @@ export class ScriptFind implements
   visitLiteral(expr: Expr.Literal): Maybe<IFindResult> {
     return this.findNode(expr);
   }
-  visitVariable(expr: Expr.Variable): Maybe<IFindResult> {
+  visitVariable(expr: Expr.Identifier): Maybe<IFindResult> {
     return this.findNode(expr);
   }
   visitGrouping(expr: Expr.Grouping): Maybe<IFindResult> {

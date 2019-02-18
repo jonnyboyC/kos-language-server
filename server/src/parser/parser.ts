@@ -2,7 +2,7 @@
 import { TokenType, isValidIdentifier } from '../entities/tokentypes';
 import {
   IParseError, IExpr, IDeclScope, IInst,
-  INodeResult, RunInstType, ParseResult, ISuffix,
+  INodeResult, RunInstType, ParseResult, ISuffix, Atom, SuffixTermTrailer,
 } from './types';
 import {
   ParseError, FailedConstructor,
@@ -1135,8 +1135,10 @@ export class Parser {
   }
 
   // parse suffix
-  private suffix(): INodeResult<ISuffix> {
-    const expr = this.suffixTerm(false);
+  private suffix(): INodeResult<Expr.Suffix> {
+    const suffixTerm = this.suffixTerm(false);
+    const suffix = new Expr.Suffix(suffixTerm.value);
+    let errors: IParseError[] = suffixTerm.errors;
 
     // check to see if expr is really a suffix
     if (this.matchToken(TokenType.colon)) {
@@ -1144,60 +1146,70 @@ export class Parser {
       // parse first suffix term
       let colon = this.previous();
       let suffixTerm = this.suffixTerm(true);
-      let errors = expr.errors.concat(suffixTerm.errors);
+      errors = errors.concat(suffixTerm.errors);
 
-      // create return suffix
-      const suffix = new Expr.Suffix(expr.value, colon, suffixTerm.value);
-      let current = suffix;
+      // patch suffix with new trailer
+      const suffixTrailer = new Expr.Suffix(suffixTerm.value);
+      suffix.colon = colon;
+      suffix.trailer = suffixTrailer;
+      let current = suffixTrailer;
 
       // while there are more trailer parse down
       while (this.matchToken(TokenType.colon)) {
         colon = this.previous();
         suffixTerm = this.suffixTerm(true);
-        const trailer = new Expr.Suffix(current.trailer, colon, suffixTerm.value);
+        const suffixTrailer = new Expr.Suffix(suffixTerm.value);
 
-        current.trailer = trailer;
-        current = trailer;
+        // patch curren trailer with trailer update current
+        current.colon = colon;
+        current.trailer = suffixTrailer;
+        current = suffixTrailer;
         errors = errors.concat(suffixTerm.errors);
       }
-
-      return nodeResult(suffix, errors);
     }
 
-    return expr;
+    return nodeResult(
+      suffix,
+
+    );
   }
 
   // parse suffix term expression
-  private suffixTerm(isTrailer: boolean): INodeResult<ISuffix> {
-    // parse primary
-    let expr = this.atom(isTrailer);
+  private suffixTerm(isTrailer: boolean): INodeResult<Expr.SuffixTerm> {
+    // parse atom
+    const atom = this.atom(isTrailer);
+    const trailers: SuffixTermTrailer[] = [];
+    let parseErrors: IParseError[] = atom.errors;
 
     // parse any trailers that exist
     while (true) {
       if (this.matchToken(TokenType.arrayIndex)) {
-        const index = this.arrayIndex(expr.value, isTrailer);
-        expr = nodeResult(index.value, expr.errors, index.errors);
+        const index = this.arrayIndex(isTrailer);
+        trailers.push(index.value);
+        parseErrors = parseErrors.concat(index.errors);
       } else if (this.matchToken(TokenType.squareOpen)) {
-        const bracket = this.arrayBracket(expr.value, isTrailer);
-        expr = nodeResult(bracket.value, expr.errors, bracket.errors);
+        const bracket = this.arrayBracket(isTrailer);
+        trailers.push(bracket.value);
+        parseErrors = parseErrors.concat(bracket.errors);
       } else if (this.matchToken(TokenType.bracketOpen)) {
-        const trailer = this.functionTrailer(expr.value, isTrailer);
-        expr = nodeResult(trailer.value, expr.errors, trailer.errors);
+        const trailer = this.functionTrailer(isTrailer);
+        trailers.push(trailer.value);
+        parseErrors = parseErrors.concat(trailer.errors);
       } else if (this.matchToken(TokenType.atSign)) {
-        return nodeResult(
-          new Expr.Delegate(expr.value, this.previous(), isTrailer),
-          expr.errors,
-        );
+        trailers.push(new Expr.Delegate(this.previous(), isTrailer));
+        break;
       } else {
         break;
       }
     }
 
-    return expr;
+    return nodeResult(
+      new Expr.SuffixTerm(atom.value, trailers),
+      parseErrors);
   }
 
   // function call
-  private functionTrailer(callee: Expr.SuffixBase, isTrailer: boolean): INodeResult<Expr.Call> {
+  private functionTrailer(isTrailer: boolean): INodeResult<Expr.Call> {
     const open = this.previous();
     const args = this.arguments();
     const close = this.consumeTokenThrow(
@@ -1205,7 +1217,7 @@ export class Parser {
       Expr.Call, TokenType.bracketClose);
 
     return nodeResult(
-      new Expr.Call(callee, open, args.value, close, isTrailer),
+      new Expr.Call(open, args.value, close, isTrailer),
       args.errors,
     );
   }
@@ -1242,7 +1254,7 @@ export class Parser {
   }
 
   // generate array bracket expression
-  private arrayBracket(array: Expr.SuffixBase, isTrailer: boolean): INodeResult<Expr.ArrayBracket> {
+  private arrayBracket(isTrailer: boolean): INodeResult<Expr.ArrayBracket> {
     const open = this.previous();
     const index = this.expression();
 
@@ -1251,13 +1263,13 @@ export class Parser {
       Expr.ArrayBracket, TokenType.squareClose);
 
     return nodeResult(
-      new Expr.ArrayBracket(array, open, index.value, close, isTrailer),
+      new Expr.ArrayBracket(open, index.value, close, isTrailer),
       index.errors,
     );
   }
 
   // generate array index expression
-  private arrayIndex(array: Expr.SuffixBase, isTrailer: boolean): INodeResult<Expr.ArrayIndex> {
+  private arrayIndex(isTrailer: boolean): INodeResult<Expr.ArrayIndex> {
     const indexer = this.previous();
 
     // check for integer or identifier
@@ -1265,7 +1277,7 @@ export class Parser {
       'Expected integer or identifer.',
       Expr.ArrayIndex, TokenType.integer, TokenType.identifier);
 
-    return nodeResult(new Expr.ArrayIndex(array, indexer, index, isTrailer));
+    return nodeResult(new Expr.ArrayIndex(indexer, index, isTrailer));
   }
 
   // TODO this returns a delegate
@@ -1301,7 +1313,7 @@ export class Parser {
   }
 
   // match atom expressions literals, identifers, list, and parenthesis
-  private atom(isTrailer: boolean): INodeResult<ISuffix> {
+  private atom(isTrailer: boolean): INodeResult<Atom> {
     // match all literals
     if (this.matchToken(
       TokenType.false, TokenType.true, TokenType.fileIdentifier,
@@ -1311,7 +1323,7 @@ export class Parser {
 
     // match identifiers TODO identifier all keywords that can be used here
     if (isValidIdentifier(this.peek().type)) {
-      return nodeResult(new Expr.Variable(this.advance(), isTrailer));
+      return nodeResult(new Expr.Identifier(this.advance(), isTrailer));
     }
 
     // match grouping expression

@@ -104,6 +104,9 @@ export class Generator implements IExprClassVisitor<string> {
   visitSuffix(exprClass: IExprClass<Expr.Suffix>): string {
     return this.generateGrammarNodes(exprClass.grammar);
   }
+  visitSuffixTerm(exprClass: Constructor<Expr.SuffixTerm>): string {
+    throw this.generateGrammarNodes(exprClass.grammar);
+  }
   visitCall(exprClass: IExprClass<Expr.Call>): string {
     return this.generateGrammarNodes(exprClass.grammar);
   }
@@ -119,7 +122,7 @@ export class Generator implements IExprClassVisitor<string> {
   visitLiteral(exprClass: IExprClass<Expr.Literal>): string {
     return this.generateGrammarNodes(exprClass.grammar);
   }
-  visitVariable(exprClass: IExprClass<Expr.Variable>): string {
+  visitVariable(exprClass: IExprClass<Expr.Identifier>): string {
     return this.generateGrammarNodes(exprClass.grammar);
   }
   visitGrouping(exprClass: IExprClass<Expr.Grouping>): string {
