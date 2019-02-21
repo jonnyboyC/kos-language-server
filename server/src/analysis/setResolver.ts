@@ -1,17 +1,23 @@
-import { IExprVisitor, IExpr } from '../parser/types';
+import { IExprVisitor, IExpr, ISuffixTerm, ISuffixTermVisitor } from '../parser/types';
 import * as Expr from '../parser/expr';
+import * as SuffixTerm from '../parser/suffixTerm';
 import { LocalResolver } from './localResolver';
 import { ISetResolverResult, ILocalResult } from './types';
 import { setResult } from './setResult';
 import { empty } from '../utilities/typeGuards';
 
-export class SetResolver implements IExprVisitor<ISetResolverResult> {
+export class SetResolver implements
+  IExprVisitor<ISetResolverResult>,
+  ISuffixTermVisitor<ISetResolverResult> {
 
   public constructor(public readonly localResolver: LocalResolver) {
   }
 
   public resolveExpr(expr: IExpr): ISetResolverResult {
     return expr.accept(this);
+  }
+  public resolveSuffixTerm(suffixTerm: ISuffixTerm): ISetResolverResult {
+    return suffixTerm.accept(this);
   }
   public visitExprInvalid(_: Expr.Invalid): ISetResolverResult {
     return setResult();
@@ -26,42 +32,46 @@ export class SetResolver implements IExprVisitor<ISetResolverResult> {
     return setResult();
   }
   public visitSuffix(expr: Expr.Suffix): ISetResolverResult {
-    const result = this.resolveExpr(expr.suffixTerm);
+    const result = this.resolveSuffixTerm(expr.suffixTerm);
     if (empty(expr.trailer)) {
       return setResult(result.set, result.used);
     }
 
-    return setResult(result.set, result.used, this.localResolver.resolveExpr(expr.trailer));
+    if (expr.trailer.tag === 'expr') {
+      return setResult(result.set, result.used, this.localResolver.resolveExpr(expr.trailer));
+    }
+
+    return setResult(result.set, result.used, this.localResolver.resolveSuffixTerm(expr.trailer));
   }
-  public visitSuffixTerm(expr: Expr.SuffixTerm): ISetResolverResult {
-    const result = this.resolveExpr(expr.atom);
+  public visitSuffixTerm(expr: SuffixTerm.SuffixTerm): ISetResolverResult {
+    const result = this.resolveSuffixTerm(expr.atom);
     if (expr.trailers.length === 0) {
       return setResult(result.set, result.used);
     }
 
     return setResult(result.set, result.used, expr.trailers.reduce(
-      (acc, curr) => acc.concat(this.localResolver.resolveExpr(curr)),
+      (acc, curr) => acc.concat(this.localResolver.resolveSuffixTerm(curr)),
       [] as ILocalResult[]));
   }
-  public visitCall(_: Expr.Call): ISetResolverResult {
+  public visitCall(_: SuffixTerm.Call): ISetResolverResult {
     return setResult();
   }
-  public visitArrayIndex(_: Expr.ArrayIndex): ISetResolverResult {
+  public visitArrayIndex(_: SuffixTerm.ArrayIndex): ISetResolverResult {
     return setResult();
   }
-  public visitArrayBracket(_: Expr.ArrayBracket): ISetResolverResult {
+  public visitArrayBracket(_: SuffixTerm.ArrayBracket): ISetResolverResult {
     return setResult();
   }
-  public visitDelegate(_: Expr.Delegate): ISetResolverResult {
+  public visitDelegate(_: SuffixTerm.Delegate): ISetResolverResult {
     return setResult();
   }
-  public visitLiteral(_: Expr.Literal): ISetResolverResult {
+  public visitLiteral(_: SuffixTerm.Literal): ISetResolverResult {
     return setResult();
   }
-  public visitVariable(expr: Expr.Identifier): ISetResolverResult {
+  public visitIdentifier(expr: SuffixTerm.Identifier): ISetResolverResult {
     return setResult(expr.token);
   }
-  public visitGrouping(_: Expr.Grouping): ISetResolverResult {
+  public visitGrouping(_: SuffixTerm.Grouping): ISetResolverResult {
     return setResult();
   }
   public visitAnonymousFunction(_: Expr.AnonymousFunction): ISetResolverResult {

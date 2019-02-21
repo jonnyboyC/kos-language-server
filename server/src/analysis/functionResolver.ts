@@ -1,4 +1,9 @@
-import { IInstVisitor, IExprVisitor, IInst, ScopeType, IExpr } from '../parser/types';
+import {
+  IInstVisitor, IExprVisitor, IInst,
+  ScopeType, IExpr, ISuffixTerm,
+  ISuffixTermVisitor,
+} from '../parser/types';
+import * as SuffixTerm from '../parser/suffixTerm';
 import * as Expr from '../parser/expr';
 import * as Inst from '../parser/inst';
 import { ResolverError } from './resolverError';
@@ -13,7 +18,10 @@ import { ScopeBuilder } from './scopeBuilder';
 
 export type Errors = ResolverError[];
 
-export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
+export class FuncResolver implements
+  IExprVisitor<Errors>,
+  IInstVisitor<Errors>,
+  ISuffixTermVisitor<Errors> {
   private syntaxTree: Script;
   private scopeBuilder: ScopeBuilder;
   private readonly logger: ILogger;
@@ -61,6 +69,11 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
   // resolve for an expression
   private resolveExpr(expr: IExpr): Errors {
     return expr.accept(this);
+  }
+
+  // resolve for an expression
+  private resolveSuffixTerm(suffixTerm: ISuffixTerm): Errors {
+    return suffixTerm.accept(this);
   }
 
   /* --------------------------------------------
@@ -175,7 +188,7 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
     return errors;
   }
 
-  public visitExpr(inst: Inst.Expr): Errors {
+  public visitExpr(inst: Inst.ExprInst): Errors {
     return this.resolveExpr(inst.suffix);
   }
 
@@ -370,54 +383,58 @@ export class FuncResolver implements IExprVisitor<Errors>, IInstVisitor<Errors> 
   }
 
   public visitSuffix(expr: Expr.Suffix): Errors {
+    const suffixTerm = this.resolveSuffixTerm(expr.suffixTerm);
     if (empty(expr.trailer)) {
-      return this.resolveExpr(expr.suffixTerm);
+      return suffixTerm;
     }
 
-    return this.resolveExpr(expr.suffixTerm)
-      .concat(this.resolveExpr(expr.trailer));
-  }
-
-  visitSuffixTerm(expr: Expr.SuffixTerm): Errors {
-    let errors = this.resolveExpr(expr.atom);
-    for (const trailer of expr.trailers) {
-      errors = errors.concat(this.resolveExpr(trailer));
+    if (expr.trailer.tag === 'expr') {
+      return suffixTerm.concat(this.resolveExpr(expr.trailer));
     }
-
-    return errors;
-  }
-
-  public visitCall(expr: Expr.Call): Errors {
-    return accumulateErrors(expr.args, this.resolveExpr.bind(this));
-  }
-
-  public visitArrayIndex(_: Expr.ArrayIndex): Errors {
-    return [];
-  }
-
-  public visitArrayBracket(expr: Expr.ArrayBracket): Errors {
-    return this.resolveExpr(expr.index);
-  }
-
-  public visitDelegate(_: Expr.Delegate): Errors {
-    return [];
-  }
-
-  public visitLiteral(_: Expr.Literal): Errors {
-    return [];
-  }
-
-  public visitVariable(_: Expr.Identifier): Errors {
-    return [];
-  }
-
-  public visitGrouping(expr: Expr.Grouping): Errors {
-    return this.resolveExpr(expr.expr);
+    return suffixTerm.concat(this.resolveSuffixTerm(expr.trailer));
   }
 
   public visitAnonymousFunction(expr: Expr.AnonymousFunction): Errors {
     return this.resolveInsts(expr.instructions);
   }
+
+  visitSuffixTerm(expr: SuffixTerm.SuffixTerm): Errors {
+    let errors = this.resolveSuffixTerm(expr.atom);
+    for (const trailer of expr.trailers) {
+      errors = errors.concat(this.resolveSuffixTerm(trailer));
+    }
+
+    return errors;
+  }
+
+  public visitCall(expr: SuffixTerm.Call): Errors {
+    return accumulateErrors(expr.args, this.resolveExpr.bind(this));
+  }
+
+  public visitArrayIndex(_: SuffixTerm.ArrayIndex): Errors {
+    return [];
+  }
+
+  public visitArrayBracket(expr: SuffixTerm.ArrayBracket): Errors {
+    return this.resolveExpr(expr.index);
+  }
+
+  public visitDelegate(_: SuffixTerm.Delegate): Errors {
+    return [];
+  }
+
+  public visitLiteral(_: SuffixTerm.Literal): Errors {
+    return [];
+  }
+
+  public visitIdentifier(_: SuffixTerm.Identifier): Errors {
+    return [];
+  }
+
+  public visitGrouping(expr: SuffixTerm.Grouping): Errors {
+    return this.resolveExpr(expr.expr);
+  }
+
 }
 
 const accumulateErrors = <T>(items: T[], checker: (item: T) => Errors): Errors => {

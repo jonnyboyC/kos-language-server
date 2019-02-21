@@ -12,9 +12,10 @@ import { mockLogger, mockTracer } from './utilities/logger';
 import { empty, notEmpty } from './utilities/typeGuards';
 import { ScriptFind } from './parser/scriptFind';
 import { KsFunction } from './entities/function';
-import { Invalid } from './parser/inst';
+import * as Inst from './parser/inst';
 import { signitureHelper } from './utilities/signitureHelper';
 import * as Expr from './parser/expr';
+import * as SuffixTerm from './parser/suffixTerm';
 import { resolveUri } from './utilities/pathResolver';
 import { existsSync } from 'fs';
 import { extname } from 'path';
@@ -300,7 +301,7 @@ export class Analyzer {
     const finder = new ScriptFind();
 
     // attempt to find a token here get surround invalid inst context
-    const result = finder.find(script, pos, Invalid, Expr.Invalid, Expr.Call);
+    const result = finder.find(script, pos, Inst.Invalid, Expr.Invalid, SuffixTerm.Call);
 
     // currently we only support invalid instructions for signiture completion
     // we could possible support call expressions as well
@@ -311,7 +312,7 @@ export class Analyzer {
     // determine the identifier of the invalid instruction and parameter index
     const { node } = result;
 
-    if (node instanceof Invalid) {
+    if (node instanceof Inst.Invalid) {
       const identifierIndex = signitureHelper(node.tokens, pos);
       if (empty(identifierIndex)) return undefined;
 
@@ -329,7 +330,7 @@ export class Analyzer {
       };
     }
 
-    if (node instanceof Expr.Call) {
+    if (node instanceof SuffixTerm.Call) {
       // TODO figure out this case
     }
 

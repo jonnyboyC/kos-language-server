@@ -1,13 +1,13 @@
 // import * as Decl from '../parser/declare';
-// import * as Inst from '../parser/inst';
 import * as Expr from '../parser/expr';
 import * as Inst from '../parser/inst';
+import * as SuffixTerm from '../parser/suffixTerm';
 import { getRandomInt } from '../utilities/randomUtilities';
 import { mockLogger, mockTracer } from '../utilities/logger';
 import {
   IExprClass, IExprClassVisitor,
   IGrammarUnion, GrammarNode, IInstClass,
-  IGrammarOptional, IGrammarRepeat, Distribution,
+  IGrammarOptional, IGrammarRepeat, Distribution, ISuffixTermClass,
 } from '../parser/types';
 import { TokenType } from '../entities/tokentypes';
 import { keywords } from '../utilities/constants';
@@ -104,31 +104,31 @@ export class Generator implements IExprClassVisitor<string> {
   visitSuffix(exprClass: IExprClass<Expr.Suffix>): string {
     return this.generateGrammarNodes(exprClass.grammar);
   }
-  visitSuffixTerm(exprClass: Constructor<Expr.SuffixTerm>): string {
+  visitAnonymousFunction(exprClass: IExprClass<Expr.AnonymousFunction>): string {
+    return this.generateGrammarNodes(exprClass.grammar);
+  }
+  visitSuffixTerm(exprClass: ISuffixTermClass<SuffixTerm.SuffixTerm>): string {
     throw this.generateGrammarNodes(exprClass.grammar);
   }
-  visitCall(exprClass: IExprClass<Expr.Call>): string {
+  visitCall(exprClass: ISuffixTermClass<SuffixTerm.Call>): string {
     return this.generateGrammarNodes(exprClass.grammar);
   }
-  visitArrayIndex(exprClass: IExprClass<Expr.ArrayIndex>): string {
+  visitArrayIndex(exprClass: ISuffixTermClass<SuffixTerm.ArrayIndex>): string {
     return this.generateGrammarNodes(exprClass.grammar);
   }
-  visitArrayBracket(exprClass: IExprClass<Expr.ArrayBracket>): string {
+  visitArrayBracket(exprClass: ISuffixTermClass<SuffixTerm.ArrayBracket>): string {
     return this.generateGrammarNodes(exprClass.grammar);
   }
-  visitDelegate(exprClass: IExprClass<Expr.Delegate>): string {
+  visitDelegate(exprClass: ISuffixTermClass<SuffixTerm.Delegate>): string {
     return this.generateGrammarNodes(exprClass.grammar);
   }
-  visitLiteral(exprClass: IExprClass<Expr.Literal>): string {
+  visitLiteral(exprClass: ISuffixTermClass<SuffixTerm.Literal>): string {
     return this.generateGrammarNodes(exprClass.grammar);
   }
-  visitVariable(exprClass: IExprClass<Expr.Identifier>): string {
+  visitVariable(exprClass: ISuffixTermClass<SuffixTerm.Identifier>): string {
     return this.generateGrammarNodes(exprClass.grammar);
   }
-  visitGrouping(exprClass: IExprClass<Expr.Grouping>): string {
-    return this.generateGrammarNodes(exprClass.grammar);
-  }
-  visitAnonymousFunction(exprClass: IExprClass<Expr.AnonymousFunction>): string {
+  visitGrouping(exprClass: ISuffixTermClass<SuffixTerm.Grouping>): string {
     return this.generateGrammarNodes(exprClass.grammar);
   }
 
@@ -416,7 +416,8 @@ export class Generator implements IExprClassVisitor<string> {
   }
 }
 
-const isNode = (node: GrammarNode): node is TokenType | IExprClass | IInstClass => {
+const isNode = (node: GrammarNode)
+  : node is TokenType | IExprClass | IInstClass | ISuffixTermClass => {
   if (node.hasOwnProperty('tag')) {
     return false;
   }

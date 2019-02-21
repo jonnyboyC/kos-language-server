@@ -1,5 +1,6 @@
 import * as Expr from './expr';
 import * as Inst from './inst';
+import * as SuffixTerm from './suffixTerm';
 import { Var, Lock, Func, Param } from './declare';
 import { IToken } from '../entities/types';
 import { Range } from 'vscode-languageserver';
@@ -16,12 +17,21 @@ export interface IDeclScope extends Range {
   type: ScopeType;
 }
 
-export interface ISuffix extends IExpr {
-  isSuffix: true;
+export interface ISuffixTerm extends
+  ISuffixTermVisitable,
+  ISuffixTermParamVisitable,
+  IRangeSequence {
+  tag: 'suffixTerm';
+  toString(): string;
 }
 
-export type SuffixTermTrailer = Expr.Call | Expr.ArrayBracket | Expr.ArrayIndex | Expr.Delegate;
-export type Atom = Expr.Literal | Expr.Identifier | Expr.Grouping;
+export type SuffixTermTrailer = SuffixTerm.Call
+  | SuffixTerm.ArrayBracket
+  | SuffixTerm.ArrayIndex
+  | SuffixTerm.Delegate;
+export type Atom = SuffixTerm.Literal
+  | SuffixTerm.Identifier
+  | SuffixTerm.Grouping;
 
 export interface IExpr extends IExprVisitable, IRangeSequence {
   tag: 'expr';
@@ -35,6 +45,12 @@ export interface IInst extends IInstVisitable, IRangeSequence {
 export interface IScript extends IRangeSequence {
   insts: IInst[];
   tag: 'script';
+}
+
+export interface ISuffixTermClass<T = SuffixTerm.SuffixTermBase> extends
+  Constructor<T>,
+  ISuffixTermVisitableClass {
+  grammar: GrammarNode[];
 }
 
 export interface IExprClass<T = Expr.Expr> extends Constructor<T>, IExprVisitableClass {
@@ -123,11 +139,11 @@ export enum ScopeType {
 }
 
 export type GrammarNode = IExprClass
-  | IInstClass | TokenType
+  | IInstClass | ISuffixTermClass | TokenType
   | IGrammarOptional | IGrammarRepeat | IGrammarUnion;
 
 export type RunInstType = Inst.Run | Inst.RunPath | Inst.RunPathOnce;
-export type TreeNode = IExpr | IInst | IScript;
+export type TreeNode = IExpr | ISuffixTerm | IInst | IScript;
 
 export interface IExprVisitable {
   accept<T>(visitor: IExprVisitor<T>): T;
@@ -139,15 +155,39 @@ export interface IExprVisitor<T> {
   visitUnary(expr: Expr.Unary): T;
   visitFactor(expr: Expr.Factor): T;
   visitSuffix(expr: Expr.Suffix): T;
-  visitSuffixTerm(expr: Expr.SuffixTerm): T;
-  visitCall(expr: Expr.Call): T;
-  visitArrayIndex(expr: Expr.ArrayIndex): T;
-  visitArrayBracket(expr: Expr.ArrayBracket): T;
-  visitDelegate(expr: Expr.Delegate): T;
-  visitLiteral(expr: Expr.Literal): T;
-  visitVariable(expr: Expr.Identifier): T;
-  visitGrouping(expr: Expr.Grouping): T;
   visitAnonymousFunction(expr: Expr.AnonymousFunction): T;
+}
+
+export interface ISuffixTermVisitable {
+  accept<T>(visitor: ISuffixTermVisitor<T>): T;
+}
+
+export interface ISuffixTermVisitor<T> {
+  visitSuffixTerm(expr: SuffixTerm.SuffixTerm): T;
+  visitCall(expr: SuffixTerm.Call): T;
+  visitArrayIndex(expr: SuffixTerm.ArrayIndex): T;
+  visitArrayBracket(expr: SuffixTerm.ArrayBracket): T;
+  visitDelegate(expr: SuffixTerm.Delegate): T;
+  visitLiteral(expr: SuffixTerm.Literal): T;
+  visitIdentifier(expr: SuffixTerm.Identifier): T;
+  visitGrouping(expr: SuffixTerm.Grouping): T;
+}
+
+export interface ISuffixTermParamVisitable {
+  acceptParam<TParam, TReturn>(
+    visitor: ISuffixTermParamVisitor<TParam, TReturn>,
+    param: TParam): TReturn;
+}
+
+export interface ISuffixTermParamVisitor<TParam, TReturn> {
+  visitSuffixTerm(expr: SuffixTerm.SuffixTerm, param: TParam): TReturn;
+  visitCall(expr: SuffixTerm.Call, param: TParam): TReturn;
+  visitArrayIndex(expr: SuffixTerm.ArrayIndex, param: TParam): TReturn;
+  visitArrayBracket(expr: SuffixTerm.ArrayBracket, param: TParam): TReturn;
+  visitDelegate(expr: SuffixTerm.Delegate, param: TParam): TReturn;
+  visitLiteral(expr: SuffixTerm.Literal, param: TParam): TReturn;
+  visitIdentifier(expr: SuffixTerm.Identifier, param: TParam): TReturn;
+  visitGrouping(expr: SuffixTerm.Grouping, param: TParam): TReturn;
 }
 
 export interface IExprVisitableClass {
@@ -160,15 +200,22 @@ export interface IExprClassVisitor<T> {
   visitUnary(exprClass: Constructor<Expr.Unary>): T;
   visitFactor(exprClass: Constructor<Expr.Factor>): T;
   visitSuffix(exprClass: Constructor<Expr.Suffix>): T;
-  visitSuffixTerm(expr: Constructor<Expr.SuffixTerm>): T;
-  visitCall(exprClass: Constructor<Expr.Call>): T;
-  visitArrayIndex(exprClass: Constructor<Expr.ArrayIndex>): T;
-  visitArrayBracket(exprClass: Constructor<Expr.ArrayBracket>): T;
-  visitDelegate(exprClass: Constructor<Expr.Delegate>): T;
-  visitLiteral(exprClass: Constructor<Expr.Literal>): T;
-  visitVariable(exprClass: Constructor<Expr.Identifier>): T;
-  visitGrouping(exprClass: Constructor<Expr.Grouping>): T;
   visitAnonymousFunction(exprClass: Constructor<Expr.AnonymousFunction>): T;
+}
+
+export interface ISuffixTermVisitableClass {
+  classAccept<T>(visitor: ISuffixTermClassVisitor<T>): T;
+}
+
+export interface ISuffixTermClassVisitor<T> {
+  visitSuffixTerm(termClass: Constructor<SuffixTerm.SuffixTerm>): T;
+  visitCall(termClass: Constructor<SuffixTerm.Call>): T;
+  visitArrayIndex(termClass: Constructor<SuffixTerm.ArrayIndex>): T;
+  visitArrayBracket(termClass: Constructor<SuffixTerm.ArrayBracket>): T;
+  visitDelegate(termClass: Constructor<SuffixTerm.Delegate>): T;
+  visitLiteral(termClass: Constructor<SuffixTerm.Literal>): T;
+  visitVariable(termClass: Constructor<SuffixTerm.Identifier>): T;
+  visitGrouping(termClass: Constructor<SuffixTerm.Grouping>): T;
 }
 
 export interface IInstVisitable {
@@ -183,7 +230,7 @@ export interface IInstVisitor<T> {
 
   visitInstInvalid(inst: Inst.Invalid): T;
   visitBlock(inst: Inst.Block): T;
-  visitExpr(inst: Inst.Expr): T;
+  visitExpr(inst: Inst.ExprInst): T;
   visitOnOff(inst: Inst.OnOff): T;
   visitCommand(inst: Inst.Command): T;
   visitCommandExpr(inst: Inst.CommandExpr): T;

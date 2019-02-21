@@ -1,8 +1,13 @@
-import { IInstVisitor, IExprVisitor, IExpr, IInst, ScopeType } from '../parser/types';
+import {
+  IInstVisitor, IExprVisitor, IExpr,
+  IInst, ScopeType, ISuffixTerm,
+  ISuffixTermVisitor,
+} from '../parser/types';
+import * as SuffixTerm from '../parser/suffixTerm';
 import * as Expr from '../parser/expr';
 import * as Inst from '../parser/inst';
+import * as Decl from '../parser/declare';
 import { ResolverError } from './resolverError';
-import { Var, Lock, Func, Param } from '../parser/declare';
 import { empty } from '../utilities/typeGuards';
 import { LocalResolver } from './localResolver';
 import { SetResolver } from './setResolver';
@@ -14,7 +19,11 @@ import { ILocalResult, IResolverError } from './types';
 
 export type Errors = IResolverError[];
 
-export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
+export class Resolver implements
+  IExprVisitor<Errors>,
+  IInstVisitor<Errors>,
+  ISuffixTermVisitor<Errors> {
+
   private syntaxTree: Script;
   private scopeBuilder: ScopeBuilder;
   private readonly logger: ILogger;
@@ -78,6 +87,11 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
     return expr.accept(this);
   }
 
+  // resolve for an expression
+  private resolveSuffixTerm(suffixTerm: ISuffixTerm): Errors {
+    return suffixTerm.accept(this);
+  }
+
   // attempt to use ever variable in the expression
   private useExprLocals(expr: IExpr): Errors {
     return this.useTokens(this.localResolver.resolveExpr(expr));
@@ -102,7 +116,7 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   ----------------------------------------------*/
 
   // check variable declaration
-  public visitDeclVariable(decl: Var): Errors {
+  public visitDeclVariable(decl: Decl.Var): Errors {
 
     // determine scope type
     const scopeType = !empty(decl.scope)
@@ -119,7 +133,7 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   }
 
   // check lock declaration
-  public visitDeclLock(decl: Lock): ResolverError[] {
+  public visitDeclLock(decl: Decl.Lock): ResolverError[] {
 
     // determine scope type
     const scopeType = !empty(decl.scope)
@@ -136,12 +150,12 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   }
 
   // check function declaration
-  public visitDeclFunction(decl: Func): ResolverError[] {
+  public visitDeclFunction(decl: Decl.Func): ResolverError[] {
     return this.resolveInst(decl.instructionBlock);
   }
 
   // check parameter declaration
-  public visitDeclParameter(decl: Param): ResolverError[] {
+  public visitDeclParameter(decl: Decl.Param): ResolverError[] {
     const scopeError: Maybe<ResolverError>[] = [];
 
     // check that parameter isn't declared global
@@ -182,7 +196,7 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
     return errors;
   }
 
-  public visitExpr(inst: Inst.Expr): Errors {
+  public visitExpr(inst: Inst.ExprInst): Errors {
     return this.useExprLocals(inst.suffix).concat(
       this.resolveExpr(inst.suffix));
   }
@@ -346,7 +360,7 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
     let useErrors: Errors = [];
 
     // check target expression
-    if (inst.target instanceof Expr.Literal) {
+    if (inst.target instanceof SuffixTerm.Literal) {
       switch (inst.target.token.type) {
         case TokenType.string:
         case TokenType.fileIdentifier:
@@ -367,7 +381,7 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
     let useErrors: Errors = [];
 
     // check from expression
-    if (inst.source instanceof Expr.Literal) {
+    if (inst.source instanceof SuffixTerm.Literal) {
       switch (inst.source.token.type) {
         case TokenType.string:
         case TokenType.fileIdentifier:
@@ -379,7 +393,7 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
     }
 
     // check the target location
-    if (inst.target instanceof Expr.Literal) {
+    if (inst.target instanceof SuffixTerm.Literal) {
       switch (inst.target.token.type) {
         case TokenType.string:
         case TokenType.fileIdentifier:
@@ -512,50 +526,53 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   }
 
   public visitSuffix(expr: Expr.Suffix): Errors {
+    const atom = this.resolveSuffixTerm(expr.suffixTerm);
     if (empty(expr.trailer)) {
-      return this.resolveExpr(expr.suffixTerm);
+      return atom;
     }
 
-    return this.resolveExpr(expr.suffixTerm)
-      .concat(this.resolveExpr(expr.trailer));
+    if (expr.trailer.tag === 'expr') {
+      return atom.concat(this.resolveExpr(expr.trailer));
+    }
+    return atom.concat(this.resolveSuffixTerm(expr.trailer));
   }
 
-  public visitSuffixTerm(expr: Expr.SuffixTerm): IResolverError[] {
-    const atom = this.resolveExpr(expr.atom);
+  public visitSuffixTerm(expr: SuffixTerm.SuffixTerm): IResolverError[] {
+    const atom = this.resolveSuffixTerm(expr.atom);
     if (expr.trailers.length === 0) {
       return atom;
     }
 
     return atom.concat(expr.trailers.reduce(
-      (acc, curr) => acc.concat(this.resolveExpr(curr)),
+      (acc, curr) => acc.concat(this.resolveSuffixTerm(curr)),
       [] as IResolverError[]));
   }
 
-  public visitCall(expr: Expr.Call): Errors {
+  public visitCall(expr: SuffixTerm.Call): Errors {
     return accumulateErrors(expr.args, this.resolveExpr.bind(this));
   }
 
-  public visitArrayIndex(_: Expr.ArrayIndex): Errors {
+  public visitArrayIndex(_: SuffixTerm.ArrayIndex): Errors {
     return [];
   }
 
-  public visitArrayBracket(expr: Expr.ArrayBracket): Errors {
+  public visitArrayBracket(expr: SuffixTerm.ArrayBracket): Errors {
     return this.resolveExpr(expr.index);
   }
 
-  public visitDelegate(_: Expr.Delegate): Errors {
+  public visitDelegate(_: SuffixTerm.Delegate): Errors {
     return [];
   }
 
-  public visitLiteral(_: Expr.Literal): Errors {
+  public visitLiteral(_: SuffixTerm.Literal): Errors {
     return [];
   }
 
-  public visitVariable(_: Expr.Identifier): Errors {
+  public visitIdentifier(_: SuffixTerm.Identifier): Errors {
     return [];
   }
 
-  public visitGrouping(expr: Expr.Grouping): Errors {
+  public visitGrouping(expr: SuffixTerm.Grouping): Errors {
     return this.resolveExpr(expr.expr);
   }
 

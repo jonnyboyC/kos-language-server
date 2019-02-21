@@ -4,6 +4,7 @@ import { Parser } from './parser';
 import { IScannerError, IScanResult } from '../scanner/types';
 import { IExpr, INodeResult } from './types';
 import * as Expr from './expr';
+import * as SuffixTerm from './suffixTerm';
 import { TokenType } from '../entities/tokentypes';
 import { readdirSync, statSync, readFileSync } from 'fs';
 import { join } from 'path';
@@ -78,11 +79,11 @@ ava('basic valid literal', (t) => {
 
   for (const expression of validExpressions) {
     const [{ value, errors }, scanErrors] = parseExpression(expression.source);
-    t.true(value instanceof Expr.Literal);
+    t.true(value instanceof SuffixTerm.Literal);
     t.true(errors.length === 0);
     t.true(scanErrors.length === 0);
 
-    if (value instanceof Expr.Literal) {
+    if (value instanceof SuffixTerm.Literal) {
       t.is(expression.type, value.token.type);
       t.is(expression.literal, value.token.literal);
     }
@@ -98,7 +99,7 @@ ava('basic invalid literal', (t) => {
 
   for (const expression of validExpressions) {
     const [{ value, errors }, scanErrors] = parseExpression(expression.source);
-    t.false(value instanceof Expr.Literal);
+    t.false(value instanceof SuffixTerm.Literal);
     t.true(errors.length > 0 || scanErrors.length > 0);
   }
 });
@@ -113,10 +114,10 @@ ava('basic valid identifier', (t) => {
 
   for (const expression of validExpressions) {
     const [{ value }, scannerErrors] = parseExpression(expression.source);
-    t.true(value instanceof Expr.Identifier);
+    t.true(value instanceof SuffixTerm.Identifier);
     t.true(scannerErrors.length === 0);
 
-    if (value instanceof Expr.Identifier) {
+    if (value instanceof SuffixTerm.Identifier) {
       t.deepEqual(expression.type, value.token.type);
       t.deepEqual(expression.literal, value.token.literal);
     }
@@ -134,7 +135,7 @@ ava('basic invalid identifier', (t) => {
 
   for (const expression of validExpressions) {
     const [{ value, errors }] = parseExpression(expression.source);
-    t.false(value instanceof Expr.Identifier);
+    t.false(value instanceof SuffixTerm.Identifier);
     t.true(errors.length >= 0);
   }
 });
@@ -145,32 +146,32 @@ interface ICallTest {
   args: Function[];
 }
 
-const callTest = (source: string, callee: string, args: Constructor<Expr.Expr>[])
+const callTest = (source: string, callee: string, args: Constructor<SuffixTerm.SuffixTermBase>[])
   : ICallTest => ({ source, callee, args });
 
 // test basic identifier
 ava('valid call', (t) => {
   const validExpressions = [
-    callTest('test(4, "car")', 'test', [Expr.Literal, Expr.Literal]),
-    callTest('БНЯД(varName, 14.3)', 'бняд', [Expr.Identifier, Expr.Literal]),
+    callTest('test(4, "car")', 'test', [SuffixTerm.Literal, SuffixTerm.Literal]),
+    callTest('БНЯД(varName, 14.3)', 'бняд', [SuffixTerm.Identifier, SuffixTerm.Literal]),
     callTest('_variableName()', '_variablename', []),
   ];
 
   for (const expression of validExpressions) {
     const [{ value, errors }, scannerErrors] = parseExpression(expression.source);
-    t.true(value instanceof Expr.SuffixTerm);
+    t.true(value instanceof SuffixTerm.SuffixTerm);
     t.true(errors.length === 0);
     t.true(scannerErrors.length === 0);
 
-    if (value instanceof Expr.SuffixTerm) {
-      t.true(value.atom instanceof Expr.Identifier);
-      if (value.atom instanceof Expr.Identifier) {
+    if (value instanceof SuffixTerm.SuffixTerm) {
+      t.true(value.atom instanceof SuffixTerm.Identifier);
+      if (value.atom instanceof SuffixTerm.Identifier) {
         t.deepEqual(value.trailers.length, 1);
 
         const call = value.trailers[0];
-        t.true(call instanceof Expr.Call);
+        t.true(call instanceof SuffixTerm.Call);
 
-        if (call instanceof Expr.Call) {
+        if (call instanceof SuffixTerm.Call) {
           t.deepEqual(expression.callee, value.atom.token.lexeme);
           t.deepEqual(expression.args.length, call.args.length);
 
@@ -193,7 +194,7 @@ ava('invalid call', (t) => {
 
   for (const expression of validExpressions) {
     const [{ value }, scannerErrors] = parseExpression(expression.source);
-    t.false(value instanceof Expr.Identifier);
+    t.false(value instanceof SuffixTerm.Identifier);
     t.true(scannerErrors.length === 0);
   }
 });
@@ -206,16 +207,16 @@ interface IBinaryTest {
 }
 
 interface IBinaryArm {
-  expr: Constructor<Expr.Expr>;
+  expr: Constructor<SuffixTerm.SuffixTermBase | Expr.Expr>;
   literal: any;
 }
 
 const binaryTest = (
   source: string,
   operator: TokenType,
-  left: Constructor<Expr.Expr>,
+  left: Constructor<SuffixTerm.SuffixTermBase | Expr.Expr>,
   leftLiteral: any,
-  right: Constructor<Expr.Expr>,
+  right: Constructor<SuffixTerm.SuffixTermBase | Expr.Expr>,
   rightLiteral: any): IBinaryTest => {
   return {
     source,
@@ -234,20 +235,20 @@ const binaryTest = (
 // test basic binary
 ava('valid binary', (t) => {
   const validExpressions = [
-    binaryTest('10 + 5', TokenType.plus, Expr.Literal, 10, Expr.Literal, 5),
+    binaryTest('10 + 5', TokenType.plus, SuffixTerm.Literal, 10, SuffixTerm.Literal, 5),
     binaryTest(
       '"example" + "other"',
       TokenType.plus,
-      Expr.Literal,
+      SuffixTerm.Literal,
       'example',
-      Expr.Literal,
+      SuffixTerm.Literal,
       'other'),
     binaryTest(
       'variable <> false',
       TokenType.notEqual,
-      Expr.Identifier,
+      SuffixTerm.Identifier,
       undefined,
-      Expr.Literal,
+      SuffixTerm.Literal,
       false),
     binaryTest(
       'suffix:call(10, 5) <= 10 ^ 3',
@@ -269,11 +270,11 @@ ava('valid binary', (t) => {
       t.true(value.left instanceof expression.leftArm.expr, 'wrong left node');
       t.true(value.right instanceof expression.rightArm.expr, 'wrong right node');
 
-      if (!empty(expression.leftArm.literal) && value.left instanceof Expr.Literal) {
+      if (!empty(expression.leftArm.literal) && value.left instanceof SuffixTerm.Literal) {
         t.is(value.left.token.literal, expression.leftArm.literal);
       }
 
-      if (!empty(expression.rightArm.literal) && value.right instanceof Expr.Literal) {
+      if (!empty(expression.rightArm.literal) && value.right instanceof SuffixTerm.Literal) {
         t.is(value.right.token.literal, expression.rightArm.literal);
       }
     }

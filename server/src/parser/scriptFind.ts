@@ -1,17 +1,26 @@
-import { IExprVisitor, IInstVisitor, IInst, IExpr, IFindResult, TreeNode } from './types';
+import {
+  IExprVisitor, IInstVisitor, IInst,
+  IExpr, IFindResult, TreeNode,
+  ISuffixTermVisitor,
+  ISuffixTerm,
+} from './types';
 import * as Decl from './declare';
 import * as Inst from './inst';
 import * as Expr from './expr';
+import * as SuffixTerm from './suffixTerm';
 import { Position } from 'vscode-languageserver';
 import { binarySearch } from '../utilities/positionHelpers';
 import { empty } from '../utilities/typeGuards';
 import { Token } from '../entities/token';
 
-type Contexts = Constructor<Expr.Expr> | Constructor<Inst.Inst>;
+type Contexts = Constructor<Expr.Expr>
+  | Constructor<Inst.Inst>
+  | Constructor<SuffixTerm.SuffixTermBase>;
 
 export class ScriptFind implements
   IExprVisitor<Maybe<IFindResult>>,
-  IInstVisitor<Maybe<IFindResult>> {
+  IInstVisitor<Maybe<IFindResult>>,
+  ISuffixTermVisitor<Maybe<IFindResult>> {
 
   private pos: Position;
   private contexts: Contexts[];
@@ -34,6 +43,18 @@ export class ScriptFind implements
     const searchResult = binarySearch(node.ranges, this.pos);
     if (empty(searchResult)) {
       return searchResult;
+    }
+
+    // search expression if expression
+    if (searchResult instanceof SuffixTerm.SuffixTerm) {
+      const findResult = this.findSuffixTerm(searchResult);
+
+      // add context if not set yet
+      if (!empty(findResult) && this.addContext(findResult, node)) {
+        findResult.node = node;
+      }
+
+      return findResult;
     }
 
     // search expression if expression
@@ -101,6 +122,11 @@ export class ScriptFind implements
     return expr.accept(this);
   }
 
+  // find an expression
+  private findSuffixTerm(suffixTerm: ISuffixTerm): Maybe<IFindResult> {
+    return suffixTerm.accept(this);
+  }
+
   visitDeclVariable(decl: Decl.Var): Maybe<IFindResult> {
     return this.findNode(decl);
   }
@@ -119,7 +145,7 @@ export class ScriptFind implements
   visitBlock(inst: Inst.Block): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitExpr(inst: Inst.Expr): Maybe<IFindResult> {
+  visitExpr(inst: Inst.ExprInst): Maybe<IFindResult> {
     return this.findNode(inst);
   }
   visitOnOff(inst: Inst.OnOff): Maybe<IFindResult> {
@@ -227,28 +253,28 @@ export class ScriptFind implements
   visitSuffix(expr: Expr.Suffix): Maybe<IFindResult> {
     return this.findNode(expr);
   }
-  visitSuffixTerm(expr: Expr.SuffixTerm): Maybe<IFindResult> {
+  visitSuffixTerm(expr: SuffixTerm.SuffixTerm): Maybe<IFindResult> {
     throw this.findNode(expr);
   }
-  visitCall(expr: Expr.Call): Maybe<IFindResult> {
+  visitCall(expr: SuffixTerm.Call): Maybe<IFindResult> {
     return this.findNode(expr);
   }
-  visitArrayIndex(expr: Expr.ArrayIndex): Maybe<IFindResult> {
+  visitArrayIndex(expr: SuffixTerm.ArrayIndex): Maybe<IFindResult> {
     return this.findNode(expr);
   }
-  visitArrayBracket(expr: Expr.ArrayBracket): Maybe<IFindResult> {
+  visitArrayBracket(expr: SuffixTerm.ArrayBracket): Maybe<IFindResult> {
     return this.findNode(expr);
   }
-  visitDelegate(expr: Expr.Delegate): Maybe<IFindResult> {
+  visitDelegate(expr: SuffixTerm.Delegate): Maybe<IFindResult> {
     return this.findNode(expr);
   }
-  visitLiteral(expr: Expr.Literal): Maybe<IFindResult> {
+  visitLiteral(expr: SuffixTerm.Literal): Maybe<IFindResult> {
     return this.findNode(expr);
   }
-  visitVariable(expr: Expr.Identifier): Maybe<IFindResult> {
+  visitIdentifier(expr: SuffixTerm.Identifier): Maybe<IFindResult> {
     return this.findNode(expr);
   }
-  visitGrouping(expr: Expr.Grouping): Maybe<IFindResult> {
+  visitGrouping(expr: SuffixTerm.Grouping): Maybe<IFindResult> {
     return this.findNode(expr);
   }
   visitAnonymousFunction(expr: Expr.AnonymousFunction): Maybe<IFindResult> {

@@ -2,7 +2,7 @@
 import { TokenType, isValidIdentifier } from '../entities/tokentypes';
 import {
   IParseError, IExpr, IDeclScope, IInst,
-  INodeResult, RunInstType, ParseResult, ISuffix, Atom, SuffixTermTrailer,
+  INodeResult, RunInstType, ParseResult, Atom, SuffixTermTrailer,
 } from './types';
 import {
   ParseError, FailedConstructor,
@@ -10,6 +10,7 @@ import {
   failedInst,
 } from './parserError';
 import * as Expr from './expr';
+import * as SuffixTerm from './suffixTerm';
 import * as Inst from './inst';
 import * as Decl from './declare';
 import { empty } from '../utilities/typeGuards';
@@ -422,22 +423,22 @@ export class Parser {
 
   // parse an instruction lead with a identifier
   private identifierLedInstruction(): INodeResult<IInst> {
-    const suffix = this.suffixCatch(Inst.Expr);
+    const suffix = this.suffixCatch(Inst.ExprInst);
 
     if (this.matchToken(TokenType.on, TokenType.off)) {
       const onOff = this.onOff(suffix.value);
       return nodeResult(onOff.value, suffix.errors, onOff.errors);
     }
-    this.terminal(Inst.Expr);
+    this.terminal(Inst.ExprInst);
 
     return nodeResult(
-      new Inst.Expr(suffix.value),
+      new Inst.ExprInst(suffix.value),
       suffix.errors,
     );
   }
 
   // parse on off statement
-  private onOff(suffix: ISuffix): INodeResult<Inst.OnOff> {
+  private onOff(suffix: Expr.Suffix): INodeResult<Inst.OnOff> {
     const onOff = this.previous();
     this.terminal(Inst.OnOff);
 
@@ -1121,7 +1122,7 @@ export class Parser {
   }
 
   // parse suffix for use in inst directly, will catch
-  private suffixCatch(inst: Constructor<Inst.Inst>): INodeResult<ISuffix> {
+  private suffixCatch(inst: Constructor<Inst.Inst>): INodeResult<Expr.Suffix> {
     try {
       return this.suffix();
     } catch (error) {
@@ -1175,7 +1176,7 @@ export class Parser {
   }
 
   // parse suffix term expression
-  private suffixTerm(isTrailer: boolean): INodeResult<Expr.SuffixTerm> {
+  private suffixTerm(isTrailer: boolean): INodeResult<SuffixTerm.SuffixTerm> {
     // parse atom
     const atom = this.atom(isTrailer);
     const trailers: SuffixTermTrailer[] = [];
@@ -1196,7 +1197,7 @@ export class Parser {
         trailers.push(trailer.value);
         parseErrors = parseErrors.concat(trailer.errors);
       } else if (this.matchToken(TokenType.atSign)) {
-        trailers.push(new Expr.Delegate(this.previous(), isTrailer));
+        trailers.push(new SuffixTerm.Delegate(this.previous(), isTrailer));
         break;
       } else {
         break;
@@ -1204,20 +1205,20 @@ export class Parser {
     }
 
     return nodeResult(
-      new Expr.SuffixTerm(atom.value, trailers),
+      new SuffixTerm.SuffixTerm(atom.value, trailers),
       parseErrors);
   }
 
   // function call
-  private functionTrailer(isTrailer: boolean): INodeResult<Expr.Call> {
+  private functionTrailer(isTrailer: boolean): INodeResult<SuffixTerm.Call> {
     const open = this.previous();
     const args = this.arguments();
     const close = this.consumeTokenThrow(
       'Expect ")" after arguments.',
-      Expr.Call, TokenType.bracketClose);
+      SuffixTerm.Call, TokenType.bracketClose);
 
     return nodeResult(
-      new Expr.Call(open, args.value, close, isTrailer),
+      new SuffixTerm.Call(open, args.value, close, isTrailer),
       args.errors,
     );
   }
@@ -1254,30 +1255,30 @@ export class Parser {
   }
 
   // generate array bracket expression
-  private arrayBracket(isTrailer: boolean): INodeResult<Expr.ArrayBracket> {
+  private arrayBracket(isTrailer: boolean): INodeResult<SuffixTerm.ArrayBracket> {
     const open = this.previous();
     const index = this.expression();
 
     const close = this.consumeTokenThrow(
       'Expected "]" at end of array index.',
-      Expr.ArrayBracket, TokenType.squareClose);
+      SuffixTerm.ArrayBracket, TokenType.squareClose);
 
     return nodeResult(
-      new Expr.ArrayBracket(open, index.value, close, isTrailer),
+      new SuffixTerm.ArrayBracket(open, index.value, close, isTrailer),
       index.errors,
     );
   }
 
   // generate array index expression
-  private arrayIndex(isTrailer: boolean): INodeResult<Expr.ArrayIndex> {
+  private arrayIndex(isTrailer: boolean): INodeResult<SuffixTerm.ArrayIndex> {
     const indexer = this.previous();
 
     // check for integer or identifier
     const index = this.consumeTokenThrow(
       'Expected integer or identifer.',
-      Expr.ArrayIndex, TokenType.integer, TokenType.identifier);
+      SuffixTerm.ArrayIndex, TokenType.integer, TokenType.identifier);
 
-    return nodeResult(new Expr.ArrayIndex(indexer, index, isTrailer));
+    return nodeResult(new SuffixTerm.ArrayIndex(indexer, index, isTrailer));
   }
 
   // TODO this returns a delegate
@@ -1318,12 +1319,12 @@ export class Parser {
     if (this.matchToken(
       TokenType.false, TokenType.true, TokenType.fileIdentifier,
       TokenType.string, TokenType.integer, TokenType.double)) {
-      return nodeResult(new Expr.Literal(this.previous(), isTrailer));
+      return nodeResult(new SuffixTerm.Literal(this.previous(), isTrailer));
     }
 
     // match identifiers TODO identifier all keywords that can be used here
     if (isValidIdentifier(this.peek().type)) {
-      return nodeResult(new Expr.Identifier(this.advance(), isTrailer));
+      return nodeResult(new SuffixTerm.Identifier(this.advance(), isTrailer));
     }
 
     // match grouping expression
@@ -1332,10 +1333,10 @@ export class Parser {
       const expr = this.expression();
       const close = this.consumeTokenThrow(
         'Expect ")" after expression',
-        Expr.Grouping, TokenType.bracketClose);
+        SuffixTerm.Grouping, TokenType.bracketClose);
 
       return nodeResult(
-        new Expr.Grouping(open, expr.value, close, isTrailer),
+        new SuffixTerm.Grouping(open, expr.value, close, isTrailer),
         expr.errors,
       );
     }

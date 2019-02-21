@@ -1,7 +1,7 @@
 import { KsEntity, IKsEntityTracker, IKsChange, IKsDeclared } from './types';
 import { structureType } from '../typeChecker/types/primitives/structure';
 import { Location } from 'vscode-languageserver';
-import { IExpr } from '../parser/types';
+import { IExpr, ISuffixTerm } from '../parser/types';
 import { IArgumentType, IFunctionType } from '../typeChecker/types/types';
 import { empty } from '../utilities/typeGuards';
 import { binaryRightKeyIndex } from '../utilities/positionHelpers';
@@ -52,5 +52,7 @@ export class KsEntityTracker<T extends KsEntity>
   }
 }
 
-export const createEnitityChange = (loc: Location, expr?: IExpr, type = structureType):
+export const createEnitityChange = (
+  loc: Location,
+  expr?: IExpr | ISuffixTerm, type = structureType):
   IKsChange => ({ type, expr, uri: loc.uri, range: loc.range });

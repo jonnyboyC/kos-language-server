@@ -5,7 +5,7 @@ import { Position, Range } from 'vscode-languageserver';
 import { positionAfterEqual, positionBeforeEqual } from '../utilities/positionHelpers';
 import { mockLogger } from '../utilities/logger';
 import { empty } from '../utilities/typeGuards';
-import { IType } from '../typeChecker/types/types';
+import { IArgumentType, IFunctionType } from '../typeChecker/types/types';
 import { KsFunction } from '../entities/function';
 
 export class ScopeManager implements GraphNode<ScopeManager> {
@@ -71,7 +71,7 @@ export class ScopeManager implements GraphNode<ScopeManager> {
   }
 
   // get the type
-  public getType(range: Range, name: string): Maybe<IType> {
+  public getType(range: Range, name: string): Maybe<IArgumentType | IFunctionType> {
     const tracker = this.scopedTracker(range.start, name);
     if (!empty(tracker)) {
       return tracker.getType({ range, uri: this.uri });
@@ -81,7 +81,7 @@ export class ScopeManager implements GraphNode<ScopeManager> {
   }
 
   // set the type
-  public setType(range: Range, name: string, type: IType): void {
+  public setType(range: Range, name: string, type: IArgumentType | IFunctionType): void {
     const tracker = this.scopedTracker(range.start, name);
     if (!empty(tracker)) {
       tracker.setType({ range, uri: this.uri }, type);

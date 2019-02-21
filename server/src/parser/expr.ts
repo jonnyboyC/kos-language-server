@@ -1,16 +1,16 @@
 import {
   IExprClass, IInst, IExprVisitor,
-  ISuffix, IExpr, IExprClassVisitor,
-  GrammarNode, Distribution, Atom,
-  SuffixTermTrailer,
+  ISuffixTerm, IExpr, IExprClassVisitor,
+  GrammarNode, Distribution,
 } from './types';
+import * as SuffixTerm from './suffixTerm';
 import { TokenType } from '../entities/tokentypes';
 import { IToken } from '../entities/types';
 import { Range, Position } from 'vscode-languageserver';
 import {
   createGrammarUnion, createGrammarOptional,
   createGrammarRepeat, createConstant,
-  createExponential, createNormal, createGamma,
+  createExponential,
 } from './grammarNodes';
 import { empty } from '../utilities/typeGuards';
 
@@ -24,12 +24,6 @@ export abstract class Expr implements IExpr {
   public abstract get start(): Position;
   public abstract get end(): Position;
   public abstract accept<T>(visitor: IExprVisitor<T>): T;
-}
-
-export abstract class SuffixBase extends Expr implements ISuffix {
-  get isSuffix(): true {
-    return true;
-  }
 }
 
 export class Invalid extends Expr {
@@ -202,13 +196,13 @@ export class AnonymousFunction extends Expr {
   }
 }
 
-export class Suffix extends SuffixBase {
+export class Suffix extends Expr {
   public static grammar: GrammarNode[];
 
   constructor(
-    public readonly suffixTerm: SuffixTerm,
+    public readonly suffixTerm: SuffixTerm.SuffixTerm,
     public colon?: IToken,
-    public trailer?: ISuffix) {
+    public trailer?: Suffix | ISuffixTerm) {
     super();
   }
 
@@ -247,302 +241,15 @@ export class Suffix extends SuffixBase {
   }
 }
 
-export class SuffixTerm extends SuffixBase {
-  public static grammar: GrammarNode[];
-
-  constructor(
-    public readonly atom: Atom,
-    public readonly trailers: SuffixTermTrailer[]) {
-    super();
-  }
-  public get ranges(): Range[] {
-    return [this.atom as Range, ...this.trailers as Range[]];
-  }
-  public get start(): Position {
-    throw new Error();
-  }
-  public get end(): Position {
-    throw new Error();
-  }
-  public toString(): string {
-    return `${this.atom.toString()}${this.trailers.map(trailer => trailer.toString()).join('')}`;
-  }
-  public accept<T>(visitor: IExprVisitor<T>): T {
-    return visitor.visitSuffixTerm(this);
-  }
-  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
-    return visitor.visitSuffixTerm(this);
-  }
-}
-
-export class Call extends SuffixBase {
-  public static grammar: GrammarNode[];
-
-  constructor(
-    public readonly open: IToken,
-    public readonly args: IExpr[],
-    public readonly close: IToken,
-    public readonly isTrailer: boolean) {
-    super();
-  }
-
-  public get start(): Position {
-    return this.open.start;
-  }
-
-  public get end(): Position {
-    return this.close.end;
-  }
-
-  public get ranges(): Range[] {
-    return [this.open, ...this.args, this.close];
-  }
-
-  public toString(): string {
-    return `${this.open.lexeme}`
-     + `${this.args.map(a => a.toString()).join(', ')}${this.close.lexeme}`;
-  }
-
-  public accept<T>(visitor: IExprVisitor<T>): T {
-    return visitor.visitCall(this);
-  }
-
-  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
-    return visitor.visitCall(this);
-  }
-}
-
-export class ArrayIndex extends SuffixBase {
-  public static grammar: GrammarNode[];
-
-  constructor(
-    public readonly indexer: IToken,
-    public readonly index: IToken,
-    public readonly isTrailer: boolean) {
-    super();
-  }
-
-  public get start(): Position {
-    return this.indexer.start;
-  }
-
-  public get end(): Position {
-    return this.index.end;
-  }
-
-  public get ranges(): Range[] {
-    return [this.indexer, this.index];
-  }
-
-  public toString(): string {
-    return `${this.indexer.lexeme}${this.index.lexeme}`;
-  }
-
-  public accept<T>(visitor: IExprVisitor<T>): T {
-    return visitor.visitArrayIndex(this);
-  }
-
-  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
-    return visitor.visitArrayIndex(this);
-  }
-}
-
-export class ArrayBracket extends SuffixBase {
-  public static grammar: GrammarNode[];
-
-  constructor(
-    public readonly open: IToken,
-    public readonly index: IExpr,
-    public readonly close: IToken,
-    public readonly isTrailer: boolean) {
-    super();
-  }
-
-  public get start(): Position {
-    return this.open.start;
-  }
-
-  public get end(): Position {
-    return this.close.end;
-  }
-
-  public get ranges(): Range[] {
-    return [this.open, this.index, this.close];
-  }
-
-  public toString(): string {
-    return `${this.open.lexeme}`
-      + `${this.index.toString()}${this.close.lexeme}`;
-  }
-
-  public accept<T>(visitor: IExprVisitor<T>): T {
-    return visitor.visitArrayBracket(this);
-  }
-
-  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
-    return visitor.visitArrayBracket(this);
-  }
-}
-
-export class Delegate extends SuffixBase {
-  public static grammar: GrammarNode[];
-
-  constructor (
-    public readonly atSign: IToken,
-    public readonly isTrailer: boolean) {
-    super();
-  }
-
-  public get start(): Position {
-    return this.atSign.start;
-  }
-
-  public get end(): Position {
-    return this.atSign.end;
-  }
-
-  public get ranges(): Range[] {
-    return [this.atSign];
-  }
-
-  public toString(): string {
-    return this.atSign.lexeme;
-  }
-
-  public accept<T>(visitor: IExprVisitor<T>): T {
-    return visitor.visitDelegate(this);
-  }
-
-  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
-    return visitor.visitDelegate(this);
-  }
-}
-
-export class Literal extends SuffixBase {
-  public static grammar: GrammarNode[];
-
-  constructor(
-    public readonly token: IToken,
-    public readonly isTrailer: boolean) {
-    super();
-  }
-
-  public get start(): Position {
-    return this.token.start;
-  }
-
-  public get end(): Position {
-    return this.token.end;
-  }
-
-  public get ranges(): Range[] {
-    return [this.token];
-  }
-
-  public toString(): string {
-    return `${this.token.lexeme}`;
-  }
-
-  public accept<T>(visitor: IExprVisitor<T>): T {
-    return visitor.visitLiteral(this);
-  }
-
-  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
-    return visitor.visitLiteral(this);
-  }
-}
-
-export class Identifier extends SuffixBase {
-  public static grammar: GrammarNode[];
-
-  constructor(
-    public readonly token: IToken,
-    public readonly isTrailer: boolean) {
-    super();
-  }
-
-  public get start(): Position {
-    return this.token.start;
-  }
-
-  public get end(): Position {
-    return this.token.end;
-  }
-
-  public get ranges(): Range[] {
-    return [this.token];
-  }
-
-  public get isKeyword(): boolean {
-    return !(this.token.type === TokenType.identifier
-      || this.token.type === TokenType.fileIdentifier);
-  }
-
-  public toString(): string {
-    return `${this.token.lexeme}`;
-  }
-
-  public accept<T>(visitor: IExprVisitor<T>): T {
-    return visitor.visitVariable(this);
-  }
-
-  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
-    return visitor.visitVariable(this);
-  }
-}
-
-export class Grouping extends SuffixBase {
-  public static grammar: GrammarNode[];
-
-  constructor(
-    public readonly open: IToken,
-    public readonly expr: IExpr,
-    public readonly close: IToken,
-    public readonly isTrailer: boolean) {
-    super();
-  }
-
-  public get start(): Position {
-    return this.open.start;
-  }
-
-  public get end(): Position {
-    return this.close.end;
-  }
-
-  public get ranges(): Range[] {
-    return [this.open, this.expr, this.close];
-  }
-
-  public toString(): string {
-    return `${this.open.lexeme}${this.expr.toString()}${this.close.lexeme}`;
-  }
-
-  public accept<T>(visitor: IExprVisitor<T>): T {
-    return visitor.visitGrouping(this);
-  }
-
-  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
-    return visitor.visitGrouping(this);
-  }
-}
-
 export const validExprTypes: [IExprClass, Distribution][] = [
-  [Binary, createConstant(1)],
-  [Unary, createConstant(1)],
-  [Factor, createConstant(1)],
-  [Suffix, createConstant(1)],
-  [Call, createConstant(1)],
-  [ArrayIndex, createConstant(1)],
-  [ArrayBracket, createConstant(1)],
-  [Delegate, createConstant(1)],
-  [Literal, createConstant(1)],
-  [Identifier, createConstant(1)],
-  [Grouping, createConstant(1)],
+  [Binary, createConstant(1.0)],
+  [Unary, createConstant(0.5)],
+  [Factor, createConstant(0.5)],
+  [Suffix, createConstant(3)],
   [AnonymousFunction, createConstant(0)],
 ];
 
-const expr = createGrammarUnion(...validExprTypes);
+export const expr = createGrammarUnion(...validExprTypes);
 
 Binary.grammar = [
   expr,
@@ -585,79 +292,13 @@ Factor.grammar = [
   ),
 ];
 
-const suffixTerm = createGrammarUnion(
-  [Literal, createNormal(1.3, 1)],
-  [Identifier, createNormal(3, 1)],
-  [Grouping, createNormal(0.4, 0.2)],
-  [Call, createNormal(0.5, 0.5)],
-  [ArrayIndex, createNormal(0.5, 0.5)],
-  [ArrayBracket, createNormal(0.1, 0.1)],
-);
-
 Suffix.grammar = [
-  suffixTerm,
+  SuffixTerm.SuffixTerm,
   createGrammarRepeat(
     createExponential(2),
     TokenType.colon,
-    suffixTerm,
+    SuffixTerm.SuffixTerm,
   ),
-];
-
-Call.grammar = [
-  suffixTerm,
-  TokenType.bracketOpen,
-  createGrammarOptional(
-    createExponential(3),
-    createGrammarUnion(...validExprTypes),
-    createGrammarRepeat(
-      createGamma(1.5, 0.4),
-      TokenType.comma,
-      createGrammarUnion(...validExprTypes),
-    ),
-  ),
-  TokenType.bracketClose,
-];
-
-ArrayIndex.grammar = [
-  suffixTerm,
-  TokenType.arrayIndex,
-  createGrammarUnion(
-    [TokenType.integer, createNormal(3, 1)],
-    [TokenType.identifier, createNormal(1, 1)],
-  ),
-];
-
-ArrayBracket.grammar = [
-  suffixTerm,
-  TokenType.bracketOpen,
-  expr,
-  TokenType.bracketClose,
-];
-
-Delegate.grammar = [
-  suffixTerm,
-  TokenType.atSign,
-];
-
-Literal.grammar = [
-  createGrammarUnion(
-    [TokenType.integer, createConstant(1)],
-    [TokenType.double, createConstant(1.5)],
-    [TokenType.true, createConstant(0.5)],
-    [TokenType.false, createConstant(0.5)],
-    [TokenType.fileIdentifier, createConstant(0.1)],
-    [TokenType.string, createConstant(2)],
-  ),
-];
-
-Identifier.grammar = [
-  TokenType.identifier,
-];
-
-Grouping.grammar = [
-  TokenType.bracketOpen,
-  expr,
-  TokenType.bracketClose,
 ];
 
 AnonymousFunction.grammar = [

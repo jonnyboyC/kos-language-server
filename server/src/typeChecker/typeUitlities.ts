@@ -57,20 +57,28 @@ export const hasOperator = (type: IType, operator: Operator): Maybe<IArgumentTyp
   return undefined;
 };
 
-export const hasSuffix = (type: IArgumentType, suffix: string): boolean => {
-  return moveDownPrototype(type, false, (currentType) => {
-    if (currentType.suffixes.has(suffix)) {
-      return true;
-    }
+export const hasSuffix = (type: IType, suffix: string): boolean => {
+  if (type.tag === 'type') {
+    return moveDownPrototype(type, false, (currentType) => {
+      if (currentType.suffixes.has(suffix)) {
+        return true;
+      }
 
-    return undefined;
-  });
+      return undefined;
+    });
+  }
+
+  return false;
 };
 
-export const getSuffix = (type: IArgumentType, suffix: string): Maybe<ISuffixType> => {
-  return moveDownPrototype(type, undefined, (currentType) => {
-    return currentType.suffixes.get(suffix);
-  });
+export const getSuffix = (type: IType, suffix: string): Maybe<ISuffixType> => {
+  if (type.tag === 'type') {
+    return moveDownPrototype(type, undefined, (currentType) => {
+      return currentType.suffixes.get(suffix);
+    });
+  }
+
+  return undefined;
 };
 
 export const allSuffixes = (type: IArgumentType): ISuffixType[] => {

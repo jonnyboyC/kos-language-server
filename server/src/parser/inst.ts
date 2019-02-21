@@ -1,4 +1,5 @@
-import { IInst, IExpr, IInstVisitor, ISuffix } from './types';
+import { IInst, IExpr, IInstVisitor } from './types';
+import * as Expr from './expr';
 import { IToken } from '../entities/types';
 import { Range, Position } from 'vscode-languageserver';
 import { empty } from '../utilities/typeGuards';
@@ -61,9 +62,9 @@ export class Block extends Inst {
   }
 }
 
-export class Expr extends Inst {
+export class ExprInst extends Inst {
   constructor(
-    public readonly suffix: ISuffix) {
+    public readonly suffix: Expr.Suffix) {
     super();
   }
 
@@ -86,7 +87,7 @@ export class Expr extends Inst {
 
 export class OnOff extends Inst {
   constructor(
-    public readonly suffix: IExpr,
+    public readonly suffix: Expr.Suffix,
     public readonly onOff: IToken) {
     super();
   }
@@ -205,7 +206,7 @@ export class Unlock extends Inst {
 export class Set extends Inst {
   constructor(
     public readonly set: IToken,
-    public readonly suffix: ISuffix,
+    public readonly suffix: Expr.Suffix,
     public readonly to: IToken,
     public readonly value: IExpr) {
     super();
@@ -483,7 +484,7 @@ export class For extends Inst {
     public readonly forToken: IToken,
     public readonly identifier: IToken,
     public readonly inToken: IToken,
-    public readonly suffix: ISuffix,
+    public readonly suffix: Expr.Suffix,
     public readonly instruction: IInst) {
     super();
   }
@@ -512,7 +513,7 @@ export class For extends Inst {
 export class On extends Inst {
   constructor(
     public readonly on: IToken,
-    public readonly suffix: ISuffix,
+    public readonly suffix: Expr.Suffix,
     public readonly instruction: IInst) {
     super();
   }
@@ -540,7 +541,7 @@ export class Toggle extends Inst {
   }
   constructor(
     public readonly toggle: IToken,
-    public readonly suffix: ISuffix) {
+    public readonly suffix: Expr.Suffix) {
     super();
   }
 

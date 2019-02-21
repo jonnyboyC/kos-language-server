@@ -1,10 +1,10 @@
 import { Run, RunPath, RunPathOnce } from '../parser/inst';
 import { relative, join, sep, dirname } from 'path';
 import { RunInstType } from '../parser/types';
-import { Literal } from '../parser/expr';
 import { empty } from './typeGuards';
 import { TokenType } from '../entities/tokentypes';
 import { ILoadData } from '../types';
+import * as SuffixTerm from '../parser/suffixTerm';
 
 // resolve uri from run statments
 export const resolveUri = (
@@ -58,13 +58,13 @@ const instPath = (inst: RunInstType): Maybe<string> => {
 
   // for run path varients check for literal
   if (inst instanceof RunPath) {
-    if (inst.expression instanceof Literal) {
+    if (inst.expression instanceof SuffixTerm.Literal) {
       return literalPath(inst.expression);
     }
   }
 
   if (inst instanceof RunPathOnce) {
-    if (inst.expression instanceof Literal) {
+    if (inst.expression instanceof SuffixTerm.Literal) {
       return literalPath(inst.expression);
     }
   }
@@ -73,7 +73,7 @@ const instPath = (inst: RunInstType): Maybe<string> => {
 };
 
 // determine which string to return for the filepath
-const literalPath = (expr: Literal): Maybe<string> => {
+const literalPath = (expr: SuffixTerm.Literal): Maybe<string> => {
   const { token } = expr;
 
   switch (token.type) {

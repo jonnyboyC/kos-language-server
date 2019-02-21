@@ -4,8 +4,8 @@ import { KsLock } from '../entities/lock';
 import { IToken } from '../entities/types';
 import { KsParameter } from '../entities/parameters';
 import { Range, Location } from 'vscode-languageserver';
-import { IArgumentType, IType, IFunctionType } from '../typeChecker/types/types';
-import { IExpr } from '../parser/types';
+import { IArgumentType, IFunctionType } from '../typeChecker/types/types';
+import { IExpr, ISuffixTerm } from '../parser/types';
 
 export const enum EntityState {
   declared,
@@ -20,7 +20,7 @@ export const enum LockState {
 
 export interface ILocalResult {
   token: IToken;
-  expr: IExpr;
+  expr: IExpr | ISuffixTerm;
 }
 
 export interface IScope extends Map<string, IKsEntityTracker> {
@@ -32,13 +32,13 @@ export interface IKsEntityTracker<T extends KsEntity = KsEntity> {
   sets: IKsChange[];
   usages: IKsChange[];
 
-  getType(loc: Location): Maybe<IType>;
-  setType(loc: Location, type: IType): void;
+  getType(loc: Location): Maybe<IArgumentType | IFunctionType>;
+  setType(loc: Location, type: IArgumentType | IFunctionType): void;
 }
 
 export interface IKsChange extends Location {
   type: IArgumentType;
-  expr?: IExpr;
+  expr?: IExpr | ISuffixTerm;
 }
 
 export interface IKsDeclared<T extends KsEntity> extends Location {

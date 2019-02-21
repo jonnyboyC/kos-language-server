@@ -1,6 +1,6 @@
 import { ResolverError } from './resolverError';
 import { empty } from '../utilities/typeGuards';
-import { ScopeType, IExpr } from '../parser/types';
+import { ScopeType, IExpr, ISuffixTerm } from '../parser/types';
 import { KsVariable } from '../entities/variable';
 import { EntityState, IScope, IScopeNode,
   KsEntity, IStack, IKsEntityTracker,
@@ -141,7 +141,7 @@ export class ScopeBuilder {
   }
 
   // attempt to use an entity
-  public useEntity(name: IToken, expr: IExpr): Maybe<ResolverError> {
+  public useEntity(name: IToken, expr: IExpr | ISuffixTerm): Maybe<ResolverError> {
     const tracker = this.lookup(name, ScopeType.global);
 
     // check if entity exists
@@ -292,7 +292,7 @@ export class ScopeBuilder {
     name: IToken,
     tracker: Maybe<IKsEntityTracker>,
     entityType: string,
-    expr?: IExpr):
+    expr?: IExpr | ISuffixTerm):
     Maybe<ResolverError> {
     // check that variable has already been defined
     if (empty(tracker)) {

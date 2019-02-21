@@ -118,10 +118,9 @@ multiplication -> unary (( '*' | '/' ) unary)?
 // unary expressions
 unary -> ( '+' | '-' | 'not' | 'defined' )? factor
 factor -> suffix ('^' suffix)*
-suffix -> suffixTerm (suffixtrailer)*
-suffixtrailer -> ':' suffixTerm
-suffixTerm -> atom (suffixTermTrailer* | delegate)
-suffixTermTrailer -> ( call 
+suffix -> suffixTerm (':' suffix)*
+suffixTerm -> atom (suffixTermTrailer* delegate?)
+suffixTermTrailer -> (call 
     | arrayIndex 
     | arrayBracket
 )
