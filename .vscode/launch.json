@@ -44,7 +44,7 @@
       ],
       "skipFiles": ["<node_internals>/**/*.js"],
       "runtimeArgs": ["--nolazy"]
-		}
+		},
 		{
       "type": "node",
       "request": "launch",

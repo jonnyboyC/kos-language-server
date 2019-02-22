@@ -118,7 +118,7 @@ export class FuncResolver implements
 
     let returnValue = false;
     const parameterDecls: Param[] = [];
-    for (const inst of decl.instructionBlock.instructions) {
+    for (const inst of decl.instructionBlock.insts) {
 
       // get parameters for this function
       if (inst instanceof Param) {
@@ -182,7 +182,7 @@ export class FuncResolver implements
 
   public visitBlock(inst: Inst.Block): Errors {
     this.scopeBuilder.beginScope(inst);
-    const errors = this.resolveInsts(inst.instructions);
+    const errors = this.resolveInsts(inst.insts);
     this.scopeBuilder.endScope();
 
     return errors;
@@ -201,7 +201,7 @@ export class FuncResolver implements
   }
 
   public visitCommandExpr(inst: Inst.CommandExpr): Errors {
-    return this.resolveExpr(inst.expression);
+    return this.resolveExpr(inst.expr);
   }
 
   public visitUnset(_: Inst.Unset): Errors {
@@ -213,7 +213,7 @@ export class FuncResolver implements
   }
 
   public visitSet(inst: Inst.Set): Errors {
-    return this.resolveExpr(inst.value);
+    return this.resolveExpr(inst.expr);
   }
 
   public visitLazyGlobalInst(_: Inst.LazyGlobal): Errors {
@@ -222,7 +222,7 @@ export class FuncResolver implements
 
   public visitIf(inst: Inst.If): Errors {
     let resolveErrors = this.resolveExpr(inst.condition)
-      .concat(this.resolveInst(inst.instruction));
+      .concat(this.resolveInst(inst.ifInst));
 
     if (inst.elseInst) {
       resolveErrors = resolveErrors.concat(
@@ -233,29 +233,29 @@ export class FuncResolver implements
   }
 
   public visitElse(inst: Inst.Else): Errors {
-    return this.resolveInst(inst.instruction);
+    return this.resolveInst(inst.inst);
   }
 
   public visitUntil(inst: Inst.Until): Errors {
     return this.resolveExpr(inst.condition).concat(
-      this.resolveInst(inst.instruction));
+      this.resolveInst(inst.inst));
   }
 
   public visitFrom(inst: Inst.From): Errors {
-    return this.resolveInsts(inst.initializer.instructions).concat(
+    return this.resolveInsts(inst.initializer.insts).concat(
       this.resolveExpr(inst.condition),
-      this.resolveInsts(inst.increment.instructions),
-      this.resolveInst(inst.instruction));
+      this.resolveInsts(inst.increment.insts),
+      this.resolveInst(inst.inst));
   }
 
   public visitWhen(inst: Inst.When): Errors {
     return this.resolveExpr(inst.condition)
-      .concat(this.resolveInst(inst.instruction));
+      .concat(this.resolveInst(inst.inst));
   }
 
   public visitReturn(inst: Inst.Return): Errors {
-    if (inst.value) {
-      return this.resolveExpr(inst.value);
+    if (inst.expr) {
+      return this.resolveExpr(inst.expr);
     }
 
     return [];
@@ -271,12 +271,12 @@ export class FuncResolver implements
 
   public visitFor(inst: Inst.For): Errors {
     return this.resolveExpr(inst.suffix).concat(
-      this.resolveInst(inst.instruction));
+      this.resolveInst(inst.inst));
   }
 
   public visitOn(inst: Inst.On): Errors {
     return this.resolveExpr(inst.suffix).concat(
-      this.resolveInst(inst.instruction));
+      this.resolveInst(inst.inst));
   }
 
   public visitToggle(inst: Inst.Toggle): Errors {
@@ -284,30 +284,30 @@ export class FuncResolver implements
   }
 
   public visitWait(inst: Inst.Wait): Errors {
-    return this.resolveExpr(inst.expression);
+    return this.resolveExpr(inst.expr);
   }
 
   public visitLog(inst: Inst.Log): Errors {
-    return this.resolveExpr(inst.expression).concat(
+    return this.resolveExpr(inst.expr).concat(
       this.resolveExpr(inst.target));
   }
 
   public visitCopy(inst: Inst.Copy): Errors {
-    return this.resolveExpr(inst.source).concat(
-      this.resolveExpr(inst.target));
+    return this.resolveExpr(inst.target).concat(
+      this.resolveExpr(inst.location));
   }
 
   public visitRename(inst: Inst.Rename): Errors {
-    return this.resolveExpr(inst.source).concat(
-      this.resolveExpr(inst.target));
+    return this.resolveExpr(inst.target).concat(
+      this.resolveExpr(inst.alternative));
   }
 
   public visitDelete(inst: Inst.Delete): Errors {
     if (empty(inst.target)) {
-      return this.resolveExpr(inst.expression);
+      return this.resolveExpr(inst.expr);
     }
 
-    return this.resolveExpr(inst.expression).concat(
+    return this.resolveExpr(inst.expr).concat(
       this.resolveExpr(inst.target));
   }
 
@@ -321,28 +321,28 @@ export class FuncResolver implements
 
   public visitRunPath(inst: Inst.RunPath): Errors {
     if (empty(inst.args)) {
-      return this.resolveExpr(inst.expression);
+      return this.resolveExpr(inst.expr);
     }
 
-    return this.resolveExpr(inst.expression).concat(
+    return this.resolveExpr(inst.expr).concat(
       accumulateErrors(inst.args, this.resolveExpr.bind(this)));
   }
 
   public visitRunPathOnce(inst: Inst.RunPathOnce): Errors {
     if (empty(inst.args)) {
-      return this.resolveExpr(inst.expression);
+      return this.resolveExpr(inst.expr);
     }
 
-    return this.resolveExpr(inst.expression).concat(
+    return this.resolveExpr(inst.expr).concat(
       accumulateErrors(inst.args, this.resolveExpr.bind(this)));
   }
 
   public visitCompile(inst: Inst.Compile): Errors {
     if (empty(inst.target)) {
-      return this.resolveExpr(inst.expression);
+      return this.resolveExpr(inst.expr);
     }
 
-    return this.resolveExpr(inst.expression).concat(
+    return this.resolveExpr(inst.expr).concat(
       this.resolveExpr(inst.target));
   }
 
@@ -355,7 +355,7 @@ export class FuncResolver implements
   }
 
   public visitPrint(inst: Inst.Print): Errors {
-    return this.resolveExpr(inst.expression);
+    return this.resolveExpr(inst.expr);
   }
 
   /* --------------------------------------------
@@ -395,7 +395,7 @@ export class FuncResolver implements
   }
 
   public visitAnonymousFunction(expr: Expr.AnonymousFunction): Errors {
-    return this.resolveInsts(expr.instructions);
+    return this.resolveInsts(expr.insts);
   }
 
   visitSuffixTerm(expr: SuffixTerm.SuffixTerm): Errors {

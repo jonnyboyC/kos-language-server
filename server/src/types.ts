@@ -1,6 +1,6 @@
 import { ScopeManager } from './analysis/scopeManager';
-import { RunInstType, IScript } from './parser/types';
-import { Diagnostic } from 'vscode-languageserver';
+import { IScript } from './parser/types';
+import { Diagnostic, Range } from 'vscode-languageserver';
 
 export interface IDocumentInfo {
   script: IScript;
@@ -8,9 +8,9 @@ export interface IDocumentInfo {
 }
 
 export interface ILoadData {
+  caller: Range;
   uri: string;
   path: string;
-  inst: RunInstType;
 }
 
 export type ValidateResult = IDiagnosticUri[] | ScopeManager;

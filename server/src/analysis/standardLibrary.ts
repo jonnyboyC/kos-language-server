@@ -140,7 +140,7 @@ const functionTypes = [
   createFunctionType('r', directionType, doubleType, doubleType, doubleType),
   createFunctionType('random', scalarType),
   createFunctionType('range', rangeType, integarType, integarType, integarType),
-  createFunctionType('readjson', serializableStructureType, stringType),
+  createFunctionType('readjson', serializableStructureType, stringType), // TODO Union Types
   createFunctionType('reboot', voidType),
   createFunctionType('remove', voidType, nodeType),
   createFunctionType('rgb', rgbaType, doubleType, doubleType, doubleType),
@@ -171,7 +171,7 @@ const functionTypes = [
   createFunctionType('unchar', scalarType, stringType),
   createVarFunctionType(
     'uniqueset', uniqueSetType.toConcreteType(structureType), createVarType(structureType)),
-  createFunctionType('v', vectorType, doubleType, doubleType, doubleType),
+  createFunctionType('v', vectorType, scalarType, scalarType, scalarType),
   createFunctionType('vang', vectorType, vectorType, vectorType),
   createFunctionType('vcrs', vectorType, vectorType, vectorType),
   createFunctionType('vdot', vectorType, vectorType, vectorType),
@@ -191,6 +191,7 @@ const functionTypes = [
   createFunctionType('vxcl', vectorType, vectorType, vectorType),
   createFunctionType('warpto', voidType, doubleType),
   createFunctionType('waypoint', waypointType, stringType),
+  // TODO Union Types
   createFunctionType('writejson', volumeFileType, serializableStructureType, stringType),
 ];
 

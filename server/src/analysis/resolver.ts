@@ -16,6 +16,7 @@ import { Script } from '../entities/script';
 import { mockLogger, mockTracer } from '../utilities/logger';
 import { ScopeBuilder } from './scopeBuilder';
 import { ILocalResult, IResolverError } from './types';
+import { resolveUri } from '../utilities/pathResolver';
 
 export type Errors = IResolverError[];
 
@@ -190,7 +191,7 @@ export class Resolver implements
 
   public visitBlock(inst: Inst.Block): Errors {
     this.scopeBuilder.beginScope(inst);
-    const errors = this.resolveInsts(inst.instructions);
+    const errors = this.resolveInsts(inst.insts);
     this.scopeBuilder.endScope();
 
     return errors;
@@ -211,8 +212,8 @@ export class Resolver implements
   }
 
   public visitCommandExpr(inst: Inst.CommandExpr): Errors {
-    return this.useExprLocals(inst.expression).concat(
-      this.resolveExpr(inst.expression));
+    return this.useExprLocals(inst.expr).concat(
+      this.resolveExpr(inst.expr));
   }
 
   public visitUnset(inst: Inst.Unset): Errors {
@@ -244,8 +245,8 @@ export class Resolver implements
     if (!created) {
       defineError = this.scopeBuilder.defineBinding(set);
     }
-    const useErrors = this.useExprLocals(inst.value).concat(this.useTokens(used));
-    const resolveErrors = this.resolveExpr(inst.value);
+    const useErrors = this.useExprLocals(inst.expr).concat(this.useTokens(used));
+    const resolveErrors = this.resolveExpr(inst.expr);
 
     return !empty(defineError)
       ? useErrors.concat(resolveErrors, defineError)
@@ -267,7 +268,7 @@ export class Resolver implements
   public visitIf(inst: Inst.If): Errors {
     const errors = this.useExprLocals(inst.condition).concat(
       this.resolveExpr(inst.condition),
-      this.resolveInst(inst.instruction));
+      this.resolveInst(inst.ifInst));
 
     if (inst.elseInst) {
       return errors.concat(
@@ -278,22 +279,22 @@ export class Resolver implements
   }
 
   public visitElse(inst: Inst.Else): Errors {
-    return this.resolveInst(inst.instruction);
+    return this.resolveInst(inst.inst);
   }
 
   public visitUntil(inst: Inst.Until): Errors {
     return this.useExprLocals(inst.condition).concat(
       this.resolveExpr(inst.condition),
-      this.resolveInst(inst.instruction));
+      this.resolveInst(inst.inst));
   }
 
   public visitFrom(inst: Inst.From): Errors {
     this.scopeBuilder.beginScope(inst);
 
-    const resolverErrors = this.resolveInsts(inst.initializer.instructions).concat(
+    const resolverErrors = this.resolveInsts(inst.initializer.insts).concat(
       this.resolveExpr(inst.condition),
-      this.resolveInsts(inst.increment.instructions),
-      this.resolveInst(inst.instruction));
+      this.resolveInsts(inst.increment.insts),
+      this.resolveInst(inst.inst));
 
     const useErrors = this.useExprLocals(inst.condition);
     const scopeErrors = this.scopeBuilder.endScope();
@@ -304,13 +305,13 @@ export class Resolver implements
   public visitWhen(inst: Inst.When): Errors {
     return this.useExprLocals(inst.condition).concat(
       this.resolveExpr(inst.condition),
-      this.resolveInst(inst.instruction));
+      this.resolveInst(inst.inst));
   }
 
   public visitReturn(inst: Inst.Return): Errors {
-    if (inst.value) {
-      return this.useExprLocals(inst.value)
-        .concat(this.resolveExpr(inst.value));
+    if (inst.expr) {
+      return this.useExprLocals(inst.expr)
+        .concat(this.resolveExpr(inst.expr));
     }
 
     return [];
@@ -331,7 +332,7 @@ export class Resolver implements
 
     let errors = this.useExprLocals(inst.suffix).concat(
       this.resolveExpr(inst.suffix),
-      this.resolveInst(inst.instruction));
+      this.resolveInst(inst.inst));
 
     errors = errors.concat(this.scopeBuilder.endScope());
     if (!empty(declareError)) {
@@ -343,7 +344,7 @@ export class Resolver implements
   public visitOn(inst: Inst.On): Errors {
     return this.useExprLocals(inst.suffix).concat(
       this.resolveExpr(inst.suffix),
-      this.resolveInst(inst.instruction));
+      this.resolveInst(inst.inst));
   }
 
   public visitToggle(inst: Inst.Toggle): Errors {
@@ -352,8 +353,8 @@ export class Resolver implements
   }
 
   public visitWait(inst: Inst.Wait): Errors {
-    return this.useExprLocals(inst.expression)
-      .concat(this.resolveExpr(inst.expression));
+    return this.useExprLocals(inst.expr)
+      .concat(this.resolveExpr(inst.expr));
   }
 
   public visitLog(inst: Inst.Log): Errors {
@@ -364,6 +365,8 @@ export class Resolver implements
       switch (inst.target.token.type) {
         case TokenType.string:
         case TokenType.fileIdentifier:
+          // resolveUri()
+
           // TODO may need check some about path here
           break;
         default:
@@ -371,9 +374,9 @@ export class Resolver implements
       }
     }
 
-    return this.useExprLocals(inst.expression).concat(
+    return this.useExprLocals(inst.expr).concat(
       useErrors,
-      this.resolveExpr(inst.expression),
+      this.resolveExpr(inst.expr),
       this.resolveExpr(inst.target));
   }
 
@@ -381,18 +384,6 @@ export class Resolver implements
     let useErrors: Errors = [];
 
     // check from expression
-    if (inst.source instanceof SuffixTerm.Literal) {
-      switch (inst.source.token.type) {
-        case TokenType.string:
-        case TokenType.fileIdentifier:
-          // TODO may need check some about path here
-          break;
-        default:
-          useErrors = this.useExprLocals(inst.source);
-      }
-    }
-
-    // check the target location
     if (inst.target instanceof SuffixTerm.Literal) {
       switch (inst.target.token.type) {
         case TokenType.string:
@@ -404,28 +395,40 @@ export class Resolver implements
       }
     }
 
-    return this.useExprLocals(inst.source).concat(
+    // check the target location
+    if (inst.location instanceof SuffixTerm.Literal) {
+      switch (inst.location.token.type) {
+        case TokenType.string:
+        case TokenType.fileIdentifier:
+          // TODO may need check some about path here
+          break;
+        default:
+          useErrors = this.useExprLocals(inst.location);
+      }
+    }
+
+    return this.useExprLocals(inst.target).concat(
       useErrors,
-      this.resolveExpr(inst.source),
-      this.resolveExpr(inst.target));
+      this.resolveExpr(inst.target),
+      this.resolveExpr(inst.location));
   }
 
   public visitRename(inst: Inst.Rename): Errors {
-    return this.useExprLocals(inst.source).concat(
-      this.useExprLocals(inst.target),
-      this.resolveExpr(inst.source),
-      this.resolveExpr(inst.target));
+    return this.useExprLocals(inst.target).concat(
+      this.useExprLocals(inst.alternative),
+      this.resolveExpr(inst.target),
+      this.resolveExpr(inst.alternative));
   }
 
   public visitDelete(inst: Inst.Delete): Errors {
     if (empty(inst.target)) {
-      return this.useExprLocals(inst.expression).concat(
-        this.resolveExpr(inst.expression));
+      return this.useExprLocals(inst.expr).concat(
+        this.resolveExpr(inst.expr));
     }
 
-    return this.useExprLocals(inst.expression).concat(
+    return this.useExprLocals(inst.expr).concat(
       this.useExprLocals(inst.target),
-      this.resolveExpr(inst.expression),
+      this.resolveExpr(inst.expr),
       this.resolveExpr(inst.target));
   }
 
@@ -448,37 +451,37 @@ export class Resolver implements
 
   public visitRunPath(inst: Inst.RunPath): Errors {
     if (empty(inst.args)) {
-      return this.useExprLocals(inst.expression)
-        .concat(this.resolveExpr(inst.expression));
+      return this.useExprLocals(inst.expr)
+        .concat(this.resolveExpr(inst.expr));
     }
 
-    return this.useExprLocals(inst.expression).concat(
-      this.resolveExpr(inst.expression),
+    return this.useExprLocals(inst.expr).concat(
+      this.resolveExpr(inst.expr),
       accumulateErrors(inst.args, this.useExprLocals.bind(this)),
       accumulateErrors(inst.args, this.resolveExpr.bind(this)));
   }
 
   public visitRunPathOnce(inst: Inst.RunPathOnce): Errors {
     if (empty(inst.args)) {
-      return this.useExprLocals(inst.expression)
-        .concat(this.resolveExpr(inst.expression));
+      return this.useExprLocals(inst.expr)
+        .concat(this.resolveExpr(inst.expr));
     }
 
-    return this.useExprLocals(inst.expression).concat(
-      this.resolveExpr(inst.expression),
+    return this.useExprLocals(inst.expr).concat(
+      this.resolveExpr(inst.expr),
       accumulateErrors(inst.args, this.useExprLocals.bind(this)),
       accumulateErrors(inst.args, this.resolveExpr.bind(this)));
   }
 
   public visitCompile(inst: Inst.Compile): Errors {
     if (empty(inst.target)) {
-      return this.useExprLocals(inst.expression)
-        .concat(this.resolveExpr(inst.expression));
+      return this.useExprLocals(inst.expr)
+        .concat(this.resolveExpr(inst.expr));
     }
 
-    return this.useExprLocals(inst.expression).concat(
+    return this.useExprLocals(inst.expr).concat(
       this.useExprLocals(inst.target),
-      this.resolveExpr(inst.expression),
+      this.resolveExpr(inst.expr),
       this.resolveExpr(inst.target));
   }
 
@@ -497,8 +500,8 @@ export class Resolver implements
   }
 
   public visitPrint(inst: Inst.Print): Errors {
-    return this.useExprLocals(inst.expression)
-      .concat(this.resolveExpr(inst.expression));
+    return this.useExprLocals(inst.expr)
+      .concat(this.resolveExpr(inst.expr));
   }
 
   /* --------------------------------------------
@@ -578,7 +581,7 @@ export class Resolver implements
 
   public visitAnonymousFunction(expr: Expr.AnonymousFunction): Errors {
     this.scopeBuilder.beginScope(expr);
-    const errors = this.resolveInsts(expr.instructions);
+    const errors = this.resolveInsts(expr.insts);
     this.scopeBuilder.endScope();
 
     return errors;

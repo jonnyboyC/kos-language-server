@@ -123,13 +123,14 @@ export class ScopeManager implements GraphNode<ScopeManager> {
   }
 
   // get tracker at a position
+  // TODO will probably need to be more complicated
   public scopedTracker(pos: Position, name: string): Maybe<IKsEntityTracker> {
     const trackers = this.scopedTrackers(pos);
     return trackers.find(tracker => tracker.declared.entity.name.lexeme === name);
   }
 
   // get all entity trackers in scope at a position
-  public scopedTrackers(pos: Position): IKsEntityTracker[] {
+  private scopedTrackers(pos: Position): IKsEntityTracker[] {
     const entities = Array.from(this.scopesRoot.scope.values()).concat(
       ...Array.from(this.outScopes.values())
         .map(scope => Array.from(scope.scopesRoot.scope.values())),

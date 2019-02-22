@@ -109,20 +109,22 @@ export class TypeChecker implements
     const funcTracker = this.scopeManager
       .scopedFunctionTracker(decl.start, decl.functionIdentifier.lexeme);
 
-    // TODO may need to report if we can't find function tracker
-    if (!empty(funcTracker)) {
-      const { entity } = funcTracker.declared;
-      const paramsTypes: IArgumentType[] = [];
-      for (let i = 0; i < entity.parameters.length; i += 1) {
-        paramsTypes.push(structureType);
-      }
-      const returnType = entity.returnValue ? structureType : voidType;
-
-      const funcType = createFunctionType(
-        funcTracker.declared.entity.name.lexeme, returnType, ...paramsTypes);
-
-      this.scopeManager.setType(entity.name, entity.name.lexeme, funcType);
+    if (empty(funcTracker)) {
+      throw Error('TODO');
     }
+
+    // TODO may need to report if we can't find function tracker
+    const { entity } = funcTracker.declared;
+    const paramsTypes: IArgumentType[] = [];
+    for (let i = 0; i < entity.parameters.length; i += 1) {
+      paramsTypes.push(structureType);
+    }
+    const returnType = entity.returnValue ? structureType : voidType;
+
+    const funcType = createFunctionType(
+      funcTracker.declared.entity.name.lexeme, returnType, ...paramsTypes);
+
+    this.scopeManager.setType(entity.name, entity.name.lexeme, funcType);
 
     const errors = this.checkInst(decl.instructionBlock);
     return errors;
@@ -166,7 +168,7 @@ export class TypeChecker implements
 
   // visit block
   public visitBlock(inst: Inst.Block): TypeErrors {
-    return accumulateErrors(inst.instructions, this.checkInst.bind(this));
+    return accumulateErrors(inst.insts, this.checkInst.bind(this));
   }
 
   // visit expression instruction
@@ -188,7 +190,7 @@ export class TypeChecker implements
 
   // visit command expression
   public visitCommandExpr(inst: Inst.CommandExpr): TypeErrors {
-    const result = this.checkExpr(inst.expression);
+    const result = this.checkExpr(inst.expr);
     const errors: TypeErrors = result.errors;
 
     switch (inst.command.type) {
@@ -201,7 +203,7 @@ export class TypeChecker implements
             : 'remove';
 
           errors.push(new KsTypeError(
-            inst.expression, `${command} expected a node.` +
+            inst.expr, `${command} expected a node.` +
             ' Node may not able to be  be coerced into node type',
             []));
         }
@@ -209,7 +211,7 @@ export class TypeChecker implements
       case TokenType.edit:
         if (!coerce(result.type, nodeType)) {
           errors.push(new KsTypeError(
-            inst.expression, 'Path may not be coerced into string type', []));
+            inst.expr, 'Path may not be coerced into string type', []));
         }
         break;
       default:
@@ -231,7 +233,7 @@ export class TypeChecker implements
 
   // visit set
   public visitSet(inst: Inst.Set): TypeErrors {
-    const result = this.checkExpr(inst.value);
+    const result = this.checkExpr(inst.expr);
     if (inst.suffix instanceof SuffixTerm.Identifier) {
       this.scopeManager.setType(inst.suffix.token, inst.suffix.token.lexeme, result.type);
     } else {
@@ -256,14 +258,14 @@ export class TypeChecker implements
     }
 
     const moreErrors = empty(inst.elseInst)
-      ? [this.checkInst(inst.instruction)]
-      : [this.checkInst(inst.instruction), this.checkInst(inst.elseInst)];
+      ? [this.checkInst(inst.ifInst)]
+      : [this.checkInst(inst.ifInst), this.checkInst(inst.elseInst)];
     return errors.concat(...moreErrors);
   }
 
   // visit else instruction
   public visitElse(inst: Inst.Else): TypeErrors {
-    return this.checkInst(inst.instruction);
+    return this.checkInst(inst.inst);
   }
 
   // visit until instruction
@@ -276,7 +278,7 @@ export class TypeChecker implements
         inst.condition, 'Condition may not able to be coerced into boolean type', []));
     }
 
-    return errors.concat(this.checkInst(inst.instruction));
+    return errors.concat(this.checkInst(inst.inst));
   }
 
   // visit from loop
@@ -291,7 +293,7 @@ export class TypeChecker implements
     }
     return errors.concat(
       this.checkInst(inst.increment),
-      this.checkInst(inst.instruction));
+      this.checkInst(inst.inst));
   }
 
   // vist when statment
@@ -304,13 +306,13 @@ export class TypeChecker implements
         inst.condition, 'Condition may not able to be coerced into boolean type', []));
     }
 
-    return errors.concat(this.checkInst(inst.instruction));
+    return errors.concat(this.checkInst(inst.inst));
   }
 
   // visit return
   public visitReturn(inst: Inst.Return): TypeErrors {
     const errors: TypeErrors = [];
-    if (!empty(inst.value)) {
+    if (!empty(inst.expr)) {
       // TODO maybe update function type?
     }
 
@@ -348,7 +350,7 @@ export class TypeChecker implements
 
     // TODO may be able to detect if type is really pure and not mixed
     this.scopeManager.setType(inst.identifier, inst.identifier.lexeme, structureType);
-    return errors.concat(this.checkInst(inst.instruction));
+    return errors.concat(this.checkInst(inst.inst));
   }
 
   // visit on
@@ -361,7 +363,7 @@ export class TypeChecker implements
         inst.suffix, 'Condition may not able to be coerced into boolean type', []));
     }
 
-    return errors.concat(this.checkInst(inst.instruction));
+    return errors.concat(this.checkInst(inst.inst));
   }
 
   // visit toggle
@@ -372,20 +374,20 @@ export class TypeChecker implements
 
   // visit wait
   public visitWait(inst: Inst.Wait): TypeErrors {
-    const result = this.checkExpr(inst.expression);
+    const result = this.checkExpr(inst.expr);
     let errors: TypeErrors = result.errors;
 
     if (empty(inst.until)) {
       if (!coerce(result.type, scalarType)) {
         errors = errors.concat(new KsTypeError(
-          inst.expression, 'Wait requires a scalar type. ' +
+          inst.expr, 'Wait requires a scalar type. ' +
           'This may not able to be coerced into scalar type',
           []));
       }
     } else {
       if (!coerce(result.type, booleanType)) {
         errors = errors.concat(new KsTypeError(
-          inst.expression, 'Wait requires a boolean type. ' +
+          inst.expr, 'Wait requires a boolean type. ' +
           'This may not able to be coerced into boolean type',
           []));
       }
@@ -396,21 +398,21 @@ export class TypeChecker implements
 
   // visit log
   public visitLog(inst: Inst.Log): TypeErrors {
-    const exprResult = this.checkExpr(inst.expression);
+    const exprResult = this.checkExpr(inst.expr);
     const logResult = this.checkExpr(inst.target);
     const errors: TypeErrors = exprResult.errors
       .concat(logResult.errors);
 
     if (!coerce(exprResult.type, stringType)) {
       errors.push(new KsTypeError(
-        inst.expression, 'Can only log a string type. ' +
+        inst.expr, 'Can only log a string type. ' +
         'This may not able to be coerced into string type',
         []));
     }
 
     if (!coerce(exprResult.type, stringType)) {
       errors.push(new KsTypeError(
-        inst.expression, 'Can only log to a path. ',
+        inst.expr, 'Can only log to a path. ',
         []));
     }
 
@@ -419,21 +421,21 @@ export class TypeChecker implements
 
   // visit copy
   public visitCopy(inst: Inst.Copy): TypeErrors {
-    const sourceResult = this.checkExpr(inst.source);
-    const targetResult = this.checkExpr(inst.target);
+    const sourceResult = this.checkExpr(inst.target);
+    const targetResult = this.checkExpr(inst.location);
     const errors: TypeErrors = sourceResult.errors
       .concat(targetResult.errors);
 
     if (!coerce(sourceResult.type, stringType)) {
       errors.push(new KsTypeError(
-        inst.source, 'Can only copy from a string or bare path. ' +
+        inst.target, 'Can only copy from a string or bare path. ' +
         'This may not able to be coerced into string type',
         []));
     }
 
     if (!coerce(sourceResult.type, stringType)) {
       errors.push(new KsTypeError(
-        inst.target, 'Can only copy to a string or bare path. ' +
+        inst.location, 'Can only copy to a string or bare path. ' +
         'This may not able to be coerced into string type',
         []));
     }
@@ -443,21 +445,21 @@ export class TypeChecker implements
 
   // visit rename
   public visitRename(inst: Inst.Rename): TypeErrors {
-    const sourceResult = this.checkExpr(inst.source);
-    const targetResult = this.checkExpr(inst.target);
+    const sourceResult = this.checkExpr(inst.target);
+    const targetResult = this.checkExpr(inst.alternative);
     const errors: TypeErrors = sourceResult.errors
       .concat(targetResult.errors);
 
     if (!coerce(sourceResult.type, stringType)) {
       errors.push(new KsTypeError(
-        inst.source, 'Can only rename from a string or bare path. ' +
+        inst.target, 'Can only rename from a string or bare path. ' +
         'This may not able to be coerced into string type',
         []));
     }
 
     if (!coerce(sourceResult.type, stringType)) {
       errors.push(new KsTypeError(
-        inst.target, 'Can only rename to a string or bare path. ' +
+        inst.alternative, 'Can only rename to a string or bare path. ' +
         'This may not able to be coerced into string type',
         []));
     }
@@ -496,12 +498,12 @@ export class TypeChecker implements
 
   // vist print instruction
   public visitPrint(inst: Inst.Print): TypeErrors {
-    const result = this.checkExpr(inst.expression);
+    const result = this.checkExpr(inst.expr);
     const errors = result.errors;
 
     if (!coerce(result.type, structureType)) {
       errors.push(new KsTypeError(
-        inst.expression, 'Cannot print a function, can only print structures', []));
+        inst.expr, 'Cannot print a function, can only print structures', []));
     }
 
     return errors;

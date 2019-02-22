@@ -1,48 +1,57 @@
-import { Run, RunPath, RunPathOnce } from '../parser/inst';
+import * as Inst from '../parser/inst';
 import { relative, join, sep, dirname } from 'path';
 import { RunInstType } from '../parser/types';
 import { empty } from './typeGuards';
 import { TokenType } from '../entities/tokentypes';
 import { ILoadData } from '../types';
 import * as SuffixTerm from '../parser/suffixTerm';
+import { Location } from 'vscode-languageserver';
 
 // resolve uri from run statments
 export const resolveUri = (
   volume0Path: string,
-  volumne0Uri: string,
-  uri: string,
-  inst: RunInstType): Maybe<ILoadData> => {
+  volumn0Uri: string,
+  caller: Location,
+  path?: string): Maybe<ILoadData> => {
 
-  // get realtive an run path from file
-  const relativePath = relative(volumne0Uri, dirname(uri)).replace('%20', ' ');
-  const runPath = instPath(inst);
-
-  if (empty(runPath)) {
+  if (empty(path)) {
     return undefined;
   }
 
+  // get realtive an run path from file
+  const relativePath = relative(volumn0Uri, dirname(caller.uri)).replace('%20', ' ');
+
   // check if the scripts reads from volume 0 "disk"
   // TODO no idea what to do for ship volumnes
-  const [possibleVolumne, ...remaining] = runPath.split(sep);
+  const [possibleVolumne, ...remaining] = path.split(sep);
   if (possibleVolumne === '0:') {
     return {
-      inst,
+      caller: { start: caller.range.start, end: caller.range.end },
       path: join(volume0Path, ...remaining),
-      uri: join(volumne0Uri, ...remaining),
+      uri: join(volumn0Uri, ...remaining),
     };
   }
 
   // if no volumne do a relative lookup
   return {
-    inst,
+    caller: { start: caller.range.start, end: caller.range.end },
     path: join(volume0Path, relativePath, possibleVolumne, ...remaining),
-    uri: join(volumne0Uri, relativePath, possibleVolumne, ...remaining),
+    uri: join(volumn0Uri, relativePath, possibleVolumne, ...remaining),
   };
 };
 
+export const ioPath = (inst: Inst.Rename | Inst.Copy | Inst.Delete): Maybe<string> => {
+  const { target } = inst;
+  if (target instanceof SuffixTerm.Literal) {
+    return literalPath(target);
+  }
+
+  return undefined;
+};
+
 // based on run type determine how to get file path
-const instPath = (inst: RunInstType): Maybe<string> => {
-  if (inst instanceof Run) {
+export const runPath = (inst: RunInstType): Maybe<string> => {
+  if (inst instanceof Inst.Run) {
     const { identifier } = inst;
 
     switch (identifier.type) {
@@ -57,16 +66,9 @@ const instPath = (inst: RunInstType): Maybe<string> => {
   }
 
   // for run path varients check for literal
-  if (inst instanceof RunPath) {
-    if (inst.expression instanceof SuffixTerm.Literal) {
-      return literalPath(inst.expression);
-    }
-  }
-
-  if (inst instanceof RunPathOnce) {
-    if (inst.expression instanceof SuffixTerm.Literal) {
-      return literalPath(inst.expression);
-    }
+  const { expr } = inst;
+  if (expr instanceof SuffixTerm.Literal) {
+    return literalPath(expr);
   }
 
   return undefined;

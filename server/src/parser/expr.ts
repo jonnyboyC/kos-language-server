@@ -166,7 +166,7 @@ export class AnonymousFunction extends Expr {
 
   constructor(
     public readonly open: IToken,
-    public readonly instructions: IInst[],
+    public readonly insts: IInst[],
     public readonly close: IToken) {
     super();
   }
@@ -180,11 +180,11 @@ export class AnonymousFunction extends Expr {
   }
 
   public get ranges(): Range[] {
-    return [this.open, ...this.instructions, this.close];
+    return [this.open, ...this.insts, this.close];
   }
 
   public toString(): string {
-    return `{${this.instructions.map(i => i.toString()).join(' ')}}`;
+    return `{${this.insts.map(i => i.toString()).join(' ')}}`;
   }
 
   public accept<T>(visitor: IExprVisitor<T>): T {

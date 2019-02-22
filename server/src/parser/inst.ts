@@ -40,7 +40,7 @@ export class Invalid extends Inst {
 export class Block extends Inst {
   constructor(
     public readonly open: IToken,
-    public readonly instructions: Inst[],
+    public readonly insts: Inst[],
     public readonly close: IToken) {
     super();
   }
@@ -54,7 +54,7 @@ export class Block extends Inst {
   }
 
   public get ranges(): Range[] {
-    return [this.open, ...this.instructions, this.close];
+    return [this.open, ...this.insts, this.close];
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -134,7 +134,7 @@ export class Command extends Inst {
 export class CommandExpr extends Inst {
   constructor(
     public readonly command: IToken,
-    public readonly expression: IExpr) {
+    public readonly expr: IExpr) {
     super();
   }
 
@@ -143,11 +143,11 @@ export class CommandExpr extends Inst {
   }
 
   public get end(): Position {
-    return this.expression.end;
+    return this.expr.end;
   }
 
   public get ranges(): Range[] {
-    return [this.command, this.expression];
+    return [this.command, this.expr];
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -208,7 +208,7 @@ export class Set extends Inst {
     public readonly set: IToken,
     public readonly suffix: Expr.Suffix,
     public readonly to: IToken,
-    public readonly value: IExpr) {
+    public readonly expr: IExpr) {
     super();
   }
 
@@ -217,11 +217,11 @@ export class Set extends Inst {
   }
 
   public get end(): Position {
-    return this.value.end;
+    return this.expr.end;
   }
 
   public get ranges(): Range[] {
-    return [this.set, this.suffix, this.to, this.value];
+    return [this.set, this.suffix, this.to, this.expr];
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -258,7 +258,7 @@ export class If extends Inst {
   constructor(
     public readonly ifToken: IToken,
     public readonly condition: IExpr,
-    public readonly instruction: IInst,
+    public readonly ifInst: IInst,
     public readonly elseInst?: IInst) {
     super();
   }
@@ -269,12 +269,12 @@ export class If extends Inst {
 
   public get end(): Position {
     return empty(this.elseInst)
-    ? this.instruction.end
+    ? this.ifInst.end
     : this.elseInst.end;
   }
 
   public get ranges(): Range[] {
-    const ranges = [this.ifToken, this.condition, this.instruction];
+    const ranges = [this.ifToken, this.condition, this.ifInst];
     if (!empty(this.elseInst)) {
       ranges.push(this.elseInst);
     }
@@ -290,7 +290,7 @@ export class If extends Inst {
 export class Else extends Inst {
   constructor(
     public readonly elseToken: IToken,
-    public readonly instruction: IInst) {
+    public readonly inst: IInst) {
     super();
   }
 
@@ -299,11 +299,11 @@ export class Else extends Inst {
   }
 
   public get end(): Position {
-    return this.instruction.end;
+    return this.inst.end;
   }
 
   public get ranges(): Range[] {
-    return [this.elseToken, this.instruction];
+    return [this.elseToken, this.inst];
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -315,7 +315,7 @@ export class Until extends Inst {
   constructor(
     public readonly until: IToken,
     public readonly condition: IExpr,
-    public readonly instruction: IInst) {
+    public readonly inst: IInst) {
     super();
   }
 
@@ -324,11 +324,11 @@ export class Until extends Inst {
   }
 
   public get end(): Position {
-    return this.instruction.end;
+    return this.inst.end;
   }
 
   public get ranges(): Range[] {
-    return [this.until, this.condition, this.instruction];
+    return [this.until, this.condition, this.inst];
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -345,7 +345,7 @@ export class From extends Inst {
     public readonly step: IToken,
     public readonly increment: Block,
     public readonly doToken: IToken,
-    public readonly instruction: IInst) {
+    public readonly inst: IInst) {
     super();
   }
 
@@ -354,7 +354,7 @@ export class From extends Inst {
   }
 
   public get end(): Position {
-    return this.instruction.end;
+    return this.inst.end;
   }
 
   public get ranges(): Range[] {
@@ -362,7 +362,7 @@ export class From extends Inst {
       this.from, this.initializer,
       this.until, this.condition,
       this.step, this.increment,
-      this.doToken, this.instruction,
+      this.doToken, this.inst,
     ];
   }
 
@@ -376,7 +376,7 @@ export class When extends Inst {
     public readonly when: IToken,
     public readonly condition: IExpr,
     public readonly then: IToken,
-    public readonly instruction: IInst) {
+    public readonly inst: IInst) {
     super();
   }
 
@@ -385,13 +385,13 @@ export class When extends Inst {
   }
 
   public get end(): Position {
-    return this.instruction.end;
+    return this.inst.end;
   }
 
   public get ranges(): Range[] {
     return [
       this.when, this.condition,
-      this.then, this.instruction,
+      this.then, this.inst,
     ];
   }
 
@@ -403,7 +403,7 @@ export class When extends Inst {
 export class Return extends Inst {
   constructor(
     public readonly returnToken: IToken,
-    public readonly value?: IExpr) {
+    public readonly expr?: IExpr) {
     super();
   }
 
@@ -412,15 +412,15 @@ export class Return extends Inst {
   }
 
   public get end(): Position {
-    return empty(this.value)
+    return empty(this.expr)
       ? this.returnToken.end
-      : this.value.end;
+      : this.expr.end;
   }
 
   public get ranges(): Range[] {
     let ranges: Range[] = [this.returnToken];
-    if (!empty(this.value)) {
-      ranges = ranges.concat(this.value.ranges);
+    if (!empty(this.expr)) {
+      ranges = ranges.concat(this.expr.ranges);
     }
 
     return ranges;
@@ -485,7 +485,7 @@ export class For extends Inst {
     public readonly identifier: IToken,
     public readonly inToken: IToken,
     public readonly suffix: Expr.Suffix,
-    public readonly instruction: IInst) {
+    public readonly inst: IInst) {
     super();
   }
 
@@ -494,14 +494,14 @@ export class For extends Inst {
   }
 
   public get end(): Position {
-    return this.instruction.end;
+    return this.inst.end;
   }
 
   public get ranges(): Range[] {
     return [
       this.forToken, this.identifier,
       this.inToken, this.suffix,
-      this.instruction,
+      this.inst,
     ];
   }
 
@@ -514,7 +514,7 @@ export class On extends Inst {
   constructor(
     public readonly on: IToken,
     public readonly suffix: Expr.Suffix,
-    public readonly instruction: IInst) {
+    public readonly inst: IInst) {
     super();
   }
 
@@ -523,11 +523,11 @@ export class On extends Inst {
   }
 
   public get end(): Position {
-    return this.instruction.end;
+    return this.inst.end;
   }
 
   public get ranges(): Range[] {
-    return [this.on, this.suffix, this.instruction];
+    return [this.on, this.suffix, this.inst];
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -565,7 +565,7 @@ export class Toggle extends Inst {
 export class Wait extends Inst {
   constructor(
     public readonly wait: IToken,
-    public readonly expression: IExpr,
+    public readonly expr: IExpr,
     public readonly until?: IToken) {
     super();
   }
@@ -575,15 +575,15 @@ export class Wait extends Inst {
   }
 
   public get end(): Position {
-    return this.expression.end;
+    return this.expr.end;
   }
 
   public get ranges(): Range[] {
     if (empty(this.until)) {
-      return [this.wait, this.expression];
+      return [this.wait, this.expr];
     }
 
-    return [this.wait, this.until, this.expression];
+    return [this.wait, this.until, this.expr];
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -594,7 +594,7 @@ export class Wait extends Inst {
 export class Log extends Inst {
   constructor(
     public readonly log: IToken,
-    public readonly expression: IExpr,
+    public readonly expr: IExpr,
     public readonly to: IToken,
     public readonly target: IExpr) {
     super();
@@ -609,7 +609,7 @@ export class Log extends Inst {
   }
 
   public get ranges(): Range[] {
-    return [this.log, this.expression, this.to, this.target];
+    return [this.log, this.expr, this.to, this.target];
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -620,9 +620,9 @@ export class Log extends Inst {
 export class Copy extends Inst {
   constructor(
     public readonly copy: IToken,
-    public readonly source: IExpr,
+    public readonly target: IExpr,
     public readonly toFrom: IToken,
-    public readonly target: IExpr) {
+    public readonly location: IExpr) {
     super();
   }
 
@@ -631,11 +631,11 @@ export class Copy extends Inst {
   }
 
   public get end(): Position {
-    return this.target.end;
+    return this.location.end;
   }
 
   public get ranges(): Range[] {
-    return [this.copy, this.source, this.toFrom, this.target];
+    return [this.copy, this.target, this.toFrom, this.location];
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -648,9 +648,9 @@ export class Rename extends Inst {
     public readonly rename: IToken,
     public readonly fileVolume: IToken,
     public readonly ioIdentifer: IToken,
-    public readonly source: IExpr,
+    public readonly target: IExpr,
     public readonly to: IToken,
-    public readonly target: IExpr) {
+    public readonly alternative: IExpr) {
     super();
   }
 
@@ -659,14 +659,14 @@ export class Rename extends Inst {
   }
 
   public get end(): Position {
-    return this.target.end;
+    return this.alternative.end;
   }
 
   public get ranges(): Range[] {
     return [
       this.rename, this.ioIdentifer,
-      this.source, this.to,
-      this.target,
+      this.target, this.to,
+      this.alternative,
     ];
   }
 
@@ -681,7 +681,7 @@ export class Delete extends Inst {
   }
   constructor(
     public readonly deleteToken: IToken,
-    public readonly expression: IExpr,
+    public readonly expr: IExpr,
     public readonly from?: IToken,
     public readonly target?: IExpr) {
     super();
@@ -693,12 +693,12 @@ export class Delete extends Inst {
 
   public get end(): Position {
     return empty(this.target)
-      ? this.expression.end
+      ? this.expr.end
       : this.target.end;
   }
 
   public get ranges(): Range[] {
-    const ranges = [this.deleteToken, this.expression];
+    const ranges = [this.deleteToken, this.expr];
     if (!empty(this.from) && !empty(this.target)) {
       ranges.push(this.from);
       ranges.push(this.target);
@@ -769,7 +769,7 @@ export class RunPath extends Inst {
   constructor(
     public readonly runPath: IToken,
     public readonly open: IToken,
-    public readonly expression: IExpr,
+    public readonly expr: IExpr,
     public readonly close: IToken,
     public readonly args?: IExpr[]) {
     super();
@@ -784,7 +784,7 @@ export class RunPath extends Inst {
   }
 
   public get ranges(): Range[] {
-    const ranges: Range[] = [this.runPath, this.open, this.expression];
+    const ranges: Range[] = [this.runPath, this.open, this.expr];
     if (!empty(this.args)) {
       for (const arg of this.args) {
         ranges.push(arg);
@@ -804,7 +804,7 @@ export class RunPathOnce extends Inst {
   constructor(
     public readonly runPath: IToken,
     public readonly open: IToken,
-    public readonly expression: IExpr,
+    public readonly expr: IExpr,
     public readonly close: IToken,
     public readonly args?: IExpr[]) {
     super();
@@ -819,7 +819,7 @@ export class RunPathOnce extends Inst {
   }
 
   public get ranges(): Range[] {
-    const ranges: Range[] = [this.runPath, this.open, this.expression];
+    const ranges: Range[] = [this.runPath, this.open, this.expr];
     if (!empty(this.args)) {
       for (const arg of this.args) {
         ranges.push(arg);
@@ -838,7 +838,7 @@ export class RunPathOnce extends Inst {
 export class Compile extends Inst {
   constructor(
     public readonly compile: IToken,
-    public readonly expression: IExpr,
+    public readonly expr: IExpr,
     public readonly to?: IToken,
     public readonly target?: IExpr) {
     super();
@@ -850,12 +850,12 @@ export class Compile extends Inst {
 
   public get end(): Position {
     return empty(this.target)
-      ? this.expression.end
+      ? this.expr.end
       : this.target.end;
   }
 
   public get ranges(): Range[] {
-    const ranges: Range[] = [this.compile, this.expression];
+    const ranges: Range[] = [this.compile, this.expr];
     if (!empty(this.to) && !empty(this.target)) {
       ranges.push(this.to);
       ranges.push(this.target);
@@ -935,7 +935,7 @@ export class Empty extends Inst {
 export class Print extends Inst {
   constructor(
     public readonly print: IToken,
-    public readonly expression: IExpr,
+    public readonly expr: IExpr,
     public readonly at?: IToken,
     public readonly open?: IToken,
     public readonly x?: IExpr,
@@ -950,12 +950,12 @@ export class Print extends Inst {
 
   public get end(): Position {
     return empty(this.close)
-      ? this.expression.end
+      ? this.expr.end
       : this.close.end;
   }
 
   public get ranges(): Range[] {
-    const ranges = [this.print, this.expression];
+    const ranges = [this.print, this.expr];
 
     if (!empty(this.at)
       && !empty(this.open)

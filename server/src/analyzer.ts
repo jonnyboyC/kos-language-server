@@ -16,7 +16,7 @@ import * as Inst from './parser/inst';
 import { signitureHelper } from './utilities/signitureHelper';
 import * as Expr from './parser/expr';
 import * as SuffixTerm from './parser/suffixTerm';
-import { resolveUri } from './utilities/pathResolver';
+import { resolveUri, runPath } from './utilities/pathResolver';
 import { existsSync } from 'fs';
 import { extname } from 'path';
 import { readFileAsync } from './utilities/fsUtilities';
@@ -390,7 +390,11 @@ export class Analyzer {
 
     // generate uris then remove empty or preloaded documents
     return runInsts
-      .map(inst => resolveUri(this.volumne0Path, volumne0Uri, uri, inst))
+      .map(inst => resolveUri(
+        this.volumne0Path,
+        volumne0Uri,
+        { uri, range: inst },
+        runPath(inst)))
       .filter(notEmpty)
       .filter(uriInsts => !this.documentInfos.has(uriInsts.uri));
   }
@@ -398,7 +402,7 @@ export class Analyzer {
   // load an validate a file from disk
   private async* loadAndValidateDocument(
     parentUri: string,
-    { uri, inst, path }: ILoadData,
+    { uri, caller, path }: ILoadData,
     depth: number): AsyncIterableIterator<ValidateResult> {
     try {
       // non ideal fix for depedency cycle
@@ -413,7 +417,7 @@ export class Analyzer {
         return {
           diagnostics: [{
             uri: parentUri,
-            range: { start: inst.start, end: inst.end },
+            range: caller,
             severity: DiagnosticSeverity.Error,
             message: `Unable to find ${path}`,
           }],
@@ -428,7 +432,7 @@ export class Analyzer {
       return {
         diagnostics: [{
           uri: parentUri,
-          range: { start: inst.start, end: inst.end },
+          range: caller,
           severity: DiagnosticSeverity.Error,
           message: `Unable to read ${path}`,
         }],

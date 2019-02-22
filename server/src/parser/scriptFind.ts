@@ -46,7 +46,7 @@ export class ScriptFind implements
     }
 
     // search expression if expression
-    if (searchResult instanceof SuffixTerm.SuffixTerm) {
+    if (searchResult instanceof SuffixTerm.SuffixTermBase) {
       const findResult = this.findSuffixTerm(searchResult);
 
       // add context if not set yet
@@ -254,7 +254,7 @@ export class ScriptFind implements
     return this.findNode(expr);
   }
   visitSuffixTerm(expr: SuffixTerm.SuffixTerm): Maybe<IFindResult> {
-    throw this.findNode(expr);
+    return this.findNode(expr);
   }
   visitCall(expr: SuffixTerm.Call): Maybe<IFindResult> {
     return this.findNode(expr);
