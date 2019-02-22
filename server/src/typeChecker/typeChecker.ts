@@ -113,7 +113,6 @@ export class TypeChecker implements
       throw Error('TODO');
     }
 
-    // TODO may need to report if we can't find function tracker
     const { entity } = funcTracker.declared;
     const paramsTypes: IArgumentType[] = [];
     for (let i = 0; i < entity.parameters.length; i += 1) {
@@ -135,7 +134,6 @@ export class TypeChecker implements
     let errors: TypeErrors = [];
 
     // loop over defaulted parameters
-    // TODO currently assume paramarter is default type
     for (const defaulted of decl.defaultParameters) {
       const valueResult = this.checkExpr(defaulted.value);
       this.scopeManager.setType(
@@ -233,13 +231,48 @@ export class TypeChecker implements
 
   // visit set
   public visitSet(inst: Inst.Set): TypeErrors {
-    const result = this.checkExpr(inst.expr);
-    if (inst.suffix instanceof SuffixTerm.Identifier) {
-      this.scopeManager.setType(inst.suffix.token, inst.suffix.token.lexeme, result.type);
-    } else {
-      // TODO suffix case
+    const exprResult = this.checkExpr(inst.expr);
+    const errors = exprResult.errors;
+
+    // check if set ends in call
+    if (inst.suffix.endsInCall()) {
+      return errors.concat(
+        new KsTypeError(
+          inst.suffix,
+          `Cannot set ${inst.suffix.toString()} as it is a call`,
+          []));
     }
-    return result.errors;
+
+    const { atom, trailers } = inst.suffix.suffixTerm;
+
+    // if a suffix trailer exists we are a full suffix
+    if (!empty(inst.suffix.trailer) || !empty(trailers)) {
+      const suffixResult = this.checkExpr(inst.suffix);
+      const setErrors: TypeErrors = [];
+
+      if (coerce(exprResult.type, suffixResult.type)) {
+        setErrors.push(new KsTypeError(
+          inst.suffix,
+          `Cannot set suffix ${inst.suffix.toString()} ` +
+          `of type ${suffixResult.type} to ${exprResult.type}`,
+          []));
+      }
+
+      return errors.concat(
+        suffixResult.errors,
+        setErrors);
+    }
+
+    if (atom instanceof SuffixTerm.Identifier) {
+      this.scopeManager.setType(atom.token, atom.token.lexeme, exprResult.type);
+    } else {
+      errors.push(new KsTypeError(
+        inst.suffix,
+        `Cannot set ${inst.suffix.toString()}, must be identifier, or suffix`,
+        []));
+    }
+
+    return errors;
   }
 
   // visit lazy global directive

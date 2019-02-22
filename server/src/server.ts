@@ -43,7 +43,8 @@ import { structureType } from './typeChecker/types/primitives/structure';
 // Also include all preview / proposed LSP features.
 export const connection = createConnection(ProposedFeatures.all);
 
-// REMOVE ME TODO
+// REMOVE ME TODO probably need to refactor the type modules as
+// structure and the primitives have a dependnecy loop
 addPrototype(primitiveType, structureType);
 
 // Create a simple text document manager. The text document manager

@@ -157,7 +157,6 @@ export class Factor extends Expr {
   }
 }
 
-// TODO this returns a delegate
 export class AnonymousFunction extends Expr {
   public static grammar: GrammarNode[];
 
@@ -219,6 +218,30 @@ export class Suffix extends Expr {
     }
 
     return [this.suffixTerm];
+  }
+
+  public endsInCall(): boolean {
+    // if no trailer check suffix term
+    if (empty(this.trailer)) {
+      const suffixTermTrailers = this.suffixTerm.trailers;
+
+      // check for suffix term trailers
+      if (suffixTermTrailers.length > 0) {
+        const lastTrailer = suffixTermTrailers[suffixTermTrailers.length - 1];
+        if (lastTrailer instanceof SuffixTerm.Call) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    // check nested trailers
+    if (this.trailer instanceof Suffix) {
+      return this.trailer.endsInCall();
+    }
+
+    return false;
   }
 
   public toString(): string {

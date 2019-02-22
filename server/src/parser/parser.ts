@@ -1288,7 +1288,6 @@ export class Parser {
     return nodeResult(new SuffixTerm.ArrayIndex(indexer, index, isTrailer));
   }
 
-  // TODO this returns a delegate
   // parse anonymous function
   private anonymousFunction(): INodeResult<Expr.AnonymousFunction> {
     const open = this.previous();
