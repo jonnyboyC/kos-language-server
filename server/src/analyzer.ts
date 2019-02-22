@@ -16,7 +16,7 @@ import * as Inst from './parser/inst';
 import { signitureHelper } from './utilities/signitureHelper';
 import * as Expr from './parser/expr';
 import * as SuffixTerm from './parser/suffixTerm';
-import { resolveUri, runPath } from './utilities/pathResolver';
+import { PathResolver, runPath } from './utilities/pathResolver';
 import { existsSync } from 'fs';
 import { extname } from 'path';
 import { readFileAsync } from './utilities/fsUtilities';
@@ -30,16 +30,14 @@ import { IToken } from './entities/types';
 import { IType } from './typeChecker/types/types';
 
 export class Analyzer {
-  public volumne0Path: string;
-  public volumne0Uri: Maybe<string>;
+  public readonly pathResolver: PathResolver;
   public readonly documentInfos: Map<string, IDocumentInfo>;
   public readonly logger: ILogger;
   public readonly tracer: ITracer;
   public readonly observer: PerformanceObserver;
 
   constructor(logger: ILogger = mockLogger, tracer: ITracer = mockTracer) {
-    this.volumne0Path = process.cwd();
-    this.volumne0Uri = undefined;
+    this.pathResolver = new PathResolver();
     this.logger = logger;
     this.tracer = tracer;
     this.documentInfos = new Map();
@@ -52,6 +50,22 @@ export class Analyzer {
       this.logger.info('------------------------------');
     });
     this.observer.observe({ entryTypes: ['measure'], buffered: true });
+  }
+
+  /**
+   * Set the volume 0 path for the analyzer
+   * @param path path of volume 0
+   */
+  public setPath(path: string): void {
+    this.pathResolver.volume0Path = path;
+  }
+
+  /**
+   * Set the volume 0 uri for the analyzer
+   * @param uri uri to volume 0
+   */
+  public setUri(uri: string): void {
+    this.pathResolver.volume0Uri = uri;
   }
 
   public async* validateDocument(uri: string, text: string, depth: number = 0):
@@ -75,7 +89,7 @@ export class Analyzer {
       .map(error => parseToDiagnostics(error, uri));
 
     // if any run instruction exist get uri then load
-    if (runInsts.length > 0 && !empty(this.volumne0Uri)) {
+    if (runInsts.length > 0 && this.pathResolver.ready) {
       const loadDatas = this.getValidUri(uri, runInsts);
 
       // for each document run validate and yield any results
@@ -104,8 +118,12 @@ export class Analyzer {
     scopeBuilder.addScope(standardLibrary);
 
     // generate resolvers
-    const funcResolver = new FuncResolver(script, scopeBuilder, this.logger, this.tracer);
-    const resolver = new Resolver(script, scopeBuilder, this.logger, this.tracer);
+    const funcResolver = new FuncResolver(
+      script, scopeBuilder,
+      this.logger, this.tracer);
+    const resolver = new Resolver(
+      script, scopeBuilder,
+      this.logger, this.tracer);
 
     // resolve the rest of the script
     this.logger.log(`Function resolving ${uri}`);
@@ -360,7 +378,7 @@ export class Analyzer {
     this.logger.log(`Parsing ${uri}`);
 
     performance.mark('parser-start');
-    const parser = new Parser(tokens);
+    const parser = new Parser(uri, tokens);
     const result = parser.parse();
     performance.mark('parser-end');
 
@@ -382,17 +400,9 @@ export class Analyzer {
 
   // get usable file uri from run instructions
   private getValidUri(uri: string, runInsts: RunInstType[]): ILoadData[] {
-    // if something went wrong and we didn't get the root uri
-    const volumne0Uri = this.volumne0Uri;
-    if (empty(volumne0Uri)) {
-      return [];
-    }
-
     // generate uris then remove empty or preloaded documents
     return runInsts
-      .map(inst => resolveUri(
-        this.volumne0Path,
-        volumne0Uri,
+      .map(inst => this.pathResolver.resolveUri(
         { uri, range: inst },
         runPath(inst)))
       .filter(notEmpty)

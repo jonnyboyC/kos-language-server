@@ -16,7 +16,6 @@ import { Script } from '../entities/script';
 import { mockLogger, mockTracer } from '../utilities/logger';
 import { ScopeBuilder } from './scopeBuilder';
 import { ILocalResult, IResolverError } from './types';
-import { resolveUri } from '../utilities/pathResolver';
 
 export type Errors = IResolverError[];
 
@@ -25,8 +24,8 @@ export class Resolver implements
   IInstVisitor<Errors>,
   ISuffixTermVisitor<Errors> {
 
-  private syntaxTree: Script;
-  private scopeBuilder: ScopeBuilder;
+  private readonly script: Script;
+  private readonly scopeBuilder: ScopeBuilder;
   private readonly logger: ILogger;
   private readonly tracer: ITracer;
   private readonly localResolver: LocalResolver;
@@ -40,7 +39,7 @@ export class Resolver implements
     logger: ILogger = mockLogger,
     tracer: ITracer = mockTracer) {
 
-    this.syntaxTree = syntaxTree;
+    this.script = syntaxTree;
     this.scopeBuilder = scopeBuilder;
     this.localResolver = new LocalResolver();
     this.setResolver = new SetResolver(this.localResolver);
@@ -54,8 +53,8 @@ export class Resolver implements
   public resolve(): Errors {
     try {
       this.scopeBuilder.rewindScope();
-      this.scopeBuilder.beginScope(this.syntaxTree);
-      const [firstInst, ...restInsts] = this.syntaxTree.insts;
+      this.scopeBuilder.beginScope(this.script);
+      const [firstInst, ...restInsts] = this.script.insts;
 
       // check for lazy global flag
       const firstError = this.resolveInst(firstInst);
@@ -358,62 +357,31 @@ export class Resolver implements
   }
 
   public visitLog(inst: Inst.Log): Errors {
-    let useErrors: Errors = [];
-
-    // check target expression
-    if (inst.target instanceof SuffixTerm.Literal) {
-      switch (inst.target.token.type) {
-        case TokenType.string:
-        case TokenType.fileIdentifier:
-          // resolveUri()
-
-          // TODO may need check some about path here
-          break;
-        default:
-          useErrors = this.useExprLocals(inst.target);
-      }
-    }
-
     return this.useExprLocals(inst.expr).concat(
-      useErrors,
       this.resolveExpr(inst.expr),
       this.resolveExpr(inst.target));
   }
 
   public visitCopy(inst: Inst.Copy): Errors {
-    let useErrors: Errors = [];
-
-    // check from expression
-    if (inst.target instanceof SuffixTerm.Literal) {
-      switch (inst.target.token.type) {
-        case TokenType.string:
-        case TokenType.fileIdentifier:
-          // TODO may need check some about path here
-          break;
-        default:
-          useErrors = this.useExprLocals(inst.target);
-      }
-    }
-
-    // check the target location
-    if (inst.location instanceof SuffixTerm.Literal) {
-      switch (inst.location.token.type) {
-        case TokenType.string:
-        case TokenType.fileIdentifier:
-          // TODO may need check some about path here
-          break;
-        default:
-          useErrors = this.useExprLocals(inst.location);
-      }
-    }
-
     return this.useExprLocals(inst.target).concat(
-      useErrors,
       this.resolveExpr(inst.target),
-      this.resolveExpr(inst.location));
+      this.resolveExpr(inst.destination));
   }
 
   public visitRename(inst: Inst.Rename): Errors {
+
+    // check target expression if path exists
+    // if (inst.target instanceof SuffixTerm.Literal) {
+    //   const path = this.pathResolver.resolveUri(
+    //     inst.target.toLocation(this.script.uri),
+    //     ioPath(inst));
+
+    //   if (!empty(path) && !existsSync(path.path)) {
+    //     pathErrors.push(new ResolverError(
+    //       inst.target.token, `Path ${path} does not exist`, []));
+    //   }
+    // }
+
     return this.useExprLocals(inst.target).concat(
       this.useExprLocals(inst.alternative),
       this.resolveExpr(inst.target),
@@ -421,15 +389,15 @@ export class Resolver implements
   }
 
   public visitDelete(inst: Inst.Delete): Errors {
-    if (empty(inst.target)) {
-      return this.useExprLocals(inst.expr).concat(
-        this.resolveExpr(inst.expr));
+    if (empty(inst.volume)) {
+      return this.useExprLocals(inst.target).concat(
+        this.resolveExpr(inst.target));
     }
 
-    return this.useExprLocals(inst.expr).concat(
-      this.useExprLocals(inst.target),
-      this.resolveExpr(inst.expr),
-      this.resolveExpr(inst.target));
+    return this.useExprLocals(inst.target).concat(
+      this.useExprLocals(inst.volume),
+      this.resolveExpr(inst.target),
+      this.resolveExpr(inst.volume));
   }
 
   public visitRun(inst: Inst.Run): Errors {

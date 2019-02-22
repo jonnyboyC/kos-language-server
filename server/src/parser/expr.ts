@@ -13,16 +13,13 @@ import {
   createExponential,
 } from './grammarNodes';
 import { empty } from '../utilities/typeGuards';
+import { NodeBase } from './base';
 
-export abstract class Expr implements IExpr {
+export abstract class Expr extends NodeBase implements IExpr {
   get tag(): 'expr' {
     return 'expr';
   }
 
-  public abstract get ranges(): Range[];
-  public abstract toString(): string;
-  public abstract get start(): Position;
-  public abstract get end(): Position;
   public abstract accept<T>(visitor: IExprVisitor<T>): T;
 }
 

@@ -12,16 +12,13 @@ import {
   createGamma, createConstant, createNormal,
 } from './grammarNodes';
 import { expr } from './expr';
+import { NodeBase } from './base';
 
-export abstract class SuffixTermBase implements ISuffixTerm {
+export abstract class SuffixTermBase extends NodeBase implements ISuffixTerm {
   get tag(): 'suffixTerm' {
     return 'suffixTerm';
   }
 
-  public abstract get ranges(): Range[];
-  public abstract toString(): string;
-  public abstract get start(): Position;
-  public abstract get end(): Position;
   public abstract accept<T>(visitor: ISuffixTermVisitor<T>): T;
   public abstract acceptParam<TP, TR>(
     visitor: ISuffixTermParamVisitor<TP, TR>,

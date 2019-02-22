@@ -1,8 +1,10 @@
 import { IInst, IScript } from '../parser/types';
-import { Range, Position } from 'vscode-languageserver';
+import { Range, Position, Location } from 'vscode-languageserver';
 
 export class Script implements IScript {
-  constructor(public readonly insts: IInst[])
+  constructor(
+    public readonly uri: string,
+    public readonly insts: IInst[])
   { }
 
   public get start(): Position {
@@ -15,6 +17,10 @@ export class Script implements IScript {
 
   public get ranges(): Range[] {
     return [...this.insts];
+  }
+
+  toLocation(): Location {
+    return { uri: this.uri, range: { start: this.start, end: this.end } };
   }
 
   public get tag(): 'script' {

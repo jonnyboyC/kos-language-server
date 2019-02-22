@@ -294,7 +294,7 @@ export class FuncResolver implements
 
   public visitCopy(inst: Inst.Copy): Errors {
     return this.resolveExpr(inst.target).concat(
-      this.resolveExpr(inst.location));
+      this.resolveExpr(inst.destination));
   }
 
   public visitRename(inst: Inst.Rename): Errors {
@@ -303,12 +303,12 @@ export class FuncResolver implements
   }
 
   public visitDelete(inst: Inst.Delete): Errors {
-    if (empty(inst.target)) {
-      return this.resolveExpr(inst.expr);
+    if (empty(inst.volume)) {
+      return this.resolveExpr(inst.target);
     }
 
-    return this.resolveExpr(inst.expr).concat(
-      this.resolveExpr(inst.target));
+    return this.resolveExpr(inst.target).concat(
+      this.resolveExpr(inst.volume));
   }
 
   public visitRun(inst: Inst.Run): Errors {

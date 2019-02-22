@@ -7,40 +7,44 @@ import { ILoadData } from '../types';
 import * as SuffixTerm from '../parser/suffixTerm';
 import { Location } from 'vscode-languageserver';
 
-// resolve uri from run statments
-export const resolveUri = (
-  volume0Path: string,
-  volumn0Uri: string,
-  caller: Location,
-  path?: string): Maybe<ILoadData> => {
+export class PathResolver {
+  constructor (
+    public volume0Path?: string,
+    public volume0Uri?: string) { }
 
-  if (empty(path)) {
-    return undefined;
+  public get ready(): boolean {
+    return !empty(this.volume0Path) && !empty(this.volume0Uri);
   }
 
-  // get realtive an run path from file
-  const relativePath = relative(volumn0Uri, dirname(caller.uri)).replace('%20', ' ');
+  public resolveUri(caller: Location, path?: string): Maybe<ILoadData> {
+    if (empty(path) || empty(this.volume0Path) || empty(this.volume0Uri)) {
+      return undefined;
+    }
 
-  // check if the scripts reads from volume 0 "disk"
-  // TODO no idea what to do for ship volumnes
-  const [possibleVolumne, ...remaining] = path.split(sep);
-  if (possibleVolumne === '0:') {
+    // get realtive an run path from file
+    const relativePath = relative(this.volume0Uri, dirname(caller.uri)).replace('%20', ' ');
+
+    // check if the scripts reads from volume 0 "disk"
+    // TODO no idea what to do for ship volumnes
+    const [possibleVolumne, ...remaining] = path.split(sep);
+    if (possibleVolumne === '0:') {
+      return {
+        caller: { start: caller.range.start, end: caller.range.end },
+        path: join(this.volume0Path, ...remaining),
+        uri: join(this.volume0Uri, ...remaining),
+      };
+    }
+
+    // if no volumne do a relative lookup
     return {
       caller: { start: caller.range.start, end: caller.range.end },
-      path: join(volume0Path, ...remaining),
-      uri: join(volumn0Uri, ...remaining),
+      path: join(this.volume0Path, relativePath, possibleVolumne, ...remaining),
+      uri: join(this.volume0Uri, relativePath, possibleVolumne, ...remaining),
     };
   }
+}
 
-  // if no volumne do a relative lookup
-  return {
-    caller: { start: caller.range.start, end: caller.range.end },
-    path: join(volume0Path, relativePath, possibleVolumne, ...remaining),
-    uri: join(volumn0Uri, relativePath, possibleVolumne, ...remaining),
-  };
-};
-
-export const ioPath = (inst: Inst.Rename | Inst.Copy | Inst.Delete): Maybe<string> => {
+export const ioPath = (inst: Inst.Rename | Inst.Copy | Inst.Delete | Inst.Log): Maybe<string> => {
   const { target } = inst;
   if (target instanceof SuffixTerm.Literal) {
     return literalPath(target);

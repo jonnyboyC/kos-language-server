@@ -622,7 +622,7 @@ export class Copy extends Inst {
     public readonly copy: IToken,
     public readonly target: IExpr,
     public readonly toFrom: IToken,
-    public readonly location: IExpr) {
+    public readonly destination: IExpr) {
     super();
   }
 
@@ -631,11 +631,11 @@ export class Copy extends Inst {
   }
 
   public get end(): Position {
-    return this.location.end;
+    return this.destination.end;
   }
 
   public get ranges(): Range[] {
-    return [this.copy, this.target, this.toFrom, this.location];
+    return [this.copy, this.target, this.toFrom, this.destination];
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -681,9 +681,9 @@ export class Delete extends Inst {
   }
   constructor(
     public readonly deleteToken: IToken,
-    public readonly expr: IExpr,
+    public readonly target: IExpr,
     public readonly from?: IToken,
-    public readonly target?: IExpr) {
+    public readonly volume?: IExpr) {
     super();
   }
 
@@ -692,16 +692,16 @@ export class Delete extends Inst {
   }
 
   public get end(): Position {
-    return empty(this.target)
-      ? this.expr.end
-      : this.target.end;
+    return empty(this.volume)
+      ? this.target.end
+      : this.volume.end;
   }
 
   public get ranges(): Range[] {
-    const ranges = [this.deleteToken, this.expr];
-    if (!empty(this.from) && !empty(this.target)) {
+    const ranges = [this.deleteToken, this.target];
+    if (!empty(this.from) && !empty(this.volume)) {
       ranges.push(this.from);
-      ranges.push(this.target);
+      ranges.push(this.volume);
     }
 
     return ranges;

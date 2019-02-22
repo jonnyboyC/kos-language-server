@@ -3,7 +3,7 @@ import * as Inst from './inst';
 import * as SuffixTerm from './suffixTerm';
 import { Var, Lock, Func, Param } from './declare';
 import { IToken } from '../entities/types';
-import { Range } from 'vscode-languageserver';
+import { Range, Location } from 'vscode-languageserver';
 import { IScannerError } from '../scanner/types';
 import { TokenType } from '../entities/tokentypes';
 
@@ -22,6 +22,7 @@ export interface ISuffixTerm extends
   ISuffixTermParamVisitable,
   IRangeSequence {
   tag: 'suffixTerm';
+  toLocation(uri: string): Location;
   toString(): string;
 }
 
@@ -35,6 +36,7 @@ export type Atom = SuffixTerm.Literal
 
 export interface IExpr extends IExprVisitable, IRangeSequence {
   tag: 'expr';
+  toLocation(uri: string): Location;
   toString(): string;
 }
 
@@ -44,6 +46,8 @@ export interface IInst extends IInstVisitable, IRangeSequence {
 
 export interface IScript extends IRangeSequence {
   insts: IInst[];
+  uri: string;
+  toLocation(): Location;
   tag: 'script';
 }
 

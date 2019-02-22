@@ -422,7 +422,7 @@ export class TypeChecker implements
   // visit copy
   public visitCopy(inst: Inst.Copy): TypeErrors {
     const sourceResult = this.checkExpr(inst.target);
-    const targetResult = this.checkExpr(inst.location);
+    const targetResult = this.checkExpr(inst.destination);
     const errors: TypeErrors = sourceResult.errors
       .concat(targetResult.errors);
 
@@ -435,7 +435,7 @@ export class TypeChecker implements
 
     if (!coerce(sourceResult.type, stringType)) {
       errors.push(new KsTypeError(
-        inst.location, 'Can only copy to a string or bare path. ' +
+        inst.destination, 'Can only copy to a string or bare path. ' +
         'This may not able to be coerced into string type',
         []));
     }

@@ -23,13 +23,20 @@ import { mockLogger, mockTracer } from '../utilities/logger';
 type NodeConstructor = Constructor<Expr.Expr> | Constructor<Inst.Inst> | Constructor;
 
 export class Parser {
+  private uri: string;
   private tokens: IToken[];
   private current: number;
   private runInsts: RunInstType[];
   private readonly logger: ILogger;
   private readonly tracer: ITracer;
 
-  constructor(tokens: IToken[], logger: ILogger = mockLogger, tracer: ITracer = mockTracer) {
+  constructor(
+    uri: string,
+    tokens: IToken[],
+    logger: ILogger = mockLogger,
+    tracer: ITracer = mockTracer) {
+
+    this.uri = uri;
     this.tokens = tokens.concat(this.eof(tokens));
     this.current = 0;
     this.runInsts = [];
@@ -51,7 +58,7 @@ export class Parser {
       return {
         parseErrors,
         runInsts: this.runInsts,
-        script: new Script(instructions),
+        script: new Script(this.uri, instructions),
       };
     } catch (err) {
       this.logger.error(`Error occured in parser ${err}`);
@@ -59,7 +66,7 @@ export class Parser {
 
       return {
         runInsts: [],
-        script: new Script([]),
+        script: new Script(this.uri, []),
         parseErrors: [],
       };
     }

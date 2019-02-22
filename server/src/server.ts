@@ -58,12 +58,12 @@ connection.onInitialize((params: InitializeParams) => {
     `[Server(${process.pid}) ${JSON.stringify(capabilities)}] Started and initialize received`);
 
   if (params.rootPath) {
-    analyzer.volumne0Path = params.rootPath;
+    analyzer.setPath(params.rootPath);
     workspaceFolder = params.rootPath;
   }
 
   if (params.rootUri) {
-    analyzer.volumne0Uri = params.rootUri;
+    analyzer.setUri(params.rootUri);
   }
 
   connection.console.log(
