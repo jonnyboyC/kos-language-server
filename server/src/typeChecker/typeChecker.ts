@@ -246,7 +246,7 @@ export class TypeChecker implements
     const { atom, trailers } = inst.suffix.suffixTerm;
 
     // if a suffix trailer exists we are a full suffix
-    if (!empty(inst.suffix.trailer) || !empty(trailers)) {
+    if (!empty(inst.suffix.trailer) || trailers.length > 0) {
       const suffixResult = this.checkExpr(inst.suffix);
       const setErrors: TypeErrors = [];
 
@@ -254,7 +254,7 @@ export class TypeChecker implements
         setErrors.push(new KsTypeError(
           inst.suffix,
           `Cannot set suffix ${inst.suffix.toString()} ` +
-          `of type ${suffixResult.type} to ${exprResult.type}`,
+          `of type ${suffixResult.type.name} to ${exprResult.type.name}`,
           []));
       }
 

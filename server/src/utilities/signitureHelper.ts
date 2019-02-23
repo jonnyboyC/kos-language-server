@@ -60,7 +60,7 @@ const partialArgs = (tokens: IToken[], pos: Position): Maybe<[IToken, IToken[]]>
 };
 
 const argPosition = (partialArgs: IToken[]): number => {
-  const parser = new Parser(partialArgs);
+  const parser = new Parser('', partialArgs);
   const args = parser.parseArgCount();
   return args.value;
 };

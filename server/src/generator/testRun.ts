@@ -16,7 +16,7 @@ const scan = (source: string) => {
 // parse source
 const parseExpression = (source: string): [INodeResult<IExpr>, IScannerError[]] => {
   const { tokens, scanErrors } = scan(source);
-  const parser = new Parser(tokens);
+  const parser = new Parser('', tokens);
   return [parser.parseExpression(), scanErrors];
 };
 
