@@ -458,7 +458,7 @@ export class Parser {
 
     // All commands besides preserve can be called as a function
     if (command.type !== TokenType.preserve && this.check(TokenType.bracketOpen)) {
-      // Note this back only exists because of identifier led instrcution quarks
+      // Note this back only exists because of identifier led instruction quarks
       this.backup();
       return this.identifierLedInstruction();
     }
@@ -988,8 +988,16 @@ export class Parser {
   }
 
   // parse print instruction
-  private print(): INodeResult<Inst.Print> {
+  private print(): INodeResult<Inst.Inst> {
     const print = this.previous();
+
+    // if we find function variant of print use that instead
+    if (this.check(TokenType.bracketOpen)) {
+      // Note this back only exists because of identifier led instruction quarks
+      this.backup();
+      return this.identifierLedInstruction();
+    }
+
     const expr = this.expression(Inst.Print);
 
     if (this.matchToken(TokenType.at)) {
@@ -1157,7 +1165,7 @@ export class Parser {
       errors = errors.concat(suffixTerm.errors);
 
       // patch suffix with new trailer
-      const suffixTrailer = new Expr.Suffix(suffixTerm.value);
+      const suffixTrailer = new SuffixTerm.SuffixTrailer(suffixTerm.value);
       suffix.colon = colon;
       suffix.trailer = suffixTrailer;
       let current = suffixTrailer;
@@ -1166,7 +1174,7 @@ export class Parser {
       while (this.matchToken(TokenType.colon)) {
         colon = this.previous();
         suffixTerm = this.suffixTerm(true);
-        const suffixTrailer = new Expr.Suffix(suffixTerm.value);
+        const suffixTrailer = new SuffixTerm.SuffixTrailer(suffixTerm.value);
 
         // patch curren trailer with trailer update current
         current.colon = colon;

@@ -6,7 +6,7 @@ import { listType } from '../collections/list';
 import { vectorType } from '../collections/vector';
 import { directionType } from '../direction';
 import { uniqueSetType } from '../collections/uniqueset';
-import { partType } from '../part';
+import { partType } from '../parts/part';
 import { loadDistanceType } from '../loadDistance';
 import { vesselConnectionType } from '../communication/vesselConnection';
 import { messageQueueType } from '../communication/messageQueue';
@@ -15,6 +15,11 @@ import { userListType } from '../collections/userList';
 import { stringType } from '../primitives/string';
 import { scalarType } from '../primitives/scalar';
 import { booleanType } from '../primitives/boolean';
+import { flightControlType } from '../flightControl';
+import { dockingPortType } from '../parts/dockingPort';
+import { decouplerType } from '../parts/decoupler';
+import { aggregateResourceType } from '../aggregateResource';
+import { userDelegateType } from '../userDelegate';
 
 export const vesselTargetType: IArgumentType = createStructureType('vesselTarget');
 addPrototype(vesselTargetType, orbitableType);
@@ -34,11 +39,11 @@ addSuffixes(
   createArgSuffixType('partStaggedPattern', userListType, stringType),
   createArgSuffixType('allTaggedParts', userListType),
   createArgSuffixType('parts', listType.toConcreteType(partType)),
-  createArgSuffixType('dockingPorts', listType.toConcreteType(scalarType)), /* TODO */
-  createArgSuffixType('decouplers', listType.toConcreteType(scalarType)), /* TODO */
-  createArgSuffixType('separators', listType.toConcreteType(scalarType)), /* TODO */
+  createArgSuffixType('dockingPorts', listType.toConcreteType(dockingPortType)),
+  createArgSuffixType('decouplers', listType.toConcreteType(decouplerType)),
+  createArgSuffixType('separators', listType.toConcreteType(decouplerType)),
   createArgSuffixType('elements', userListType),
-  createSuffixType('control', /* TODO */ scalarType),
+  createSuffixType('control', flightControlType),
   createSuffixType('bearing', scalarType),
   createSuffixType('heading', scalarType),
   createSuffixType('availableThrust', scalarType),
@@ -65,7 +70,7 @@ addSuffixes(
   createSuffixType('controlPart', partType),
   createSuffixType('dryMass', scalarType),
   createSuffixType('wetMass', scalarType),
-  createSuffixType('resources', listType.toConcreteType(scalarType)), /* TODO */
+  createSuffixType('resources', listType.toConcreteType(aggregateResourceType)),
   createSuffixType('loadDistance', loadDistanceType),
   createArgSuffixType('isDead', booleanType),
   createSuffixType('status', stringType),
@@ -77,5 +82,5 @@ addSuffixes(
   createSuffixType('connection', vesselConnectionType),
   createSuffixType('messages', messageQueueType),
   createArgSuffixType('startTracking', voidType),
-  createArgSuffixType('soiChangeWatchers', uniqueSetType.toConcreteType(scalarType)), /* TODO */
+  createArgSuffixType('soiChangeWatchers', uniqueSetType.toConcreteType(userDelegateType)),
 );

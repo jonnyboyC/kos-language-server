@@ -167,6 +167,7 @@ export interface ISuffixTermVisitable {
 }
 
 export interface ISuffixTermVisitor<T> {
+  visitSuffixTrailer(expr: SuffixTerm.SuffixTrailer): T;
   visitSuffixTerm(expr: SuffixTerm.SuffixTerm): T;
   visitCall(expr: SuffixTerm.Call): T;
   visitArrayIndex(expr: SuffixTerm.ArrayIndex): T;
@@ -184,6 +185,7 @@ export interface ISuffixTermParamVisitable {
 }
 
 export interface ISuffixTermParamVisitor<TParam, TReturn> {
+  visitSuffixTrailer(expr: SuffixTerm.SuffixTrailer, param: TParam): TReturn;
   visitSuffixTerm(expr: SuffixTerm.SuffixTerm, param: TParam): TReturn;
   visitCall(expr: SuffixTerm.Call, param: TParam): TReturn;
   visitArrayIndex(expr: SuffixTerm.ArrayIndex, param: TParam): TReturn;
@@ -212,6 +214,7 @@ export interface ISuffixTermVisitableClass {
 }
 
 export interface ISuffixTermClassVisitor<T> {
+  visitSuffixTrailer(termClass: Constructor<SuffixTerm.SuffixTrailer>): T;
   visitSuffixTerm(termClass: Constructor<SuffixTerm.SuffixTerm>): T;
   visitCall(termClass: Constructor<SuffixTerm.Call>): T;
   visitArrayIndex(termClass: Constructor<SuffixTerm.ArrayIndex>): T;

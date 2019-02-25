@@ -388,9 +388,6 @@ export class FuncResolver implements
       return suffixTerm;
     }
 
-    if (expr.trailer.tag === 'expr') {
-      return suffixTerm.concat(this.resolveExpr(expr.trailer));
-    }
     return suffixTerm.concat(this.resolveSuffixTerm(expr.trailer));
   }
 
@@ -398,7 +395,22 @@ export class FuncResolver implements
     return this.resolveInsts(expr.insts);
   }
 
-  visitSuffixTerm(expr: SuffixTerm.SuffixTerm): Errors {
+  /* --------------------------------------------
+
+  Suffix Terms
+
+  ----------------------------------------------*/
+
+  public visitSuffixTrailer(expr: SuffixTerm.SuffixTrailer): ResolverError[] {
+    const suffixTerm = this.resolveSuffixTerm(expr.suffixTerm);
+    if (empty(expr.trailer)) {
+      return suffixTerm;
+    }
+
+    return suffixTerm.concat(this.resolveSuffixTerm(expr.trailer));
+  }
+
+  public visitSuffixTerm(expr: SuffixTerm.SuffixTerm): Errors {
     let errors = this.resolveSuffixTerm(expr.atom);
     for (const trailer of expr.trailers) {
       errors = errors.concat(this.resolveSuffixTerm(trailer));

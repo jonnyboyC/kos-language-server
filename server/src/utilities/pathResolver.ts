@@ -25,7 +25,7 @@ export class PathResolver {
     const relativePath = relative(this.volume0Uri, dirname(caller.uri)).replace('%20', ' ');
 
     // check if the scripts reads from volume 0 "disk"
-    // TODO no idea what to do for ship volumnes
+    // TODO no idea what to do for ship volumes
     const [possibleVolumne, ...remaining] = path.split(sep);
     if (possibleVolumne === '0:') {
       return {

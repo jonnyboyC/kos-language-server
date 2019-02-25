@@ -127,157 +127,160 @@ export class ScriptFind implements
     return suffixTerm.accept(this);
   }
 
-  visitDeclVariable(decl: Decl.Var): Maybe<IFindResult> {
+  public visitDeclVariable(decl: Decl.Var): Maybe<IFindResult> {
     return this.findNode(decl);
   }
-  visitDeclLock(decl: Decl.Lock): Maybe<IFindResult> {
+  public visitDeclLock(decl: Decl.Lock): Maybe<IFindResult> {
     return this.findNode(decl);
   }
-  visitDeclFunction(decl: Decl.Func): Maybe<IFindResult> {
+  public visitDeclFunction(decl: Decl.Func): Maybe<IFindResult> {
     return this.findNode(decl);
   }
-  visitDeclParameter(decl: Decl.Param): Maybe<IFindResult> {
+  public visitDeclParameter(decl: Decl.Param): Maybe<IFindResult> {
     return this.findNode(decl);
   }
-  visitInstInvalid(inst: Inst.Invalid): Maybe<IFindResult> {
+  public visitInstInvalid(inst: Inst.Invalid): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitBlock(inst: Inst.Block): Maybe<IFindResult> {
+  public visitBlock(inst: Inst.Block): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitExpr(inst: Inst.ExprInst): Maybe<IFindResult> {
+  public visitExpr(inst: Inst.ExprInst): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitOnOff(inst: Inst.OnOff): Maybe<IFindResult> {
+  public visitOnOff(inst: Inst.OnOff): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitCommand(inst: Inst.Command): Maybe<IFindResult> {
+  public visitCommand(inst: Inst.Command): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitCommandExpr(inst: Inst.CommandExpr): Maybe<IFindResult> {
+  public visitCommandExpr(inst: Inst.CommandExpr): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitUnset(inst: Inst.Unset): Maybe<IFindResult> {
+  public visitUnset(inst: Inst.Unset): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitUnlock(inst: Inst.Unlock): Maybe<IFindResult> {
+  public visitUnlock(inst: Inst.Unlock): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitSet(inst: Inst.Set): Maybe<IFindResult> {
+  public visitSet(inst: Inst.Set): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitLazyGlobalInst(inst: Inst.LazyGlobal): Maybe<IFindResult> {
+  public visitLazyGlobalInst(inst: Inst.LazyGlobal): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitIf(inst: Inst.If): Maybe<IFindResult> {
+  public visitIf(inst: Inst.If): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitElse(inst: Inst.Else): Maybe<IFindResult> {
+  public visitElse(inst: Inst.Else): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitUntil(inst: Inst.Until): Maybe<IFindResult> {
+  public visitUntil(inst: Inst.Until): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitFrom(inst: Inst.From): Maybe<IFindResult> {
+  public visitFrom(inst: Inst.From): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitWhen(inst: Inst.When): Maybe<IFindResult> {
+  public visitWhen(inst: Inst.When): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitReturn(inst: Inst.Return): Maybe<IFindResult> {
+  public visitReturn(inst: Inst.Return): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitBreak(inst: Inst.Break): Maybe<IFindResult> {
+  public visitBreak(inst: Inst.Break): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitSwitch(inst: Inst.Switch): Maybe<IFindResult> {
+  public visitSwitch(inst: Inst.Switch): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitFor(inst: Inst.For): Maybe<IFindResult> {
+  public visitFor(inst: Inst.For): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitOn(inst: Inst.On): Maybe<IFindResult> {
+  public visitOn(inst: Inst.On): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitToggle(inst: Inst.Toggle): Maybe<IFindResult> {
+  public visitToggle(inst: Inst.Toggle): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitWait(inst: Inst.Wait): Maybe<IFindResult> {
+  public visitWait(inst: Inst.Wait): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitLog(inst: Inst.Log): Maybe<IFindResult> {
+  public visitLog(inst: Inst.Log): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitCopy(inst: Inst.Copy): Maybe<IFindResult> {
+  public visitCopy(inst: Inst.Copy): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitRename(inst: Inst.Rename): Maybe<IFindResult> {
+  public visitRename(inst: Inst.Rename): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitDelete(inst: Inst.Delete): Maybe<IFindResult> {
+  public visitDelete(inst: Inst.Delete): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitRun(inst: Inst.Run): Maybe<IFindResult> {
+  public visitRun(inst: Inst.Run): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitRunPath(inst: Inst.RunPath): Maybe<IFindResult> {
+  public visitRunPath(inst: Inst.RunPath): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitRunPathOnce(inst: Inst.RunPathOnce): Maybe<IFindResult> {
+  public visitRunPathOnce(inst: Inst.RunPathOnce): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitCompile(inst: Inst.Compile): Maybe<IFindResult> {
+  public visitCompile(inst: Inst.Compile): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitList(inst: Inst.List): Maybe<IFindResult> {
+  public visitList(inst: Inst.List): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitEmpty(inst: Inst.Empty): Maybe<IFindResult> {
+  public visitEmpty(inst: Inst.Empty): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitPrint(inst: Inst.Print): Maybe<IFindResult> {
+  public visitPrint(inst: Inst.Print): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  visitExprInvalid(expr: Expr.Invalid): Maybe<IFindResult> {
+  public visitExprInvalid(expr: Expr.Invalid): Maybe<IFindResult> {
     return this.findNode(expr);
   }
-  visitBinary(expr: Expr.Binary): Maybe<IFindResult> {
+  public visitBinary(expr: Expr.Binary): Maybe<IFindResult> {
     return this.findNode(expr);
   }
-  visitUnary(expr: Expr.Unary): Maybe<IFindResult> {
+  public visitUnary(expr: Expr.Unary): Maybe<IFindResult> {
     return this.findNode(expr);
   }
-  visitFactor(expr: Expr.Factor): Maybe<IFindResult> {
+  public visitFactor(expr: Expr.Factor): Maybe<IFindResult> {
     return this.findNode(expr);
   }
-  visitSuffix(expr: Expr.Suffix): Maybe<IFindResult> {
+  public visitSuffix(expr: Expr.Suffix): Maybe<IFindResult> {
     return this.findNode(expr);
   }
-  visitSuffixTerm(expr: SuffixTerm.SuffixTerm): Maybe<IFindResult> {
-    return this.findNode(expr);
+  public visitSuffixTrailer(suffixTerm: SuffixTerm.SuffixTrailer): Maybe<IFindResult> {
+    throw this.findNode(suffixTerm);
   }
-  visitCall(expr: SuffixTerm.Call): Maybe<IFindResult> {
-    return this.findNode(expr);
+  public visitSuffixTerm(suffixTerm: SuffixTerm.SuffixTerm): Maybe<IFindResult> {
+    return this.findNode(suffixTerm);
   }
-  visitArrayIndex(expr: SuffixTerm.ArrayIndex): Maybe<IFindResult> {
-    return this.findNode(expr);
+  public visitCall(suffixTerm: SuffixTerm.Call): Maybe<IFindResult> {
+    return this.findNode(suffixTerm);
   }
-  visitArrayBracket(expr: SuffixTerm.ArrayBracket): Maybe<IFindResult> {
-    return this.findNode(expr);
+  public visitArrayIndex(suffixTerm: SuffixTerm.ArrayIndex): Maybe<IFindResult> {
+    return this.findNode(suffixTerm);
   }
-  visitDelegate(expr: SuffixTerm.Delegate): Maybe<IFindResult> {
-    return this.findNode(expr);
+  public visitArrayBracket(suffixTerm: SuffixTerm.ArrayBracket): Maybe<IFindResult> {
+    return this.findNode(suffixTerm);
   }
-  visitLiteral(expr: SuffixTerm.Literal): Maybe<IFindResult> {
-    return this.findNode(expr);
+  public visitDelegate(suffixTerm: SuffixTerm.Delegate): Maybe<IFindResult> {
+    return this.findNode(suffixTerm);
   }
-  visitIdentifier(expr: SuffixTerm.Identifier): Maybe<IFindResult> {
-    return this.findNode(expr);
+  public visitLiteral(suffixTerm: SuffixTerm.Literal): Maybe<IFindResult> {
+    return this.findNode(suffixTerm);
   }
-  visitGrouping(expr: SuffixTerm.Grouping): Maybe<IFindResult> {
-    return this.findNode(expr);
+  public visitIdentifier(suffixTerm: SuffixTerm.Identifier): Maybe<IFindResult> {
+    return this.findNode(suffixTerm);
   }
-  visitAnonymousFunction(expr: Expr.AnonymousFunction): Maybe<IFindResult> {
+  public visitGrouping(suffixTerm: SuffixTerm.Grouping): Maybe<IFindResult> {
+    return this.findNode(suffixTerm);
+  }
+  public visitAnonymousFunction(expr: Expr.AnonymousFunction): Maybe<IFindResult> {
     return this.findNode(expr);
   }
 }

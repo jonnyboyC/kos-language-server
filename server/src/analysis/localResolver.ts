@@ -1,10 +1,12 @@
-import { IExprVisitor, IExpr, ISuffixTerm } from '../parser/types';
+import { IExprVisitor, IExpr, ISuffixTerm, ISuffixTermVisitor } from '../parser/types';
 import * as Expr from '../parser/expr';
 import * as SuffixTerm from '../parser/suffixTerm';
 import { ILocalResult } from './types';
 import { empty } from '../utilities/typeGuards';
 
-export class LocalResolver implements IExprVisitor<ILocalResult[]> {
+export class LocalResolver implements
+  IExprVisitor<ILocalResult[]>,
+  ISuffixTermVisitor<ILocalResult[]> {
   public resolveExpr(expr: IExpr): ILocalResult[] {
     return expr.accept(this);
   }
@@ -31,36 +33,41 @@ export class LocalResolver implements IExprVisitor<ILocalResult[]> {
       return atom;
     }
 
-    if (expr.trailer.tag === 'expr') {
-      return atom.concat(this.resolveExpr(expr.trailer));
-    }
     return atom.concat(this.resolveSuffixTerm(expr.trailer));
   }
   public visitAnonymousFunction(_: Expr.AnonymousFunction): ILocalResult[] {
     return [];
   }
-  public visitSuffixTerm(expr: SuffixTerm.SuffixTerm): ILocalResult[] {
-    const atom = this.resolveSuffixTerm(expr.atom);
-    if (expr.trailers.length === 0) {
+  public visitSuffixTrailer(suffixTerm: SuffixTerm.SuffixTrailer): ILocalResult[] {
+    const atom = this.resolveSuffixTerm(suffixTerm.suffixTerm);
+    if (empty(suffixTerm.trailer)) {
       return atom;
     }
 
-    return atom.concat(expr.trailers.reduce(
+    return atom.concat(this.resolveSuffixTerm(suffixTerm.trailer));
+  }
+  public visitSuffixTerm(suffixTerm: SuffixTerm.SuffixTerm): ILocalResult[] {
+    const atom = this.resolveSuffixTerm(suffixTerm.atom);
+    if (suffixTerm.trailers.length === 0) {
+      return atom;
+    }
+
+    return atom.concat(suffixTerm.trailers.reduce(
       (acc, curr) => acc.concat(this.resolveSuffixTerm(curr)),
       [] as ILocalResult[]));
   }
-  public visitCall(expr: SuffixTerm.Call): ILocalResult[] {
-    if (expr.args.length === 0) return [];
+  public visitCall(suffixTerm: SuffixTerm.Call): ILocalResult[] {
+    if (suffixTerm.args.length === 0) return [];
 
-    return expr.args.reduce(
+    return suffixTerm.args.reduce(
       (acc, curr) => acc.concat(this.resolveExpr(curr)),
       [] as ILocalResult[]);
   }
   public visitArrayIndex(_: SuffixTerm.ArrayIndex): ILocalResult[] {
     return [];
   }
-  public visitArrayBracket(expr: SuffixTerm.ArrayBracket): ILocalResult[] {
-    return this.resolveExpr(expr.index);
+  public visitArrayBracket(suffixTerm: SuffixTerm.ArrayBracket): ILocalResult[] {
+    return this.resolveExpr(suffixTerm.index);
   }
   public visitDelegate(_: SuffixTerm.Delegate): ILocalResult[] {
     return [];
@@ -68,10 +75,10 @@ export class LocalResolver implements IExprVisitor<ILocalResult[]> {
   public visitLiteral(_: SuffixTerm.Literal): ILocalResult[] {
     return [];
   }
-  public visitIdentifier(expr: SuffixTerm.Identifier): ILocalResult[] {
-    return expr.isTrailer ? [] : [{ expr, token: expr.token }];
+  public visitIdentifier(suffixTerm: SuffixTerm.Identifier): ILocalResult[] {
+    return suffixTerm.isTrailer ? [] : [{ expr: suffixTerm, token: suffixTerm.token }];
   }
-  public visitGrouping(expr: SuffixTerm.Grouping): ILocalResult[] {
-    return this.resolveExpr(expr.expr);
+  public visitGrouping(suffixTerm: SuffixTerm.Grouping): ILocalResult[] {
+    return this.resolveExpr(suffixTerm.expr);
   }
 }

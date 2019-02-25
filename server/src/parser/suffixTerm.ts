@@ -13,6 +13,7 @@ import {
 } from './grammarNodes';
 import { expr } from './expr';
 import { NodeBase } from './base';
+import { empty } from '../utilities/typeGuards';
 
 export abstract class SuffixTermBase extends NodeBase implements ISuffixTerm {
   get tag(): 'suffixTerm' {
@@ -24,6 +25,75 @@ export abstract class SuffixTermBase extends NodeBase implements ISuffixTerm {
     visitor: ISuffixTermParamVisitor<TP, TR>,
     param: TP): TR;
 }
+
+export class SuffixTrailer extends SuffixTermBase {
+  public static grammar: GrammarNode[];
+
+  constructor(
+    public readonly suffixTerm: SuffixTerm,
+    public colon?: IToken,
+    public trailer?: SuffixTrailer | ISuffixTerm) {
+    super();
+  }
+
+  public get start(): Position {
+    return this.suffixTerm.start;
+  }
+
+  public get end(): Position {
+    return empty(this.trailer)
+      ? this.suffixTerm.end
+      : this.trailer.end;
+  }
+
+  public get ranges(): Range[] {
+    if (!empty(this.colon) && !empty(this.trailer)) {
+      return [this.suffixTerm, this.colon, this.trailer];
+    }
+
+    return [this.suffixTerm];
+  }
+
+  public endsInCall(): boolean {
+    // if no trailer check suffix term
+    if (empty(this.trailer)) {
+      const suffixTermTrailers = this.suffixTerm.trailers;
+
+      // check for suffix term trailers
+      if (suffixTermTrailers.length > 0) {
+        const lastTrailer = suffixTermTrailers[suffixTermTrailers.length - 1];
+        if (lastTrailer instanceof Call) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    // check nested trailers
+    if (this.trailer instanceof SuffixTrailer) {
+      return this.trailer.endsInCall();
+    }
+
+    return false;
+  }
+
+  public toString(): string {
+    if (!empty(this.colon) && !empty(this.trailer)) {
+      return `${this.suffixTerm.toString()}${this.colon.lexeme}${this.trailer.toString()}`;
+    }
+
+    return this.suffixTerm.toString();
+  }
+  public acceptParam<TP, TR>(visitor: ISuffixTermParamVisitor<TP, TR>, param: TP): TR {
+    return visitor.visitSuffixTrailer(this, param);
+  }
+  public accept<T>(visitor: ISuffixTermVisitor<T>): T {
+    return visitor.visitSuffixTrailer(this);
+  }
+  public static classAccept<T>(visitor: ISuffixTermClassVisitor<T>): T {
+    return visitor.visitSuffixTrailer(this);
+  }}
 
 export class SuffixTerm extends SuffixTermBase {
   public static grammar: GrammarNode[];

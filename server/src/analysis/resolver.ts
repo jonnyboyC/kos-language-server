@@ -502,9 +502,21 @@ export class Resolver implements
       return atom;
     }
 
-    if (expr.trailer.tag === 'expr') {
-      return atom.concat(this.resolveExpr(expr.trailer));
+    return atom.concat(this.resolveSuffixTerm(expr.trailer));
+  }
+
+  /* --------------------------------------------
+
+  Suffix Terms
+
+  ----------------------------------------------*/
+
+  public visitSuffixTrailer(expr: SuffixTerm.SuffixTrailer): IResolverError[] {
+    const atom = this.resolveSuffixTerm(expr.suffixTerm);
+    if (empty(expr.trailer)) {
+      return atom;
     }
+
     return atom.concat(this.resolveSuffixTerm(expr.trailer));
   }
 

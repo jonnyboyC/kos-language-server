@@ -629,14 +629,14 @@ export class TypeChecker implements
     const exponentResult = this.checkExpr(expr.exponent);
     const errors = suffixResult.errors.concat(exponentResult.errors);
 
-    if (coerce(suffixResult.type, scalarType)) {
+    if (!coerce(suffixResult.type, scalarType)) {
       errors.push(new KsTypeError(
         expr.suffix, 'Can only use scalars as base of power' +
         'This may not able to be coerced into scalar type',
         []));
     }
 
-    if (coerce(exponentResult.type, scalarType)) {
+    if (!coerce(exponentResult.type, scalarType)) {
       errors.push(new KsTypeError(
         expr.exponent, 'Can only use scalars as exponent of power' +
         'This may not able to be coerced into scalar type',
@@ -681,24 +681,15 @@ export class TypeChecker implements
       return this.resultReduce(type, errors);
     }
 
-    if (trailer.tag === 'expr') {
-      const trailerResult = this.resolveSuffix(trailer, type);
+    const trailerResult = this.checkSuffixTerm(trailer, type);
+    if (trailerResult.type.tag === 'type') {
       return this.resultReduce(trailerResult.type, errors, trailerResult.errors);
     }
 
-    if (trailer.tag === 'suffixTerm') {
-      const trailerResult = this.checkSuffixTerm(trailer, type);
-      if (trailerResult.type.tag === 'type') {
-        return this.resultReduce(trailerResult.type, errors, trailerResult.errors);
-      }
-
-      return this.errorsReduce(
-        errors,
-        trailerResult.errors,
-        new KsTypeError(trailer, 'TODO', []));
-    }
-
-    throw new Error('TODO');
+    return this.errorsReduce(
+      errors,
+      trailerResult.errors,
+      new KsTypeError(trailer, 'TODO', []));
   }
 
   public visitAnonymousFunction(expr: Expr.AnonymousFunction): ITypeResult<IArgumentType> {
@@ -707,35 +698,6 @@ export class TypeChecker implements
   }
 
   // ----------------------------- Suffix -----------------------------------------
-
-  private resolveSuffix(suffix: Expr.Suffix, temp: IArgumentType): ITypeResult<IArgumentType> {
-    const suffixTermResult = this.checkSuffixTerm(suffix.suffixTerm, temp);
-
-    const { type, errors } = suffixTermResult;
-    if (type.tag === 'suffix') {
-      return this.errorsReduce(
-        errors,
-        new KsTypeError(suffix.suffixTerm, 'TODO', []),
-      );
-    }
-
-    if (empty(suffix.trailer)) {
-      return this.resultReduce(type, errors);
-    }
-
-    let current = suffixTermResult;
-    for (const trailer of suffix.suffixTerm.trailers) {
-      const trailerResult = this.checkSuffixTerm(trailer, current.type);
-      current = this.resultReduce(trailerResult.type, trailerResult.errors, current.errors);
-    }
-
-    const finalType = current.type;
-    if (finalType.tag === 'type') {
-      return this.resultReduce(finalType, current.errors);
-    }
-
-    return this.errorsReduce(current.errors, new KsTypeError(suffix, 'TODO', []));
-  }
 
   private resolveAtom(atom: Atom): ITypeResult<IArgumentType | IFunctionType> {
     if (atom instanceof SuffixTerm.Literal) {
@@ -795,6 +757,36 @@ export class TypeChecker implements
     return this.resolveNormalCall(type.params, type, call);
   }
 
+  visitSuffixTrailer(suffixTerm: SuffixTerm.SuffixTrailer, param: IType)
+    : ITypeResult<SuffixTermType> {
+
+    // check suffix term and trailers
+    let suffixTermResult = this.checkSuffixTerm(suffixTerm.suffixTerm, param);
+    for (const trailer of suffixTerm.suffixTerm.trailers) {
+      const trailerResult = this.checkSuffixTerm(trailer, suffixTermResult.type);
+      suffixTermResult = this.resultReduce(
+        trailerResult.type, trailerResult.errors, suffixTermResult.errors);
+    }
+
+    // if no trailer exist attempt to return
+    if (empty(suffixTerm.trailer)) {
+      if (suffixTermResult.type.tag === 'type') {
+        return this.resultReduce(suffixTermResult.type, suffixTermResult.errors);
+      }
+
+      return this.errorsReduce(
+        suffixTermResult.errors,
+        new KsTypeError(
+          suffixTerm.suffixTerm,
+          `suffix ${suffixTermResult.type.name} of type ${suffixTermResult.type.toTypeString()} ` +
+          'does not have a call signiture',
+          []));
+    }
+
+    const trailerResult = this.checkSuffixTerm(suffixTerm.trailer, suffixTermResult.type);
+    return this.resultReduce(trailerResult.type, suffixTermResult.errors, trailerResult.errors);
+  }
+
   visitSuffixTerm(suffixTerm: SuffixTerm.SuffixTerm, type: IType): ITypeResult<IArgumentType> {
     const atom = this.checkSuffixTerm(suffixTerm.atom, type);
     let result = atom;
@@ -815,7 +807,14 @@ export class TypeChecker implements
   }
   visitCall(call: SuffixTerm.Call, type: IType): ITypeResult<IArgumentType> {
     if (type.tag !== 'suffix') {
-      return this.errors(new KsTypeError(call, 'TODO', []));
+      // TEST we can apparently call a suffix with no argument fine.
+      if (type.tag === 'type' && call.args.length === 0) {
+        return this.result(type);
+      }
+
+      return this.errors(new KsTypeError(
+        call,
+        `type ${type.name} ${type.toTypeString()} does not have call signiture`, []));
     }
 
     if (!Array.isArray(type.params)) {

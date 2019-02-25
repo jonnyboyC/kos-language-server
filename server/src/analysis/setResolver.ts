@@ -37,12 +37,18 @@ export class SetResolver implements
       return setResult(result.set, result.used);
     }
 
-    if (expr.trailer.tag === 'expr') {
-      return setResult(result.set, result.used, this.localResolver.resolveExpr(expr.trailer));
+    return setResult(result.set, result.used, this.localResolver.resolveSuffixTerm(expr.trailer));
+  }
+
+  public visitSuffixTrailer(expr: SuffixTerm.SuffixTrailer): ISetResolverResult {
+    const result = this.resolveSuffixTerm(expr.suffixTerm);
+    if (empty(expr.trailer)) {
+      return setResult(result.set, result.used);
     }
 
     return setResult(result.set, result.used, this.localResolver.resolveSuffixTerm(expr.trailer));
   }
+
   public visitSuffixTerm(expr: SuffixTerm.SuffixTerm): ISetResolverResult {
     const result = this.resolveSuffixTerm(expr.atom);
     if (expr.trailers.length === 0) {

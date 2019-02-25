@@ -10,7 +10,7 @@ import { listType } from '../typeChecker/types/collections/list';
 import { stackType } from '../typeChecker/types/collections/stack';
 import { uniqueSetType } from '../typeChecker/types/collections/uniqueset';
 import { nodeType } from '../typeChecker/types/node';
-import { partType } from '../typeChecker/types/part';
+import { partType } from '../typeChecker/types/parts/part';
 import { constantType } from '../typeChecker/types/constant';
 import { pathType } from '../typeChecker/types/io/path';
 import { volumeType } from '../typeChecker/types/io/volume';
@@ -61,6 +61,9 @@ import { booleanType } from '../typeChecker/types/primitives/boolean';
 import { coreType } from '../typeChecker/types/core';
 import { versionInfoType } from '../typeChecker/types/versionInfo';
 import { configType } from '../typeChecker/types/config';
+import { builtInDelegateType } from '../typeChecker/types/builtInDelegate';
+import { addonListType } from '../typeChecker/types/addonList';
+import { vesselSensorsType } from '../typeChecker/types/vessel/vesselSensors';
 
 const libraryBuilder = new ScopeBuilder(builtIn);
 const functionTypes = [
@@ -76,7 +79,7 @@ const functionTypes = [
   createFunctionType('arctan2', scalarType),
   createFunctionType('body', bodyTargetType, stringType),
   createFunctionType('bodyatmosphere', bodyAtmosphereType, stringType),
-  createFunctionType('buildlist', /* TODO */ scalarType),
+  createFunctionType('buildlist', /* TODO Union */ scalarType, stringType),
   createFunctionType('career', careerType),
   createFunctionType('cd', voidType, stringType),
   createFunctionType('ceiling', scalarType, scalarType),
@@ -105,7 +108,7 @@ const functionTypes = [
   createFunctionType('hsva', hsvaType, doubleType, doubleType, doubleType, doubleType),
   createFunctionType(
     'hudtext', voidType, stringType, integarType,
-    integarType, /* TODO */scalarType, booleanType),
+    integarType, rgbaType, booleanType),
   createFunctionType('latlng', geoCoordinatesType, doubleType, doubleType),
   createVarFunctionType('lex', lexiconType, createVarType(structureType)),
   createVarFunctionType('lexicon', lexiconType, createVarType(structureType)),
@@ -115,7 +118,7 @@ const functionTypes = [
   createFunctionType('log10', scalarType, scalarType),
   createFunctionType('logfile', voidType, stringType, stringType),
   createFunctionType('lookdirup', directionType, vectorType, vectorType),
-  createFunctionType('makebuiltindelegate', /* TODO */ scalarType, stringType),
+  createFunctionType('makebuiltindelegate', builtInDelegateType, stringType),
   createFunctionType('max', scalarType, scalarType, scalarType),
   createFunctionType('min', scalarType, scalarType, scalarType),
   createFunctionType('mod', scalarType, scalarType),
@@ -211,9 +214,9 @@ const locks: [string, IArgumentType][] = [
 ];
 
 const variables: [string, IArgumentType][] = [
-  ['abort', structureType], // TODO
+  ['abort', booleanType], // TODO
   ['activeship', vesselTargetType],
-  ['addons', structureType], // TODO
+  ['addons', addonListType],
   ['ag1', booleanType], // TODO
   ['ag10', booleanType], // TODO
   ['ag2', booleanType], // TODO
@@ -233,12 +236,12 @@ const variables: [string, IArgumentType][] = [
   ['angularvelocity', vectorType],
   ['apoapsis', scalarType],
   ['archive', volumeType],
-  ['availablethrust', structureType], // TODO
+  ['availablethrust', scalarType],
   ['bays', booleanType], // TODO
   ['black', rgbaType],
   ['blue', rgbaType],
   ['body', bodyTargetType],
-  ['brakes', structureType], // TODO
+  ['brakes', booleanType], // TODO
   ['chutes', booleanType],
   ['chutessafe', booleanType],
   ['config', configType], // TODO
@@ -288,7 +291,7 @@ const variables: [string, IArgumentType][] = [
   ['red', rgbaType],
   ['retrograde', directionType],
   ['sas', booleanType], // TODO
-  ['sensor', vesselTargetType], // TODO
+  ['sensor', vesselSensorsType],
   ['sessiontime', doubleType],
   ['ship', vesselTargetType],
   ['shipname', stringType],

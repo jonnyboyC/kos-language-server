@@ -198,7 +198,7 @@ export class Suffix extends Expr {
   constructor(
     public readonly suffixTerm: SuffixTerm.SuffixTerm,
     public colon?: IToken,
-    public trailer?: Suffix | ISuffixTerm) {
+    public trailer?: ISuffixTerm) {
     super();
   }
 

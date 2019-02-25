@@ -9,6 +9,7 @@ import { uniqueSetType } from './collections/uniqueset';
 import { terminalInputType } from './terminalInput';
 import { scalarType } from './primitives/scalar';
 import { booleanType } from './primitives/boolean';
+import { userDelegateType } from './userDelegate';
 
 export const terminalStructType: IArgumentType = createStructureType('terminalStruct');
 addPrototype(terminalStructType, structureType);
@@ -22,6 +23,6 @@ addSuffixes(
   createSetSuffixType('brightness', scalarType),
   createSetSuffixType('charWidth', scalarType),
   createSetSuffixType('charHeight', scalarType),
-  createArgSuffixType('resizeWatchers', uniqueSetType.toConcreteType(scalarType)), /* TODO */
+  createArgSuffixType('resizeWatchers', uniqueSetType.toConcreteType(userDelegateType)),
   createSuffixType('input', terminalInputType),
 );

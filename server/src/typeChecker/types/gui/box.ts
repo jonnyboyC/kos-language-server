@@ -16,30 +16,32 @@ import { sliderType } from './elements/slider';
 import { voidType } from '../primitives/void';
 import { userListType } from '../collections/userList';
 import { stringType } from '../primitives/string';
+import { booleanType } from '../primitives/boolean';
+import { doubleType, integarType } from '../primitives/scalar';
 
 export const boxType: IArgumentType = createStructureType('box');
 addPrototype(boxType, widgetType);
 
 addSuffixes(
   boxType,
-  createArgSuffixType('addLabel', voidType, labelType),
-  createArgSuffixType('addTextField', voidType, textFieldType),
-  createArgSuffixType('addButton', voidType, buttonType),
-  createArgSuffixType('addRadioButton', voidType, buttonType),
-  createArgSuffixType('addCheckBox', voidType, buttonType),
-  createArgSuffixType('addPopUpMenu', voidType, popupMenuType),
-  createArgSuffixType('addHSlider', voidType, sliderType),
-  createArgSuffixType('addVSlider', voidType, sliderType),
+  createArgSuffixType('addLabel', labelType, stringType),
+  createArgSuffixType('addTextField', textFieldType, stringType),
+  createArgSuffixType('addButton', buttonType, stringType),
+  createArgSuffixType('addRadioButton', buttonType, stringType, booleanType),
+  createArgSuffixType('addCheckBox', buttonType, stringType, booleanType),
+  createArgSuffixType('addPopUpMenu', popupMenuType, stringType),
+  createArgSuffixType('addHSlider', sliderType, stringType, doubleType, doubleType, doubleType),
+  createArgSuffixType('addVSlider', sliderType, stringType, doubleType, doubleType, doubleType),
   createSuffixType('addHBox', boxType),
   createSuffixType('addVBox', boxType),
   createSuffixType('addHLayout', boxType),
   createSuffixType('addVLayout', boxType),
   createSuffixType('addScrollBox', scrollBoxType),
   createSuffixType('addStack', scrollBoxType),
-  createArgSuffixType('addSpacing', voidType, spacingType),
+  createArgSuffixType('addSpacing', spacingType, integarType),
   createSuffixType('widgets', userListType),
   createSuffixType('radioValue', stringType),
   createSetSuffixType('onRadioChange', userDelegateType),
-  createArgSuffixType('showOnly', widgetType),
+  createArgSuffixType('showOnly', voidType, widgetType),
   createArgSuffixType('clear', voidType),
 );
