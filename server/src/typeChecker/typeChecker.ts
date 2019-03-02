@@ -6,7 +6,10 @@ import * as SuffixTerm from '../parser/suffixTerm';
 import * as Expr from '../parser/expr';
 import * as Inst from '../parser/inst';
 import * as Decl from '../parser/declare';
-import { ITypeError, ITypeResult } from './types';
+import {
+  ITypeError, ITypeResult, ITypeResolved,
+  ITypeSuffixResult, ITypeSuffixResolved,
+} from './types';
 import { mockLogger, mockTracer } from '../utilities/logger';
 import { Script } from '../entities/script';
 import { ScopeManager } from '../analysis/scopeManager';
@@ -37,21 +40,21 @@ type TypeErrors = ITypeError[];
 type SuffixTermType = ISuffixType | IArgumentType;
 
 export class TypeChecker implements
-  IExprVisitor<ITypeResult<IArgumentType>>,
   IInstVisitor<TypeErrors>,
-  ISuffixTermParamVisitor<IType, ITypeResult<SuffixTermType>> {
+  IExprVisitor<ITypeResult<IArgumentType>>,
+  ISuffixTermParamVisitor<ITypeSuffixResult<IType>, ITypeSuffixResult<SuffixTermType>> {
 
   private readonly logger: ILogger;
   private readonly tracer: ITracer;
-  private readonly syntaxTree: Script;
+  private readonly script: Script;
   private readonly scopeManager: ScopeManager;
 
   constructor(
-    syntaxTree: Script,
+    script: Script,
     scopeManager: ScopeManager,
     logger: ILogger = mockLogger,
     tracer: ITracer = mockTracer) {
-    this.syntaxTree = syntaxTree;
+    this.script = script;
     this.scopeManager = scopeManager;
     this.logger = logger;
     this.tracer = tracer;
@@ -60,11 +63,10 @@ export class TypeChecker implements
   public check() {
     // resolve the sequence of instructions
     try {
-      return this.checkInsts(this.syntaxTree.insts);
+      return this.checkInsts(this.script.insts);
     } catch (err) {
       this.logger.error(`Error occured in resolver ${err}`);
       this.tracer.log(err);
-
       return [];
     }
   }
@@ -84,8 +86,11 @@ export class TypeChecker implements
     return expr.accept(this);
   }
 
-  private checkSuffixTerm(suffixTerm: ISuffixTerm, param: IType): ITypeResult<SuffixTermType> {
-    return suffixTerm.acceptParam(this, param);
+  // check suffix terms
+  private checkSuffixTerm(
+    suffixTerm: ISuffixTerm,
+    current: ITypeSuffixResult<IType>): ITypeSuffixResult<SuffixTermType> {
+    return suffixTerm.acceptParam(this, current);
   }
 
   // ----------------------------- Declaration -----------------------------------------
@@ -375,7 +380,7 @@ export class TypeChecker implements
     const result = this.checkExpr(inst.suffix);
     let errors: TypeErrors = [];
 
-    const { type } = result;
+    const { type: type } = result;
     if (type.tag !== 'type' || !hasSuffix(type, iterator)) {
       errors = errors.concat(new KsTypeError(
         inst.suffix, 'May not be a valid enumerable type', []));
@@ -573,7 +578,8 @@ export class TypeChecker implements
       case TokenType.and:
       case TokenType.or:
         const errors = leftResult.errors.concat(rightResult.errors);
-        if (!isSubType(leftResult.type, booleanType) || !isSubType(leftResult.type, booleanType)) {
+        if (!isSubType(leftResult.type, booleanType)
+        || !isSubType(leftResult.type, booleanType)) {
           errors.push(new KsTypeError(
             expr,
             '"and" and "or" require boolean types. May not be able to coerce one or other', []));
@@ -649,57 +655,54 @@ export class TypeChecker implements
   public visitSuffix(expr: Expr.Suffix): ITypeResult<IArgumentType> {
     const { suffixTerm, trailer } = expr;
     const atom = this.resolveAtom(suffixTerm.atom);
-    let current: ITypeResult<IType> = atom;
+    let current: ITypeSuffixResult<IType> = atom;
 
     if (suffixTerm.trailers.length >= 1) {
       const [firstTrailer, ...remainingTrailers] = suffixTerm.trailers;
 
-      // handle case were suffix is actually a function cal
+      // handle case were suffix is actually a function call
       if (firstTrailer instanceof SuffixTerm.Call) {
-        const result = this.resolveFunctionCall(firstTrailer, current.type);
-        current = this.resultReduce(result.type, current.errors, result.errors);
+        current = this.resolveFunctionCall(firstTrailer, current);
       } else {
-        const result = this.checkSuffixTerm(firstTrailer, current.type);
-        current = this.resultReduce(result.type, current.errors, result.errors);
+        current = this.checkSuffixTerm(firstTrailer, current);
       }
 
       for (const trailer of remainingTrailers) {
-        const result = this.checkSuffixTerm(trailer, current.type);
-        current = this.resultReduce(result.type, current.errors, result.errors);
+        current = this.checkSuffixTerm(trailer, current);
       }
     }
 
     const { type, errors } = current;
     if (type.tag === 'suffix' || type.tag === 'function') {
-      return this.errorsReduce(
+      return this.errorsExpr(
         errors,
         new KsTypeError(suffixTerm.atom, 'TODO', []),
       );
     }
 
     if (empty(trailer)) {
-      return this.resultReduce(type, errors);
+      return this.resultExpr(type, errors);
     }
 
-    const trailerResult = this.checkSuffixTerm(trailer, type);
-    if (trailerResult.type.tag === 'type') {
-      return this.resultReduce(trailerResult.type, errors, trailerResult.errors);
+    current = this.checkSuffixTerm(trailer, current);
+
+    if (current.type.tag === 'type') {
+      return this.resultExpr(current.type, current.errors);
     }
 
-    return this.errorsReduce(
+    return this.errorsExpr(
       errors,
-      trailerResult.errors,
+      current.errors,
       new KsTypeError(trailer, 'TODO', []));
   }
 
-  public visitAnonymousFunction(expr: Expr.AnonymousFunction): ITypeResult<IArgumentType> {
-    if (expr) { }
-    return this.result(delegateType);
+  public visitAnonymousFunction(_: Expr.AnonymousFunction): ITypeResult<IArgumentType> {
+    return this.resultExpr(delegateType);
   }
 
   // ----------------------------- Suffix -----------------------------------------
 
-  private resolveAtom(atom: Atom): ITypeResult<IArgumentType | IFunctionType> {
+  private resolveAtom(atom: Atom): ITypeSuffixResult<IArgumentType | IFunctionType> {
     if (atom instanceof SuffixTerm.Literal) {
       return this.resolveLiteral(atom);
     }
@@ -715,122 +718,136 @@ export class TypeChecker implements
     throw new Error('Unknown atom type');
   }
 
-  private resolveLiteral(literal: SuffixTerm.Literal): ITypeResult<IArgumentType> {
+  private resolveLiteral(literal: SuffixTerm.Literal): ITypeSuffixResult<IArgumentType> {
     switch (literal.token.type) {
       case TokenType.true:
       case TokenType.false:
-        return this.result(booleanType);
+        return this.resultAtom(booleanType, 'variable');
       case TokenType.integer:
-        return this.result(integarType);
+        return this.resultAtom(integarType, 'variable');
       case TokenType.double:
-        return this.result(doubleType);
+        return this.resultAtom(doubleType, 'variable');
       case TokenType.string:
       case TokenType.fileIdentifier:
-        return this.result(stringType);
+        return this.resultAtom(stringType, 'variable');
       default:
         throw new Error('Unknown literal type');
     }
   }
 
   private resolveIdentifier(identifer: SuffixTerm.Identifier)
-    : ITypeResult<IArgumentType | IFunctionType> {
+    : ITypeSuffixResult<IArgumentType | IFunctionType> {
     const type = this.scopeManager.getType(identifer, identifer.token.lexeme);
-    return empty(type)
-      ? this.errors(new KsTypeError(identifer, 'TODO', []))
-      : this.result(type);
+    const entity = this.scopeManager.scopedEntity(identifer.start, identifer.token.lexeme);
+    return (empty(type) || empty(entity))
+      ? this.errorsAtom(new KsTypeError(identifer, 'Unable to lookup identifier type', []))
+      : this.resultAtom(type, entity.tag);
   }
 
-  private resolveGrouping(grouping: SuffixTerm.Grouping): ITypeResult<IArgumentType> {
-    return this.checkExpr(grouping.expr);
+  private resolveGrouping(grouping: SuffixTerm.Grouping): ITypeSuffixResult<IArgumentType> {
+    const result = this.checkExpr(grouping.expr);
+    return this.resultAtom(result.type, 'variable', ...result.errors);
   }
 
-  private resolveFunctionCall(call: SuffixTerm.Call, type: IType): ITypeResult<IArgumentType> {
+  private resolveFunctionCall(
+    call: SuffixTerm.Call,
+    current: ITypeSuffixResult<IType>): ITypeSuffixResult<IArgumentType> {
+    const { type, resolved, errors } = current;
     if (type.tag !== 'function') {
-      return this.errors(new KsTypeError(call, 'TODO', []));
+      return this.errorsAtom(
+        new KsTypeError(call, `Type ${type.name} does not have a call signiture`, []));
     }
 
     if (!Array.isArray(type.params)) {
-      return this.resolveVaradicCall(type.params, type, call);
+      return this.resolveVaradicCall(type.params, { type, resolved, errors }, call);
     }
 
     // handle normal functions
-    return this.resolveNormalCall(type.params, type, call);
+    return this.resolveNormalCall(type.params, { type, resolved, errors }, call);
   }
 
-  visitSuffixTrailer(suffixTerm: SuffixTerm.SuffixTrailer, param: IType)
-    : ITypeResult<SuffixTermType> {
+  public visitSuffixTrailer(
+    suffixTerm: SuffixTerm.SuffixTrailer,
+    current: ITypeSuffixResult<IType>): ITypeSuffixResult<SuffixTermType> {
 
     // check suffix term and trailers
-    let suffixTermResult = this.checkSuffixTerm(suffixTerm.suffixTerm, param);
+    let suffixTermResult = this.checkSuffixTerm(suffixTerm.suffixTerm, current);
     for (const trailer of suffixTerm.suffixTerm.trailers) {
-      const trailerResult = this.checkSuffixTerm(trailer, suffixTermResult.type);
-      suffixTermResult = this.resultReduce(
-        trailerResult.type, trailerResult.errors, suffixTermResult.errors);
+      suffixTermResult = this.checkSuffixTerm(trailer, suffixTermResult);
     }
+
+    const { type, resolved, errors } = suffixTermResult;
 
     // if no trailer exist attempt to return
     if (empty(suffixTerm.trailer)) {
-      if (suffixTermResult.type.tag === 'type') {
-        return this.resultReduce(suffixTermResult.type, suffixTermResult.errors);
+      if (type.tag === 'type') {
+        return { type, resolved, errors };
       }
 
-      return this.errorsReduce(
-        suffixTermResult.errors,
+      return this.errorsSuffixTermTrailer(
+        resolved,
+        errors,
         new KsTypeError(
           suffixTerm.suffixTerm,
-          `suffix ${suffixTermResult.type.name} of type ${suffixTermResult.type.toTypeString()} ` +
+          `suffix ${suffixTermResult.type.name} ` +
+          `of type ${suffixTermResult.type.toTypeString()} ` +
           'does not have a call signiture',
           []));
     }
 
-    const trailerResult = this.checkSuffixTerm(suffixTerm.trailer, suffixTermResult.type);
-    return this.resultReduce(trailerResult.type, suffixTermResult.errors, trailerResult.errors);
+    return this.checkSuffixTerm(suffixTerm.trailer, suffixTermResult);
   }
 
-  visitSuffixTerm(suffixTerm: SuffixTerm.SuffixTerm, type: IType): ITypeResult<IArgumentType> {
-    const atom = this.checkSuffixTerm(suffixTerm.atom, type);
+  public visitSuffixTerm(
+    suffixTerm: SuffixTerm.SuffixTerm,
+    current: ITypeSuffixResult<IType>): ITypeSuffixResult<IArgumentType> {
+    const atom = this.checkSuffixTerm(suffixTerm.atom, current);
     let result = atom;
 
     for (const trailer of suffixTerm.trailers) {
-      const trailerResult = this.checkSuffixTerm(trailer, result.type);
-      result = this.resultReduce(
-        trailerResult.type,
-        trailerResult.errors,
-        result.errors);
+      result = this.checkSuffixTerm(trailer, result);
     }
 
-    if (result.type.tag === 'suffix') {
-      return this.resultReduce(result.type.returns, result.errors);
+    const { type, resolved, errors } = result;
+
+    if (type.tag === 'suffix') {
+      return { resolved, errors, type: type.returns };
     }
 
-    return this.resultReduce(result.type, result.errors);
+    return { type, resolved, errors };
   }
-  visitCall(call: SuffixTerm.Call, type: IType): ITypeResult<IArgumentType> {
+  public visitCall(
+    call: SuffixTerm.Call,
+    current: ITypeSuffixResult<IType>): ITypeSuffixResult<IArgumentType> {
+    const { type, resolved, errors } = current;
+
     if (type.tag !== 'suffix') {
       // TEST we can apparently call a suffix with no argument fine.
       if (type.tag === 'type' && call.args.length === 0) {
-        return this.result(type);
+        return this.resultSuffixTermTrailer(type, resolved);
       }
 
-      return this.errors(new KsTypeError(
-        call,
-        `type ${type.name} ${type.toTypeString()} does not have call signiture`, []));
+      return this.errorsSuffixTermTrailer(
+        resolved,
+        new KsTypeError(
+          call,
+          `type ${type.name} does not have call signiture`, []));
     }
 
     if (!Array.isArray(type.params)) {
-      return this.resolveVaradicCall(type.params, type, call);
+      return this.resolveVaradicCall(type.params, { type, resolved, errors }, call);
     }
 
     // handle normal functions
-    return this.resolveNormalCall(type.params, type, call);
+    return this.resolveNormalCall(type.params, { type, resolved, errors }, call);
   }
 
   // visit a variadic call trailer
   private resolveVaradicCall(
     params: IVariadicType,
-    type: ISuffixType | IFunctionType,
-    call: SuffixTerm.Call): ITypeResult<IArgumentType> {
-    const errors: ITypeError[] = [];
+    current: ITypeSuffixResult<ISuffixType | IFunctionType>,
+    call: SuffixTerm.Call): ITypeSuffixResult<IArgumentType> {
+    const { type, resolved, errors } = current;
 
     for (const arg of call.args) {
       const result = this.checkExpr(arg);
@@ -840,15 +857,15 @@ export class TypeChecker implements
       }
     }
 
-    return this.result(type.returns, ...errors);
+    return this.resultSuffixTermTrailer(type.returns, resolved, ...errors);
   }
 
   // visit normal call trailer
   private resolveNormalCall(
     params: IType[],
-    type: ISuffixType | IFunctionType,
-    call: SuffixTerm.Call): ITypeResult<IArgumentType> {
-    const errors: ITypeError[] = [];
+    current: ITypeSuffixResult<ISuffixType | IFunctionType>,
+    call: SuffixTerm.Call): ITypeSuffixResult<IArgumentType> {
+    const { type, resolved, errors } = current;
 
     for (const [arg, param] of zip(call.args, params)) {
       const result = this.checkExpr(arg);
@@ -859,111 +876,128 @@ export class TypeChecker implements
     }
 
     // TODO length difference
-    return this.result(type.returns, ...errors);
+    return this.resultSuffixTermTrailer(type.returns, resolved, ...errors);
   }
 
-  visitArrayIndex(expr: SuffixTerm.ArrayIndex, type: IType): ITypeResult<IArgumentType> {
-    if (empty(type)) {
-      return this.errors(new KsTypeError(expr, 'Unable to determine type', []));
-    }
+  public visitArrayIndex(
+    suffixTerm: SuffixTerm.ArrayIndex,
+    current: ITypeSuffixResult<IType>): ITypeSuffixResult<IArgumentType> {
+    const { type, resolved } = current;
 
     // TODO confirm indexable types
     if (!coerce(type, userListType)) {
-      return this.errors(new KsTypeError(expr, 'indexing with # requires a list', []));
+      return this.errorsSuffixTermTrailer(
+        resolved,
+        new KsTypeError(suffixTerm, 'indexing with # requires a list', []));
     }
 
-    switch (expr.indexer.type) {
+    switch (suffixTerm.indexer.type) {
       case TokenType.integer:
-        return this.result(structureType);
+        return this.resultSuffixTermTrailer(structureType, resolved);
       case TokenType.identifier:
-        const type = this.scopeManager.getType(expr.indexer, expr.indexer.lexeme);
+        const type = this.scopeManager.getType(suffixTerm.indexer, suffixTerm.indexer.lexeme);
         if (empty(type) || !coerce(type, integarType)) {
-          return this.errors(new KsTypeError(
-            expr.indexer,
-            `${expr.indexer.lexeme} is not a scalar type. Can only use scalar to index with #`,
-            []));
+          return this.errorsSuffixTermTrailer(
+            resolved,
+            new KsTypeError(
+              suffixTerm.indexer,
+              `${suffixTerm.indexer.lexeme} is not a scalar type. ` +
+              'Can only use scalar to index with #',
+              []));
         }
 
-        return this.result(structureType);
+        return this.resultSuffixTermTrailer(structureType, resolved);
       default:
-        return this.errors(new KsTypeError(
-          expr.indexer, 'Cannot index array with # other than with scalars or variables', []));
+        return this.errorsSuffixTermTrailer(
+          resolved,
+          new KsTypeError(
+            suffixTerm.indexer,
+            'Cannot index array with # other than with scalars or variables', []));
     }
   }
 
-  visitArrayBracket(expr: SuffixTerm.ArrayBracket, type: IType): ITypeResult<IArgumentType> {
-    const indexResult = this.checkExpr(expr.index);
+  public visitArrayBracket(
+    suffixTerm: SuffixTerm.ArrayBracket,
+    current: ITypeSuffixResult<IType>): ITypeSuffixResult<IArgumentType> {
+    const { type, resolved } = current;
+    const indexResult = this.checkExpr(suffixTerm.index);
     const errors = indexResult.errors;
 
-    if (empty(type)) {
-      return this.errorsReduce(
-        errors,
-        new KsTypeError(expr, 'Unable to determine type', []));
-    }
-
     if (coerce(type, userListType) && !coerce(indexResult.type, scalarType)) {
-      return this.errorsReduce(
-        errors,
+      return this.errorsSuffixTermTrailer(
+        resolved,
         new KsTypeError(
-          expr.index, 'Can only use scalars as list index' +
+          suffixTerm.index, 'Can only use scalars as list index' +
           'This may not able to be coerced into scalar type',
-          []));
+          []),
+        ...errors);
     }
 
     if (coerce(type, lexiconType) && !coerce(indexResult.type, stringType)) {
-      return this.errorsReduce(
-        errors,
+      return this.errorsSuffixTermTrailer(
+        resolved,
         new KsTypeError(
-          expr.index, 'Can only use string as lexicon index' +
+          suffixTerm.index, 'Can only use string as lexicon index' +
           'This may not able to be coerced into string type',
-          []));
+          []),
+        ...errors);
     }
 
     if (!coerce(type, stringType) && !coerce(indexResult.type, scalarType)) {
-      return this.errorsReduce(
-        errors,
+      return this.errorsSuffixTermTrailer(
+        resolved,
         new KsTypeError(
-          expr.index, 'Can only use string or scalar as index' +
+          suffixTerm.index, 'Can only use string or scalar as index' +
           'This may not able to be coerced into string or scalar type',
-          []));
+          []),
+        ...errors);
     }
 
-    return this.result(structureType, ...errors);
+    return this.resultSuffixTermTrailer(structureType, resolved, ...errors);
   }
 
-  visitDelegate(suffixTerm: SuffixTerm.Delegate, type: IType): ITypeResult<IArgumentType> {
-    if (empty(type)) {
-      return this.errors(new KsTypeError(
-        suffixTerm, `Unable to find the type for ${suffixTerm.toString()}`, []));
-    }
-
+  public visitDelegate(
+    suffixTerm: SuffixTerm.Delegate,
+    current: ITypeSuffixResult<IType>): ITypeSuffixResult<IArgumentType> {
+    const { type, resolved } = current;
     if (type.tag !== 'function') {
-      return this.errors(new KsTypeError(
-        suffixTerm, 'Can only create delegate of functions', []));
+      return this.errorsSuffixTermTrailer(
+        resolved,
+        new KsTypeError(suffixTerm, 'Can only create delegate of functions', []));
     }
 
-    return this.result(delegateType);
+    resolved.termTrailers.push(delegateType);
+    return this.resultSuffixTermTrailer(delegateType, resolved);
   }
 
-  visitLiteral(_: SuffixTerm.Literal, __: IType): ITypeResult<IArgumentType> {
+  public visitLiteral(
+    _: SuffixTerm.Literal,
+    __: ITypeSuffixResult<IType>): ITypeSuffixResult<IArgumentType> {
     throw new Error('Literal should not appear outside of suffix atom');
   }
 
-  visitIdentifier(expr: SuffixTerm.Identifier, type: IType): ITypeResult<SuffixTermType> {
-    const suffix = getSuffix(type, expr.token.lexeme);
+  public visitIdentifier(
+    suffixTerm: SuffixTerm.Identifier,
+    current: ITypeSuffixResult<IType>): ITypeSuffixResult<SuffixTermType> {
+    const { type, resolved } = current;
+    const suffix = getSuffix(type, suffixTerm.token.lexeme);
 
     // may need to pass sommething in about if we're in get set context
     if (empty(suffix))  {
-      return this.suffixErrors(
+      return this.errorsSuffixTerm(
+        resolved,
         new KsTypeError(
-          expr,
-          `Could not find suffix ${expr.token.lexeme} for type ${type.name}`, []));
+          suffixTerm,
+          `Could not find suffix ${suffixTerm.token.lexeme} for type ${type.name}`, []));
     }
 
-    return this.result(suffix);
+    resolved.type = suffix;
+    return this.resultSuffixTermTrailer(suffix, current.resolved);
   }
 
-  visitGrouping(_: SuffixTerm.Grouping, __: IType): ITypeResult<IArgumentType> {
+  public visitGrouping(
+    _: SuffixTerm.Grouping,
+    __: ITypeSuffixResult<IType>): ITypeSuffixResult<IArgumentType> {
     throw new Error('Grouping should not appear outside of suffix atom');
   }
 
@@ -1022,29 +1056,84 @@ export class TypeChecker implements
     return { errors, type: returnType };
   }
 
-  private errors(...errors: ITypeError[]): ITypeResult<IArgumentType> {
-    return this.result(structureType, ...errors);
-  }
-
-  private suffixErrors(...errors: ITypeError[]): ITypeResult<ISuffixType> {
-    return this.result(suffixError, ...errors);
-  }
-
-  private errorsReduce(
-    base: ITypeError[],
+  /**
+   * Accumulate all type errors defaults to structure type
+   * @param errors type errors
+   */
+  private errorsExpr(
     ...errors: (ITypeError | ITypeError[])[]): ITypeResult<IArgumentType> {
-    return this.resultReduce(structureType, base, ...errors);
+    return this.resultExpr(structureType, ...errors);
   }
 
-  private result<T extends IType>(type: T, ...errors: ITypeError[]): ITypeResult<T> {
-    return { type, errors };
-  }
-
-  private resultReduce<T extends IType>(
+  /**
+   * Return the resultant type with any errors
+   * @param type current type
+   * @param errors accumulated errors
+   */
+  private resultExpr<T extends IType>(
     type: T,
-    base: ITypeError[],
     ...errors: (ITypeError | ITypeError[])[]): ITypeResult<T> {
-    return { type, errors: base.concat(...errors) };
+    return {
+      type,
+      errors: ([] as ITypeError[]).concat(...errors),
+    };
+  }
+
+  /**
+   * Return the suffix error type
+   * @param resolved the currently resolved type
+   * @param errors all accumulated errors
+   */
+  private errorsSuffixTerm(
+    resolved: ITypeSuffixResolved,
+    ...errors: ITypeError[]): ITypeSuffixResult<ISuffixType, ITypeSuffixResolved> {
+    resolved.type = suffixError;
+    return this.resultSuffixTermTrailer(suffixError, resolved, ...errors);
+  }
+
+  /**
+   * an error for a suffixterm trailer
+   * @param resolved the current resolved type
+   * @param errors the accumulated errors
+   */
+  private errorsSuffixTermTrailer(
+    resolved: ITypeSuffixResolved,
+    ...errors: (ITypeError | ITypeError[])[])
+    : ITypeSuffixResult<IArgumentType, ITypeSuffixResolved> {
+    return this.resultSuffixTermTrailer(structureType, resolved, ...errors);
+  }
+
+  private resultSuffixTermTrailer<T extends IType>(
+    type: T,
+    resolved: ITypeSuffixResolved,
+    ...errors: (ITypeError | ITypeError[])[])
+    : ITypeSuffixResult<T, ITypeSuffixResolved> {
+    const { type: current, termTrailers, suffixTrailer } = resolved;
+    return {
+      type,
+      resolved: { suffixTrailer, type: current, termTrailers: [...termTrailers, type] },
+      errors: ([] as ITypeError[]).concat(...errors),
+    };
+  }
+
+  private errorsAtom(
+    ...errors: ITypeError[]): ITypeSuffixResult<IArgumentType, ITypeResolved> {
+    return this.resultAtom(structureType, 'variable', ...errors);
+  }
+
+  private resultAtom<T extends IType>(
+    type: T,
+    atomType: 'function' | 'variable' | 'lock' | 'parameter',
+    ...errors: ITypeError[]): ITypeSuffixResult<T, ITypeResolved> {
+    return {
+      type,
+      errors,
+      resolved: {
+        type,
+        atomType,
+        termTrailers: [],
+      },
+    };
   }
 }
 

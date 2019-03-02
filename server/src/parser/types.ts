@@ -167,15 +167,15 @@ export interface ISuffixTermVisitable {
 }
 
 export interface ISuffixTermVisitor<T> {
-  visitSuffixTrailer(expr: SuffixTerm.SuffixTrailer): T;
-  visitSuffixTerm(expr: SuffixTerm.SuffixTerm): T;
-  visitCall(expr: SuffixTerm.Call): T;
-  visitArrayIndex(expr: SuffixTerm.ArrayIndex): T;
-  visitArrayBracket(expr: SuffixTerm.ArrayBracket): T;
-  visitDelegate(expr: SuffixTerm.Delegate): T;
-  visitLiteral(expr: SuffixTerm.Literal): T;
-  visitIdentifier(expr: SuffixTerm.Identifier): T;
-  visitGrouping(expr: SuffixTerm.Grouping): T;
+  visitSuffixTrailer(suffixTerm: SuffixTerm.SuffixTrailer): T;
+  visitSuffixTerm(suffixTerm: SuffixTerm.SuffixTerm): T;
+  visitCall(suffixTerm: SuffixTerm.Call): T;
+  visitArrayIndex(suffixTerm: SuffixTerm.ArrayIndex): T;
+  visitArrayBracket(suffixTerm: SuffixTerm.ArrayBracket): T;
+  visitDelegate(suffixTerm: SuffixTerm.Delegate): T;
+  visitLiteral(suffixTerm: SuffixTerm.Literal): T;
+  visitIdentifier(suffixTerm: SuffixTerm.Identifier): T;
+  visitGrouping(suffixTerm: SuffixTerm.Grouping): T;
 }
 
 export interface ISuffixTermParamVisitable {
@@ -185,15 +185,15 @@ export interface ISuffixTermParamVisitable {
 }
 
 export interface ISuffixTermParamVisitor<TParam, TReturn> {
-  visitSuffixTrailer(expr: SuffixTerm.SuffixTrailer, param: TParam): TReturn;
-  visitSuffixTerm(expr: SuffixTerm.SuffixTerm, param: TParam): TReturn;
-  visitCall(expr: SuffixTerm.Call, param: TParam): TReturn;
-  visitArrayIndex(expr: SuffixTerm.ArrayIndex, param: TParam): TReturn;
-  visitArrayBracket(expr: SuffixTerm.ArrayBracket, param: TParam): TReturn;
-  visitDelegate(expr: SuffixTerm.Delegate, param: TParam): TReturn;
-  visitLiteral(expr: SuffixTerm.Literal, param: TParam): TReturn;
-  visitIdentifier(expr: SuffixTerm.Identifier, param: TParam): TReturn;
-  visitGrouping(expr: SuffixTerm.Grouping, param: TParam): TReturn;
+  visitSuffixTrailer(suffixTerm: SuffixTerm.SuffixTrailer, param: TParam): TReturn;
+  visitSuffixTerm(suffixTerm: SuffixTerm.SuffixTerm, param: TParam): TReturn;
+  visitCall(suffixTerm: SuffixTerm.Call, param: TParam): TReturn;
+  visitArrayIndex(suffixTerm: SuffixTerm.ArrayIndex, param: TParam): TReturn;
+  visitArrayBracket(suffixTerm: SuffixTerm.ArrayBracket, param: TParam): TReturn;
+  visitDelegate(suffixTerm: SuffixTerm.Delegate, param: TParam): TReturn;
+  visitLiteral(suffixTerm: SuffixTerm.Literal, param: TParam): TReturn;
+  visitIdentifier(suffixTerm: SuffixTerm.Identifier, param: TParam): TReturn;
+  visitGrouping(suffixTerm: SuffixTerm.Grouping, param: TParam): TReturn;
 }
 
 export interface IExprVisitableClass {

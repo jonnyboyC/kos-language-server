@@ -182,6 +182,27 @@ export class Analyzer {
     return scopeManager;
   }
 
+  public getSuffix(pos: Position, uri: string): Maybe<Expr.Suffix> {
+    const documentInfo = this.documentInfos.get(uri);
+    if (empty(documentInfo)) {
+      return undefined;
+    }
+
+    // try to find an entity at the position
+    const { script } = documentInfo;
+    const finder = new ScriptFind();
+    const result = finder.find(script, pos, Expr.Suffix);
+
+    if (empty(result) || empty(result.node)) {
+      return undefined;
+    }
+
+    if (result.node instanceof Expr.Suffix) {
+      return result.node;
+    }
+    return undefined;
+  }
+
   // get the token at a position
   public getToken(pos: Position, uri: string): Maybe<IToken> {
     const documentInfo = this.documentInfos.get(uri);

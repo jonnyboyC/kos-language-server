@@ -184,8 +184,8 @@ connection.onHover((positionParmas: TextDocumentPositionParams): Maybe<Hover> =>
   const { position } = positionParmas;
   const { uri } = positionParmas.textDocument;
 
-  const token = analyzer.getToken(position, uri);
-  if (empty(token)) {
+  const suffix = analyzer.getSuffix(position, uri);
+  if (empty(suffix)) {
     return undefined;
   }
 
