@@ -4,6 +4,9 @@ import {
   CompletionItemKind,
   CompletionItem,
 } from 'vscode-languageserver';
+import { empty } from './typeGuards';
+import { allSuffixes } from '../typeChecker/typeUitlities';
+import { CallType } from '../typeChecker/types/types';
 
 export const entityCompletionItems = (
   analyzer: Analyzer,
@@ -47,13 +50,32 @@ export const suffixCompletionItems = (
   const { position } = documentPosition;
   const { uri } = documentPosition.textDocument;
 
-  if (analyzer) {
-    console.log(position);
-    console.log(uri);
+  const token = analyzer.getToken(position, uri);
+  const typeInfo = analyzer.getSuffixType(position, uri);
+  if (empty(token) || empty(typeInfo)) {
+    return [];
   }
+  const [type] = typeInfo;
+  const suffixes = allSuffixes(type);
 
-  return [{
-    kind: CompletionItemKind.Enum,
-    label: 'cat',
-  }];
+  return suffixes.map((suffix) => {
+    switch (suffix.callType) {
+      case CallType.call:
+      case CallType.optionalCall:
+        return {
+          kind: CompletionItemKind.Method,
+          label: suffix.name,
+          details: suffix.toTypeString(),
+        } as CompletionItem;
+      case CallType.get:
+      case CallType.set:
+        return {
+          kind: CompletionItemKind.Property,
+          label: suffix.name,
+          details: suffix.toTypeString(),
+        } as CompletionItem;
+      default:
+        throw new Error('Unanticipated call type found')
+    }
+  });
 };

@@ -25,7 +25,7 @@ addSuffixes(
   createArgSuffixType('copy', lexiconType),
   createArgSuffixType('length', scalarType),
   createArgSuffixType('remove', structureType, booleanType),
-  createArgSuffixType('add', structureType, structureType),
+  createArgSuffixType('add', voidType, structureType, structureType),
   createSetSuffixType('casesensitive', booleanType),
   createSetSuffixType('case', booleanType),
 );

@@ -81,20 +81,24 @@ export const getSuffix = (type: IType, suffix: string): Maybe<ISuffixType> => {
   return undefined;
 };
 
-export const allSuffixes = (type: IArgumentType): ISuffixType[] => {
-  const suffixes: Map<string, ISuffixType> = new Map();
+export const allSuffixes = (type: IType): ISuffixType[] => {
+  if (type.tag === 'type') {
+    const suffixes: Map<string, ISuffixType> = new Map();
 
-  moveDownPrototype(type, false, (currentType) => {
-    for (const [name, suffix] of currentType.suffixes) {
-      if (!suffixes.has(name)) {
-        suffixes.set(name, suffix);
+    moveDownPrototype(type, false, (currentType) => {
+      for (const [name, suffix] of currentType.suffixes) {
+        if (!suffixes.has(name)) {
+          suffixes.set(name, suffix);
+        }
       }
-    }
 
-    return undefined;
-  });
+      return undefined;
+    });
 
-  return Array.from(suffixes.values());
+    return Array.from(suffixes.values());
+  }
+
+  return [];
 };
 
 const moveDownPrototype = <T>(

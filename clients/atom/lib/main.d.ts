@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { TextEditor } from 'atom';
 import { AutoLanguageClient, ConnectionType } from 'atom-languageclient';
 export declare class KosLanguageClient extends AutoLanguageClient {
