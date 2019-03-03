@@ -1,5 +1,6 @@
 import { IType } from './types/types';
 import { Range } from 'vscode-languageserver';
+import * as SuffixTerm from '../parser/suffixTerm';
 
 export interface ITypeError extends Range {
   tag: 'typeError';
@@ -8,20 +9,18 @@ export interface ITypeError extends Range {
   message: string;
 }
 
-export interface ITypeResolved<T extends IType = IType> {
+export interface ITypeNode<T extends IType = IType> extends Range {
   type: T;
-  termTrailers: IType[];
-  atomType: 'function' | 'variable' | 'lock' | 'parameter';
-  suffixTrailer?: ITypeSuffixResolved;
+  node: SuffixTerm.SuffixTermBase;
 }
 
-export interface ITypeSuffixResolved<T extends IType = IType> {
-  type: T;
-  termTrailers: IType[];
-  suffixTrailer?: ITypeSuffixResolved;
+export interface ITypeResolvedSuffix<T extends IType = IType> {
+  node: ITypeNode<T>;
+  termTrailers: ITypeNode[];
+  suffixTrailer?: ITypeResolvedSuffix;
 }
 
-export interface ITypeResolved<T extends IType = IType> extends ITypeSuffixResolved<T>  {
+export interface ITypeResolved<T extends IType = IType> extends ITypeResolvedSuffix<T>  {
   atomType: 'function' | 'variable' | 'lock' | 'parameter';
 }
 
@@ -30,9 +29,9 @@ export interface ITypeResult<T extends IType> {
   errors: ITypeError[];
 }
 
-export interface ITypeSuffixResult<
+export interface ITypeResultSuffix<
   T extends IType,
-  R extends ITypeSuffixResolved = ITypeSuffixResolved> {
+  R extends ITypeResolvedSuffix = ITypeResolvedSuffix> {
   type: T;
   resolved: R;
   errors: ITypeError[];

@@ -70,6 +70,13 @@ export class ScopeManager implements GraphNode<ScopeManager> {
     this.inScopes.clear();
   }
 
+  public declareType(range: Range, name: string, type: IArgumentType | IFunctionType): void {
+    const tracker = this.scopedTracker(range.start, name);
+    if (!empty(tracker)) {
+      tracker.declareType(type);
+    }
+  }
+
   // get the type
   public getType(range: Range, name: string): Maybe<IArgumentType | IFunctionType> {
     const tracker = this.scopedTracker(range.start, name);

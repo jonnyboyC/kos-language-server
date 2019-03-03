@@ -254,7 +254,7 @@ export class ScriptFind implements
     return this.findNode(expr);
   }
   public visitSuffixTrailer(suffixTerm: SuffixTerm.SuffixTrailer): Maybe<IFindResult> {
-    throw this.findNode(suffixTerm);
+    return this.findNode(suffixTerm);
   }
   public visitSuffixTerm(suffixTerm: SuffixTerm.SuffixTerm): Maybe<IFindResult> {
     return this.findNode(suffixTerm);

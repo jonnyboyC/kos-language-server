@@ -78,13 +78,12 @@ export class GenericSuffixType implements IGenericSuffixType {
   }
 
   public toTypeString(): string {
-    if (this.callType !== CallType.call) {
-      return `${this.name}<T>`;
+    const returnString = returnTypeString(this.returns);
+    if (this.callType !== CallType.call && this.callType !== CallType.optionalCall) {
+      return returnString;
     }
 
-    const returnString = returnTypeString(this.returns);
     const paramsString = parameterTypeString(this.params);
-
     return `<T>(${paramsString}) => ${returnString}`;
   }
 
@@ -177,13 +176,12 @@ export class SuffixType implements ISuffixType {
   }
 
   public toTypeString(): string {
-    if (this.callType !== CallType.call) {
-      return `${this.name}`;
+    const returnString = returnTypeString(this.returns);
+    if (this.callType !== CallType.call && this.callType !== CallType.optionalCall) {
+      return returnString;
     }
 
-    const returnString = returnTypeString(this.returns);
     const paramsString = parameterTypeString(this.params);
-
     return `(${paramsString}) => ${returnString}`;
   }
 
@@ -218,7 +216,7 @@ export class GenericVariadicType implements IGenericVariadicType {
     this.concreteTypes = new Map();
   }
   public toTypeString(): string {
-    return `...${this.type.name}[]`;
+    return `...${this.type.toTypeString()}[]`;
   }
   public toConcreteType(type: IBasicType): IVariadicType {
     // check cache
@@ -240,8 +238,7 @@ export class VariadicType extends GenericVariadicType implements IVariadicType {
   constructor(public readonly type: IBasicType) {
     super(type);
   }
-  // tslint:disable-next-line:variable-name
-  public toConcreteType(_type: IBasicType): IVariadicType {
+  public toConcreteType(_: IBasicType): IVariadicType {
     return this;
   }
   public get fullType(): true {

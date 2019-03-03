@@ -19,15 +19,15 @@ import { rgbaType } from '../typeChecker/types/rgba';
 import { directionType } from '../typeChecker/types/direction';
 import { kacAlarmType } from '../typeChecker/types/kacAlarmWrapper';
 import { geoCoordinatesType } from '../typeChecker/types/geoCoordinates';
-import { vesselTargetType } from '../typeChecker/types/orbital/vesselTarget';
-import { bodyTargetType } from '../typeChecker/types/orbital/bodyTarget';
 import { bodyAtmosphereType } from '../typeChecker/types/bodyatmosphere';
 import { noteType } from '../typeChecker/types/note';
 import { voiceType } from '../typeChecker/types/voice';
 import { hsvaType } from '../typeChecker/types/hsva';
 import { vectorRendererType } from '../typeChecker/types/vectorRenderer';
 import { guiWidgetType } from '../typeChecker/types/gui/guiWidget';
-import { orbitableType } from '../typeChecker/types/orbital/orbitable';
+import {
+  orbitableType, bodyTargetType, vesselTargetType,
+} from '../typeChecker/types/orbital/orbitable';
 import { timeSpanType } from '../typeChecker/types/timespan';
 import { highlightType } from '../typeChecker/types/highlight';
 import { orbitInfoType } from '../typeChecker/types/orbitInfo';

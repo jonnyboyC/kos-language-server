@@ -25,9 +25,10 @@ import { builtIn } from './utilities/constants';
 import { ScopeBuilder } from './analysis/scopeBuilder';
 import { ScopeManager } from './analysis/scopeManager';
 import { TypeChecker } from './typeChecker/typeChecker';
-import { ITypeError } from './typeChecker/types';
+import { ITypeError, ITypeResolvedSuffix, ITypeNode } from './typeChecker/types';
 import { IToken } from './entities/types';
 import { IType } from './typeChecker/types/types';
+import { binarySearch, rangeContains } from './utilities/positionHelpers';
 
 export class Analyzer {
   public readonly pathResolver: PathResolver;
@@ -93,10 +94,8 @@ export class Analyzer {
       const loadDatas = this.getValidUri(uri, runInsts);
 
       // for each document run validate and yield any results
-      for await (const validateResult of loadDatas
-        .map(loadData => this.loadAndValidateDocument(uri, loadData, depth))) {
-
-        for await (const result of validateResult) {
+      for (const loadData of loadDatas) {
+        for await (const result of this.loadAndValidateDocument(uri, loadData, depth)) {
           if (Array.isArray(result)) {
             yield result;
           } else {
@@ -144,7 +143,9 @@ export class Analyzer {
     yield resolverErrors;
     performance.mark('resolver-end');
 
-    const typeChecker = new TypeChecker(script, scopeBuilder.build(), this.logger, this.tracer);
+    const scopeManager = scopeBuilder.build();
+    const typeChecker = new TypeChecker(script, scopeManager, this.logger, this.tracer);
+
     this.logger.log(`Type checking ${uri}`);
     this.logger.log('');
     performance.mark('type-checking-start');
@@ -170,8 +171,6 @@ export class Analyzer {
       documentInfo.scopeManager.removeSelf();
     }
 
-    const scopeManager = scopeBuilder.build();
-
     this.documentInfos.set(uri, {
       script,
       scopeManager,
@@ -179,28 +178,58 @@ export class Analyzer {
 
     performance.clearMarks();
 
-    return scopeManager;
+    yield scopeManager;
   }
 
-  public getSuffix(pos: Position, uri: string): Maybe<Expr.Suffix> {
+  public getSuffixType(pos: Position, uri: string): Maybe<[IType, string]> {
     const documentInfo = this.documentInfos.get(uri);
     if (empty(documentInfo)) {
       return undefined;
     }
 
     // try to find an entity at the position
-    const { script } = documentInfo;
+    const { script, scopeManager } = documentInfo;
     const finder = new ScriptFind();
     const result = finder.find(script, pos, Expr.Suffix);
 
-    if (empty(result) || empty(result.node)) {
+    if (empty(result)) {
       return undefined;
     }
 
-    if (result.node instanceof Expr.Suffix) {
-      return result.node;
+    const { node } = result;
+    if (empty(node)) {
+      return undefined;
+    }
+
+    if (node instanceof Expr.Suffix) {
+      const checker = new TypeChecker(script, scopeManager);
+      const result = checker.checkSuffix(node);
+
+      if (rangeContains(result.resolved.node, pos)) {
+        return [
+          result.resolved.node.type,
+          result.resolved.atomType,
+        ];
+      }
+
+      const suffixNodes = this.resolvedNodes(result.resolved);
+      const suffixNode = binarySearch(suffixNodes, pos);
+
+      if (suffixNode) {
+        return [
+          suffixNode.type,
+          'suffix',
+        ];
+      }
     }
     return undefined;
+  }
+
+  private resolvedNodes(resolved: ITypeResolvedSuffix<IType>): ITypeNode[] {
+    const nodes = [resolved.node, ...resolved.termTrailers];
+    return empty(resolved.suffixTrailer)
+      ? nodes
+      : nodes.concat(this.resolvedNodes(resolved.suffixTrailer));
   }
 
   // get the token at a position
@@ -426,8 +455,8 @@ export class Analyzer {
       .map(inst => this.pathResolver.resolveUri(
         { uri, range: inst },
         runPath(inst)))
-      .filter(notEmpty)
-      .filter(uriInsts => !this.documentInfos.has(uriInsts.uri));
+      .filter(notEmpty);
+      // .filter(uriInsts => !this.documentInfos.has(uriInsts.uri));
   }
 
   // load an validate a file from disk
@@ -457,7 +486,9 @@ export class Analyzer {
 
       // attempt to read file from disk
       const fileResult = await readFileAsync(validated.path, 'utf-8');
-      return await this.validateDocument_(validated.uri, fileResult, depth + 1);
+      for await (const result of this.validateDocument_(validated.uri, fileResult, depth + 1)) {
+        yield result;
+      }
     } catch (err) {
       // if we already checked for the file exists but failed anyways??
       return {

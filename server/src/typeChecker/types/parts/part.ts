@@ -8,13 +8,13 @@ import { structureType } from '../primitives/structure';
 import { directionType } from '../direction';
 import { vectorType } from '../collections/vector';
 import { listType } from '../collections/list';
-import { vesselTargetType } from '../orbital/vesselTarget';
 import { voidType } from '../primitives/void';
 import { userListType } from '../collections/userList';
 import { stringType } from '../primitives/string';
 import { scalarType } from '../primitives/scalar';
 import { booleanType } from '../primitives/boolean';
 import { partModuleFieldsType } from './partModuleFields';
+import { vesselTargetType } from '../orbital/orbitable';
 
 export const partType: IArgumentType = createStructureType('part');
 addPrototype(partType, structureType);

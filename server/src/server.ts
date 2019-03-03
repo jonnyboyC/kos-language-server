@@ -184,20 +184,15 @@ connection.onHover((positionParmas: TextDocumentPositionParams): Maybe<Hover> =>
   const { position } = positionParmas;
   const { uri } = positionParmas.textDocument;
 
-  const suffix = analyzer.getSuffix(position, uri);
-  if (empty(suffix)) {
+  const token = analyzer.getToken(position, uri);
+  const typeInfo = analyzer.getSuffixType(position, uri);
+  if (empty(token) || empty(typeInfo)) {
     return undefined;
   }
-
-  const tracker = analyzer.getScopedTracker(position, token.lexeme, uri);
-  const type = analyzer.getType(position, token.lexeme, uri);
-
-  if (empty(tracker) || empty(type)) {
-    return undefined;
-  }
+  const [type, entityType] = typeInfo;
 
   return {
-    contents: `(${tracker.declared.entity.tag}) ${token.lexeme}: ${type.toTypeString()} `,
+    contents: `(${entityType}) ${token.lexeme}: ${type.toTypeString()} `,
     range: {
       start: token.start,
       end: token.end,

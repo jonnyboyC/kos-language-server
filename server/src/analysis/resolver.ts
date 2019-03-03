@@ -227,23 +227,27 @@ export class Resolver implements
 
   public visitSet(inst: Inst.Set): Errors {
     const { set, used } = this.setResolver.resolveExpr(inst.suffix);
-    let created = false;
+
+    // check if a set target exists
     if (empty(set)) {
       const [{ token }] = this.localResolver.resolveExpr(inst.suffix);
       return [new ResolverError(token, `cannot assign to variable ${token.lexeme}`, [])];
     }
 
-    if (!this.lazyGlobalOff) {
-      if (empty(this.scopeBuilder.lookupVariable(set, ScopeType.global))) {
+    // if variable isn't define either report error or define
+    let defineError: Maybe<ResolverError> = undefined;
+    if (empty(this.scopeBuilder.lookupVariable(set, ScopeType.global))) {
+      if (this.lazyGlobalOff) {
+        defineError = new ResolverError(
+          set,
+          `Attempted to set ${set.lexeme} which has not be declared.` +
+          `Either remove lazy global directive or declare ${set.lexeme}`,
+          []);
+      } else {
         this.scopeBuilder.declareVariable(ScopeType.global, set);
-        created = true;
       }
     }
 
-    let defineError: Maybe<ResolverError> = undefined;
-    if (!created) {
-      defineError = this.scopeBuilder.defineBinding(set);
-    }
     const useErrors = this.useExprLocals(inst.expr).concat(this.useTokens(used));
     const resolveErrors = this.resolveExpr(inst.expr);
 

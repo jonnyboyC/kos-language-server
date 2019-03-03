@@ -1,10 +1,11 @@
 import * as Inst from '../parser/inst';
+import * as SuffixTerm from '../parser/suffixTerm';
+import * as Expr from '../parser/expr';
 import { relative, join, sep, dirname } from 'path';
 import { RunInstType } from '../parser/types';
 import { empty } from './typeGuards';
 import { TokenType } from '../entities/tokentypes';
 import { ILoadData } from '../types';
-import * as SuffixTerm from '../parser/suffixTerm';
 import { Location } from 'vscode-languageserver';
 
 export class PathResolver {
@@ -71,8 +72,10 @@ export const runPath = (inst: RunInstType): Maybe<string> => {
 
   // for run path varients check for literal
   const { expr } = inst;
-  if (expr instanceof SuffixTerm.Literal) {
-    return literalPath(expr);
+  if (expr instanceof Expr.Suffix) {
+    if (expr.suffixTerm.atom instanceof SuffixTerm.Literal) {
+      return literalPath(expr.suffixTerm.atom);
+    }
   }
 
   return undefined;

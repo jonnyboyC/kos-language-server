@@ -274,19 +274,6 @@ export class ScopeBuilder {
     return undefined;
   }
 
-  // define a variable
-  public defineBinding(name: IToken, expr?: IExpr): Maybe<ResolverError> {
-    const binding = this.lookup(name, ScopeType.global);
-
-    if (empty(binding)) {
-      return new ResolverError(name, `Entity ${name.lexeme} may not exist.`, []);
-    }
-
-    binding.sets.push(createEnitityChange(name, expr));
-    this.logger.verbose(`Set entity ${name.lexeme} at ${JSON.stringify(name.start)}`);
-    return undefined;
-  }
-
   // check if a variable exist then use it
   public checkUseEntity(
     name: IToken,

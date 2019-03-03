@@ -1,6 +1,6 @@
 import {
   IExprClass, IInst, IExprVisitor,
-  ISuffixTerm, IExpr, IExprClassVisitor,
+  IExpr, IExprClassVisitor,
   GrammarNode, Distribution,
 } from './types';
 import * as SuffixTerm from './suffixTerm';
@@ -198,7 +198,7 @@ export class Suffix extends Expr {
   constructor(
     public readonly suffixTerm: SuffixTerm.SuffixTerm,
     public colon?: IToken,
-    public trailer?: ISuffixTerm) {
+    public trailer?: SuffixTerm.SuffixTrailer) {
     super();
   }
 

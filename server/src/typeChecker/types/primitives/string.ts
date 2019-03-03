@@ -1,7 +1,6 @@
 import { IArgumentType, Operator } from '../types';
 import { createStructureType, createArgSuffixType } from '../ksType';
 import { addOperators, addPrototype, addSuffixes } from '../../typeUitlities';
-
 import { booleanType } from './boolean';
 import { scalarType } from './scalar';
 import { structureType } from './structure';

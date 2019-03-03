@@ -39,20 +39,22 @@ export class KsEntityTracker<T extends KsEntity>
     return binaryRightKeyIndex(ranges, loc.range.start, x => x.range);
   }
 
+  public declareType(type: IArgumentType): void {
+    this.declared.type = type;
+  }
+
   public getType(loc: Location): Maybe<IArgumentType | IFunctionType> {
     const locationEntity = this.getLocation(loc);
     return empty(locationEntity) ? undefined : locationEntity.type;
   }
 
-  public setType(loc: Location, type: IArgumentType | IFunctionType): void {
-    const locationEntity = this.getLocation(loc);
-    if (!empty(locationEntity)) {
-      locationEntity.type = type;
-    }
+  public setType(loc: Location, type: IArgumentType): void {
+    this.sets.push(createEnitityChange(loc, undefined, type));
   }
 }
 
 export const createEnitityChange = (
   loc: Location,
-  expr?: IExpr | ISuffixTerm, type = structureType):
+  expr?: IExpr | ISuffixTerm,
+  type: IArgumentType = structureType):
   IKsChange => ({ type, expr, uri: loc.uri, range: loc.range });

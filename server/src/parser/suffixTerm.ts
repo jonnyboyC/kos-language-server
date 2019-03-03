@@ -32,7 +32,7 @@ export class SuffixTrailer extends SuffixTermBase {
   constructor(
     public readonly suffixTerm: SuffixTerm,
     public colon?: IToken,
-    public trailer?: SuffixTrailer | ISuffixTerm) {
+    public trailer?: SuffixTrailer) {
     super();
   }
 
