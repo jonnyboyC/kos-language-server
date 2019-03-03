@@ -84,10 +84,16 @@ export class Analyzer {
     const { script, parseErrors, scanErrors, runInsts } = await this.parseDocument(uri, text);
     const scopeManagers: ScopeManager[] = [];
 
-    yield scanErrors.map(scanError => scanToDiagnostics(scanError, uri));
-    yield parseErrors.length === 0 ? [] : parseErrors.map(error => error.inner.concat(error))
+    const scanDiagnostics = scanErrors
+      .map(scanError => scanToDiagnostics(scanError, uri));
+    const parserDiagnostics = parseErrors.length === 0
+      ? []
+      : parseErrors.map(error => error.inner.concat(error))
       .reduce((acc, current) => acc.concat(current))
       .map(error => parseToDiagnostics(error, uri));
+
+    yield scanDiagnostics;
+    yield parserDiagnostics;
 
     // if any run instruction exist get uri then load
     if (runInsts.length > 0 && this.pathResolver.ready) {
@@ -127,20 +133,20 @@ export class Analyzer {
     // resolve the rest of the script
     this.logger.log(`Function resolving ${uri}`);
     performance.mark('func-resolver-start');
-    const functionErrors = funcResolver.resolve()
+    const functionDiagnostics = funcResolver.resolve()
       .map(error => resolverToDiagnostics(error, uri));
 
-    yield functionErrors;
+    yield functionDiagnostics;
     performance.mark('func-resolver-end');
 
     // perform an initial function pass
     this.logger.log(`Resolving ${uri}`);
 
     performance.mark('resolver-start');
-    const resolverErrors = resolver.resolve()
+    const resolverDiagnostics = resolver.resolve()
       .map(error => resolverToDiagnostics(error, uri));
 
-    yield resolverErrors;
+    yield resolverDiagnostics;
     performance.mark('resolver-end');
 
     const scopeManager = scopeBuilder.build();
@@ -150,10 +156,10 @@ export class Analyzer {
     this.logger.log('');
     performance.mark('type-checking-start');
 
-    const typeErrors = typeChecker.check()
+    const typeDiagnostics = typeChecker.check()
       .map(error => typeCheckerToDiagnostics(error, uri));
 
-    yield typeErrors;
+    yield typeDiagnostics;
     performance.mark('type-checking-end');
 
     // measure performance
@@ -161,8 +167,8 @@ export class Analyzer {
     performance.measure('Resolver', 'resolver-start', 'resolver-end');
     performance.measure('Type Checking', 'type-checking-start', 'type-checking-end');
 
-    if (resolverErrors.length > 0) {
-      this.logger.warn(`Resolver encountered ${resolverErrors.length} Errors.`);
+    if (resolverDiagnostics.length > 0) {
+      this.logger.warn(`Resolver encountered ${resolverDiagnostics.length} Errors.`);
     }
 
     // make sure to delete references so scope manager can be gc'ed
@@ -174,6 +180,12 @@ export class Analyzer {
     this.documentInfos.set(uri, {
       script,
       scopeManager,
+      diagnostics: scanDiagnostics.concat(
+        parserDiagnostics,
+        functionDiagnostics,
+        resolverDiagnostics,
+        typeDiagnostics,
+      ),
     });
 
     performance.clearMarks();
@@ -453,7 +465,10 @@ export class Analyzer {
     // generate uris then remove empty or preloaded documents
     return runInsts
       .map(inst => this.pathResolver.resolveUri(
-        { uri, range: inst },
+        {
+          uri,
+          range: { start: inst.start, end: inst.end },
+        },
         runPath(inst)))
       .filter(notEmpty);
       // .filter(uriInsts => !this.documentInfos.has(uriInsts.uri));
@@ -486,9 +501,7 @@ export class Analyzer {
 
       // attempt to read file from disk
       const fileResult = await readFileAsync(validated.path, 'utf-8');
-      for await (const result of this.validateDocument_(validated.uri, fileResult, depth + 1)) {
-        yield result;
-      }
+      yield* this.validateDocument_(validated.uri, fileResult, depth + 1);
     } catch (err) {
       // if we already checked for the file exists but failed anyways??
       return {

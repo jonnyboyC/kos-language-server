@@ -5,6 +5,7 @@ import { Diagnostic, Range } from 'vscode-languageserver';
 export interface IDocumentInfo {
   script: IScript;
   scopeManager: ScopeManager;
+  diagnostics: IDiagnosticUri[];
 }
 
 export interface ILoadData {
