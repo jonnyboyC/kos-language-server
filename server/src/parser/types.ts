@@ -34,6 +34,10 @@ export type Atom = SuffixTerm.Literal
   | SuffixTerm.Identifier
   | SuffixTerm.Grouping;
 
+export interface IParameter extends IRangeSequence {
+  identifier: IToken;
+}
+
 export interface IExpr extends IExprVisitable, IRangeSequence {
   tag: 'expr';
   toLocation(uri: string): Location;
@@ -45,7 +49,9 @@ export interface IInst extends IInstVisitable, IRangeSequence {
 }
 
 export interface IScript extends IRangeSequence {
+  lazyGlobal: boolean;
   insts: IInst[];
+  runInsts: RunInstType[];
   uri: string;
   toLocation(): Location;
   tag: 'script';
@@ -119,7 +125,6 @@ export interface IParseError extends Range {
 
 export interface ParseResult {
   script: IScript;
-  runInsts: RunInstType[];
   parseErrors: IParseError[];
 }
 
@@ -147,7 +152,7 @@ export type GrammarNode = IExprClass
   | IGrammarOptional | IGrammarRepeat | IGrammarUnion;
 
 export type RunInstType = Inst.Run | Inst.RunPath | Inst.RunPathOnce;
-export type TreeNode = IExpr | ISuffixTerm | IInst | IScript;
+export type TreeNode = IExpr | ISuffixTerm | IInst | IScript | IParameter;
 
 export interface IExprVisitable {
   accept<T>(visitor: IExprVisitor<T>): T;

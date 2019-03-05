@@ -39,6 +39,8 @@ import {
 } from './types/typeHelpers';
 import { delegateType } from './types/primitives/delegate';
 import { TypeNode } from './typeNode';
+import { EntityType } from '../analysis/types';
+import { rangeEqual } from '../utilities/positionHelpers';
 
 type TypeErrors = ITypeError[];
 type SuffixTermType = ISuffixType | IArgumentType;
@@ -78,11 +80,16 @@ export class TypeChecker implements
   public checkSuffix(suffix: Expr.Suffix): ITypeResultSuffix<IType, ITypeResolved> {
     try {
       const { suffixTerm, trailer } = suffix;
-      const atom = this.resolveAtom(suffixTerm.atom);
+      const [firstTrailer, ...remainingTrailers] = suffixTerm.trailers;
+
+      const atom = firstTrailer instanceof SuffixTerm.Call
+        ? this.resolveAtom(suffixTerm.atom, EntityType.function)
+        : this.resolveAtom(
+          suffixTerm.atom, EntityType.lock,
+          EntityType.parameter, EntityType.variable);
       let current: ITypeResultSuffix<IType> = atom;
 
-      if (suffixTerm.trailers.length >= 1) {
-        const [firstTrailer, ...remainingTrailers] = suffixTerm.trailers;
+      if (!empty(firstTrailer)) {
 
         // handle case were suffix is actually a function call
         if (firstTrailer instanceof SuffixTerm.Call) {
@@ -126,7 +133,7 @@ export class TypeChecker implements
       return {
         type: structureType,
         resolved: {
-          atomType: 'variable',
+          atomType: EntityType.variable,
           node: new TypeNode(structureType, suffix.suffixTerm),
           termTrailers: [],
         },
@@ -162,14 +169,18 @@ export class TypeChecker implements
   // visit declare variable
   visitDeclVariable(decl: Decl.Var): TypeErrors {
     const result = this.checkExpr(decl.expression);
-    this.scopeManager.declareType(decl.identifier, decl.identifier.lexeme, result.type);
+    this.scopeManager.declareType(
+      decl.identifier, decl.identifier.lexeme,
+      result.type, EntityType.variable);
     return result.errors;
   }
 
   // visit declare lock
   visitDeclLock(decl: Decl.Lock): TypeErrors {
     const result = this.checkExpr(decl.value);
-    this.scopeManager.declareType(decl.identifier, decl.identifier.lexeme, result.type);
+    this.scopeManager.declareType(
+      decl.identifier, decl.identifier.lexeme,
+      result.type, EntityType.lock);
     return result.errors;
   }
 
@@ -192,7 +203,9 @@ export class TypeChecker implements
     const funcType = createFunctionType(
       funcTracker.declared.entity.name.lexeme, returnType, ...paramsTypes);
 
-    this.scopeManager.declareType(entity.name, entity.name.lexeme, funcType);
+    this.scopeManager.declareType(
+      entity.name, entity.name.lexeme,
+      funcType, EntityType.function);
 
     const errors = this.checkInst(decl.instructionBlock);
     return errors;
@@ -205,10 +218,11 @@ export class TypeChecker implements
     // loop over defaulted parameters
     for (const defaulted of decl.defaultParameters) {
       const valueResult = this.checkExpr(defaulted.value);
-      this.scopeManager.setType(
+      this.scopeManager.declareType(
         defaulted.identifier,
         defaulted.identifier.lexeme,
         valueResult.type,
+        EntityType.parameter,
       );
 
       errors = errors.concat(valueResult.errors);
@@ -216,10 +230,11 @@ export class TypeChecker implements
 
     // loop over normal parameters
     for (const parameter of decl.parameters) {
-      this.scopeManager.setType(
+      this.scopeManager.declareType(
         parameter.identifier,
         parameter.identifier.lexeme,
         structureType,
+        EntityType.parameter,
       );
     }
 
@@ -333,7 +348,17 @@ export class TypeChecker implements
     }
 
     if (atom instanceof SuffixTerm.Identifier) {
-      this.scopeManager.setType(atom.token, atom.token.lexeme, exprResult.type);
+      const tracker = this.scopeManager.scopedVariableTracker(
+        atom.start,
+        atom.token.lexeme);
+
+      if (this.script.lazyGlobal
+        && !empty(tracker)
+        && rangeEqual(tracker.declared.range, atom)) {
+        this.scopeManager.declareType(atom.token, atom.token.lexeme, exprResult.type);
+      } else {
+        this.scopeManager.setType(atom.token, atom.token.lexeme, exprResult.type);
+      }
     } else {
       errors.push(new KsTypeError(
         inst.suffix,
@@ -445,6 +470,7 @@ export class TypeChecker implements
     let errors: TypeErrors = [];
 
     const { type: type } = result;
+
     if (type.tag !== 'type' || !hasSuffix(type, iterator)) {
       errors = errors.concat(new KsTypeError(
         inst.suffix, 'May not be a valid enumerable type', []));
@@ -718,11 +744,16 @@ export class TypeChecker implements
 
   public visitSuffix(expr: Expr.Suffix): ITypeResult<IArgumentType> {
     const { suffixTerm, trailer } = expr;
-    const atom = this.resolveAtom(suffixTerm.atom);
+    const [firstTrailer, ...remainingTrailers] = suffixTerm.trailers;
+
+    const atom = firstTrailer instanceof SuffixTerm.Call
+      ? this.resolveAtom(suffixTerm.atom, EntityType.function)
+      : this.resolveAtom(
+        suffixTerm.atom, EntityType.variable,
+        EntityType.lock, EntityType.parameter);
     let current: ITypeResultSuffix<IType> = atom;
 
-    if (suffixTerm.trailers.length >= 1) {
-      const [firstTrailer, ...remainingTrailers] = suffixTerm.trailers;
+    if (!empty(firstTrailer)) {
 
       // handle case were suffix is actually a function call
       if (firstTrailer instanceof SuffixTerm.Call) {
@@ -763,14 +794,16 @@ export class TypeChecker implements
 
   // ----------------------------- Suffix -----------------------------------------
 
-  private resolveAtom(atom: Atom)
+  private resolveAtom(
+    atom: Atom,
+    ...entityType: EntityType[])
     : ITypeResultSuffix<IArgumentType | IFunctionType, ITypeResolved> {
     if (atom instanceof SuffixTerm.Literal) {
       return this.resolveLiteral(atom);
     }
 
     if (atom instanceof SuffixTerm.Identifier) {
-      return this.resolveIdentifier(atom);
+      return this.resolveIdentifier(atom, entityType);
     }
 
     if (atom instanceof SuffixTerm.Grouping) {
@@ -785,22 +818,24 @@ export class TypeChecker implements
     switch (literal.token.type) {
       case TokenType.true:
       case TokenType.false:
-        return this.resultAtom(booleanType, literal, 'variable');
+        return this.resultAtom(booleanType, literal, EntityType.variable);
       case TokenType.integer:
-        return this.resultAtom(integarType, literal, 'variable');
+        return this.resultAtom(integarType, literal, EntityType.variable);
       case TokenType.double:
-        return this.resultAtom(doubleType, literal, 'variable');
+        return this.resultAtom(doubleType, literal, EntityType.variable);
       case TokenType.string:
       case TokenType.fileIdentifier:
-        return this.resultAtom(stringType, literal, 'variable');
+        return this.resultAtom(stringType, literal, EntityType.variable);
       default:
         throw new Error('Unknown literal type');
     }
   }
 
-  private resolveIdentifier(identifer: SuffixTerm.Identifier)
+  private resolveIdentifier(
+    identifer: SuffixTerm.Identifier,
+    entityTypes: EntityType[])
     : ITypeResultSuffix<IArgumentType | IFunctionType, ITypeResolved> {
-    const type = this.scopeManager.getType(identifer, identifer.token.lexeme);
+    const type = this.scopeManager.getType(identifer, identifer.token.lexeme, ...entityTypes);
     const entity = this.scopeManager.scopedEntity(identifer.start, identifer.token.lexeme);
     return (empty(type) || empty(entity))
       ? this.errorsAtom(
@@ -812,7 +847,7 @@ export class TypeChecker implements
   private resolveGrouping(grouping: SuffixTerm.Grouping)
     : ITypeResultSuffix<IArgumentType, ITypeResolved> {
     const result = this.checkExpr(grouping.expr);
-    return this.resultAtom(result.type, grouping, 'variable', result.errors);
+    return this.resultAtom(result.type, grouping, EntityType.variable, result.errors);
   }
 
   private resolveFunctionCall(
@@ -828,12 +863,12 @@ export class TypeChecker implements
 
     if (!Array.isArray(type.params)) {
       const callResult = this.resolveVaradicCall(type.params, { type, resolved, errors }, call);
-      return { ...callResult, resolved: { ...callResult.resolved, atomType: 'function' } };
+      return { ...callResult, resolved: { ...callResult.resolved, atomType: EntityType.function } };
     }
 
     // handle normal functions
     const callResult = this.resolveNormalCall(type.params, { type, resolved, errors }, call);
-    return { ...callResult, resolved: { ...callResult.resolved, atomType: 'function' } };
+    return { ...callResult, resolved: { ...callResult.resolved, atomType: EntityType.function } };
   }
 
   public visitSuffixTrailer(
@@ -1272,13 +1307,13 @@ export class TypeChecker implements
     node: SuffixTerm.SuffixTermBase,
     ...errors: (ITypeError | ITypeError[])[])
     : ITypeResultSuffix<IArgumentType, ITypeResolved> {
-    return this.resultAtom(structureType, node, 'variable', ...errors);
+    return this.resultAtom(structureType, node, EntityType.variable, ...errors);
   }
 
   private resultAtom<T extends IType>(
     type: T,
     node: SuffixTerm.SuffixTermBase,
-    atomType: 'function' | 'variable' | 'lock' | 'parameter',
+    atomType: EntityType,
     ...errors: (ITypeError | ITypeError[])[])
     : ITypeResultSuffix<T, ITypeResolved> {
     return {

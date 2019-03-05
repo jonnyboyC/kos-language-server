@@ -14,7 +14,7 @@ import { stringType } from '../primitives/string';
 import { scalarType } from '../primitives/scalar';
 import { booleanType } from '../primitives/boolean';
 import { partModuleFieldsType } from './partModuleFields';
-import { vesselTargetType } from '../orbital/orbitable';
+import { vesselTargetType } from '../orbital/vesselTarget';
 
 export const partType: IArgumentType = createStructureType('part');
 addPrototype(partType, structureType);

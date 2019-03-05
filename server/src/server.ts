@@ -31,13 +31,12 @@ import { empty } from './utilities/typeGuards';
 import { Analyzer } from './analyzer';
 import { IDiagnosticUri } from './types';
 import { keywordCompletions } from './utilities/constants';
-import { KsEntity } from './analysis/types';
+import { KsEntity, EntityType } from './analysis/types';
 import { entityCompletionItems, suffixCompletionItems } from './utilities/serverUtils';
 import { Logger } from './utilities/logger';
 import { locationCopy } from './utilities/positionHelpers';
-import { addPrototype } from './typeChecker/typeUitlities';
-import { primitiveType } from './typeChecker/types/primitives/primitives';
-import { structureType } from './typeChecker/types/primitives/structure';
+import { primitiveInitializer } from './typeChecker/types/primitives/initialize';
+import { oribitalInitializer } from './typeChecker/types/orbital/initialize';
 
 // Create a connection for the server. The connection uses Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -45,7 +44,8 @@ export const connection = createConnection(ProposedFeatures.all);
 
 // REMOVE ME TODO probably need to refactor the type modules as
 // structure and the primitives have a dependnecy loop
-addPrototype(primitiveType, structureType);
+primitiveInitializer();
+oribitalInitializer();
 
 // Create a simple text document manager. The text document manager
 // supports full document sync only
@@ -192,7 +192,7 @@ connection.onHover((positionParmas: TextDocumentPositionParams): Maybe<Hover> =>
   const [type, entityType] = typeInfo;
 
   return {
-    contents: `(${entityType}) ${token.lexeme}: ${type.toTypeString()} `,
+    contents: `(${EntityType[entityType]}) ${token.lexeme}: ${type.toTypeString()} `,
     range: {
       start: token.start,
       end: token.end,
@@ -243,16 +243,16 @@ connection.onDocumentSymbol(
     return entities.map((entity) => {
       let kind: Maybe<SymbolKind> = undefined;
       switch (entity.tag) {
-        case 'function':
+        case EntityType.function:
           kind = SymbolKind.Function;
           break;
-        case 'parameter':
+        case EntityType.parameter:
           kind = SymbolKind.Variable;
           break;
-        case 'lock':
+        case EntityType.lock:
           kind = SymbolKind.Variable;
           break;
-        case 'variable':
+        case EntityType.variable:
           kind = SymbolKind.Variable;
           break;
         default:

@@ -4,9 +4,9 @@ import {
   tType, createGenericArgSuffixType,
 } from '../ksType';
 import { addPrototype, addSuffixes } from '../../typeUitlities';
-import { collectionType } from './collection';
 import { voidType } from '../primitives/void';
 import { scalarType } from '../primitives/scalar';
+import { collectionType } from './enumerable';
 
 export const listType: IGenericArgumentType = createGenericStructureType('list');
 

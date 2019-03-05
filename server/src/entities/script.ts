@@ -1,11 +1,12 @@
-import { IInst, IScript } from '../parser/types';
+import { IInst, IScript, RunInstType } from '../parser/types';
 import { Range, Position, Location } from 'vscode-languageserver';
 
 export class Script implements IScript {
   constructor(
     public readonly uri: string,
-    public readonly insts: IInst[])
-  { }
+    public readonly insts: IInst[],
+    public readonly runInsts: RunInstType[],
+    public lazyGlobal = true) { }
 
   public get start(): Position {
     return this.insts[0].start;

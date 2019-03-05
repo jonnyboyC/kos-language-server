@@ -3,7 +3,7 @@ import { empty } from '../utilities/typeGuards';
 import { ScopeType, IExpr, ISuffixTerm } from '../parser/types';
 import { KsVariable } from '../entities/variable';
 import { EntityState, IScope, IScopeNode,
-  KsEntity, IStack, IKsEntityTracker,
+  KsEntity, IStack, IKsEntityTracker, EntityType,
 } from './types';
 import { KsFunction } from '../entities/function';
 import { KsLock } from '../entities/lock';
@@ -16,6 +16,7 @@ import { Scope } from './scope';
 import { KsEntityTracker, createEnitityChange } from './tracker';
 import { IArgumentType, IFunctionType } from '../typeChecker/types/types';
 import { ScopeManager } from './scopeManager';
+import { isKsVariable, isKsParameter, isKsLock } from '../entities/entityHelpers';
 
 export class ScopeBuilder {
   private readonly global: IScope;
@@ -90,23 +91,23 @@ export class ScopeBuilder {
     if (!empty(scope)) {
       for (const tracker of scope.values()) {
         switch (tracker.declared.entity.tag) {
-          case 'function':
+          case EntityType.function:
             break;
-          case 'parameter':
+          case EntityType.parameter:
             if (tracker.usages.length === 0) {
               errors.push(new ResolverError(
                 tracker.declared.entity.name,
                 `Parameter ${tracker.declared.entity.name.lexeme} was not used.`, []));
             }
             break;
-          case 'lock':
+          case EntityType.lock:
             if (!tracker.declared.entity.cooked && tracker.usages.length === 0) {
               errors.push(new ResolverError(
                 tracker.declared.entity.name,
                 `Lock ${tracker.declared.entity.name.lexeme} was not used.`, []));
             }
             break;
-          case 'variable':
+          case EntityType.variable:
             if (tracker.usages.length === 0) {
               errors.push(new ResolverError(
                 tracker.declared.entity.name,
@@ -151,13 +152,13 @@ export class ScopeBuilder {
 
     // check the appropriate lookup for the entity
     switch (tracker.declared.entity.tag) {
-      case 'parameter':
+      case EntityType.parameter:
         return this.checkUseEntity(name, tracker, 'Parameter', expr);
-      case 'function':
+      case EntityType.function:
         return this.checkUseEntity(name, tracker, 'Function', expr);
-      case 'variable':
+      case EntityType.variable:
         return this.checkUseEntity(name, tracker, 'Variable', expr);
-      case 'lock':
+      case EntityType.lock:
         return this.checkUseEntity(name, tracker, 'Lock', expr);
     }
   }
@@ -328,8 +329,8 @@ export class ScopeBuilder {
     const tracker = this.lookup(token, scope);
 
     return !empty(tracker)
-      && (tracker.declared.entity.tag === 'variable'
-      || tracker.declared.entity.tag === 'parameter')
+      && (isKsVariable(tracker.declared.entity)
+      || isKsParameter(tracker.declared.entity))
       ? tracker as IKsEntityTracker<KsVariable | KsParameter>
       : undefined;
   }
@@ -339,7 +340,7 @@ export class ScopeBuilder {
     Maybe<IKsEntityTracker<KsVariable>> {
     const tracker = this.lookup(token, scope);
 
-    return !empty(tracker) && tracker.declared.entity.tag === 'variable'
+    return !empty(tracker) && isKsVariable(tracker.declared.entity)
       ? tracker as IKsEntityTracker<KsVariable>
       : undefined;
   }
@@ -349,7 +350,7 @@ export class ScopeBuilder {
     Maybe<IKsEntityTracker<KsFunction>> {
     const tracker = this.lookup(token, scope);
 
-    return !empty(tracker) && tracker.declared.entity.tag === 'variable'
+    return !empty(tracker) && isKsVariable(tracker.declared.entity)
       ? tracker as IKsEntityTracker<KsFunction>
       : undefined;
   }
@@ -359,7 +360,7 @@ export class ScopeBuilder {
     Maybe<IKsEntityTracker<KsLock>> {
     const tracker = this.lookup(token, scope);
 
-    return !empty(tracker) && tracker.declared.entity.tag === 'lock'
+    return !empty(tracker) && isKsLock(tracker.declared.entity)
       ? tracker as IKsEntityTracker<KsLock>
       : undefined;
   }
@@ -369,7 +370,7 @@ export class ScopeBuilder {
     Maybe<IKsEntityTracker<KsParameter>> {
     const tracker = this.lookup(token, scope);
 
-    return !empty(tracker) && tracker.declared.entity.tag === 'parameter'
+    return !empty(tracker) && isKsParameter(tracker.declared.entity)
       ? tracker as IKsEntityTracker<KsParameter>
       : undefined;
   }
@@ -449,7 +450,7 @@ export class ScopeBuilder {
   // generate local variable conflict error
   private localConflictError(name: IToken, entity: KsEntity): ResolverError {
     return new ResolverError(
-      name, `${this.pascalCase(entity.tag)} ${entity.name.lexeme}`
+      name, `${this.pascalCase(EntityType[entity.tag])} ${entity.name.lexeme}`
         + ` already exists here ${this.positionToString(entity.name.start)}.`,
       []);
   }

@@ -6,7 +6,7 @@ import { vectorType } from './collections/vector';
 import { stringType } from './primitives/string';
 import { scalarType } from './primitives/scalar';
 import { booleanType } from './primitives/boolean';
-import { bodyTargetType } from './orbital/orbitable';
+import { bodyTargetType } from './orbital/bodyTarget';
 
 export const orbitInfoType: IArgumentType = createStructureType('orbitInfo');
 addPrototype(orbitInfoType, structureType);

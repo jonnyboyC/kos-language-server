@@ -7,7 +7,7 @@ import { Scanner } from './scanner/scanner';
 import { Resolver } from './analysis/resolver';
 import { IScannerError } from './scanner/types';
 import { IParseError, ScriptResult, RunInstType } from './parser/types';
-import { IResolverError, KsEntity, IKsEntityTracker } from './analysis/types';
+import { IResolverError, KsEntity, IKsEntityTracker, EntityType } from './analysis/types';
 import { mockLogger, mockTracer } from './utilities/logger';
 import { empty, notEmpty } from './utilities/typeGuards';
 import { ScriptFind } from './parser/scriptFind';
@@ -16,6 +16,7 @@ import * as Inst from './parser/inst';
 import { signitureHelper } from './utilities/signitureHelper';
 import * as Expr from './parser/expr';
 import * as SuffixTerm from './parser/suffixTerm';
+import * as Decl from './parser/declare';
 import { PathResolver, runPath } from './utilities/pathResolver';
 import { existsSync } from 'fs';
 import { extname } from 'path';
@@ -29,6 +30,7 @@ import { ITypeError, ITypeResolvedSuffix, ITypeNode } from './typeChecker/types'
 import { IToken } from './entities/types';
 import { IType } from './typeChecker/types/types';
 import { binarySearch, rangeContains } from './utilities/positionHelpers';
+import { isKsFunction } from './entities/entityHelpers';
 
 export class Analyzer {
   public readonly pathResolver: PathResolver;
@@ -81,7 +83,7 @@ export class Analyzer {
   // main validation code
   private async* validateDocument_(uri: string, text: string, depth: number):
     AsyncIterableIterator<ValidateResult> {
-    const { script, parseErrors, scanErrors, runInsts } = await this.parseDocument(uri, text);
+    const { script, parseErrors, scanErrors } = await this.parseDocument(uri, text);
     const scopeManagers: ScopeManager[] = [];
 
     const scanDiagnostics = scanErrors
@@ -96,8 +98,8 @@ export class Analyzer {
     yield parserDiagnostics;
 
     // if any run instruction exist get uri then load
-    if (runInsts.length > 0 && this.pathResolver.ready) {
-      const loadDatas = this.getValidUri(uri, runInsts);
+    if (script.runInsts.length > 0 && this.pathResolver.ready) {
+      const loadDatas = this.getValidUri(uri, script.runInsts);
 
       // for each document run validate and yield any results
       for (const loadData of loadDatas) {
@@ -193,7 +195,7 @@ export class Analyzer {
     yield scopeManager;
   }
 
-  public getSuffixType(pos: Position, uri: string): Maybe<[IType, string]> {
+  public getSuffixType(pos: Position, uri: string): Maybe<[IType, EntityType]> {
     const documentInfo = this.documentInfos.get(uri);
     if (empty(documentInfo)) {
       return undefined;
@@ -202,7 +204,9 @@ export class Analyzer {
     // try to find an entity at the position
     const { script, scopeManager } = documentInfo;
     const finder = new ScriptFind();
-    const result = finder.find(script, pos, Expr.Suffix);
+    const result = finder.find(
+      script, pos, Expr.Suffix, Decl.Var,
+      Decl.Lock, Decl.Func, Decl.Parameter);
 
     if (empty(result)) {
       return undefined;
@@ -230,10 +234,55 @@ export class Analyzer {
       if (suffixNode) {
         return [
           suffixNode.type,
-          'suffix',
+          EntityType.suffix,
         ];
       }
     }
+
+    if (node instanceof Decl.Var) {
+      const tracker = scopeManager.scopedVariableTracker(pos, node.identifier.lexeme);
+
+      if (tracker) {
+        return [
+          tracker.declared.type,
+          tracker.declared.entity.tag,
+        ];
+      }
+    }
+
+    if (node instanceof Decl.Lock) {
+      const tracker = scopeManager.scopedLockTracker(pos, node.identifier.lexeme);
+
+      if (tracker) {
+        return [
+          tracker.declared.type,
+          tracker.declared.entity.tag,
+        ];
+      }
+    }
+
+    if (node instanceof Decl.Func) {
+      const tracker = scopeManager.scopedFunctionTracker(pos, node.functionIdentifier.lexeme);
+
+      if (tracker) {
+        return [
+          tracker.declared.type,
+          tracker.declared.entity.tag,
+        ];
+      }
+    }
+
+    if (node instanceof Decl.Parameter) {
+      const tracker = scopeManager.scopedParameterTracker(pos, node.identifier.lexeme);
+
+      if (tracker) {
+        return [
+          tracker.declared.type,
+          tracker.declared.entity.tag,
+        ];
+      }
+    }
+
     return undefined;
   }
 
@@ -309,13 +358,13 @@ export class Analyzer {
 
     // try to find the tracker at a given position
     const { token } = result;
-    const tracker = scopeManager.scopedTracker(pos, token.lexeme);
-    if (empty(tracker)) {
+    const trackers = scopeManager.scopedNamedTrackers(pos, token.lexeme);
+    if (empty(trackers.length !== 1)) {
       return undefined;
     }
 
-    return tracker.usages.map(usage => usage as Location)
-      .concat(tracker.declared.entity.name)
+    return trackers[0].usages.map(usage => usage as Location)
+      .concat(trackers[0].declared.entity.name)
       .filter(location => location.uri !== builtIn);
   }
 
@@ -323,23 +372,24 @@ export class Analyzer {
   public getScopedTracker(pos: Position, name: string, uri?: string):
     Maybe<IKsEntityTracker<KsEntity>> {
     if (empty(uri)) {
-      return this.getGlobalTracker(name);
+      const trackers = this.getGlobalTracker(name);
+      return trackers.length === 1 ? trackers[0] : undefined;
     }
 
     const documentInfo = this.documentInfos.get(uri);
 
     if (!empty(documentInfo) && !empty(documentInfo.scopeManager)) {
-      const tracker = documentInfo.scopeManager.scopedTracker(pos, name);
-      return tracker;
+      const trackers = documentInfo.scopeManager.scopedNamedTrackers(pos, name);
+      return trackers.length === 1 ? trackers[0] : undefined;
     }
 
-    const tracker = this.getGlobalTracker(name);
-    return tracker;
+    const trackers = this.getGlobalTracker(name);
+    return trackers.length === 1 ? trackers[0] : undefined;
   }
 
   // get a global trackers
-  public getGlobalTracker(name: string): Maybe<IKsEntityTracker<KsEntity>> {
-    return standardLibrary.globalTracker(name);
+  public getGlobalTracker(name: string): IKsEntityTracker<KsEntity>[] {
+    return standardLibrary.globalTrackers(name);
   }
 
   // get all tracker at position
@@ -400,7 +450,7 @@ export class Analyzer {
 
       // resolve the token to make sure it's actually a function
       const ksFunction = documentInfo.scopeManager.scopedEntity(pos, identifier);
-      if (empty(ksFunction) || ksFunction.tag !== 'function') {
+      if (empty(ksFunction) || !isKsFunction(ksFunction)) {
         return undefined;
       }
 

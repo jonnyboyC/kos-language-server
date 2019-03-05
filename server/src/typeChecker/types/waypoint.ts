@@ -6,8 +6,8 @@ import { vectorType } from './collections/vector';
 import { stringType } from './primitives/string';
 import { scalarType } from './primitives/scalar';
 import { booleanType } from './primitives/boolean';
-import { bodyTargetType } from './orbital/orbitable';
 import { geoCoordinatesType } from './geoCoordinates';
+import { bodyTargetType } from './orbital/bodyTarget';
 
 export const waypointType: IArgumentType = createStructureType('waypoint');
 addPrototype(waypointType, structureType);

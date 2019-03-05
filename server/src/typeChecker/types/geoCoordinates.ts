@@ -1,11 +1,11 @@
 import { IArgumentType } from './types';
 import { createStructureType, createSuffixType, createArgSuffixType } from './ksType';
 import { addPrototype, addSuffixes } from '../typeUitlities';
-import { serializableStructureType } from './primitives/structure';
 import { vectorType } from './collections/vector';
 import { orbitableVelocityType } from './orbitalVelocity';
 import { scalarType } from './primitives/scalar';
-import { bodyTargetType } from './orbital/orbitable';
+import { serializableStructureType } from './primitives/serializeableStructure';
+import { bodyTargetType } from './orbital/bodyTarget';
 
 export const geoCoordinatesType: IArgumentType = createStructureType('geoCoordinates');
 addPrototype(geoCoordinatesType, serializableStructureType);

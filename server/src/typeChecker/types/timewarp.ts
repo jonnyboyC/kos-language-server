@@ -1,12 +1,12 @@
 import { IArgumentType } from './types';
 import { createStructureType, createSuffixType, createArgSuffixType } from './ksType';
 import { addPrototype, addSuffixes } from '../typeUitlities';
-import { serializableStructureType } from './primitives/structure';
 import { listType } from './collections/list';
 import { voidType } from './primitives/void';
 import { scalarType, integarType } from './primitives/scalar';
 import { stringType } from './primitives/string';
 import { booleanType } from './primitives/boolean';
+import { serializableStructureType } from './primitives/serializeableStructure';
 
 export const timeWarpType: IArgumentType = createStructureType('timeWarp');
 addPrototype(timeWarpType, serializableStructureType);

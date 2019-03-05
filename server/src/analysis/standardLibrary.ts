@@ -3,7 +3,7 @@ import { Token, Marker } from '../entities/token';
 import { TokenType } from '../entities/tokentypes';
 import { queueType } from '../typeChecker/types/collections/queue';
 import {
-  structureType, serializableStructureType,
+  structureType,
 } from '../typeChecker/types/primitives/structure';
 import { createVarType } from '../typeChecker/typeUitlities';
 import { listType } from '../typeChecker/types/collections/list';
@@ -25,9 +25,7 @@ import { voiceType } from '../typeChecker/types/voice';
 import { hsvaType } from '../typeChecker/types/hsva';
 import { vectorRendererType } from '../typeChecker/types/vectorRenderer';
 import { guiWidgetType } from '../typeChecker/types/gui/guiWidget';
-import {
-  orbitableType, bodyTargetType, vesselTargetType,
-} from '../typeChecker/types/orbital/orbitable';
+import { orbitableType } from '../typeChecker/types/orbital/orbitable';
 import { timeSpanType } from '../typeChecker/types/timespan';
 import { highlightType } from '../typeChecker/types/highlight';
 import { orbitInfoType } from '../typeChecker/types/orbitInfo';
@@ -64,20 +62,24 @@ import { configType } from '../typeChecker/types/config';
 import { builtInDelegateType } from '../typeChecker/types/builtInDelegate';
 import { addonListType } from '../typeChecker/types/addonList';
 import { vesselSensorsType } from '../typeChecker/types/vessel/vesselSensors';
+import { serializableStructureType } from '../typeChecker/types/primitives/serializeableStructure';
+import { bodyTargetType } from '../typeChecker/types/orbital/bodyTarget';
+import { vesselTargetType } from '../typeChecker/types/orbital/vesselTarget';
 
 const libraryBuilder = new ScopeBuilder(builtIn);
 const functionTypes = [
   createFunctionType('abs', scalarType, scalarType),
   createFunctionType('add', voidType, nodeType),
-  createFunctionType('addAlarm', kacAlarmType, stringType, stringType, doubleType, stringType),
+  createFunctionType('addAlarm', kacAlarmType, stringType, stringType, scalarType, stringType),
   createFunctionType('allwaypoints', listType.toConcreteType(waypointType)),
-  createFunctionType('angleaxis', directionType, vectorType, doubleType),
+  createFunctionType('angleaxis', directionType, vectorType, scalarType),
   createFunctionType('anglediff', scalarType, scalarType, scalarType),
   createFunctionType('arccos', scalarType),
   createFunctionType('arcsin', scalarType),
   createFunctionType('arctan', scalarType),
   createFunctionType('arctan2', scalarType),
-  createFunctionType('body', bodyTargetType, stringType),
+  // TODO need to figure out name collision for scope manager
+  // createFunctionType('body', bodyTargetType, stringType),
   createFunctionType('bodyatmosphere', bodyAtmosphereType, stringType),
   createFunctionType('buildlist', /* TODO Union */ scalarType, stringType),
   createFunctionType('career', careerType),
@@ -102,14 +104,14 @@ const functionTypes = [
   createFunctionType('floor', scalarType, scalarType),
   createFunctionType('GetVoice', voiceType, integarType),
   createFunctionType('gui', guiWidgetType, integarType, integarType),
-  createFunctionType('heading', directionType, doubleType, doubleType),
+  createFunctionType('heading', directionType, scalarType, scalarType),
   createFunctionType('highlight', highlightType, structureType, rgbaType),
-  createFunctionType('hsv', hsvaType, doubleType, doubleType, doubleType),
-  createFunctionType('hsva', hsvaType, doubleType, doubleType, doubleType, doubleType),
+  createFunctionType('hsv', hsvaType, scalarType, scalarType, scalarType),
+  createFunctionType('hsva', hsvaType, scalarType, scalarType, scalarType, scalarType),
   createFunctionType(
     'hudtext', voidType, stringType, integarType,
     integarType, rgbaType, booleanType),
-  createFunctionType('latlng', geoCoordinatesType, doubleType, doubleType),
+  createFunctionType('latlng', geoCoordinatesType, scalarType, scalarType),
   createVarFunctionType('lex', lexiconType, createVarType(structureType)),
   createVarFunctionType('lexicon', lexiconType, createVarType(structureType)),
   createVarFunctionType('list', userListType, createVarType(structureType)),
@@ -121,10 +123,10 @@ const functionTypes = [
   createFunctionType('makebuiltindelegate', builtInDelegateType, stringType),
   createFunctionType('max', scalarType, scalarType, scalarType),
   createFunctionType('min', scalarType, scalarType, scalarType),
-  createFunctionType('mod', scalarType, scalarType),
+  createFunctionType('mod', scalarType, scalarType, scalarType),
   createFunctionType('movepath', voidType, stringType, stringType),
-  createFunctionType('node', nodeType, doubleType, doubleType, doubleType, doubleType),
-  createFunctionType('note', noteType, doubleType, doubleType, doubleType, doubleType),
+  createFunctionType('node', nodeType, scalarType, scalarType, scalarType, scalarType),
+  createFunctionType('note', noteType, scalarType, scalarType, scalarType, scalarType),
   createFunctionType('open', volumeItemType, stringType),
   createFunctionType('orbitat', orbitInfoType, orbitableType, timeSpanType),
   createFunctionType('path', pathType, stringType),
@@ -137,17 +139,17 @@ const functionTypes = [
   createFunctionType('printlist', voidType, stringType),
   createFunctionType('processor', partType, /* TODO Union Type */ stringType),
   createFunctionType('profileresult', voidType),
-  createFunctionType('q', directionType, doubleType, doubleType, doubleType, doubleType),
+  createFunctionType('q', directionType, scalarType, scalarType, scalarType, scalarType),
   createVarFunctionType(
     'queue', queueType.toConcreteType(structureType), createVarType(structureType)),
-  createFunctionType('r', directionType, doubleType, doubleType, doubleType),
+  createFunctionType('r', directionType, scalarType, scalarType, scalarType),
   createFunctionType('random', scalarType),
   createFunctionType('range', rangeType, integarType, integarType, integarType),
   createFunctionType('readjson', serializableStructureType, stringType), // TODO Union Types
   createFunctionType('reboot', voidType),
   createFunctionType('remove', voidType, nodeType),
-  createFunctionType('rgb', rgbaType, doubleType, doubleType, doubleType),
-  createFunctionType('rgba', rgbaType, doubleType, doubleType, doubleType, doubleType),
+  createFunctionType('rgb', rgbaType, scalarType, scalarType, scalarType),
+  createFunctionType('rgba', rgbaType, scalarType, scalarType, scalarType, scalarType),
   createFunctionType('rotatefromto', directionType, vectorType, vectorType),
   createFunctionType('round', scalarType, scalarType),
   createFunctionType('scriptpath', pathType),
@@ -155,8 +157,8 @@ const functionTypes = [
   createFunctionType('shutdown', voidType),
   createFunctionType('sin', scalarType),
   createFunctionType(
-    'slidenote', noteType, doubleType,
-    doubleType, doubleType, doubleType, doubleType),
+    'slidenote', noteType, scalarType,
+    scalarType, scalarType, scalarType, scalarType),
   createFunctionType('sqrt', scalarType, scalarType),
   createVarFunctionType(
     'stack', stackType.toConcreteType(structureType), createVarType(structureType)),
@@ -167,7 +169,7 @@ const functionTypes = [
   createFunctionType('toggleflybywire', voidType, stringType, booleanType),
   createFunctionType(
     'transfer', resourceTransferType,
-    stringType, structureType, structureType,  doubleType),
+    stringType, structureType, structureType, scalarType),
   createFunctionType(
     'transferall', resourceTransferType,
     stringType, structureType, structureType),
@@ -180,10 +182,10 @@ const functionTypes = [
   createFunctionType('vdot', vectorType, vectorType, vectorType),
   createFunctionType(
     'vecdraw', vectorRendererType, vectorType, vectorType, rgbaType,
-    stringType, doubleType, booleanType, doubleType),
+    stringType, scalarType, booleanType, scalarType),
   createFunctionType(
     'vecdrawargs', vectorRendererType, vectorType, vectorType, rgbaType,
-    stringType, doubleType, booleanType, doubleType),
+    stringType, scalarType, booleanType, scalarType),
   createFunctionType('vectorangle', scalarType, vectorType, vectorType),
   createFunctionType('vectorcrossproduct', vectorType, vectorType, vectorType),
   createFunctionType('vectordotproduct', vectorType, vectorType, vectorType),
@@ -192,7 +194,7 @@ const functionTypes = [
   createFunctionType('vessel', vesselTargetType, stringType),
   createFunctionType('volume', volumeType, stringType),
   createFunctionType('vxcl', vectorType, vectorType, vectorType),
-  createFunctionType('warpto', voidType, doubleType),
+  createFunctionType('warpto', voidType, scalarType),
   createFunctionType('waypoint', waypointType, stringType),
   // TODO Union Types
   createFunctionType('writejson', volumeFileType, serializableStructureType, stringType),

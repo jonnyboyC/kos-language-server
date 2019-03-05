@@ -81,6 +81,14 @@ export interface ISetResolverResult {
 
 export type KsEntity = KsVariable | KsFunction | KsLock | KsParameter;
 
+export enum EntityType {
+  variable,
+  function,
+  lock,
+  parameter,
+  suffix,
+}
+
 // tslint:disable-next-line:prefer-array-literal
 export interface IStack<T> extends Pick<Array<T>, 'pop' | 'push' | 'length'> {
   [index: number]: T;

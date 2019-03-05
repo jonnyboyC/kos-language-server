@@ -15,7 +15,8 @@ import { Token } from '../entities/token';
 
 type Contexts = Constructor<Expr.Expr>
   | Constructor<Inst.Inst>
-  | Constructor<SuffixTerm.SuffixTermBase>;
+  | Constructor<SuffixTerm.SuffixTermBase>
+  | Constructor<Decl.Parameter>;
 
 export class ScriptFind implements
   IExprVisitor<Maybe<IFindResult>>,
@@ -85,7 +86,9 @@ export class ScriptFind implements
       return {
         node: this.isContext(node)
           ? node
-          : undefined,
+          : this.isContext(searchResult)
+            ? searchResult
+            : undefined,
         token: searchResult.identifier,
       };
     }

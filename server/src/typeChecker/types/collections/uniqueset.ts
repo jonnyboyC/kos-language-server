@@ -4,13 +4,11 @@ import {
   tType, createGenericArgSuffixType,
 } from '../ksType';
 import { addPrototype, addSuffixes } from '../../typeUitlities';
-import { collectionType } from './collection';
-
 import { voidType } from '../primitives/void';
 import { scalarType } from '../primitives/scalar';
+import { collectionType } from './enumerable';
 
 export const uniqueSetType: IGenericArgumentType = createGenericStructureType('uniqueSet');
-
 addPrototype(uniqueSetType, collectionType);
 
 addSuffixes(

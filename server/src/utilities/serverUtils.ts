@@ -7,6 +7,7 @@ import {
 import { empty } from './typeGuards';
 import { allSuffixes } from '../typeChecker/typeUitlities';
 import { CallType } from '../typeChecker/types/types';
+import { EntityType } from '../analysis/types';
 
 export const entityCompletionItems = (
   analyzer: Analyzer,
@@ -19,16 +20,16 @@ export const entityCompletionItems = (
   return entities.map((entity) => {
     let kind: Maybe<CompletionItemKind> = undefined;
     switch (entity.tag) {
-      case 'function':
+      case EntityType.function:
         kind = CompletionItemKind.Function;
         break;
-      case 'parameter':
+      case EntityType.parameter:
         kind = CompletionItemKind.Variable;
         break;
-      case 'lock':
+      case EntityType.lock:
         kind = CompletionItemKind.Variable;
         break;
-      case 'variable':
+      case EntityType.variable:
         kind = CompletionItemKind.Variable;
         break;
       default:
@@ -75,7 +76,7 @@ export const suffixCompletionItems = (
           details: suffix.toTypeString(),
         } as CompletionItem;
       default:
-        throw new Error('Unanticipated call type found')
+        throw new Error('Unanticipated call type found');
     }
   });
 };

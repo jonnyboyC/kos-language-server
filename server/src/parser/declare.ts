@@ -1,5 +1,5 @@
 import { Inst, Block } from './inst';
-import { IDeclScope, IExpr, IInstVisitor, ScopeType } from './types';
+import { IDeclScope, IExpr, IInstVisitor, ScopeType, IParameter } from './types';
 import { TokenType } from '../entities/tokentypes';
 import { empty } from '../utilities/typeGuards';
 import { IToken } from '../entities/types';
@@ -169,10 +169,9 @@ export class Func extends Decl {
   }
 }
 
-export class Parameter implements Range {
+export class Parameter implements IParameter {
   constructor(
-    public readonly identifier: IToken) {
-  }
+    public readonly identifier: IToken) { }
 
   public get start(): Position {
     return this.identifier.start;
@@ -180,6 +179,10 @@ export class Parameter implements Range {
 
   public get end(): Position {
     return this.identifier.end;
+  }
+
+  public get ranges(): Range[] {
+    return [this.identifier];
   }
 
   public get isKeyword(): boolean {
@@ -201,6 +204,10 @@ export class DefaultParam extends Parameter {
 
   public get end(): Position {
     return this.value.end;
+  }
+
+  public get ranges(): Range[] {
+    return [this.identifier, this.toIs, this.value];
   }
 
   public get isKeyword(): boolean {

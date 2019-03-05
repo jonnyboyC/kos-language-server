@@ -15,7 +15,7 @@ import { userListType } from './collections/userList';
 import { booleanType } from './primitives/boolean';
 import { stringType } from './primitives/string';
 import { scalarType } from './primitives/scalar';
-import { vesselTargetType } from './orbital/orbitable';
+import { vesselTargetType } from './orbital/vesselTarget';
 
 export const kUniverseType: IArgumentType = createStructureType('kuniverse');
 addPrototype(kUniverseType, structureType);

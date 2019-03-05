@@ -30,20 +30,20 @@ export class Resolver implements
   private readonly tracer: ITracer;
   private readonly localResolver: LocalResolver;
   private readonly setResolver: SetResolver;
-  private lazyGlobalOff: boolean;
+  private lazyGlobal: boolean;
   private firstInst: boolean;
 
   constructor(
-    syntaxTree: Script,
+    script: Script,
     scopeBuilder: ScopeBuilder,
     logger: ILogger = mockLogger,
     tracer: ITracer = mockTracer) {
 
-    this.script = syntaxTree;
+    this.script = script;
     this.scopeBuilder = scopeBuilder;
     this.localResolver = new LocalResolver();
     this.setResolver = new SetResolver(this.localResolver);
-    this.lazyGlobalOff = false;
+    this.lazyGlobal = true;
     this.firstInst = true;
     this.logger = logger;
     this.tracer = tracer;
@@ -63,6 +63,8 @@ export class Resolver implements
       // resolve reset
       const resolveErrors = this.resolveInsts(restInsts);
       const scopeErrors = this.scopeBuilder.endScope();
+
+      this.script.lazyGlobal = this.lazyGlobal;
       return firstError.concat(resolveErrors, scopeErrors);
     } catch (err) {
       this.logger.error(`Error occured in resolver ${err}`);
@@ -237,7 +239,7 @@ export class Resolver implements
     // if variable isn't define either report error or define
     let defineError: Maybe<ResolverError> = undefined;
     if (empty(this.scopeBuilder.lookupVariable(set, ScopeType.global))) {
-      if (this.lazyGlobalOff) {
+      if (!this.lazyGlobal) {
         defineError = new ResolverError(
           set,
           `Attempted to set ${set.lexeme} which has not be declared.` +
@@ -264,7 +266,7 @@ export class Resolver implements
       ];
     }
 
-    this.lazyGlobalOff = inst.onOff.type === TokenType.off;
+    this.lazyGlobal = !(inst.onOff.type === TokenType.off);
     return [];
   }
 

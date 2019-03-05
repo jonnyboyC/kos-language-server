@@ -1,6 +1,7 @@
 import { ScopeType } from '../parser/types';
 import { IToken } from './types';
 import { KsParameter } from './parameters';
+import { EntityType } from '../analysis/types';
 
 export class KsFunction {
   public readonly requiredParameters: number;
@@ -16,7 +17,7 @@ export class KsFunction {
       .length;
   }
 
-  get tag(): 'function' {
-    return 'function';
+  get tag(): EntityType.function {
+    return EntityType.function;
   }
 }

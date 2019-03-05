@@ -1,6 +1,7 @@
 import { IType } from './types/types';
 import { Range } from 'vscode-languageserver';
 import * as SuffixTerm from '../parser/suffixTerm';
+import { EntityType } from '../analysis/types';
 
 export interface ITypeError extends Range {
   tag: 'typeError';
@@ -21,7 +22,7 @@ export interface ITypeResolvedSuffix<T extends IType = IType> {
 }
 
 export interface ITypeResolved<T extends IType = IType> extends ITypeResolvedSuffix<T>  {
-  atomType: 'function' | 'variable' | 'lock' | 'parameter';
+  atomType: EntityType;
 }
 
 export interface ITypeResult<T extends IType> {

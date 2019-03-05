@@ -1,9 +1,10 @@
 import { IArgumentType } from '../types';
 import { createStructureType, createSuffixType } from '../ksType';
 import { addPrototype, addSuffixes } from '../../typeUitlities';
-import { structureType, serializableStructureType } from '../primitives/structure';
+import { structureType } from '../primitives/structure';
 import { booleanType } from '../primitives/boolean';
 import { scalarType } from '../primitives/scalar';
+import { serializableStructureType } from '../primitives/serializeableStructure';
 
 export const messageType: IArgumentType = createStructureType('message');
 addPrototype(messageType, serializableStructureType);

@@ -1,5 +1,6 @@
 import { ScopeType } from '../parser/types';
 import { IToken } from './types';
+import { EntityType } from '../analysis/types';
 
 export class KsLock {
   constructor(
@@ -20,7 +21,7 @@ export class KsLock {
     }
   }
 
-  get tag(): 'lock' {
-    return 'lock';
+  get tag(): EntityType.lock {
+    return EntityType.lock;
   }
 }

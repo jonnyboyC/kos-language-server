@@ -57,17 +57,15 @@ export class Parser {
       }
       return {
         parseErrors,
-        runInsts: this.runInsts,
-        script: new Script(this.uri, instructions),
+        script: new Script(this.uri, instructions, this.runInsts),
       };
     } catch (err) {
       this.logger.error(`Error occured in parser ${err}`);
       this.tracer.log(err);
 
       return {
-        runInsts: [],
-        script: new Script(this.uri, []),
         parseErrors: [],
+        script: new Script(this.uri, [], []),
       };
     }
   }

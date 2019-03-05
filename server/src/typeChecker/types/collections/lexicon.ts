@@ -6,11 +6,12 @@ import {
   createSetSuffixType,
 } from '../ksType';
 import { addPrototype, addSuffixes } from '../../typeUitlities';
-import { structureType, serializableStructureType } from '../primitives/structure';
+import { structureType } from '../primitives/structure';
 import { voidType } from '../primitives/void';
 import { userListType } from './userList';
 import { booleanType } from '../primitives/boolean';
 import { scalarType } from '../primitives/scalar';
+import { serializableStructureType } from '../primitives/serializeableStructure';
 
 export const lexiconType: IArgumentType = createStructureType('lexicon');
 addPrototype(lexiconType, serializableStructureType);
