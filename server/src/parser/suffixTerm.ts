@@ -26,6 +26,40 @@ export abstract class SuffixTermBase extends NodeBase implements ISuffixTerm {
     param: TP): TR;
 }
 
+export class Invalid extends SuffixTermBase {
+  constructor(public readonly tokens: IToken[]) {
+    super();
+  }
+
+  public get start(): Position {
+    return this.tokens[0].start;
+  }
+
+  public get end(): Position {
+    return this.tokens[this.tokens.length - 1].end;
+  }
+
+  public get ranges(): Range[] {
+    return [...this.tokens];
+  }
+
+  public toString(): string {
+    return this.tokens.join(', ');
+  }
+
+  public acceptParam<TP, TR>(visitor: ISuffixTermParamVisitor<TP, TR>, param: TP): TR {
+    return visitor.visitSuffixTermInvalid(this, param);
+  }
+
+  public accept<T>(visitor: ISuffixTermVisitor<T>): T {
+    return visitor.visitSuffixTermInvalid(this);
+  }
+
+  public static classAccept<T>(visitor: ISuffixTermClassVisitor<T>): T {
+    return visitor.visitSuffixTermInvalid(this);
+  }
+}
+
 export class SuffixTrailer extends SuffixTermBase {
   public static grammar: GrammarNode[];
 

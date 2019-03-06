@@ -256,6 +256,9 @@ export class ScriptFind implements
   public visitSuffix(expr: Expr.Suffix): Maybe<IFindResult> {
     return this.findNode(expr);
   }
+  public visitSuffixTermInvalid(suffixTerm: SuffixTerm.Invalid): Maybe<IFindResult> {
+    return this.findNode(suffixTerm);
+  }
   public visitSuffixTrailer(suffixTerm: SuffixTerm.SuffixTrailer): Maybe<IFindResult> {
     return this.findNode(suffixTerm);
   }

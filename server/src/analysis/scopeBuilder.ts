@@ -195,7 +195,7 @@ export class ScopeBuilder {
   // declare a variable
   public declareVariable(scopeType: ScopeType, name: IToken, type?: IArgumentType):
     Maybe<ResolverError> {
-    const tracker = this.lookup(name, ScopeType.local);
+    const tracker = this.lookup(name, scopeType);
 
     // check if variable has already been defined
     if (!empty(tracker)) {
@@ -216,7 +216,7 @@ export class ScopeBuilder {
     parameters: KsParameter[],
     returnValue: boolean,
     type?: IFunctionType): Maybe<ResolverError> {
-    const tracker = this.lookup(name, ScopeType.local);
+    const tracker = this.lookup(name, scopeType);
 
     // check if variable has already been defined
     if (!empty(tracker)) {
@@ -239,7 +239,7 @@ export class ScopeBuilder {
     scopeType: ScopeType,
     name: IToken,
     type?: IArgumentType): Maybe<ResolverError> {
-    const tracker = this.lookup(name, ScopeType.local);
+    const tracker = this.lookup(name, scopeType);
 
     // check if variable has already been defined
     if (!empty(tracker)) {
@@ -260,7 +260,7 @@ export class ScopeBuilder {
     scopeType: ScopeType,
     name: IToken,
     defaulted: boolean): Maybe<ResolverError> {
-    const tracker = this.lookup(name, ScopeType.local);
+    const tracker = this.lookup(name, scopeType);
 
     // check if variable has already been defined
     if (!empty(tracker)) {

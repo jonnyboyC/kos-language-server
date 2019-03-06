@@ -40,6 +40,14 @@ export class SetResolver implements
     return setResult(result.set, result.used, this.localResolver.resolveSuffixTerm(expr.trailer));
   }
 
+  public visitAnonymousFunction(_: Expr.AnonymousFunction): ISetResolverResult {
+    return setResult();
+  }
+
+  public visitSuffixTermInvalid(_: SuffixTerm.Invalid): ISetResolverResult {
+    throw setResult();
+  }
+
   public visitSuffixTrailer(expr: SuffixTerm.SuffixTrailer): ISetResolverResult {
     const result = this.resolveSuffixTerm(expr.suffixTerm);
     if (empty(expr.trailer)) {
@@ -78,9 +86,6 @@ export class SetResolver implements
     return setResult(expr.token);
   }
   public visitGrouping(_: SuffixTerm.Grouping): ISetResolverResult {
-    return setResult();
-  }
-  public visitAnonymousFunction(_: Expr.AnonymousFunction): ISetResolverResult {
     return setResult();
   }
 }

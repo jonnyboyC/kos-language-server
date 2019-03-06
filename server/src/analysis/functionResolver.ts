@@ -401,6 +401,10 @@ export class FuncResolver implements
 
   ----------------------------------------------*/
 
+  public visitSuffixTermInvalid(_: SuffixTerm.Invalid): ResolverError[] {
+    return [];
+  }
+
   public visitSuffixTrailer(expr: SuffixTerm.SuffixTrailer): ResolverError[] {
     const suffixTerm = this.resolveSuffixTerm(expr.suffixTerm);
     if (empty(expr.trailer)) {

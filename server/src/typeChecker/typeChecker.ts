@@ -909,6 +909,16 @@ export class TypeChecker implements
       trailer.errors);
   }
 
+  public visitSuffixTermInvalid(
+    suffixTerm: SuffixTerm.Invalid,
+    param: ITypeResultSuffix<IType>): ITypeResultSuffix<IArgumentType> {
+    if (suffixTerm && param) {
+      console.log('TODO');
+    }
+
+    throw new Error('Method not implemented.');
+  }
+
   public visitSuffixTerm(
     suffixTerm: SuffixTerm.SuffixTerm,
     current: ITypeResultSuffix<IType>): ITypeResultSuffix<IArgumentType> {

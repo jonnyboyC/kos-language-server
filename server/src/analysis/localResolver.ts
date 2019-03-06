@@ -7,6 +7,7 @@ import { empty } from '../utilities/typeGuards';
 export class LocalResolver implements
   IExprVisitor<ILocalResult[]>,
   ISuffixTermVisitor<ILocalResult[]> {
+
   public resolveExpr(expr: IExpr): ILocalResult[] {
     return expr.accept(this);
   }
@@ -36,6 +37,9 @@ export class LocalResolver implements
     return atom.concat(this.resolveSuffixTerm(expr.trailer));
   }
   public visitAnonymousFunction(_: Expr.AnonymousFunction): ILocalResult[] {
+    return [];
+  }
+  public visitSuffixTermInvalid(_: SuffixTerm.Invalid): ILocalResult[] {
     return [];
   }
   public visitSuffixTrailer(suffixTerm: SuffixTerm.SuffixTrailer): ILocalResult[] {

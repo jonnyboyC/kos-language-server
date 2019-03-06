@@ -142,7 +142,13 @@ export class Resolver implements
       ? decl.scope.type
       : ScopeType.global;
 
-    const declareError = this.scopeBuilder.declareLock(scopeType, decl.identifier);
+    const lookup = this.scopeBuilder.lookupLock(decl.identifier, ScopeType.global);
+    let declareError: Maybe<ResolverError> = undefined;
+
+    if (empty(lookup)) {
+      declareError = this.scopeBuilder.declareLock(scopeType, decl.identifier);
+    }
+
     const useErrors = this.useExprLocals(decl.value);
     const resolveErrors = this.resolveExpr(decl.value);
 
@@ -516,6 +522,10 @@ export class Resolver implements
   Suffix Terms
 
   ----------------------------------------------*/
+
+  public visitSuffixTermInvalid(_: SuffixTerm.Invalid): Errors {
+    return [];
+  }
 
   public visitSuffixTrailer(expr: SuffixTerm.SuffixTrailer): IResolverError[] {
     const atom = this.resolveSuffixTerm(expr.suffixTerm);
