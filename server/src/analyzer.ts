@@ -157,10 +157,10 @@ export class Analyzer {
     this.logger.log('');
     performance.mark('type-checking-start');
 
-    const typeDiagnostics = typeChecker.check()
+    typeChecker.check()
       .map(error => typeCheckerToDiagnostics(error, uri));
 
-    yield typeDiagnostics;
+    // yield typeDiagnostics;
     performance.mark('type-checking-end');
 
     // measure performance
@@ -185,7 +185,7 @@ export class Analyzer {
         parserDiagnostics,
         functionDiagnostics,
         resolverDiagnostics,
-        typeDiagnostics,
+        // typeDiagnostics,
       ),
     });
 
