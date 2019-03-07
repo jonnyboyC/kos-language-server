@@ -272,7 +272,7 @@ export class Resolver implements
       ];
     }
 
-    this.lazyGlobal = !(inst.onOff.type === TokenType.off);
+    this.lazyGlobal = inst.onOff.type === TokenType.on;
     return [];
   }
 

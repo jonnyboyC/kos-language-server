@@ -355,9 +355,13 @@ export class TypeChecker implements
       if (this.script.lazyGlobal
         && !empty(tracker)
         && rangeEqual(tracker.declared.range, atom)) {
-        this.scopeManager.declareType(atom.token, atom.token.lexeme, exprResult.type);
+        this.scopeManager.declareType(
+          atom.token, atom.token.lexeme, exprResult.type,
+          EntityType.variable, EntityType.parameter, EntityType.lock);
       } else {
-        this.scopeManager.setType(atom.token, atom.token.lexeme, exprResult.type);
+        this.scopeManager.setType(
+          atom.token, atom.token.lexeme, exprResult.type,
+        );
       }
     } else {
       errors.push(new KsTypeError(
