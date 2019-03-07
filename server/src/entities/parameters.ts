@@ -1,5 +1,5 @@
 import { IToken } from './types';
-import { EntityState } from '../analysis/types';
+import { EntityState, EntityType } from '../analysis/types';
 
 export class KsParameter {
   constructor(
@@ -9,7 +9,7 @@ export class KsParameter {
   )
   { }
 
-  get tag(): 'parameter' {
-    return 'parameter';
+  get tag(): EntityType.parameter {
+    return EntityType.parameter;
   }
 }

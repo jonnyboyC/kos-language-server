@@ -1,48 +1,62 @@
-import { RunInst, RunPathInst, RunPathOnceInst } from '../parser/inst';
+import * as Inst from '../parser/inst';
+import * as SuffixTerm from '../parser/suffixTerm';
+import * as Expr from '../parser/expr';
 import { relative, join, sep, dirname } from 'path';
 import { RunInstType } from '../parser/types';
-import { LiteralExpr } from '../parser/expr';
 import { empty } from './typeGuards';
 import { TokenType } from '../entities/tokentypes';
 import { ILoadData } from '../types';
+import { Location } from 'vscode-languageserver';
 
-// resolve uri from run statments
-export const resolveUri = (
-  volume0Path: string,
-  volumne0Uri: string,
-  uri: string,
-  inst: RunInstType): Maybe<ILoadData> => {
+export class PathResolver {
+  constructor (
+    public volume0Path?: string,
+    public volume0Uri?: string) { }
 
-  // get realtive an run path from file
-  const relativePath = relative(volumne0Uri, dirname(uri)).replace('%20', ' ');
-  const runPath = instPath(inst);
-
-  if (empty(runPath)) {
-    return undefined;
+  public get ready(): boolean {
+    return !empty(this.volume0Path) && !empty(this.volume0Uri);
   }
 
-  // check if the scripts reads from volume 0 "disk"
-  // TODO no idea what to do for ship volumnes
-  const [possibleVolumne, ...remaining] = runPath.split(sep);
-  if (possibleVolumne === '0:') {
+  public resolveUri(caller: Location, path?: string): Maybe<ILoadData> {
+    if (empty(path) || empty(this.volume0Path) || empty(this.volume0Uri)) {
+      return undefined;
+    }
+
+    // get realtive an run path from file
+    const relativePath = relative(this.volume0Uri, dirname(caller.uri)).replace('%20', ' ');
+
+    // check if the scripts reads from volume 0 "disk"
+    // TODO no idea what to do for ship volumes
+    const [possibleVolumne, ...remaining] = path.split(sep);
+    if (possibleVolumne === '0:') {
+      return {
+        caller: { start: caller.range.start, end: caller.range.end },
+        path: join(this.volume0Path, ...remaining),
+        uri: join(this.volume0Uri, ...remaining),
+      };
+    }
+
+    // if no volumne do a relative lookup
     return {
-      inst,
-      path: join(volume0Path, ...remaining),
-      uri: join(volumne0Uri, ...remaining),
+      caller: { start: caller.range.start, end: caller.range.end },
+      path: join(this.volume0Path, relativePath, possibleVolumne, ...remaining),
+      uri: join(this.volume0Uri, relativePath, possibleVolumne, ...remaining),
     };
   }
+}
 
-  // if no volumne do a relative lookup
-  return {
-    inst,
-    path: join(volume0Path, relativePath, possibleVolumne, ...remaining),
-    uri: join(volumne0Uri, relativePath, possibleVolumne, ...remaining),
-  };
+export const ioPath = (inst: Inst.Rename | Inst.Copy | Inst.Delete | Inst.Log): Maybe<string> => {
+  const { target } = inst;
+  if (target instanceof SuffixTerm.Literal) {
+    return literalPath(target);
+  }
+
+  return undefined;
 };
 
 // based on run type determine how to get file path
-const instPath = (inst: RunInstType): Maybe<string> => {
-  if (inst instanceof RunInst) {
+export const runPath = (inst: RunInstType): Maybe<string> => {
+  if (inst instanceof Inst.Run) {
     const { identifier } = inst;
 
     switch (identifier.type) {
@@ -57,15 +71,10 @@ const instPath = (inst: RunInstType): Maybe<string> => {
   }
 
   // for run path varients check for literal
-  if (inst instanceof RunPathInst) {
-    if (inst.expression instanceof LiteralExpr) {
-      return literalPath(inst.expression);
-    }
-  }
-
-  if (inst instanceof RunPathOnceInst) {
-    if (inst.expression instanceof LiteralExpr) {
-      return literalPath(inst.expression);
+  const { expr } = inst;
+  if (expr instanceof Expr.Suffix) {
+    if (expr.suffixTerm.atom instanceof SuffixTerm.Literal) {
+      return literalPath(expr.suffixTerm.atom);
     }
   }
 
@@ -73,7 +82,7 @@ const instPath = (inst: RunInstType): Maybe<string> => {
 };
 
 // determine which string to return for the filepath
-const literalPath = (expr: LiteralExpr): Maybe<string> => {
+const literalPath = (expr: SuffixTerm.Literal): Maybe<string> => {
   const { token } = expr;
 
   switch (token.type) {

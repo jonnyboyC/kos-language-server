@@ -1,29 +1,119 @@
-import {
-  BinaryExpr, UnaryExpr, FactorExpr,
-  SuffixExpr, CallExpr, ArrayIndexExpr,
-  ArrayBracketExpr, DelegateExpr, LiteralExpr,
-  VariableExpr, GroupingExpr,
-  AnonymousFunctionExpr,
-  InvalidExpr,
-} from './expr';
-import {
-  BlockInst, ExprInst, OnOffInst,
-  CommandInst, CommandExpressionInst,
-  UnsetInst, UnlockInst, SetInst,
-  LazyGlobalInst, IfInst, ElseInst,
-  UntilInst, FromInst, WhenInst,
-  ReturnInst, BreakInst, SwitchInst,
-  ForInst, OnInst, ToggleInst, WaitInst,
-  LogInst, CopyInst, RenameInst,
-  DeleteInst, RunInst, RunPathInst,
-  RunPathOnceInst, CompileInst,
-  ListInst, EmptyInst, PrintInst, InvalidInst,
-} from './inst';
-import { DeclVariable, DeclLock, DeclFunction, DeclParameter } from './declare';
+import * as Expr from './expr';
+import * as Inst from './inst';
+import * as SuffixTerm from './suffixTerm';
+import { Var, Lock, Func, Param } from './declare';
 import { IToken } from '../entities/types';
-import { Range } from 'vscode-languageserver';
-import { SyntaxTree } from '../entities/syntaxTree';
+import { Range, Location } from 'vscode-languageserver';
 import { IScannerError } from '../scanner/types';
+import { TokenType } from '../entities/tokentypes';
+
+export interface IRangeSequence extends Range {
+  ranges: Range[];
+}
+
+export interface IDeclScope extends Range {
+  declare?: IToken;
+  scope?: IToken;
+  type: ScopeType;
+}
+
+export interface ISuffixTerm extends
+  ISuffixTermVisitable,
+  ISuffixTermParamVisitable,
+  IRangeSequence {
+  tag: 'suffixTerm';
+  toLocation(uri: string): Location;
+  toString(): string;
+}
+
+export type SuffixTermTrailer = SuffixTerm.Call
+  | SuffixTerm.ArrayBracket
+  | SuffixTerm.ArrayIndex
+  | SuffixTerm.Delegate;
+export type Atom = SuffixTerm.Literal
+  | SuffixTerm.Identifier
+  | SuffixTerm.Grouping;
+
+export interface IParameter extends IRangeSequence {
+  identifier: IToken;
+}
+
+export interface IExpr extends IExprVisitable, IRangeSequence {
+  tag: 'expr';
+  toLocation(uri: string): Location;
+  toString(): string;
+}
+
+export interface IInst extends IInstVisitable, IRangeSequence {
+  tag: 'inst';
+}
+
+export interface IScript extends IRangeSequence {
+  lazyGlobal: boolean;
+  insts: IInst[];
+  runInsts: RunInstType[];
+  uri: string;
+  toLocation(): Location;
+  tag: 'script';
+}
+
+export interface ISuffixTermClass<T = SuffixTerm.SuffixTermBase> extends
+  Constructor<T>,
+  ISuffixTermVisitableClass {
+  grammar: GrammarNode[];
+}
+
+export interface IExprClass<T = Expr.Expr> extends Constructor<T>, IExprVisitableClass {
+  grammar: GrammarNode[];
+}
+
+export interface IInstClass extends Constructor<Inst.Inst>, IExprVisitableClass {
+  grammar: GrammarNode[];
+}
+
+export interface IGrammarOptional {
+  nodes: GrammarNode[];
+  dist: Distribution;
+  tag: 'optional';
+}
+
+export interface IGrammarRepeat {
+  nodes: GrammarNode[];
+  dist: Distribution;
+  tag: 'repeat';
+}
+
+export interface IGrammarUnion {
+  node: [GrammarNode, Distribution][];
+  tag: 'union';
+}
+
+export type Distribution = INormalDistribution
+  | IGammaDistribution
+  | IExponentialDistribution
+  | IConstantDistribution;
+
+export interface INormalDistribution {
+  mean: number;
+  std: number;
+  tag: 'normal';
+}
+
+export interface IGammaDistribution {
+  shape: number;
+  scale: number;
+  tag: 'gamma';
+}
+
+export interface IExponentialDistribution {
+  rate: number;
+  tag: 'exp';
+}
+
+export interface IConstantDistribution {
+  value: number;
+  tag: 'constant';
+}
 
 export interface IParseError extends Range {
   tag: 'parseError';
@@ -34,103 +124,16 @@ export interface IParseError extends Range {
 }
 
 export interface ParseResult {
-  syntaxTree: SyntaxTree;
-  runInsts: RunInstType[];
+  script: IScript;
   parseErrors: IParseError[];
 }
 
-export interface SyntaxTreeResult extends ParseResult {
+export interface ScriptResult extends ParseResult {
   scanErrors: IScannerError[];
 }
 
-export type RunInstType = RunInst | RunPathInst | RunPathOnceInst;
-
-export interface IRangeSequence extends Range {
-  ranges: Range[];
-}
-
-export interface IExpr extends IExprVisitable, IRangeSequence {
-  tag: 'expr';
-  toString(): string;
-}
-
-export interface IInst extends IInstVisitable, IRangeSequence {
-  tag: 'inst';
-}
-
-export interface IDeclScope extends Range {
-  declare?: IToken;
-  scope?: IToken;
-  type: ScopeType;
-}
-
-export interface IExprVisitable {
-  accept<T>(visitor: IExprVisitor<T>): T;
-}
-
-export interface IExprVisitor<T> {
-  visitExprInvalid(expr: InvalidExpr): T;
-  visitBinary(expr: BinaryExpr): T;
-  visitUnary(expr: UnaryExpr): T;
-  visitFactor(expr: FactorExpr): T;
-  visitSuffix(expr: SuffixExpr): T;
-  visitCall(expr: CallExpr): T;
-  visitArrayIndex(expr: ArrayIndexExpr): T;
-  visitArrayBracket(expr: ArrayBracketExpr): T;
-  visitDelegate(expr: DelegateExpr): T;
-  visitLiteral(expr: LiteralExpr): T;
-  visitVariable(expr: VariableExpr): T;
-  visitGrouping(expr: GroupingExpr): T;
-  visitAnonymousFunction(expr: AnonymousFunctionExpr): T;
-}
-
-export interface IInstVisitable {
-  accept<T>(visitor: IInstVisitor<T>): T;
-}
-
-export interface IInstVisitor<T> {
-  visitDeclVariable(decl: DeclVariable): T;
-  visitDeclLock(decl: DeclLock): T;
-  visitDeclFunction(decl: DeclFunction): T;
-  visitDeclParameter(decl: DeclParameter): T;
-
-  visitInstInvalid(inst: InvalidInst): T;
-  visitBlock(inst: BlockInst): T;
-  visitExpr(inst: ExprInst): T;
-  visitOnOff(inst: OnOffInst): T;
-  visitCommand(inst: CommandInst): T;
-  visitCommandExpr(inst: CommandExpressionInst): T;
-  visitUnset(inst: UnsetInst): T;
-  visitUnlock(inst: UnlockInst): T;
-  visitSet(inst: SetInst): T;
-  visitLazyGlobalInst(inst: LazyGlobalInst): T;
-  visitIf(inst: IfInst): T;
-  visitElse(inst: ElseInst): T;
-  visitUntil(inst: UntilInst): T;
-  visitFrom(inst: FromInst): T;
-  visitWhen(inst: WhenInst): T;
-  visitReturn(inst: ReturnInst): T;
-  visitBreak(inst: BreakInst): T;
-  visitSwitch(inst: SwitchInst): T;
-  visitFor(inst: ForInst): T;
-  visitOn(inst: OnInst): T;
-  visitToggle(inst: ToggleInst): T;
-  visitWait(inst: WaitInst): T;
-  visitLog(inst: LogInst): T;
-  visitCopy(inst: CopyInst): T;
-  visitRename(inst: RenameInst): T;
-  visitDelete(inst: DeleteInst): T;
-  visitRun(inst: RunInst): T;
-  visitRunPath(inst: RunPathInst): T;
-  visitRunPathOnce(inst: RunPathOnceInst): T;
-  visitCompile(inst: CompileInst): T;
-  visitList(inst: ListInst): T;
-  visitEmpty(inst: EmptyInst): T;
-  visitPrint(inst: PrintInst): T;
-}
-
 export interface IFindResult {
-  node?: INode;
+  node?: TreeNode;
   token: IToken;
 }
 
@@ -144,9 +147,133 @@ export enum ScopeType {
   global,
 }
 
-export type Result<T> = T | IParseError;
-export type INode = IExpr | IInst | SyntaxTree;
+export type GrammarNode = IExprClass
+  | IInstClass | ISuffixTermClass | TokenType
+  | IGrammarOptional | IGrammarRepeat | IGrammarUnion;
 
-export type ExprResult = Result<IExpr>;
-export type InstResult = Result<IInst>;
-export type TokenResult = Result<IToken>;
+export type RunInstType = Inst.Run | Inst.RunPath | Inst.RunPathOnce;
+export type TreeNode = IExpr | ISuffixTerm | IInst | IScript | IParameter;
+
+export interface IExprVisitable {
+  accept<T>(visitor: IExprVisitor<T>): T;
+}
+
+export interface IExprVisitor<T> {
+  visitExprInvalid(expr: Expr.Invalid): T;
+  visitBinary(expr: Expr.Binary): T;
+  visitUnary(expr: Expr.Unary): T;
+  visitFactor(expr: Expr.Factor): T;
+  visitSuffix(expr: Expr.Suffix): T;
+  visitAnonymousFunction(expr: Expr.AnonymousFunction): T;
+}
+
+export interface ISuffixTermVisitable {
+  accept<T>(visitor: ISuffixTermVisitor<T>): T;
+}
+
+export interface ISuffixTermVisitor<T> {
+  visitSuffixTermInvalid(suffixTerm: SuffixTerm.Invalid): T;
+  visitSuffixTrailer(suffixTerm: SuffixTerm.SuffixTrailer): T;
+  visitSuffixTerm(suffixTerm: SuffixTerm.SuffixTerm): T;
+  visitCall(suffixTerm: SuffixTerm.Call): T;
+  visitArrayIndex(suffixTerm: SuffixTerm.ArrayIndex): T;
+  visitArrayBracket(suffixTerm: SuffixTerm.ArrayBracket): T;
+  visitDelegate(suffixTerm: SuffixTerm.Delegate): T;
+  visitLiteral(suffixTerm: SuffixTerm.Literal): T;
+  visitIdentifier(suffixTerm: SuffixTerm.Identifier): T;
+  visitGrouping(suffixTerm: SuffixTerm.Grouping): T;
+}
+
+export interface ISuffixTermParamVisitable {
+  acceptParam<TParam, TReturn>(
+    visitor: ISuffixTermParamVisitor<TParam, TReturn>,
+    param: TParam): TReturn;
+}
+
+export interface ISuffixTermParamVisitor<TParam, TReturn> {
+  visitSuffixTermInvalid(suffixTerm: SuffixTerm.Invalid, param: TParam): TReturn;
+  visitSuffixTrailer(suffixTerm: SuffixTerm.SuffixTrailer, param: TParam): TReturn;
+  visitSuffixTerm(suffixTerm: SuffixTerm.SuffixTerm, param: TParam): TReturn;
+  visitCall(suffixTerm: SuffixTerm.Call, param: TParam): TReturn;
+  visitArrayIndex(suffixTerm: SuffixTerm.ArrayIndex, param: TParam): TReturn;
+  visitArrayBracket(suffixTerm: SuffixTerm.ArrayBracket, param: TParam): TReturn;
+  visitDelegate(suffixTerm: SuffixTerm.Delegate, param: TParam): TReturn;
+  visitLiteral(suffixTerm: SuffixTerm.Literal, param: TParam): TReturn;
+  visitIdentifier(suffixTerm: SuffixTerm.Identifier, param: TParam): TReturn;
+  visitGrouping(suffixTerm: SuffixTerm.Grouping, param: TParam): TReturn;
+}
+
+export interface IExprVisitableClass {
+  classAccept<T>(visitor: IExprClassVisitor<T>): T;
+}
+
+export interface IExprClassVisitor<T> {
+  visitExprInvalid(exprClass: Constructor<Expr.Invalid>): T;
+  visitBinary(exprClass: Constructor<Expr.Binary>): T;
+  visitUnary(exprClass: Constructor<Expr.Unary>): T;
+  visitFactor(exprClass: Constructor<Expr.Factor>): T;
+  visitSuffix(exprClass: Constructor<Expr.Suffix>): T;
+  visitAnonymousFunction(exprClass: Constructor<Expr.AnonymousFunction>): T;
+}
+
+export interface ISuffixTermVisitableClass {
+  classAccept<T>(visitor: ISuffixTermClassVisitor<T>): T;
+}
+
+export interface ISuffixTermClassVisitor<T> {
+  visitSuffixTermInvalid(suffixTerm: Constructor<SuffixTerm.Invalid>): T;
+  visitSuffixTrailer(termClass: Constructor<SuffixTerm.SuffixTrailer>): T;
+  visitSuffixTerm(termClass: Constructor<SuffixTerm.SuffixTerm>): T;
+  visitCall(termClass: Constructor<SuffixTerm.Call>): T;
+  visitArrayIndex(termClass: Constructor<SuffixTerm.ArrayIndex>): T;
+  visitArrayBracket(termClass: Constructor<SuffixTerm.ArrayBracket>): T;
+  visitDelegate(termClass: Constructor<SuffixTerm.Delegate>): T;
+  visitLiteral(termClass: Constructor<SuffixTerm.Literal>): T;
+  visitVariable(termClass: Constructor<SuffixTerm.Identifier>): T;
+  visitGrouping(termClass: Constructor<SuffixTerm.Grouping>): T;
+}
+
+export interface IInstVisitable {
+  accept<T>(visitor: IInstVisitor<T>): T;
+}
+
+export interface IInstVisitor<T> {
+  visitDeclVariable(decl: Var): T;
+  visitDeclLock(decl: Lock): T;
+  visitDeclFunction(decl: Func): T;
+  visitDeclParameter(decl: Param): T;
+
+  visitInstInvalid(inst: Inst.Invalid): T;
+  visitBlock(inst: Inst.Block): T;
+  visitExpr(inst: Inst.ExprInst): T;
+  visitOnOff(inst: Inst.OnOff): T;
+  visitCommand(inst: Inst.Command): T;
+  visitCommandExpr(inst: Inst.CommandExpr): T;
+  visitUnset(inst: Inst.Unset): T;
+  visitUnlock(inst: Inst.Unlock): T;
+  visitSet(inst: Inst.Set): T;
+  visitLazyGlobalInst(inst: Inst.LazyGlobal): T;
+  visitIf(inst: Inst.If): T;
+  visitElse(inst: Inst.Else): T;
+  visitUntil(inst: Inst.Until): T;
+  visitFrom(inst: Inst.From): T;
+  visitWhen(inst: Inst.When): T;
+  visitReturn(inst: Inst.Return): T;
+  visitBreak(inst: Inst.Break): T;
+  visitSwitch(inst: Inst.Switch): T;
+  visitFor(inst: Inst.For): T;
+  visitOn(inst: Inst.On): T;
+  visitToggle(inst: Inst.Toggle): T;
+  visitWait(inst: Inst.Wait): T;
+  visitLog(inst: Inst.Log): T;
+  visitCopy(inst: Inst.Copy): T;
+  visitRename(inst: Inst.Rename): T;
+  visitDelete(inst: Inst.Delete): T;
+  visitRun(inst: Inst.Run): T;
+  visitRunPath(inst: Inst.RunPath): T;
+  visitRunPathOnce(inst: Inst.RunPathOnce): T;
+  visitCompile(inst: Inst.Compile): T;
+  visitList(inst: Inst.List): T;
+  visitEmpty(inst: Inst.Empty): T;
+  visitPrint(inst: Inst.Print): T;
+}

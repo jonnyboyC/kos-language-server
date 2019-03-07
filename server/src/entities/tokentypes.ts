@@ -5,7 +5,7 @@ export enum TokenType {
     equal, notEqual, greaterEqual, greater, lessEqual, less,
 
     set, unset, to, is, until,
-    if, else, for, when, then, from, Do,
+    if, else, for, when, then, from, do,
     at, on, in,
     lock, unlock,
     print, arrayIndex,
@@ -53,7 +53,7 @@ export const isValidIdentifier = (type: TokenType): boolean => {
     case TokenType.when:
     case TokenType.then:
     case TokenType.from:
-    case TokenType.Do:
+    case TokenType.do:
     case TokenType.at:
     case TokenType.on:
     case TokenType.in:

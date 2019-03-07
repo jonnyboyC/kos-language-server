@@ -13,12 +13,23 @@
 			"preLaunchTask": "npm: compile"
 		},
 		{
+			"type": "extensionHost",
+			"request": "launch",
+			"name": "Launch VSCode Client Fast",
+			"runtimeExecutable": "${execPath}",
+			"args": ["--extensionDevelopmentPath=${workspaceRoot}"],
+			"stopOnEntry": false,
+			"sourceMaps": true,
+			"outFiles": ["${workspaceRoot}/clients/vscode/out/**/*.js"],
+			"preLaunchTask": "npm: compile:server"
+		},
+		{
 			"type": "node",
 			"request": "attach",
 			"name": "Attach to Server",
 			"address": "localhost",
 			"protocol": "inspector",
-			"timeout": 20000,
+			"timeout": 30000,
 			"port": 6009,
 			"sourceMaps": true,
 			"outFiles": ["${workspaceRoot}/server/out/**/*.js"]
@@ -33,12 +44,24 @@
       ],
       "skipFiles": ["<node_internals>/**/*.js"],
       "runtimeArgs": ["--nolazy"]
+		},
+		{
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Visible Compiled Script",
+      "program": "${file}",
+      "skipFiles": ["<node_internals>/**/*.js"],
+      "runtimeArgs": ["--nolazy"]
     }
 	],
 	"compounds": [
 		{
 			"name": "VSCode + Server",
 			"configurations": ["Launch VSCode Client", "Attach to Server"]
+		},
+		{
+			"name": "VSCode + Server Fast",
+			"configurations": ["Launch VSCode Client Fast", "Attach to Server"]
 		}
 	]
 }

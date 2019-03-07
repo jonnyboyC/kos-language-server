@@ -1,3 +1,14 @@
+## [0.3.0] (2019-3-7)
+- **on hover type hints** Added support for on hover
+- **better auto complete** completions now include type inferred type information where available
+
+### Bug Fixes
+- **rename instruction grammer** Fixed an issue with the grammar for the rename instruction
+- **update performance diagnostics** Between the release of 0.2.0 and 0.3.0 vscode now ships with node 10. The performance hooks that were previously used have been remove. The new node performance hooks have been added in it's place
+- **report error when lazyglobal off set** The language server now reports and errors when `lazyGlobal off. ... set x to "example".`
+- **run instructions** Fixed a few issues related to the language server loading other file based on `runPath("example.ks").` and it's sibilings
+
+
 ## [0.2.0] (2019-1-5)
 - **goto definition** Added support for Goto definition or variables, parameters, locks, and functions
 - **auto complete** Added initial set of suggestions for auto complete. These included keywords as well as variables, functions etc that are detected in scope

@@ -1,6 +1,9 @@
-import { CompletionItemKind, CompletionItem } from "vscode-languageserver";
+import { CompletionItemKind, CompletionItem } from 'vscode-languageserver';
 
-export const keywords = [
+export const builtIn = 'builtIn';
+export const iterator = 'iterator';
+
+export const keywords = new Set([
   'add',
   'and',
   'all',
@@ -59,9 +62,9 @@ export const keywords = [
   'volume',
   'wait',
   'when',
-];
+]);
 
-export const keywordCompletions: CompletionItem[] = keywords
+export const keywordCompletions: CompletionItem[] = Array.from(keywords)
   .map(keyword => ({
     kind: CompletionItemKind.Keyword,
     label: keyword,

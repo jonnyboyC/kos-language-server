@@ -11,7 +11,6 @@ import {
   InitializeParams,
   CompletionItem,
   TextDocumentPositionParams,
-  CompletionItemKind,
   SignatureHelp,
   Location,
   DidChangeWatchedFilesParams,
@@ -23,20 +22,35 @@ import {
   DocumentSymbolParams,
   SymbolInformation,
   SymbolKind,
+  CompletionParams,
+  CompletionTriggerKind,
+  ReferenceParams,
+  Hover,
 } from 'vscode-languageserver';
 import { empty } from './utilities/typeGuards';
 import { Analyzer } from './analyzer';
 import { IDiagnosticUri } from './types';
 import { keywordCompletions } from './utilities/constants';
+import { KsEntity, EntityType } from './analysis/types';
+import { entityCompletionItems, suffixCompletionItems } from './utilities/serverUtils';
+import { Logger } from './utilities/logger';
+import { locationCopy } from './utilities/positionHelpers';
+import { primitiveInitializer } from './typeChecker/types/primitives/initialize';
+import { oribitalInitializer } from './typeChecker/types/orbital/initialize';
 
 // Create a connection for the server. The connection uses Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
 export const connection = createConnection(ProposedFeatures.all);
 
+// REMOVE ME TODO probably need to refactor the type modules as
+// structure and the primitives have a dependnecy loop
+primitiveInitializer();
+oribitalInitializer();
+
 // Create a simple text document manager. The text document manager
 // supports full document sync only
 let workspaceFolder: string = '';
-const analyzer = new Analyzer(connection.console, connection.tracer);
+const analyzer = new Analyzer(new Logger(connection.console, LogLevel.info), connection.tracer);
 const documents: TextDocuments = new TextDocuments();
 
 connection.onInitialize((params: InitializeParams) => {
@@ -45,12 +59,12 @@ connection.onInitialize((params: InitializeParams) => {
     `[Server(${process.pid}) ${JSON.stringify(capabilities)}] Started and initialize received`);
 
   if (params.rootPath) {
-    analyzer.volumne0Path = params.rootPath;
+    analyzer.setPath(params.rootPath);
     workspaceFolder = params.rootPath;
   }
 
   if (params.rootUri) {
-    analyzer.volumne0Uri = params.rootUri;
+    analyzer.setUri(params.rootUri);
   }
 
   connection.console.log(
@@ -70,6 +84,8 @@ connection.onInitialize((params: InitializeParams) => {
         triggerCharacters: ['(', ','],
       },
 
+      hoverProvider: true,
+      referencesProvider: true,
       documentSymbolProvider: true,
       definitionProvider: true,
     },
@@ -99,69 +115,99 @@ connection.onDidCloseTextDocument((param: DidCloseTextDocumentParams) => {
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent(async (change) => {
-  const { diagnostics } = await analyzer
+
+  try {
+    const diagnosticResults = analyzer
     .validateDocument(change.document.uri, change.document.getText());
 
-  if (diagnostics.length === 0) {
-    connection.sendDiagnostics({
-      uri: change.document.uri,
-      diagnostics: [],
-    });
-    return;
-  }
+    let total = 0;
+    const diagnosticMap: Map<string, IDiagnosticUri[]> = new Map();
 
-  const diagnosticMap: { [uri: string]: IDiagnosticUri[] } = {};
-  for (const diagnostic of diagnostics) {
-    if (!diagnosticMap.hasOwnProperty(diagnostic.uri)) {
-      diagnosticMap[diagnostic.uri] = [diagnostic];
-    } else {
-      diagnosticMap[diagnostic.uri].push(diagnostic);
+    for await (const diagnostics of diagnosticResults) {
+      total += diagnostics.length;
+
+      for (const diagnostic of diagnostics) {
+        let uriDiagnostics = diagnosticMap.get(diagnostic.uri);
+        if (empty(uriDiagnostics)) {
+          uriDiagnostics = [];
+        }
+
+        uriDiagnostics.push(diagnostic);
+        diagnosticMap.set(diagnostic.uri, uriDiagnostics);
+      }
+
+      for (const [uri, uriDiagnostics] of diagnosticMap.entries()) {
+        connection.sendDiagnostics({
+          uri,
+          diagnostics: uriDiagnostics,
+        });
+      }
     }
-  }
 
-  for (const uri in diagnosticMap) {
-    connection.sendDiagnostics({
-      uri,
-      diagnostics: diagnosticMap[uri],
-    });
+    // if not problems found clear out diagnostics
+    if (total === 0) {
+      connection.sendDiagnostics({
+        uri: change.document.uri,
+        diagnostics: [],
+      });
+    }
+  } catch (e) {
+    connection.console.error('kos-language-server Error occured:');
+    if (e instanceof Error) {
+      connection.console.error(e.message);
+
+      if (!empty(e.stack)) {
+        connection.console.error(e.stack);
+      }
+    } else {
+      connection.console.error(JSON.stringify(e));
+    }
   }
 });
 
 // This handler provides the initial list of the completion items.
 connection.onCompletion(
-  (documentPosition: TextDocumentPositionParams): CompletionItem[] => {
-    const { position } = documentPosition;
-    const { uri } = documentPosition.textDocument;
-    const entities = analyzer.getEntitiesAtPosition(uri, position);
+  (completionParams: CompletionParams): CompletionItem[] => {
+    const { context } = completionParams;
 
-    return entities.map((entity) => {
-      let kind: Maybe<CompletionItemKind> = undefined;
-      switch (entity.tag) {
-        case 'function':
-          kind = CompletionItemKind.Function;
-          break;
-        case 'parameter':
-          kind = CompletionItemKind.Variable;
-          break;
-        case 'lock':
-          kind = CompletionItemKind.Variable;
-          break;
-        case 'variable':
-          kind = CompletionItemKind.Variable;
-          break;
-        default:
-          throw new Error('Unknown entity type');
-      }
+    if (empty(context) || context.triggerKind !== CompletionTriggerKind.TriggerCharacter) {
+      return entityCompletionItems(analyzer, completionParams)
+        .concat(keywordCompletions);
+    }
 
-      return {
-        kind,
-        label: entity.name.lexeme,
-        data: entity,
-      } as CompletionItem;
-    })
-    .concat(keywordCompletions);
+    return suffixCompletionItems(analyzer, completionParams);
   },
 );
+
+// This handler provides on hover capabilities
+connection.onHover((positionParmas: TextDocumentPositionParams): Maybe<Hover> => {
+  const { position } = positionParmas;
+  const { uri } = positionParmas.textDocument;
+
+  const token = analyzer.getToken(position, uri);
+  const typeInfo = analyzer.getSuffixType(position, uri);
+  if (empty(token) || empty(typeInfo)) {
+    return undefined;
+  }
+  const [type, entityType] = typeInfo;
+
+  return {
+    contents: `(${EntityType[entityType]}) ${token.lexeme}: ${type.toTypeString()} `,
+    range: {
+      start: token.start,
+      end: token.end,
+    },
+  };
+});
+
+// This handler providers find all references capabilities
+connection.onReferences((referenceParams: ReferenceParams): Maybe<Location[]> => {
+  const { position } = referenceParams;
+  const { uri } = referenceParams.textDocument;
+
+  const locations = analyzer.getUsagesLocations(position, uri);
+  return locations && locations.map(loc => locationCopy(loc));
+});
 
 // This handler provides signature help
 connection.onSignatureHelp(
@@ -169,7 +215,7 @@ connection.onSignatureHelp(
     const { position } = documentPosition;
     const { uri } = documentPosition.textDocument;
 
-    const result = analyzer.getFunctionAtPosition(uri, position);
+    const result = analyzer.getFunctionAtPosition(position, uri);
     if (empty(result)) return defaultSigniture();
 
     const { func, index } = result;
@@ -188,6 +234,7 @@ connection.onSignatureHelp(
   },
 );
 
+// This handler provider document symbols in file
 connection.onDocumentSymbol(
   (documentSymbol: DocumentSymbolParams): Maybe<SymbolInformation[]> => {
     const { uri } = documentSymbol.textDocument;
@@ -196,16 +243,16 @@ connection.onDocumentSymbol(
     return entities.map((entity) => {
       let kind: Maybe<SymbolKind> = undefined;
       switch (entity.tag) {
-        case 'function':
+        case EntityType.function:
           kind = SymbolKind.Function;
           break;
-        case 'parameter':
+        case EntityType.parameter:
           kind = SymbolKind.Variable;
           break;
-        case 'lock':
+        case EntityType.lock:
           kind = SymbolKind.Variable;
           break;
-        case 'variable':
+        case EntityType.variable:
           kind = SymbolKind.Variable;
           break;
         default:
@@ -227,8 +274,8 @@ connection.onDefinition(
     const { position } = documentPosition;
     const { uri } = documentPosition.textDocument;
 
-    const name = analyzer.getTokenAtPosition(uri, position);
-    return name && Location.create(name.uri || uri, name);
+    const location = analyzer.getDeclarationLocation(position, uri);
+    return location && locationCopy(location);
   },
 );
 
@@ -236,7 +283,20 @@ connection.onDefinition(
 // the completion list.
 connection.onCompletionResolve(
   (item: CompletionItem): CompletionItem => {
+    const entity = item.data as KsEntity;
+
     // this would be a possible spot to pull in doc string if present.
+    if (!empty(entity)) {
+      const type = analyzer.getType(
+        entity.name.start,
+        entity.name.lexeme,
+        entity.name.uri);
+
+      if (!empty(type)) {
+        item.detail = `${item.label}: ${type.toTypeString()}`;
+      }
+    }
+
     return item;
   },
 );

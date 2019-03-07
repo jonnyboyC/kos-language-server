@@ -257,7 +257,7 @@ lock throttle to th.
 			
 		saveRunways().
 	}
-	
+
 	local runwayIndex is 0.
 	local selectedRunway is runways[runwayIndex].
 	

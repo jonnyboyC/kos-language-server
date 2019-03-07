@@ -4,12 +4,12 @@
     "description": "Syntax highlighting, auto-complete, and language diagnostics for KerboScript in Kerbal Operating System.",
     "author": "John Chabot",
     "license": "MIT",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "galleryBanner": {
         "color": "#a3a3a3",
         "theme": "dark"
     },
-    "icon": "images/kos_extension_logo.png",
+    "icon": "clients/vscode/images/kos_extension_logo.png",
     "repository": {
         "type": "git",
         "url": "https://github.com/jonnyboyC/kos-language-server"
@@ -83,12 +83,12 @@
     "devDependencies": {
         "@types/atom": "^1.31.0",
         "@types/mocha": "~5.2.0",
-        "@types/node": "~10.12.11",
+        "@types/node": "^10.12.25",
         "ava": "^0.25.0",
         "tslint-config-airbnb": "^5.11.1",
         "typescript": "3.2.1"
     },
     "dependencies": {
-        "tslint": "^5.11.0"
+        "tslint": "^5.12.1"
     }
 }

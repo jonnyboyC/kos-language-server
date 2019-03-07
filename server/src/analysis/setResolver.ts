@@ -1,71 +1,91 @@
-import { IExprVisitor, IExpr } from '../parser/types';
-import {
-  BinaryExpr, UnaryExpr, FactorExpr, SuffixExpr,
-  CallExpr, ArrayIndexExpr, ArrayBracketExpr, DelegateExpr,
-  LiteralExpr, VariableExpr, GroupingExpr, AnonymousFunctionExpr,
-  InvalidExpr,
-} from '../parser/expr';
+import { IExprVisitor, IExpr, ISuffixTerm, ISuffixTermVisitor } from '../parser/types';
+import * as Expr from '../parser/expr';
+import * as SuffixTerm from '../parser/suffixTerm';
 import { LocalResolver } from './localResolver';
-import { ISetResolverResult } from './types';
+import { ISetResolverResult, ILocalResult } from './types';
 import { setResult } from './setResult';
+import { empty } from '../utilities/typeGuards';
 
-export class SetResolver implements IExprVisitor<ISetResolverResult> {
+export class SetResolver implements
+  IExprVisitor<ISetResolverResult>,
+  ISuffixTermVisitor<ISetResolverResult> {
+
   public constructor(public readonly localResolver: LocalResolver) {
   }
 
   public resolveExpr(expr: IExpr): ISetResolverResult {
     return expr.accept(this);
   }
-  // tslint:disable-next-line:variable-name
-  public visitExprInvalid(_expr: InvalidExpr): ISetResolverResult {
+  public resolveSuffixTerm(suffixTerm: ISuffixTerm): ISetResolverResult {
+    return suffixTerm.accept(this);
+  }
+  public visitExprInvalid(_: Expr.Invalid): ISetResolverResult {
     return setResult();
   }
-  // tslint:disable-next-line:variable-name
-  public visitBinary(_expr: BinaryExpr): ISetResolverResult {
+  public visitBinary(_: Expr.Binary): ISetResolverResult {
     return setResult();
   }
-  // tslint:disable-next-line:variable-name
-  public visitUnary(_expr: UnaryExpr): ISetResolverResult {
+  public visitUnary(_: Expr.Unary): ISetResolverResult {
     return setResult();
   }
-  // tslint:disable-next-line:variable-name
-  public visitFactor(_expr: FactorExpr): ISetResolverResult {
+  public visitFactor(_: Expr.Factor): ISetResolverResult {
     return setResult();
   }
-  public visitSuffix(expr: SuffixExpr): ISetResolverResult {
-    const result = this.resolveExpr(expr.suffix);
-    return setResult(result.set, result.used, this.localResolver.resolveExpr(expr.trailer));
-  }
-  // tslint:disable-next-line:variable-name
-  public visitCall(_expr: CallExpr): ISetResolverResult {
-    return setResult();
-  }
-  public visitArrayIndex(expr: ArrayIndexExpr): ISetResolverResult {
-    const result = this.resolveExpr(expr.array);
+  public visitSuffix(expr: Expr.Suffix): ISetResolverResult {
+    const result = this.resolveSuffixTerm(expr.suffixTerm);
+    if (empty(expr.trailer)) {
+      return setResult(result.set, result.used);
+    }
 
-    // TODO this isn't constrained correctly
-    return setResult(result.set, result.used);
+    return setResult(result.set, result.used, this.localResolver.resolveSuffixTerm(expr.trailer));
   }
-  public visitArrayBracket(expr: ArrayBracketExpr): ISetResolverResult {
-    const result = this.resolveExpr(expr.array);
-    return setResult(result.set, result.used, this.localResolver.resolveExpr(expr.index));
-  }
-  public visitDelegate(expr: DelegateExpr): ISetResolverResult {
-    return this.resolveExpr(expr.variable);
-  }
-  // tslint:disable-next-line:variable-name
-  public visitLiteral(_expr: LiteralExpr): ISetResolverResult {
+
+  public visitAnonymousFunction(_: Expr.AnonymousFunction): ISetResolverResult {
     return setResult();
   }
-  public visitVariable(expr: VariableExpr): ISetResolverResult {
+
+  public visitSuffixTermInvalid(_: SuffixTerm.Invalid): ISetResolverResult {
+    throw setResult();
+  }
+
+  public visitSuffixTrailer(expr: SuffixTerm.SuffixTrailer): ISetResolverResult {
+    const result = this.resolveSuffixTerm(expr.suffixTerm);
+    if (empty(expr.trailer)) {
+      return setResult(result.set, result.used);
+    }
+
+    return setResult(result.set, result.used, this.localResolver.resolveSuffixTerm(expr.trailer));
+  }
+
+  public visitSuffixTerm(expr: SuffixTerm.SuffixTerm): ISetResolverResult {
+    const result = this.resolveSuffixTerm(expr.atom);
+    if (expr.trailers.length === 0) {
+      return setResult(result.set, result.used);
+    }
+
+    return setResult(result.set, result.used, expr.trailers.reduce(
+      (acc, curr) => acc.concat(this.localResolver.resolveSuffixTerm(curr)),
+      [] as ILocalResult[]));
+  }
+  public visitCall(_: SuffixTerm.Call): ISetResolverResult {
+    return setResult();
+  }
+  public visitArrayIndex(_: SuffixTerm.ArrayIndex): ISetResolverResult {
+    return setResult();
+  }
+  public visitArrayBracket(_: SuffixTerm.ArrayBracket): ISetResolverResult {
+    return setResult();
+  }
+  public visitDelegate(_: SuffixTerm.Delegate): ISetResolverResult {
+    return setResult();
+  }
+  public visitLiteral(_: SuffixTerm.Literal): ISetResolverResult {
+    return setResult();
+  }
+  public visitIdentifier(expr: SuffixTerm.Identifier): ISetResolverResult {
     return setResult(expr.token);
   }
-  // tslint:disable-next-line:variable-name
-  public visitGrouping(_expr: GroupingExpr): ISetResolverResult {
-    return setResult();
-  }
-  // tslint:disable-next-line:variable-name
-  public visitAnonymousFunction(_expr: AnonymousFunctionExpr): ISetResolverResult {
+  public visitGrouping(_: SuffixTerm.Grouping): ISetResolverResult {
     return setResult();
   }
 }

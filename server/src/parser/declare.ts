@@ -1,5 +1,5 @@
-import { Inst, BlockInst } from './inst';
-import { IDeclScope, IExpr, IInstVisitor, ScopeType } from './types';
+import { Inst, Block } from './inst';
+import { IDeclScope, IExpr, IInstVisitor, ScopeType, IParameter } from './types';
 import { TokenType } from '../entities/tokentypes';
 import { empty } from '../utilities/typeGuards';
 import { IToken } from '../entities/types';
@@ -11,7 +11,7 @@ export abstract class Decl extends Inst {
   }
 }
 
-export class DeclScope implements IDeclScope {
+export class Scope implements IDeclScope {
   constructor(
     public readonly scope?: IToken,
     public readonly declare?: IToken) {
@@ -65,9 +65,9 @@ export class DeclScope implements IDeclScope {
   }
 }
 
-export class DeclVariable extends Decl {
+export class Var extends Decl {
   constructor(
-    public readonly suffix: IExpr,
+    public readonly identifier: IToken,
     public readonly toIs: IToken,
     public readonly expression: IExpr,
     public readonly scope: IDeclScope) {
@@ -83,7 +83,7 @@ export class DeclVariable extends Decl {
   }
 
   public get ranges(): Range[] {
-    return [this.scope, this.suffix, this.toIs, this.expression];
+    return [this.scope, this.identifier, this.toIs, this.expression];
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -91,7 +91,7 @@ export class DeclVariable extends Decl {
   }
 }
 
-export class DeclLock extends Decl {
+export class Lock extends Decl {
   constructor(
     public readonly lock: IToken,
     public readonly identifier: IToken,
@@ -131,11 +131,11 @@ export class DeclLock extends Decl {
   }
 }
 
-export class DeclFunction extends Decl {
+export class Func extends Decl {
   constructor(
     public readonly functionToken: IToken,
     public readonly functionIdentifier: IToken,
-    public readonly instructionBlock: BlockInst,
+    public readonly instructionBlock: Block,
     public readonly scope?: IDeclScope) {
     super();
   }
@@ -169,10 +169,9 @@ export class DeclFunction extends Decl {
   }
 }
 
-export class Parameter implements Range {
+export class Parameter implements IParameter {
   constructor(
-    public readonly identifier: IToken) {
-  }
+    public readonly identifier: IToken) { }
 
   public get start(): Position {
     return this.identifier.start;
@@ -182,16 +181,21 @@ export class Parameter implements Range {
     return this.identifier.end;
   }
 
+  public get ranges(): Range[] {
+    return [this.identifier];
+  }
+
   public get isKeyword(): boolean {
     return this.identifier.type !== TokenType.identifier;
   }
 }
 
-export class DefaultParameter implements Range {
+export class DefaultParam extends Parameter {
   constructor(
-    public readonly identifier: IToken,
+    identifier: IToken,
     public readonly toIs: IToken,
     public readonly value: IExpr) {
+    super(identifier);
   }
 
   public get start(): Position {
@@ -202,16 +206,20 @@ export class DefaultParameter implements Range {
     return this.value.end;
   }
 
+  public get ranges(): Range[] {
+    return [this.identifier, this.toIs, this.value];
+  }
+
   public get isKeyword(): boolean {
     return this.identifier.type !== TokenType.identifier;
   }
 }
 
-export class DeclParameter extends Decl {
+export class Param extends Decl {
   constructor(
     public readonly parameterToken: IToken,
     public readonly parameters: Parameter[],
-    public readonly defaultParameters: DefaultParameter[],
+    public readonly defaultParameters: DefaultParam[],
     public readonly scope?: IDeclScope) {
     super();
   }

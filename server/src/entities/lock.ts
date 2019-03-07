@@ -1,12 +1,11 @@
-import { LockState } from '../analysis/types';
 import { ScopeType } from '../parser/types';
 import { IToken } from './types';
+import { EntityType } from '../analysis/types';
 
 export class KsLock {
   constructor(
     public readonly scope: ScopeType,
     public readonly name: IToken,
-    public state: LockState,
   )
   { }
 
@@ -22,7 +21,7 @@ export class KsLock {
     }
   }
 
-  get tag(): 'lock' {
-    return 'lock';
+  get tag(): EntityType.lock {
+    return EntityType.lock;
   }
 }

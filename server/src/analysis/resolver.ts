@@ -1,74 +1,60 @@
-import { IInstVisitor, IExprVisitor, IExpr, IInst, ScopeType } from '../parser/types';
 import {
-    BinaryExpr, UnaryExpr,
-    FactorExpr, SuffixExpr,
-    CallExpr, ArrayIndexExpr,
-    ArrayBracketExpr, DelegateExpr,
-    LiteralExpr, VariableExpr,
-    GroupingExpr, AnonymousFunctionExpr, InvalidExpr,
-} from '../parser/expr';
-import {
-    BlockInst, ExprInst,
-    OnOffInst, CommandInst,
-    CommandExpressionInst,
-    UnsetInst, UnlockInst,
-    SetInst, LazyGlobalInst,
-    IfInst, ElseInst,
-    UntilInst, FromInst,
-    WhenInst, ReturnInst,
-    BreakInst, SwitchInst,
-    ForInst, OnInst,
-    ToggleInst, WaitInst,
-    LogInst, CopyInst,
-    RenameInst, DeleteInst,
-    RunInst, RunPathInst,
-    RunPathOnceInst, CompileInst,
-    ListInst, EmptyInst,
-    PrintInst,
-    InvalidInst,
-} from '../parser/inst';
+  IInstVisitor, IExprVisitor, IExpr,
+  IInst, ScopeType, ISuffixTerm,
+  ISuffixTermVisitor,
+} from '../parser/types';
+import * as SuffixTerm from '../parser/suffixTerm';
+import * as Expr from '../parser/expr';
+import * as Inst from '../parser/inst';
+import * as Decl from '../parser/declare';
 import { ResolverError } from './resolverError';
-import { DeclVariable, DeclLock, DeclFunction, DeclParameter } from '../parser/declare';
 import { empty } from '../utilities/typeGuards';
 import { LocalResolver } from './localResolver';
 import { SetResolver } from './setResolver';
-import { ScopeManager } from './scopeManager';
 import { TokenType } from '../entities/tokentypes';
-import { LockState } from './types';
-import { SyntaxTree } from '../entities/syntaxTree';
+import { Script } from '../entities/script';
 import { mockLogger, mockTracer } from '../utilities/logger';
-import { IToken } from '../entities/types';
+import { ScopeBuilder } from './scopeBuilder';
+import { ILocalResult, IResolverError } from './types';
 
-// tslint:disable-next-line:prefer-array-literal
-export type Errors = Array<ResolverError>;
+export type Errors = IResolverError[];
 
-export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
-  private syntaxTree: SyntaxTree;
-  private scopeMan: ScopeManager;
+export class Resolver implements
+  IExprVisitor<Errors>,
+  IInstVisitor<Errors>,
+  ISuffixTermVisitor<Errors> {
+
+  private readonly script: Script;
+  private readonly scopeBuilder: ScopeBuilder;
   private readonly logger: ILogger;
   private readonly tracer: ITracer;
   private readonly localResolver: LocalResolver;
   private readonly setResolver: SetResolver;
-  private lazyGlobalOff: boolean;
+  private lazyGlobal: boolean;
   private firstInst: boolean;
 
-  constructor(logger: ILogger = mockLogger, tracer: ITracer = mockTracer) {
-    this.syntaxTree = new SyntaxTree([]);
-    this.scopeMan = new ScopeManager();
+  constructor(
+    script: Script,
+    scopeBuilder: ScopeBuilder,
+    logger: ILogger = mockLogger,
+    tracer: ITracer = mockTracer) {
+
+    this.script = script;
+    this.scopeBuilder = scopeBuilder;
     this.localResolver = new LocalResolver();
     this.setResolver = new SetResolver(this.localResolver);
-    this.lazyGlobalOff = false;
+    this.lazyGlobal = true;
     this.firstInst = true;
     this.logger = logger;
     this.tracer = tracer;
   }
 
   // resolve the sequence of instructions
-  public resolve(syntaxTree: SyntaxTree, scopeMan: ScopeManager): Errors {
+  public resolve(): Errors {
     try {
-      this.setSyntaxTree(syntaxTree, scopeMan);
-      this.scopeMan.beginScope(this.syntaxTree);
-      const [firstInst, ...restInsts] = this.syntaxTree.insts;
+      this.scopeBuilder.rewindScope();
+      this.scopeBuilder.beginScope(this.script);
+      const [firstInst, ...restInsts] = this.script.insts;
 
       // check for lazy global flag
       const firstError = this.resolveInst(firstInst);
@@ -76,7 +62,9 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
 
       // resolve reset
       const resolveErrors = this.resolveInsts(restInsts);
-      const scopeErrors = this.scopeMan.endScope();
+      const scopeErrors = this.scopeBuilder.endScope();
+
+      this.script.lazyGlobal = this.lazyGlobal;
       return firstError.concat(resolveErrors, scopeErrors);
     } catch (err) {
       this.logger.error(`Error occured in resolver ${err}`);
@@ -84,13 +72,6 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
 
       return [];
     }
-  }
-
-  // set the syntax tree and scope manager
-  private setSyntaxTree(syntaxTree: SyntaxTree, scopeMan: ScopeManager): void {
-    this.syntaxTree = syntaxTree;
-    this.scopeMan = scopeMan;
-    this.scopeMan.rewindScope();
   }
 
   // resolve the given set of instructions
@@ -108,11 +89,9 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
     return expr.accept(this);
   }
 
-  // attempt to declare ever variable in the expression
-  private declareLocals(scopeType: ScopeType, expr: IExpr): Errors {
-    return this.localResolver.resolveExpr(expr)
-      .map(variable => this.scopeMan.declareVariable(scopeType, variable))
-      .filter(this.filterError);
+  // resolve for an expression
+  private resolveSuffixTerm(suffixTerm: ISuffixTerm): Errors {
+    return suffixTerm.accept(this);
   }
 
   // attempt to use ever variable in the expression
@@ -121,9 +100,9 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   }
 
   // attempt to use ever variable in the expression
-  private useTokens(tokens: IToken[]): Errors {
-    return tokens
-      .map(entity => this.scopeMan.useEntity(entity))
+  private useTokens(results: ILocalResult[]): Errors {
+    return results
+      .map(({ token, expr }) => this.scopeBuilder.useEntity(token, expr))
       .filter(this.filterError);
   }
 
@@ -139,29 +118,37 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   ----------------------------------------------*/
 
   // check variable declaration
-  public visitDeclVariable(decl: DeclVariable): Errors {
+  public visitDeclVariable(decl: Decl.Var): Errors {
 
     // determine scope type
     const scopeType = !empty(decl.scope)
       ? decl.scope.type
       : ScopeType.global;
 
-    const declareErrors = this.declareLocals(scopeType, decl.suffix);
+    const declareError = this.scopeBuilder.declareVariable(scopeType, decl.identifier);
     const useErrors = this.useExprLocals(decl.expression);
     const resolveErrors = this.resolveExpr(decl.expression);
 
-    return declareErrors.concat(useErrors, resolveErrors);
+    return empty(declareError)
+      ? useErrors.concat(resolveErrors)
+      : useErrors.concat(declareError, resolveErrors);
   }
 
   // check lock declaration
-  public visitDeclLock(decl: DeclLock): ResolverError[] {
+  public visitDeclLock(decl: Decl.Lock): ResolverError[] {
 
     // determine scope type
     const scopeType = !empty(decl.scope)
       ? decl.scope.type
       : ScopeType.global;
 
-    const declareError = this.scopeMan.declareLock(scopeType, decl.identifier);
+    const lookup = this.scopeBuilder.lookupLock(decl.identifier, ScopeType.global);
+    let declareError: Maybe<ResolverError> = undefined;
+
+    if (empty(lookup)) {
+      declareError = this.scopeBuilder.declareLock(scopeType, decl.identifier);
+    }
+
     const useErrors = this.useExprLocals(decl.value);
     const resolveErrors = this.resolveExpr(decl.value);
 
@@ -171,12 +158,12 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
   }
 
   // check function declaration
-  public visitDeclFunction(decl: DeclFunction): ResolverError[] {
+  public visitDeclFunction(decl: Decl.Func): ResolverError[] {
     return this.resolveInst(decl.instructionBlock);
   }
 
   // check parameter declaration
-  public visitDeclParameter(decl: DeclParameter): ResolverError[] {
+  public visitDeclParameter(decl: Decl.Param): ResolverError[] {
     const scopeError: Maybe<ResolverError>[] = [];
 
     // check that parameter isn't declared global
@@ -191,9 +178,9 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
 
     // need to check if default paraemter can really be abbitrary expr
     const parameterErrors = decl.parameters
-      .map(parameter => this.scopeMan.declareParameter(scopeType, parameter.identifier, false));
+      .map(parameter => this.scopeBuilder.declareParameter(scopeType, parameter.identifier, false));
     const defaultParameterErrors = decl.defaultParameters
-      .map(parameter => this.scopeMan.declareParameter(scopeType, parameter.identifier, true));
+      .map(parameter => this.scopeBuilder.declareParameter(scopeType, parameter.identifier, true));
 
     return scopeError.concat(parameterErrors, defaultParameterErrors)
       .filter(this.filterError);
@@ -205,72 +192,79 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
 
   ----------------------------------------------*/
 
-  // tslint:disable-next-line:variable-name
-  public visitInstInvalid(_inst: InvalidInst): Errors {
+  public visitInstInvalid(_: Inst.Invalid): Errors {
     return [];
   }
 
-  public visitBlock(inst: BlockInst): Errors {
-    this.scopeMan.beginScope(inst);
-    const errors = this.resolveInsts(inst.instructions);
-    this.scopeMan.endScope();
+  public visitBlock(inst: Inst.Block): Errors {
+    this.scopeBuilder.beginScope(inst);
+    const errors = this.resolveInsts(inst.insts);
+    this.scopeBuilder.endScope();
 
     return errors;
   }
 
-  public visitExpr(inst: ExprInst): Errors {
+  public visitExpr(inst: Inst.ExprInst): Errors {
     return this.useExprLocals(inst.suffix).concat(
       this.resolveExpr(inst.suffix));
   }
 
-  public visitOnOff(inst: OnOffInst): Errors {
+  public visitOnOff(inst: Inst.OnOff): Errors {
     return this.useExprLocals(inst.suffix)
       .concat(this.resolveExpr(inst.suffix));
   }
 
-  // tslint:disable-next-line:variable-name
-  public visitCommand(_inst: CommandInst): Errors {
+  public visitCommand(_: Inst.Command): Errors {
     return [];
   }
 
-  public visitCommandExpr(inst: CommandExpressionInst): Errors {
-    return this.useExprLocals(inst.expression).concat(
-      this.resolveExpr(inst.expression));
+  public visitCommandExpr(inst: Inst.CommandExpr): Errors {
+    return this.useExprLocals(inst.expr).concat(
+      this.resolveExpr(inst.expr));
   }
 
-  public visitUnset(inst: UnsetInst): Errors {
-    const error = this.scopeMan.useVariable(inst.identifier);
+  public visitUnset(inst: Inst.Unset): Errors {
+    const error = this.scopeBuilder.useVariable(inst.identifier);
     return empty(error) ? [] : [error];
   }
 
-  public visitUnlock(inst: UnlockInst): Errors {
-    const error = this.scopeMan.useLock(inst.identifier, LockState.unlocked);
+  public visitUnlock(inst: Inst.Unlock): Errors {
+    const error = this.scopeBuilder.useLock(inst.identifier);
     return empty(error) ? [] : [error];
   }
 
-  public visitSet(inst: SetInst): Errors {
+  public visitSet(inst: Inst.Set): Errors {
     const { set, used } = this.setResolver.resolveExpr(inst.suffix);
+
+    // check if a set target exists
     if (empty(set)) {
-      const [token] = this.localResolver.resolveExpr(inst.suffix);
+      const [{ token }] = this.localResolver.resolveExpr(inst.suffix);
       return [new ResolverError(token, `cannot assign to variable ${token.lexeme}`, [])];
     }
 
-    if (!this.lazyGlobalOff) {
-      if (empty(this.scopeMan.lookupVariable(set, ScopeType.global))) {
-        this.scopeMan.declareVariable(ScopeType.global, set);
+    // if variable isn't define either report error or define
+    let defineError: Maybe<ResolverError> = undefined;
+    if (empty(this.scopeBuilder.lookupVariable(set, ScopeType.global))) {
+      if (!this.lazyGlobal) {
+        defineError = new ResolverError(
+          set,
+          `Attempted to set ${set.lexeme} which has not be declared.` +
+          `Either remove lazy global directive or declare ${set.lexeme}`,
+          []);
+      } else {
+        this.scopeBuilder.declareVariable(ScopeType.global, set);
       }
     }
 
-    const defineError = this.scopeMan.defineBinding(set);
-    const useErrors = this.useExprLocals(inst.value).concat(this.useTokens(used));
-    const resolveErrors = this.resolveExpr(inst.value);
+    const useErrors = this.useExprLocals(inst.expr).concat(this.useTokens(used));
+    const resolveErrors = this.resolveExpr(inst.expr);
 
     return !empty(defineError)
       ? useErrors.concat(resolveErrors, defineError)
       : useErrors.concat(resolveErrors);
   }
 
-  public visitLazyGlobalInst(inst: LazyGlobalInst): Errors {
+  public visitLazyGlobalInst(inst: Inst.LazyGlobal): Errors {
     // It is an error if lazy global is not at the start of a file
     if (!this.firstInst) {
       return [
@@ -278,14 +272,14 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
       ];
     }
 
-    this.lazyGlobalOff = inst.onOff.type === TokenType.off;
+    this.lazyGlobal = inst.onOff.type === TokenType.on;
     return [];
   }
 
-  public visitIf(inst: IfInst): Errors {
+  public visitIf(inst: Inst.If): Errors {
     const errors = this.useExprLocals(inst.condition).concat(
       this.resolveExpr(inst.condition),
-      this.resolveInst(inst.instruction));
+      this.resolveInst(inst.ifInst));
 
     if (inst.elseInst) {
       return errors.concat(
@@ -295,160 +289,130 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
     return errors;
   }
 
-  public visitElse(inst: ElseInst): Errors {
-    return this.resolveInst(inst.instruction);
+  public visitElse(inst: Inst.Else): Errors {
+    return this.resolveInst(inst.inst);
   }
 
-  public visitUntil(inst: UntilInst): Errors {
+  public visitUntil(inst: Inst.Until): Errors {
     return this.useExprLocals(inst.condition).concat(
       this.resolveExpr(inst.condition),
-      this.resolveInst(inst.instruction));
+      this.resolveInst(inst.inst));
   }
 
-  public visitFrom(inst: FromInst): Errors {
-    this.scopeMan.beginScope(inst);
+  public visitFrom(inst: Inst.From): Errors {
+    this.scopeBuilder.beginScope(inst);
 
-    const resolverErrors = this.resolveInsts(inst.initializer.instructions).concat(
+    const resolverErrors = this.resolveInsts(inst.initializer.insts).concat(
       this.resolveExpr(inst.condition),
-      this.resolveInsts(inst.increment.instructions),
-      this.resolveInst(inst.instruction));
+      this.resolveInsts(inst.increment.insts),
+      this.resolveInst(inst.inst));
 
     const useErrors = this.useExprLocals(inst.condition);
-    const scopeErrors = this.scopeMan.endScope();
+    const scopeErrors = this.scopeBuilder.endScope();
 
     return resolverErrors.concat(useErrors, scopeErrors);
   }
 
-  public visitWhen(inst: WhenInst): Errors {
+  public visitWhen(inst: Inst.When): Errors {
     return this.useExprLocals(inst.condition).concat(
       this.resolveExpr(inst.condition),
-      this.resolveInst(inst.instruction));
+      this.resolveInst(inst.inst));
   }
 
-  public visitReturn(inst: ReturnInst): Errors {
-    if (inst.value) {
-      return this.useExprLocals(inst.value)
-        .concat(this.resolveExpr(inst.value));
+  public visitReturn(inst: Inst.Return): Errors {
+    if (inst.expr) {
+      return this.useExprLocals(inst.expr)
+        .concat(this.resolveExpr(inst.expr));
     }
 
     return [];
   }
 
-  // tslint:disable-next-line:variable-name
-  public visitBreak(_inst: BreakInst): Errors {
+  public visitBreak(_: Inst.Break): Errors {
     return [];
   }
 
-  public visitSwitch(inst: SwitchInst): Errors {
+  public visitSwitch(inst: Inst.Switch): Errors {
     return this.useExprLocals(inst.target)
       .concat(this.resolveExpr(inst.target));
   }
 
-  public visitFor(inst: ForInst): Errors {
-    this.scopeMan.beginScope(inst);
-    const declareError = this.scopeMan.declareVariable(ScopeType.local, inst.identifier);
+  public visitFor(inst: Inst.For): Errors {
+    this.scopeBuilder.beginScope(inst);
+    const declareError = this.scopeBuilder.declareVariable(ScopeType.local, inst.identifier);
 
     let errors = this.useExprLocals(inst.suffix).concat(
       this.resolveExpr(inst.suffix),
-      this.resolveInst(inst.instruction));
+      this.resolveInst(inst.inst));
 
-    errors = errors.concat(this.scopeMan.endScope());
+    errors = errors.concat(this.scopeBuilder.endScope());
     if (!empty(declareError)) {
       return errors.concat(declareError);
     }
     return errors;
   }
 
-  public visitOn(inst: OnInst): Errors {
+  public visitOn(inst: Inst.On): Errors {
     return this.useExprLocals(inst.suffix).concat(
       this.resolveExpr(inst.suffix),
-      this.resolveInst(inst.instruction));
+      this.resolveInst(inst.inst));
   }
 
-  public visitToggle(inst: ToggleInst): Errors {
+  public visitToggle(inst: Inst.Toggle): Errors {
     return this.useExprLocals(inst.suffix)
       .concat(this.resolveExpr(inst.suffix));
   }
 
-  public visitWait(inst: WaitInst): Errors {
-    return this.useExprLocals(inst.expression)
-      .concat(this.resolveExpr(inst.expression));
+  public visitWait(inst: Inst.Wait): Errors {
+    return this.useExprLocals(inst.expr)
+      .concat(this.resolveExpr(inst.expr));
   }
 
-  public visitLog(inst: LogInst): Errors {
-    let useErrors: Errors = [];
-
-    // check target expression
-    if (inst.target instanceof LiteralExpr) {
-      switch (inst.target.token.type) {
-        case TokenType.string:
-        case TokenType.fileIdentifier:
-          // TODO may need check some about path here
-          break;
-        default:
-          useErrors = this.useExprLocals(inst.target);
-      }
-    }
-
-    return this.useExprLocals(inst.expression).concat(
-      useErrors,
-      this.resolveExpr(inst.expression),
+  public visitLog(inst: Inst.Log): Errors {
+    return this.useExprLocals(inst.expr).concat(
+      this.resolveExpr(inst.expr),
       this.resolveExpr(inst.target));
   }
 
-  public visitCopy(inst: CopyInst): Errors {
-    let useErrors: Errors = [];
-
-    // check from expression
-    if (inst.expression instanceof LiteralExpr) {
-      switch (inst.expression.token.type) {
-        case TokenType.string:
-        case TokenType.fileIdentifier:
-          // TODO may need check some about path here
-          break;
-        default:
-          useErrors = this.useExprLocals(inst.expression);
-      }
-    }
-
-    // check the target location
-    if (inst.target instanceof LiteralExpr) {
-      switch (inst.target.token.type) {
-        case TokenType.string:
-        case TokenType.fileIdentifier:
-          // TODO may need check some about path here
-          break;
-        default:
-          useErrors = this.useExprLocals(inst.target);
-      }
-    }
-
-    return this.useExprLocals(inst.expression).concat(
-      useErrors,
-      this.resolveExpr(inst.expression),
-      this.resolveExpr(inst.target));
+  public visitCopy(inst: Inst.Copy): Errors {
+    return this.useExprLocals(inst.target).concat(
+      this.resolveExpr(inst.target),
+      this.resolveExpr(inst.destination));
   }
 
-  public visitRename(inst: RenameInst): Errors {
-    return this.useExprLocals(inst.expression).concat(
-      this.useExprLocals(inst.target),
-      this.resolveExpr(inst.expression),
-      this.resolveExpr(inst.target));
+  public visitRename(inst: Inst.Rename): Errors {
+
+    // check target expression if path exists
+    // if (inst.target instanceof SuffixTerm.Literal) {
+    //   const path = this.pathResolver.resolveUri(
+    //     inst.target.toLocation(this.script.uri),
+    //     ioPath(inst));
+
+    //   if (!empty(path) && !existsSync(path.path)) {
+    //     pathErrors.push(new ResolverError(
+    //       inst.target.token, `Path ${path} does not exist`, []));
+    //   }
+    // }
+
+    return this.useExprLocals(inst.target).concat(
+      this.useExprLocals(inst.alternative),
+      this.resolveExpr(inst.target),
+      this.resolveExpr(inst.alternative));
   }
 
-  public visitDelete(inst: DeleteInst): Errors {
-    if (empty(inst.target)) {
-      return this.useExprLocals(inst.expression).concat(
-        this.resolveExpr(inst.expression));
+  public visitDelete(inst: Inst.Delete): Errors {
+    if (empty(inst.volume)) {
+      return this.useExprLocals(inst.target).concat(
+        this.resolveExpr(inst.target));
     }
 
-    return this.useExprLocals(inst.expression).concat(
-      this.useExprLocals(inst.target),
-      this.resolveExpr(inst.expression),
-      this.resolveExpr(inst.target));
+    return this.useExprLocals(inst.target).concat(
+      this.useExprLocals(inst.volume),
+      this.resolveExpr(inst.target),
+      this.resolveExpr(inst.volume));
   }
 
-  public visitRun(inst: RunInst): Errors {
+  public visitRun(inst: Inst.Run): Errors {
     if (empty(inst.args)) {
       return [];
     }
@@ -465,60 +429,59 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
       argError);
   }
 
-  public visitRunPath(inst: RunPathInst): Errors {
+  public visitRunPath(inst: Inst.RunPath): Errors {
     if (empty(inst.args)) {
-      return this.useExprLocals(inst.expression)
-        .concat(this.resolveExpr(inst.expression));
+      return this.useExprLocals(inst.expr)
+        .concat(this.resolveExpr(inst.expr));
     }
 
-    return this.useExprLocals(inst.expression).concat(
-      this.resolveExpr(inst.expression),
+    return this.useExprLocals(inst.expr).concat(
+      this.resolveExpr(inst.expr),
       accumulateErrors(inst.args, this.useExprLocals.bind(this)),
       accumulateErrors(inst.args, this.resolveExpr.bind(this)));
   }
 
-  public visitRunPathOnce(inst: RunPathOnceInst): Errors {
+  public visitRunPathOnce(inst: Inst.RunPathOnce): Errors {
     if (empty(inst.args)) {
-      return this.useExprLocals(inst.expression)
-        .concat(this.resolveExpr(inst.expression));
+      return this.useExprLocals(inst.expr)
+        .concat(this.resolveExpr(inst.expr));
     }
 
-    return this.useExprLocals(inst.expression).concat(
-      this.resolveExpr(inst.expression),
+    return this.useExprLocals(inst.expr).concat(
+      this.resolveExpr(inst.expr),
       accumulateErrors(inst.args, this.useExprLocals.bind(this)),
       accumulateErrors(inst.args, this.resolveExpr.bind(this)));
   }
 
-  public visitCompile(inst: CompileInst): Errors {
+  public visitCompile(inst: Inst.Compile): Errors {
     if (empty(inst.target)) {
-      return this.useExprLocals(inst.expression)
-        .concat(this.resolveExpr(inst.expression));
+      return this.useExprLocals(inst.expr)
+        .concat(this.resolveExpr(inst.expr));
     }
 
-    return this.useExprLocals(inst.expression).concat(
+    return this.useExprLocals(inst.expr).concat(
       this.useExprLocals(inst.target),
-      this.resolveExpr(inst.expression),
+      this.resolveExpr(inst.expr),
       this.resolveExpr(inst.target));
   }
 
-  public visitList(inst: ListInst): Errors {
+  public visitList(inst: Inst.List): Errors {
     // list generates new variable when target is used
     if (empty(inst.target)) {
       return [];
     }
 
-    const declareError = this.scopeMan.declareVariable(ScopeType.local, inst.target);
+    const declareError = this.scopeBuilder.declareVariable(ScopeType.local, inst.target);
     return !empty(declareError) ? [declareError] : [];
   }
 
-  // tslint:disable-next-line:variable-name
-  public visitEmpty(_inst: EmptyInst): Errors {
+  public visitEmpty(_: Inst.Empty): Errors {
     return [];
   }
 
-  public visitPrint(inst: PrintInst): Errors {
-    return this.useExprLocals(inst.expression)
-      .concat(this.resolveExpr(inst.expression));
+  public visitPrint(inst: Inst.Print): Errors {
+    return this.useExprLocals(inst.expr)
+      .concat(this.resolveExpr(inst.expr));
   }
 
   /* --------------------------------------------
@@ -527,94 +490,95 @@ export class Resolver implements IExprVisitor<Errors>, IInstVisitor<Errors> {
 
   ----------------------------------------------*/
 
-  // tslint:disable-next-line:variable-name
-  public visitExprInvalid(_expr: InvalidExpr): Errors {
+  public visitExprInvalid(_: Expr.Invalid): Errors {
     return [];
   }
 
-  public visitBinary(expr: BinaryExpr): Errors {
+  public visitBinary(expr: Expr.Binary): Errors {
     return this.resolveExpr(expr.left).concat(
       this.resolveExpr(expr.right));
   }
 
-  public visitUnary(expr: UnaryExpr): Errors {
+  public visitUnary(expr: Expr.Unary): Errors {
     return this.resolveExpr(expr.factor);
   }
 
-  public visitFactor(expr: FactorExpr): Errors {
+  public visitFactor(expr: Expr.Factor): Errors {
     return this.resolveExpr(expr.suffix).concat(
       this.resolveExpr(expr.exponent));
   }
 
-  public visitSuffix(expr: SuffixExpr): Errors {
-    return this.resolveExpr(expr.suffix).concat(
-      this.resolveExpr(expr.trailer));
+  public visitSuffix(expr: Expr.Suffix): Errors {
+    const atom = this.resolveSuffixTerm(expr.suffixTerm);
+    if (empty(expr.trailer)) {
+      return atom;
+    }
+
+    return atom.concat(this.resolveSuffixTerm(expr.trailer));
   }
 
-  public visitCall(expr: CallExpr): Errors {
-    // if (!expr.isTrailer) {
-    //   if (callee instanceof VariableExpr) {
-    //     const func = this.scopeMan.lookupFunction(callee.token, ScopeType.global);
-    //     if (empty(func)) {
-    //       errors.push(new ResolverError(
-    //         callee.token,
-    //         `Function ${callee.token.lexeme} may not exist`, []));
-    //     }
-    //     else {
-    //       const max = func.parameters.length;
-    //       const min = func.requiredParameters;
+  /* --------------------------------------------
 
-    //       if (expr.args.length < min) {
-    //         errors.push(new ResolverError(
-    //           callee.token,
-    //           `Function ${callee.token.lexeme} requires at least ${min} parameters`, []));
-    //       }
-    //       if (expr.args.length > max) {
-    //         errors.push(new ResolverError(
-    //           callee.token,
-    //           `Function ${callee.token.lexeme} accepts at most ${max} parameters`, []));
-    //       }
-    //     }
-    //   } else {
-    //     errors = this.resolveExpr(expr.callee);
-    //   }
-    // }
+  Suffix Terms
 
-    return this.resolveExpr(expr.callee).concat(
-      accumulateErrors(expr.args, this.resolveExpr.bind(this)));
-  }
+  ----------------------------------------------*/
 
-  public visitArrayIndex(expr: ArrayIndexExpr): Errors {
-    return this.resolveExpr(expr.array);
-  }
-
-  public visitArrayBracket(expr: ArrayBracketExpr): Errors {
-    return this.resolveExpr(expr.array).concat(
-      this.resolveExpr(expr.index));
-  }
-
-  public visitDelegate(expr: DelegateExpr): Errors {
-    return this.resolveExpr(expr.variable);
-  }
-
-  // tslint:disable-next-line:variable-name
-  public visitLiteral(_expr: LiteralExpr): Errors {
+  public visitSuffixTermInvalid(_: SuffixTerm.Invalid): Errors {
     return [];
   }
 
-  // tslint:disable-next-line:variable-name
-  public visitVariable(_expr: VariableExpr): Errors {
+  public visitSuffixTrailer(expr: SuffixTerm.SuffixTrailer): IResolverError[] {
+    const atom = this.resolveSuffixTerm(expr.suffixTerm);
+    if (empty(expr.trailer)) {
+      return atom;
+    }
+
+    return atom.concat(this.resolveSuffixTerm(expr.trailer));
+  }
+
+  public visitSuffixTerm(expr: SuffixTerm.SuffixTerm): IResolverError[] {
+    const atom = this.resolveSuffixTerm(expr.atom);
+    if (expr.trailers.length === 0) {
+      return atom;
+    }
+
+    return atom.concat(expr.trailers.reduce(
+      (acc, curr) => acc.concat(this.resolveSuffixTerm(curr)),
+      [] as IResolverError[]));
+  }
+
+  public visitCall(expr: SuffixTerm.Call): Errors {
+    return accumulateErrors(expr.args, this.resolveExpr.bind(this));
+  }
+
+  public visitArrayIndex(_: SuffixTerm.ArrayIndex): Errors {
     return [];
   }
 
-  public visitGrouping(expr: GroupingExpr): Errors {
+  public visitArrayBracket(expr: SuffixTerm.ArrayBracket): Errors {
+    return this.resolveExpr(expr.index);
+  }
+
+  public visitDelegate(_: SuffixTerm.Delegate): Errors {
+    return [];
+  }
+
+  public visitLiteral(_: SuffixTerm.Literal): Errors {
+    return [];
+  }
+
+  public visitIdentifier(_: SuffixTerm.Identifier): Errors {
+    return [];
+  }
+
+  public visitGrouping(expr: SuffixTerm.Grouping): Errors {
     return this.resolveExpr(expr.expr);
   }
 
-  public visitAnonymousFunction(expr: AnonymousFunctionExpr): Errors {
-    this.scopeMan.beginScope(expr);
-    const errors = this.resolveInsts(expr.instructions);
-    this.scopeMan.endScope();
+  public visitAnonymousFunction(expr: Expr.AnonymousFunction): Errors {
+    this.scopeBuilder.beginScope(expr);
+    const errors = this.resolveInsts(expr.insts);
+    this.scopeBuilder.endScope();
 
     return errors;
   }

@@ -2,11 +2,11 @@
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
     "module": "commonjs",
-    "target": "es6",
+    "target": "esnext",
     "moduleResolution": "node",
     "outDir": "out",
     "rootDir": "src",
-    "lib": ["es6", "dom"],
+    "lib": ["es2015", "esnext.asynciterable", "dom"],
     "sourceMap": true,
     "strict": true,
   },
