@@ -836,12 +836,13 @@ export class TypeChecker implements
     entityTypes: EntityType[])
     : ITypeResultSuffix<IArgumentType | IFunctionType, ITypeResolved> {
     const type = this.scopeManager.getType(identifer, identifer.token.lexeme, ...entityTypes);
-    const entity = this.scopeManager.scopedEntity(identifer.start, identifer.token.lexeme);
-    return (empty(type) || empty(entity))
+    const tracker = this.scopeManager.scopedEntityTracker(
+      identifer.start, identifer.token.lexeme, entityTypes);
+    return (empty(type) || empty(tracker))
       ? this.errorsAtom(
         identifer,
         new KsTypeError(identifer, 'Unable to lookup identifier type', []))
-      : this.resultAtom(type, identifer, entity.tag);
+      : this.resultAtom(type, identifer, tracker.declared.entity.tag);
   }
 
   private resolveGrouping(grouping: SuffixTerm.Grouping)

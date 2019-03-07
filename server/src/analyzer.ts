@@ -30,7 +30,6 @@ import { ITypeError, ITypeResolvedSuffix, ITypeNode } from './typeChecker/types'
 import { IToken } from './entities/types';
 import { IType } from './typeChecker/types/types';
 import { binarySearch, rangeContains } from './utilities/positionHelpers';
-import { isKsFunction } from './entities/entityHelpers';
 
 export class Analyzer {
   public readonly pathResolver: PathResolver;
@@ -326,17 +325,17 @@ export class Analyzer {
 
     // check if entity exists
     const { token } = result;
-    const entity = scopeManager.scopedEntity(pos, token.lexeme);
+    const entity = scopeManager.scopedNamedTracker(pos, token.lexeme);
     if (empty(entity)) {
       return undefined;
     }
 
     // exit if undefiend
-    if (entity.name.uri === builtIn) {
+    if (entity.declared.uri === builtIn) {
       return undefined;
     }
 
-    return entity.name;
+    return entity.declared.entity.name;
   }
 
   public getUsagesLocations(pos: Position, uri: string): Maybe<Location[]> {
@@ -358,13 +357,13 @@ export class Analyzer {
 
     // try to find the tracker at a given position
     const { token } = result;
-    const trackers = scopeManager.scopedNamedTrackers(pos, token.lexeme);
-    if (empty(trackers.length !== 1)) {
+    const tracker = scopeManager.scopedNamedTracker(pos, token.lexeme);
+    if (empty(tracker)) {
       return undefined;
     }
 
-    return trackers[0].usages.map(usage => usage as Location)
-      .concat(trackers[0].declared.entity.name)
+    return tracker.usages.map(usage => usage as Location)
+      .concat(tracker.declared.entity.name)
       .filter(location => location.uri !== builtIn);
   }
 
@@ -372,23 +371,22 @@ export class Analyzer {
   public getScopedTracker(pos: Position, name: string, uri?: string):
     Maybe<IKsEntityTracker<KsEntity>> {
     if (empty(uri)) {
-      const trackers = this.getGlobalTracker(name);
+      const trackers = this.getGlobalTrackers(name);
       return trackers.length === 1 ? trackers[0] : undefined;
     }
 
     const documentInfo = this.documentInfos.get(uri);
 
     if (!empty(documentInfo) && !empty(documentInfo.scopeManager)) {
-      const trackers = documentInfo.scopeManager.scopedNamedTrackers(pos, name);
-      return trackers.length === 1 ? trackers[0] : undefined;
+      return documentInfo.scopeManager.scopedNamedTracker(pos, name);
     }
 
-    const trackers = this.getGlobalTracker(name);
+    const trackers = this.getGlobalTrackers(name);
     return trackers.length === 1 ? trackers[0] : undefined;
   }
 
   // get a global trackers
-  public getGlobalTracker(name: string): IKsEntityTracker<KsEntity>[] {
+  public getGlobalTrackers(name: string): IKsEntityTracker<KsEntity>[] {
     return standardLibrary.globalTrackers(name);
   }
 
@@ -449,14 +447,14 @@ export class Analyzer {
       const { identifier, index } = identifierIndex;
 
       // resolve the token to make sure it's actually a function
-      const ksFunction = documentInfo.scopeManager.scopedEntity(pos, identifier);
-      if (empty(ksFunction) || !isKsFunction(ksFunction)) {
+      const ksFunction = documentInfo.scopeManager.scopedFunctionTracker(pos, identifier);
+      if (empty(ksFunction)) {
         return undefined;
       }
 
       return {
         index,
-        func: ksFunction,
+        func: ksFunction.declared.entity,
       };
     }
 
