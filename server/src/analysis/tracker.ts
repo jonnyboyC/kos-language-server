@@ -1,4 +1,4 @@
-import { KsEntity, IKsEntityTracker, IKsChange, IKsDeclared } from './types';
+import { KsSymbol, IKsSymbolTracker, IKsChange, IKsDeclared } from './types';
 import { structureType } from '../typeChecker/types/primitives/structure';
 import { Location } from 'vscode-languageserver';
 import { IExpr, ISuffixTerm } from '../parser/types';
@@ -7,20 +7,20 @@ import { empty } from '../utilities/typeGuards';
 import { binaryRightKeyIndex } from '../utilities/positionHelpers';
 import { builtIn } from '../utilities/constants';
 
-export class KsEntityTracker<T extends KsEntity>
-  implements IKsEntityTracker {
+export class KsSymbolTracker<T extends KsSymbol>
+  implements IKsSymbolTracker {
   public readonly declared: IKsDeclared<T>;
   public readonly sets: IKsChange[];
   public readonly usages: IKsChange[];
 
   constructor(
-    public entity: T,
+    public symbol: T,
     public type: IArgumentType | IFunctionType = structureType) {
     this.declared = {
-      entity,
+      symbol,
       type,
-      uri: entity.name.uri,
-      range: entity.name.range,
+      uri: symbol.name.uri,
+      range: symbol.name.range,
     };
     this.sets = [];
     this.usages = [];
@@ -32,7 +32,7 @@ export class KsEntityTracker<T extends KsEntity>
       return this.declared;
     }
 
-    const ranges = this.declared.entity.name.uri === loc.uri
+    const ranges = this.declared.symbol.name.uri === loc.uri
       ? [this.declared, ...this.sets.filter(set => set.uri === loc.uri)]
       : this.sets.filter(set => set.uri === loc.uri);
 

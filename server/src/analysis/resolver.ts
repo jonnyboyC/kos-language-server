@@ -14,7 +14,7 @@ import { SetResolver } from './setResolver';
 import { TokenType } from '../entities/tokentypes';
 import { Script } from '../entities/script';
 import { mockLogger, mockTracer } from '../utilities/logger';
-import { ScopeBuilder } from './scopeBuilder';
+import { SymbolTableBuilder } from './symbolTableBuilder';
 import { ILocalResult, IResolverError } from './types';
 
 export type Errors = IResolverError[];
@@ -25,7 +25,7 @@ export class Resolver implements
   ISuffixTermVisitor<Errors> {
 
   private readonly script: Script;
-  private readonly scopeBuilder: ScopeBuilder;
+  private readonly scopeBuilder: SymbolTableBuilder;
   private readonly logger: ILogger;
   private readonly tracer: ITracer;
   private readonly localResolver: LocalResolver;
@@ -35,7 +35,7 @@ export class Resolver implements
 
   constructor(
     script: Script,
-    scopeBuilder: ScopeBuilder,
+    scopeBuilder: SymbolTableBuilder,
     logger: ILogger = mockLogger,
     tracer: ITracer = mockTracer) {
 
@@ -102,7 +102,7 @@ export class Resolver implements
   // attempt to use ever variable in the expression
   private useTokens(results: ILocalResult[]): Errors {
     return results
-      .map(({ token, expr }) => this.scopeBuilder.useEntity(token, expr))
+      .map(({ token, expr }) => this.scopeBuilder.useSymbol(token, expr))
       .filter(this.filterError);
   }
 

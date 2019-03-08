@@ -35,7 +35,7 @@ import { resourceTransferType } from '../typeChecker/types/resourceTransfer';
 import { builtIn } from '../utilities/constants';
 import { lexiconType } from '../typeChecker/types/collections/lexicon';
 import { rangeType } from '../typeChecker/types/collections/range';
-import { ScopeBuilder } from './scopeBuilder';
+import { SymbolTableBuilder } from './symbolTableBuilder';
 import { volumeFileType } from '../typeChecker/types/io/volumneFile';
 import { pidLoopType } from '../typeChecker/types/pidLoop';
 import { volumeItemType } from '../typeChecker/types/io/volumeItem';
@@ -66,7 +66,7 @@ import { serializableStructureType } from '../typeChecker/types/primitives/seria
 import { bodyTargetType } from '../typeChecker/types/orbital/bodyTarget';
 import { vesselTargetType } from '../typeChecker/types/orbital/vesselTarget';
 
-const libraryBuilder = new ScopeBuilder(builtIn);
+const libraryBuilder = new SymbolTableBuilder(builtIn);
 const functionTypes = [
   createFunctionType('abs', scalarType, scalarType),
   createFunctionType('add', voidType, nodeType),

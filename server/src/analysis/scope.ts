@@ -1,17 +1,23 @@
-import { IKsEntityTracker, IScope, KsEntity } from './types';
+import { IKsSymbolTracker, IScope, KsSymbol } from './types';
 
-export class Scope extends Map<string, IKsEntityTracker> implements IScope {
+/**
+ * A scope class that contains symbols in the current scope
+ */
+export class Scope extends Map<string, IKsSymbolTracker> implements IScope {
   constructor() {
     super();
   }
 
-  public entities(): KsEntity[] {
-    const entities: KsEntity[] = [];
+  /**
+   * All the symbols in this scope
+   */
+  public symbols(): KsSymbol[] {
+    const symbols: KsSymbol[] = [];
 
     for (const trackers of this.values()) {
-      entities.push(trackers.declared.entity);
+      symbols.push(trackers.declared.symbol);
     }
 
-    return entities;
+    return symbols;
   }
 }

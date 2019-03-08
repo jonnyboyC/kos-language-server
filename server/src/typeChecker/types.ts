@@ -1,7 +1,7 @@
 import { IType } from './types/types';
 import { Range } from 'vscode-languageserver';
 import * as SuffixTerm from '../parser/suffixTerm';
-import { EntityType } from '../analysis/types';
+import { KsSymbolKind } from '../analysis/types';
 
 /**
  * Error interface for the typechecker
@@ -72,7 +72,7 @@ export interface ITypeResolved<T extends IType = IType> extends ITypeResolvedSuf
   /**
    * Indicates the entity type of the root atom
    */
-  atomType: EntityType;
+  atomType: KsSymbolKind;
 }
 
 /**

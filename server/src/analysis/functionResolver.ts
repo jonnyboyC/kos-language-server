@@ -13,8 +13,8 @@ import { Script } from '../entities/script';
 import { KsParameter } from '../entities/parameters';
 import { TokenType } from '../entities/tokentypes';
 import { mockLogger, mockTracer } from '../utilities/logger';
-import { EntityState } from './types';
-import { ScopeBuilder } from './scopeBuilder';
+import { SymbolState } from './types';
+import { SymbolTableBuilder } from './symbolTableBuilder';
 
 export type Errors = ResolverError[];
 
@@ -23,13 +23,13 @@ export class FuncResolver implements
   IInstVisitor<Errors>,
   ISuffixTermVisitor<Errors> {
   private syntaxTree: Script;
-  private scopeBuilder: ScopeBuilder;
+  private scopeBuilder: SymbolTableBuilder;
   private readonly logger: ILogger;
   private readonly tracer: ITracer;
 
   constructor(
     syntaxTree: Script,
-    scopeBuilder: ScopeBuilder,
+    scopeBuilder: SymbolTableBuilder,
     logger: ILogger = mockLogger,
     tracer: ITracer = mockTracer) {
     this.syntaxTree = syntaxTree;
@@ -153,12 +153,12 @@ export class FuncResolver implements
             parameter.identifier,
             'Normal parameters cannot occur after defaulted parameters', []));
         }
-        parameters.push(new KsParameter(parameter.identifier, false, EntityState.declared));
+        parameters.push(new KsParameter(parameter.identifier, false, SymbolState.declared));
       }
 
       for (const parameter of decl.defaultParameters) {
         defaulted = true;
-        parameters.push(new KsParameter(parameter.identifier, true, EntityState.declared));
+        parameters.push(new KsParameter(parameter.identifier, true, SymbolState.declared));
       }
     }
 

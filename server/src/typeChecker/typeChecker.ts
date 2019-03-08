@@ -12,7 +12,7 @@ import {
 } from './types';
 import { mockLogger, mockTracer } from '../utilities/logger';
 import { Script } from '../entities/script';
-import { ScopeManager } from '../analysis/scopeManager';
+import { SymbolTable } from '../analysis/symbolTable';
 import { empty } from '../utilities/typeGuards';
 import {
   IArgumentType, IType,
@@ -39,7 +39,7 @@ import {
 } from './types/typeHelpers';
 import { delegateType } from './types/primitives/delegate';
 import { TypeNode } from './typeNode';
-import { EntityType } from '../analysis/types';
+import { KsSymbolKind } from '../analysis/types';
 import { rangeEqual } from '../utilities/positionHelpers';
 
 type TypeErrors = ITypeError[];
@@ -53,15 +53,15 @@ export class TypeChecker implements
   private readonly logger: ILogger;
   private readonly tracer: ITracer;
   private readonly script: Script;
-  private readonly scopeManager: ScopeManager;
+  private readonly symbolTable: SymbolTable;
 
   constructor(
     script: Script,
-    scopeManager: ScopeManager,
+    symbolTable: SymbolTable,
     logger: ILogger = mockLogger,
     tracer: ITracer = mockTracer) {
     this.script = script;
-    this.scopeManager = scopeManager;
+    this.symbolTable = symbolTable;
     this.logger = logger;
     this.tracer = tracer;
   }
@@ -83,10 +83,10 @@ export class TypeChecker implements
       const [firstTrailer, ...remainingTrailers] = suffixTerm.trailers;
 
       const atom = firstTrailer instanceof SuffixTerm.Call
-        ? this.resolveAtom(suffixTerm.atom, EntityType.function)
+        ? this.resolveAtom(suffixTerm.atom, KsSymbolKind.function)
         : this.resolveAtom(
-          suffixTerm.atom, EntityType.lock,
-          EntityType.parameter, EntityType.variable);
+          suffixTerm.atom, KsSymbolKind.lock,
+          KsSymbolKind.parameter, KsSymbolKind.variable);
       let current: ITypeResultSuffix<IType> = atom;
 
       if (!empty(firstTrailer)) {
@@ -132,7 +132,7 @@ export class TypeChecker implements
       return {
         type: structureType,
         resolved: {
-          atomType: EntityType.variable,
+          atomType: KsSymbolKind.variable,
           atom: new TypeNode(structureType, suffix.suffixTerm),
           termTrailers: [],
         },
@@ -168,43 +168,41 @@ export class TypeChecker implements
   // visit declare variable
   visitDeclVariable(decl: Decl.Var): TypeErrors {
     const result = this.checkExpr(decl.expression);
-    this.scopeManager.declareType(
-      decl.identifier, decl.identifier.lexeme,
-      result.type, EntityType.variable);
+    this.symbolTable.declareType(
+      decl.identifier,
+      result.type, KsSymbolKind.variable);
     return result.errors;
   }
 
   // visit declare lock
   visitDeclLock(decl: Decl.Lock): TypeErrors {
     const result = this.checkExpr(decl.value);
-    this.scopeManager.declareType(
-      decl.identifier, decl.identifier.lexeme,
-      result.type, EntityType.lock);
+    this.symbolTable.declareType(
+      decl.identifier,
+      result.type, KsSymbolKind.lock);
     return result.errors;
   }
 
   // visit declare function
   visitDeclFunction(decl: Decl.Func): TypeErrors {
-    const funcTracker = this.scopeManager
+    const funcTracker = this.symbolTable
       .scopedFunctionTracker(decl.start, decl.functionIdentifier.lexeme);
 
     if (empty(funcTracker)) {
       throw Error('TODO');
     }
 
-    const { entity } = funcTracker.declared;
+    const { symbol } = funcTracker.declared;
     const paramsTypes: IArgumentType[] = [];
-    for (let i = 0; i < entity.parameters.length; i += 1) {
+    for (let i = 0; i < symbol.parameters.length; i += 1) {
       paramsTypes.push(structureType);
     }
-    const returnType = entity.returnValue ? structureType : voidType;
+    const returnType = symbol.returnValue ? structureType : voidType;
 
     const funcType = createFunctionType(
-      funcTracker.declared.entity.name.lexeme, returnType, ...paramsTypes);
+      funcTracker.declared.symbol.name.lexeme, returnType, ...paramsTypes);
 
-    this.scopeManager.declareType(
-      entity.name, entity.name.lexeme,
-      funcType, EntityType.function);
+    this.symbolTable.declareType(symbol.name, funcType, KsSymbolKind.function);
 
     const errors = this.checkInst(decl.instructionBlock);
     return errors;
@@ -217,11 +215,10 @@ export class TypeChecker implements
     // loop over defaulted parameters
     for (const defaulted of decl.defaultParameters) {
       const valueResult = this.checkExpr(defaulted.value);
-      this.scopeManager.declareType(
+      this.symbolTable.declareType(
         defaulted.identifier,
-        defaulted.identifier.lexeme,
         valueResult.type,
-        EntityType.parameter,
+        KsSymbolKind.parameter,
       );
 
       errors = errors.concat(valueResult.errors);
@@ -229,11 +226,10 @@ export class TypeChecker implements
 
     // loop over normal parameters
     for (const parameter of decl.parameters) {
-      this.scopeManager.declareType(
+      this.symbolTable.declareType(
         parameter.identifier,
-        parameter.identifier.lexeme,
         structureType,
-        EntityType.parameter,
+        KsSymbolKind.parameter,
       );
     }
 
@@ -347,19 +343,19 @@ export class TypeChecker implements
     }
 
     if (atom instanceof SuffixTerm.Identifier) {
-      const tracker = this.scopeManager.scopedVariableTracker(
+      const tracker = this.symbolTable.scopedVariableTracker(
         atom.start,
         atom.token.lexeme);
 
       if (this.script.lazyGlobal
         && !empty(tracker)
         && rangeEqual(tracker.declared.range, atom)) {
-        this.scopeManager.declareType(
-          atom.token, atom.token.lexeme, exprResult.type,
-          EntityType.variable, EntityType.parameter, EntityType.lock);
+        this.symbolTable.declareType(
+          atom.token, exprResult.type,
+          KsSymbolKind.variable, KsSymbolKind.parameter, KsSymbolKind.lock);
       } else {
-        this.scopeManager.setType(
-          atom.token, atom.token.lexeme, exprResult.type,
+        this.symbolTable.setType(
+          atom.token, exprResult.type,
         );
       }
     } else {
@@ -480,7 +476,7 @@ export class TypeChecker implements
     }
 
     // TODO may be able to detect if type is really pure and not mixed
-    this.scopeManager.setType(inst.identifier, inst.identifier.lexeme, structureType);
+    this.symbolTable.setType(inst.identifier, structureType);
     return errors.concat(this.checkInst(inst.inst));
   }
 
@@ -750,10 +746,10 @@ export class TypeChecker implements
     const [firstTrailer, ...remainingTrailers] = suffixTerm.trailers;
 
     const atom = firstTrailer instanceof SuffixTerm.Call
-      ? this.resolveAtom(suffixTerm.atom, EntityType.function)
+      ? this.resolveAtom(suffixTerm.atom, KsSymbolKind.function)
       : this.resolveAtom(
-        suffixTerm.atom, EntityType.variable,
-        EntityType.lock, EntityType.parameter);
+        suffixTerm.atom, KsSymbolKind.variable,
+        KsSymbolKind.lock, KsSymbolKind.parameter);
     let current: ITypeResultSuffix<IType> = atom;
 
     if (!empty(firstTrailer)) {
@@ -799,14 +795,14 @@ export class TypeChecker implements
 
   private resolveAtom(
     atom: Atom,
-    ...entityType: EntityType[])
+    ...symbolKinds: KsSymbolKind[])
     : ITypeResultSuffix<IArgumentType | IFunctionType, ITypeResolved> {
     if (atom instanceof SuffixTerm.Literal) {
       return this.resolveLiteral(atom);
     }
 
     if (atom instanceof SuffixTerm.Identifier) {
-      return this.resolveIdentifier(atom, entityType);
+      return this.resolveIdentifier(atom, symbolKinds);
     }
 
     if (atom instanceof SuffixTerm.Grouping) {
@@ -821,14 +817,14 @@ export class TypeChecker implements
     switch (literal.token.type) {
       case TokenType.true:
       case TokenType.false:
-        return this.resultAtom(booleanType, literal, EntityType.variable);
+        return this.resultAtom(booleanType, literal, KsSymbolKind.variable);
       case TokenType.integer:
-        return this.resultAtom(integarType, literal, EntityType.variable);
+        return this.resultAtom(integarType, literal, KsSymbolKind.variable);
       case TokenType.double:
-        return this.resultAtom(doubleType, literal, EntityType.variable);
+        return this.resultAtom(doubleType, literal, KsSymbolKind.variable);
       case TokenType.string:
       case TokenType.fileIdentifier:
-        return this.resultAtom(stringType, literal, EntityType.variable);
+        return this.resultAtom(stringType, literal, KsSymbolKind.variable);
       default:
         throw new Error('Unknown literal type');
     }
@@ -836,22 +832,22 @@ export class TypeChecker implements
 
   private resolveIdentifier(
     identifer: SuffixTerm.Identifier,
-    entityTypes: EntityType[])
+    symbolKinds: KsSymbolKind[])
     : ITypeResultSuffix<IArgumentType | IFunctionType, ITypeResolved> {
-    const type = this.scopeManager.getType(identifer, identifer.token.lexeme, ...entityTypes);
-    const tracker = this.scopeManager.scopedEntityTracker(
-      identifer.start, identifer.token.lexeme, entityTypes);
+    const type = this.symbolTable.getType(identifer.token, ...symbolKinds);
+    const tracker = this.symbolTable.scopedSymbolTracker(
+      identifer.start, identifer.token.lexeme, symbolKinds);
     return (empty(type) || empty(tracker))
       ? this.errorsAtom(
         identifer,
         new KsTypeError(identifer, 'Unable to lookup identifier type', []))
-      : this.resultAtom(type, identifer, tracker.declared.entity.tag);
+      : this.resultAtom(type, identifer, tracker.declared.symbol.tag);
   }
 
   private resolveGrouping(grouping: SuffixTerm.Grouping)
     : ITypeResultSuffix<IArgumentType, ITypeResolved> {
     const result = this.checkExpr(grouping.expr);
-    return this.resultAtom(result.type, grouping, EntityType.variable, result.errors);
+    return this.resultAtom(result.type, grouping, KsSymbolKind.variable, result.errors);
   }
 
   private resolveFunctionCall(
@@ -867,12 +863,24 @@ export class TypeChecker implements
 
     if (!Array.isArray(type.params)) {
       const callResult = this.resolveVaradicCall(type.params, { type, resolved, errors }, call);
-      return { ...callResult, resolved: { ...callResult.resolved, atomType: EntityType.function } };
+      return {
+        ...callResult,
+        resolved: {
+          ...callResult.resolved,
+          atomType: KsSymbolKind.function,
+        },
+      };
     }
 
     // handle normal functions
     const callResult = this.resolveNormalCall(type.params, { type, resolved, errors }, call);
-    return { ...callResult, resolved: { ...callResult.resolved, atomType: EntityType.function } };
+    return {
+      ...callResult,
+      resolved: {
+        ...callResult.resolved,
+        atomType: KsSymbolKind.function,
+      },
+    };
   }
 
   public visitSuffixTrailer(
@@ -1042,7 +1050,7 @@ export class TypeChecker implements
 
       // If index is identify check that it holds a integarType
       case TokenType.identifier:
-        const type = this.scopeManager.getType(suffixTerm.indexer, suffixTerm.indexer.lexeme);
+        const type = this.symbolTable.getType(suffixTerm.indexer);
         if (empty(type) || !coerce(type, integarType)) {
           return this.errorsSuffixTermTrailer(
             suffixTerm,
@@ -1356,20 +1364,20 @@ export class TypeChecker implements
     node: SuffixTerm.SuffixTermBase,
     ...errors: (ITypeError | ITypeError[])[])
     : ITypeResultSuffix<IArgumentType, ITypeResolved> {
-    return this.resultAtom(structureType, node, EntityType.variable, ...errors);
+    return this.resultAtom(structureType, node, KsSymbolKind.variable, ...errors);
   }
 
   /**
    * Returns the result of an atom typecheck
    * @param type the current type of the atom
    * @param node node checked for this checking
-   * @param atomType the entity type of the atom
+   * @param atomType the symbol type of the atom
    * @param errors errors encountered during the checking
    */
   private resultAtom<T extends IType>(
     type: T,
     node: SuffixTerm.SuffixTermBase,
-    atomType: EntityType,
+    atomType: KsSymbolKind,
     ...errors: (ITypeError | ITypeError[])[])
     : ITypeResultSuffix<T, ITypeResolved> {
     return {
