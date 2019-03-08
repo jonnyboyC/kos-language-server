@@ -220,9 +220,9 @@ export class Analyzer {
       const checker = new TypeChecker(script, scopeManager);
       const result = checker.checkSuffix(node);
 
-      if (rangeContains(result.resolved.node, pos)) {
+      if (rangeContains(result.resolved.atom, pos)) {
         return [
-          result.resolved.node.type,
+          result.resolved.atom.type,
           result.resolved.atomType,
         ];
       }
@@ -286,7 +286,7 @@ export class Analyzer {
   }
 
   private resolvedNodes(resolved: ITypeResolvedSuffix<IType>): ITypeNode[] {
-    const nodes = [resolved.node, ...resolved.termTrailers];
+    const nodes = [resolved.atom, ...resolved.termTrailers];
     return empty(resolved.suffixTrailer)
       ? nodes
       : nodes.concat(this.resolvedNodes(resolved.suffixTrailer));

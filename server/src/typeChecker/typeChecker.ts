@@ -7,7 +7,7 @@ import * as Expr from '../parser/expr';
 import * as Inst from '../parser/inst';
 import * as Decl from '../parser/declare';
 import {
-  ITypeError, ITypeResult, ITypeResolved,
+  ITypeError, ITypeResultExpr, ITypeResolved,
   ITypeResultSuffix, ITypeResolvedSuffix, ITypeNode,
 } from './types';
 import { mockLogger, mockTracer } from '../utilities/logger';
@@ -47,7 +47,7 @@ type SuffixTermType = ISuffixType | IArgumentType;
 
 export class TypeChecker implements
   IInstVisitor<TypeErrors>,
-  IExprVisitor<ITypeResult<IArgumentType>>,
+  IExprVisitor<ITypeResultExpr<IArgumentType>>,
   ISuffixTermParamVisitor<ITypeResultSuffix<IType>, ITypeResultSuffix<SuffixTermType>> {
 
   private readonly logger: ILogger;
@@ -119,8 +119,7 @@ export class TypeChecker implements
 
       const suffixTrailer = this.checkSuffixTerm(
         trailer,
-        this.dummyResult(type, suffixTerm));
-      // const node = this.lastSuffixNode(suffix);
+        this.suffixTrailerResult(type, suffixTerm));
 
       return this.resultSuffixTerm(
         suffixTrailer.type,
@@ -134,7 +133,7 @@ export class TypeChecker implements
         type: structureType,
         resolved: {
           atomType: EntityType.variable,
-          node: new TypeNode(structureType, suffix.suffixTerm),
+          atom: new TypeNode(structureType, suffix.suffixTerm),
           termTrailers: [],
         },
         errors: ([] as ITypeError[]),
@@ -153,7 +152,7 @@ export class TypeChecker implements
   }
 
   // check for an expression
-  private checkExpr(expr: IExpr): ITypeResult<IArgumentType> {
+  private checkExpr(expr: IExpr): ITypeResultExpr<IArgumentType> {
     return expr.accept(this);
   }
 
@@ -642,13 +641,13 @@ export class TypeChecker implements
   }
 
   // visit invalid expression
-  public visitExprInvalid(_: Expr.Invalid): ITypeResult<IArgumentType> {
+  public visitExprInvalid(_: Expr.Invalid): ITypeResultExpr<IArgumentType> {
     return { type: structureType, errors: [] };
   }
 
   // ----------------------------- Expressions -----------------------------------------
 
-  public visitBinary(expr: Expr.Binary): ITypeResult<IArgumentType> {
+  public visitBinary(expr: Expr.Binary): ITypeResultExpr<IArgumentType> {
     const rightResult = this.checkExpr(expr.right);
     const leftResult = this.checkExpr(expr.left);
 
@@ -689,7 +688,7 @@ export class TypeChecker implements
       `Unexpected token ${expr.operator.typeString} type encountered in binary expression`);
   }
 
-  public visitUnary(expr: Expr.Unary): ITypeResult<IArgumentType> {
+  public visitUnary(expr: Expr.Unary): ITypeResultExpr<IArgumentType> {
     const result = this.checkExpr(expr.factor);
     const errors: TypeErrors = result.errors;
     let finalType: Maybe<IArgumentType> = undefined;
@@ -724,7 +723,7 @@ export class TypeChecker implements
 
     return { errors , type: finalType };
   }
-  public visitFactor(expr: Expr.Factor): ITypeResult<IArgumentType> {
+  public visitFactor(expr: Expr.Factor): ITypeResultExpr<IArgumentType> {
     const suffixResult = this.checkExpr(expr.suffix);
     const exponentResult = this.checkExpr(expr.exponent);
     const errors = suffixResult.errors.concat(exponentResult.errors);
@@ -746,7 +745,7 @@ export class TypeChecker implements
     return {  errors, type: scalarType };
   }
 
-  public visitSuffix(expr: Expr.Suffix): ITypeResult<IArgumentType> {
+  public visitSuffix(expr: Expr.Suffix): ITypeResultExpr<IArgumentType> {
     const { suffixTerm, trailer } = expr;
     const [firstTrailer, ...remainingTrailers] = suffixTerm.trailers;
 
@@ -792,7 +791,7 @@ export class TypeChecker implements
       new KsTypeError(trailer, 'TODO', []));
   }
 
-  public visitAnonymousFunction(_: Expr.AnonymousFunction): ITypeResult<IArgumentType> {
+  public visitAnonymousFunction(_: Expr.AnonymousFunction): ITypeResultExpr<IArgumentType> {
     return this.resultExpr(delegateType);
   }
 
@@ -904,7 +903,7 @@ export class TypeChecker implements
 
     const trailer = this.checkSuffixTerm(
       suffixTerm.trailer,
-      this.dummyResult(type, suffixTerm));
+      this.suffixTrailerResult(type, suffixTerm));
     // const node = this.lastSuffixNode(suffixTerm);
 
     return this.resultSuffixTerm(
@@ -1016,12 +1015,18 @@ export class TypeChecker implements
     return this.resultSuffixTermTrailer(type, call, resolved, errors);
   }
 
+  /**
+   * visit an array index suffix expression.
+   * @param suffixTerm the current array index
+   * @param current the current type
+   */
   public visitArrayIndex(
     suffixTerm: SuffixTerm.ArrayIndex,
     current: ITypeResultSuffix<IType>): ITypeResultSuffix<IArgumentType> {
     const { type, errors, resolved } = current;
 
     // TODO confirm indexable types
+    // Only lists are indexable with '#'
     if (!coerce(type, userListType)) {
       return this.errorsSuffixTermTrailer(
         suffixTerm,
@@ -1031,8 +1036,11 @@ export class TypeChecker implements
     }
 
     switch (suffixTerm.indexer.type) {
+      // If index is integer we're already in good shape
       case TokenType.integer:
         return this.resultSuffixTermTrailer(arrayIndexer, suffixTerm, resolved, errors);
+
+      // If index is identify check that it holds a integarType
       case TokenType.identifier:
         const type = this.scopeManager.getType(suffixTerm.indexer, suffixTerm.indexer.lexeme);
         if (empty(type) || !coerce(type, integarType)) {
@@ -1048,6 +1056,8 @@ export class TypeChecker implements
         }
 
         return this.resultSuffixTermTrailer(arrayIndexer, suffixTerm, resolved, errors);
+
+      // All other cases are unallowed
       default:
         return this.errorsSuffixTermTrailer(
           suffixTerm,
@@ -1059,12 +1069,18 @@ export class TypeChecker implements
     }
   }
 
+  /**
+   * visit an array bracket suffix expression.
+   * @param suffixTerm the current array bracket expression
+   * @param current the current ytpe
+   */
   public visitArrayBracket(
     suffixTerm: SuffixTerm.ArrayBracket,
     current: ITypeResultSuffix<IType>): ITypeResultSuffix<IArgumentType> {
     const { type, resolved, errors } = current;
     const indexResult = this.checkExpr(suffixTerm.index);
 
+    // if we know the collection type is a list we need a scalar indexer
     if (coerce(type, userListType) && !coerce(indexResult.type, scalarType)) {
       return this.errorsSuffixTermTrailer(
         suffixTerm,
@@ -1077,6 +1093,7 @@ export class TypeChecker implements
           []));
     }
 
+    // if we know the collection type is a lexicon we need a string indexer
     if (coerce(type, lexiconType) && !coerce(indexResult.type, stringType)) {
       return this.errorsSuffixTermTrailer(
         suffixTerm,
@@ -1089,6 +1106,7 @@ export class TypeChecker implements
           []));
     }
 
+    // if we know the collection type is a string we need a scalar indexer
     if (!coerce(type, stringType) && !coerce(indexResult.type, scalarType)) {
       return this.errorsSuffixTermTrailer(
         suffixTerm,
@@ -1104,6 +1122,11 @@ export class TypeChecker implements
     return this.resultSuffixTermTrailer(arrayBracketIndexer, suffixTerm, resolved, errors);
   }
 
+  /**
+   * visit the suffix term for delgates. This will return a new delgate type
+   * @param suffixTerm the current delgate node
+   * @param current the currently resolved type
+   */
   public visitDelegate(
     suffixTerm: SuffixTerm.Delegate,
     current: ITypeResultSuffix<IType>): ITypeResultSuffix<IArgumentType> {
@@ -1119,6 +1142,11 @@ export class TypeChecker implements
     return this.resultSuffixTermTrailer(delegateCreation, suffixTerm, resolved, errors);
   }
 
+  /**
+   * visit the suffix term for literals. This should not occur
+   * @param _ literal syntax node
+   * @param __ current type
+   */
   public visitLiteral(
     _: SuffixTerm.Literal,
     __: ITypeResultSuffix<IType>): ITypeResultSuffix<IArgumentType> {
@@ -1174,9 +1202,9 @@ export class TypeChecker implements
    */
   private checkOperator(
     expr: IExpr,
-    leftResult: ITypeResult<IType>,
-    rightResult: ITypeResult<IType>,
-    operator: Operator): ITypeResult<IArgumentType> {
+    leftResult: ITypeResultExpr<IType>,
+    rightResult: ITypeResultExpr<IType>,
+    operator: Operator): ITypeResultExpr<IArgumentType> {
 
     const leftType = leftResult.type;
     const rightType = rightResult.type;
@@ -1229,7 +1257,7 @@ export class TypeChecker implements
    * @param errors type errors
    */
   private errorsExpr(
-    ...errors: (ITypeError | ITypeError[])[]): ITypeResult<IArgumentType> {
+    ...errors: (ITypeError | ITypeError[])[]): ITypeResultExpr<IArgumentType> {
     return this.resultExpr(structureType, ...errors);
   }
 
@@ -1240,7 +1268,7 @@ export class TypeChecker implements
    */
   private resultExpr<T extends IType>(
     type: T,
-    ...errors: (ITypeError | ITypeError[])[]): ITypeResult<T> {
+    ...errors: (ITypeError | ITypeError[])[]): ITypeResultExpr<T> {
     return {
       type,
       errors: ([] as ITypeError[]).concat(...errors),
@@ -1272,7 +1300,7 @@ export class TypeChecker implements
     resolved: ITypeResolvedSuffix,
     ...errors: (ITypeError | ITypeError[])[])
     : ITypeResultSuffix<IArgumentType, ITypeResolvedSuffix> {
-    const { node: current, termTrailers, suffixTrailer } = resolved;
+    const { atom: current, termTrailers, suffixTrailer } = resolved;
     let returns = structureType;
     if (type.tag === 'function' || type.tag === 'suffix') {
       returns = type.returns;
@@ -1282,7 +1310,7 @@ export class TypeChecker implements
 
     return this.resultSuffixTerm(
       returns,
-      { suffixTrailer, node: current, termTrailers: [...termTrailers, new TypeNode(type, node)] },
+      { suffixTrailer, atom: current, termTrailers: [...termTrailers, new TypeNode(type, node)] },
       ...errors);
   }
 
@@ -1302,9 +1330,10 @@ export class TypeChecker implements
   }
 
   /**
-   * Return the suffix error type
-   * @param resolved the currently resolved type
-   * @param errors all accumulated errors
+   * Return the type result of the suffix term
+   * @param type resultant type
+   * @param resolved resolved cummulative suffix type
+   * @param errors errors encounted while type checking
    */
   private resultSuffixTerm<T extends IType, R extends ITypeResolvedSuffix>(
     type: T,
@@ -1318,6 +1347,11 @@ export class TypeChecker implements
     };
   }
 
+  /**
+   * Return the atom error type
+   * @param node suffix term node the error occured
+   * @param errors errors encountered while checking this atom
+   */
   private errorsAtom(
     node: SuffixTerm.SuffixTermBase,
     ...errors: (ITypeError | ITypeError[])[])
@@ -1325,6 +1359,13 @@ export class TypeChecker implements
     return this.resultAtom(structureType, node, EntityType.variable, ...errors);
   }
 
+  /**
+   * Returns the result of an atom typecheck
+   * @param type the current type of the atom
+   * @param node node checked for this checking
+   * @param atomType the entity type of the atom
+   * @param errors errors encountered during the checking
+   */
   private resultAtom<T extends IType>(
     type: T,
     node: SuffixTerm.SuffixTermBase,
@@ -1336,35 +1377,29 @@ export class TypeChecker implements
       errors: ([] as ITypeError[]).concat(...errors),
       resolved: {
         atomType,
-        node: new TypeNode(type, node),
+        atom: new TypeNode(type, node),
         termTrailers: [],
       },
     };
   }
 
-  private dummyResult<T extends IType>(
+  /**
+   * New result for a new suffix trailer to fill in
+   * @param type the type of the suffix expression so far
+   * @param node the node the type was derived from
+   */
+  private suffixTrailerResult<T extends IType>(
     type: T,
     node: SuffixTerm.SuffixTermBase): ITypeResultSuffix<T, ITypeResolvedSuffix> {
     return {
       type,
       resolved: {
-        node: new TypeNode(type, node),
+        atom: new TypeNode(type, node),
         termTrailers: ([] as ITypeNode<IType>[]),
       },
       errors: [],
     };
   }
-
-  // private lastSuffixNode(
-  //   suffix: SuffixTerm.SuffixTrailer | Expr.Suffix)
-  //   : SuffixTerm.SuffixTermBase {
-  //   const { suffixTerm, trailer } = suffix;
-  //   if (!empty(trailer)) {
-  //     return this.lastSuffixNode(trailer);
-  //   }
-
-  //   return this.lastSuffixTermNode(suffixTerm);
-  // }
 
   private lastSuffixTermNode(
     suffixTerm: SuffixTerm.SuffixTerm)
