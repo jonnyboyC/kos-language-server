@@ -1,4 +1,6 @@
 ## [0.3.0] (2019-3-7)
+
+### Features
 - **on hover type hints** Added support for on hover
 - **better auto complete** completions now include type inferred type information where available
 
@@ -8,8 +10,9 @@
 - **report error when lazyglobal off set** The language server now reports and errors when `lazyGlobal off. ... set x to "example".`
 - **run instructions** Fixed a few issues related to the language server loading other file based on `runPath("example.ks").` and it's sibilings
 
-
 ## [0.2.0] (2019-1-5)
+
+### Features
 - **goto definition** Added support for Goto definition or variables, parameters, locks, and functions
 - **auto complete** Added initial set of suggestions for auto complete. These included keywords as well as variables, functions etc that are detected in scope
 - **find unused variable** Indicate variables that where declared but may not used
@@ -31,7 +34,6 @@
 
 ## [0.1.2] (2018-09-17)
 
-
 ### Bug Fixes
 - **break instruction**: Forgot to actually implement break statement logic
 - **parameter syntax**: Previously comments would not highlight correctly in the middle of a parameter declaration
@@ -39,7 +41,6 @@
 - **more synchronize** instruction*: More keywords were reset error reporting
 
 ## [0.1.1] (2018-09-12)
-
 
 ### Bug Fixes
 - **parse errors**: Previously there was a bug were parse errors were not correctly reported for instructions inside a block (for, until, function, etc.).
