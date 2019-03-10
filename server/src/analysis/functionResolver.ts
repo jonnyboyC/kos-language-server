@@ -28,12 +28,12 @@ export class FuncResolver implements
   private readonly tracer: ITracer;
 
   constructor(
-    syntaxTree: Script,
-    scopeBuilder: SymbolTableBuilder,
+    script: Script,
+    symbolTableBuilder: SymbolTableBuilder,
     logger: ILogger = mockLogger,
     tracer: ITracer = mockTracer) {
-    this.syntaxTree = syntaxTree;
-    this.scopeBuilder = scopeBuilder;
+    this.syntaxTree = script;
+    this.scopeBuilder = symbolTableBuilder;
     this.logger = logger;
     this.tracer = tracer;
   }

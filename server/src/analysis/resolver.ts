@@ -35,12 +35,12 @@ export class Resolver implements
 
   constructor(
     script: Script,
-    scopeBuilder: SymbolTableBuilder,
+    symbolTableBuilder: SymbolTableBuilder,
     logger: ILogger = mockLogger,
     tracer: ITracer = mockTracer) {
 
     this.script = script;
-    this.scopeBuilder = scopeBuilder;
+    this.scopeBuilder = symbolTableBuilder;
     this.localResolver = new LocalResolver();
     this.setResolver = new SetResolver(this.localResolver);
     this.lazyGlobal = true;
