@@ -959,6 +959,12 @@ export class TypeChecker implements
       resolved,
       errors);
   }
+
+  /**
+   * Visit a call expression and check for type errors
+   * @param call the current call expresion
+   * @param current current resolved suffix expression
+   */
   public visitCall(
     call: SuffixTerm.Call,
     current: ITypeResultSuffix<IType>): ITypeResultSuffix<IArgumentType> {
@@ -986,7 +992,12 @@ export class TypeChecker implements
     return this.resolveNormalCall(type.params, { type, resolved, errors }, call);
   }
 
-  // visit a variadic call trailer
+  /**
+   * Resolve variadic call for type errors
+   * @param params parameter types
+   * @param current current resolved suffix expression
+   * @param call current call expression
+   */
   private resolveVaradicCall(
     params: IVariadicType,
     current: ITypeResultSuffix<ISuffixType | IFunctionType>,
@@ -1004,7 +1015,12 @@ export class TypeChecker implements
     return this.resultSuffixTermTrailer(type, call, resolved, errors);
   }
 
-  // visit normal call trailer
+  /**
+   * Check a normal call signiture for type errors
+   * @param params the parameter types
+   * @param current the current resolved suffix
+   * @param call the call expression
+   */
   private resolveNormalCall(
     params: IType[],
     current: ITypeResultSuffix<ISuffixType | IFunctionType>,
