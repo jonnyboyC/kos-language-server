@@ -1,7 +1,7 @@
 import {
   IExprClass, IInst, IExprVisitor,
   IExpr, IExprClassVisitor,
-  GrammarNode, Distribution,
+  GrammarNode, Distribution, IExprPasser, SyntaxKind,
 } from './types';
 import * as SuffixTerm from './suffixTerm';
 import { TokenType } from '../entities/tokentypes';
@@ -16,10 +16,11 @@ import { empty } from '../utilities/typeGuards';
 import { NodeBase } from './base';
 
 export abstract class Expr extends NodeBase implements IExpr {
-  get tag(): 'expr' {
-    return 'expr';
+  get tag(): SyntaxKind.expr {
+    return SyntaxKind.expr;
   }
 
+  public abstract pass<T>(visitor: IExprPasser<T>): T;
   public abstract accept<T>(visitor: IExprVisitor<T>): T;
 }
 
@@ -46,6 +47,10 @@ export class Invalid extends Expr {
 
   public accept<T>(visitor: IExprVisitor<T>): T {
     return visitor.visitExprInvalid(this);
+  }
+
+  public pass<T>(visitor: IExprPasser<T>): T {
+    return visitor.passExprInvalid(this);
   }
 
   public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
@@ -83,6 +88,10 @@ export class Binary extends Expr {
     return visitor.visitBinary(this);
   }
 
+  public pass<T>(visitor: IExprPasser<T>): T {
+    return visitor.passBinary(this);
+  }
+
   public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
     return visitor.visitBinary(this);
   }
@@ -115,6 +124,10 @@ export class Unary extends Expr {
 
   public accept<T>(visitor: IExprVisitor<T>): T {
     return visitor.visitUnary(this);
+  }
+
+  public pass<T>(visitor: IExprPasser<T>): T {
+    return visitor.passUnary(this);
   }
 
   public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
@@ -152,6 +165,10 @@ export class Factor extends Expr {
     return visitor.visitFactor(this);
   }
 
+  public pass<T>(visitor: IExprPasser<T>): T {
+    return visitor.passFactor(this);
+  }
+
   public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
     return visitor.visitFactor(this);
   }
@@ -185,6 +202,10 @@ export class AnonymousFunction extends Expr {
 
   public accept<T>(visitor: IExprVisitor<T>): T {
     return visitor.visitAnonymousFunction(this);
+  }
+
+  public pass<T>(visitor: IExprPasser<T>): T {
+    return visitor.passAnonymousFunction(this);
   }
 
   public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
@@ -254,6 +275,10 @@ export class Suffix extends Expr {
 
   public accept<T>(visitor: IExprVisitor<T>): T {
     return visitor.visitSuffix(this);
+  }
+
+  public pass<T>(visitor: IExprPasser<T>): T {
+    return visitor.passSuffix(this);
   }
 
   public static classAccept<T>(visitor: IExprClassVisitor<T>): T {

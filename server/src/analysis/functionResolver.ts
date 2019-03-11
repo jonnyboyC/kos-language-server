@@ -2,6 +2,7 @@ import {
   IInstVisitor, IExprVisitor, IInst,
   ScopeType, IExpr, ISuffixTerm,
   ISuffixTermVisitor,
+  IScript,
 } from '../parser/types';
 import * as SuffixTerm from '../parser/suffixTerm';
 import * as Expr from '../parser/expr';
@@ -9,7 +10,6 @@ import * as Inst from '../parser/inst';
 import { ResolverError } from './resolverError';
 import { Var, Lock, Func, Param } from '../parser/declare';
 import { empty } from '../utilities/typeGuards';
-import { Script } from '../entities/script';
 import { KsParameter } from '../entities/parameters';
 import { TokenType } from '../entities/tokentypes';
 import { mockLogger, mockTracer } from '../utilities/logger';
@@ -22,13 +22,13 @@ export class FuncResolver implements
   IExprVisitor<Errors>,
   IInstVisitor<Errors>,
   ISuffixTermVisitor<Errors> {
-  private syntaxTree: Script;
+  private syntaxTree: IScript;
   private scopeBuilder: SymbolTableBuilder;
   private readonly logger: ILogger;
   private readonly tracer: ITracer;
 
   constructor(
-    script: Script,
+    script: IScript,
     symbolTableBuilder: SymbolTableBuilder,
     logger: ILogger = mockLogger,
     tracer: ITracer = mockTracer) {

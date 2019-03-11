@@ -17,19 +17,11 @@ export interface IDeclScope extends Range {
   type: ScopeType;
 }
 
-export interface ISuffixTerm extends
-  ISuffixTermVisitable,
-  ISuffixTermParamVisitable,
-  IRangeSequence {
-  tag: 'suffixTerm';
-  toLocation(uri: string): Location;
-  toString(): string;
-}
-
 export type SuffixTermTrailer = SuffixTerm.Call
   | SuffixTerm.ArrayBracket
   | SuffixTerm.ArrayIndex
   | SuffixTerm.Delegate;
+
 export type Atom = SuffixTerm.Literal
   | SuffixTerm.Identifier
   | SuffixTerm.Grouping;
@@ -38,14 +30,11 @@ export interface IParameter extends IRangeSequence {
   identifier: IToken;
 }
 
-export interface IExpr extends IExprVisitable, IRangeSequence {
-  tag: 'expr';
-  toLocation(uri: string): Location;
-  toString(): string;
-}
-
-export interface IInst extends IInstVisitable, IRangeSequence {
-  tag: 'inst';
+export enum SyntaxKind {
+  script,
+  inst,
+  expr,
+  suffixTerm,
 }
 
 export interface IScript extends IRangeSequence {
@@ -54,20 +43,50 @@ export interface IScript extends IRangeSequence {
   runInsts: RunInstType[];
   uri: string;
   toLocation(): Location;
-  tag: 'script';
+  tag: SyntaxKind.script;
+}
+
+export interface IInst extends
+  IInstVisitable,
+  IInstVisitable,
+  IRangeSequence {
+  tag: SyntaxKind.inst;
+}
+
+export interface IExpr extends
+  IExprVisitable,
+  IExprPassable,
+  IRangeSequence {
+  toLocation(uri: string): Location;
+  toString(): string;
+  tag: SyntaxKind.expr;
+}
+
+export interface ISuffixTerm extends
+  ISuffixTermPassable,
+  ISuffixTermVisitable,
+  ISuffixTermParamVisitable,
+  IRangeSequence {
+  toLocation(uri: string): Location;
+  toString(): string;
+  tag: SyntaxKind.suffixTerm;
+}
+
+export interface IInstClass extends
+  Constructor<Inst.Inst>,
+  IExprVisitableClass {
+  grammar: GrammarNode[];
+}
+
+export interface IExprClass<T = Expr.Expr> extends
+  Constructor<T>,
+  IExprVisitableClass {
+  grammar: GrammarNode[];
 }
 
 export interface ISuffixTermClass<T = SuffixTerm.SuffixTermBase> extends
   Constructor<T>,
   ISuffixTermVisitableClass {
-  grammar: GrammarNode[];
-}
-
-export interface IExprClass<T = Expr.Expr> extends Constructor<T>, IExprVisitableClass {
-  grammar: GrammarNode[];
-}
-
-export interface IInstClass extends Constructor<Inst.Inst>, IExprVisitableClass {
   grammar: GrammarNode[];
 }
 
@@ -152,7 +171,7 @@ export type GrammarNode = IExprClass
   | IGrammarOptional | IGrammarRepeat | IGrammarUnion;
 
 export type RunInstType = Inst.Run | Inst.RunPath | Inst.RunPathOnce;
-export type TreeNode = IExpr | ISuffixTerm | IInst | IScript | IParameter;
+export type TreeNode = IScript | IInst | IExpr | ISuffixTerm | IParameter;
 
 export interface IExprVisitable {
   accept<T>(visitor: IExprVisitor<T>): T;
@@ -165,6 +184,19 @@ export interface IExprVisitor<T> {
   visitFactor(expr: Expr.Factor): T;
   visitSuffix(expr: Expr.Suffix): T;
   visitAnonymousFunction(expr: Expr.AnonymousFunction): T;
+}
+
+export interface IExprPassable {
+  pass<T>(visitor: IExprPasser<T>): T;
+}
+
+export interface IExprPasser<T> {
+  passExprInvalid(expr: Expr.Invalid): T;
+  passBinary(expr: Expr.Binary): T;
+  passUnary(expr: Expr.Unary): T;
+  passFactor(expr: Expr.Factor): T;
+  passSuffix(expr: Expr.Suffix): T;
+  passAnonymousFunction(expr: Expr.AnonymousFunction): T;
 }
 
 export interface ISuffixTermVisitable {
@@ -182,6 +214,23 @@ export interface ISuffixTermVisitor<T> {
   visitLiteral(suffixTerm: SuffixTerm.Literal): T;
   visitIdentifier(suffixTerm: SuffixTerm.Identifier): T;
   visitGrouping(suffixTerm: SuffixTerm.Grouping): T;
+}
+
+export interface ISuffixTermPassable {
+  pass<T>(visitor: ISuffixTermPasser<T>): T;
+}
+
+export interface ISuffixTermPasser<T> {
+  passSuffixTermInvalid(suffixTerm: SuffixTerm.Invalid): T;
+  passSuffixTrailer(suffixTerm: SuffixTerm.SuffixTrailer): T;
+  passSuffixTerm(suffixTerm: SuffixTerm.SuffixTerm): T;
+  passCall(suffixTerm: SuffixTerm.Call): T;
+  passArrayIndex(suffixTerm: SuffixTerm.ArrayIndex): T;
+  passArrayBracket(suffixTerm: SuffixTerm.ArrayBracket): T;
+  passDelegate(suffixTerm: SuffixTerm.Delegate): T;
+  passLiteral(suffixTerm: SuffixTerm.Literal): T;
+  passIdentifier(suffixTerm: SuffixTerm.Identifier): T;
+  passGrouping(suffixTerm: SuffixTerm.Grouping): T;
 }
 
 export interface ISuffixTermParamVisitable {

@@ -1,12 +1,12 @@
-import { IInst, IExpr, IInstVisitor } from './types';
+import { IInst, IExpr, IInstVisitor, SyntaxKind } from './types';
 import * as Expr from './expr';
 import { IToken } from '../entities/types';
 import { Range, Position } from 'vscode-languageserver';
 import { empty } from '../utilities/typeGuards';
 
 export abstract class Inst implements IInst {
-  get tag(): 'inst' {
-    return 'inst';
+  get tag(): SyntaxKind.inst {
+    return SyntaxKind.inst;
   }
 
   public abstract get ranges(): Range[];

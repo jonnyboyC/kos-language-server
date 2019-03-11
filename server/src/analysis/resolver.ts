@@ -2,6 +2,7 @@ import {
   IInstVisitor, IExprVisitor, IExpr,
   IInst, ScopeType, ISuffixTerm,
   ISuffixTermVisitor,
+  IScript,
 } from '../parser/types';
 import * as SuffixTerm from '../parser/suffixTerm';
 import * as Expr from '../parser/expr';
@@ -34,7 +35,7 @@ export class Resolver implements
   private firstInst: boolean;
 
   constructor(
-    script: Script,
+    script: IScript,
     symbolTableBuilder: SymbolTableBuilder,
     logger: ILogger = mockLogger,
     tracer: ITracer = mockTracer) {
