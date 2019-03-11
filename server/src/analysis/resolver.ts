@@ -3,6 +3,8 @@ import {
   IInst, ScopeType, ISuffixTerm,
   ISuffixTermVisitor,
   IScript,
+  ISuffixTermPasser,
+  IExprPasser,
 } from '../parser/types';
 import * as SuffixTerm from '../parser/suffixTerm';
 import * as Expr from '../parser/expr';
@@ -21,9 +23,11 @@ import { ILocalResult, IResolverError } from './types';
 export type Errors = IResolverError[];
 
 export class Resolver implements
-  IExprVisitor<Errors>,
   IInstVisitor<Errors>,
-  ISuffixTermVisitor<Errors> {
+  IExprVisitor<Errors>,
+  IExprPasser<Errors>,
+  ISuffixTermVisitor<Errors>,
+  ISuffixTermPasser<Errors> {
 
   private readonly script: Script;
   private readonly scopeBuilder: SymbolTableBuilder;
@@ -495,7 +499,16 @@ export class Resolver implements
     return [];
   }
 
+  public passExprInvalid(_: Expr.Invalid): IResolverError[] {
+    return [];
+  }
+
   public visitBinary(expr: Expr.Binary): Errors {
+    return this.resolveExpr(expr.left).concat(
+      this.resolveExpr(expr.right));
+  }
+
+  public passBinary(expr: Expr.Binary): IResolverError[] {
     return this.resolveExpr(expr.left).concat(
       this.resolveExpr(expr.right));
   }
@@ -504,7 +517,16 @@ export class Resolver implements
     return this.resolveExpr(expr.factor);
   }
 
+  public passUnary(expr: Expr.Unary): IResolverError[] {
+    return this.resolveExpr(expr.factor);
+  }
+
   public visitFactor(expr: Expr.Factor): Errors {
+    return this.resolveExpr(expr.suffix).concat(
+      this.resolveExpr(expr.exponent));
+  }
+
+  public passFactor(expr: Expr.Factor): IResolverError[] {
     return this.resolveExpr(expr.suffix).concat(
       this.resolveExpr(expr.exponent));
   }
@@ -518,6 +540,31 @@ export class Resolver implements
     return atom.concat(this.resolveSuffixTerm(expr.trailer));
   }
 
+  public passSuffix(expr: Expr.Suffix): IResolverError[] {
+    const atom = this.resolveSuffixTerm(expr.suffixTerm);
+    if (empty(expr.trailer)) {
+      return atom;
+    }
+
+    return atom.concat(this.resolveSuffixTerm(expr.trailer));
+  }
+
+  public visitAnonymousFunction(expr: Expr.AnonymousFunction): Errors {
+    this.scopeBuilder.beginScope(expr);
+    const errors = this.resolveInsts(expr.insts);
+    this.scopeBuilder.endScope();
+
+    return errors;
+  }
+
+  public passAnonymousFunction(expr: Expr.AnonymousFunction): IResolverError[] {
+    this.scopeBuilder.beginScope(expr);
+    const errors = this.resolveInsts(expr.insts);
+    this.scopeBuilder.endScope();
+
+    return errors;
+  }
+
   /* --------------------------------------------
 
   Suffix Terms
@@ -528,39 +575,79 @@ export class Resolver implements
     return [];
   }
 
-  public visitSuffixTrailer(expr: SuffixTerm.SuffixTrailer): IResolverError[] {
-    const atom = this.resolveSuffixTerm(expr.suffixTerm);
-    if (empty(expr.trailer)) {
-      return atom;
-    }
-
-    return atom.concat(this.resolveSuffixTerm(expr.trailer));
+  public passSuffixTermInvalid(_: SuffixTerm.Invalid): Errors {
+    return [];
   }
 
-  public visitSuffixTerm(expr: SuffixTerm.SuffixTerm): IResolverError[] {
-    const atom = this.resolveSuffixTerm(expr.atom);
-    if (expr.trailers.length === 0) {
+  public visitSuffixTrailer(suffixTerm: SuffixTerm.SuffixTrailer): Errors {
+    const atom = this.resolveSuffixTerm(suffixTerm.suffixTerm);
+    if (empty(suffixTerm.trailer)) {
       return atom;
     }
 
-    return atom.concat(expr.trailers.reduce(
+    return atom.concat(this.resolveSuffixTerm(suffixTerm.trailer));
+  }
+
+  public passSuffixTrailer(suffixTerm: SuffixTerm.SuffixTrailer): IResolverError[] {
+    const atom = this.resolveSuffixTerm(suffixTerm.suffixTerm);
+    if (empty(suffixTerm.trailer)) {
+      return atom;
+    }
+
+    return atom.concat(this.resolveSuffixTerm(suffixTerm.trailer));
+  }
+
+  public visitSuffixTerm(suffixTerm: SuffixTerm.SuffixTerm): IResolverError[] {
+    const atom = this.resolveSuffixTerm(suffixTerm.atom);
+    if (suffixTerm.trailers.length === 0) {
+      return atom;
+    }
+
+    return atom.concat(suffixTerm.trailers.reduce(
       (acc, curr) => acc.concat(this.resolveSuffixTerm(curr)),
       [] as IResolverError[]));
   }
 
-  public visitCall(expr: SuffixTerm.Call): Errors {
-    return accumulateErrors(expr.args, this.resolveExpr.bind(this));
+  public passSuffixTerm(suffixTerm: SuffixTerm.SuffixTerm): IResolverError[] {
+    const atom = this.resolveSuffixTerm(suffixTerm.atom);
+    if (suffixTerm.trailers.length === 0) {
+      return atom;
+    }
+
+    return atom.concat(suffixTerm.trailers.reduce(
+      (acc, curr) => acc.concat(this.resolveSuffixTerm(curr)),
+      [] as IResolverError[]));
+  }
+
+  public visitCall(suffixTerm: SuffixTerm.Call): Errors {
+    return accumulateErrors(suffixTerm.args, this.resolveExpr.bind(this));
+  }
+
+  public passCall(suffixTerm: SuffixTerm.Call): IResolverError[] {
+    return accumulateErrors(suffixTerm.args, this.resolveExpr.bind(this));
   }
 
   public visitArrayIndex(_: SuffixTerm.ArrayIndex): Errors {
     return [];
   }
 
-  public visitArrayBracket(expr: SuffixTerm.ArrayBracket): Errors {
-    return this.resolveExpr(expr.index);
+  public passArrayIndex(_: SuffixTerm.ArrayIndex): IResolverError[] {
+    return [];
+  }
+
+  public visitArrayBracket(suffixTerm: SuffixTerm.ArrayBracket): Errors {
+    return this.resolveExpr(suffixTerm.index);
+  }
+
+  public passArrayBracket(suffixTerm: SuffixTerm.ArrayBracket): IResolverError[] {
+    return this.resolveExpr(suffixTerm.index);
   }
 
   public visitDelegate(_: SuffixTerm.Delegate): Errors {
+    return [];
+  }
+
+  public passDelegate(_: SuffixTerm.Delegate): IResolverError[] {
     return [];
   }
 
@@ -568,20 +655,24 @@ export class Resolver implements
     return [];
   }
 
+  public passLiteral(suffixTerm: SuffixTerm.Literal): IResolverError[] {
+    return [];
+  }
+
   public visitIdentifier(_: SuffixTerm.Identifier): Errors {
     return [];
   }
 
-  public visitGrouping(expr: SuffixTerm.Grouping): Errors {
-    return this.resolveExpr(expr.expr);
+  public passIdentifier(_: SuffixTerm.Identifier): IResolverError[] {
+    return [];
   }
 
-  public visitAnonymousFunction(expr: Expr.AnonymousFunction): Errors {
-    this.scopeBuilder.beginScope(expr);
-    const errors = this.resolveInsts(expr.insts);
-    this.scopeBuilder.endScope();
+  public visitGrouping(suffixTerm: SuffixTerm.Grouping): Errors {
+    return this.resolveExpr(suffixTerm.expr);
+  }
 
-    return errors;
+  public passGrouping(suffixTerm: SuffixTerm.Grouping): IResolverError[] {
+    return this.resolveExpr(suffixTerm.expr);
   }
 }
 
