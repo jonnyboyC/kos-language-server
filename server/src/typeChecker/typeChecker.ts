@@ -167,7 +167,7 @@ export class TypeChecker implements
 
   // visit declare variable
   visitDeclVariable(decl: Decl.Var): TypeErrors {
-    const result = this.checkExpr(decl.expression);
+    const result = this.checkExpr(decl.value);
     this.symbolTable.declareType(
       decl.identifier,
       result.type, KsSymbolKind.variable);
@@ -186,7 +186,7 @@ export class TypeChecker implements
   // visit declare function
   visitDeclFunction(decl: Decl.Func): TypeErrors {
     const funcTracker = this.symbolTable
-      .scopedFunctionTracker(decl.start, decl.functionIdentifier.lexeme);
+      .scopedFunctionTracker(decl.start, decl.identifier.lexeme);
 
     if (empty(funcTracker)) {
       throw Error('TODO');
@@ -204,7 +204,7 @@ export class TypeChecker implements
 
     this.symbolTable.declareType(symbol.name, funcType, KsSymbolKind.function);
 
-    const errors = this.checkInst(decl.instructionBlock);
+    const errors = this.checkInst(decl.block);
     return errors;
   }
 
@@ -310,7 +310,7 @@ export class TypeChecker implements
 
   // visit set
   public visitSet(inst: Inst.Set): TypeErrors {
-    const exprResult = this.checkExpr(inst.expr);
+    const exprResult = this.checkExpr(inst.value);
     const errors = exprResult.errors;
 
     // check if set ends in call
@@ -369,7 +369,7 @@ export class TypeChecker implements
   }
 
   // visit lazy global directive
-  public visitLazyGlobalInst(_: Inst.LazyGlobal): TypeErrors {
+  public visitLazyGlobal(_: Inst.LazyGlobal): TypeErrors {
     return [];
   }
 

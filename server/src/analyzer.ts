@@ -261,7 +261,7 @@ export class Analyzer {
     }
 
     if (node instanceof Decl.Func) {
-      const tracker = symbolsTable.scopedFunctionTracker(pos, node.functionIdentifier.lexeme);
+      const tracker = symbolsTable.scopedFunctionTracker(pos, node.identifier.lexeme);
 
       if (tracker) {
         return [

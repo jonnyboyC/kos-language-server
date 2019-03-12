@@ -84,7 +84,7 @@ export class FuncResolver implements
 
   // check variable declaration
   public visitDeclVariable(decl: Var): Errors {
-    return this.resolveExpr(decl.expression);
+    return this.resolveExpr(decl.value);
   }
 
   // check lock declaration
@@ -118,7 +118,7 @@ export class FuncResolver implements
 
     let returnValue = false;
     const parameterDecls: Param[] = [];
-    for (const inst of decl.instructionBlock.insts) {
+    for (const inst of decl.block.insts) {
 
       // get parameters for this function
       if (inst instanceof Param) {
@@ -133,8 +133,8 @@ export class FuncResolver implements
     }
     const [parameters, errors] = this.buildParameters(parameterDecls);
     const declareErrors = this.scopeBuilder.declareFunction(
-      scopeType, decl.functionIdentifier, parameters, returnValue);
-    const instErrors = this.resolveInst(decl.instructionBlock);
+      scopeType, decl.identifier, parameters, returnValue);
+    const instErrors = this.resolveInst(decl.block);
 
     return empty(declareErrors)
       ? instErrors.concat(errors)
@@ -213,10 +213,10 @@ export class FuncResolver implements
   }
 
   public visitSet(inst: Inst.Set): Errors {
-    return this.resolveExpr(inst.expr);
+    return this.resolveExpr(inst.value);
   }
 
-  public visitLazyGlobalInst(_: Inst.LazyGlobal): Errors {
+  public visitLazyGlobal(_: Inst.LazyGlobal): Errors {
     return [];
   }
 

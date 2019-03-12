@@ -169,7 +169,7 @@ export class ScriptFind implements
   public visitSet(inst: Inst.Set): Maybe<IFindResult> {
     return this.findNode(inst);
   }
-  public visitLazyGlobalInst(inst: Inst.LazyGlobal): Maybe<IFindResult> {
+  public visitLazyGlobal(inst: Inst.LazyGlobal): Maybe<IFindResult> {
     return this.findNode(inst);
   }
   public visitIf(inst: Inst.If): Maybe<IFindResult> {

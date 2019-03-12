@@ -48,7 +48,7 @@ export interface IScript extends IRangeSequence {
 
 export interface IInst extends
   IInstVisitable,
-  IInstVisitable,
+  IInstPassable,
   IRangeSequence {
   tag: SyntaxKind.inst;
 }
@@ -301,7 +301,7 @@ export interface IInstVisitor<T> {
   visitUnset(inst: Inst.Unset): T;
   visitUnlock(inst: Inst.Unlock): T;
   visitSet(inst: Inst.Set): T;
-  visitLazyGlobalInst(inst: Inst.LazyGlobal): T;
+  visitLazyGlobal(inst: Inst.LazyGlobal): T;
   visitIf(inst: Inst.If): T;
   visitElse(inst: Inst.Else): T;
   visitUntil(inst: Inst.Until): T;
@@ -325,4 +325,49 @@ export interface IInstVisitor<T> {
   visitList(inst: Inst.List): T;
   visitEmpty(inst: Inst.Empty): T;
   visitPrint(inst: Inst.Print): T;
+}
+
+export interface IInstPassable {
+  pass<T>(visitor: IInstPasser<T>): T;
+}
+
+export interface IInstPasser<T> {
+  passDeclVariable(decl: Var): T;
+  passDeclLock(decl: Lock): T;
+  passDeclFunction(decl: Func): T;
+  passDeclParameter(decl: Param): T;
+
+  passInstInvalid(inst: Inst.Invalid): T;
+  passBlock(inst: Inst.Block): T;
+  passExpr(inst: Inst.ExprInst): T;
+  passOnOff(inst: Inst.OnOff): T;
+  passCommand(inst: Inst.Command): T;
+  passCommandExpr(inst: Inst.CommandExpr): T;
+  passUnset(inst: Inst.Unset): T;
+  passUnlock(inst: Inst.Unlock): T;
+  passSet(inst: Inst.Set): T;
+  passLazyGlobal(inst: Inst.LazyGlobal): T;
+  passIf(inst: Inst.If): T;
+  passElse(inst: Inst.Else): T;
+  passUntil(inst: Inst.Until): T;
+  passFrom(inst: Inst.From): T;
+  passWhen(inst: Inst.When): T;
+  passReturn(inst: Inst.Return): T;
+  passBreak(inst: Inst.Break): T;
+  passSwitch(inst: Inst.Switch): T;
+  passFor(inst: Inst.For): T;
+  passOn(inst: Inst.On): T;
+  passToggle(inst: Inst.Toggle): T;
+  passWait(inst: Inst.Wait): T;
+  passLog(inst: Inst.Log): T;
+  passCopy(inst: Inst.Copy): T;
+  passRename(inst: Inst.Rename): T;
+  passDelete(inst: Inst.Delete): T;
+  passRun(inst: Inst.Run): T;
+  passRunPath(inst: Inst.RunPath): T;
+  passRunPathOnce(inst: Inst.RunPathOnce): T;
+  passCompile(inst: Inst.Compile): T;
+  passList(inst: Inst.List): T;
+  passEmpty(inst: Inst.Empty): T;
+  passPrint(inst: Inst.Print): T;
 }
