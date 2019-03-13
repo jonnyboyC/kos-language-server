@@ -29,7 +29,7 @@ export class Resolver implements
   ISuffixTermPasser<Errors> {
 
   private readonly script: Script;
-  private readonly scopeBuilder: SymbolTableBuilder;
+  private readonly tableBuilder: SymbolTableBuilder;
   private readonly logger: ILogger;
   private readonly tracer: ITracer;
   private readonly localResolver: LocalResolver;
@@ -44,7 +44,7 @@ export class Resolver implements
     tracer: ITracer = mockTracer) {
 
     this.script = script;
-    this.scopeBuilder = symbolTableBuilder;
+    this.tableBuilder = symbolTableBuilder;
     this.localResolver = new LocalResolver();
     this.setResolver = new SetResolver(this.localResolver);
     this.lazyGlobal = true;
@@ -56,8 +56,8 @@ export class Resolver implements
   // resolve the sequence of instructions
   public resolve(): Errors {
     try {
-      this.scopeBuilder.rewindScope();
-      this.scopeBuilder.beginScope(this.script);
+      this.tableBuilder.rewindScope();
+      this.tableBuilder.beginScope(this.script);
       const [firstInst, ...restInsts] = this.script.insts;
 
       // check for lazy global flag
@@ -66,7 +66,7 @@ export class Resolver implements
 
       // resolve reset
       const resolveErrors = this.resolveInsts(restInsts);
-      const scopeErrors = this.scopeBuilder.endScope();
+      const scopeErrors = this.tableBuilder.endScope();
 
       this.script.lazyGlobal = this.lazyGlobal;
       return firstError.concat(resolveErrors, scopeErrors);
@@ -106,7 +106,7 @@ export class Resolver implements
   // attempt to use ever variable in the expression
   private useTokens(results: ILocalResult[]): Errors {
     return results
-      .map(({ token, expr }) => this.scopeBuilder.useSymbol(token, expr))
+      .map(({ token, expr }) => this.tableBuilder.useSymbol(token, expr))
       .filter(this.filterError);
   }
 
@@ -121,71 +121,6 @@ export class Resolver implements
 
   ----------------------------------------------*/
 
-
-  public passUntil(inst: Inst.Until): IResolverError[] {
-    throw new Error('Method not implemented.');
-  }
-  public passFrom(inst: Inst.From): IResolverError[] {
-    throw new Error('Method not implemented.');
-  }
-  public passWhen(inst: Inst.When): IResolverError[] {
-    throw new Error('Method not implemented.');
-  }
-  public passReturn(inst: Inst.Return): IResolverError[] {
-    throw new Error('Method not implemented.');
-  }
-  public passBreak(inst: Inst.Break): IResolverError[] {
-    throw new Error('Method not implemented.');
-  }
-  public passSwitch(inst: Inst.Switch): IResolverError[] {
-    throw new Error('Method not implemented.');
-  }
-  public passFor(inst: Inst.For): IResolverError[] {
-    throw new Error('Method not implemented.');
-  }
-  public passOn(inst: Inst.On): IResolverError[] {
-    throw new Error('Method not implemented.');
-  }
-  public passToggle(inst: Inst.Toggle): IResolverError[] {
-    throw new Error('Method not implemented.');
-  }
-  public passWait(inst: Inst.Wait): IResolverError[] {
-    throw new Error('Method not implemented.');
-  }
-  public passLog(inst: Inst.Log): IResolverError[] {
-    throw new Error('Method not implemented.');
-  }
-  public passCopy(inst: Inst.Copy): IResolverError[] {
-    throw new Error('Method not implemented.');
-  }
-  public passRename(inst: Inst.Rename): IResolverError[] {
-    throw new Error('Method not implemented.');
-  }
-  public passDelete(inst: Inst.Delete): IResolverError[] {
-    throw new Error('Method not implemented.');
-  }
-  public passRun(inst: Inst.Run): IResolverError[] {
-    throw new Error('Method not implemented.');
-  }
-  public passRunPath(inst: Inst.RunPath): IResolverError[] {
-    throw new Error('Method not implemented.');
-  }
-  public passRunPathOnce(inst: Inst.RunPathOnce): IResolverError[] {
-    throw new Error('Method not implemented.');
-  }
-  public passCompile(inst: Inst.Compile): IResolverError[] {
-    throw new Error('Method not implemented.');
-  }
-  public passList(inst: Inst.List): IResolverError[] {
-    throw new Error('Method not implemented.');
-  }
-  public passEmpty(inst: Inst.Empty): IResolverError[] {
-    throw new Error('Method not implemented.');
-  }
-  public passPrint(inst: Inst.Print): IResolverError[] {
-    throw new Error('Method not implemented.');
-  }
-
   /**
    * Visit the declare variable syntax node
    * @param decl the syntax node
@@ -197,7 +132,7 @@ export class Resolver implements
       ? decl.scope.type
       : ScopeType.global;
 
-    const declareError = this.scopeBuilder.declareVariable(scopeType, decl.identifier);
+    const declareError = this.tableBuilder.declareVariable(scopeType, decl.identifier);
     const useErrors = this.useExprLocals(decl.value);
     const resolveErrors = this.resolveExpr(decl.value);
 
@@ -225,11 +160,11 @@ export class Resolver implements
       ? decl.scope.type
       : ScopeType.global;
 
-    const lookup = this.scopeBuilder.lookupLock(decl.identifier, ScopeType.global);
+    const lookup = this.tableBuilder.lookupLock(decl.identifier, ScopeType.global);
     let declareError: Maybe<ResolverError> = undefined;
 
     if (empty(lookup)) {
-      declareError = this.scopeBuilder.declareLock(scopeType, decl.identifier);
+      declareError = this.tableBuilder.declareLock(scopeType, decl.identifier);
     }
 
     const useErrors = this.useExprLocals(decl.value);
@@ -283,9 +218,9 @@ export class Resolver implements
 
     // need to check if default paraemter can really be abbitrary expr
     const parameterErrors = decl.parameters
-      .map(parameter => this.scopeBuilder.declareParameter(scopeType, parameter.identifier, false));
+      .map(parameter => this.tableBuilder.declareParameter(scopeType, parameter.identifier, false));
     const defaultParameterErrors = decl.defaultParameters
-      .map(parameter => this.scopeBuilder.declareParameter(scopeType, parameter.identifier, true));
+      .map(parameter => this.tableBuilder.declareParameter(scopeType, parameter.identifier, true));
     const defaultUseErrors = decl.defaultParameters
       .map(parameter => this.useExprLocals(parameter.value));
 
@@ -311,7 +246,7 @@ export class Resolver implements
 
   /**
    * Visit the Invalid Inst syntax node
-   * @param decl the syntax node
+   * @param inst the syntax node
    */
   public visitInstInvalid(_: Inst.Invalid): Errors {
     return [];
@@ -319,7 +254,7 @@ export class Resolver implements
 
   /**
    * Pass through the Invalid Inst syntax node
-   * @param decl the syntax node
+   * @param inst the syntax node
    */
   public passInstInvalid(_: Inst.Invalid): IResolverError[] {
     return [];
@@ -327,31 +262,31 @@ export class Resolver implements
 
   /**
    * Visit the Block Inst syntax node
-   * @param decl the syntax node
+   * @param inst the syntax node
    */
   public visitBlock(inst: Inst.Block): Errors {
-    this.scopeBuilder.beginScope(inst);
+    this.tableBuilder.beginScope(inst);
     const errors = this.resolveInsts(inst.insts);
-    this.scopeBuilder.endScope();
+    this.tableBuilder.endScope();
 
     return errors;
   }
 
   /**
    * Pass through the Block Inst syntax node
-   * @param decl the syntax node
+   * @param inst the syntax node
    */
   public passBlock(inst: Inst.Block): IResolverError[] {
-    this.scopeBuilder.beginScope(inst);
+    this.tableBuilder.beginScope(inst);
     const errors = this.resolveInsts(inst.insts);
-    this.scopeBuilder.endScope();
+    this.tableBuilder.endScope();
 
     return errors;
   }
 
   /**
    * Visit the Expr Inst syntax node
-   * @param decl the syntax node
+   * @param inst the syntax node
    */
   public visitExpr(inst: Inst.ExprInst): Errors {
     return this.useExprLocals(inst.suffix).concat(
@@ -360,7 +295,7 @@ export class Resolver implements
 
   /**
    * Pass through the Expr Inst syntax node
-   * @param decl the syntax node
+   * @param inst the syntax node
    */
   public passExpr(inst: Inst.ExprInst): IResolverError[] {
     return this.resolveExpr(inst.suffix);
@@ -368,7 +303,7 @@ export class Resolver implements
 
   /**
    * Visit the On Off Inst syntax node
-   * @param decl the syntax node
+   * @param inst the syntax node
    */
   public visitOnOff(inst: Inst.OnOff): Errors {
     return this.useExprLocals(inst.suffix)
@@ -377,7 +312,7 @@ export class Resolver implements
 
   /**
    * Pass through the On Off Inst syntax node
-   * @param decl the syntax node
+   * @param inst the syntax node
    */
   public passOnOff(inst: Inst.OnOff): IResolverError[] {
     return this.resolveExpr(inst.suffix);
@@ -385,7 +320,7 @@ export class Resolver implements
 
   /**
    * Visit the Command Inst syntax node
-   * @param decl the syntax node
+   * @param inst the syntax node
    */
   public visitCommand(_: Inst.Command): Errors {
     return [];
@@ -393,7 +328,7 @@ export class Resolver implements
 
   /**
    * Pass through the Command Inst syntax node
-   * @param decl the syntax node
+   * @param inst the syntax node
    */
   public passCommand(_: Inst.Command): IResolverError[] {
     return [];
@@ -401,7 +336,7 @@ export class Resolver implements
 
   /**
    * Visit the Command Expr Inst syntax node
-   * @param decl the syntax node
+   * @param inst the syntax node
    */
   public visitCommandExpr(inst: Inst.CommandExpr): Errors {
     return this.useExprLocals(inst.expr).concat(
@@ -410,7 +345,7 @@ export class Resolver implements
 
   /**
    * Pass through the Command Expr Inst syntax node
-   * @param decl the syntax node
+   * @param inst the syntax node
    */
   public passCommandExpr(inst: Inst.CommandExpr): IResolverError[] {
     return this.resolveExpr(inst.expr);
@@ -418,16 +353,16 @@ export class Resolver implements
 
   /**
    * Visit the Unset Inst syntax node
-   * @param decl the syntax node
+   * @param inst the syntax node
    */
   public visitUnset(inst: Inst.Unset): Errors {
-    const error = this.scopeBuilder.useVariable(inst.identifier);
+    const error = this.tableBuilder.useVariable(inst.identifier);
     return empty(error) ? [] : [error];
   }
 
   /**
    * Pass through the Unset Inst syntax node
-   * @param decl the syntax node
+   * @param inst the syntax node
    */
   public passUnset(_: Inst.Unset): IResolverError[] {
     return [];
@@ -435,16 +370,16 @@ export class Resolver implements
 
   /**
    * Visit the Unlock Inst syntax node
-   * @param decl the syntax node
+   * @param inst the syntax node
    */
   public visitUnlock(inst: Inst.Unlock): Errors {
-    const error = this.scopeBuilder.useLock(inst.identifier);
+    const error = this.tableBuilder.useLock(inst.identifier);
     return empty(error) ? [] : [error];
   }
 
   /**
    * Pass through the Unlock Inst syntax node
-   * @param decl the syntax node
+   * @param inst the syntax node
    */
   public passUnlock(_: Inst.Unlock): IResolverError[] {
     return [];
@@ -452,7 +387,7 @@ export class Resolver implements
 
   /**
    * Visit the Set Inst syntax node
-   * @param decl the syntax node
+   * @param inst the syntax node
    */
   public visitSet(inst: Inst.Set): Errors {
     const { set, used } = this.setResolver.resolveExpr(inst.suffix);
@@ -465,7 +400,7 @@ export class Resolver implements
 
     // if variable isn't define either report error or define
     let defineError: Maybe<ResolverError> = undefined;
-    if (empty(this.scopeBuilder.lookupVariable(set, ScopeType.global))) {
+    if (empty(this.tableBuilder.lookupVariable(set, ScopeType.global))) {
       if (!this.lazyGlobal) {
         defineError = new ResolverError(
           set,
@@ -473,7 +408,7 @@ export class Resolver implements
           `Either remove lazy global directive or declare ${set.lexeme}`,
           []);
       } else {
-        this.scopeBuilder.declareVariable(ScopeType.global, set);
+        this.tableBuilder.declareVariable(ScopeType.global, set);
       }
     }
 
@@ -487,7 +422,7 @@ export class Resolver implements
 
   /**
    * Pass through the Unlock Inst syntax node
-   * @param decl the syntax node
+   * @param inst the syntax node
    */
   public passSet(inst: Inst.Set): IResolverError[] {
     return this.resolveExpr(inst.suffix)
@@ -496,7 +431,7 @@ export class Resolver implements
 
   /**
    * Visit the Lazy Global Inst syntax node
-   * @param decl the syntax node
+   * @param inst the syntax node
    */
   public visitLazyGlobal(inst: Inst.LazyGlobal): Errors {
     // It is an error if lazy global is not at the start of a file
@@ -512,7 +447,7 @@ export class Resolver implements
 
   /**
    * Pass Through the Lazy Global Inst syntax node
-   * @param decl the syntax node
+   * @param inst the syntax node
    */
   public passLazyGlobal(_: Inst.LazyGlobal): IResolverError[] {
     return [];
@@ -520,7 +455,7 @@ export class Resolver implements
 
   /**
    * Visit the If Inst syntax node
-   * @param decl the syntax node
+   * @param inst the syntax node
    */
   public visitIf(inst: Inst.If): Errors {
     const errors = this.useExprLocals(inst.condition).concat(
@@ -537,7 +472,7 @@ export class Resolver implements
 
   /**
    * Pass Through the If Inst syntax node
-   * @param decl the syntax node
+   * @param inst the syntax node
    */
   public passIf(inst: Inst.If): IResolverError[] {
     const errors = this.resolveExpr(inst.condition)
@@ -553,7 +488,7 @@ export class Resolver implements
 
   /**
    * Visit the Else Inst syntax node
-   * @param decl the syntax node
+   * @param inst the syntax node
    */
   public visitElse(inst: Inst.Else): Errors {
     return this.resolveInst(inst.inst);
@@ -561,20 +496,37 @@ export class Resolver implements
 
   /**
    * Pass Through the Else Inst syntax node
-   * @param decl the syntax node
+   * @param inst the syntax node
    */
   public passElse(inst: Inst.Else): IResolverError[] {
     return this.resolveInst(inst.inst);
   }
 
+  /**
+   * Visit the When Inst syntax node
+   * @param inst the syntax node
+   */
   public visitUntil(inst: Inst.Until): Errors {
     return this.useExprLocals(inst.condition).concat(
       this.resolveExpr(inst.condition),
       this.resolveInst(inst.inst));
   }
 
+  /**
+   * Pass Through the When Inst syntax node
+   * @param inst the syntax node
+   */
+  public passUntil(inst: Inst.Until): IResolverError[] {
+    return this.resolveExpr(inst.condition).concat(
+      this.resolveInst(inst.inst));
+  }
+
+  /**
+   * Visit the From Inst syntax node
+   * @param inst the syntax node
+   */
   public visitFrom(inst: Inst.From): Errors {
-    this.scopeBuilder.beginScope(inst);
+    this.tableBuilder.beginScope(inst);
 
     const resolverErrors = this.resolveInsts(inst.initializer.insts).concat(
       this.resolveExpr(inst.condition),
@@ -582,17 +534,51 @@ export class Resolver implements
       this.resolveInst(inst.inst));
 
     const useErrors = this.useExprLocals(inst.condition);
-    const scopeErrors = this.scopeBuilder.endScope();
+    const scopeErrors = this.tableBuilder.endScope();
 
     return resolverErrors.concat(useErrors, scopeErrors);
   }
 
+  /**
+   * Pass Through the From Inst syntax node
+   * @param inst the syntax node
+   */
+  public passFrom(inst: Inst.From): IResolverError[] {
+    this.tableBuilder.beginScope(inst);
+
+    const resolverErrors = this.resolveInsts(inst.initializer.insts).concat(
+      this.resolveExpr(inst.condition),
+      this.resolveInsts(inst.increment.insts),
+      this.resolveInst(inst.inst));
+
+    const scopeErrors = this.tableBuilder.endScope();
+
+    return resolverErrors.concat(scopeErrors);
+  }
+
+  /**
+   * Visit the When Inst syntax node
+   * @param inst the syntax node
+   */
   public visitWhen(inst: Inst.When): Errors {
     return this.useExprLocals(inst.condition).concat(
       this.resolveExpr(inst.condition),
       this.resolveInst(inst.inst));
   }
 
+  /**
+   * Pass Through the When Inst syntax node
+   * @param inst the syntax node
+   */
+  public passWhen(inst: Inst.When): IResolverError[] {
+    return this.resolveExpr(inst.condition).concat(
+      this.resolveInst(inst.inst));
+  }
+
+  /**
+   * Visit the Return Inst syntax node
+   * @param inst the syntax node
+   */
   public visitReturn(inst: Inst.Return): Errors {
     if (inst.expr) {
       return this.useExprLocals(inst.expr)
@@ -602,78 +588,193 @@ export class Resolver implements
     return [];
   }
 
+  /**
+   * Pass Through the Return Inst syntax node
+   * @param inst the syntax node
+   */
+  public passReturn(inst: Inst.Return): IResolverError[] {
+    return !empty(inst.expr) ? this.resolveExpr(inst.expr) : [];
+  }
+
+  /**
+   * Visit the Break Inst syntax node
+   * @param inst the syntax node
+   */
   public visitBreak(_: Inst.Break): Errors {
     return [];
   }
 
+  /**
+   * Pass Through the Break Inst syntax node
+   * @param inst the syntax node
+   */
+  public passBreak(_: Inst.Break): IResolverError[] {
+    return [];
+  }
+
+  /**
+   * Visit the Switch Inst syntax node
+   * @param inst the syntax node
+   */
   public visitSwitch(inst: Inst.Switch): Errors {
     return this.useExprLocals(inst.target)
       .concat(this.resolveExpr(inst.target));
   }
 
+  /**
+   * Pass Through the Switch Inst syntax node
+   * @param inst the syntax node
+   */
+  public passSwitch(inst: Inst.Switch): IResolverError[] {
+    return this.resolveExpr(inst.target);
+  }
+
+  /**
+   * Visit the For Inst syntax node
+   * @param inst the syntax node
+   */
   public visitFor(inst: Inst.For): Errors {
-    this.scopeBuilder.beginScope(inst);
-    const declareError = this.scopeBuilder.declareVariable(ScopeType.local, inst.identifier);
+    this.tableBuilder.beginScope(inst);
+    const declareError = this.tableBuilder.declareVariable(ScopeType.local, inst.identifier);
 
-    let errors = this.useExprLocals(inst.suffix).concat(
+    const errors = this.useExprLocals(inst.suffix).concat(
       this.resolveExpr(inst.suffix),
-      this.resolveInst(inst.inst));
+      this.resolveInst(inst.inst),
+      this.tableBuilder.endScope());
 
-    errors = errors.concat(this.scopeBuilder.endScope());
     if (!empty(declareError)) {
       return errors.concat(declareError);
     }
     return errors;
   }
 
+  /**
+   * Pass Through the For Inst syntax node
+   * @param inst the syntax node
+   */
+  public passFor(inst: Inst.For): IResolverError[] {
+    this.tableBuilder.beginScope(inst);
+
+    return this.resolveExpr(inst.suffix).concat(
+      this.resolveInst(inst.inst),
+      this.tableBuilder.endScope());
+  }
+
+  /**
+   * Visit the On Inst syntax node
+   * @param inst the syntax node
+   */
   public visitOn(inst: Inst.On): Errors {
     return this.useExprLocals(inst.suffix).concat(
       this.resolveExpr(inst.suffix),
       this.resolveInst(inst.inst));
   }
 
+  /**
+   * Pass Through the On Inst syntax node
+   * @param inst the syntax node
+   */
+  public passOn(inst: Inst.On): IResolverError[] {
+    return this.resolveExpr(inst.suffix).concat(
+      this.resolveInst(inst.inst));
+  }
+
+  /**
+   * Visit the Toggle Inst syntax node
+   * @param inst the syntax node
+   */
   public visitToggle(inst: Inst.Toggle): Errors {
     return this.useExprLocals(inst.suffix)
       .concat(this.resolveExpr(inst.suffix));
   }
 
+  /**
+   * Pass Through the Toggle Inst syntax node
+   * @param inst the syntax node
+   */
+  public passToggle(inst: Inst.Toggle): IResolverError[] {
+    return this.resolveExpr(inst.suffix);
+  }
+
+  /**
+   * Visit the Wait Inst syntax node
+   * @param inst the syntax node
+   */
   public visitWait(inst: Inst.Wait): Errors {
     return this.useExprLocals(inst.expr)
       .concat(this.resolveExpr(inst.expr));
   }
 
+  /**
+   * Pass Through the Wait Inst syntax node
+   * @param inst the syntax node
+   */
+  public passWait(inst: Inst.Wait): IResolverError[] {
+    return this.resolveExpr(inst.expr);
+  }
+
+  /**
+   * Visit the Log Inst syntax node
+   * @param inst the syntax node
+   */
   public visitLog(inst: Inst.Log): Errors {
     return this.useExprLocals(inst.expr).concat(
       this.resolveExpr(inst.expr),
       this.resolveExpr(inst.target));
   }
 
+  /**
+   * Pass Through the Log Inst syntax node
+   * @param inst the syntax node
+   */
+  public passLog(inst: Inst.Log): IResolverError[] {
+    return this.resolveExpr(inst.expr).concat(
+      this.resolveExpr(inst.target));
+  }
+
+  /**
+   * Visit the Copy Inst syntax node
+   * @param inst the syntax node
+   */
   public visitCopy(inst: Inst.Copy): Errors {
     return this.useExprLocals(inst.target).concat(
       this.resolveExpr(inst.target),
       this.resolveExpr(inst.destination));
   }
 
+  /**
+   * Pass Through the Copy Inst syntax node
+   * @param inst the syntax node
+   */
+  public passCopy(inst: Inst.Copy): IResolverError[] {
+    return this.resolveExpr(inst.target).concat(
+      this.resolveExpr(inst.destination));
+  }
+
+  /**
+   * Visit the Rename Inst syntax node
+   * @param inst the syntax node
+   */
   public visitRename(inst: Inst.Rename): Errors {
-
-    // check target expression if path exists
-    // if (inst.target instanceof SuffixTerm.Literal) {
-    //   const path = this.pathResolver.resolveUri(
-    //     inst.target.toLocation(this.script.uri),
-    //     ioPath(inst));
-
-    //   if (!empty(path) && !existsSync(path.path)) {
-    //     pathErrors.push(new ResolverError(
-    //       inst.target.token, `Path ${path} does not exist`, []));
-    //   }
-    // }
-
     return this.useExprLocals(inst.target).concat(
       this.useExprLocals(inst.alternative),
       this.resolveExpr(inst.target),
       this.resolveExpr(inst.alternative));
   }
 
+  /**
+   * Pass Through the Rename Inst syntax node
+   * @param inst the syntax node
+   */
+  public passRename(inst: Inst.Rename): IResolverError[] {
+    return this.resolveExpr(inst.target).concat(
+      this.resolveExpr(inst.alternative));
+  }
+
+  /**
+   * Visit the Delete Inst syntax node
+   * @param inst the syntax node
+   */
   public visitDelete(inst: Inst.Delete): Errors {
     if (empty(inst.volume)) {
       return this.useExprLocals(inst.target).concat(
@@ -686,13 +787,32 @@ export class Resolver implements
       this.resolveExpr(inst.volume));
   }
 
+  /**
+   * Pass Through the Delete Inst syntax node
+   * @param inst the syntax node
+   */
+  public passDelete(inst: Inst.Delete): IResolverError[] {
+    if (empty(inst.volume)) {
+      return this.resolveExpr(inst.target);
+    }
+
+    return this.resolveExpr(inst.target).concat(
+      this.resolveExpr(inst.volume));
+  }
+
+  /**
+   * Visit the Run Inst syntax node
+   * @param inst the syntax node
+   */
   public visitRun(inst: Inst.Run): Errors {
-    if (empty(inst.args)) {
+    if (empty(inst.args) && empty(inst.expr)) {
       return [];
     }
 
-    const argError = accumulateErrors(inst.args, this.useExprLocals.bind(this)).concat(
-      accumulateErrors(inst.args, this.resolveExpr.bind(this)));
+    const argError = !empty(inst.args)
+      ? accumulateErrors(inst.args, this.useExprLocals.bind(this)).concat(
+          accumulateErrors(inst.args, this.resolveExpr.bind(this)))
+      : [];
 
     if (empty(inst.expr)) {
       return argError;
@@ -703,6 +823,30 @@ export class Resolver implements
       argError);
   }
 
+  /**
+   * Pass Through the Run Inst syntax node
+   * @param inst the syntax node
+   */
+  public passRun(inst: Inst.Run): IResolverError[] {
+    if (empty(inst.args) && empty(inst.expr)) {
+      return [];
+    }
+
+    const argError = !empty(inst.args)
+      ? accumulateErrors(inst.args, this.resolveExpr.bind(this))
+      : [];
+
+    if (empty(inst.expr)) {
+      return argError;
+    }
+
+    return argError.concat(this.resolveExpr(inst.expr));
+  }
+
+  /**
+   * Visit the RunPath Inst syntax node
+   * @param inst the syntax node
+   */
   public visitRunPath(inst: Inst.RunPath): Errors {
     if (empty(inst.args)) {
       return this.useExprLocals(inst.expr)
@@ -715,6 +859,23 @@ export class Resolver implements
       accumulateErrors(inst.args, this.resolveExpr.bind(this)));
   }
 
+  /**
+   * Pass Through the RunPath Inst syntax node
+   * @param inst the syntax node
+   */
+  public passRunPath(inst: Inst.RunPath): IResolverError[] {
+    if (empty(inst.args)) {
+      return this.resolveExpr(inst.expr);
+    }
+
+    return this.resolveExpr(inst.expr).concat(
+      accumulateErrors(inst.args, this.resolveExpr.bind(this)));
+  }
+
+  /**
+   * Visit the RunPathOnce Inst syntax node
+   * @param inst the syntax node
+   */
   public visitRunPathOnce(inst: Inst.RunPathOnce): Errors {
     if (empty(inst.args)) {
       return this.useExprLocals(inst.expr)
@@ -727,6 +888,23 @@ export class Resolver implements
       accumulateErrors(inst.args, this.resolveExpr.bind(this)));
   }
 
+  /**
+   * Pass Through the RunPathOnce Inst syntax node
+   * @param inst the syntax node
+   */
+  public passRunPathOnce(inst: Inst.RunPathOnce): IResolverError[] {
+    if (empty(inst.args)) {
+      return this.resolveExpr(inst.expr);
+    }
+
+    return this.resolveExpr(inst.expr).concat(
+      accumulateErrors(inst.args, this.resolveExpr.bind(this)));
+  }
+
+  /**
+   * Visit the Compile Inst syntax node
+   * @param inst the syntax node
+   */
   public visitCompile(inst: Inst.Compile): Errors {
     if (empty(inst.target)) {
       return this.useExprLocals(inst.expr)
@@ -739,23 +917,72 @@ export class Resolver implements
       this.resolveExpr(inst.target));
   }
 
+  /**
+   * Pass Through the Compile Inst syntax node
+   * @param inst the syntax node
+   */
+  public passCompile(inst: Inst.Compile): IResolverError[] {
+    if (empty(inst.target)) {
+      return this.resolveExpr(inst.expr);
+    }
+
+    return this.resolveExpr(inst.expr).concat(
+      this.resolveExpr(inst.target));
+  }
+
+  /**
+   * Visit the List Inst syntax node
+   * @param inst the syntax node
+   */
   public visitList(inst: Inst.List): Errors {
     // list generates new variable when target is used
     if (empty(inst.target)) {
       return [];
     }
 
-    const declareError = this.scopeBuilder.declareVariable(ScopeType.local, inst.target);
+    const declareError = this.tableBuilder.declareVariable(ScopeType.local, inst.target);
     return !empty(declareError) ? [declareError] : [];
   }
 
+  /**
+   * Pass Through the List Inst syntax node
+   * @param inst the syntax node
+   */
+  public passList(_: Inst.List): IResolverError[] {
+    return [];
+  }
+
+  /**
+   * Visit the Empty Inst syntax node
+   * @param inst the syntax node
+   */
   public visitEmpty(_: Inst.Empty): Errors {
     return [];
   }
 
+  /**
+   * Pass Through the Empty Inst syntax node
+   * @param inst the syntax node
+   */
+  public passEmpty(_: Inst.Empty): IResolverError[] {
+    return [];
+  }
+
+  /**
+   * Visit the Print Inst syntax node
+   * @param inst the syntax node
+   */
   public visitPrint(inst: Inst.Print): Errors {
     return this.useExprLocals(inst.expr)
       .concat(this.resolveExpr(inst.expr));
+  }
+
+  /**
+   * Pass Through the Print Inst syntax node
+   * @param inst the syntax node
+   */
+  public passPrint(inst: Inst.Print): IResolverError[] {
+    return this.resolveExpr(inst.expr);
   }
 
   /* --------------------------------------------
@@ -792,9 +1019,9 @@ export class Resolver implements
   }
 
   public passAnonymousFunction(expr: Expr.AnonymousFunction): IResolverError[] {
-    this.scopeBuilder.beginScope(expr);
+    this.tableBuilder.beginScope(expr);
     const errors = this.resolveInsts(expr.insts);
-    this.scopeBuilder.endScope();
+    this.tableBuilder.endScope();
 
     return errors;
   }
