@@ -24,7 +24,7 @@ const parseExpression = (source: string): [INodeResult<IExpr>, IScannerError[]] 
   return [parser.parseExpression(), scanErrors];
 };
 
-const testDir = join(__dirname, '../../../server/kerboscripts/parser_valid/');
+const testDir = join(__dirname, '../../../kerboscripts/parser_valid/');
 
 type callbackFunc = (fileName: string) => void;
 
