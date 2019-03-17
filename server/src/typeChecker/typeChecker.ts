@@ -41,6 +41,14 @@ import { delegateType } from './types/primitives/delegate';
 import { TypeNode } from './typeNode';
 import { KsSymbolKind } from '../analysis/types';
 import { rangeEqual } from '../utilities/positionHelpers';
+import { listType } from './types/collections/list';
+import { bodyTargetType } from './types/orbital/bodyTarget';
+import { vesselTargetType } from './types/orbital/vesselTarget';
+import { volumeType } from './types/io/volume';
+import { volumeItemType } from './types/io/volumeItem';
+import { partModuleFieldsType } from './types/parts/partModuleFields';
+import { partType } from './types/parts/part';
+import { pathType } from './types/io/path';
 
 type TypeErrors = ITypeError[];
 type SuffixTermType = ISuffixType | IArgumentType;
@@ -572,19 +580,19 @@ export class TypeChecker implements
 
   // visit rename
   public visitRename(inst: Inst.Rename): TypeErrors {
-    const sourceResult = this.checkExpr(inst.target);
-    const targetResult = this.checkExpr(inst.alternative);
-    const errors: TypeErrors = sourceResult.errors
-      .concat(targetResult.errors);
+    const targetResult = this.checkExpr(inst.target);
+    const alternativeResult = this.checkExpr(inst.alternative);
+    const errors: TypeErrors = targetResult.errors
+      .concat(alternativeResult.errors);
 
-    if (!coerce(sourceResult.type, stringType)) {
+    if (!coerce(targetResult.type, stringType)) {
       errors.push(new KsTypeError(
         inst.target, 'Can only rename from a string or bare path. ' +
         'This may not able to be coerced into string type',
         []));
     }
 
-    if (!coerce(sourceResult.type, stringType)) {
+    if (!coerce(targetResult.type, stringType)) {
       errors.push(new KsTypeError(
         inst.alternative, 'Can only rename to a string or bare path. ' +
         'This may not able to be coerced into string type',
@@ -594,8 +602,29 @@ export class TypeChecker implements
     return errors;
   }
   public visitDelete(inst: Inst.Delete): TypeErrors {
-    if (inst) { }
-    return [];
+    const targetResult = this.checkExpr(inst.target);
+    const errors: TypeErrors = targetResult.errors;
+
+    if (!coerce(targetResult.type, stringType)) {
+      errors.push(new KsTypeError(
+        inst.target, 'Can only delete from a string or bare path. ' +
+        'This may not able to be coerced into string type',
+        []));
+    }
+
+    if (empty(inst.volume)) {
+      return errors;
+    }
+
+    const volumeResult = this.checkExpr(inst.volume);
+    if (!coerce(targetResult.type, stringType) && !coerce(targetResult.type, pathType)) {
+      errors.push(new KsTypeError(
+        inst.volume, 'Can only rename to a string or bare path. ' +
+        'This may not able to be coerced into string type',
+        []));
+    }
+
+    return errors.concat(volumeResult.errors);
   }
   public visitRun(inst: Inst.Run): TypeErrors {
     if (inst) { }
@@ -610,12 +639,70 @@ export class TypeChecker implements
     return [];
   }
   public visitCompile(inst: Inst.Compile): TypeErrors {
-    if (inst) { }
-    return [];
+    const targetResult = this.checkExpr(inst.target);
+    const errors: TypeErrors = targetResult.errors;
+
+    if (!coerce(targetResult.type, stringType)) {
+      errors.push(new KsTypeError(
+        inst.target, 'Can only compile from a string or bare path. ' +
+        'This may not able to be coerced into string type',
+        []));
+    }
+
+    if (empty(inst.destination)) {
+      return errors;
+    }
+
+    const destinationResult = this.checkExpr(inst.destination);
+    if (!coerce(destinationResult.type, stringType)) {
+      errors.push(new KsTypeError(
+        inst.destination, 'Can only compile to a string or bare path. ' +
+        'This may not able to be coerced into string type',
+        []));
+    }
+
+    return errors.concat(destinationResult.errors);
   }
   public visitList(inst: Inst.List): TypeErrors {
-    if (inst) { }
-    return [];
+    const { target, collection } = inst;
+    if (empty(target) || empty(collection)) {
+      return [];
+    }
+
+    let finalType: IArgumentType;
+
+    const errors: TypeErrors = [];
+    switch (collection.lexeme) {
+      case 'bodies':
+        finalType = bodyTargetType;
+        break;
+      case 'targets':
+        finalType = vesselTargetType;
+        break;
+      case 'resources':
+      case 'parts':
+      case 'engines':
+      case 'sensors':
+      case 'elements':
+      case 'dockingports':
+        finalType = partType;
+        break;
+      case 'files':
+        finalType = volumeItemType;
+        break;
+      case 'volumes':
+        finalType = volumeType;
+        break;
+      case 'processors':
+        finalType = partModuleFieldsType;
+        break;
+      default:
+        finalType = structureType;
+        errors.push(new KsTypeError(collection, 'Not a valid list identifier', []));
+    }
+
+    this.symbolTable.setType(target, listType.toConcreteType(finalType));
+    return errors;
   }
 
   // visit empty instruction

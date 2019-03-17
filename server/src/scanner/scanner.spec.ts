@@ -3,7 +3,7 @@ import { Scanner } from './scanner';
 import { readdirSync, readFileSync, statSync } from 'fs';
 import { join } from 'path';
 
-const testDir = join(__dirname, '../../../server/kerboscripts/parser_valid/');
+const testDir = join(__dirname, '../../../kerboscripts/parser_valid/');
 
 type callbackFunc = (fileName: string) => void;
 

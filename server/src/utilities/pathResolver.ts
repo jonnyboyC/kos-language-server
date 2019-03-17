@@ -22,13 +22,25 @@ export class PathResolver {
       return undefined;
     }
 
-    // get realtive an run path from file
+    // get relative run path from file
     const relativePath = relative(this.volume0Uri, dirname(caller.uri)).replace('%20', ' ');
 
     // check if the scripts reads from volume 0 "disk"
     // TODO no idea what to do for ship volumes
     const [possibleVolumne, ...remaining] = path.split(sep);
-    if (possibleVolumne === '0:') {
+    if (possibleVolumne.startsWith('0:')) {
+      // if of style 0:first\remaining...
+      if (possibleVolumne.length > 2) {
+        const first = possibleVolumne.slice(2);
+
+        return {
+          caller: { start: caller.range.start, end: caller.range.end },
+          path: join(this.volume0Path, first, ...remaining),
+          uri: join(this.volume0Uri, first, ...remaining),
+        };
+      }
+
+      // else of style 0:\remaining...
       return {
         caller: { start: caller.range.start, end: caller.range.end },
         path: join(this.volume0Path, ...remaining),

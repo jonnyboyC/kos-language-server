@@ -338,12 +338,12 @@ export class FuncResolver implements
   }
 
   public visitCompile(inst: Inst.Compile): Errors {
-    if (empty(inst.target)) {
-      return this.resolveExpr(inst.expr);
+    if (empty(inst.destination)) {
+      return this.resolveExpr(inst.target);
     }
 
-    return this.resolveExpr(inst.expr).concat(
-      this.resolveExpr(inst.target));
+    return this.resolveExpr(inst.target).concat(
+      this.resolveExpr(inst.destination));
   }
 
   public visitList(_: Inst.List): Errors {

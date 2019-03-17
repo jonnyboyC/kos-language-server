@@ -617,9 +617,6 @@ export class On extends Inst {
 }
 
 export class Toggle extends Inst {
-  public declared(): IterableIterator<IToken> {
-    throw new Error('Method not implemented.');
-  }
   constructor(
     public readonly toggle: IToken,
     public readonly suffix: Expr.Suffix) {
@@ -777,9 +774,6 @@ export class Rename extends Inst {
 }
 
 export class Delete extends Inst {
-  public declared(): IterableIterator<IToken> {
-    throw new Error('Method not implemented.');
-  }
   constructor(
     public readonly deleteToken: IToken,
     public readonly target: IExpr,
@@ -955,9 +949,9 @@ export class RunPathOnce extends Inst {
 export class Compile extends Inst {
   constructor(
     public readonly compile: IToken,
-    public readonly expr: IExpr,
+    public readonly target: IExpr,
     public readonly to?: IToken,
-    public readonly target?: IExpr) {
+    public readonly destination?: IExpr) {
     super();
   }
 
@@ -966,16 +960,16 @@ export class Compile extends Inst {
   }
 
   public get end(): Position {
-    return empty(this.target)
-      ? this.expr.end
-      : this.target.end;
+    return empty(this.destination)
+      ? this.target.end
+      : this.destination.end;
   }
 
   public get ranges(): Range[] {
-    const ranges: Range[] = [this.compile, this.expr];
-    if (!empty(this.to) && !empty(this.target)) {
+    const ranges: Range[] = [this.compile, this.target];
+    if (!empty(this.to) && !empty(this.destination)) {
       ranges.push(this.to);
-      ranges.push(this.target);
+      ranges.push(this.destination);
     }
 
     return ranges;
@@ -993,7 +987,7 @@ export class Compile extends Inst {
 export class List extends Inst {
   constructor(
     public readonly list: IToken,
-    public readonly identifier?: IToken,
+    public readonly collection?: IToken,
     public readonly inToken?: IToken,
     public readonly target?: IToken) {
     super();
@@ -1006,16 +1000,16 @@ export class List extends Inst {
   public get end(): Position {
     return !empty(this.target)
       ? this.target.end
-      : !empty(this.identifier)
-        ? this.identifier.end
+      : !empty(this.collection)
+        ? this.collection.end
         : this.list.end;
   }
 
   public get ranges(): Range[] {
     const ranges: Range[] = [this.list];
 
-    if (!empty(this.identifier)) {
-      ranges.push(this.identifier);
+    if (!empty(this.collection)) {
+      ranges.push(this.collection);
 
       if (!empty(this.inToken) && !empty(this.target)) {
         ranges.push(this.inToken);

@@ -906,15 +906,15 @@ export class Resolver implements
    * @param inst the syntax node
    */
   public visitCompile(inst: Inst.Compile): Errors {
-    if (empty(inst.target)) {
-      return this.useExprLocals(inst.expr)
-        .concat(this.resolveExpr(inst.expr));
+    if (empty(inst.destination)) {
+      return this.useExprLocals(inst.target)
+        .concat(this.resolveExpr(inst.target));
     }
 
-    return this.useExprLocals(inst.expr).concat(
-      this.useExprLocals(inst.target),
-      this.resolveExpr(inst.expr),
-      this.resolveExpr(inst.target));
+    return this.useExprLocals(inst.target).concat(
+      this.useExprLocals(inst.destination),
+      this.resolveExpr(inst.target),
+      this.resolveExpr(inst.destination));
   }
 
   /**
@@ -922,12 +922,12 @@ export class Resolver implements
    * @param inst the syntax node
    */
   public passCompile(inst: Inst.Compile): IResolverError[] {
-    if (empty(inst.target)) {
-      return this.resolveExpr(inst.expr);
+    if (empty(inst.destination)) {
+      return this.resolveExpr(inst.target);
     }
 
-    return this.resolveExpr(inst.expr).concat(
-      this.resolveExpr(inst.target));
+    return this.resolveExpr(inst.target).concat(
+      this.resolveExpr(inst.destination));
   }
 
   /**
