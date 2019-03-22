@@ -24,7 +24,7 @@ import { PathResolver, runPath } from './utilities/pathResolver';
 import { existsSync } from 'fs';
 import { extname } from 'path';
 import { readFileAsync } from './utilities/fsUtilities';
-import { standardLibrary } from './analysis/standardLibrary';
+import { standardLibrary, bodyLibrary } from './analysis/standardLibrary';
 import { builtIn } from './utilities/constants';
 import { SymbolTableBuilder } from './analysis/symbolTableBuilder';
 import { SymbolTable } from './analysis/symbolTable';
@@ -125,6 +125,7 @@ export class Analyzer {
 
     // add standard library
     symbolTableBuilder.addScope(standardLibrary);
+    symbolTableBuilder.addScope(this.activeBodyLibrary());
 
     // generate resolvers
     const funcResolver = new FuncResolver(
@@ -195,6 +196,10 @@ export class Analyzer {
     performance.clearMarks();
 
     yield symbolTable;
+  }
+
+  private activeBodyLibrary(): SymbolTable {
+    return bodyLibrary;
   }
 
   public getSuffixType(pos: Position, uri: string): Maybe<[IType, KsSymbolKind]> {

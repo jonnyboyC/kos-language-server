@@ -151,7 +151,7 @@ export class FuncResolver implements
         if (defaulted) {
           errors.push(new ResolverError(
             parameter.identifier,
-            'Normal parameters cannot occur after defaulted parameters', 
+            'Normal parameters cannot occur after defaulted parameters',
             ResolverErrorKind.error,
             []));
         }
