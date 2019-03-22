@@ -7,7 +7,10 @@ import { Scanner } from './scanner/scanner';
 import { Resolver } from './analysis/resolver';
 import { IScannerError } from './scanner/types';
 import { IParseError, ScriptResult, RunInstType } from './parser/types';
-import { IResolverError, KsSymbol, IKsSymbolTracker, KsSymbolKind } from './analysis/types';
+import {
+  IResolverError, KsSymbol, IKsSymbolTracker,
+  KsSymbolKind, ResolverErrorKind,
+} from './analysis/types';
 import { mockLogger, mockTracer } from './utilities/logger';
 import { empty, notEmpty } from './utilities/typeGuards';
 import { ScriptFind } from './parser/scriptFind';
@@ -609,9 +612,22 @@ const parseToDiagnostics = (error: IParseError, uri: string): IDiagnosticUri => 
 
 // convert resolver error to diagnostic
 const resolverToDiagnostics = (error: IResolverError, uri: string): IDiagnosticUri => {
+  let severity: DiagnosticSeverity;
+  switch (error.kind)
+  {
+    case ResolverErrorKind.error:
+      severity = DiagnosticSeverity.Warning;
+      break;
+    case ResolverErrorKind.warning:
+      severity = DiagnosticSeverity.Information;
+      break;
+    default:
+      throw new Error(`Unexpected resolver error kind ${error.kind}`);
+  }
+
   return {
     uri,
-    severity: DiagnosticSeverity.Warning,
+    severity,
     range: { start: error.start, end: error.end },
     message: error.message,
     source: 'kos-language-server',

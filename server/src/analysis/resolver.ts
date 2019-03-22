@@ -18,7 +18,7 @@ import { TokenType } from '../entities/tokentypes';
 import { Script } from '../entities/script';
 import { mockLogger, mockTracer } from '../utilities/logger';
 import { SymbolTableBuilder } from './symbolTableBuilder';
-import { ILocalResult, IResolverError } from './types';
+import { ILocalResult, IResolverError, ResolverErrorKind } from './types';
 
 export type Errors = IResolverError[];
 
@@ -78,40 +78,61 @@ export class Resolver implements
     }
   }
 
-  // resolve the given set of instructions
+  /**
+   * Resolve the given set of instructions
+   * @param insts instructions
+   */
   private resolveInsts(insts: IInst[]): Errors {
     return accumulateErrors(insts, this.resolveInst.bind(this));
   }
 
-  // resolve for an instruction
+  /**
+   * Resolve instruction
+   * @param inst resolve instruction
+   */
   private resolveInst(inst: IInst): Errors {
     return inst.accept(this);
   }
 
-  // resolve for an expression
-  private resolveExpr(expr: IExpr): Errors {
+  /**
+   * Pass through expression
+   * @param expr expression to skip
+   */
+  private skipExpr(expr: IExpr): Errors {
     return expr.pass(this);
   }
 
-  // resolve for an expression
-  private resolveSuffixTerm(suffixTerm: ISuffixTerm): Errors {
+  /**
+   * Pass through suffix term
+   * @param suffixTerm suffix term to skip
+   */
+  private skipSuffixTerm(suffixTerm: ISuffixTerm): Errors {
     return suffixTerm.pass(this);
   }
 
-  // attempt to use ever variable in the expression
+  /**
+   * attempt to use ever variable in the expression
+   * @param expr expression to use
+   */
   private useExprLocals(expr: IExpr): Errors {
     return this.useTokens(this.localResolver.resolveExpr(expr));
   }
 
-  // attempt to use ever variable in the expression
+  /**
+   * attempt to use ever token in the collection
+   * @param results local results to use
+   */
   private useTokens(results: ILocalResult[]): Errors {
     return results
       .map(({ token, expr }) => this.tableBuilder.useSymbol(token, expr))
       .filter(this.filterError);
   }
 
-  // filter to just actual errors
-  private filterError(maybeError: Maybe<ResolverError>): maybeError is ResolverError {
+  /**
+   * filter to just errors
+   * @param maybeError potential error
+   */
+  private filterError(maybeError: Maybe<IResolverError>): maybeError is IResolverError {
     return !empty(maybeError);
   }
 
@@ -134,7 +155,7 @@ export class Resolver implements
 
     const declareError = this.tableBuilder.declareVariable(scopeType, decl.identifier);
     const useErrors = this.useExprLocals(decl.value);
-    const resolveErrors = this.resolveExpr(decl.value);
+    const resolveErrors = this.skipExpr(decl.value);
 
     return empty(declareError)
       ? useErrors.concat(resolveErrors)
@@ -146,14 +167,14 @@ export class Resolver implements
    * @param decl the syntax node
    */
   public passDeclVariable(decl: Decl.Var): IResolverError[] {
-    return this.resolveExpr(decl.value);
+    return this.skipExpr(decl.value);
   }
 
   /**
    * Visit the declare lock syntax node
    * @param decl the syntax node
    */
-  public visitDeclLock(decl: Decl.Lock): ResolverError[] {
+  public visitDeclLock(decl: Decl.Lock): IResolverError[] {
 
     // determine scope type
     const scopeType = !empty(decl.scope)
@@ -168,7 +189,7 @@ export class Resolver implements
     }
 
     const useErrors = this.useExprLocals(decl.value);
-    const resolveErrors = this.resolveExpr(decl.value);
+    const resolveErrors = this.skipExpr(decl.value);
 
     return empty(declareError)
       ? useErrors.concat(resolveErrors)
@@ -180,14 +201,14 @@ export class Resolver implements
    * @param decl the syntax node
    */
   public passDeclLock(decl: Decl.Lock): IResolverError[] {
-    return this.resolveExpr(decl.value);
+    return this.skipExpr(decl.value);
   }
 
   /**
    * Visit the declare function syntax node
    * @param decl the syntax node
    */
-  public visitDeclFunction(decl: Decl.Func): ResolverError[] {
+  public visitDeclFunction(decl: Decl.Func): IResolverError[] {
     return this.resolveInst(decl.block);
   }
 
@@ -203,13 +224,17 @@ export class Resolver implements
    * Visit the declare parameter syntax node
    * @param decl the syntax node
    */
-  public visitDeclParameter(decl: Decl.Param): ResolverError[] {
-    const scopeError: Maybe<ResolverError>[] = [];
+  public visitDeclParameter(decl: Decl.Param): IResolverError[] {
+    const scopeError: Maybe<IResolverError>[] = [];
 
     // check that parameter isn't declared global
     if (!empty(decl.scope) && !empty(decl.scope.scope)) {
       if (decl.scope.scope.type === TokenType.global) {
-        scopeError.push(new ResolverError(decl.scope.scope, 'Parameters cannot be global', []));
+        scopeError.push(new ResolverError(
+          decl.scope.scope,
+          'Parameters cannot be global',
+          ResolverErrorKind.error,
+          []));
       }
     }
 
@@ -235,7 +260,7 @@ export class Resolver implements
   public passDeclParameter(decl: Decl.Param): IResolverError[] {
     return accumulateErrors(
       decl.defaultParameters.map(parameter => parameter.value),
-      this.resolveExpr.bind(this));
+      this.skipExpr.bind(this));
   }
 
   /* --------------------------------------------
@@ -290,7 +315,7 @@ export class Resolver implements
    */
   public visitExpr(inst: Inst.ExprInst): Errors {
     return this.useExprLocals(inst.suffix).concat(
-      this.resolveExpr(inst.suffix));
+      this.skipExpr(inst.suffix));
   }
 
   /**
@@ -298,7 +323,7 @@ export class Resolver implements
    * @param inst the syntax node
    */
   public passExpr(inst: Inst.ExprInst): IResolverError[] {
-    return this.resolveExpr(inst.suffix);
+    return this.skipExpr(inst.suffix);
   }
 
   /**
@@ -307,7 +332,7 @@ export class Resolver implements
    */
   public visitOnOff(inst: Inst.OnOff): Errors {
     return this.useExprLocals(inst.suffix)
-      .concat(this.resolveExpr(inst.suffix));
+      .concat(this.skipExpr(inst.suffix));
   }
 
   /**
@@ -315,7 +340,7 @@ export class Resolver implements
    * @param inst the syntax node
    */
   public passOnOff(inst: Inst.OnOff): IResolverError[] {
-    return this.resolveExpr(inst.suffix);
+    return this.skipExpr(inst.suffix);
   }
 
   /**
@@ -340,7 +365,7 @@ export class Resolver implements
    */
   public visitCommandExpr(inst: Inst.CommandExpr): Errors {
     return this.useExprLocals(inst.expr).concat(
-      this.resolveExpr(inst.expr));
+      this.skipExpr(inst.expr));
   }
 
   /**
@@ -348,7 +373,7 @@ export class Resolver implements
    * @param inst the syntax node
    */
   public passCommandExpr(inst: Inst.CommandExpr): IResolverError[] {
-    return this.resolveExpr(inst.expr);
+    return this.skipExpr(inst.expr);
   }
 
   /**
@@ -395,7 +420,11 @@ export class Resolver implements
     // check if a set target exists
     if (empty(set)) {
       const [{ token }] = this.localResolver.resolveExpr(inst.suffix);
-      return [new ResolverError(token, `cannot assign to variable ${token.lexeme}`, [])];
+      return [new ResolverError(
+        token,
+        `cannot assign to variable ${token.lexeme}`,
+        ResolverErrorKind.error,
+        [])];
     }
 
     // if variable isn't define either report error or define
@@ -406,6 +435,7 @@ export class Resolver implements
           set,
           `Attempted to set ${set.lexeme} which has not be declared.` +
           `Either remove lazy global directive or declare ${set.lexeme}`,
+          ResolverErrorKind.error,
           []);
       } else {
         this.tableBuilder.declareVariable(ScopeType.global, set);
@@ -413,7 +443,7 @@ export class Resolver implements
     }
 
     const useErrors = this.useExprLocals(inst.value).concat(this.useTokens(used));
-    const resolveErrors = this.resolveExpr(inst.value);
+    const resolveErrors = this.skipExpr(inst.value);
 
     return !empty(defineError)
       ? useErrors.concat(resolveErrors, defineError)
@@ -425,8 +455,8 @@ export class Resolver implements
    * @param inst the syntax node
    */
   public passSet(inst: Inst.Set): IResolverError[] {
-    return this.resolveExpr(inst.suffix)
-      .concat(this.resolveExpr(inst.value));
+    return this.skipExpr(inst.suffix)
+      .concat(this.skipExpr(inst.value));
   }
 
   /**
@@ -437,7 +467,11 @@ export class Resolver implements
     // It is an error if lazy global is not at the start of a file
     if (!this.firstInst) {
       return [
-        new ResolverError(inst.lazyGlobal, 'Lazy global was not declared at top of the file', []),
+        new ResolverError(
+          inst.lazyGlobal,
+          'Lazy global was not declared at top of the file',
+          ResolverErrorKind.error,
+          []),
       ];
     }
 
@@ -459,7 +493,7 @@ export class Resolver implements
    */
   public visitIf(inst: Inst.If): Errors {
     const errors = this.useExprLocals(inst.condition).concat(
-      this.resolveExpr(inst.condition),
+      this.skipExpr(inst.condition),
       this.resolveInst(inst.ifInst));
 
     if (inst.elseInst) {
@@ -475,7 +509,7 @@ export class Resolver implements
    * @param inst the syntax node
    */
   public passIf(inst: Inst.If): IResolverError[] {
-    const errors = this.resolveExpr(inst.condition)
+    const errors = this.skipExpr(inst.condition)
       .concat(this.resolveInst(inst.ifInst));
 
     if (inst.elseInst) {
@@ -508,7 +542,7 @@ export class Resolver implements
    */
   public visitUntil(inst: Inst.Until): Errors {
     return this.useExprLocals(inst.condition).concat(
-      this.resolveExpr(inst.condition),
+      this.skipExpr(inst.condition),
       this.resolveInst(inst.inst));
   }
 
@@ -517,7 +551,7 @@ export class Resolver implements
    * @param inst the syntax node
    */
   public passUntil(inst: Inst.Until): IResolverError[] {
-    return this.resolveExpr(inst.condition).concat(
+    return this.skipExpr(inst.condition).concat(
       this.resolveInst(inst.inst));
   }
 
@@ -529,7 +563,7 @@ export class Resolver implements
     this.tableBuilder.beginScope(inst);
 
     const resolverErrors = this.resolveInsts(inst.initializer.insts).concat(
-      this.resolveExpr(inst.condition),
+      this.skipExpr(inst.condition),
       this.resolveInsts(inst.increment.insts),
       this.resolveInst(inst.inst));
 
@@ -547,7 +581,7 @@ export class Resolver implements
     this.tableBuilder.beginScope(inst);
 
     const resolverErrors = this.resolveInsts(inst.initializer.insts).concat(
-      this.resolveExpr(inst.condition),
+      this.skipExpr(inst.condition),
       this.resolveInsts(inst.increment.insts),
       this.resolveInst(inst.inst));
 
@@ -562,7 +596,7 @@ export class Resolver implements
    */
   public visitWhen(inst: Inst.When): Errors {
     return this.useExprLocals(inst.condition).concat(
-      this.resolveExpr(inst.condition),
+      this.skipExpr(inst.condition),
       this.resolveInst(inst.inst));
   }
 
@@ -571,7 +605,7 @@ export class Resolver implements
    * @param inst the syntax node
    */
   public passWhen(inst: Inst.When): IResolverError[] {
-    return this.resolveExpr(inst.condition).concat(
+    return this.skipExpr(inst.condition).concat(
       this.resolveInst(inst.inst));
   }
 
@@ -582,7 +616,7 @@ export class Resolver implements
   public visitReturn(inst: Inst.Return): Errors {
     if (inst.expr) {
       return this.useExprLocals(inst.expr)
-        .concat(this.resolveExpr(inst.expr));
+        .concat(this.skipExpr(inst.expr));
     }
 
     return [];
@@ -593,7 +627,7 @@ export class Resolver implements
    * @param inst the syntax node
    */
   public passReturn(inst: Inst.Return): IResolverError[] {
-    return !empty(inst.expr) ? this.resolveExpr(inst.expr) : [];
+    return !empty(inst.expr) ? this.skipExpr(inst.expr) : [];
   }
 
   /**
@@ -618,7 +652,7 @@ export class Resolver implements
    */
   public visitSwitch(inst: Inst.Switch): Errors {
     return this.useExprLocals(inst.target)
-      .concat(this.resolveExpr(inst.target));
+      .concat(this.skipExpr(inst.target));
   }
 
   /**
@@ -626,7 +660,7 @@ export class Resolver implements
    * @param inst the syntax node
    */
   public passSwitch(inst: Inst.Switch): IResolverError[] {
-    return this.resolveExpr(inst.target);
+    return this.skipExpr(inst.target);
   }
 
   /**
@@ -638,7 +672,7 @@ export class Resolver implements
     const declareError = this.tableBuilder.declareVariable(ScopeType.local, inst.identifier);
 
     const errors = this.useExprLocals(inst.suffix).concat(
-      this.resolveExpr(inst.suffix),
+      this.skipExpr(inst.suffix),
       this.resolveInst(inst.inst),
       this.tableBuilder.endScope());
 
@@ -655,7 +689,7 @@ export class Resolver implements
   public passFor(inst: Inst.For): IResolverError[] {
     this.tableBuilder.beginScope(inst);
 
-    return this.resolveExpr(inst.suffix).concat(
+    return this.skipExpr(inst.suffix).concat(
       this.resolveInst(inst.inst),
       this.tableBuilder.endScope());
   }
@@ -666,7 +700,7 @@ export class Resolver implements
    */
   public visitOn(inst: Inst.On): Errors {
     return this.useExprLocals(inst.suffix).concat(
-      this.resolveExpr(inst.suffix),
+      this.skipExpr(inst.suffix),
       this.resolveInst(inst.inst));
   }
 
@@ -675,7 +709,7 @@ export class Resolver implements
    * @param inst the syntax node
    */
   public passOn(inst: Inst.On): IResolverError[] {
-    return this.resolveExpr(inst.suffix).concat(
+    return this.skipExpr(inst.suffix).concat(
       this.resolveInst(inst.inst));
   }
 
@@ -685,7 +719,7 @@ export class Resolver implements
    */
   public visitToggle(inst: Inst.Toggle): Errors {
     return this.useExprLocals(inst.suffix)
-      .concat(this.resolveExpr(inst.suffix));
+      .concat(this.skipExpr(inst.suffix));
   }
 
   /**
@@ -693,7 +727,7 @@ export class Resolver implements
    * @param inst the syntax node
    */
   public passToggle(inst: Inst.Toggle): IResolverError[] {
-    return this.resolveExpr(inst.suffix);
+    return this.skipExpr(inst.suffix);
   }
 
   /**
@@ -702,7 +736,7 @@ export class Resolver implements
    */
   public visitWait(inst: Inst.Wait): Errors {
     return this.useExprLocals(inst.expr)
-      .concat(this.resolveExpr(inst.expr));
+      .concat(this.skipExpr(inst.expr));
   }
 
   /**
@@ -710,7 +744,7 @@ export class Resolver implements
    * @param inst the syntax node
    */
   public passWait(inst: Inst.Wait): IResolverError[] {
-    return this.resolveExpr(inst.expr);
+    return this.skipExpr(inst.expr);
   }
 
   /**
@@ -719,8 +753,8 @@ export class Resolver implements
    */
   public visitLog(inst: Inst.Log): Errors {
     return this.useExprLocals(inst.expr).concat(
-      this.resolveExpr(inst.expr),
-      this.resolveExpr(inst.target));
+      this.skipExpr(inst.expr),
+      this.skipExpr(inst.target));
   }
 
   /**
@@ -728,8 +762,8 @@ export class Resolver implements
    * @param inst the syntax node
    */
   public passLog(inst: Inst.Log): IResolverError[] {
-    return this.resolveExpr(inst.expr).concat(
-      this.resolveExpr(inst.target));
+    return this.skipExpr(inst.expr).concat(
+      this.skipExpr(inst.target));
   }
 
   /**
@@ -738,8 +772,9 @@ export class Resolver implements
    */
   public visitCopy(inst: Inst.Copy): Errors {
     return this.useExprLocals(inst.target).concat(
-      this.resolveExpr(inst.target),
-      this.resolveExpr(inst.destination));
+      new ResolverError(inst, 'Copy is deprecated as of 1.0.0', ResolverErrorKind.warning, []),
+      this.skipExpr(inst.target),
+      this.skipExpr(inst.destination));
   }
 
   /**
@@ -747,8 +782,8 @@ export class Resolver implements
    * @param inst the syntax node
    */
   public passCopy(inst: Inst.Copy): IResolverError[] {
-    return this.resolveExpr(inst.target).concat(
-      this.resolveExpr(inst.destination));
+    return this.skipExpr(inst.target).concat(
+      this.skipExpr(inst.destination));
   }
 
   /**
@@ -757,9 +792,10 @@ export class Resolver implements
    */
   public visitRename(inst: Inst.Rename): Errors {
     return this.useExprLocals(inst.target).concat(
+      new ResolverError(inst, 'Rename is deprecated as of 1.0.0', ResolverErrorKind.warning, []),
       this.useExprLocals(inst.alternative),
-      this.resolveExpr(inst.target),
-      this.resolveExpr(inst.alternative));
+      this.skipExpr(inst.target),
+      this.skipExpr(inst.alternative));
   }
 
   /**
@@ -767,8 +803,8 @@ export class Resolver implements
    * @param inst the syntax node
    */
   public passRename(inst: Inst.Rename): IResolverError[] {
-    return this.resolveExpr(inst.target).concat(
-      this.resolveExpr(inst.alternative));
+    return this.skipExpr(inst.target).concat(
+      this.skipExpr(inst.alternative));
   }
 
   /**
@@ -776,15 +812,20 @@ export class Resolver implements
    * @param inst the syntax node
    */
   public visitDelete(inst: Inst.Delete): Errors {
+    const deprecated = new ResolverError(
+      inst, 'Copy is deprecated as of 1.0.0', ResolverErrorKind.warning, []);
+
     if (empty(inst.volume)) {
       return this.useExprLocals(inst.target).concat(
-        this.resolveExpr(inst.target));
+        deprecated,
+        this.skipExpr(inst.target));
     }
 
     return this.useExprLocals(inst.target).concat(
+      deprecated,
       this.useExprLocals(inst.volume),
-      this.resolveExpr(inst.target),
-      this.resolveExpr(inst.volume));
+      this.skipExpr(inst.target),
+      this.skipExpr(inst.volume));
   }
 
   /**
@@ -793,11 +834,11 @@ export class Resolver implements
    */
   public passDelete(inst: Inst.Delete): IResolverError[] {
     if (empty(inst.volume)) {
-      return this.resolveExpr(inst.target);
+      return this.skipExpr(inst.target);
     }
 
-    return this.resolveExpr(inst.target).concat(
-      this.resolveExpr(inst.volume));
+    return this.skipExpr(inst.target).concat(
+      this.skipExpr(inst.volume));
   }
 
   /**
@@ -811,7 +852,7 @@ export class Resolver implements
 
     const argError = !empty(inst.args)
       ? accumulateErrors(inst.args, this.useExprLocals.bind(this)).concat(
-          accumulateErrors(inst.args, this.resolveExpr.bind(this)))
+          accumulateErrors(inst.args, this.skipExpr.bind(this)))
       : [];
 
     if (empty(inst.expr)) {
@@ -819,7 +860,7 @@ export class Resolver implements
     }
 
     return this.useExprLocals(inst.expr).concat(
-      this.resolveExpr(inst.expr),
+      this.skipExpr(inst.expr),
       argError);
   }
 
@@ -833,14 +874,14 @@ export class Resolver implements
     }
 
     const argError = !empty(inst.args)
-      ? accumulateErrors(inst.args, this.resolveExpr.bind(this))
+      ? accumulateErrors(inst.args, this.skipExpr.bind(this))
       : [];
 
     if (empty(inst.expr)) {
       return argError;
     }
 
-    return argError.concat(this.resolveExpr(inst.expr));
+    return argError.concat(this.skipExpr(inst.expr));
   }
 
   /**
@@ -850,13 +891,13 @@ export class Resolver implements
   public visitRunPath(inst: Inst.RunPath): Errors {
     if (empty(inst.args)) {
       return this.useExprLocals(inst.expr)
-        .concat(this.resolveExpr(inst.expr));
+        .concat(this.skipExpr(inst.expr));
     }
 
     return this.useExprLocals(inst.expr).concat(
-      this.resolveExpr(inst.expr),
+      this.skipExpr(inst.expr),
       accumulateErrors(inst.args, this.useExprLocals.bind(this)),
-      accumulateErrors(inst.args, this.resolveExpr.bind(this)));
+      accumulateErrors(inst.args, this.skipExpr.bind(this)));
   }
 
   /**
@@ -865,11 +906,11 @@ export class Resolver implements
    */
   public passRunPath(inst: Inst.RunPath): IResolverError[] {
     if (empty(inst.args)) {
-      return this.resolveExpr(inst.expr);
+      return this.skipExpr(inst.expr);
     }
 
-    return this.resolveExpr(inst.expr).concat(
-      accumulateErrors(inst.args, this.resolveExpr.bind(this)));
+    return this.skipExpr(inst.expr).concat(
+      accumulateErrors(inst.args, this.skipExpr.bind(this)));
   }
 
   /**
@@ -879,13 +920,13 @@ export class Resolver implements
   public visitRunPathOnce(inst: Inst.RunPathOnce): Errors {
     if (empty(inst.args)) {
       return this.useExprLocals(inst.expr)
-        .concat(this.resolveExpr(inst.expr));
+        .concat(this.skipExpr(inst.expr));
     }
 
     return this.useExprLocals(inst.expr).concat(
-      this.resolveExpr(inst.expr),
+      this.skipExpr(inst.expr),
       accumulateErrors(inst.args, this.useExprLocals.bind(this)),
-      accumulateErrors(inst.args, this.resolveExpr.bind(this)));
+      accumulateErrors(inst.args, this.skipExpr.bind(this)));
   }
 
   /**
@@ -894,11 +935,11 @@ export class Resolver implements
    */
   public passRunPathOnce(inst: Inst.RunPathOnce): IResolverError[] {
     if (empty(inst.args)) {
-      return this.resolveExpr(inst.expr);
+      return this.skipExpr(inst.expr);
     }
 
-    return this.resolveExpr(inst.expr).concat(
-      accumulateErrors(inst.args, this.resolveExpr.bind(this)));
+    return this.skipExpr(inst.expr).concat(
+      accumulateErrors(inst.args, this.skipExpr.bind(this)));
   }
 
   /**
@@ -908,13 +949,13 @@ export class Resolver implements
   public visitCompile(inst: Inst.Compile): Errors {
     if (empty(inst.destination)) {
       return this.useExprLocals(inst.target)
-        .concat(this.resolveExpr(inst.target));
+        .concat(this.skipExpr(inst.target));
     }
 
     return this.useExprLocals(inst.target).concat(
       this.useExprLocals(inst.destination),
-      this.resolveExpr(inst.target),
-      this.resolveExpr(inst.destination));
+      this.skipExpr(inst.target),
+      this.skipExpr(inst.destination));
   }
 
   /**
@@ -923,11 +964,11 @@ export class Resolver implements
    */
   public passCompile(inst: Inst.Compile): IResolverError[] {
     if (empty(inst.destination)) {
-      return this.resolveExpr(inst.target);
+      return this.skipExpr(inst.target);
     }
 
-    return this.resolveExpr(inst.target).concat(
-      this.resolveExpr(inst.destination));
+    return this.skipExpr(inst.target).concat(
+      this.skipExpr(inst.destination));
   }
 
   /**
@@ -974,7 +1015,7 @@ export class Resolver implements
    */
   public visitPrint(inst: Inst.Print): Errors {
     return this.useExprLocals(inst.expr)
-      .concat(this.resolveExpr(inst.expr));
+      .concat(this.skipExpr(inst.expr));
   }
 
   /**
@@ -982,7 +1023,7 @@ export class Resolver implements
    * @param inst the syntax node
    */
   public passPrint(inst: Inst.Print): IResolverError[] {
-    return this.resolveExpr(inst.expr);
+    return this.skipExpr(inst.expr);
   }
 
   /* --------------------------------------------
@@ -996,26 +1037,26 @@ export class Resolver implements
   }
 
   public passBinary(expr: Expr.Binary): IResolverError[] {
-    return this.resolveExpr(expr.left).concat(
-      this.resolveExpr(expr.right));
+    return this.skipExpr(expr.left).concat(
+      this.skipExpr(expr.right));
   }
 
   public passUnary(expr: Expr.Unary): IResolverError[] {
-    return this.resolveExpr(expr.factor);
+    return this.skipExpr(expr.factor);
   }
 
   public passFactor(expr: Expr.Factor): IResolverError[] {
-    return this.resolveExpr(expr.suffix).concat(
-      this.resolveExpr(expr.exponent));
+    return this.skipExpr(expr.suffix).concat(
+      this.skipExpr(expr.exponent));
   }
 
   public passSuffix(expr: Expr.Suffix): IResolverError[] {
-    const atom = this.resolveSuffixTerm(expr.suffixTerm);
+    const atom = this.passSuffixTerm(expr.suffixTerm);
     if (empty(expr.trailer)) {
       return atom;
     }
 
-    return atom.concat(this.resolveSuffixTerm(expr.trailer));
+    return atom.concat(this.skipSuffixTerm(expr.trailer));
   }
 
   public passAnonymousFunction(expr: Expr.AnonymousFunction): IResolverError[] {
@@ -1037,27 +1078,27 @@ export class Resolver implements
   }
 
   public passSuffixTrailer(suffixTerm: SuffixTerm.SuffixTrailer): IResolverError[] {
-    const atom = this.resolveSuffixTerm(suffixTerm.suffixTerm);
+    const atom = this.passSuffixTerm(suffixTerm.suffixTerm);
     if (empty(suffixTerm.trailer)) {
       return atom;
     }
 
-    return atom.concat(this.resolveSuffixTerm(suffixTerm.trailer));
+    return atom.concat(this.skipSuffixTerm(suffixTerm.trailer));
   }
 
   public passSuffixTerm(suffixTerm: SuffixTerm.SuffixTerm): IResolverError[] {
-    const atom = this.resolveSuffixTerm(suffixTerm.atom);
+    const atom = this.skipSuffixTerm(suffixTerm.atom);
     if (suffixTerm.trailers.length === 0) {
       return atom;
     }
 
     return atom.concat(suffixTerm.trailers.reduce(
-      (acc, curr) => acc.concat(this.resolveSuffixTerm(curr)),
+      (acc, curr) => acc.concat(this.skipSuffixTerm(curr)),
       [] as IResolverError[]));
   }
 
   public passCall(suffixTerm: SuffixTerm.Call): IResolverError[] {
-    return accumulateErrors(suffixTerm.args, this.resolveExpr.bind(this));
+    return accumulateErrors(suffixTerm.args, this.skipExpr.bind(this));
   }
 
   public passArrayIndex(_: SuffixTerm.ArrayIndex): IResolverError[] {
@@ -1065,7 +1106,7 @@ export class Resolver implements
   }
 
   public passArrayBracket(suffixTerm: SuffixTerm.ArrayBracket): IResolverError[] {
-    return this.resolveExpr(suffixTerm.index);
+    return this.skipExpr(suffixTerm.index);
   }
 
   public passDelegate(_: SuffixTerm.Delegate): IResolverError[] {
@@ -1081,7 +1122,7 @@ export class Resolver implements
   }
 
   public passGrouping(suffixTerm: SuffixTerm.Grouping): IResolverError[] {
-    return this.resolveExpr(suffixTerm.expr);
+    return this.skipExpr(suffixTerm.expr);
   }
 }
 

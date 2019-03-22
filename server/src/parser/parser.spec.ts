@@ -1,4 +1,4 @@
-import ava, { GenericTestContext, Context } from 'ava';
+import ava, { ExecutionContext } from 'ava';
 import { Scanner } from '../scanner/scanner';
 import { Parser } from './parser';
 import { IScannerError, IScanResult } from '../scanner/types';
@@ -67,7 +67,7 @@ const atomTest = (source: string, type: TokenType, literal: any): IAtomTest => {
 };
 
 const testAtom = (
-  t: GenericTestContext<Context<any>>,
+  t: ExecutionContext<{}>,
   value: IExpr,
   testFunct: (atom: Atom) => void) => {
 
@@ -168,7 +168,7 @@ interface ICallTest {
 }
 
 const testSuffixTerm = (
-  t: GenericTestContext<Context<any>>,
+  t: ExecutionContext<{}>,
   value: IExpr,
   atomTest: (atom: Atom) => void,
   ...trailerTests: ((trailer: SuffixTermTrailer) => void)[]) => {

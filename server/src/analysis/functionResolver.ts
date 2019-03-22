@@ -13,7 +13,7 @@ import { empty } from '../utilities/typeGuards';
 import { KsParameter } from '../entities/parameters';
 import { TokenType } from '../entities/tokentypes';
 import { mockLogger, mockTracer } from '../utilities/logger';
-import { SymbolState } from './types';
+import { SymbolState, ResolverErrorKind } from './types';
 import { SymbolTableBuilder } from './symbolTableBuilder';
 
 export type Errors = ResolverError[];
@@ -151,7 +151,9 @@ export class FuncResolver implements
         if (defaulted) {
           errors.push(new ResolverError(
             parameter.identifier,
-            'Normal parameters cannot occur after defaulted parameters', []));
+            'Normal parameters cannot occur after defaulted parameters', 
+            ResolverErrorKind.error,
+            []));
         }
         parameters.push(new KsParameter(parameter.identifier, false, SymbolState.declared));
       }

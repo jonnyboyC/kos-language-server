@@ -5,7 +5,6 @@ export declare class KosLanguageClient extends AutoLanguageClient {
     getLanguageName(): string;
     getServerName(): string;
     getConnectionType(): ConnectionType;
-    startServerProcess(): import("child_process").ChildProcess;
     shouldStartForEditor(editor: TextEditor): boolean;
     validateKosServerPath(): boolean;
     openPackageSettings(): void;

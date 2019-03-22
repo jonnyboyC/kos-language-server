@@ -8,15 +8,26 @@ import { TokenType } from '../entities/tokentypes';
 import { ILoadData } from '../types';
 import { Location } from 'vscode-languageserver';
 
+/**
+ * Class to resolve run instructions or calls to file paths
+ */
 export class PathResolver {
   constructor (
     public volume0Path?: string,
     public volume0Uri?: string) { }
 
+  /**
+   * Is the resolve ready to resolve paths
+   */
   public get ready(): boolean {
     return !empty(this.volume0Path) && !empty(this.volume0Uri);
   }
 
+  /**
+   * Resolve uri to load data
+   * @param caller location of caller
+   * @param path provided path in run instruction or class
+   */
   public resolveUri(caller: Location, path?: string): Maybe<ILoadData> {
     if (empty(path) || empty(this.volume0Path) || empty(this.volume0Uri)) {
       return undefined;
@@ -57,6 +68,10 @@ export class PathResolver {
   }
 }
 
+/**
+ * Get io path, currently only supports string literals
+ * @param inst io instructions
+ */
 export const ioPath = (inst: Inst.Rename | Inst.Copy | Inst.Delete | Inst.Log): Maybe<string> => {
   const { target } = inst;
   if (target instanceof SuffixTerm.Literal) {
@@ -66,7 +81,10 @@ export const ioPath = (inst: Inst.Rename | Inst.Copy | Inst.Delete | Inst.Log): 
   return undefined;
 };
 
-// based on run type determine how to get file path
+/**
+ * based on run type determine how to get file path
+ * @param inst run instruction
+ */
 export const runPath = (inst: RunInstType): Maybe<string> => {
   if (inst instanceof Inst.Run) {
     const { identifier } = inst;
@@ -93,7 +111,10 @@ export const runPath = (inst: RunInstType): Maybe<string> => {
   return undefined;
 };
 
-// determine which string to return for the filepath
+/**
+ * determine which string to return for the filepath from literal
+ * @param expr literal expression
+ */
 const literalPath = (expr: SuffixTerm.Literal): Maybe<string> => {
   const { token } = expr;
 

@@ -37,7 +37,7 @@
   ],
   "dependencies": {
     "atom-languageclient": "^0.9.9",
-    "kos-language-server": "^0.2.2"
+    "kos-language-server": "^0.3.0"
   },
   "consumedServices": {
     "console": {
@@ -82,5 +82,9 @@
         "0.1.0": "provideOutlines"
       }
     }
+  },
+  "devDependencies": {
+    "@types/atom": "^1.31.1",
+    "@types/node": "^11.11.4"
   }
 }

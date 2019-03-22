@@ -1,7 +1,7 @@
 import { Parser } from '../parser/parser';
 import { Scanner } from '../scanner/scanner';
 import { IScript } from '../parser/types';
-import ava, { GenericTestContext, Context } from 'ava';
+import ava, { ExecutionContext }from 'ava';
 import { SymbolTable } from './symbolTable';
 import { FuncResolver } from './functionResolver';
 import { SymbolTableBuilder } from './symbolTableBuilder';
@@ -10,7 +10,7 @@ import { Resolver } from './resolver';
 const fakeUri = 'C:\\fake.ks';
 
 // parse source
-const parseSource = (source: string, t: GenericTestContext<Context<any>>): IScript => {
+const parseSource = (source: string, t: ExecutionContext<{}>): IScript => {
   const scanner = new Scanner(source, fakeUri);
   const { scanErrors, tokens } = scanner.scanTokens();
   t.is(0, scanErrors.length);
@@ -22,7 +22,7 @@ const parseSource = (source: string, t: GenericTestContext<Context<any>>): IScri
   return script;
 };
 
-const resolveSource = (source: string, t: GenericTestContext<Context<any>>): SymbolTable => {
+const resolveSource = (source: string, t: ExecutionContext<{}>): SymbolTable => {
   const script = parseSource(source, t);
 
   const symbolTableBuilder = new SymbolTableBuilder(fakeUri);

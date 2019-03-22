@@ -24,5 +24,8 @@
         "ksp",
         "language-server"
     ],
-    "scripts": {}
+    "scripts": {},
+    "devDependencies": {
+        "@types/node": "^11.11.4"
+    }
 }

@@ -3,7 +3,7 @@ import { empty } from '../utilities/typeGuards';
 import { ScopeType, IExpr, ISuffixTerm } from '../parser/types';
 import { KsVariable } from '../entities/variable';
 import { SymbolState, IScope, IScopeNode,
-  KsSymbol, IStack, IKsSymbolTracker, KsSymbolKind,
+  KsSymbol, IStack, IKsSymbolTracker, KsSymbolKind, IResolverError, ResolverErrorKind,
 } from './types';
 import { KsFunction } from '../entities/function';
 import { KsLock } from '../entities/lock';
@@ -142,21 +142,27 @@ export class SymbolTableBuilder {
             if (tracker.usages.length === 0) {
               errors.push(new ResolverError(
                 tracker.declared.symbol.name,
-                `Parameter ${tracker.declared.symbol.name.lexeme} was not used.`, []));
+                `Parameter ${tracker.declared.symbol.name.lexeme} was not used.`,
+                ResolverErrorKind.error,
+                []));
             }
             break;
           case KsSymbolKind.lock:
             if (!tracker.declared.symbol.cooked && tracker.usages.length === 0) {
               errors.push(new ResolverError(
                 tracker.declared.symbol.name,
-                `Lock ${tracker.declared.symbol.name.lexeme} was not used.`, []));
+                `Lock ${tracker.declared.symbol.name.lexeme} was not used.`,
+                ResolverErrorKind.error,
+                []));
             }
             break;
           case KsSymbolKind.variable:
             if (tracker.usages.length === 0) {
               errors.push(new ResolverError(
                 tracker.declared.symbol.name,
-                `Variable ${tracker.declared.symbol.name.lexeme} was not used.`, []));
+                `Variable ${tracker.declared.symbol.name.lexeme} was not used.`,
+                ResolverErrorKind.error,
+                []));
             }
             break;
           default:
@@ -197,12 +203,13 @@ export class SymbolTableBuilder {
    * @param name token for the current symbol
    * @param expr the expresion the symbol was used in
    */
-  public useSymbol(name: IToken, expr: IExpr | ISuffixTerm): Maybe<ResolverError> {
+  public useSymbol(name: IToken, expr: IExpr | ISuffixTerm): Maybe<IResolverError> {
     const tracker = this.lookup(name, ScopeType.global);
 
     // check if symbols exists
     if (empty(tracker)) {
-      return new ResolverError(name, `Symbol ${name.lexeme} may not exist`, []);
+      return new ResolverError(
+        name, `Symbol ${name.lexeme} may not exist`, ResolverErrorKind.error, []);
     }
 
     return this.checkUseSymbol(name, tracker, tracker.declared.symbol.tag, expr);
@@ -373,7 +380,8 @@ export class SymbolTableBuilder {
     Maybe<ResolverError> {
     // check that variable has already been defined
     if (empty(tracker)) {
-      return new ResolverError(name, `${symbolType} ${name.lexeme} may not exist.`, []);
+      return new ResolverError(
+        name, `${symbolType} ${name.lexeme} may not exist.`, ResolverErrorKind.error, []);
     }
 
     tracker.usages.push(createEnitityChange(name, expr));
@@ -595,8 +603,10 @@ export class SymbolTableBuilder {
    */
   private localConflictError(name: IToken, symbol: KsSymbol): ResolverError {
     return new ResolverError(
-      name, `${this.pascalCase(KsSymbolKind[symbol.tag])} ${symbol.name.lexeme}`
-        + ` already exists here ${this.rangeToString(symbol.name)}.`,
+      name,
+      `${this.pascalCase(KsSymbolKind[symbol.tag])} ${symbol.name.lexeme}` +
+      ` already exists here ${this.rangeToString(symbol.name)}.`,
+      ResolverErrorKind.error,
       []);
   }
 
