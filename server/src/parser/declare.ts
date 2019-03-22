@@ -1,5 +1,5 @@
 import { Inst, Block } from './inst';
-import { IDeclScope, IExpr, IInstVisitor, ScopeType, IParameter } from './types';
+import { IDeclScope, IExpr, IInstVisitor, ScopeType, IParameter, IInstPasser } from './types';
 import { TokenType } from '../entities/tokentypes';
 import { empty } from '../utilities/typeGuards';
 import { IToken } from '../entities/types';
@@ -69,7 +69,7 @@ export class Var extends Decl {
   constructor(
     public readonly identifier: IToken,
     public readonly toIs: IToken,
-    public readonly expression: IExpr,
+    public readonly value: IExpr,
     public readonly scope: IDeclScope) {
     super();
   }
@@ -79,11 +79,15 @@ export class Var extends Decl {
   }
 
   public get end(): Position {
-    return this.expression.end;
+    return this.value.end;
   }
 
   public get ranges(): Range[] {
-    return [this.scope, this.identifier, this.toIs, this.expression];
+    return [this.scope, this.identifier, this.toIs, this.value];
+  }
+
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passDeclVariable(this);
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -126,6 +130,10 @@ export class Lock extends Decl {
     ];
   }
 
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passDeclLock(this);
+  }
+
   public accept<T>(visitor: IInstVisitor<T>): T {
     return visitor.visitDeclLock(this);
   }
@@ -134,8 +142,8 @@ export class Lock extends Decl {
 export class Func extends Decl {
   constructor(
     public readonly functionToken: IToken,
-    public readonly functionIdentifier: IToken,
-    public readonly instructionBlock: Block,
+    public readonly identifier: IToken,
+    public readonly block: Block,
     public readonly scope?: IDeclScope) {
     super();
   }
@@ -147,21 +155,25 @@ export class Func extends Decl {
   }
 
   public get end(): Position {
-    return this.instructionBlock.end;
+    return this.block.end;
   }
 
   public get ranges(): Range[] {
     if (!empty(this.scope)) {
       return [
         this.scope, this.functionToken,
-        this.functionIdentifier, this.instructionBlock,
+        this.identifier, this.block,
       ];
     }
 
     return [
-      this.functionToken, this.functionIdentifier,
-      this.instructionBlock,
+      this.functionToken, this.identifier,
+      this.block,
     ];
+  }
+
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passDeclFunction(this);
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -250,6 +262,10 @@ export class Param extends Decl {
       ...this.parameters,
       ...this.defaultParameters,
     ];
+  }
+
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passDeclParameter(this);
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {

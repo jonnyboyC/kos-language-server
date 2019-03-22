@@ -1,4 +1,4 @@
-import ava, { GenericTestContext, Context } from 'ava';
+import ava, { ExecutionContext } from 'ava';
 import { Scanner } from '../scanner/scanner';
 import { Parser } from './parser';
 import { IScannerError, IScanResult } from '../scanner/types';
@@ -67,7 +67,7 @@ const atomTest = (source: string, type: TokenType, literal: any): IAtomTest => {
 };
 
 const testAtom = (
-  t: GenericTestContext<Context<any>>,
+  t: ExecutionContext<{}>,
   value: IExpr,
   testFunct: (atom: Atom) => void) => {
 
@@ -168,7 +168,7 @@ interface ICallTest {
 }
 
 const testSuffixTerm = (
-  t: GenericTestContext<Context<any>>,
+  t: ExecutionContext<{}>,
   value: IExpr,
   atomTest: (atom: Atom) => void,
   ...trailerTests: ((trailer: SuffixTermTrailer) => void)[]) => {
@@ -311,15 +311,33 @@ ava('valid binary', (t) => {
 
     if (value instanceof Expr.Binary) {
       t.is(value.operator.type, expression.operator, 'wrong binary operator');
-      t.true(value.left instanceof expression.leftArm.expr, 'wrong left node');
-      t.true(value.right instanceof expression.rightArm.expr, 'wrong right node');
 
-      if (!empty(expression.leftArm.literal) && value.left instanceof SuffixTerm.Literal) {
-        t.is(value.left.token.literal, expression.leftArm.literal);
+      if (expression.leftArm.expr.prototype instanceof SuffixTerm.SuffixTermBase) {
+        testSuffixTerm(
+          t, value.left,
+          (atom) => {
+            t.true(atom instanceof expression.leftArm.expr);
+            if (atom instanceof SuffixTerm.Literal) {
+              t.is(expression.leftArm.literal, atom.token.literal);
+            }
+          },
+        );
+      } else {
+        t.true(value.left instanceof expression.leftArm.expr);
       }
 
-      if (!empty(expression.rightArm.literal) && value.right instanceof SuffixTerm.Literal) {
-        t.is(value.right.token.literal, expression.rightArm.literal);
+      if (expression.rightArm.expr.prototype instanceof SuffixTerm.SuffixTermBase) {
+        testSuffixTerm(
+          t, value.right,
+          (atom) => {
+            t.true(atom instanceof expression.rightArm.expr);
+            if (atom instanceof SuffixTerm.Literal) {
+              t.is(expression.rightArm.literal, atom.token.literal);
+            }
+          },
+        );
+      } else {
+        t.true(value.right instanceof expression.rightArm.expr);
       }
     }
   }

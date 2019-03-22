@@ -1,20 +1,20 @@
-import { KsEntity, EntityType } from '../analysis/types';
+import { KsSymbol, KsSymbolKind } from '../analysis/types';
 import { KsVariable } from './variable';
 import { KsParameter } from './parameters';
 import { KsFunction } from './function';
 
-export const isKsVariable = (entity: KsEntity): entity is KsVariable => {
-  return entity.tag === EntityType.variable;
+export const isKsVariable = (entity: KsSymbol): entity is KsVariable => {
+  return entity.tag === KsSymbolKind.variable;
 };
 
-export const isKsParameter = (entity: KsEntity): entity is KsParameter => {
-  return entity.tag === EntityType.parameter;
+export const isKsParameter = (entity: KsSymbol): entity is KsParameter => {
+  return entity.tag === KsSymbolKind.parameter;
 };
 
-export const isKsFunction = (entity: KsEntity): entity is KsFunction => {
-  return entity.tag === EntityType.function;
+export const isKsFunction = (entity: KsSymbol): entity is KsFunction => {
+  return entity.tag === KsSymbolKind.function;
 };
 
-export const isKsLock = (entity: KsEntity): entity is KsFunction => {
-  return entity.tag === EntityType.lock;
+export const isKsLock = (entity: KsSymbol): entity is KsFunction => {
+  return entity.tag === KsSymbolKind.lock;
 };

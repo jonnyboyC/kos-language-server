@@ -7,7 +7,10 @@ import { Scanner } from './scanner/scanner';
 import { Resolver } from './analysis/resolver';
 import { IScannerError } from './scanner/types';
 import { IParseError, ScriptResult, RunInstType } from './parser/types';
-import { IResolverError, KsEntity, IKsEntityTracker, EntityType } from './analysis/types';
+import {
+  IResolverError, KsSymbol, IKsSymbolTracker,
+  KsSymbolKind, ResolverErrorKind,
+} from './analysis/types';
 import { mockLogger, mockTracer } from './utilities/logger';
 import { empty, notEmpty } from './utilities/typeGuards';
 import { ScriptFind } from './parser/scriptFind';
@@ -21,10 +24,10 @@ import { PathResolver, runPath } from './utilities/pathResolver';
 import { existsSync } from 'fs';
 import { extname } from 'path';
 import { readFileAsync } from './utilities/fsUtilities';
-import { standardLibrary } from './analysis/standardLibrary';
+import { standardLibrary, bodyLibrary } from './analysis/standardLibrary';
 import { builtIn } from './utilities/constants';
-import { ScopeBuilder } from './analysis/scopeBuilder';
-import { ScopeManager } from './analysis/scopeManager';
+import { SymbolTableBuilder } from './analysis/symbolTableBuilder';
+import { SymbolTable } from './analysis/symbolTable';
 import { TypeChecker } from './typeChecker/typeChecker';
 import { ITypeError, ITypeResolvedSuffix, ITypeNode } from './typeChecker/types';
 import { IToken } from './entities/types';
@@ -83,7 +86,7 @@ export class Analyzer {
   private async* validateDocument_(uri: string, text: string, depth: number):
     AsyncIterableIterator<ValidateResult> {
     const { script, parseErrors, scanErrors } = await this.parseDocument(uri, text);
-    const scopeManagers: ScopeManager[] = [];
+    const symbolTables: SymbolTable[] = [];
 
     const scanDiagnostics = scanErrors
       .map(scanError => scanToDiagnostics(scanError, uri));
@@ -106,29 +109,30 @@ export class Analyzer {
           if (Array.isArray(result)) {
             yield result;
           } else {
-            scopeManagers.push(result);
+            symbolTables.push(result);
           }
         }
       }
     }
 
     // generate a scope manager for resolving
-    const scopeBuilder = new ScopeBuilder(uri, this.logger);
+    const symbolTableBuilder = new SymbolTableBuilder(uri, this.logger);
 
     // add child scopes
-    for (const scopeManager of scopeManagers) {
-      scopeBuilder.addScope(scopeManager);
+    for (const symbolTable of symbolTables) {
+      symbolTableBuilder.addScope(symbolTable);
     }
 
     // add standard library
-    scopeBuilder.addScope(standardLibrary);
+    symbolTableBuilder.addScope(standardLibrary);
+    symbolTableBuilder.addScope(this.activeBodyLibrary());
 
     // generate resolvers
     const funcResolver = new FuncResolver(
-      script, scopeBuilder,
+      script, symbolTableBuilder,
       this.logger, this.tracer);
     const resolver = new Resolver(
-      script, scopeBuilder,
+      script, symbolTableBuilder,
       this.logger, this.tracer);
 
     // resolve the rest of the script
@@ -150,8 +154,8 @@ export class Analyzer {
     yield resolverDiagnostics;
     performance.mark('resolver-end');
 
-    const scopeManager = scopeBuilder.build();
-    const typeChecker = new TypeChecker(script, scopeManager, this.logger, this.tracer);
+    const symbolTable = symbolTableBuilder.build();
+    const typeChecker = new TypeChecker(script, symbolTable, this.logger, this.tracer);
 
     this.logger.log(`Type checking ${uri}`);
     this.logger.log('');
@@ -175,12 +179,12 @@ export class Analyzer {
     // make sure to delete references so scope manager can be gc'ed
     const documentInfo = this.documentInfos.get(uri);
     if (!empty(documentInfo)) {
-      documentInfo.scopeManager.removeSelf();
+      documentInfo.symbolsTable.removeSelf();
     }
 
     this.documentInfos.set(uri, {
       script,
-      scopeManager,
+      symbolsTable: symbolTable,
       diagnostics: scanDiagnostics.concat(
         parserDiagnostics,
         functionDiagnostics,
@@ -191,17 +195,21 @@ export class Analyzer {
 
     performance.clearMarks();
 
-    yield scopeManager;
+    yield symbolTable;
   }
 
-  public getSuffixType(pos: Position, uri: string): Maybe<[IType, EntityType]> {
+  private activeBodyLibrary(): SymbolTable {
+    return bodyLibrary;
+  }
+
+  public getSuffixType(pos: Position, uri: string): Maybe<[IType, KsSymbolKind]> {
     const documentInfo = this.documentInfos.get(uri);
     if (empty(documentInfo)) {
       return undefined;
     }
 
-    // try to find an entity at the position
-    const { script, scopeManager } = documentInfo;
+    // try to find an symbol at the position
+    const { script, symbolsTable } = documentInfo;
     const finder = new ScriptFind();
     const result = finder.find(
       script, pos, Expr.Suffix, Decl.Var,
@@ -217,12 +225,12 @@ export class Analyzer {
     }
 
     if (node instanceof Expr.Suffix) {
-      const checker = new TypeChecker(script, scopeManager);
+      const checker = new TypeChecker(script, symbolsTable);
       const result = checker.checkSuffix(node);
 
-      if (rangeContains(result.resolved.node, pos)) {
+      if (rangeContains(result.resolved.atom, pos)) {
         return [
-          result.resolved.node.type,
+          result.resolved.atom.type,
           result.resolved.atomType,
         ];
       }
@@ -233,51 +241,51 @@ export class Analyzer {
       if (suffixNode) {
         return [
           suffixNode.type,
-          EntityType.suffix,
+          KsSymbolKind.suffix,
         ];
       }
     }
 
     if (node instanceof Decl.Var) {
-      const tracker = scopeManager.scopedVariableTracker(pos, node.identifier.lexeme);
+      const tracker = symbolsTable.scopedVariableTracker(pos, node.identifier.lexeme);
 
       if (tracker) {
         return [
           tracker.declared.type,
-          tracker.declared.entity.tag,
+          tracker.declared.symbol.tag,
         ];
       }
     }
 
     if (node instanceof Decl.Lock) {
-      const tracker = scopeManager.scopedLockTracker(pos, node.identifier.lexeme);
+      const tracker = symbolsTable.scopedLockTracker(pos, node.identifier.lexeme);
 
       if (tracker) {
         return [
           tracker.declared.type,
-          tracker.declared.entity.tag,
+          tracker.declared.symbol.tag,
         ];
       }
     }
 
     if (node instanceof Decl.Func) {
-      const tracker = scopeManager.scopedFunctionTracker(pos, node.functionIdentifier.lexeme);
+      const tracker = symbolsTable.scopedFunctionTracker(pos, node.identifier.lexeme);
 
       if (tracker) {
         return [
           tracker.declared.type,
-          tracker.declared.entity.tag,
+          tracker.declared.symbol.tag,
         ];
       }
     }
 
     if (node instanceof Decl.Parameter) {
-      const tracker = scopeManager.scopedParameterTracker(pos, node.identifier.lexeme);
+      const tracker = symbolsTable.scopedParameterTracker(pos, node.identifier.lexeme);
 
       if (tracker) {
         return [
           tracker.declared.type,
-          tracker.declared.entity.tag,
+          tracker.declared.symbol.tag,
         ];
       }
     }
@@ -286,7 +294,7 @@ export class Analyzer {
   }
 
   private resolvedNodes(resolved: ITypeResolvedSuffix<IType>): ITypeNode[] {
-    const nodes = [resolved.node, ...resolved.termTrailers];
+    const nodes = [resolved.atom, ...resolved.termTrailers];
     return empty(resolved.suffixTrailer)
       ? nodes
       : nodes.concat(this.resolvedNodes(resolved.suffixTrailer));
@@ -299,7 +307,7 @@ export class Analyzer {
       return undefined;
     }
 
-    // try to find an entity at the position
+    // try to find an symbol at the position
     const { script } = documentInfo;
     const finder = new ScriptFind();
     const result = finder.find(script, pos);
@@ -314,8 +322,8 @@ export class Analyzer {
       return undefined;
     }
 
-    // try to find an entity at the position
-    const { scopeManager, script } = documentInfo;
+    // try to find an symbol at the position
+    const { symbolsTable, script } = documentInfo;
     const finder = new ScriptFind();
     const result = finder.find(script, pos);
 
@@ -323,31 +331,31 @@ export class Analyzer {
       return undefined;
     }
 
-    // check if entity exists
+    // check if symbols exists
     const { token } = result;
-    const entity = scopeManager.scopedNamedTracker(pos, token.lexeme);
-    if (empty(entity)) {
+    const symbol = symbolsTable.scopedNamedTracker(pos, token.lexeme);
+    if (empty(symbol)) {
       return undefined;
     }
 
     // exit if undefiend
-    if (entity.declared.uri === builtIn) {
+    if (symbol.declared.uri === builtIn) {
       return undefined;
     }
 
-    return entity.declared.entity.name;
+    return symbol.declared.symbol.name;
   }
 
   public getUsagesLocations(pos: Position, uri: string): Maybe<Location[]> {
     const documentInfo = this.documentInfos.get(uri);
     if (empty(documentInfo)
-      || empty(documentInfo.scopeManager)
+      || empty(documentInfo.symbolsTable)
       || empty(documentInfo.script)) {
       return undefined;
     }
 
-    // try to find the entity at the position
-    const { scopeManager, script } = documentInfo;
+    // try to find the symbol at the position
+    const { symbolsTable, script } = documentInfo;
     const finder = new ScriptFind();
     const result = finder.find(script, pos);
 
@@ -357,19 +365,19 @@ export class Analyzer {
 
     // try to find the tracker at a given position
     const { token } = result;
-    const tracker = scopeManager.scopedNamedTracker(pos, token.lexeme);
+    const tracker = symbolsTable.scopedNamedTracker(pos, token.lexeme);
     if (empty(tracker)) {
       return undefined;
     }
 
     return tracker.usages.map(usage => usage as Location)
-      .concat(tracker.declared.entity.name)
+      .concat(tracker.declared.symbol.name)
       .filter(location => location.uri !== builtIn);
   }
 
   // get a scoped trackers
   public getScopedTracker(pos: Position, name: string, uri?: string):
-    Maybe<IKsEntityTracker<KsEntity>> {
+    Maybe<IKsSymbolTracker<KsSymbol>> {
     if (empty(uri)) {
       const trackers = this.getGlobalTrackers(name);
       return trackers.length === 1 ? trackers[0] : undefined;
@@ -377,8 +385,8 @@ export class Analyzer {
 
     const documentInfo = this.documentInfos.get(uri);
 
-    if (!empty(documentInfo) && !empty(documentInfo.scopeManager)) {
-      return documentInfo.scopeManager.scopedNamedTracker(pos, name);
+    if (!empty(documentInfo) && !empty(documentInfo.symbolsTable)) {
+      return documentInfo.symbolsTable.scopedNamedTracker(pos, name);
     }
 
     const trackers = this.getGlobalTrackers(name);
@@ -386,7 +394,7 @@ export class Analyzer {
   }
 
   // get a global trackers
-  public getGlobalTrackers(name: string): IKsEntityTracker<KsEntity>[] {
+  public getGlobalTrackers(name: string): IKsSymbolTracker<KsSymbol>[] {
     return standardLibrary.globalTrackers(name);
   }
 
@@ -396,23 +404,23 @@ export class Analyzer {
     return tracker && tracker.declared.type;
   }
 
-  // get entities at position
-  public getScopedEntities(pos: Position, uri: string): KsEntity[] {
+  // get symbols at position
+  public getScopedSymbols(pos: Position, uri: string): KsSymbol[] {
     const documentInfo = this.documentInfos.get(uri);
 
-    if (!empty(documentInfo) && !empty(documentInfo.scopeManager)) {
-      return documentInfo.scopeManager.scopedEntities(pos);
+    if (!empty(documentInfo) && !empty(documentInfo.symbolsTable)) {
+      return documentInfo.symbolsTable.scopedSymbols(pos);
     }
 
     return [];
   }
 
-  // get all file entities
-  public getAllFileEntities(uri: string): KsEntity[] {
+  // get all file symbols
+  public getAllFileSymbols(uri: string): KsSymbol[] {
     const documentInfo = this.documentInfos.get(uri);
 
-    if (!empty(documentInfo) && !empty(documentInfo.scopeManager)) {
-      return documentInfo.scopeManager.fileEntities();
+    if (!empty(documentInfo) && !empty(documentInfo.symbolsTable)) {
+      return documentInfo.symbolsTable.fileSymbols();
     }
 
     return [];
@@ -447,14 +455,14 @@ export class Analyzer {
       const { identifier, index } = identifierIndex;
 
       // resolve the token to make sure it's actually a function
-      const ksFunction = documentInfo.scopeManager.scopedFunctionTracker(pos, identifier);
+      const ksFunction = documentInfo.symbolsTable.scopedFunctionTracker(pos, identifier);
       if (empty(ksFunction)) {
         return undefined;
       }
 
       return {
         index,
-        func: ksFunction.declared.entity,
+        func: ksFunction.declared.symbol,
       };
     }
 
@@ -609,9 +617,22 @@ const parseToDiagnostics = (error: IParseError, uri: string): IDiagnosticUri => 
 
 // convert resolver error to diagnostic
 const resolverToDiagnostics = (error: IResolverError, uri: string): IDiagnosticUri => {
+  let severity: DiagnosticSeverity;
+  switch (error.kind)
+  {
+    case ResolverErrorKind.error:
+      severity = DiagnosticSeverity.Warning;
+      break;
+    case ResolverErrorKind.warning:
+      severity = DiagnosticSeverity.Information;
+      break;
+    default:
+      throw new Error(`Unexpected resolver error kind ${error.kind}`);
+  }
+
   return {
     uri,
-    severity: DiagnosticSeverity.Warning,
+    severity,
     range: { start: error.start, end: error.end },
     message: error.message,
     source: 'kos-language-server',

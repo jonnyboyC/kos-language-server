@@ -7,7 +7,7 @@ import {
 import { empty } from './typeGuards';
 import { allSuffixes } from '../typeChecker/typeUitlities';
 import { CallType } from '../typeChecker/types/types';
-import { EntityType } from '../analysis/types';
+import { KsSymbolKind } from '../analysis/types';
 
 export const entityCompletionItems = (
   analyzer: Analyzer,
@@ -16,20 +16,20 @@ export const entityCompletionItems = (
   const { position } = documentPosition;
   const { uri } = documentPosition.textDocument;
 
-  const entities = analyzer.getScopedEntities(position, uri);
+  const entities = analyzer.getScopedSymbols(position, uri);
   return entities.map((entity) => {
     let kind: Maybe<CompletionItemKind> = undefined;
     switch (entity.tag) {
-      case EntityType.function:
+      case KsSymbolKind.function:
         kind = CompletionItemKind.Function;
         break;
-      case EntityType.parameter:
+      case KsSymbolKind.parameter:
         kind = CompletionItemKind.Variable;
         break;
-      case EntityType.lock:
+      case KsSymbolKind.lock:
         kind = CompletionItemKind.Variable;
         break;
-      case EntityType.variable:
+      case KsSymbolKind.variable:
         kind = CompletionItemKind.Variable;
         break;
       default:

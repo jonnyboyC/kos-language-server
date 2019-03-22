@@ -7,7 +7,7 @@ import { Range, Location } from 'vscode-languageserver';
 import { IArgumentType, IFunctionType } from '../typeChecker/types/types';
 import { IExpr, ISuffixTerm } from '../parser/types';
 
-export const enum EntityState {
+export const enum SymbolState {
   declared,
   used,
 }
@@ -23,11 +23,11 @@ export interface ILocalResult {
   expr: IExpr | ISuffixTerm;
 }
 
-export interface IScope extends Map<string, IKsEntityTracker> {
-  entities(): KsEntity[];
+export interface IScope extends Map<string, IKsSymbolTracker> {
+  symbols(): KsSymbol[];
 }
 
-export interface IKsEntityTracker<T extends KsEntity = KsEntity> {
+export interface IKsSymbolTracker<T extends KsSymbol = KsSymbol> {
   declared: IKsDeclared<T>;
   sets: IKsChange[];
   usages: IKsChange[];
@@ -42,8 +42,8 @@ export interface IKsChange extends Location {
   expr?: IExpr | ISuffixTerm;
 }
 
-export interface IKsDeclared<T extends KsEntity> extends Location {
-  entity: T;
+export interface IKsDeclared<T extends KsSymbol> extends Location {
+  symbol: T;
   type: IArgumentType | IFunctionType;
 }
 
@@ -69,9 +69,14 @@ export interface IScopeNode {
 }
 
 export interface IResolverError extends Range {
-  readonly token: IToken;
   readonly message: string;
   readonly otherInfo: string[];
+  readonly kind: ResolverErrorKind;
+}
+
+export enum ResolverErrorKind {
+  warning,
+  error,
 }
 
 export interface ISetResolverResult {
@@ -79,9 +84,9 @@ export interface ISetResolverResult {
   readonly used: ILocalResult[];
 }
 
-export type KsEntity = KsVariable | KsFunction | KsLock | KsParameter;
+export type KsSymbol = KsVariable | KsFunction | KsLock | KsParameter;
 
-export enum EntityType {
+export enum KsSymbolKind {
   variable,
   function,
   lock,

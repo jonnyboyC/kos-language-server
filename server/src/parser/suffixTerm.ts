@@ -2,6 +2,8 @@ import {
   ISuffixTerm, ISuffixTermVisitor, GrammarNode,
   IExpr, Atom, SuffixTermTrailer, ISuffixTermClassVisitor,
   Distribution, ISuffixTermClass, ISuffixTermParamVisitor,
+  ISuffixTermPasser,
+  SyntaxKind,
 } from './types';
 import { Range, Position } from 'vscode-languageserver';
 import { IToken } from '../entities/types';
@@ -16,11 +18,12 @@ import { NodeBase } from './base';
 import { empty } from '../utilities/typeGuards';
 
 export abstract class SuffixTermBase extends NodeBase implements ISuffixTerm {
-  get tag(): 'suffixTerm' {
-    return 'suffixTerm';
+  get tag(): SyntaxKind.suffixTerm {
+    return SyntaxKind.suffixTerm;
   }
 
   public abstract accept<T>(visitor: ISuffixTermVisitor<T>): T;
+  public abstract pass<T>(visitor: ISuffixTermPasser<T>): T;
   public abstract acceptParam<TP, TR>(
     visitor: ISuffixTermParamVisitor<TP, TR>,
     param: TP): TR;
@@ -49,6 +52,10 @@ export class Invalid extends SuffixTermBase {
 
   public acceptParam<TP, TR>(visitor: ISuffixTermParamVisitor<TP, TR>, param: TP): TR {
     return visitor.visitSuffixTermInvalid(this, param);
+  }
+
+  public pass<T>(visitor: ISuffixTermPasser<T>): T {
+    return visitor.passSuffixTermInvalid(this);
   }
 
   public accept<T>(visitor: ISuffixTermVisitor<T>): T {
@@ -122,9 +129,15 @@ export class SuffixTrailer extends SuffixTermBase {
   public acceptParam<TP, TR>(visitor: ISuffixTermParamVisitor<TP, TR>, param: TP): TR {
     return visitor.visitSuffixTrailer(this, param);
   }
+
   public accept<T>(visitor: ISuffixTermVisitor<T>): T {
     return visitor.visitSuffixTrailer(this);
   }
+
+  public pass<T>(visitor: ISuffixTermPasser<T>): T {
+    return visitor.passSuffixTrailer(this);
+  }
+
   public static classAccept<T>(visitor: ISuffixTermClassVisitor<T>): T {
     return visitor.visitSuffixTrailer(this);
   }}
@@ -153,12 +166,19 @@ export class SuffixTerm extends SuffixTermBase {
   public toString(): string {
     return `${this.atom.toString()}${this.trailers.map(trailer => trailer.toString()).join('')}`;
   }
+
   public acceptParam<TP, TR>(visitor: ISuffixTermParamVisitor<TP, TR>, param: TP): TR {
     return visitor.visitSuffixTerm(this, param);
   }
+
   public accept<T>(visitor: ISuffixTermVisitor<T>): T {
     return visitor.visitSuffixTerm(this);
   }
+
+  public pass<T>(visitor: ISuffixTermPasser<T>): T {
+    return visitor.passSuffixTerm(this);
+  }
+
   public static classAccept<T>(visitor: ISuffixTermClassVisitor<T>): T {
     return visitor.visitSuffixTerm(this);
   }
@@ -200,6 +220,10 @@ export class Call extends SuffixTermBase {
     return visitor.visitCall(this);
   }
 
+  public pass<T>(visitor: ISuffixTermPasser<T>): T {
+    return visitor.passCall(this);
+  }
+
   public static classAccept<T>(visitor: ISuffixTermClassVisitor<T>): T {
     return visitor.visitCall(this);
   }
@@ -237,6 +261,10 @@ export class ArrayIndex extends SuffixTermBase {
 
   public accept<T>(visitor: ISuffixTermVisitor<T>): T {
     return visitor.visitArrayIndex(this);
+  }
+
+  public pass<T>(visitor: ISuffixTermPasser<T>): T {
+    return visitor.passArrayIndex(this);
   }
 
   public static classAccept<T>(visitor: ISuffixTermClassVisitor<T>): T {
@@ -280,6 +308,10 @@ export class ArrayBracket extends SuffixTermBase {
     return visitor.visitArrayBracket(this);
   }
 
+  public pass<T>(visitor: ISuffixTermPasser<T>): T {
+    return visitor.passArrayBracket(this);
+  }
+
   public static classAccept<T>(visitor: ISuffixTermClassVisitor<T>): T {
     return visitor.visitArrayBracket(this);
   }
@@ -318,6 +350,10 @@ export class Delegate extends SuffixTermBase {
     return visitor.visitDelegate(this);
   }
 
+  public pass<T>(visitor: ISuffixTermPasser<T>): T {
+    return visitor.passDelegate(this);
+  }
+
   public static classAccept<T>(visitor: ISuffixTermClassVisitor<T>): T {
     return visitor.visitDelegate(this);
   }
@@ -354,6 +390,10 @@ export class Literal extends SuffixTermBase {
 
   public accept<T>(visitor: ISuffixTermVisitor<T>): T {
     return visitor.visitLiteral(this);
+  }
+
+  public pass<T>(visitor: ISuffixTermPasser<T>): T {
+    return visitor.passLiteral(this);
   }
 
   public static classAccept<T>(visitor: ISuffixTermClassVisitor<T>): T {
@@ -399,6 +439,10 @@ export class Identifier extends SuffixTermBase {
     return visitor.visitIdentifier(this);
   }
 
+  public pass<T>(visitor: ISuffixTermPasser<T>): T {
+    return visitor.passIdentifier(this);
+  }
+
   public static classAccept<T>(visitor: ISuffixTermClassVisitor<T>): T {
     return visitor.visitVariable(this);
   }
@@ -437,6 +481,10 @@ export class Grouping extends SuffixTermBase {
 
   public accept<T>(visitor: ISuffixTermVisitor<T>): T {
     return visitor.visitGrouping(this);
+  }
+
+  public pass<T>(visitor: ISuffixTermPasser<T>): T {
+    return visitor.passGrouping(this);
   }
 
   public static classAccept<T>(visitor: ISuffixTermClassVisitor<T>): T {

@@ -35,7 +35,7 @@ import { resourceTransferType } from '../typeChecker/types/resourceTransfer';
 import { builtIn } from '../utilities/constants';
 import { lexiconType } from '../typeChecker/types/collections/lexicon';
 import { rangeType } from '../typeChecker/types/collections/range';
-import { ScopeBuilder } from './scopeBuilder';
+import { SymbolTableBuilder } from './symbolTableBuilder';
 import { volumeFileType } from '../typeChecker/types/io/volumneFile';
 import { pidLoopType } from '../typeChecker/types/pidLoop';
 import { volumeItemType } from '../typeChecker/types/io/volumeItem';
@@ -66,7 +66,6 @@ import { serializableStructureType } from '../typeChecker/types/primitives/seria
 import { bodyTargetType } from '../typeChecker/types/orbital/bodyTarget';
 import { vesselTargetType } from '../typeChecker/types/orbital/vesselTarget';
 
-const libraryBuilder = new ScopeBuilder(builtIn);
 const functionTypes = [
   createFunctionType('abs', scalarType, scalarType),
   createFunctionType('add', voidType, nodeType),
@@ -318,8 +317,31 @@ const variables: [string, IArgumentType][] = [
   ['yellow', rgbaType],
 ];
 
+const bodies : [string, IArgumentType][] = [
+  ['kerbol', bodyTargetType],
+  ['moho', bodyTargetType],
+  ['eve', bodyTargetType],
+  ['gilly', bodyTargetType],
+  ['kerbin', bodyTargetType],
+  ['mun', bodyTargetType],
+  ['minmus', bodyTargetType],
+  ['duna', bodyTargetType],
+  ['ike', bodyTargetType],
+  ['dres', bodyTargetType],
+  ['jool', bodyTargetType],
+  ['laythe', bodyTargetType],
+  ['vall', bodyTargetType],
+  ['tylo', bodyTargetType],
+  ['bop', bodyTargetType],
+  ['pol', bodyTargetType],
+  ['eeloo', bodyTargetType],
+];
+
 // obsoleted
 //  ['groundspeed', scalarType],
+
+const libraryBuilder = new SymbolTableBuilder(builtIn);
+const bodyBuilder = new SymbolTableBuilder(builtIn);
 
 for (const functionType of functionTypes) {
   libraryBuilder.declareFunction(
@@ -351,6 +373,20 @@ for (const [identifier, type] of variables) {
     type);
 }
 
+for (const [identifier, type] of bodies) {
+  bodyBuilder.declareVariable(
+    ScopeType.global,
+    new Token(
+      TokenType.identifier,
+      identifier,
+      undefined,
+      new Marker(0, 0),
+      new Marker(0, 0),
+      builtIn,
+    ),
+    type);
+}
+
 for (const [identifier, type] of locks) {
   libraryBuilder.declareLock(
     ScopeType.global,
@@ -366,3 +402,4 @@ for (const [identifier, type] of locks) {
 }
 
 export const standardLibrary = libraryBuilder.build();
+export const bodyLibrary = bodyBuilder.build();

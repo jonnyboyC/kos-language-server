@@ -1,4 +1,4 @@
-import { IInst, IScript, RunInstType } from '../parser/types';
+import { IInst, IScript, RunInstType, SyntaxKind } from '../parser/types';
 import { Range, Position, Location } from 'vscode-languageserver';
 
 export class Script implements IScript {
@@ -24,7 +24,7 @@ export class Script implements IScript {
     return { uri: this.uri, range: { start: this.start, end: this.end } };
   }
 
-  public get tag(): 'script' {
-    return 'script';
+  public get tag(): SyntaxKind.script {
+    return SyntaxKind.script;
   }
 }

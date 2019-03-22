@@ -1,3 +1,14 @@
+## [0.3.1] (2019-3-22)
+
+## Features
+- **default KSP planets** Added kerbin, eve, etc. to auto completes. Will eventually allow for customization
+- **deprecated warning** Initial set of deprecated warning for deprecated io. i.e. copy, rename, delete instructions.
+
+## Bug Fixes
+- **run instruction resolution** fixed a bug the run instruction and functions where `runPath("0:example.ks").` did not resolve the sample as 
+`runPath("0:\runpath.ks").` or `runPath("runpath.ks")`
+
+
 ## [0.3.0] (2019-3-7)
 
 ### Features

@@ -1,10 +1,10 @@
-import { ScopeManager } from './analysis/scopeManager';
+import { SymbolTable } from './analysis/symbolTable';
 import { IScript } from './parser/types';
 import { Diagnostic, Range } from 'vscode-languageserver';
 
 export interface IDocumentInfo {
   script: IScript;
-  scopeManager: ScopeManager;
+  symbolsTable: SymbolTable;
   diagnostics: IDiagnosticUri[];
 }
 
@@ -14,7 +14,7 @@ export interface ILoadData {
   path: string;
 }
 
-export type ValidateResult = IDiagnosticUri[] | ScopeManager;
+export type ValidateResult = IDiagnosticUri[] | SymbolTable;
 
 export interface IDiagnosticUri extends Diagnostic {
   uri: string;

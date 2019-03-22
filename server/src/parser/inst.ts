@@ -1,18 +1,19 @@
-import { IInst, IExpr, IInstVisitor } from './types';
+import { IInst, IExpr, IInstVisitor, SyntaxKind, IInstPasser } from './types';
 import * as Expr from './expr';
 import { IToken } from '../entities/types';
 import { Range, Position } from 'vscode-languageserver';
 import { empty } from '../utilities/typeGuards';
 
 export abstract class Inst implements IInst {
-  get tag(): 'inst' {
-    return 'inst';
+  get tag(): SyntaxKind.inst {
+    return SyntaxKind.inst;
   }
 
   public abstract get ranges(): Range[];
   public abstract get start(): Position;
   public abstract get end(): Position;
   public abstract accept<T>(visitor: IInstVisitor<T>): T;
+  public abstract pass<T>(visitor: IInstPasser<T>): T;
 }
 
 export class Invalid extends Inst {
@@ -30,6 +31,10 @@ export class Invalid extends Inst {
 
   public get ranges(): Range[] {
     return [...this.tokens];
+  }
+
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passInstInvalid(this);
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -57,6 +62,10 @@ export class Block extends Inst {
     return [this.open, ...this.insts, this.close];
   }
 
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passBlock(this);
+  }
+
   public accept<T>(visitor: IInstVisitor<T>): T {
     return visitor.visitBlock(this);
   }
@@ -78,6 +87,10 @@ export class ExprInst extends Inst {
 
   public get ranges(): Range[] {
     return [this.suffix];
+  }
+
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passExpr(this);
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -104,6 +117,10 @@ export class OnOff extends Inst {
     return [this.suffix, this.onOff];
   }
 
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passOnOff(this);
+  }
+
   public accept<T>(visitor: IInstVisitor<T>): T {
     return visitor.visitOnOff(this);
   }
@@ -124,6 +141,10 @@ export class Command extends Inst {
 
   public get ranges(): Range[] {
     return [this.command];
+  }
+
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passCommand(this);
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -150,6 +171,10 @@ export class CommandExpr extends Inst {
     return [this.command, this.expr];
   }
 
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passCommandExpr(this);
+  }
+
   public accept<T>(visitor: IInstVisitor<T>): T {
     return visitor.visitCommandExpr(this);
   }
@@ -172,6 +197,10 @@ export class Unset extends Inst {
 
   public get ranges(): Range[] {
     return [this.unset, this.identifier];
+  }
+
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passUnset(this);
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -198,6 +227,10 @@ export class Unlock extends Inst {
     return [this.unlock, this.identifier];
   }
 
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passUnlock(this);
+  }
+
   public accept<T>(visitor: IInstVisitor<T>): T {
     return visitor.visitUnlock(this);
   }
@@ -208,7 +241,7 @@ export class Set extends Inst {
     public readonly set: IToken,
     public readonly suffix: Expr.Suffix,
     public readonly to: IToken,
-    public readonly expr: IExpr) {
+    public readonly value: IExpr) {
     super();
   }
 
@@ -217,11 +250,15 @@ export class Set extends Inst {
   }
 
   public get end(): Position {
-    return this.expr.end;
+    return this.value.end;
   }
 
   public get ranges(): Range[] {
-    return [this.set, this.suffix, this.to, this.expr];
+    return [this.set, this.suffix, this.to, this.value];
+  }
+
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passSet(this);
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -249,8 +286,12 @@ export class LazyGlobal extends Inst {
     return [this.atSign, this.lazyGlobal, this.onOff];
   }
 
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passLazyGlobal(this);
+  }
+
   public accept<T>(visitor: IInstVisitor<T>): T {
-    return visitor.visitLazyGlobalInst(this);
+    return visitor.visitLazyGlobal(this);
   }
 }
 
@@ -282,6 +323,10 @@ export class If extends Inst {
     return ranges;
   }
 
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passIf(this);
+  }
+
   public accept<T>(visitor: IInstVisitor<T>): T {
     return visitor.visitIf(this);
   }
@@ -304,6 +349,10 @@ export class Else extends Inst {
 
   public get ranges(): Range[] {
     return [this.elseToken, this.inst];
+  }
+
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passElse(this);
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -329,6 +378,10 @@ export class Until extends Inst {
 
   public get ranges(): Range[] {
     return [this.until, this.condition, this.inst];
+  }
+
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passUntil(this);
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -366,6 +419,10 @@ export class From extends Inst {
     ];
   }
 
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passFrom(this);
+  }
+
   public accept<T>(visitor: IInstVisitor<T>): T {
     return visitor.visitFrom(this);
   }
@@ -393,6 +450,10 @@ export class When extends Inst {
       this.when, this.condition,
       this.then, this.inst,
     ];
+  }
+
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passWhen(this);
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -426,6 +487,10 @@ export class Return extends Inst {
     return ranges;
   }
 
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passReturn(this);
+  }
+
   public accept<T>(visitor: IInstVisitor<T>): T {
     return visitor.visitReturn(this);
   }
@@ -447,6 +512,10 @@ export class Break extends Inst {
 
   public get ranges(): Range[] {
     return [this.breakToken];
+  }
+
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passBreak(this);
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -472,6 +541,10 @@ export class Switch extends Inst {
 
   public get ranges(): Range[] {
     return [this.switchToken, this.to, this.target];
+  }
+
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passSwitch(this);
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -505,6 +578,10 @@ export class For extends Inst {
     ];
   }
 
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passFor(this);
+  }
+
   public accept<T>(visitor: IInstVisitor<T>): T {
     return visitor.visitFor(this);
   }
@@ -530,15 +607,16 @@ export class On extends Inst {
     return [this.on, this.suffix, this.inst];
   }
 
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passOn(this);
+  }
+
   public accept<T>(visitor: IInstVisitor<T>): T {
     return visitor.visitOn(this);
   }
 }
 
 export class Toggle extends Inst {
-  public declared(): IterableIterator<IToken> {
-    throw new Error('Method not implemented.');
-  }
   constructor(
     public readonly toggle: IToken,
     public readonly suffix: Expr.Suffix) {
@@ -555,6 +633,10 @@ export class Toggle extends Inst {
 
   public get ranges(): Range[] {
     return [this.toggle, this.suffix];
+  }
+
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passToggle(this);
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -586,6 +668,10 @@ export class Wait extends Inst {
     return [this.wait, this.until, this.expr];
   }
 
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passWait(this);
+  }
+
   public accept<T>(visitor: IInstVisitor<T>): T {
     return visitor.visitWait(this);
   }
@@ -612,6 +698,10 @@ export class Log extends Inst {
     return [this.log, this.expr, this.to, this.target];
   }
 
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passLog(this);
+  }
+
   public accept<T>(visitor: IInstVisitor<T>): T {
     return visitor.visitLog(this);
   }
@@ -636,6 +726,10 @@ export class Copy extends Inst {
 
   public get ranges(): Range[] {
     return [this.copy, this.target, this.toFrom, this.destination];
+  }
+
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passCopy(this);
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -670,15 +764,16 @@ export class Rename extends Inst {
     ];
   }
 
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passRename(this);
+  }
+
   public accept<T>(visitor: IInstVisitor<T>): T {
     return visitor.visitRename(this);
   }
 }
 
 export class Delete extends Inst {
-  public declared(): IterableIterator<IToken> {
-    throw new Error('Method not implemented.');
-  }
   constructor(
     public readonly deleteToken: IToken,
     public readonly target: IExpr,
@@ -705,6 +800,10 @@ export class Delete extends Inst {
     }
 
     return ranges;
+  }
+
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passDelete(this);
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -760,6 +859,10 @@ export class Run extends Inst {
     return ranges;
   }
 
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passRun(this);
+  }
+
   public accept<T>(visitor: IInstVisitor<T>): T {
     return visitor.visitRun(this);
   }
@@ -793,6 +896,10 @@ export class RunPath extends Inst {
 
     ranges.push(this.close);
     return ranges;
+  }
+
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passRunPath(this);
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -830,6 +937,10 @@ export class RunPathOnce extends Inst {
     return ranges;
   }
 
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passRunPathOnce(this);
+  }
+
   public accept<T>(visitor: IInstVisitor<T>): T {
     return visitor.visitRunPathOnce(this);
   }
@@ -838,9 +949,9 @@ export class RunPathOnce extends Inst {
 export class Compile extends Inst {
   constructor(
     public readonly compile: IToken,
-    public readonly expr: IExpr,
+    public readonly target: IExpr,
     public readonly to?: IToken,
-    public readonly target?: IExpr) {
+    public readonly destination?: IExpr) {
     super();
   }
 
@@ -849,19 +960,23 @@ export class Compile extends Inst {
   }
 
   public get end(): Position {
-    return empty(this.target)
-      ? this.expr.end
-      : this.target.end;
+    return empty(this.destination)
+      ? this.target.end
+      : this.destination.end;
   }
 
   public get ranges(): Range[] {
-    const ranges: Range[] = [this.compile, this.expr];
-    if (!empty(this.to) && !empty(this.target)) {
+    const ranges: Range[] = [this.compile, this.target];
+    if (!empty(this.to) && !empty(this.destination)) {
       ranges.push(this.to);
-      ranges.push(this.target);
+      ranges.push(this.destination);
     }
 
     return ranges;
+  }
+
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passCompile(this);
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -872,7 +987,7 @@ export class Compile extends Inst {
 export class List extends Inst {
   constructor(
     public readonly list: IToken,
-    public readonly identifier?: IToken,
+    public readonly collection?: IToken,
     public readonly inToken?: IToken,
     public readonly target?: IToken) {
     super();
@@ -885,16 +1000,16 @@ export class List extends Inst {
   public get end(): Position {
     return !empty(this.target)
       ? this.target.end
-      : !empty(this.identifier)
-        ? this.identifier.end
+      : !empty(this.collection)
+        ? this.collection.end
         : this.list.end;
   }
 
   public get ranges(): Range[] {
     const ranges: Range[] = [this.list];
 
-    if (!empty(this.identifier)) {
-      ranges.push(this.identifier);
+    if (!empty(this.collection)) {
+      ranges.push(this.collection);
 
       if (!empty(this.inToken) && !empty(this.target)) {
         ranges.push(this.inToken);
@@ -903,6 +1018,10 @@ export class List extends Inst {
     }
 
     return ranges;
+  }
+
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passList(this);
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -925,6 +1044,10 @@ export class Empty extends Inst {
 
   public get ranges(): Range[] {
     return [this.empty];
+  }
+
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passEmpty(this);
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {
@@ -970,6 +1093,10 @@ export class Print extends Inst {
     }
 
     return ranges;
+  }
+
+  public pass<T>(visitor: IInstPasser<T>): T {
+    return visitor.passPrint(this);
   }
 
   public accept<T>(visitor: IInstVisitor<T>): T {

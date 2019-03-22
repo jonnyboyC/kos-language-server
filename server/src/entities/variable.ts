@@ -1,6 +1,6 @@
 import { ScopeType } from '../parser/types';
 import { IToken } from './types';
-import { EntityType } from '../analysis/types';
+import { KsSymbolKind } from '../analysis/types';
 
 export class KsVariable {
   constructor(
@@ -9,7 +9,7 @@ export class KsVariable {
   )
   { }
 
-  get tag(): EntityType.variable  {
-    return EntityType.variable;
+  get tag(): KsSymbolKind.variable  {
+    return KsSymbolKind.variable;
   }
 }

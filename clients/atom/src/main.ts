@@ -9,12 +9,12 @@ export class KosLanguageClient extends AutoLanguageClient {
   getServerName(): string { return 'kos-language-server'; }
   getConnectionType(): ConnectionType { return 'ipc'; }
 
-  startServerProcess() {
-    return super.spawnChildNode(
-      [atom.config.get('language-kos.kosServer.path'), '--node-ipc'],
-      { stdio: [null, null, null, 'ipc'] },
-    );
-  }
+  // startServerProcess(): LanguageServerProcess {
+  //   // return super.spawnChildNode(
+  //   //   [atom.config.get('language-kos.kosServer.path'), '--node-ipc'],
+  //   //   { stdio: [null, null, null, 'ipc'] },
+  //   // );
+  // }
 
   shouldStartForEditor(editor: TextEditor) {
     if (!this.validateKosServerPath()) return false;

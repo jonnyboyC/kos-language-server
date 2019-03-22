@@ -1,15 +1,15 @@
 import { IToken } from './types';
-import { EntityState, EntityType } from '../analysis/types';
+import { SymbolState, KsSymbolKind } from '../analysis/types';
 
 export class KsParameter {
   constructor(
     public readonly name: IToken,
     public readonly defaulted: boolean,
-    public state: EntityState,
+    public state: SymbolState,
   )
   { }
 
-  get tag(): EntityType.parameter {
-    return EntityType.parameter;
+  get tag(): KsSymbolKind.parameter {
+    return KsSymbolKind.parameter;
   }
 }

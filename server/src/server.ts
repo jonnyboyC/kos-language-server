@@ -31,7 +31,7 @@ import { empty } from './utilities/typeGuards';
 import { Analyzer } from './analyzer';
 import { IDiagnosticUri } from './types';
 import { keywordCompletions } from './utilities/constants';
-import { KsEntity, EntityType } from './analysis/types';
+import { KsSymbol, KsSymbolKind } from './analysis/types';
 import { entityCompletionItems, suffixCompletionItems } from './utilities/serverUtils';
 import { Logger } from './utilities/logger';
 import { locationCopy } from './utilities/positionHelpers';
@@ -192,7 +192,7 @@ connection.onHover((positionParmas: TextDocumentPositionParams): Maybe<Hover> =>
   const [type, entityType] = typeInfo;
 
   return {
-    contents: `(${EntityType[entityType]}) ${token.lexeme}: ${type.toTypeString()} `,
+    contents: `(${KsSymbolKind[entityType]}) ${token.lexeme}: ${type.toTypeString()} `,
     range: {
       start: token.start,
       end: token.end,
@@ -239,20 +239,20 @@ connection.onDocumentSymbol(
   (documentSymbol: DocumentSymbolParams): Maybe<SymbolInformation[]> => {
     const { uri } = documentSymbol.textDocument;
 
-    const entities = analyzer.getAllFileEntities(uri);
+    const entities = analyzer.getAllFileSymbols(uri);
     return entities.map((entity) => {
       let kind: Maybe<SymbolKind> = undefined;
       switch (entity.tag) {
-        case EntityType.function:
+        case KsSymbolKind.function:
           kind = SymbolKind.Function;
           break;
-        case EntityType.parameter:
+        case KsSymbolKind.parameter:
           kind = SymbolKind.Variable;
           break;
-        case EntityType.lock:
+        case KsSymbolKind.lock:
           kind = SymbolKind.Variable;
           break;
-        case EntityType.variable:
+        case KsSymbolKind.variable:
           kind = SymbolKind.Variable;
           break;
         default:
@@ -283,7 +283,7 @@ connection.onDefinition(
 // the completion list.
 connection.onCompletionResolve(
   (item: CompletionItem): CompletionItem => {
-    const entity = item.data as KsEntity;
+    const entity = item.data as KsSymbol;
 
     // this would be a possible spot to pull in doc string if present.
     if (!empty(entity)) {

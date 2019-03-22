@@ -1,6 +1,6 @@
 import { ScopeType } from '../parser/types';
 import { IToken } from './types';
-import { EntityType } from '../analysis/types';
+import { KsSymbolKind } from '../analysis/types';
 
 export class KsLock {
   constructor(
@@ -21,7 +21,7 @@ export class KsLock {
     }
   }
 
-  get tag(): EntityType.lock {
-    return EntityType.lock;
+  get tag(): KsSymbolKind.lock {
+    return KsSymbolKind.lock;
   }
 }

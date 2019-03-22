@@ -2,6 +2,7 @@ import {
   IInstVisitor, IExprVisitor, IInst,
   ScopeType, IExpr, ISuffixTerm,
   ISuffixTermVisitor,
+  IScript,
 } from '../parser/types';
 import * as SuffixTerm from '../parser/suffixTerm';
 import * as Expr from '../parser/expr';
@@ -9,12 +10,11 @@ import * as Inst from '../parser/inst';
 import { ResolverError } from './resolverError';
 import { Var, Lock, Func, Param } from '../parser/declare';
 import { empty } from '../utilities/typeGuards';
-import { Script } from '../entities/script';
 import { KsParameter } from '../entities/parameters';
 import { TokenType } from '../entities/tokentypes';
 import { mockLogger, mockTracer } from '../utilities/logger';
-import { EntityState } from './types';
-import { ScopeBuilder } from './scopeBuilder';
+import { SymbolState, ResolverErrorKind } from './types';
+import { SymbolTableBuilder } from './symbolTableBuilder';
 
 export type Errors = ResolverError[];
 
@@ -22,18 +22,18 @@ export class FuncResolver implements
   IExprVisitor<Errors>,
   IInstVisitor<Errors>,
   ISuffixTermVisitor<Errors> {
-  private syntaxTree: Script;
-  private scopeBuilder: ScopeBuilder;
+  private syntaxTree: IScript;
+  private scopeBuilder: SymbolTableBuilder;
   private readonly logger: ILogger;
   private readonly tracer: ITracer;
 
   constructor(
-    syntaxTree: Script,
-    scopeBuilder: ScopeBuilder,
+    script: IScript,
+    symbolTableBuilder: SymbolTableBuilder,
     logger: ILogger = mockLogger,
     tracer: ITracer = mockTracer) {
-    this.syntaxTree = syntaxTree;
-    this.scopeBuilder = scopeBuilder;
+    this.syntaxTree = script;
+    this.scopeBuilder = symbolTableBuilder;
     this.logger = logger;
     this.tracer = tracer;
   }
@@ -84,7 +84,7 @@ export class FuncResolver implements
 
   // check variable declaration
   public visitDeclVariable(decl: Var): Errors {
-    return this.resolveExpr(decl.expression);
+    return this.resolveExpr(decl.value);
   }
 
   // check lock declaration
@@ -118,7 +118,7 @@ export class FuncResolver implements
 
     let returnValue = false;
     const parameterDecls: Param[] = [];
-    for (const inst of decl.instructionBlock.insts) {
+    for (const inst of decl.block.insts) {
 
       // get parameters for this function
       if (inst instanceof Param) {
@@ -133,8 +133,8 @@ export class FuncResolver implements
     }
     const [parameters, errors] = this.buildParameters(parameterDecls);
     const declareErrors = this.scopeBuilder.declareFunction(
-      scopeType, decl.functionIdentifier, parameters, returnValue);
-    const instErrors = this.resolveInst(decl.instructionBlock);
+      scopeType, decl.identifier, parameters, returnValue);
+    const instErrors = this.resolveInst(decl.block);
 
     return empty(declareErrors)
       ? instErrors.concat(errors)
@@ -151,14 +151,16 @@ export class FuncResolver implements
         if (defaulted) {
           errors.push(new ResolverError(
             parameter.identifier,
-            'Normal parameters cannot occur after defaulted parameters', []));
+            'Normal parameters cannot occur after defaulted parameters',
+            ResolverErrorKind.error,
+            []));
         }
-        parameters.push(new KsParameter(parameter.identifier, false, EntityState.declared));
+        parameters.push(new KsParameter(parameter.identifier, false, SymbolState.declared));
       }
 
       for (const parameter of decl.defaultParameters) {
         defaulted = true;
-        parameters.push(new KsParameter(parameter.identifier, true, EntityState.declared));
+        parameters.push(new KsParameter(parameter.identifier, true, SymbolState.declared));
       }
     }
 
@@ -213,10 +215,10 @@ export class FuncResolver implements
   }
 
   public visitSet(inst: Inst.Set): Errors {
-    return this.resolveExpr(inst.expr);
+    return this.resolveExpr(inst.value);
   }
 
-  public visitLazyGlobalInst(_: Inst.LazyGlobal): Errors {
+  public visitLazyGlobal(_: Inst.LazyGlobal): Errors {
     return [];
   }
 
@@ -338,12 +340,12 @@ export class FuncResolver implements
   }
 
   public visitCompile(inst: Inst.Compile): Errors {
-    if (empty(inst.target)) {
-      return this.resolveExpr(inst.expr);
+    if (empty(inst.destination)) {
+      return this.resolveExpr(inst.target);
     }
 
-    return this.resolveExpr(inst.expr).concat(
-      this.resolveExpr(inst.target));
+    return this.resolveExpr(inst.target).concat(
+      this.resolveExpr(inst.destination));
   }
 
   public visitList(_: Inst.List): Errors {
