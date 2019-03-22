@@ -1,3 +1,0 @@
-        "@types/atom": "^1.31.0",
-        "@types/mocha": "~5.2.0",
-        "@types/node": "^10.12.25",
