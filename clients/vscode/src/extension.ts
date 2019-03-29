@@ -5,7 +5,7 @@
 'use strict';
 
 import * as path from 'path';
-import { ExtensionContext } from 'vscode';
+import { ExtensionContext, commands } from 'vscode';
 
 import {
   LanguageClient,
@@ -14,25 +14,35 @@ import {
   TransportKind,
   ForkOptions,
 } from 'vscode-languageclient';
+import { runProvider } from './commands/runProvider';
+import { startProvider } from './commands/startProvider';
 
 let client: LanguageClient;
 
+/**
+ * This function activates the extension when vscode determines we've either opens a
+ * kos file or run an associated command
+ * @param context Current extension context
+ */
 export function activate(context: ExtensionContext) {
   // The server is implemented in node
   const serverModule = context.asAbsolutePath(
     path.join('server', 'out', 'server.js'),
   );
-  // The debug options for the server
-  // --inspect=6009: runs the server in Node's
-  // Inspector mode so VS Code can attach to the server for debugging
 
+  // determine the major version of the bundled node process
   const { version } = process;
   const [major] = version.slice(1)
     .split('.')
     .map(x => parseInt(x, 10));
 
-  const debugOptions: ForkOptions = { execArgv: ['--nolazy', '--inspect=6009'] };
-  const runOptions: ForkOptions = { execArgv: [] };
+  // The language server debug options
+  // --nolazy eagerly compiles the js files so they can be debug
+  // --inspect=6009 says to run the server in inspector mode on port 6009
+  const debugOptions: ForkOptions = { execArgv: ['--prof', '--nolazy', '--inspect=6009'] };
+
+  // The language server production options
+  const runOptions: ForkOptions = { execArgv: ['--prof'] };
 
   // async generators become default in node 10
   if (major < 10) {
@@ -57,7 +67,7 @@ export function activate(context: ExtensionContext) {
 
   // Options to control the language client
   const clientOptions: LanguageClientOptions = {
-    // Register the server for plain text documents
+    // Register the server for kos documents
     documentSelector: [{ scheme: 'file', language: 'kos' }],
   };
 
@@ -71,11 +81,25 @@ export function activate(context: ExtensionContext) {
 
   // Start the client. This will also launch the server
   client.start();
+
+  // add run provider to commands
+  context.subscriptions.push(
+    commands.registerCommand(runProvider.command, runProvider.commandCallback));
+
+  // add start provider to commands
+  context.subscriptions.push(
+    commands.registerCommand(startProvider.command, startProvider.commandCallback));
 }
 
+/**
+ * This function is executed when vscode determines the extension no longer
+ * need to be activated or was requested by the user
+ */
 export function deactivate(): Thenable<void> {
   if (!client) {
     return new Promise(() => { return; });
   }
+
+  // call lsp client stop method
   return client.stop();
 }

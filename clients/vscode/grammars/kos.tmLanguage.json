@@ -1063,7 +1063,7 @@
             "begin": "(^[ \\t]+)?(//)",
             "beginCaptures": {
                 "1": {
-                    "name": "punctuation.whitespace.comment.leading.js"
+                    "name": "punctuation.whitespace.comment.leading.kos"
                 },
                 "2": {
                     "name": "comment.line.double-slash.kos"

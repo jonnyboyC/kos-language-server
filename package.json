@@ -29,10 +29,22 @@
         "vscode": "^1.26.0"
     },
     "activationEvents": [
+        "onCommand:kos.runCurrentFile",
+        "onCommand:kos.startksp",
         "onLanguage:kos"
     ],
     "main": "./clients/vscode/out/extension",
     "contributes": {
+        "commands": [
+            {
+                "command": "kos.runCurrentFile",
+                "title": "KOS: Run Current File Through Telnet"
+            },
+            {
+                "command": "kos.startksp",
+                "title": "KOS: Start Kerbal Space Program"
+            }
+        ],
         "languages": [
             {
                 "id": "kos",
@@ -55,7 +67,7 @@
         ]
     },
     "scripts": {
-        "vscode:prepublish": "cd clients/vscode && npm run update-vscode && cd ../.. && npm run compile",
+        "vscode:prepublish": "cd clients/vscode && npm run update-vscode && cd ../.. && npm run compile && npm run test",
         "compile:vscode": "tsc -p ./clients/vscode/tsconfig.json",
         "compile:atom": "tsc -p ./clients/atom/tsconfig.json",
         "compile:server": "tsc -p ./server/tsconfig.json",
