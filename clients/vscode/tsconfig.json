@@ -5,10 +5,13 @@
     "paths": { "*": ["types/*"] },
     "module": "commonjs",
     "target": "es6",
+    "tsBuildInfoFile": "./out/buildcache.json",
     "outDir": "out",
     "rootDir": "src",
     "lib": ["es6", "dom"],
+    "esModuleInterop": true,
     "sourceMap": true,
+    "incremental": true,
   },
   "include": [
     "src"
