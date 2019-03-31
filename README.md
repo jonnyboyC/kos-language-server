@@ -10,8 +10,8 @@ For additional client support such as sublime text, vim, atom, notepad++ or othe
 
 Currently the vscode client 0.3.2 implements the follow features
 - synatx highlighting
-- launch ksp
-- launch telnet client
+- launch ksp using `ctrl+shift+p  kOS: Start Kerbal Space Program`
+- launch telnet client using `ctrl+shift+p  kOS: Connect Telnet Client`
 - brace detection
 - diagnostics on parsing errors
 - go to definition
