@@ -40,7 +40,10 @@
             "title": "kOS configuration",
             "properties": {
                 "kos-vscode.kerbalSpaceProgramPath": {
-                    "type": ["string", "null"],
+                    "type": [
+                        "string",
+                        "null"
+                    ],
                     "default": null,
                     "description": "The full path to Kerbal Space Program."
                 },

@@ -1,4 +1,5 @@
-import { platform } from 'os';
+import { platform, homedir } from 'os';
+import { join } from 'path';
 import { spawn } from 'child_process';
 
 type kosPlatforms = 'win32' | 'linux' | 'darwin';
@@ -15,9 +16,10 @@ export const platformKsp = (): string => {
       return 'C:\\Program Files (x86)\\Steam\\' +
         'steamapps\\common\\Kerbal Space Program\\KSP_x64.exe';
     case 'darwin':
-      return '~/Library/Application Support/Steam/SteamApps/common/Kerbal Space Program\\KSP_x64';
+      return join(homedir(), 'Library/Application Support/Steam/SteamApps/'
+        + 'common/Kerbal Space Program//KSP.x86_64');
     case 'linux':
-      return '~/.local/shared/Steam/SteamApps/common/Kerbal Space Program/KSP_x64';
+      return join(homedir(), '.steam/steam/steamapps/common/Kerbal\ Space\ Program/KSP.x86_64');
     default:
       throw new Error('Unsupported platform');
   }

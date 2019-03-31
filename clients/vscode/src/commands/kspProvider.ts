@@ -3,6 +3,7 @@ import { platformKsp } from './commandUtilities';
 import { spawn } from 'child_process';
 import { existsSync } from 'fs';
 import { window, workspace } from 'vscode';
+import { resolve } from 'path';
 
 export const kspProvider: IKosCommand = {
   command: 'kos.startksp',
@@ -12,6 +13,8 @@ export const kspProvider: IKosCommand = {
 
     const configPath = configruation.get<string | null>('kerbalSpaceProgramPath');
     const path = configPath || platformKsp();
+
+    console.log(resolve(path));
 
     if (existsSync(path)) {
       spawn(path, {
