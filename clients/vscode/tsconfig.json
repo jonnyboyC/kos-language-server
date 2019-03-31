@@ -1,11 +1,15 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "baseUrl": ".",
     "module": "commonjs",
     "target": "es6",
+    "incremental": true,
+    "tsBuildInfoFile": "./out/buildcache.json",
     "outDir": "out",
     "rootDir": "src",
     "lib": ["es6", "dom"],
+    "esModuleInterop": true,
     "sourceMap": true,
   },
   "include": [
