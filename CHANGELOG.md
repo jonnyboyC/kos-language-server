@@ -1,3 +1,15 @@
+## [0.3.2] (2019-3-30)
+
+## Features
+- **start ksp command** Added a new command to the vscode command pallette. This command will start kerbal space program. By default this extension will check the default steam install location. To specify a different path use.
+    - **kos-vscode.kerbalSpaceProgramPath** New extension settings to indicate the path of the kerbal space program
+- **connect telnet command** Added a new command to connect the platform telnet client to ksp. For mac users you will need to install telnet
+    - **kos-vscode.telnetHost** New extension setting to indicate the address of the kOS telnet host
+    - **kos-vscode.telnetPort** New extension setting to indicate the kOS telnet port
+
+## Bug Fixes
+- **vscode activation bug** fixed a bug where a dependency wasn't included in the published extension. This would prevent the extension from properly activating.
+
 ## [0.3.1] (2019-3-22)
 
 ## Features

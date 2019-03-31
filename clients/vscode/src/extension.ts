@@ -14,8 +14,8 @@ import {
   TransportKind,
   ForkOptions,
 } from 'vscode-languageclient';
-import { runProvider } from './commands/runProvider';
-import { startProvider } from './commands/startProvider';
+import { telnetProvider } from './commands/telnetProvider';
+import { kspProvider } from './commands/kspProvider';
 
 let client: LanguageClient;
 
@@ -84,11 +84,11 @@ export function activate(context: ExtensionContext) {
 
   // add run provider to commands
   context.subscriptions.push(
-    commands.registerCommand(runProvider.command, runProvider.commandCallback));
+    commands.registerCommand(telnetProvider.command, telnetProvider.commandCallback));
 
   // add start provider to commands
   context.subscriptions.push(
-    commands.registerCommand(startProvider.command, startProvider.commandCallback));
+    commands.registerCommand(kspProvider.command, kspProvider.commandCallback));
 }
 
 /**

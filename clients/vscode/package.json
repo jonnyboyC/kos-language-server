@@ -3,14 +3,14 @@
     "description": "Vscode client for the KOS-language-server",
     "author": "John Chabot",
     "license": "MIT",
-    "version": "0.3.1",
+    "version": "0.3.2",
     "publisher": "JohnChabot",
     "repository": {
         "type": "git",
         "url": "https://github.com/jonnyboyC/kos-language-server"
     },
     "engines": {
-        "vscode": "^1.26.0"
+        "vscode": "^1.30.0"
     },
     "keywords": [
         "KOS",
@@ -22,7 +22,7 @@
         "postinstall": "vscode-install"
     },
     "dependencies": {
-        "telnet-client": "^0.16.3",
+        "semver": "^6.0.0",
         "vscode": "^1.1.33",
         "vscode-languageclient": "^5.2.1"
     },

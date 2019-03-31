@@ -4,8 +4,27 @@ import { spawn } from 'child_process';
 type kosPlatforms = 'win32' | 'linux' | 'darwin';
 
 /**
+ * the default ksp install location from steam on each platform
+ * @returns Steam KSP path
+ */
+export const platformKsp = (): string => {
+  const checkPlatform = platform();
+
+  switch (checkPlatform) {
+    case 'win32':
+      return 'C:\\Program Files (x86)\\Steam\\' +
+        'steamapps\\common\\Kerbal Space Program\\KSP_x64.exe';
+    case 'darwin':
+      return '~/Library/Application Support/Steam/SteamApps/common/Kerbal Space Program\\KSP_x64';
+    case 'linux':
+      return '~/.local/shared/Steam/SteamApps/common/Kerbal Space Program/KSP_x64';
+    default:
+      throw new Error('Unsupported platform');
+  }
+};
+
+/**
  * the assumed telnet client for each platform
- * @param platform the target platform
  */
 export const platformTelnetClient = (): string => {
   const checkPlatform = platform();
@@ -25,15 +44,15 @@ export const platformTelnetClient = (): string => {
  * the assumed telnet client for each platform
  * @param platform the target platform
  */
-export const platformTelnetArguments = (): string => {
+export const platformTelnetArguments = (host: string, port: number): string => {
   const checkPlatform = platform();
 
   switch (checkPlatform) {
     case 'win32':
-      return '-telnet jeb@127.0.0.1 5410';
+      return `-telnet ${host} ${port}`;
     case 'darwin':
     case 'linux':
-      return '127.0.0.1 5410';
+      return `${host} ${port}`;
     default:
       throw new Error('Unsupported platform');
   }

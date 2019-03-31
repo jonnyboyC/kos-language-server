@@ -8,8 +8,10 @@ This project is heavily inspired by the [crafting interpreters](http://craftingi
 
 For additional client support such as sublime text, vim, atom, notepad++ or others please post an issue with the requested IDE. 
 
-Currently the vscode client 0.3.0 implements the follow features
+Currently the vscode client 0.3.2 implements the follow features
 - synatx highlighting
+- launch ksp
+- launch telnet client
 - brace detection
 - diagnostics on parsing errors
 - go to definition

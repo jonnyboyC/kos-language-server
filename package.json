@@ -4,7 +4,7 @@
     "description": "Syntax highlighting, auto-complete, and language diagnostics for KerboScript in Kerbal Operating System.",
     "author": "John Chabot",
     "license": "MIT",
-    "version": "0.3.1",
+    "version": "0.3.2",
     "galleryBanner": {
         "color": "#a3a3a3",
         "theme": "dark"
@@ -26,23 +26,44 @@
         "language-server"
     ],
     "engines": {
-        "vscode": "^1.26.0"
+        "vscode": "^1.30.0"
     },
     "activationEvents": [
-        "onCommand:kos.runCurrentFile",
-        "onCommand:kos.startksp",
-        "onLanguage:kos"
+        "onLanguage:kos",
+        "onCommand:kos.startTelnet",
+        "onCommand:kos.startksp"
     ],
     "main": "./clients/vscode/out/extension",
     "contributes": {
+        "configuration": {
+            "type": "object",
+            "title": "kOS configuration",
+            "properties": {
+                "kos-vscode.kerbalSpaceProgramPath": {
+                    "type": ["string", "null"],
+                    "default": null,
+                    "description": "The full path to Kerbal Space Program."
+                },
+                "kos-vscode.telnetHost": {
+                    "type": "string",
+                    "default": "127.0.0.1",
+                    "description": "The host of the kOS telnet server"
+                },
+                "kos-vscode.telnetPort": {
+                    "type": "number",
+                    "default": 5410,
+                    "description": "The port of the kOS telnet server"
+                }
+            }
+        },
         "commands": [
             {
-                "command": "kos.runCurrentFile",
-                "title": "KOS: Run Current File Through Telnet"
+                "command": "kos.startTelnet",
+                "title": "kOS: Connect Telnet Client"
             },
             {
                 "command": "kos.startksp",
-                "title": "KOS: Start Kerbal Space Program"
+                "title": "kOS: Start Kerbal Space Program"
             }
         ],
         "languages": [
