@@ -39,10 +39,10 @@ export function activate(context: ExtensionContext) {
   // The language server debug options
   // --nolazy eagerly compiles the js files so they can be debug
   // --inspect=6009 says to run the server in inspector mode on port 6009
-  const debugOptions: ForkOptions = { execArgv: ['--prof', '--nolazy', '--inspect=6009'] };
+  const debugOptions: ForkOptions = { execArgv: ['--nolazy', '--inspect=6009'] };
 
   // The language server production options
-  const runOptions: ForkOptions = { execArgv: ['--prof'] };
+  const runOptions: ForkOptions = { execArgv: [] };
 
   // async generators become default in node 10
   if (major < 10) {
