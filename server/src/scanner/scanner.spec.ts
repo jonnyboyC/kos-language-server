@@ -1,20 +1,10 @@
 import ava from 'ava';
 import { Scanner } from './scanner';
-import { readdirSync, readFileSync, statSync } from 'fs';
+import { readFileSync } from 'fs';
 import { join } from 'path';
+import { walkDir } from '../utilities/fsUtilities';
 
 const testDir = join(__dirname, '../../../kerboscripts/parser_valid/');
-
-type callbackFunc = (fileName: string) => void;
-
-const walkDir = (dir: string, callback: callbackFunc): void => {
-  readdirSync(dir).forEach((f) => {
-    const dirPath = join(dir, f);
-    const isDirectory = statSync(dirPath).isDirectory();
-    isDirectory ?
-      walkDir(dirPath, callback) : callback(join(dir, f));
-  });
-};
 
 ava('scan all', (t) => {
   walkDir(testDir, (filePath) => {

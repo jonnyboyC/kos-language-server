@@ -1,4 +1,5 @@
-import { readFile } from 'fs';
+import { readFile, readdirSync, statSync } from 'fs';
+import { join } from 'path';
 
 export const readFileAsync = (path: string, encoding: string): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -9,5 +10,14 @@ export const readFileAsync = (path: string, encoding: string): Promise<string> =
 
       resolve(data);
     });
+  });
+};
+
+export const walkDir = (dir: string, callback: (fileName: string) => void): void => {
+  readdirSync(dir).forEach((f) => {
+    const dirPath = join(dir, f);
+    const isDirectory = statSync(dirPath).isDirectory();
+    isDirectory ?
+      walkDir(dirPath, callback) : callback(join(dir, f));
   });
 };

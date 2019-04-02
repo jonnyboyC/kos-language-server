@@ -337,7 +337,14 @@ export class Scanner {
 
   // is alpha character
   private isAlpha(c: string): boolean {
-    return identifierTest.test(c) || this.isUnderScore(c);
+    return this.isAscii(c)
+      || this.isUnderScore(c)
+      || identifierTest.test(c);
+  }
+
+  private isAscii(c: string): boolean {
+    return (c >= 'A' && c <= 'Z')
+      || (c >= 'a' && c <= 'z');
   }
 
   // is alpha numeric
