@@ -15,16 +15,41 @@ import {
 import { empty } from '../utilities/typeGuards';
 import { NodeBase } from './base';
 
+/**
+ * Expression base class
+ */
 export abstract class Expr extends NodeBase implements IExpr {
+
+  /**
+   * Return the tree node type
+   */
   get tag(): SyntaxKind.expr {
     return SyntaxKind.expr;
   }
 
+  /**
+   * Require all subclass to implement the pass method
+   * Call when the node should be passed through
+   * @param visitor visitor object
+   */
   public abstract pass<T>(visitor: IExprPasser<T>): T;
+
+  /**
+   * Require all subclasses to implement the accept method
+   * Called when the node should execute the visitors methods
+   * @param visitor visitor object
+   */
   public abstract accept<T>(visitor: IExprVisitor<T>): T;
 }
 
+/**
+ * Container for tokens constituting an invalid expression
+ */
 export class Invalid extends Expr {
+  /**
+   * Invalid expression constructor
+   * @param tokens all tokens in the invalid range
+   */
   constructor(public readonly tokens: IToken[]) {
     super();
   }
@@ -58,9 +83,21 @@ export class Invalid extends Expr {
   }
 }
 
+/**
+ * Class holding all valid binary expressions in KOS
+ */
 export class Binary extends Expr {
+  /**
+   * Grammar for the binary expression
+   */
   public static grammar: GrammarNode[];
 
+  /**
+   * Constructor for all binary expressions
+   * @param left left expression of the operation
+   * @param operator the operator
+   * @param right right expression of the operation
+   */
   constructor(
     public readonly left: IExpr,
     public readonly operator: IToken,
@@ -97,9 +134,20 @@ export class Binary extends Expr {
   }
 }
 
+/**
+ * Class holding all valid unary expressions in KOS
+ */
 export class Unary extends Expr {
+  /**
+   * Grammar for the unary expressions
+   */
   public static grammar: GrammarNode[];
 
+  /**
+   * Unary expression constructor
+   * @param operator unary operator
+   * @param factor factor
+   */
   constructor(
     public readonly operator: IToken,
     public readonly factor: IExpr) {
@@ -135,9 +183,22 @@ export class Unary extends Expr {
   }
 }
 
+/**
+ * Class holding expression with exponents
+ */
 export class Factor extends Expr {
+
+  /**
+   * Grammer for factor expressions
+   */
   public static grammar: GrammarNode[];
 
+  /**
+   * Factor constructor
+   * @param suffix base expression
+   * @param power exponent token
+   * @param exponent exponent expression
+   */
   constructor(
     public readonly suffix: IExpr,
     public readonly power: IToken,
@@ -174,9 +235,22 @@ export class Factor extends Expr {
   }
 }
 
+/**
+ * Class holding all anonymous functions
+ */
 export class AnonymousFunction extends Expr {
+
+  /**
+   * Grammar for anonymous functions
+   */
   public static grammar: GrammarNode[];
 
+  /**
+   * Anonymous Function constructor
+   * @param open open paren token
+   * @param insts function instructions
+   * @param close close paren token
+   */
   constructor(
     public readonly open: IToken,
     public readonly insts: IInst[],
@@ -213,9 +287,21 @@ export class AnonymousFunction extends Expr {
   }
 }
 
+/**
+ * Class holding all kos suffixes
+ */
 export class Suffix extends Expr {
+  /**
+   * Grammar for suffixes
+   */
   public static grammar: GrammarNode[];
 
+  /**
+   * Suffix constructor
+   * @param suffixTerm base suffix term
+   * @param colon optional suffix color
+   * @param trailer optional suffix trailer
+   */
   constructor(
     public readonly suffixTerm: SuffixTerm.SuffixTerm,
     public colon?: IToken,
@@ -291,6 +377,7 @@ export const validExprTypes: [IExprClass, Distribution][] = [
   [Unary, createConstant(0.5)],
   [Factor, createConstant(0.5)],
   [Suffix, createConstant(3)],
+  // TODO update when insts included
   [AnonymousFunction, createConstant(0)],
 ];
 
@@ -325,7 +412,10 @@ Unary.grammar = [
       [TokenType.defined, createConstant(1)],
     ),
   ),
-  Factor,
+  createGrammarUnion(
+    [Factor, createConstant(1)],
+    [Suffix, createConstant(3)],
+  ),
 ];
 
 Factor.grammar = [

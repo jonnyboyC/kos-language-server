@@ -17,19 +17,44 @@ import { expr } from './expr';
 import { NodeBase } from './base';
 import { empty } from '../utilities/typeGuards';
 
+/**
+ * Base class for all suffix terms
+ */
 export abstract class SuffixTermBase extends NodeBase implements ISuffixTerm {
+  /**
+   * Tag used to denote syntax node of the instance
+   */
   get tag(): SyntaxKind.suffixTerm {
     return SyntaxKind.suffixTerm;
   }
 
+  /**
+   * Require all subclasses to implement the accept method
+   * Called when the node should execute the visitors methods
+   * @param visitor visitor object
+   */
   public abstract accept<T>(visitor: ISuffixTermVisitor<T>): T;
+
+  /**
+   * Require all subclass to implement the pass method
+   * Call when the node should be passed through
+   * @param visitor visitor object
+   */
   public abstract pass<T>(visitor: ISuffixTermPasser<T>): T;
   public abstract acceptParam<TP, TR>(
     visitor: ISuffixTermParamVisitor<TP, TR>,
     param: TP): TR;
 }
 
+/**
+ * Container for tokens constituting an invalid suffix term
+ */
 export class Invalid extends SuffixTermBase {
+
+  /**
+   * Invalid suffix term constructor
+   * @param tokens tokens in the invalid range
+   */
   constructor(public readonly tokens: IToken[]) {
     super();
   }
@@ -67,9 +92,21 @@ export class Invalid extends SuffixTermBase {
   }
 }
 
+/**
+ * Class holding all suffix trailers
+ */
 export class SuffixTrailer extends SuffixTermBase {
+  /**
+   * Grammar for the suffix trailers
+   */
   public static grammar: GrammarNode[];
 
+  /**
+   * Constructor for the suffix trailer
+   * @param suffixTerm base suffix term
+   * @param colon colon separating the base from the trailer
+   * @param trailer the suffix trailer
+   */
   constructor(
     public readonly suffixTerm: SuffixTerm,
     public colon?: IToken,
@@ -95,6 +132,9 @@ export class SuffixTrailer extends SuffixTermBase {
     return [this.suffixTerm];
   }
 
+  /**
+   * Method indicating if the suffix ends with a function or suffix call
+   */
   public endsInCall(): boolean {
     // if no trailer check suffix term
     if (empty(this.trailer)) {
@@ -140,11 +180,23 @@ export class SuffixTrailer extends SuffixTermBase {
 
   public static classAccept<T>(visitor: ISuffixTermClassVisitor<T>): T {
     return visitor.visitSuffixTrailer(this);
-  }}
+  }
+}
 
+/**
+ * Class holding all valid suffix terms
+ */
 export class SuffixTerm extends SuffixTermBase {
+  /**
+   * Grammer for the suffix terms
+   */
   public static grammar: GrammarNode[];
 
+  /**
+   * Constructor for suffix terms
+   * @param atom base item of the suffix term
+   * @param trailers trailers present in the suffixterm
+   */
   constructor(
     public readonly atom: Atom,
     public readonly trailers: SuffixTermTrailer[]) {
@@ -184,9 +236,22 @@ export class SuffixTerm extends SuffixTermBase {
   }
 }
 
+/**
+ * Class containing all valid call suffixterm trailers
+ */
 export class Call extends SuffixTermBase {
+  /**
+   * Grammer for the call trailers
+   */
   public static grammar: GrammarNode[];
 
+  /**
+   * Constructor for the suffix term trailers
+   * @param open open paren of the call
+   * @param args arguments for the call
+   * @param close close paren of the call
+   * @param isTrailer indication if this is a trailer
+   */
   constructor(
     public readonly open: IToken,
     public readonly args: IExpr[],
@@ -229,9 +294,21 @@ export class Call extends SuffixTermBase {
   }
 }
 
+/**
+ * Class containing all array index suffix term trailers
+ */
 export class ArrayIndex extends SuffixTermBase {
+  /**
+   * Grammar for the array index suffix term trailers
+   */
   public static grammar: GrammarNode[];
 
+  /**
+   * Constructor for the suffix term trailer
+   * @param indexer # token indicating a index
+   * @param index index to be used
+   * @param isTrailer is the array index in a suffix trailer
+   */
   constructor(
     public readonly indexer: IToken,
     public readonly index: IToken,
@@ -272,9 +349,23 @@ export class ArrayIndex extends SuffixTermBase {
   }
 }
 
+/**
+ * Class containing all valid array bracket suffix term trailers
+ */
 export class ArrayBracket extends SuffixTermBase {
+
+  /**
+   * Grammar for the array bracket suffix term
+   */
   public static grammar: GrammarNode[];
 
+  /**
+   * Constructor for the array bracket suffix term trailer
+   * @param open open bracket
+   * @param index index into the collection
+   * @param close close bracket
+   * @param isTrailer is the suffix term a trailer
+   */
   constructor(
     public readonly open: IToken,
     public readonly index: IExpr,
@@ -317,9 +408,20 @@ export class ArrayBracket extends SuffixTermBase {
   }
 }
 
+/**
+ * Class containing function delgate creation suffix terms
+ */
 export class Delegate extends SuffixTermBase {
+  /**
+   * Grammar for the delgate
+   */
   public static grammar: GrammarNode[];
 
+  /**
+   * Constructor for the function delegate
+   * @param atSign at sign indicating that function should create a delgate
+   * @param isTrailer is the delgate a suffix trailer
+   */
   constructor (
     public readonly atSign: IToken,
     public readonly isTrailer: boolean) {
@@ -359,9 +461,20 @@ export class Delegate extends SuffixTermBase {
   }
 }
 
+/**
+ * Class containing literal suffix terms
+ */
 export class Literal extends SuffixTermBase {
+  /**
+   * Grammar for literal suffix terms
+   */
   public static grammar: GrammarNode[];
 
+  /**
+   * Constructor for literal suffix term
+   * @param token token for the literal
+   * @param isTrailer is a suffix trailer
+   */
   constructor(
     public readonly token: IToken,
     public readonly isTrailer: boolean) {
@@ -401,9 +514,20 @@ export class Literal extends SuffixTermBase {
   }
 }
 
+/**
+ * Class containing all valid identifiers
+ */
 export class Identifier extends SuffixTermBase {
+  /**
+   * Grammar for valid identifiers
+   */
   public static grammar: GrammarNode[];
 
+  /**
+   * Constructor for suffix term identifiers
+   * @param token identifier token
+   * @param isTrailer is suffix trailer
+   */
   constructor(
     public readonly token: IToken,
     public readonly isTrailer: boolean) {
@@ -448,9 +572,22 @@ export class Identifier extends SuffixTermBase {
   }
 }
 
+/**
+ * Class containing all valid groupings
+ */
 export class Grouping extends SuffixTermBase {
+  /**
+   * Grammar for all valid groupings
+   */
   public static grammar: GrammarNode[];
 
+  /**
+   * Grouping constructor
+   * @param open open paren token
+   * @param expr expression within the grouping
+   * @param close close paren token
+   * @param isTrailer is suffix trailer
+   */
   constructor(
     public readonly open: IToken,
     public readonly expr: IExpr,
