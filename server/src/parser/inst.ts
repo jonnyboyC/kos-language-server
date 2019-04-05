@@ -3,22 +3,41 @@ import * as Expr from './expr';
 import { IToken } from '../entities/types';
 import { Range, Position } from 'vscode-languageserver';
 import { empty } from '../utilities/typeGuards';
+import { NodeBase } from './base';
 
-export abstract class Inst implements IInst {
+/**
+ * Instruction base class
+ */
+export abstract class Inst extends NodeBase implements IInst {
+  /**
+   * Return the tree node type of instruction
+   */
   get tag(): SyntaxKind.inst {
     return SyntaxKind.inst;
   }
 
-  public abstract get ranges(): Range[];
-  public abstract get start(): Position;
-  public abstract get end(): Position;
-  public abstract accept<T>(visitor: IInstVisitor<T>): T;
+  /**
+   * All instruction implement the pass method
+   * Called when the node should be passed through
+   * @param visitor visitor object
+   */
   public abstract pass<T>(visitor: IInstPasser<T>): T;
+
+  /**
+   * All instruction implement the accept method
+   * Called whent he node should execute the visitors methods
+   * @param visitor visitor object
+   */
+  public abstract accept<T>(visitor: IInstVisitor<T>): T;
 }
 
 export class Invalid extends Inst {
   constructor(public readonly tokens: IToken[]) {
     super();
+  }
+
+  public toString(): string {
+    throw new Error('Method not implemented.');
   }
 
   public get start(): Position {
@@ -50,6 +69,10 @@ export class Block extends Inst {
     super();
   }
 
+  public toString(): string {
+    throw new Error('Method not implemented.');
+  }
+
   public get start(): Position {
     return this.open.start;
   }
@@ -75,6 +98,10 @@ export class ExprInst extends Inst {
   constructor(
     public readonly suffix: Expr.Suffix) {
     super();
+  }
+
+  public toString(): string {
+    throw new Error('Method not implemented.');
   }
 
   public get start(): Position {
@@ -105,6 +132,10 @@ export class OnOff extends Inst {
     super();
   }
 
+  public toString(): string {
+    throw new Error('Method not implemented.');
+  }
+
   public get start(): Position {
     return this.suffix.start;
   }
@@ -129,6 +160,10 @@ export class OnOff extends Inst {
 export class Command extends Inst {
   constructor(public readonly command: IToken) {
     super();
+  }
+
+  public toString(): string {
+    throw new Error('Method not implemented.');
   }
 
   public get start(): Position {
@@ -159,6 +194,10 @@ export class CommandExpr extends Inst {
     super();
   }
 
+  public toString(): string {
+    throw new Error('Method not implemented.');
+  }
+
   public get start(): Position {
     return this.command.start;
   }
@@ -187,6 +226,10 @@ export class Unset extends Inst {
     super();
   }
 
+  public toString(): string {
+    throw new Error('Method not implemented.');
+  }
+
   public get start(): Position {
     return this.unset.start;
   }
@@ -213,6 +256,10 @@ export class Unlock extends Inst {
     public readonly unlock: IToken,
     public readonly identifier: IToken) {
     super();
+  }
+
+  public toString(): string {
+    throw new Error('Method not implemented.');
   }
 
   public get start(): Position {
@@ -245,6 +292,10 @@ export class Set extends Inst {
     super();
   }
 
+  public toString(): string {
+    throw new Error('Method not implemented.');
+  }
+
   public get start(): Position {
     return this.set.start;
   }
@@ -272,6 +323,10 @@ export class LazyGlobal extends Inst {
     public readonly lazyGlobal: IToken,
     public readonly onOff: IToken) {
     super();
+  }
+
+  public toString(): string {
+    throw new Error('Method not implemented.');
   }
 
   public get start(): Position {
@@ -302,6 +357,10 @@ export class If extends Inst {
     public readonly ifInst: IInst,
     public readonly elseInst?: IInst) {
     super();
+  }
+
+  public toString(): string {
+    throw new Error('Method not implemented.');
   }
 
   public get start(): Position {
@@ -339,6 +398,10 @@ export class Else extends Inst {
     super();
   }
 
+  public toString(): string {
+    throw new Error('Method not implemented.');
+  }
+
   public get start(): Position {
     return this.elseToken.start;
   }
@@ -366,6 +429,10 @@ export class Until extends Inst {
     public readonly condition: IExpr,
     public readonly inst: IInst) {
     super();
+  }
+
+  public toString(): string {
+    throw new Error('Method not implemented.');
   }
 
   public get start(): Position {
@@ -400,6 +467,10 @@ export class From extends Inst {
     public readonly doToken: IToken,
     public readonly inst: IInst) {
     super();
+  }
+
+  public toString(): string {
+    throw new Error('Method not implemented.');
   }
 
   public get start(): Position {
@@ -437,6 +508,10 @@ export class When extends Inst {
     super();
   }
 
+  public toString(): string {
+    throw new Error('Method not implemented.');
+  }
+
   public get start(): Position {
     return this.when.start;
   }
@@ -466,6 +541,10 @@ export class Return extends Inst {
     public readonly returnToken: IToken,
     public readonly expr?: IExpr) {
     super();
+  }
+
+  public toString(): string {
+    throw new Error('Method not implemented.');
   }
 
   public get start(): Position {
@@ -502,6 +581,10 @@ export class Break extends Inst {
     super();
   }
 
+  public toString(): string {
+    throw new Error('Method not implemented.');
+  }
+
   public get start(): Position {
     return this.breakToken.start;
   }
@@ -529,6 +612,10 @@ export class Switch extends Inst {
     public readonly to: IToken,
     public readonly target: IExpr) {
     super();
+  }
+
+  public toString(): string {
+    throw new Error('Method not implemented.');
   }
 
   public get start(): Position {
@@ -560,6 +647,10 @@ export class For extends Inst {
     public readonly suffix: Expr.Suffix,
     public readonly inst: IInst) {
     super();
+  }
+
+  public toString(): string {
+    throw new Error('Method not implemented.');
   }
 
   public get start(): Position {
@@ -595,6 +686,10 @@ export class On extends Inst {
     super();
   }
 
+  public toString(): string {
+    throw new Error('Method not implemented.');
+  }
+
   public get start(): Position {
     return this.on.start;
   }
@@ -621,6 +716,10 @@ export class Toggle extends Inst {
     public readonly toggle: IToken,
     public readonly suffix: Expr.Suffix) {
     super();
+  }
+
+  public toString(): string {
+    throw new Error('Method not implemented.');
   }
 
   public get start(): Position {
@@ -650,6 +749,10 @@ export class Wait extends Inst {
     public readonly expr: IExpr,
     public readonly until?: IToken) {
     super();
+  }
+
+  public toString(): string {
+    throw new Error('Method not implemented.');
   }
 
   public get start(): Position {
@@ -686,6 +789,10 @@ export class Log extends Inst {
     super();
   }
 
+  public toString(): string {
+    throw new Error('Method not implemented.');
+  }
+
   public get start(): Position {
     return this.log.start;
   }
@@ -714,6 +821,10 @@ export class Copy extends Inst {
     public readonly toFrom: IToken,
     public readonly destination: IExpr) {
     super();
+  }
+
+  public toString(): string {
+    throw new Error('Method not implemented.');
   }
 
   public get start(): Position {
@@ -748,6 +859,10 @@ export class Rename extends Inst {
     super();
   }
 
+  public toString(): string {
+    throw new Error('Method not implemented.');
+  }
+
   public get start(): Position {
     return this.rename.start;
   }
@@ -780,6 +895,10 @@ export class Delete extends Inst {
     public readonly from?: IToken,
     public readonly volume?: IExpr) {
     super();
+  }
+
+  public toString(): string {
+    throw new Error('Method not implemented.');
   }
 
   public get start(): Position {
@@ -822,6 +941,10 @@ export class Run extends Inst {
     public readonly on?: IToken,
     public readonly expr?: IExpr) {
     super();
+  }
+
+  public toString(): string {
+    throw new Error('Method not implemented.');
   }
 
   public get start(): Position {
@@ -878,6 +1001,10 @@ export class RunPath extends Inst {
     super();
   }
 
+  public toString(): string {
+    throw new Error('Method not implemented.');
+  }
+
   public get start(): Position {
     return this.runPath.start;
   }
@@ -915,6 +1042,10 @@ export class RunPathOnce extends Inst {
     public readonly close: IToken,
     public readonly args?: IExpr[]) {
     super();
+  }
+
+  public toString(): string {
+    throw new Error('Method not implemented.');
   }
 
   public get start(): Position {
@@ -955,6 +1086,10 @@ export class Compile extends Inst {
     super();
   }
 
+  public toString(): string {
+    throw new Error('Method not implemented.');
+  }
+
   public get start(): Position {
     return this.compile.start;
   }
@@ -991,6 +1126,10 @@ export class List extends Inst {
     public readonly inToken?: IToken,
     public readonly target?: IToken) {
     super();
+  }
+
+  public toString(): string {
+    throw new Error('Method not implemented.');
   }
 
   public get start(): Position {
@@ -1034,6 +1173,10 @@ export class Empty extends Inst {
     super();
   }
 
+  public toString(): string {
+    throw new Error('Method not implemented.');
+  }
+
   public get start(): Position {
     return this.empty.start;
   }
@@ -1065,6 +1208,10 @@ export class Print extends Inst {
     public readonly y?: IExpr,
     public readonly close?: IToken) {
     super();
+  }
+
+  public toString(): string {
+    throw new Error('Method not implemented.');
   }
 
   public get start(): Position {

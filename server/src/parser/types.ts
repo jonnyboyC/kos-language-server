@@ -50,6 +50,7 @@ export interface IInst extends
   IInstVisitable,
   IInstPassable,
   IRangeSequence {
+  toString(): string;
   tag: SyntaxKind.inst;
 }
 

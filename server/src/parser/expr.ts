@@ -21,21 +21,21 @@ import { NodeBase } from './base';
 export abstract class Expr extends NodeBase implements IExpr {
 
   /**
-   * Return the tree node type
+   * Return the tree node type of expression
    */
   get tag(): SyntaxKind.expr {
     return SyntaxKind.expr;
   }
 
   /**
-   * Require all subclass to implement the pass method
-   * Call when the node should be passed through
+   * All expressions implement the pass method
+   * Called when the node should be passed through
    * @param visitor visitor object
    */
   public abstract pass<T>(visitor: IExprPasser<T>): T;
 
   /**
-   * Require all subclasses to implement the accept method
+   * All expressions implement the accept method
    * Called when the node should execute the visitors methods
    * @param visitor visitor object
    */
