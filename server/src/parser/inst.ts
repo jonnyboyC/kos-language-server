@@ -4,7 +4,6 @@ import { IToken } from '../entities/types';
 import { Range, Position } from 'vscode-languageserver';
 import { empty } from '../utilities/typeGuards';
 import { NodeBase } from './base';
-import { EOL } from 'os';
 import { linesJoin } from './toStringUtils';
 
 /**

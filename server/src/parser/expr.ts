@@ -14,6 +14,7 @@ import {
 } from './grammarNodes';
 import { empty } from '../utilities/typeGuards';
 import { NodeBase } from './base';
+import { flatten } from '../utilities/arrayUtilities';
 
 /**
  * Expression base class
@@ -297,8 +298,18 @@ export class AnonymousFunction extends Expr {
   }
 
   public toLines(): string[] {
+    const lines = flatten(this.insts.map(inst => inst.toLines()));
+
+    if (lines.length === 0) {
+      return [`${this.open.lexeme} ${this.close.lexeme}`];
+    }
+
+    if (lines.length === 1) {
+      return [`${this.open.lexeme} ${lines[0]} ${this.close.lexeme}`];
+    }
+
     return [`${this.open.lexeme}`].concat(
-      ...this.insts.map(inst => inst.toLines().map(line => `    ${line}`)),
+      ...lines.map(line => `    ${line}`),
       `${this.close.lexeme}`,
     );
   }

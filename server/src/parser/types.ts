@@ -15,6 +15,7 @@ export interface IDeclScope extends Range {
   declare?: IToken;
   scope?: IToken;
   type: ScopeType;
+  toString(): string;
 }
 
 export type SuffixTermTrailer = SuffixTerm.Call
@@ -28,6 +29,7 @@ export type Atom = SuffixTerm.Literal
 
 export interface IParameter extends IRangeSequence {
   identifier: IToken;
+  toLines(): string[];
 }
 
 export enum SyntaxKind {

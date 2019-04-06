@@ -4,6 +4,7 @@ import { TokenType } from '../entities/tokentypes';
 import { empty } from '../utilities/typeGuards';
 import { IToken } from '../entities/types';
 import { Range, Position } from 'vscode-languageserver';
+import { linesJoin } from './toStringUtils';
 
 export abstract class Decl extends Inst {
   constructor() {
@@ -15,6 +16,22 @@ export class Scope implements IDeclScope {
   constructor(
     public readonly scope?: IToken,
     public readonly declare?: IToken) {
+  }
+
+  public toString(): string {
+    if (!empty(this.scope) && !empty(this.declare)) {
+      return `${this.declare.lexeme} ${this.scope.lexeme}`;
+    }
+
+    if (!empty(this.scope)) {
+      return this.scope.lexeme;
+    }
+
+    if (!empty(this.declare)) {
+      return this.declare.lexeme;
+    }
+
+    throw new Error('Unvalid scope encountered. No socpe or declare tokens');
   }
 
   public get start(): Position {
@@ -74,6 +91,15 @@ export class Var extends Decl {
     super();
   }
 
+  public toLines(): string[] {
+    const lines = this.value.toLines();
+    lines[0] = `${this.scope.toString()} ${this.identifier.lexeme} `
+      + `${this.toIs.lexeme} ${lines[0]}`;
+
+    lines[lines.length - 1] = `${lines[lines.length - 1]}.`;
+    return lines;
+  }
+
   public get start(): Position {
     return this.scope.start;
   }
@@ -103,6 +129,21 @@ export class Lock extends Decl {
     public readonly value: IExpr,
     public readonly scope?: IDeclScope) {
     super();
+  }
+
+  public toLines(): string[] {
+    const lines = this.value.toLines();
+    if (empty(this.scope)) {
+      lines[0] = `${this.lock.lexeme} ${this.identifier.lexeme} `
+        + `${this.to.lexeme} ${lines[0]}`;
+    } else {
+      lines[0] = `${this.scope.toString()} ${this.lock.lexeme} ${this.identifier.lexeme} `
+        + `${this.to.lexeme} ${lines[0]}`;
+    }
+
+    lines[lines.length - 1] = `${lines[lines.length - 1]}.`;
+
+    return lines;
   }
 
   public get start(): Position {
@@ -148,6 +189,15 @@ export class Func extends Decl {
     super();
   }
 
+  public toLines(): string[] {
+    const declareLine = empty(this.scope)
+      ? `${this.functionToken.lexeme} ${this.identifier.lexeme}`
+      : `${this.scope.toString()} ${this.functionToken.lexeme} ${this.identifier.lexeme}`;
+
+    const blockLines = this.block.toLines();
+    return linesJoin(' ', [declareLine], blockLines);
+  }
+
   public get start(): Position {
     return empty(this.scope)
       ? this.functionToken.start
@@ -185,6 +235,10 @@ export class Parameter implements IParameter {
   constructor(
     public readonly identifier: IToken) { }
 
+  public toLines(): string[] {
+    return [this.identifier.lexeme];
+  }
+
   public get start(): Position {
     return this.identifier.start;
   }
@@ -208,6 +262,12 @@ export class DefaultParam extends Parameter {
     public readonly toIs: IToken,
     public readonly value: IExpr) {
     super(identifier);
+  }
+
+  public toLines(): string[] {
+    const lines = this.value.toLines();
+    lines[0] = `${this.identifier.lexeme} ${this.toIs.lexeme} ${lines[0]}`;
+    return lines;
   }
 
   public get start(): Position {
@@ -234,6 +294,17 @@ export class Param extends Decl {
     public readonly defaultParameters: DefaultParam[],
     public readonly scope?: IDeclScope) {
     super();
+  }
+
+  public toLines(): string[] {
+    let lines = empty(this.scope)
+      ? [`${this.parameterToken.lexeme}`]
+      : [`${this.scope.toString()} ${this.parameterToken.lexeme}`];
+
+    lines = linesJoin(', ', ...this.parameters.map(param => param.toLines()));
+    lines = linesJoin(', ', ...this.defaultParameters.map(param => param.toLines()));
+
+    return lines;
   }
 
   public get start(): Position {

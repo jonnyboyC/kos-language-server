@@ -4,7 +4,7 @@ export const flatten = <T>(arrays: T[][]): T[] => {
     return [];
   }
 
-  return arrays.reduce((acc, curr) => acc.concat(curr), [] as T[]);
+  return arrays[0].concat(...arrays.slice(1));
 };
 
 export function* zip<T1, T2>(arr1: T1[], arr2: T2[]): IterableIterator<[T1, T2]> {
