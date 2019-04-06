@@ -66,8 +66,8 @@ export class Invalid extends Expr {
     return [...this.tokens];
   }
 
-  public toString(): string {
-    return this.tokens.join(', ');
+  public toLines(): string[] {
+    return [this.tokens.map(t => t.lexeme).join('')];
   }
 
   public accept<T>(visitor: IExprVisitor<T>): T {
@@ -121,6 +121,14 @@ export class Binary extends Expr {
     return `${this.left.toString()} ${this.operator.lexeme} ${this.right.toString()}`;
   }
 
+  public toLines(): string[] {
+    const lines = this.left.toLines();
+    const [joinLine, restLines] = this.right.toLines();
+
+    lines[lines.length - 1] = `${lines[lines.length - 1]} ${this.operator.lexeme} ${joinLine}`;
+    return lines.concat(restLines);
+  }
+
   public accept<T>(visitor: IExprVisitor<T>): T {
     return visitor.visitBinary(this);
   }
@@ -168,6 +176,20 @@ export class Unary extends Expr {
 
   public toString(): string {
     return `${this.operator.lexeme} ${this.factor.toString()}`;
+  }
+
+  public toLines(): string[] {
+    const lines = this.factor.toLines();
+
+    switch (this.operator.type) {
+      case TokenType.plus:
+      case TokenType.minus:
+        lines[0] = `${this.operator.lexeme}${lines[0]}`;
+        return lines;
+      default:
+        lines[0] = `${this.operator.lexeme} ${lines[0]}`;
+        return lines;
+    }
   }
 
   public accept<T>(visitor: IExprVisitor<T>): T {
@@ -218,8 +240,12 @@ export class Factor extends Expr {
     return [this.suffix, this.power, this.exponent];
   }
 
-  public toString(): string {
-    return `${this.suffix.toString()} ${this.power.toString()} ${this.exponent.toString()}`;
+  public toLines(): string[] {
+    const lines = this.suffix.toLines();
+    const [joinLine, restLines] = this.exponent.toLines();
+
+    lines[lines.length - 1] = `${lines[lines.length - 1]}${this.power.lexeme}${joinLine}`;
+    return lines.concat(restLines);
   }
 
   public accept<T>(visitor: IExprVisitor<T>): T {
@@ -270,8 +296,11 @@ export class AnonymousFunction extends Expr {
     return [this.open, ...this.insts, this.close];
   }
 
-  public toString(): string {
-    return `{${this.insts.map(i => i.toString()).join(' ')}}`;
+  public toLines(): string[] {
+    return [`${this.open.lexeme}`].concat(
+      ...this.insts.map(inst => inst.toLines().map(line => `    ${line}`)),
+      `${this.close.lexeme}`,
+    );
   }
 
   public accept<T>(visitor: IExprVisitor<T>): T {
@@ -351,12 +380,23 @@ export class Suffix extends Expr {
     return false;
   }
 
-  public toString(): string {
+  public toLines(): string[] {
+    const suffixTermLines = this.suffixTerm.toLines();
+
     if (!empty(this.colon) && !empty(this.trailer)) {
-      return `${this.suffixTerm.toString()}${this.colon.lexeme}${this.trailer.toString()}`;
+      const [joinLine, ...restLines] = this.trailer.toLines();
+
+      if (suffixTermLines.length === 1) {
+        return [`${suffixTermLines[0]}${this.colon.lexeme}${joinLine}`].concat(restLines);
+      }
+
+      return suffixTermLines.slice(0, suffixTermLines.length - 2)
+        .concat(
+          `${suffixTermLines[0]}${this.colon.lexeme}${joinLine}`,
+          restLines);
     }
 
-    return this.suffixTerm.toString();
+    return suffixTermLines;
   }
 
   public accept<T>(visitor: IExprVisitor<T>): T {

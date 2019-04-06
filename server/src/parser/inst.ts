@@ -4,6 +4,8 @@ import { IToken } from '../entities/types';
 import { Range, Position } from 'vscode-languageserver';
 import { empty } from '../utilities/typeGuards';
 import { NodeBase } from './base';
+import { EOL } from 'os';
+import { linesJoin } from './toStringUtils';
 
 /**
  * Instruction base class
@@ -36,8 +38,8 @@ export class Invalid extends Inst {
     super();
   }
 
-  public toString(): string {
-    throw new Error('Method not implemented.');
+  public toLines(): string[] {
+    return [this.tokens.map(t => t.lexeme).join(' ')];
   }
 
   public get start(): Position {
@@ -69,8 +71,13 @@ export class Block extends Inst {
     super();
   }
 
-  public toString(): string {
-    throw new Error('Method not implemented.');
+  public toLines(): string[] {
+    return [this.open.toString()]
+      .concat(
+        ...this.insts.map(t =>
+          t.toLines().map(line => `    ${line}`)),
+        this.close.toString(),
+      );
   }
 
   public get start(): Position {
@@ -100,8 +107,11 @@ export class ExprInst extends Inst {
     super();
   }
 
-  public toString(): string {
-    throw new Error('Method not implemented.');
+  public toLines(): string[] {
+    const suffixLines = this.suffix.toLines();
+    suffixLines[suffixLines.length - 1] = `${suffixLines[suffixLines.length - 1]}.`;
+
+    return suffixLines;
   }
 
   public get start(): Position {
@@ -132,8 +142,10 @@ export class OnOff extends Inst {
     super();
   }
 
-  public toString(): string {
-    throw new Error('Method not implemented.');
+  public toLines(): string[] {
+    const lines = this.suffix.toLines();
+    lines[lines.length - 1] = `${lines[lines.length - 1]} ${this.onOff.lexeme}.`;
+    return lines;
   }
 
   public get start(): Position {
@@ -166,6 +178,10 @@ export class Command extends Inst {
     throw new Error('Method not implemented.');
   }
 
+  public toLines(): string[] {
+    return [`${this.command.lexeme}.`];
+  }
+
   public get start(): Position {
     return this.command.start;
   }
@@ -194,8 +210,12 @@ export class CommandExpr extends Inst {
     super();
   }
 
-  public toString(): string {
-    throw new Error('Method not implemented.');
+  public toLines(): string[] {
+    const lines = this.expr.toLines();
+    lines[0] = `${this.command.lexeme} ${lines[0]}`;
+    lines[lines.length - 1] = `${lines[lines.length - 1]}.`;
+
+    return lines;
   }
 
   public get start(): Position {
@@ -226,8 +246,8 @@ export class Unset extends Inst {
     super();
   }
 
-  public toString(): string {
-    throw new Error('Method not implemented.');
+  public toLines(): string[] {
+    return [`${this.unset.lexeme} ${this.identifier.lexeme}.`];
   }
 
   public get start(): Position {
@@ -258,8 +278,8 @@ export class Unlock extends Inst {
     super();
   }
 
-  public toString(): string {
-    throw new Error('Method not implemented.');
+  public toLines(): string[] {
+    return [`${this.unlock.lexeme} ${this.identifier}.`];
   }
 
   public get start(): Position {
@@ -292,8 +312,14 @@ export class Set extends Inst {
     super();
   }
 
-  public toString(): string {
-    throw new Error('Method not implemented.');
+  public toLines(): string[] {
+    const suffixLines = this.suffix.toLines();
+    const valueLines = this.value.toLines();
+
+    suffixLines[0] = `${this.set.lexeme} ${suffixLines[0]}`;
+    const lines = linesJoin(` ${this.to.lexeme} `, suffixLines, valueLines);
+    lines[lines.length - 1] = `${lines[lines.length - 1]}.`;
+    return lines;
   }
 
   public get start(): Position {
@@ -325,8 +351,8 @@ export class LazyGlobal extends Inst {
     super();
   }
 
-  public toString(): string {
-    throw new Error('Method not implemented.');
+  public toLines(): string[] {
+    return [`${this.atSign.lexeme}${this.lazyGlobal.lexeme} ${this.onOff.lexeme}.`];
   }
 
   public get start(): Position {
@@ -355,12 +381,23 @@ export class If extends Inst {
     public readonly ifToken: IToken,
     public readonly condition: IExpr,
     public readonly ifInst: IInst,
-    public readonly elseInst?: IInst) {
+    public readonly elseInst?: Else) {
     super();
   }
 
-  public toString(): string {
-    throw new Error('Method not implemented.');
+  public toLines(): string[] {
+    const conditionLines = this.condition.toLines();
+    const instLines = this.ifInst.toLines();
+
+    conditionLines[0] = `${this.ifToken.lexeme} ${conditionLines[0]}`;
+    const lines = linesJoin(' ', conditionLines, instLines);
+
+    if (!empty(this.elseInst)) {
+      const elseLines = this.elseInst.toLines();
+      return linesJoin(' ', lines, elseLines);
+    }
+
+    return lines;
   }
 
   public get start(): Position {
@@ -398,8 +435,10 @@ export class Else extends Inst {
     super();
   }
 
-  public toString(): string {
-    throw new Error('Method not implemented.');
+  public toLines(): string[] {
+    const lines = this.inst.toLines();
+    lines[0] = `${this.elseToken.lexeme} ${lines[0]}`;
+    return lines;
   }
 
   public get start(): Position {
@@ -431,8 +470,12 @@ export class Until extends Inst {
     super();
   }
 
-  public toString(): string {
-    throw new Error('Method not implemented.');
+  public toLines(): string[] {
+    const conditionLines = this.condition.toLines();
+    const instLines = this.inst.toLines();
+
+    conditionLines[0] = `${this.until.lexeme} ${conditionLines[0]}`;
+    return linesJoin(' ', conditionLines, instLines);
   }
 
   public get start(): Position {
@@ -467,6 +510,20 @@ export class From extends Inst {
     public readonly doToken: IToken,
     public readonly inst: IInst) {
     super();
+  }
+
+  public toLines(): string[] {
+    const initializerLines = this.initializer.toLines();
+    const conditionLines = this.condition.toLines();
+    const incrementLines = this.increment.toLines();
+    const instLines = this.inst.toLines();
+
+    initializerLines[0] = `${this.from.lexeme} ${initializerLines[0]}`;
+    conditionLines[0] = `${this.until.lexeme} ${conditionLines[0]}`;
+    incrementLines[0] = `${this.step.lexeme} ${incrementLines[0]}`;
+    instLines[0] = `${this.doToken.lexeme} ${instLines[0]}`;
+
+    return linesJoin(' ', initializerLines, conditionLines, incrementLines, instLines);
   }
 
   public toString(): string {
@@ -512,6 +569,16 @@ export class When extends Inst {
     throw new Error('Method not implemented.');
   }
 
+  public toLines(): string[] {
+    const conditionLines = this.condition.toLines();
+    const instLines = this.inst.toLines();
+
+    conditionLines[0] = `${this.when.lexeme} ${conditionLines[0]}`;
+    instLines[0] = `${this.then.lexeme} ${instLines[0]}`;
+
+    return linesJoin(' ', conditionLines, instLines);
+  }
+
   public get start(): Position {
     return this.when.start;
   }
@@ -545,6 +612,18 @@ export class Return extends Inst {
 
   public toString(): string {
     throw new Error('Method not implemented.');
+  }
+
+  public toLines(): string[] {
+    if (!empty(this.expr)) {
+      const exprLines = this.expr.toLines();
+
+      exprLines[0] = `${this.returnToken.lexeme} ${exprLines[0]}`;
+      exprLines[exprLines.length - 1] = `${exprLines[exprLines.length - 1]}.`;
+      return exprLines;
+    }
+
+    return [`${this.returnToken.lexeme}.`];
   }
 
   public get start(): Position {
@@ -585,6 +664,10 @@ export class Break extends Inst {
     throw new Error('Method not implemented.');
   }
 
+  public toLines(): string[] {
+    return [`${this.breakToken.lexeme}.`];
+  }
+
   public get start(): Position {
     return this.breakToken.start;
   }
@@ -614,8 +697,13 @@ export class Switch extends Inst {
     super();
   }
 
-  public toString(): string {
-    throw new Error('Method not implemented.');
+  public toLines(): string[] {
+    const targetLines = this.target.toLines();
+
+    targetLines[0] = `${this.switchToken.lexeme} ${this.to.lexeme} ${targetLines[0]}`;
+    targetLines[targetLines.length - 1] = `${targetLines[targetLines.length - 1]}.`;
+
+    return targetLines;
   }
 
   public get start(): Position {
@@ -649,8 +737,14 @@ export class For extends Inst {
     super();
   }
 
-  public toString(): string {
-    throw new Error('Method not implemented.');
+  public toLines(): string[] {
+    const suffixLines = this.suffix.toLines();
+    const instLines = this.inst.toLines();
+
+    suffixLines[0] = `${this.forToken.lexeme} ${this.identifier.lexeme} `
+      + `${this.inToken.lexeme} ${suffixLines[0]}`;
+
+    return linesJoin(' ', suffixLines, instLines);
   }
 
   public get start(): Position {
@@ -686,8 +780,12 @@ export class On extends Inst {
     super();
   }
 
-  public toString(): string {
-    throw new Error('Method not implemented.');
+  public toLines(): string[] {
+    const suffixLines = this.suffix.toLines();
+    const instLInes = this.inst.toLines();
+
+    suffixLines[0] = `${this.on.lexeme} ${suffixLines[0]}`;
+    return linesJoin(' ', suffixLines, instLInes);
   }
 
   public get start(): Position {
@@ -718,8 +816,11 @@ export class Toggle extends Inst {
     super();
   }
 
-  public toString(): string {
-    throw new Error('Method not implemented.');
+  public toLines(): string[] {
+    const suffixLines = this.suffix.toLines();
+    suffixLines[0] = `${this.toggle.lexeme} ${suffixLines[0]}`;
+
+    return suffixLines;
   }
 
   public get start(): Position {
@@ -751,8 +852,15 @@ export class Wait extends Inst {
     super();
   }
 
-  public toString(): string {
-    throw new Error('Method not implemented.');
+  public toLines(): string[] {
+    const exprLines = this.expr.toLines();
+    if (!empty(this.until)) {
+      exprLines[0] = `${this.wait.lexeme} ${this.until.lexeme} ${exprLines[0]}`;
+      return exprLines;
+    }
+
+    exprLines[0] = `${this.wait.lexeme} ${exprLines[0]}`;
+    return exprLines;
   }
 
   public get start(): Position {
@@ -793,6 +901,16 @@ export class Log extends Inst {
     throw new Error('Method not implemented.');
   }
 
+  public toLines(): string[] {
+    const exprLines = this.expr.toLines();
+    const targetLines = this.target.toLines();
+
+    exprLines[0] = `${this.log.lexeme} ${exprLines[0]}`;
+    targetLines[0] = `${this.to.lexeme} ${targetLines[0]}`;
+
+    return linesJoin(' ', exprLines, targetLines);
+  }
+
   public get start(): Position {
     return this.log.start;
   }
@@ -823,8 +941,14 @@ export class Copy extends Inst {
     super();
   }
 
-  public toString(): string {
-    throw new Error('Method not implemented.');
+  public toLines(): string[] {
+    const targetLines = this.target.toLines();
+    const destinationLines = this.target.toLines();
+
+    targetLines[0] = `${this.copy.lexeme} ${targetLines[0]}`;
+    destinationLines[0] = `${this.toFrom.lexeme} ${destinationLines[0]}`;
+
+    return linesJoin(' ', targetLines, destinationLines);
   }
 
   public get start(): Position {
@@ -859,8 +983,15 @@ export class Rename extends Inst {
     super();
   }
 
-  public toString(): string {
-    throw new Error('Method not implemented.');
+  public toLines(): string[] {
+    const targetLines = this.target.toLines();
+    const alternativeLines = this.alternative.toLines();
+
+    targetLines[0] = `${this.rename.lexeme} ${this.fileVolume.lexeme}`
+      + `${this.ioIdentifer.lexeme} ${targetLines[0]}`;
+    alternativeLines[0] = `${this.to.lexeme} ${alternativeLines[0]}`;
+
+    return linesJoin(' ', targetLines, alternativeLines);
   }
 
   public get start(): Position {
@@ -897,8 +1028,18 @@ export class Delete extends Inst {
     super();
   }
 
-  public toString(): string {
-    throw new Error('Method not implemented.');
+  public toLines(): string[] {
+    const targetLines = this.target.toLines();
+    targetLines[0] = `${this.deleteToken.lexeme} ${targetLines[0]}`;
+
+    if (!empty(this.from) && !empty(this.volume)) {
+      const volumeLines = this.volume.toLines();
+      volumeLines[0] = `${this.from.lexeme} ${volumeLines[0]}`;
+
+      return linesJoin(' ', targetLines, volumeLines);
+    }
+
+    return targetLines;
   }
 
   public get start(): Position {
@@ -945,6 +1086,30 @@ export class Run extends Inst {
 
   public toString(): string {
     throw new Error('Method not implemented.');
+  }
+
+  public toLines(): string[] {
+    let lines = empty(this.once)
+      ? [`${this.run.lexeme} ${this.identifier.lexeme}`]
+      : [`${this.run.lexeme} ${this.once.lexeme} ${this.identifier.lexeme}`];
+
+    if (!empty(this.open) && !empty(this.args) && !empty(this.close)) {
+      const argsLines = linesJoin(', ', ...this.args.map(arg => arg.toLines()));
+      argsLines[0] = `${this.open.lexeme}${argsLines[0]}`;
+      argsLines[argsLines.length - 1] = `${argsLines[argsLines.length - 1]}${this.close.lexeme}`;
+
+      lines = linesJoin(' ', lines, argsLines);
+    }
+
+    if (!empty(this.on) && !empty(this.expr)) {
+      const exprLines = this.expr.toLines();
+      exprLines[0] = `${this.on.lexeme} ${exprLines[0]}`;
+
+      lines = linesJoin(' ', lines, exprLines);
+    }
+
+    lines[lines.length - 1] = `${lines[lines.length - 1]}.`;
+    return lines;
   }
 
   public get start(): Position {
@@ -1001,8 +1166,16 @@ export class RunPath extends Inst {
     super();
   }
 
-  public toString(): string {
-    throw new Error('Method not implemented.');
+  public toLines(): string[] {
+    let lines = this.expr.toLines();
+
+    if (!empty(this.args)) {
+      lines = linesJoin(', ', ...this.args.map(arg => arg.toLines()));
+    }
+
+    lines[0] = `${this.runPath.lexeme}${this.open.lexeme}${lines[0]}`;
+    lines[lines.length - 1] = `${lines[lines.length - 1]}${this.close.lexeme}.`;
+    return lines;
   }
 
   public get start(): Position {
@@ -1044,8 +1217,16 @@ export class RunPathOnce extends Inst {
     super();
   }
 
-  public toString(): string {
-    throw new Error('Method not implemented.');
+  public toLines(): string[] {
+    let lines = this.expr.toLines();
+
+    if (!empty(this.args)) {
+      lines = linesJoin(', ', ...this.args.map(arg => arg.toLines()));
+    }
+
+    lines[0] = `${this.runPath.lexeme}${this.open.lexeme}${lines[0]}`;
+    lines[lines.length - 1] = `${lines[lines.length - 1]}${this.close.lexeme}.`;
+    return lines;
   }
 
   public get start(): Position {
@@ -1086,8 +1267,16 @@ export class Compile extends Inst {
     super();
   }
 
-  public toString(): string {
-    throw new Error('Method not implemented.');
+  public toLines(): string[] {
+    let lines = this.target.toLines();
+
+    if (!empty(this.destination) && !empty(this.to)) {
+      lines = linesJoin(` ${this.to.lexeme} `, this.destination.toLines());
+    }
+
+    lines[0] = `${this.compile.lexeme} ${lines[0]}`;
+    lines[lines.length - 1] = `${lines[lines.length - 1]}.`;
+    return lines;
   }
 
   public get start(): Position {
@@ -1128,8 +1317,17 @@ export class List extends Inst {
     super();
   }
 
-  public toString(): string {
-    throw new Error('Method not implemented.');
+  public toLines(): string[] {
+    if (!empty(this.collection) && !empty(this.inToken) && !empty(this.target)) {
+      return [`${this.list.lexeme} ${this.collection.lexeme} `
+        + `${this.inToken.lexeme} ${this.target.lexeme}.`];
+    }
+
+    if (!empty(this.collection)) {
+      return [`${this.list.lexeme} ${this.collection.lexeme}.`];
+    }
+
+    return [`${this.list.lexeme}.`];
   }
 
   public get start(): Position {
@@ -1173,8 +1371,8 @@ export class Empty extends Inst {
     super();
   }
 
-  public toString(): string {
-    throw new Error('Method not implemented.');
+  public toLines(): string[] {
+    return ['.'];
   }
 
   public get start(): Position {
@@ -1210,8 +1408,25 @@ export class Print extends Inst {
     super();
   }
 
-  public toString(): string {
-    throw new Error('Method not implemented.');
+  public toLines(): string[] {
+    let lines = this.expr.toLines();
+    lines[0] = `${this.print.lexeme} ${lines[0]}`;
+
+    if (!empty(this.at) && !empty(this.open)
+      && !empty(this.x) && !empty(this.y)
+      && !empty(this.close)) {
+      const xLines = this.x.toLines();
+      const yLines = this.y.toLines();
+
+      xLines[0] = `${this.at.lexeme} ${this.open.lexeme}${xLines[0]}`;
+      yLines[yLines.length - 1] = `${yLines[yLines.length - 1]}${this.close.lexeme}`;
+
+      const argLines = linesJoin(', ', xLines, yLines);
+      lines = linesJoin(' ', lines, argLines);
+    }
+
+    lines[lines.length - 1] = `${lines[lines.length - 1]}.`;
+    return lines;
   }
 
   public get start(): Position {

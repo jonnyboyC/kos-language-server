@@ -50,6 +50,8 @@ export interface IInst extends
   IInstVisitable,
   IInstPassable,
   IRangeSequence {
+  toLocation(uri: string): Location;
+  toLines(): string[];
   toString(): string;
   tag: SyntaxKind.inst;
 }
@@ -59,6 +61,7 @@ export interface IExpr extends
   IExprPassable,
   IRangeSequence {
   toLocation(uri: string): Location;
+  toLines(): string[];
   toString(): string;
   tag: SyntaxKind.expr;
 }

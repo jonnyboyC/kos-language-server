@@ -16,6 +16,7 @@ import {
 import { expr } from './expr';
 import { NodeBase } from './base';
 import { empty } from '../utilities/typeGuards';
+import { linesJoin } from './toStringUtils';
 
 /**
  * Base class for all suffix terms
@@ -71,8 +72,8 @@ export class Invalid extends SuffixTermBase {
     return [...this.tokens];
   }
 
-  public toString(): string {
-    return this.tokens.join(', ');
+  public toLines(): string[] {
+    return [this.tokens.join(', ')];
   }
 
   public acceptParam<TP, TR>(visitor: ISuffixTermParamVisitor<TP, TR>, param: TP): TR {
@@ -159,12 +160,23 @@ export class SuffixTrailer extends SuffixTermBase {
     return false;
   }
 
-  public toString(): string {
+  public toLines(): string[] {
+    const suffixTermLines = this.suffixTerm.toLines();
+
     if (!empty(this.colon) && !empty(this.trailer)) {
-      return `${this.suffixTerm.toString()}${this.colon.lexeme}${this.trailer.toString()}`;
+      const [joinLine, ...restLines] = this.trailer.toLines();
+
+      if (suffixTermLines.length === 1) {
+        return [`${suffixTermLines[0]}${this.colon.lexeme}${joinLine}`].concat(restLines);
+      }
+
+      return suffixTermLines.slice(0, suffixTermLines.length - 2)
+        .concat(
+          `${suffixTermLines[0]}${this.colon.lexeme}${joinLine}`,
+          restLines);
     }
 
-    return this.suffixTerm.toString();
+    return suffixTermLines;
   }
   public acceptParam<TP, TR>(visitor: ISuffixTermParamVisitor<TP, TR>, param: TP): TR {
     return visitor.visitSuffixTrailer(this, param);
@@ -215,8 +227,11 @@ export class SuffixTerm extends SuffixTermBase {
 
     return this.atom.end;
   }
-  public toString(): string {
-    return `${this.atom.toString()}${this.trailers.map(trailer => trailer.toString()).join('')}`;
+  public toLines(): string[] {
+    const atomLines = this.atom.toLines();
+    const trailersLines = this.trailers.map(t => t.toLines());
+
+    return linesJoin('', atomLines, ...trailersLines);
   }
 
   public acceptParam<TP, TR>(visitor: ISuffixTermParamVisitor<TP, TR>, param: TP): TR {
@@ -272,9 +287,13 @@ export class Call extends SuffixTermBase {
     return [this.open, ...this.args, this.close];
   }
 
-  public toString(): string {
-    return `${this.open.lexeme}`
-     + `${this.args.map(a => a.toString()).join(', ')}${this.close.lexeme}`;
+  public toLines(): string[] {
+    const argsLines = this.args.map(a => a.toLines());
+    const argsResult = linesJoin(',', ...argsLines);
+
+    argsResult[0] = `${this.open.lexeme}${argsResult[0]}`;
+    argsResult[argsResult.length - 1] = `${argsResult[argsResult.length - 1]}${this.close.lexeme}`;
+    return argsResult;
   }
 
   public acceptParam<TP, TR>(visitor: ISuffixTermParamVisitor<TP, TR>, param: TP): TR {
@@ -328,8 +347,8 @@ export class ArrayIndex extends SuffixTermBase {
     return [this.indexer, this.index];
   }
 
-  public toString(): string {
-    return `${this.indexer.lexeme}${this.index.lexeme}`;
+  public toLines(): string[] {
+    return [`${this.indexer.lexeme}${this.index.lexeme}`];
   }
 
   public acceptParam<TP, TR>(visitor: ISuffixTermParamVisitor<TP, TR>, param: TP): TR {
@@ -386,9 +405,12 @@ export class ArrayBracket extends SuffixTermBase {
     return [this.open, this.index, this.close];
   }
 
-  public toString(): string {
-    return `${this.open.lexeme}`
-      + `${this.index.toString()}${this.close.lexeme}`;
+  public toLines(): string[] {
+    const lines = this.index.toLines();
+
+    lines[0] = `${this.open.lexeme}${lines[0]}`;
+    lines[lines.length - 1] = `${lines[lines.length - 1]}${this.close.lexeme}`;
+    return lines;
   }
 
   public acceptParam<TP, TR>(visitor: ISuffixTermParamVisitor<TP, TR>, param: TP): TR {
@@ -440,8 +462,8 @@ export class Delegate extends SuffixTermBase {
     return [this.atSign];
   }
 
-  public toString(): string {
-    return this.atSign.lexeme;
+  public toLines(): string[] {
+    return [this.atSign.lexeme];
   }
 
   public acceptParam<TP, TR>(visitor: ISuffixTermParamVisitor<TP, TR>, param: TP): TR {
@@ -493,8 +515,8 @@ export class Literal extends SuffixTermBase {
     return [this.token];
   }
 
-  public toString(): string {
-    return `${this.token.lexeme}`;
+  public toLines(): string[] {
+    return [`${this.token.lexeme}`];
   }
 
   public acceptParam<TP, TR>(visitor: ISuffixTermParamVisitor<TP, TR>, param: TP): TR {
@@ -551,8 +573,8 @@ export class Identifier extends SuffixTermBase {
       || this.token.type === TokenType.fileIdentifier);
   }
 
-  public toString(): string {
-    return `${this.token.lexeme}`;
+  public toLines(): string[] {
+    return [`${this.token.lexeme}`];
   }
 
   public acceptParam<TP, TR>(visitor: ISuffixTermParamVisitor<TP, TR>, param: TP): TR {
@@ -610,6 +632,14 @@ export class Grouping extends SuffixTermBase {
 
   public toString(): string {
     return `${this.open.lexeme}${this.expr.toString()}${this.close.lexeme}`;
+  }
+
+  public toLines(): string[] {
+    const lines = this.expr.toLines();
+
+    lines[0] = `${this.open.lexeme}${lines[0]}`;
+    lines[lines.length - 1] = `${lines[lines.length - 1]}${this.close.lexeme}`;
+    return lines;
   }
 
   public acceptParam<TP, TR>(visitor: ISuffixTermParamVisitor<TP, TR>, param: TP): TR {

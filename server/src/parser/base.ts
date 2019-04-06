@@ -1,5 +1,6 @@
 import { IRangeSequence } from './types';
 import { Location, Position, Range } from 'vscode-languageserver';
+import { EOL } from 'os';
 
 export abstract class NodeBase implements IRangeSequence {
   /**
@@ -8,9 +9,16 @@ export abstract class NodeBase implements IRangeSequence {
   public abstract get ranges(): Range[];
 
   /**
-   * To string representation of the syntax node
+   * String representation of the syntax node
    */
-  public abstract toString(): string;
+  public toString(): string {
+    return this.toLines().join(EOL);
+  }
+
+  /**
+   * String representation of the syntax node where each element is a line
+   */
+  public abstract toLines(): string[];
 
   /**
    * Position of start of syntax node
