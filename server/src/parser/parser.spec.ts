@@ -10,6 +10,7 @@ import { readdirSync, statSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { empty } from '../utilities/typeGuards';
 import { zip } from '../utilities/arrayUtilities';
+import { TokenCheck } from './tokenCheck';
 
 // scan source file
 const scan = (source: string) : IScanResult => {
@@ -27,6 +28,7 @@ const parseExpression = (source: string): [INodeResult<IExpr>, IScannerError[]] 
 const testDir = join(__dirname, '../../../kerboscripts/parser_valid/');
 
 type callbackFunc = (fileName: string) => void;
+const tokenCheck = new TokenCheck();
 
 const walkDir = (dir: string, callback: callbackFunc): void => {
   readdirSync(dir).forEach((f) => {
@@ -68,22 +70,19 @@ ava('parse all validate', (t) => {
     const scanner2 = new Scanner(prettyKosFile, filePath);
     const scanResults2 = scanner2.scanTokens();
 
-    let i = 0;
-    for (const [token1, token2] of zip(scanResults1.tokens, scanResults2.tokens)) {
-      t.is(token1.lexeme, token2.lexeme, filePath);
-      i += 1;
-    }
-
-    if (i) {
-    }
-
     t.true(scanResults1.scanErrors.length === 0);
     const parser2 = new Parser('', scanResults2.tokens);
     const parseResults2 = parser2.parse();
 
     t.true(parseResults2.parseErrors.length === 0);
 
-    if (prettyKosFile) {
+    const zipped = zip(
+      tokenCheck.orderedTokens(parseResults1.script),
+      tokenCheck.orderedTokens(parseResults2.script),
+    );
+    for (const [token1, token2] of zipped) {
+      t.is(token1.lexeme, token2.lexeme);
+      t.is(token1.type, token2.type);
     }
   });
 });
