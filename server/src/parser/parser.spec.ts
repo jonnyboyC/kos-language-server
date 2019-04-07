@@ -52,6 +52,42 @@ ava('parse all', (t) => {
   });
 });
 
+ava('parse all validate', (t) => {
+  walkDir(testDir, (filePath) => {
+    const kosFile = readFileSync(filePath, 'utf8');
+
+    const scanner1 = new Scanner(kosFile, filePath);
+    const scanResults1 = scanner1.scanTokens();
+
+    t.true(scanResults1.scanErrors.length === 0);
+    const parser1 = new Parser('', scanResults1.tokens);
+    const parseResults1 = parser1.parse();
+    t.true(parseResults1.parseErrors.length === 0);
+
+    const prettyKosFile = parseResults1.script.toString();
+    const scanner2 = new Scanner(prettyKosFile, filePath);
+    const scanResults2 = scanner2.scanTokens();
+
+    let i = 0;
+    for (const [token1, token2] of zip(scanResults1.tokens, scanResults2.tokens)) {
+      t.is(token1.lexeme, token2.lexeme, filePath);
+      i += 1;
+    }
+
+    if (i) {
+    }
+
+    t.true(scanResults1.scanErrors.length === 0);
+    const parser2 = new Parser('', scanResults2.tokens);
+    const parseResults2 = parser2.parse();
+
+    t.true(parseResults2.parseErrors.length === 0);
+
+    if (prettyKosFile) {
+    }
+  });
+});
+
 interface IAtomTest {
   source: string;
   type: TokenType;

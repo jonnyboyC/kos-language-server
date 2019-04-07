@@ -91,7 +91,10 @@ export class Scanner {
       case '*': return this.generateToken(TokenType.multi);
       case '=': return this.generateToken(TokenType.equal);
       case '.':
-        if (this.isDigit(this.peekNext())) return this.number();
+        if (this.isDigit(this.peekNext())) {
+          this.decrement();
+          return this.number();
+        }
         return this.generateToken(TokenType.period);
       case '<':
         if (this.match('=')) return this.generateToken(TokenType.lessEqual);
@@ -178,44 +181,42 @@ export class Scanner {
   // extract number
   private number(): ScanResult {
     let isFloat = this.advanceNumber();
+    const possibleNumber = this.generateNumber(isFloat);
+
     this.advanceWhitespace();
 
     const current = this.peek();
     let next = this.peekNext();
 
-    // parse exponent
-    if ((current === 'e' || current === 'E') && (
+    // check if exponent
+    if (!(current === 'e' || current === 'E') || !(
       next === '+' ||
       next === '-' ||
       this.isWhitespace(next) ||
       this.isDigit(next))) {
-
-      isFloat = true;
-
-      // parse optional exponent sign
-      next = this.peekNext();
-      while (this.isWhitespace(next) || next === '+' || next === '-') {
-        this.advance();
-        next = this.peekNext();
-      }
-
-      // unsure number follows exponent
-      if (!this.isDigit(this.peekNext())) {
-        return this.generateError('Expected number following exponet e');
-      }
-
-      // advance exponent number
-      this.advance();
-      this.advanceNumber();
+      return possibleNumber;
     }
+
+    isFloat = true;
+
+    // parse optional exponent sign
+    next = this.peekNext();
+    while (this.isWhitespace(next) || next === '+' || next === '-') {
+      this.advance();
+      next = this.peekNext();
+    }
+
+    // unsure number follows exponent
+    if (!this.isDigit(this.peekNext())) {
+      return this.generateError('Expected number following exponet e');
+    }
+
+    // advance exponent number
+    this.advance();
+    this.advanceNumber();
 
     // generate float
-    const numberString = this.numberString();
-    if (isFloat) {
-      return this.generateToken(TokenType.double, parseFloat(numberString));
-    }
-
-    return this.generateToken(TokenType.integer, parseInt(numberString, 10));
+    return this.generateNumber(isFloat);
   }
 
   // advance a number as either an int or double
@@ -233,10 +234,8 @@ export class Scanner {
   // advance number for digits and underscores
   private advanceNumberComponent(): void {
     let current = this.peek();
-    while (this.isDigit(current)
-      || this.isUnderScore(current)
-      || this.isWhitespace(current)) {
-      this.advance();
+    while (this.isDigit(current) || current === '_') {
+      this.increment();
       current = this.peek();
     }
   }
@@ -245,15 +244,20 @@ export class Scanner {
   private advanceWhitespace(): void {
     let current = this.peek();
     while (this.isWhitespace(current)) {
+      this.increment();
       current = this.peek();
     }
   }
 
   // remove underscores from number string literal
-  private numberString(): string {
-    return this.source
+  private generateNumber(isFloat: boolean): Token {
+    const numberString = this.source
       .substr(this.start, this.current - this.start)
       .replace(/(\_|\s)/g, '');
+
+    return isFloat
+      ? this.generateToken(TokenType.double, parseFloat(numberString))
+      : this.generateToken(TokenType.integer, parseInt(numberString, 10));
   }
 
   // generate token from provided token type and optional literal
@@ -285,36 +289,60 @@ export class Scanner {
     this.currentPosition.character = 0;
   }
 
-  // incremet file pointer
+  /**
+   * Decrement the file pointer 1 character
+   */
+  private decrement(): void {
+    this.current -= 1;
+    this.currentPosition.character -= 1;
+  }
+
+  /**
+   * Increment the file pointer 1 character
+   */
   private increment(): void {
     this.current += 1;
     this.currentPosition.character += 1;
   }
 
-  // Is end of file
+  /**
+   * Is the pointer current at the end of the file
+   */
   private isAtEnd(): boolean {
     return this.current >= this.source.length;
   }
 
-  // peek ahead
+  /**
+   * Peek ahead one character, return null character if past
+   * the end
+   */
   private peekNext(): string {
     if (this.current + 1 >= this.source.length) return '\0';
     return this.source[this.current + 1];
   }
 
-  // peek current
+  /**
+   * Peek the current chacter return null character is past
+   * the end
+   */
   private peek(): string {
     if (this.isAtEnd()) return '\0';
     return this.source[this.current];
   }
 
-  // increment current file pointers and return character
+  /**
+   * Advance the pointer 1 character returning the current
+   * character 
+   */
   private advance(): string {
     this.increment();
     return this.source[this.current - 1];
   }
 
-  // determine if character matches expected
+  /**
+   * Match a character, returns if match was found
+   * @param expected character
+   */
   private match(expected: string): boolean {
     if (this.isAtEnd()) return false;
     if (this.source[this.current] !== expected) return false;
@@ -323,38 +351,49 @@ export class Scanner {
     return true;
   }
 
-  // is same line whitepsace
+  /**
+   * Is the character whitespace
+   * @param c character to inspect
+   */
   private isWhitespace(c: string): boolean {
     return c === ' '
       || c === '\r'
       || c === '\t';
   }
 
-  // is digit character
+  /**
+   * Is the character a digit
+   * @param c character to inspect
+   */
   private isDigit(c: string): boolean {
     return c >= '0' && c <= '9';
   }
 
-  // is alpha character
+  /**
+   * Is the character an alphabet character
+   * @param c character to inspect
+   */
   private isAlpha(c: string): boolean {
     return this.isAscii(c)
-      || this.isUnderScore(c)
+      || c === '_'
       || identifierTest.test(c);
   }
 
+  /**
+   * Is the current character an ascii character
+   * @param c character to inspect
+   */
   private isAscii(c: string): boolean {
     return (c >= 'A' && c <= 'Z')
       || (c >= 'a' && c <= 'z');
   }
 
-  // is alpha numeric
+  /**
+   * Is the character alpha numeric
+   * @param c character to inspect
+   */
   private isAlphaNumeric(c: string): boolean {
     return this.isAlpha(c) || this.isDigit(c);
-  }
-
-  // is underscore
-  private isUnderScore(c: string): boolean {
-    return c === '_';
   }
 }
 

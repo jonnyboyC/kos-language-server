@@ -71,11 +71,11 @@ export class Block extends Inst {
   }
 
   public toLines(): string[] {
-    return [this.open.toString()]
+    return [this.open.lexeme]
       .concat(
         ...this.insts.map(t =>
           t.toLines().map(line => `    ${line}`)),
-        this.close.toString(),
+        this.close.lexeme,
       );
   }
 
@@ -278,7 +278,7 @@ export class Unlock extends Inst {
   }
 
   public toLines(): string[] {
-    return [`${this.unlock.lexeme} ${this.identifier}.`];
+    return [`${this.unlock.lexeme} ${this.identifier.lexeme}.`];
   }
 
   public get start(): Position {
@@ -818,6 +818,7 @@ export class Toggle extends Inst {
   public toLines(): string[] {
     const suffixLines = this.suffix.toLines();
     suffixLines[0] = `${this.toggle.lexeme} ${suffixLines[0]}`;
+    suffixLines[suffixLines.length - 1] = `${suffixLines[suffixLines.length - 1]}.`;
 
     return suffixLines;
   }
@@ -853,12 +854,11 @@ export class Wait extends Inst {
 
   public toLines(): string[] {
     const exprLines = this.expr.toLines();
-    if (!empty(this.until)) {
-      exprLines[0] = `${this.wait.lexeme} ${this.until.lexeme} ${exprLines[0]}`;
-      return exprLines;
-    }
+    exprLines[0] = empty(this.until)
+      ? `${this.wait.lexeme} ${exprLines[0]}`
+      : `${this.wait.lexeme} ${this.until.lexeme} ${exprLines[0]}`;
 
-    exprLines[0] = `${this.wait.lexeme} ${exprLines[0]}`;
+    exprLines[exprLines.length - 1] = `${exprLines[exprLines.length - 1]}.`;
     return exprLines;
   }
 
@@ -906,6 +906,7 @@ export class Log extends Inst {
 
     exprLines[0] = `${this.log.lexeme} ${exprLines[0]}`;
     targetLines[0] = `${this.to.lexeme} ${targetLines[0]}`;
+    targetLines[targetLines.length - 1] = `${targetLines[targetLines.length - 1]}.`;
 
     return linesJoin(' ', exprLines, targetLines);
   }
@@ -1034,10 +1035,12 @@ export class Delete extends Inst {
     if (!empty(this.from) && !empty(this.volume)) {
       const volumeLines = this.volume.toLines();
       volumeLines[0] = `${this.from.lexeme} ${volumeLines[0]}`;
+      volumeLines[volumeLines.length - 1] = `${volumeLines[volumeLines.length - 1]}.`;
 
       return linesJoin(' ', targetLines, volumeLines);
     }
 
+    targetLines[targetLines.length - 1] = `${targetLines[targetLines.length - 1]}.`;
     return targetLines;
   }
 
@@ -1169,7 +1172,7 @@ export class RunPath extends Inst {
     let lines = this.expr.toLines();
 
     if (!empty(this.args)) {
-      lines = linesJoin(', ', ...this.args.map(arg => arg.toLines()));
+      lines = linesJoin(', ', lines, ...this.args.map(arg => arg.toLines()));
     }
 
     lines[0] = `${this.runPath.lexeme}${this.open.lexeme}${lines[0]}`;
@@ -1220,7 +1223,7 @@ export class RunPathOnce extends Inst {
     let lines = this.expr.toLines();
 
     if (!empty(this.args)) {
-      lines = linesJoin(', ', ...this.args.map(arg => arg.toLines()));
+      lines = linesJoin(', ', lines, ...this.args.map(arg => arg.toLines()));
     }
 
     lines[0] = `${this.runPath.lexeme}${this.open.lexeme}${lines[0]}`;

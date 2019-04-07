@@ -297,13 +297,26 @@ export class Param extends Decl {
   }
 
   public toLines(): string[] {
-    let lines = empty(this.scope)
+    const declareLine = empty(this.scope)
       ? [`${this.parameterToken.lexeme}`]
       : [`${this.scope.toString()} ${this.parameterToken.lexeme}`];
 
-    lines = linesJoin(', ', ...this.parameters.map(param => param.toLines()));
-    lines = linesJoin(', ', ...this.defaultParameters.map(param => param.toLines()));
+    const paramLines = linesJoin(
+      ', ', ...this.parameters.map(param => param.toLines()));
+    const defaultParamLines = linesJoin(
+      ', ', ...this.defaultParameters.map(param => param.toLines()));
 
+    let lines: string[] = [];
+    if (this.parameters.length > 0 && this.defaultParameters.length > 0) {
+      lines = linesJoin(', ', paramLines, defaultParamLines);
+    } else if (this.parameters.length > 0) {
+      lines = paramLines;
+    } else {
+      lines = defaultParamLines;
+    }
+
+    lines[0] = `${declareLine} ${lines[0]}`;
+    lines[lines.length - 1] = `${lines[lines.length - 1]}.`;
     return lines;
   }
 

@@ -45,6 +45,8 @@ export interface IScript extends IRangeSequence {
   runInsts: RunInstType[];
   uri: string;
   toLocation(): Location;
+  toLines(): string[];
+  toString(): string;
   tag: SyntaxKind.script;
 }
 

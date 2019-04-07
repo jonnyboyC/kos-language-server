@@ -15,6 +15,7 @@ import {
 import { empty } from '../utilities/typeGuards';
 import { NodeBase } from './base';
 import { flatten } from '../utilities/arrayUtilities';
+import { linesJoin } from './toStringUtils';
 
 /**
  * Expression base class
@@ -123,11 +124,10 @@ export class Binary extends Expr {
   }
 
   public toLines(): string[] {
-    const lines = this.left.toLines();
-    const [joinLine, restLines] = this.right.toLines();
+    const leftLines = this.left.toLines();
+    const rightLines = this.right.toLines();
 
-    lines[lines.length - 1] = `${lines[lines.length - 1]} ${this.operator.lexeme} ${joinLine}`;
-    return lines.concat(restLines);
+    return linesJoin(` ${this.operator.lexeme} `, leftLines, rightLines);
   }
 
   public accept<T>(visitor: IExprVisitor<T>): T {
@@ -242,11 +242,7 @@ export class Factor extends Expr {
   }
 
   public toLines(): string[] {
-    const lines = this.suffix.toLines();
-    const [joinLine, restLines] = this.exponent.toLines();
-
-    lines[lines.length - 1] = `${lines[lines.length - 1]}${this.power.lexeme}${joinLine}`;
-    return lines.concat(restLines);
+    return linesJoin(this.power.lexeme, this.suffix.toLines(), this.exponent.toLines());
   }
 
   public accept<T>(visitor: IExprVisitor<T>): T {
@@ -395,16 +391,8 @@ export class Suffix extends Expr {
     const suffixTermLines = this.suffixTerm.toLines();
 
     if (!empty(this.colon) && !empty(this.trailer)) {
-      const [joinLine, ...restLines] = this.trailer.toLines();
-
-      if (suffixTermLines.length === 1) {
-        return [`${suffixTermLines[0]}${this.colon.lexeme}${joinLine}`].concat(restLines);
-      }
-
-      return suffixTermLines.slice(0, suffixTermLines.length - 2)
-        .concat(
-          `${suffixTermLines[0]}${this.colon.lexeme}${joinLine}`,
-          restLines);
+      const trailerLines = this.trailer.toLines();
+      return linesJoin(this.colon.lexeme, suffixTermLines, trailerLines);
     }
 
     return suffixTermLines;

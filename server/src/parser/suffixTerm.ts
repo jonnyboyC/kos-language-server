@@ -288,6 +288,10 @@ export class Call extends SuffixTermBase {
   }
 
   public toLines(): string[] {
+    if (this.args.length === 0) {
+      return [`${this.open.lexeme}${this.close.lexeme}`];
+    }
+
     const argsLines = this.args.map(a => a.toLines());
     const argsResult = linesJoin(',', ...argsLines);
 
