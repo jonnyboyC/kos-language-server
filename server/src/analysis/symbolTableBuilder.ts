@@ -17,6 +17,7 @@ import { KsSymbolTracker, createEnitityChange } from './tracker';
 import { IArgumentType, IFunctionType } from '../typeChecker/types/types';
 import { SymbolTable } from './symbolTable';
 import { isKsVariable, isKsParameter, isKsLock } from '../entities/entityHelpers';
+import { rangeToString } from '../utilities/positionHelpers';
 
 /**
  * The Symbol table builder is used to declare new symbols and track new symbols
@@ -261,119 +262,145 @@ export class SymbolTableBuilder {
   }
 
   /**
-   * Add a new variable symbol to the table
-   * @param scopeType the requested scope type
-   * @param name token for the requested variable
-   * @param type type to declare variable as
+   * Set a variable symbol
+   * @param token token for the variable to set
    */
-  public declareVariable(scopeType: ScopeType, name: IToken, type?: IArgumentType):
-    Maybe<ResolverError> {
-    const tracker = this.lookup(name, scopeType);
+  public setVariable(token: IToken): Maybe<ResolverError> {
+    const tracker = this.lookup(token, ScopeType.global);
 
     // check if variable has already been defined
-    if (!empty(tracker)) {
-      return this.localConflictError(name, tracker.declared.symbol);
+    if (empty(tracker)) {
+      return new ResolverError(token, `${token.lexeme} may not exist`, ResolverErrorKind.error, []);
+    }
+
+    token.tracker = tracker;
+    this.logger.verbose(`set variable ${token.lexeme} at ${rangeToString(token)}`);
+    return undefined;
+  }
+
+  /**
+   * Add a new variable symbol to the table
+   * @param scopeType the requested scope type
+   * @param token token for the requested variable
+   * @param type type to declare variable as
+   */
+  public declareVariable(scopeType: ScopeType, token: IToken, type?: IArgumentType):
+    Maybe<ResolverError> {
+    const conflictTracker = this.lookup(token, scopeType);
+
+    // check if variable has already been defined
+    if (!empty(conflictTracker)) {
+      return this.localConflictError(token, conflictTracker.declared.symbol);
     }
 
     const scope = this.selectScope(scopeType);
+    const tracker = new KsSymbolTracker(new KsVariable(scopeType, token), type);
 
-    scope.set(name.lexeme, new KsSymbolTracker(new KsVariable(scopeType, name), type));
-    this.logger.verbose(`declare variable ${name.lexeme} at ${JSON.stringify(name.start)}`);
+    token.tracker = tracker;
+    scope.set(token.lexeme, tracker);
+
+    this.logger.verbose(`declare variable ${token.lexeme} at ${rangeToString(token)}`);
     return undefined;
   }
 
   /**
    * Add a new function symbol to the table
    * @param scopeType the requested scope type
-   * @param name token for the requested function
+   * @param token token for the requested function
    * @param parameters parameters for the function
    * @param returnValue does the function have a return type
    * @param type type to declare function as
    */
   public declareFunction(
     scopeType: ScopeType,
-    name: IToken,
+    token: IToken,
     parameters: KsParameter[],
     returnValue: boolean,
     type?: IFunctionType): Maybe<ResolverError> {
-    const tracker = this.lookup(name, scopeType);
+    const conflictTracker = this.lookup(token, scopeType);
 
     // check if variable has already been defined
-    if (!empty(tracker)) {
-      return this.localConflictError(name, tracker.declared.symbol);
+    if (!empty(conflictTracker)) {
+      return this.localConflictError(token, conflictTracker.declared.symbol);
     }
 
     const scope = this.selectScope(scopeType);
-    scope.set(name.lexeme, new KsSymbolTracker(
+    const tracker = new KsSymbolTracker(
       new KsFunction(
-        scopeType, name,
+        scopeType, token,
         parameters, returnValue),
-      type));
+      type);
 
-    this.logger.verbose(`declare function ${name.lexeme} at ${JSON.stringify(name.start)}`);
+    token.tracker = tracker;
+    scope.set(token.lexeme, tracker);
+
+    this.logger.verbose(`declare function ${token.lexeme} at ${rangeToString(token)}`);
     return undefined;
   }
 
   /**
    * Add a new lock symbol to the table
    * @param scopeType the requested scope type
-   * @param name token for the requested lock
+   * @param token token for the requested lock
    * @param type type to declare lock as
    */
   public declareLock(
     scopeType: ScopeType,
-    name: IToken,
+    token: IToken,
     type?: IArgumentType): Maybe<ResolverError> {
-    const tracker = this.lookup(name, scopeType);
+    const conflictTracker = this.lookup(token, scopeType);
 
     // check if variable has already been defined
-    if (!empty(tracker)) {
-      return this.localConflictError(name, tracker.declared.symbol);
+    if (!empty(conflictTracker)) {
+      return this.localConflictError(token, conflictTracker.declared.symbol);
     }
 
     const scope = this.selectScope(scopeType);
+    const tracker = new KsSymbolTracker(new KsLock(scopeType, token), type);
 
-    scope.set(
-      name.lexeme,
-      new KsSymbolTracker(new KsLock(scopeType, name), type));
-    this.logger.verbose(`declare lock ${name.lexeme} at ${JSON.stringify(name.start)}`);
+    token.tracker = tracker;
+    scope.set(token.lexeme, tracker);
+
+    this.logger.verbose(`declare lock ${token.lexeme} at ${rangeToString(token)}`);
     return undefined;
   }
 
   /**
    * Add a new parameter symbol to the table
    * @param scopeType the requested scope type
-   * @param name token for the requested parameter
+   * @param token token for the requested parameter
    * @param defaulted is the parameter defaulted
    */
   public declareParameter(
     scopeType: ScopeType,
-    name: IToken,
+    token: IToken,
     defaulted: boolean): Maybe<ResolverError> {
-    const tracker = this.lookup(name, scopeType);
+    const conflictTracker = this.lookup(token, scopeType);
 
     // check if variable has already been defined
-    if (!empty(tracker)) {
-      return this.localConflictError(name, tracker.declared.symbol);
+    if (!empty(conflictTracker)) {
+      return this.localConflictError(token, conflictTracker.declared.symbol);
     }
 
     const scope = this.selectScope(scopeType);
-    scope.set(
-      name.lexeme,
-      new KsSymbolTracker(new KsParameter(name, defaulted, SymbolState.declared)));
-    this.logger.verbose(`declare parameter ${name.lexeme} at ${JSON.stringify(name.start)}`);
+    const tracker = new KsSymbolTracker(new KsParameter(token, defaulted, SymbolState.declared));
+
+    token.tracker = tracker;
+    scope.set(token.lexeme, tracker);
+
+    this.logger.verbose(`declare parameter ${token.lexeme} at ${rangeToString(token)}`);
     return undefined;
   }
 
   /**
    * check if the symbol exist and add a usage if it does
-   * @param name token for the requested symbol
+   * @param token token for the requested symbol
    * @param tracker symbol tracker
    * @param symbolType symbol type
    * @param expr expression context
    */
   public checkUseSymbol(
-    name: IToken,
+    token: IToken,
     tracker: Maybe<IKsSymbolTracker>,
     symbolType: KsSymbolKind,
     expr?: IExpr | ISuffixTerm):
@@ -381,23 +408,13 @@ export class SymbolTableBuilder {
     // check that variable has already been defined
     if (empty(tracker)) {
       return new ResolverError(
-        name, `${symbolType} ${name.lexeme} may not exist.`, ResolverErrorKind.error, []);
+        token, `${symbolType} ${token.lexeme} may not exist.`, ResolverErrorKind.error, []);
     }
 
-    tracker.usages.push(createEnitityChange(name, expr));
-    this.logger.verbose(`Use ${symbolType} ${name.lexeme} at ${JSON.stringify(name.start)}`);
+    token.tracker = tracker;
+    tracker.usages.push(createEnitityChange(token, expr));
+    this.logger.verbose(`Use ${symbolType} ${token.lexeme} at ${rangeToString(token)}`);
     return undefined;
-  }
-
-  /**
-   * Lookup a binding ie. variable or parameter
-   * @param token token for the requested binding
-   * @param scope requested scope lookup
-   */
-  public lookupBinding (token: IToken, scope: ScopeType):
-  Maybe<KsVariable | KsParameter> {
-    const tracker = this.lookupBindingTracker(token, scope);
-    return tracker && tracker.declared.symbol;
   }
 
   /**
@@ -438,22 +455,6 @@ export class SymbolTableBuilder {
   public lookupParameter(token: IToken, scope: ScopeType): Maybe<KsParameter> {
     const tracker = this.lookupParameterTracker(token, scope);
     return tracker && tracker.declared.symbol;
-  }
-
-  /**
-   * lookup a binding tracker ie. variable or parameter
-   * @param token token for the requested binding
-   * @param scope requested scope lookup
-   */
-  public lookupBindingTracker(token: IToken, scope: ScopeType):
-    Maybe<IKsSymbolTracker<KsVariable | KsParameter>> {
-    const tracker = this.lookup(token, scope);
-
-    return !empty(tracker)
-      && (isKsVariable(tracker.declared.symbol)
-      || isKsParameter(tracker.declared.symbol))
-      ? tracker as IKsSymbolTracker<KsVariable | KsParameter>
-      : undefined;
   }
 
   /**
@@ -605,27 +606,9 @@ export class SymbolTableBuilder {
     return new ResolverError(
       name,
       `${this.pascalCase(KsSymbolKind[symbol.tag])} ${symbol.name.lexeme}` +
-      ` already exists here ${this.rangeToString(symbol.name)}.`,
+      ` already exists here ${rangeToString(symbol.name)}.`,
       ResolverErrorKind.error,
       []);
-  }
-
-  /**
-   * convert a range to a string
-   * @param range a file range
-   */
-  private rangeToString(range: Range): string {
-    const sameLine = range.start.line === range.end.line;
-    const line = sameLine
-      ? (range.start.line + 1).toString()
-      : `${range.start.line + 1}-${range.end.line + 1}`;
-
-    const sameColumn = range.start.character === range.end.character;
-    const column = sameLine && sameColumn
-      ? (range.start.character + 1).toString()
-      : `${range.start.character + 1}-${range.end.character + 1}`;
-
-    return `line: ${line} column: ${column}`;
   }
 
   /**

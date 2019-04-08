@@ -82,12 +82,17 @@ export const rangeIntersection = (range1: Range, range2: Range): boolean => {
 };
 
 export const rangeToString = (range: Range): string => {
-  if (range.start.line === range.end.line) {
-    return `line: ${range.start.line} characters ${range.start.character}-${range.end.character}`;
-  }
+  const sameLine = range.start.line === range.end.line;
+  const line = sameLine
+    ? (range.start.line + 1).toString()
+    : `${range.start.line + 1}-${range.end.line + 1}`;
 
-  return `line: ${range.start.line} character: ${range.start.character} to `
-    + `line: ${range.end.line} character: ${range.end.character}`;
+  const sameCharacter = range.start.character === range.end.character;
+  const character = sameLine && sameCharacter
+    ? (range.start.character + 1).toString()
+    : `${range.start.character + 1}-${range.end.character + 1}`;
+
+  return `line: ${line} character: ${character}`;
 };
 
 export const binarySearch = <T extends Range>(ranges: T[], pos: Position): Maybe<T> => {

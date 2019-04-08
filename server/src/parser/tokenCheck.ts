@@ -6,11 +6,12 @@ import * as SuffixTerm from './suffixTerm';
 import { Token } from '../entities/token';
 import { TraverseTree } from './traverseTree';
 import { flatten } from '../utilities/arrayUtilities';
+import { IToken } from '../entities/types';
 
 /**
  * Check all tokens in a given tree node
  */
-export class TokenCheck extends TraverseTree<Token[]> {
+export class TokenCheck extends TraverseTree<IToken[]> {
 
   /**
    * Construct token check
@@ -23,7 +24,7 @@ export class TokenCheck extends TraverseTree<Token[]> {
    * Get all tokens in the syntax tree from this node down
    * @param syntaxNode syntax node to begin
    */
-  public orderedTokens(syntaxNode: TreeNode): Token[] {
+  public orderedTokens(syntaxNode: TreeNode): IToken[] {
     return this.nodeAction(syntaxNode);
   }
 
@@ -31,13 +32,13 @@ export class TokenCheck extends TraverseTree<Token[]> {
    * Add tokens from each internal node
    * @param node syntax node to begin
    */
-  protected nodeAction(node: TreeNode): Token[] {
+  protected nodeAction(node: TreeNode): IToken[] {
     // return result if token found
     if (node instanceof Token) {
       return [node];
     }
 
-    const tokens: Token[][] = [];
+    const tokens: IToken[][] = [];
 
     for (const childNode of node.ranges) {
       if (childNode instanceof SuffixTerm.SuffixTermBase) {

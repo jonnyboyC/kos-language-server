@@ -2,7 +2,7 @@
 import { TokenType, isValidIdentifier } from '../entities/tokentypes';
 import {
   IParseError, IExpr, IDeclScope, IInst,
-  INodeResult, RunInstType, ParseResult, Atom, SuffixTermTrailer,
+  INodeResult, RunInstType, IParseResult, Atom, SuffixTermTrailer,
 } from './types';
 import {
   ParseError, FailedConstructor,
@@ -53,7 +53,7 @@ export class Parser {
   }
 
   // parse tokens
-  public parse(): ParseResult {
+  public parse(): IParseResult {
     try {
       const instructions: Inst.Inst[] = [];
       let parseErrors: IParseError[] = [];

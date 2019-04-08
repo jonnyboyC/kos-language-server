@@ -332,7 +332,7 @@ export class Scanner {
 
   /**
    * Advance the pointer 1 character returning the current
-   * character 
+   * character
    */
   private advance(): string {
     this.increment();

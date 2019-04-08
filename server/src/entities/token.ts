@@ -1,6 +1,7 @@
 import { TokenType } from './tokentypes';
 import { Position, Range } from 'vscode-languageserver';
 import { IToken } from './types';
+import { IKsSymbolTracker } from '../analysis/types';
 
 export class Token implements IToken {
   public readonly type: TokenType;
@@ -9,6 +10,7 @@ export class Token implements IToken {
   public readonly start: Marker;
   public readonly end: Marker;
   public readonly uri: string;
+  public tracker: Maybe<IKsSymbolTracker>;
 
   constructor(
     type: TokenType,
@@ -23,6 +25,7 @@ export class Token implements IToken {
     this.start = start;
     this.end = end;
     this.uri = uri;
+    this.tracker = undefined;
   }
 
   public get tag(): 'token' {

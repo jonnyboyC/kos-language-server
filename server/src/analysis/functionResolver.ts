@@ -13,10 +13,10 @@ import { empty } from '../utilities/typeGuards';
 import { KsParameter } from '../entities/parameters';
 import { TokenType } from '../entities/tokentypes';
 import { mockLogger, mockTracer } from '../utilities/logger';
-import { SymbolState, ResolverErrorKind } from './types';
+import { SymbolState, ResolverErrorKind, IResolverError } from './types';
 import { SymbolTableBuilder } from './symbolTableBuilder';
 
-export type Errors = ResolverError[];
+export type Errors = IResolverError[];
 
 export class FuncResolver implements
   IExprVisitor<Errors>,
@@ -88,12 +88,12 @@ export class FuncResolver implements
   }
 
   // check lock declaration
-  public visitDeclLock(_: Lock): ResolverError[] {
+  public visitDeclLock(_: Lock): Errors {
     return [];
   }
 
   // check function declaration
-  public visitDeclFunction(decl: Func): ResolverError[] {
+  public visitDeclFunction(decl: Func): Errors {
     const scopeToken = decl.scope && decl.scope.scope;
 
     let scopeType: ScopeType;
@@ -168,7 +168,7 @@ export class FuncResolver implements
   }
 
   // check parameter declaration
-  public visitDeclParameter(_: Param): ResolverError[] {
+  public visitDeclParameter(_: Param): Errors {
     return [];
   }
 
@@ -403,11 +403,11 @@ export class FuncResolver implements
 
   ----------------------------------------------*/
 
-  public visitSuffixTermInvalid(_: SuffixTerm.Invalid): ResolverError[] {
+  public visitSuffixTermInvalid(_: SuffixTerm.Invalid): Errors {
     return [];
   }
 
-  public visitSuffixTrailer(expr: SuffixTerm.SuffixTrailer): ResolverError[] {
+  public visitSuffixTrailer(expr: SuffixTerm.SuffixTrailer): Errors {
     const suffixTerm = this.resolveSuffixTerm(expr.suffixTerm);
     if (empty(expr.trailer)) {
       return suffixTerm;

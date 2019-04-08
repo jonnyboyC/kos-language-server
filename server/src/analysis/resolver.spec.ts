@@ -1,46 +1,62 @@
 import { Parser } from '../parser/parser';
 import { Scanner } from '../scanner/scanner';
-import { IScript } from '../parser/types';
+import { IParseResult } from '../parser/types';
 import ava, { ExecutionContext }from 'ava';
 import { SymbolTable } from './symbolTable';
 import { FuncResolver } from './functionResolver';
 import { SymbolTableBuilder } from './symbolTableBuilder';
 import { Resolver } from './resolver';
-import { KsSymbol, KsSymbolKind } from './types';
+import { KsSymbol, KsSymbolKind, IResolverError } from './types';
 import { empty, unWrap, unWrapMany } from '../utilities/typeGuards';
 import { rangeEqual } from '../utilities/positionHelpers';
 import { Range } from 'vscode-languageserver';
 import { structureType } from '../typeChecker/types/primitives/structure';
+import { IScanResult } from '../scanner/types';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 const fakeUri = 'C:\\fake.ks';
 
+interface IResolveResults {
+  scan: IScanResult;
+  parse: IParseResult;
+  table: SymbolTable;
+  resolveError: IResolverError[];
+}
+
 // parse source
-const parseSource = (source: string, t: ExecutionContext<{}>): IScript => {
+const parseSource = (source: string)
+  : Pick<IResolveResults, 'scan' | 'parse'> => {
   const scanner = new Scanner(source, fakeUri);
-  const { scanErrors, tokens } = scanner.scanTokens();
-  t.is(0, scanErrors.length);
+  const scan = scanner.scanTokens();
 
-  const parser = new Parser(fakeUri, tokens);
-  const { parseErrors, script } = parser.parse();
-  t.is(0, parseErrors.length);
+  const parser = new Parser(fakeUri, scan.tokens);
+  const parse = parser.parse();
 
-  return script;
+  return { scan, parse };
 };
 
-const resolveSource = (source: string, t: ExecutionContext<{}>): SymbolTable => {
-  const script = parseSource(source, t);
+const resolveSource = (source: string): IResolveResults => {
+  const result = parseSource(source);
 
   const symbolTableBuilder = new SymbolTableBuilder(fakeUri);
-  const functionResolver = new FuncResolver(script, symbolTableBuilder);
-  const resolver = new Resolver(script, symbolTableBuilder);
+  const functionResolver = new FuncResolver(result.parse.script, symbolTableBuilder);
+  const resolver = new Resolver(result.parse.script, symbolTableBuilder);
 
   const funcResolverError = functionResolver.resolve();
-  t.is(0, funcResolverError.length);
-
   const resolverErrors = resolver.resolve();
-  t.is(0, resolverErrors.length);
 
-  return symbolTableBuilder.build();
+  return {
+    ...result,
+    resolveError: funcResolverError.concat(resolverErrors),
+    table: symbolTableBuilder.build(),
+  };
+};
+
+const noErrors = (result: IResolveResults, t: ExecutionContext<{}>): void => {
+  t.is(0, result.scan.scanErrors.length);
+  t.is(0, result.parse.parseErrors.length);
+  t.is(0, result.resolveError.length);
 };
 
 const setSource = `
@@ -54,8 +70,11 @@ print x.
 
 // test basic identifier
 ava('basic set test', (t) => {
-  const symbolTable = resolveSource(setSource, t);
-  const symbols = symbolTable.fileSymbols();
+  const results = resolveSource(setSource);
+  noErrors(results, t);
+
+  const { table } = results;
+  const symbols = table.fileSymbols();
   const names = new Map(symbols.map((s): [string, KsSymbol] => [s.name.lexeme, s]));
 
   t.true(names.has('x'));
@@ -79,9 +98,12 @@ ava('basic set test', (t) => {
 
 // test basic identifier
 ava('basic tracker set test', (t) => {
-  const symbolTable = resolveSource(setSource, t);
-  const xTrack = symbolTable.scopedNamedTracker({ line: 0, character: 0 }, 'x');
-  const yTrack = symbolTable.scopedNamedTracker({ line: 0, character: 0 }, 'y');
+  const results = resolveSource(setSource);
+  noErrors(results, t);
+
+  const { table } = results;
+  const xTrack = table.scopedNamedTracker({ line: 0, character: 0 }, 'x');
+  const yTrack = table.scopedNamedTracker({ line: 0, character: 0 }, 'y');
 
   t.false(empty(xTrack));
   t.false(empty(yTrack));
@@ -143,4 +165,19 @@ ava('basic tracker set test', (t) => {
 
   t.is(xUsage.type, structureType);
   t.is(yUsage.type, structureType);
+});
+
+const definedPath = join(
+  __dirname,
+  '../../../kerboscripts/parser_valid/declaration/definedtest.ks',
+);
+
+// test basic identifier
+ava('basic defined test', (t) => {
+  const defineSource = readFileSync(definedPath, 'utf8');
+  const results = resolveSource(defineSource);
+
+  t.is(0, results.scan.scanErrors.length);
+  t.is(0, results.parse.parseErrors.length);
+  t.true(results.resolveError.length > 0);
 });

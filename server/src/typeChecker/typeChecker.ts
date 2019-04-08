@@ -40,7 +40,7 @@ import {
 import { delegateType } from './types/primitives/delegate';
 import { TypeNode } from './typeNode';
 import { KsSymbolKind } from '../analysis/types';
-import { rangeEqual } from '../utilities/positionHelpers';
+import { rangeEqual, rangeToString } from '../utilities/positionHelpers';
 import { listType } from './types/collections/list';
 import { bodyTargetType } from './types/orbital/bodyTarget';
 import { vesselTargetType } from './types/orbital/vesselTarget';
@@ -49,6 +49,7 @@ import { volumeItemType } from './types/io/volumeItem';
 import { partModuleFieldsType } from './types/parts/partModuleFields';
 import { partType } from './types/parts/part';
 import { pathType } from './types/io/path';
+import { NodeBase } from '../parser/base';
 
 type TypeErrors = ITypeError[];
 type SuffixTermType = ISuffixType | IArgumentType;
@@ -326,7 +327,7 @@ export class TypeChecker implements
       return errors.concat(
         new KsTypeError(
           inst.suffix,
-          `Cannot set ${inst.suffix.toString()} as it is a call`,
+          `Cannot set ${this.nodeError(inst.suffix)} as it is a call`,
           []));
     }
 
@@ -340,7 +341,7 @@ export class TypeChecker implements
       if (!coerce(exprResult.type, suffixResult.type)) {
         setErrors.push(new KsTypeError(
           inst.suffix,
-          `Cannot set suffix ${inst.suffix.toString()} ` +
+          `Cannot set suffix ${this.nodeError(inst.suffix)}` +
           `of type ${suffixResult.type.name} to ${exprResult.type.name}`,
           []));
       }
@@ -1519,6 +1520,14 @@ export class TypeChecker implements
     return suffixTerm.trailers.length > 0
       ? suffixTerm.trailers[suffixTerm.trailers.length - 1]
       : suffixTerm.atom;
+  }
+
+  /**
+   * Convert node to string and relevant range
+   * @param node node to create message for
+   */
+  private nodeError(node: NodeBase): string {
+    return `${node.toString()} ${rangeToString(node)}`;
   }
 }
 

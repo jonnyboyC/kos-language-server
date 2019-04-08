@@ -150,12 +150,12 @@ export interface IParseError extends Range {
   inner: IParseError[];
 }
 
-export interface ParseResult {
+export interface IParseResult {
   script: IScript;
   parseErrors: IParseError[];
 }
 
-export interface ScriptResult extends ParseResult {
+export interface ScriptResult extends IParseResult {
   scanErrors: IScannerError[];
 }
 
