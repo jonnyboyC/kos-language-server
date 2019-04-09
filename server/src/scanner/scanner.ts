@@ -7,17 +7,58 @@ import { IToken } from '../entities/types';
 import { empty } from '../utilities/typeGuards';
 import { mockLogger, mockTracer } from '../utilities/logger';
 
+/**
+ * Class for scanning kerboscript files
+ */
 export class Scanner {
+
+  /**
+   * source string for scanning
+   */
   private source: string;
+
+  /**
+   * start character of current token
+   */
   private start: number;
+
+  /**
+   * current character position
+   */
   private current: number;
+
+  /**
+   * current line and character position
+   */
   private currentPosition: MutableMarker;
+
+  /**
+   * start character and line of current token
+   */
   private startPosition: MutableMarker;
+
+  /**
+   * uri of the source file
+   */
   private uri: string;
+
+  /**
+   * logger for the scanner
+   */
   private readonly logger: ILogger;
+
+  /**
+   * tracer for the scanner
+   */
   private readonly tracer: ITracer;
 
-  // scanner initializer
+  /**
+   * Scanner constructor
+   * @param source source string
+   * @param uri source uri
+   * @param logger logger for scanner
+   * @param tracer tracer for scanner
+   */
   constructor(
     source: string,
     uri: string = '',
@@ -33,12 +74,16 @@ export class Scanner {
     this.currentPosition = new MutableMarker(0, 0);
   }
 
-  // scan all available tokens
+  /**
+   * scan all available tokens
+   */
   public scanTokens(): IScanResult {
     try {
       // create arrays for valid tokens and encountered errors
       const tokens: IToken[] = [];
       const scanErrors: IScannerError[] = [];
+
+      this.logger.info(`Scanning ${this.uri} with ${this.source.length} characters.`);
 
       // begin scanning
       while (!this.isAtEnd()) {
@@ -59,6 +104,9 @@ export class Scanner {
         }
       }
 
+      this.logger.info(`Finished scanning ${this.uri} with `
+        + `${tokens.length} tokens and ${scanErrors.length} errors.`);
+
       return { tokens, scanErrors };
     } catch (err) {
       this.logger.error(`Error occured in scanner ${err}`);
@@ -71,6 +119,9 @@ export class Scanner {
     }
   }
 
+  /**
+   * Scan a single token
+   */
   private scanToken(): ScanResult {
     const c = this.advance();
     switch (c) {
@@ -130,7 +181,9 @@ export class Scanner {
     }
   }
 
-  // extract any identifiers
+  /**
+   * extract any identifiers
+   */
   private identifier(): Token {
     while (this.isAlphaNumeric(this.peek())) this.advance();
 
@@ -147,7 +200,9 @@ export class Scanner {
     return this.generateToken(TokenType.identifier, undefined, true);
   }
 
-    // extract a file identifier
+  /**
+   * extract a file identifier
+   */
   private fileIdentifier(): Token {
     while (this.isAlphaNumeric(this.peek())
     || (this.peek() === '.' && this.isAlphaNumeric(this.peekNext()))) {
@@ -159,7 +214,9 @@ export class Scanner {
     return this.generateToken(TokenType.fileIdentifier, value, true);
   }
 
-  // extract string
+  /**
+   * extract a string
+   */
   private string(): ScanResult {
     // while closing " not found increment new lines
     while (this.peek() !== '"' && !this.isAtEnd()) {
@@ -178,7 +235,9 @@ export class Scanner {
     return this.generateToken(TokenType.string, value);
   }
 
-  // extract number
+  /**
+   * extract a number
+   */
   private number(): ScanResult {
     let isFloat = this.advanceNumber();
     const possibleNumber = this.generateNumber(isFloat);
@@ -219,7 +278,9 @@ export class Scanner {
     return this.generateNumber(isFloat);
   }
 
-  // advance a number as either an int or double
+  /**
+   * advance a number as either an int or double
+   */
   private advanceNumber(): boolean {
     this.advanceNumberComponent();
     if (this.peek() === '.' && this.isDigit(this.peekNext())) {
@@ -231,7 +292,9 @@ export class Scanner {
     return false;
   }
 
-  // advance number for digits and underscores
+  /**
+   * advance a number before or after a period
+   */
   private advanceNumberComponent(): void {
     let current = this.peek();
     while (this.isDigit(current) || current === '_') {
@@ -240,7 +303,9 @@ export class Scanner {
     }
   }
 
-  // advance through whitespace
+  /**
+   * advance through whitespace
+   */
   private advanceWhitespace(): void {
     let current = this.peek();
     while (this.isWhitespace(current)) {
@@ -249,18 +314,26 @@ export class Scanner {
     }
   }
 
-  // remove underscores from number string literal
+  /**
+   * remove underscores from number and generate token
+   * @param isFloat is the token a float
+   */
   private generateNumber(isFloat: boolean): Token {
     const numberString = this.source
       .substr(this.start, this.current - this.start)
-      .replace(/(\_|\s)/g, '');
+      .replace(/(\_)/g, '');
 
     return isFloat
       ? this.generateToken(TokenType.double, parseFloat(numberString))
       : this.generateToken(TokenType.integer, parseInt(numberString, 10));
   }
 
-  // generate token from provided token type and optional literal
+  /**
+   * generate token from provided token type and optional literal
+   * @param type token type
+   * @param literal optional literal
+   * @param toLower should the lexeme be lowered
+   */
   private generateToken(type: TokenType, literal?: any, toLower?: boolean): Token {
     const text = toLower
       ? this.source.substr(this.start, this.current - this.start).toLowerCase()
@@ -274,7 +347,10 @@ export class Scanner {
     );
   }
 
-  // generate error
+  /**
+   * generate error
+   * @param message error message 
+   */
   private generateError(message: string): IScannerError {
     return new ScannerError(
       message,
@@ -283,7 +359,9 @@ export class Scanner {
     );
   }
 
-  // increment line
+  /**
+   * increment line
+   */
   private incrementLine(): void {
     this.currentPosition.line += 1;
     this.currentPosition.character = 0;
