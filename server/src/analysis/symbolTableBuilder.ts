@@ -1,13 +1,15 @@
-import { ResolverError } from './resolverError';
 import { empty } from '../utilities/typeGuards';
 import { ScopeType, IExpr, ISuffixTerm } from '../parser/types';
 import { KsVariable } from '../entities/variable';
 import { SymbolState, IScope, IScopeNode,
-  KsSymbol, IStack, IKsSymbolTracker, KsSymbolKind, IResolverError, ResolverErrorKind,
+  KsSymbol, IStack, IKsSymbolTracker, KsSymbolKind,
 } from './types';
 import { KsFunction } from '../entities/function';
 import { KsLock } from '../entities/lock';
-import { Range } from 'vscode-languageserver';
+import {
+  Range, Diagnostic,
+  DiagnosticSeverity, DiagnosticRelatedInformation,
+} from 'vscode-languageserver';
 import { IToken } from '../entities/types';
 import { KsParameter } from '../entities/parameters';
 import { ScopePosition } from './scopePosition';
@@ -18,6 +20,7 @@ import { IArgumentType, IFunctionType } from '../typeChecker/types/types';
 import { SymbolTable } from './symbolTable';
 import { isKsVariable, isKsParameter, isKsLock } from '../entities/entityHelpers';
 import { rangeToString } from '../utilities/positionHelpers';
+import { createDiagnostic } from '../utilities/diagnosticsUtilities';
 
 /**
  * The Symbol table builder is used to declare new symbols and track new symbols
@@ -129,7 +132,7 @@ export class SymbolTableBuilder {
   /**
    * Pop the current scope off the stack
    */
-  public endScope(): ResolverError[] {
+  public endScope(): Diagnostic[] {
     const { scope, position } = this.activeScopeNode();
     this.activeScopePath.pop();
 
@@ -141,29 +144,26 @@ export class SymbolTableBuilder {
             break;
           case KsSymbolKind.parameter:
             if (tracker.usages.length === 0) {
-              errors.push(new ResolverError(
+              errors.push(createDiagnostic(
                 tracker.declared.symbol.name,
                 `Parameter ${tracker.declared.symbol.name.lexeme} was not used.`,
-                ResolverErrorKind.error,
-                []));
+                DiagnosticSeverity.Error));
             }
             break;
           case KsSymbolKind.lock:
             if (!tracker.declared.symbol.cooked && tracker.usages.length === 0) {
-              errors.push(new ResolverError(
+              errors.push(createDiagnostic(
                 tracker.declared.symbol.name,
                 `Lock ${tracker.declared.symbol.name.lexeme} was not used.`,
-                ResolverErrorKind.error,
-                []));
+                DiagnosticSeverity.Error));
             }
             break;
           case KsSymbolKind.variable:
             if (tracker.usages.length === 0) {
-              errors.push(new ResolverError(
+              errors.push(createDiagnostic(
                 tracker.declared.symbol.name,
                 `Variable ${tracker.declared.symbol.name.lexeme} was not used.`,
-                ResolverErrorKind.error,
-                []));
+                DiagnosticSeverity.Error));
             }
             break;
           default:
@@ -204,13 +204,13 @@ export class SymbolTableBuilder {
    * @param name token for the current symbol
    * @param expr the expresion the symbol was used in
    */
-  public useSymbol(name: IToken, expr: IExpr | ISuffixTerm): Maybe<IResolverError> {
+  public useSymbol(name: IToken, expr: IExpr | ISuffixTerm): Maybe<Diagnostic> {
     const tracker = this.lookup(name, ScopeType.global);
 
     // check if symbols exists
     if (empty(tracker)) {
-      return new ResolverError(
-        name, `Symbol ${name.lexeme} may not exist`, ResolverErrorKind.error, []);
+      return createDiagnostic(
+        name, `Symbol ${name.lexeme} may not exist`, DiagnosticSeverity.Error);
     }
 
     return this.checkUseSymbol(name, tracker, tracker.declared.symbol.tag, expr);
@@ -221,7 +221,7 @@ export class SymbolTableBuilder {
    * @param name token for the current variable
    * @param expr the expression the symbol was used in
    */
-  public useVariable(name: IToken, expr?: IExpr): Maybe<ResolverError> {
+  public useVariable(name: IToken, expr?: IExpr): Maybe<Diagnostic> {
     const variable = this.lookupVariableTracker(name, ScopeType.global);
 
     return this.checkUseSymbol(name, variable, KsSymbolKind.variable, expr);
@@ -232,7 +232,7 @@ export class SymbolTableBuilder {
    * @param name token for the current function
    * @param expr the expression the symbol was used in
    */
-  public useFunction(name: IToken, expr?: IExpr): Maybe<ResolverError> {
+  public useFunction(name: IToken, expr?: IExpr): Maybe<Diagnostic> {
     const func = this.lookupFunctionTracker(name, ScopeType.global);
 
     return this.checkUseSymbol(name, func, KsSymbolKind.function, expr);
@@ -244,7 +244,7 @@ export class SymbolTableBuilder {
    * @param expr the expression the symbol was used in
    */
   public useLock(name: IToken, expr?: IExpr):
-    Maybe<ResolverError> {
+    Maybe<Diagnostic> {
     const lock = this.lookupLockTracker(name, ScopeType.global);
 
     return this.checkUseSymbol(name, lock, KsSymbolKind.lock, expr);
@@ -255,7 +255,7 @@ export class SymbolTableBuilder {
    * @param name token for the current parameter
    * @param expr the expression the symbol was used in
    */
-  public useParameter(name: IToken, expr: IExpr): Maybe<ResolverError> {
+  public useParameter(name: IToken, expr: IExpr): Maybe<Diagnostic> {
     const parameter = this.lookupParameterTracker(name, ScopeType.global);
 
     return this.checkUseSymbol(name, parameter, KsSymbolKind.parameter, expr);
@@ -265,12 +265,12 @@ export class SymbolTableBuilder {
    * Set a variable symbol
    * @param token token for the variable to set
    */
-  public setVariable(token: IToken): Maybe<ResolverError> {
+  public setVariable(token: IToken): Maybe<Diagnostic> {
     const tracker = this.lookup(token, ScopeType.global);
 
     // check if variable has already been defined
     if (empty(tracker)) {
-      return new ResolverError(token, `${token.lexeme} may not exist`, ResolverErrorKind.error, []);
+      return createDiagnostic(token, `${token.lexeme} may not exist`, DiagnosticSeverity.Error);
     }
 
     token.tracker = tracker;
@@ -285,7 +285,7 @@ export class SymbolTableBuilder {
    * @param type type to declare variable as
    */
   public declareVariable(scopeType: ScopeType, token: IToken, type?: IArgumentType):
-    Maybe<ResolverError> {
+    Maybe<Diagnostic> {
     const conflictTracker = this.lookup(token, scopeType);
 
     // check if variable has already been defined
@@ -316,7 +316,7 @@ export class SymbolTableBuilder {
     token: IToken,
     parameters: KsParameter[],
     returnValue: boolean,
-    type?: IFunctionType): Maybe<ResolverError> {
+    type?: IFunctionType): Maybe<Diagnostic> {
     const conflictTracker = this.lookup(token, scopeType);
 
     // check if variable has already been defined
@@ -347,7 +347,7 @@ export class SymbolTableBuilder {
   public declareLock(
     scopeType: ScopeType,
     token: IToken,
-    type?: IArgumentType): Maybe<ResolverError> {
+    type?: IArgumentType): Maybe<Diagnostic> {
     const conflictTracker = this.lookup(token, scopeType);
 
     // check if variable has already been defined
@@ -374,7 +374,7 @@ export class SymbolTableBuilder {
   public declareParameter(
     scopeType: ScopeType,
     token: IToken,
-    defaulted: boolean): Maybe<ResolverError> {
+    defaulted: boolean): Maybe<Diagnostic> {
     const conflictTracker = this.lookup(token, scopeType);
 
     // check if variable has already been defined
@@ -404,11 +404,11 @@ export class SymbolTableBuilder {
     tracker: Maybe<IKsSymbolTracker>,
     symbolType: KsSymbolKind,
     expr?: IExpr | ISuffixTerm):
-    Maybe<ResolverError> {
+    Maybe<Diagnostic> {
     // check that variable has already been defined
     if (empty(tracker)) {
-      return new ResolverError(
-        token, `${symbolType} ${token.lexeme} may not exist.`, ResolverErrorKind.error, []);
+      return createDiagnostic(
+        token, `${symbolType} ${token.lexeme} may not exist.`, DiagnosticSeverity.Error);
     }
 
     token.tracker = tracker;
@@ -602,13 +602,19 @@ export class SymbolTableBuilder {
    * @param name token for the requested symbol
    * @param symbol collided symbol
    */
-  private localConflictError(name: IToken, symbol: KsSymbol): ResolverError {
-    return new ResolverError(
+  private localConflictError(name: IToken, symbol: KsSymbol): Diagnostic {
+    return createDiagnostic(
       name,
-      `${this.pascalCase(KsSymbolKind[symbol.tag])} ${symbol.name.lexeme}` +
-      ` already exists here ${rangeToString(symbol.name)}.`,
-      ResolverErrorKind.error,
-      []);
+      `${this.pascalCase(KsSymbolKind[symbol.tag])} ${symbol.name.lexeme} already exists.`,
+      DiagnosticSeverity.Error,
+      undefined,
+      [
+        DiagnosticRelatedInformation.create(
+          { uri: this.uri, range: symbol.name },
+          'Orignally declared here',
+        ),
+      ],
+    );
   }
 
   /**

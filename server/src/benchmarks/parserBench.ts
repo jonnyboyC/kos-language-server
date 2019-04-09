@@ -21,26 +21,29 @@ walkDir(testDir, (filePath) => {
 });
 
 let results: IBenchResult[] = [];
-walkDir(testDir, (filePath) => {
-  const size = statSync(filePath).size;
 
-  const kosFile = readFileSync(filePath, 'utf8');
+for (let i = 0; i < 10; i += 1) {
+  walkDir(testDir, (filePath) => {
+    const size = statSync(filePath).size;
 
-  const scanner = new Scanner(kosFile);
-  const { tokens } = scanner.scanTokens();
+    const kosFile = readFileSync(filePath, 'utf8');
 
-  const start = performance.now();
-  const parser = new Parser('', tokens);
-  parser.parse();
-  const end = performance.now();
+    const scanner = new Scanner(kosFile);
+    const { tokens } = scanner.scanTokens();
 
-  results.push({
-    filePath,
-    size: size / 1024,
-    time: end - start,
-    rate: size / ((end - start) / 1000 * 1024),
+    const start = performance.now();
+    const parser = new Parser('', tokens);
+    parser.parse();
+    const end = performance.now();
+
+    results.push({
+      filePath,
+      size: size / 1024,
+      time: end - start,
+      rate: size / ((end - start) / 1000 * 1024),
+    });
   });
-});
+}
 
 results = results.sort((x, y) => (y.rate - x.rate));
 for (const result of results) {

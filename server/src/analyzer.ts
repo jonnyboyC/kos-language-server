@@ -1,4 +1,4 @@
-import { DiagnosticSeverity, Position, Location } from 'vscode-languageserver';
+import { DiagnosticSeverity, Position, Location, Diagnostic } from 'vscode-languageserver';
 import { IDocumentInfo, ILoadData, IDiagnosticUri, ValidateResult } from './types';
 import { performance, PerformanceObserver } from 'perf_hooks';
 import { Parser } from './parser/parser';
@@ -7,10 +7,7 @@ import { Scanner } from './scanner/scanner';
 import { Resolver } from './analysis/resolver';
 import { IScannerError } from './scanner/types';
 import { IParseError, ScriptResult, RunInstType } from './parser/types';
-import {
-  IResolverError, KsSymbol, IKsSymbolTracker,
-  KsSymbolKind, ResolverErrorKind,
-} from './analysis/types';
+import { KsSymbol, IKsSymbolTracker, KsSymbolKind } from './analysis/types';
 import { mockLogger, mockTracer } from './utilities/logger';
 import { empty, notEmpty } from './utilities/typeGuards';
 import { ScriptFind } from './parser/scriptFind';
@@ -139,7 +136,7 @@ export class Analyzer {
     this.logger.log(`Function resolving ${uri}`);
     performance.mark('func-resolver-start');
     const functionDiagnostics = funcResolver.resolve()
-      .map(error => resolverToDiagnostics(error, uri));
+      .map(error => addDiagnosticsUri(error, uri));
 
     yield functionDiagnostics;
     performance.mark('func-resolver-end');
@@ -149,7 +146,7 @@ export class Analyzer {
 
     performance.mark('resolver-start');
     const resolverDiagnostics = resolver.resolve()
-      .map(error => resolverToDiagnostics(error, uri));
+      .map(error => addDiagnosticsUri(error, uri));
 
     yield resolverDiagnostics;
     performance.mark('resolver-end');
@@ -616,27 +613,8 @@ const parseToDiagnostics = (error: IParseError, uri: string): IDiagnosticUri => 
 };
 
 // convert resolver error to diagnostic
-const resolverToDiagnostics = (error: IResolverError, uri: string): IDiagnosticUri => {
-  let severity: DiagnosticSeverity;
-  switch (error.kind)
-  {
-    case ResolverErrorKind.error:
-      severity = DiagnosticSeverity.Warning;
-      break;
-    case ResolverErrorKind.warning:
-      severity = DiagnosticSeverity.Information;
-      break;
-    default:
-      throw new Error(`Unexpected resolver error kind ${error.kind}`);
-  }
-
-  return {
-    uri,
-    severity,
-    range: { start: error.start, end: error.end },
-    message: error.message,
-    source: 'kos-language-server',
-  };
+const addDiagnosticsUri = (error: Diagnostic, uri: string): IDiagnosticUri => {
+  return { uri, ...error };
 };
 
 // convert type checking error to diagnostic

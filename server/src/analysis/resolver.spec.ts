@@ -6,10 +6,10 @@ import { SymbolTable } from './symbolTable';
 import { FuncResolver } from './functionResolver';
 import { SymbolTableBuilder } from './symbolTableBuilder';
 import { Resolver } from './resolver';
-import { KsSymbol, KsSymbolKind, IResolverError, ResolverErrorKind } from './types';
+import { KsSymbol, KsSymbolKind } from './types';
 import { empty, unWrap, unWrapMany } from '../utilities/typeGuards';
 import { rangeEqual } from '../utilities/positionHelpers';
-import { Range } from 'vscode-languageserver';
+import { Range, Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
 import { structureType } from '../typeChecker/types/primitives/structure';
 import { IScanResult } from '../scanner/types';
 import { readFileSync } from 'fs';
@@ -23,7 +23,7 @@ interface IResolveResults {
   scan: IScanResult;
   parse: IParseResult;
   table: SymbolTable;
-  resolveError: IResolverError[];
+  resolveError: Diagnostic[];
 }
 
 // parse source
@@ -195,8 +195,8 @@ ava('basic defined test', (t) => {
   t.true(results.resolveError.length > 0);
 
   for (const [error, location] of zip(results.resolveError, locations)) {
-    t.is(ResolverErrorKind.error, error.kind);
-    t.deepEqual(location.start, error.start);
-    t.deepEqual(location.end, error.end);
+    t.is(DiagnosticSeverity.Error, error.severity);
+    t.deepEqual(location.start, error.range.start);
+    t.deepEqual(location.end, error.range.end);
   }
 });

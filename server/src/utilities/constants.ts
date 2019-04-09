@@ -2,6 +2,7 @@ import { CompletionItemKind, CompletionItem } from 'vscode-languageserver';
 
 export const builtIn = 'builtIn';
 export const iterator = 'iterator';
+export const languageServer = 'kos-language-server';
 
 export const keywords = new Set([
   'add',
