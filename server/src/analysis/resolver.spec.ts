@@ -6,7 +6,7 @@ import { SymbolTable } from './symbolTable';
 import { FuncResolver } from './functionResolver';
 import { SymbolTableBuilder } from './symbolTableBuilder';
 import { Resolver } from './resolver';
-import { KsSymbol, KsSymbolKind, IResolverError } from './types';
+import { KsSymbol, KsSymbolKind, IResolverError, ResolverErrorKind } from './types';
 import { empty, unWrap, unWrapMany } from '../utilities/typeGuards';
 import { rangeEqual } from '../utilities/positionHelpers';
 import { Range } from 'vscode-languageserver';
@@ -14,6 +14,8 @@ import { structureType } from '../typeChecker/types/primitives/structure';
 import { IScanResult } from '../scanner/types';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { zip } from '../utilities/arrayUtilities';
+import { Marker } from '../entities/token';
 
 const fakeUri = 'C:\\fake.ks';
 
@@ -172,6 +174,17 @@ const definedPath = join(
   '../../../kerboscripts/parser_valid/declaration/definedtest.ks',
 );
 
+const locations: Range[] = [
+  { start: new Marker(5, 42), end: new Marker(5, 46) },
+  { start: new Marker(8, 42), end: new Marker(8, 46) },
+  { start: new Marker(24, 43), end: new Marker(24, 59) },
+  { start: new Marker(30, 41), end: new Marker(30, 51) },
+  { start: new Marker(31, 41), end: new Marker(31, 57) },
+  { start: new Marker(49, 43), end: new Marker(49, 54) },
+  { start: new Marker(53, 41), end: new Marker(53, 52) },
+  { start: new Marker(54, 41), end: new Marker(54, 52) },
+];
+
 // test basic identifier
 ava('basic defined test', (t) => {
   const defineSource = readFileSync(definedPath, 'utf8');
@@ -180,4 +193,10 @@ ava('basic defined test', (t) => {
   t.is(0, results.scan.scanErrors.length);
   t.is(0, results.parse.parseErrors.length);
   t.true(results.resolveError.length > 0);
+
+  for (const [error, location] of zip(results.resolveError, locations)) {
+    t.is(ResolverErrorKind.error, error.kind);
+    t.deepEqual(location.start, error.start);
+    t.deepEqual(location.end, error.end);
+  }
 });

@@ -1,6 +1,6 @@
 {
     "name": "kos-vscode",
-    "displayName": "KOS",
+    "displayName": "KOS (Kerboscript)",
     "description": "Syntax highlighting, auto-complete, and language diagnostics for KerboScript in Kerbal Operating System.",
     "author": "John Chabot",
     "license": "MIT",
