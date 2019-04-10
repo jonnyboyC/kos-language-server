@@ -1,7 +1,14 @@
 import {
-  ISuffixTerm, ISuffixTermVisitor, GrammarNode,
-  IExpr, Atom, SuffixTermTrailer, ISuffixTermClassVisitor,
-  Distribution, ISuffixTermClass, ISuffixTermParamVisitor,
+  ISuffixTerm,
+  ISuffixTermVisitor,
+  GrammarNode,
+  IExpr,
+  Atom,
+  SuffixTermTrailer,
+  ISuffixTermClassVisitor,
+  Distribution,
+  ISuffixTermClass,
+  ISuffixTermParamVisitor,
   ISuffixTermPasser,
   SyntaxKind,
 } from './types';
@@ -9,9 +16,13 @@ import { Range, Position } from 'vscode-languageserver';
 import { IToken } from '../entities/types';
 import { TokenType } from '../entities/tokentypes';
 import {
-  createGrammarOptional, createGrammarUnion,
-  createExponential, createGrammarRepeat,
-  createGamma, createConstant, createNormal,
+  createGrammarOptional,
+  createGrammarUnion,
+  createExponential,
+  createGrammarRepeat,
+  createGamma,
+  createConstant,
+  createNormal,
 } from './grammarNodes';
 import { expr } from './expr';
 import { NodeBase } from './base';
@@ -44,14 +55,14 @@ export abstract class SuffixTermBase extends NodeBase implements ISuffixTerm {
   public abstract pass<T>(visitor: ISuffixTermPasser<T>): T;
   public abstract acceptParam<TP, TR>(
     visitor: ISuffixTermParamVisitor<TP, TR>,
-    param: TP): TR;
+    param: TP,
+  ): TR;
 }
 
 /**
  * Container for tokens constituting an invalid suffix term
  */
 export class Invalid extends SuffixTermBase {
-
   /**
    * Invalid suffix term constructor
    * @param tokens tokens in the invalid range
@@ -76,7 +87,10 @@ export class Invalid extends SuffixTermBase {
     return [this.tokens.join(', ')];
   }
 
-  public acceptParam<TP, TR>(visitor: ISuffixTermParamVisitor<TP, TR>, param: TP): TR {
+  public acceptParam<TP, TR>(
+    visitor: ISuffixTermParamVisitor<TP, TR>,
+    param: TP,
+  ): TR {
     return visitor.visitSuffixTermInvalid(this, param);
   }
 
@@ -111,7 +125,8 @@ export class SuffixTrailer extends SuffixTermBase {
   constructor(
     public readonly suffixTerm: SuffixTerm,
     public colon?: IToken,
-    public trailer?: SuffixTrailer) {
+    public trailer?: SuffixTrailer,
+  ) {
     super();
   }
 
@@ -120,9 +135,7 @@ export class SuffixTrailer extends SuffixTermBase {
   }
 
   public get end(): Position {
-    return empty(this.trailer)
-      ? this.suffixTerm.end
-      : this.trailer.end;
+    return empty(this.trailer) ? this.suffixTerm.end : this.trailer.end;
   }
 
   public get ranges(): Range[] {
@@ -167,18 +180,25 @@ export class SuffixTrailer extends SuffixTermBase {
       const [joinLine, ...restLines] = this.trailer.toLines();
 
       if (suffixTermLines.length === 1) {
-        return [`${suffixTermLines[0]}${this.colon.lexeme}${joinLine}`].concat(restLines);
+        return [`${suffixTermLines[0]}${this.colon.lexeme}${joinLine}`].concat(
+          restLines,
+        );
       }
 
-      return suffixTermLines.slice(0, suffixTermLines.length - 2)
+      return suffixTermLines
+        .slice(0, suffixTermLines.length - 2)
         .concat(
           `${suffixTermLines[0]}${this.colon.lexeme}${joinLine}`,
-          restLines);
+          restLines,
+        );
     }
 
     return suffixTermLines;
   }
-  public acceptParam<TP, TR>(visitor: ISuffixTermParamVisitor<TP, TR>, param: TP): TR {
+  public acceptParam<TP, TR>(
+    visitor: ISuffixTermParamVisitor<TP, TR>,
+    param: TP,
+  ): TR {
     return visitor.visitSuffixTrailer(this, param);
   }
 
@@ -211,11 +231,12 @@ export class SuffixTerm extends SuffixTermBase {
    */
   constructor(
     public readonly atom: Atom,
-    public readonly trailers: SuffixTermTrailer[]) {
+    public readonly trailers: SuffixTermTrailer[],
+  ) {
     super();
   }
   public get ranges(): Range[] {
-    return [this.atom as Range, ...this.trailers as Range[]];
+    return [this.atom as Range, ...(this.trailers as Range[])];
   }
   public get start(): Position {
     return this.atom.start;
@@ -234,7 +255,10 @@ export class SuffixTerm extends SuffixTermBase {
     return linesJoin('', atomLines, ...trailersLines);
   }
 
-  public acceptParam<TP, TR>(visitor: ISuffixTermParamVisitor<TP, TR>, param: TP): TR {
+  public acceptParam<TP, TR>(
+    visitor: ISuffixTermParamVisitor<TP, TR>,
+    param: TP,
+  ): TR {
     return visitor.visitSuffixTerm(this, param);
   }
 
@@ -271,7 +295,8 @@ export class Call extends SuffixTermBase {
     public readonly open: IToken,
     public readonly args: IExpr[],
     public readonly close: IToken,
-    public readonly isTrailer: boolean) {
+    public readonly isTrailer: boolean,
+  ) {
     super();
   }
 
@@ -296,11 +321,16 @@ export class Call extends SuffixTermBase {
     const argsResult = linesJoin(',', ...argsLines);
 
     argsResult[0] = `${this.open.lexeme}${argsResult[0]}`;
-    argsResult[argsResult.length - 1] = `${argsResult[argsResult.length - 1]}${this.close.lexeme}`;
+    argsResult[argsResult.length - 1] = `${argsResult[argsResult.length - 1]}${
+      this.close.lexeme
+    }`;
     return argsResult;
   }
 
-  public acceptParam<TP, TR>(visitor: ISuffixTermParamVisitor<TP, TR>, param: TP): TR {
+  public acceptParam<TP, TR>(
+    visitor: ISuffixTermParamVisitor<TP, TR>,
+    param: TP,
+  ): TR {
     return visitor.visitCall(this, param);
   }
 
@@ -335,7 +365,8 @@ export class ArrayIndex extends SuffixTermBase {
   constructor(
     public readonly indexer: IToken,
     public readonly index: IToken,
-    public readonly isTrailer: boolean) {
+    public readonly isTrailer: boolean,
+  ) {
     super();
   }
 
@@ -355,7 +386,10 @@ export class ArrayIndex extends SuffixTermBase {
     return [`${this.indexer.lexeme}${this.index.lexeme}`];
   }
 
-  public acceptParam<TP, TR>(visitor: ISuffixTermParamVisitor<TP, TR>, param: TP): TR {
+  public acceptParam<TP, TR>(
+    visitor: ISuffixTermParamVisitor<TP, TR>,
+    param: TP,
+  ): TR {
     return visitor.visitArrayIndex(this, param);
   }
 
@@ -376,7 +410,6 @@ export class ArrayIndex extends SuffixTermBase {
  * Class containing all valid array bracket suffix term trailers
  */
 export class ArrayBracket extends SuffixTermBase {
-
   /**
    * Grammar for the array bracket suffix term
    */
@@ -393,7 +426,8 @@ export class ArrayBracket extends SuffixTermBase {
     public readonly open: IToken,
     public readonly index: IExpr,
     public readonly close: IToken,
-    public readonly isTrailer: boolean) {
+    public readonly isTrailer: boolean,
+  ) {
     super();
   }
 
@@ -417,7 +451,10 @@ export class ArrayBracket extends SuffixTermBase {
     return lines;
   }
 
-  public acceptParam<TP, TR>(visitor: ISuffixTermParamVisitor<TP, TR>, param: TP): TR {
+  public acceptParam<TP, TR>(
+    visitor: ISuffixTermParamVisitor<TP, TR>,
+    param: TP,
+  ): TR {
     return visitor.visitArrayBracket(this, param);
   }
 
@@ -448,9 +485,10 @@ export class Delegate extends SuffixTermBase {
    * @param atSign at sign indicating that function should create a delgate
    * @param isTrailer is the delgate a suffix trailer
    */
-  constructor (
+  constructor(
     public readonly atSign: IToken,
-    public readonly isTrailer: boolean) {
+    public readonly isTrailer: boolean,
+  ) {
     super();
   }
 
@@ -470,7 +508,10 @@ export class Delegate extends SuffixTermBase {
     return [this.atSign.lexeme];
   }
 
-  public acceptParam<TP, TR>(visitor: ISuffixTermParamVisitor<TP, TR>, param: TP): TR {
+  public acceptParam<TP, TR>(
+    visitor: ISuffixTermParamVisitor<TP, TR>,
+    param: TP,
+  ): TR {
     return visitor.visitDelegate(this, param);
   }
 
@@ -503,7 +544,8 @@ export class Literal extends SuffixTermBase {
    */
   constructor(
     public readonly token: IToken,
-    public readonly isTrailer: boolean) {
+    public readonly isTrailer: boolean,
+  ) {
     super();
   }
 
@@ -523,7 +565,10 @@ export class Literal extends SuffixTermBase {
     return [`${this.token.lexeme}`];
   }
 
-  public acceptParam<TP, TR>(visitor: ISuffixTermParamVisitor<TP, TR>, param: TP): TR {
+  public acceptParam<TP, TR>(
+    visitor: ISuffixTermParamVisitor<TP, TR>,
+    param: TP,
+  ): TR {
     return visitor.visitLiteral(this, param);
   }
 
@@ -556,7 +601,8 @@ export class Identifier extends SuffixTermBase {
    */
   constructor(
     public readonly token: IToken,
-    public readonly isTrailer: boolean) {
+    public readonly isTrailer: boolean,
+  ) {
     super();
   }
 
@@ -573,15 +619,20 @@ export class Identifier extends SuffixTermBase {
   }
 
   public get isKeyword(): boolean {
-    return !(this.token.type === TokenType.identifier
-      || this.token.type === TokenType.fileIdentifier);
+    return !(
+      this.token.type === TokenType.identifier ||
+      this.token.type === TokenType.fileIdentifier
+    );
   }
 
   public toLines(): string[] {
     return [`${this.token.lexeme}`];
   }
 
-  public acceptParam<TP, TR>(visitor: ISuffixTermParamVisitor<TP, TR>, param: TP): TR {
+  public acceptParam<TP, TR>(
+    visitor: ISuffixTermParamVisitor<TP, TR>,
+    param: TP,
+  ): TR {
     return visitor.visitIdentifier(this, param);
   }
 
@@ -618,7 +669,8 @@ export class Grouping extends SuffixTermBase {
     public readonly open: IToken,
     public readonly expr: IExpr,
     public readonly close: IToken,
-    public readonly isTrailer: boolean) {
+    public readonly isTrailer: boolean,
+  ) {
     super();
   }
 
@@ -646,7 +698,10 @@ export class Grouping extends SuffixTermBase {
     return lines;
   }
 
-  public acceptParam<TP, TR>(visitor: ISuffixTermParamVisitor<TP, TR>, param: TP): TR {
+  public acceptParam<TP, TR>(
+    visitor: ISuffixTermParamVisitor<TP, TR>,
+    param: TP,
+  ): TR {
     return visitor.visitGrouping(this, param);
   }
 
@@ -680,10 +735,7 @@ const suffixTermTrailer = createGrammarUnion(...suffixTermTrailers);
 
 SuffixTerm.grammar = [
   atom,
-  createGrammarRepeat(
-    createExponential(1.5),
-    suffixTermTrailer,
-  ),
+  createGrammarRepeat(createExponential(1.5), suffixTermTrailer),
 ];
 
 Call.grammar = [
@@ -691,11 +743,7 @@ Call.grammar = [
   createGrammarOptional(
     createExponential(3),
     expr,
-    createGrammarRepeat(
-      createGamma(1.5, 0.4),
-      TokenType.comma,
-      expr,
-    ),
+    createGrammarRepeat(createGamma(1.5, 0.4), TokenType.comma, expr),
   ),
   TokenType.bracketClose,
 ];
@@ -708,15 +756,9 @@ ArrayIndex.grammar = [
   ),
 ];
 
-ArrayBracket.grammar = [
-  TokenType.bracketOpen,
-  expr,
-  TokenType.bracketClose,
-];
+ArrayBracket.grammar = [TokenType.bracketOpen, expr, TokenType.bracketClose];
 
-Delegate.grammar = [
-  TokenType.atSign,
-];
+Delegate.grammar = [TokenType.atSign];
 
 Literal.grammar = [
   createGrammarUnion(
@@ -729,12 +771,6 @@ Literal.grammar = [
   ),
 ];
 
-Identifier.grammar = [
-  TokenType.identifier,
-];
+Identifier.grammar = [TokenType.identifier];
 
-Grouping.grammar = [
-  TokenType.bracketOpen,
-  expr,
-  TokenType.bracketClose,
-];
+Grouping.grammar = [TokenType.bracketOpen, expr, TokenType.bracketClose];

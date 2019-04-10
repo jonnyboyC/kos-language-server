@@ -1,22 +1,36 @@
 import {
-  IExprVisitor, IInstVisitor, IInst, IExpr,
-  ISuffixTerm, Atom, ISuffixTermParamVisitor,
+  IExprVisitor,
+  IInstVisitor,
+  IInst,
+  IExpr,
+  ISuffixTerm,
+  Atom,
+  ISuffixTermParamVisitor,
 } from '../parser/types';
 import * as SuffixTerm from '../parser/suffixTerm';
 import * as Expr from '../parser/expr';
 import * as Inst from '../parser/inst';
 import * as Decl from '../parser/declare';
 import {
-  ITypeError, ITypeResultExpr, ITypeResolved,
-  ITypeResultSuffix, ITypeResolvedSuffix, ITypeNode,
+  ITypeError,
+  ITypeResultExpr,
+  ITypeResolved,
+  ITypeResultSuffix,
+  ITypeResolvedSuffix,
+  ITypeNode,
 } from './types';
 import { mockLogger, mockTracer } from '../utilities/logger';
 import { Script } from '../entities/script';
 import { SymbolTable } from '../analysis/symbolTable';
 import { empty } from '../utilities/typeGuards';
 import {
-  IArgumentType, IType,
-  IVariadicType, Operator, ISuffixType, IFunctionType, CallType,
+  IArgumentType,
+  IType,
+  IVariadicType,
+  Operator,
+  ISuffixType,
+  IFunctionType,
+  CallType,
 } from './types/types';
 import { structureType } from './types/primitives/structure';
 import { coerce } from './coerce';
@@ -34,8 +48,10 @@ import { booleanType } from './types/primitives/boolean';
 import { stringType } from './types/primitives/string';
 import { scalarType, integarType, doubleType } from './types/primitives/scalar';
 import {
-  suffixError, delegateCreation,
-  arrayBracketIndexer, arrayIndexer,
+  suffixError,
+  delegateCreation,
+  arrayBracketIndexer,
+  arrayIndexer,
 } from './types/typeHelpers';
 import { delegateType } from './types/primitives/delegate';
 import { TypeNode } from './typeNode';
@@ -54,11 +70,14 @@ import { NodeBase } from '../parser/base';
 type TypeErrors = ITypeError[];
 type SuffixTermType = ISuffixType | IArgumentType;
 
-export class TypeChecker implements
-  IInstVisitor<TypeErrors>,
-  IExprVisitor<ITypeResultExpr<IArgumentType>>,
-  ISuffixTermParamVisitor<ITypeResultSuffix<IType>, ITypeResultSuffix<SuffixTermType>> {
-
+export class TypeChecker
+  implements
+    IInstVisitor<TypeErrors>,
+    IExprVisitor<ITypeResultExpr<IArgumentType>>,
+    ISuffixTermParamVisitor<
+      ITypeResultSuffix<IType>,
+      ITypeResultSuffix<SuffixTermType>
+    > {
   private readonly logger: ILogger;
   private readonly tracer: ITracer;
   private readonly script: Script;
@@ -68,7 +87,8 @@ export class TypeChecker implements
     script: Script,
     symbolTable: SymbolTable,
     logger: ILogger = mockLogger,
-    tracer: ITracer = mockTracer) {
+    tracer: ITracer = mockTracer,
+  ) {
     this.script = script;
     this.symbolTable = symbolTable;
     this.logger = logger;
@@ -86,20 +106,25 @@ export class TypeChecker implements
     }
   }
 
-  public checkSuffix(suffix: Expr.Suffix): ITypeResultSuffix<IType, ITypeResolved> {
+  public checkSuffix(
+    suffix: Expr.Suffix,
+  ): ITypeResultSuffix<IType, ITypeResolved> {
     try {
       const { suffixTerm, trailer } = suffix;
       const [firstTrailer, ...remainingTrailers] = suffixTerm.trailers;
 
-      const atom = firstTrailer instanceof SuffixTerm.Call
-        ? this.resolveAtom(suffixTerm.atom, KsSymbolKind.function)
-        : this.resolveAtom(
-          suffixTerm.atom, KsSymbolKind.lock,
-          KsSymbolKind.parameter, KsSymbolKind.variable);
+      const atom =
+        firstTrailer instanceof SuffixTerm.Call
+          ? this.resolveAtom(suffixTerm.atom, KsSymbolKind.function)
+          : this.resolveAtom(
+              suffixTerm.atom,
+              KsSymbolKind.lock,
+              KsSymbolKind.parameter,
+              KsSymbolKind.variable,
+            );
       let current: ITypeResultSuffix<IType> = atom;
 
       if (!empty(firstTrailer)) {
-
         // handle case were suffix is actually a function call
         if (firstTrailer instanceof SuffixTerm.Call) {
           current = this.resolveFunctionCall(firstTrailer, atom);
@@ -128,13 +153,15 @@ export class TypeChecker implements
 
       const suffixTrailer = this.checkSuffixTerm(
         trailer,
-        this.suffixTrailerResult(type, suffixTerm));
+        this.suffixTrailerResult(type, suffixTerm),
+      );
 
       return this.resultSuffixTerm(
         suffixTrailer.type,
         { ...current.resolved, suffixTrailer: suffixTrailer.resolved },
         current.errors,
-        suffixTrailer.errors) as ITypeResultSuffix<IType, ITypeResolved>;
+        suffixTrailer.errors,
+      ) as ITypeResultSuffix<IType, ITypeResolved>;
     } catch (err) {
       this.logger.error(`Error occured in resolver ${err}`);
       this.tracer.log(err);
@@ -145,7 +172,7 @@ export class TypeChecker implements
           atom: new TypeNode(structureType, suffix.suffixTerm),
           termTrailers: [],
         },
-        errors: ([] as ITypeError[]),
+        errors: [] as ITypeError[],
       };
     }
   }
@@ -168,7 +195,8 @@ export class TypeChecker implements
   // check suffix terms
   private checkSuffixTerm(
     suffixTerm: ISuffixTerm,
-    current: ITypeResultSuffix<IType>): ITypeResultSuffix<SuffixTermType> {
+    current: ITypeResultSuffix<IType>,
+  ): ITypeResultSuffix<SuffixTermType> {
     return suffixTerm.acceptParam(this, current);
   }
 
@@ -179,7 +207,9 @@ export class TypeChecker implements
     const result = this.checkExpr(decl.value);
     this.symbolTable.declareType(
       decl.identifier,
-      result.type, KsSymbolKind.variable);
+      result.type,
+      KsSymbolKind.variable,
+    );
     return result.errors;
   }
 
@@ -188,14 +218,18 @@ export class TypeChecker implements
     const result = this.checkExpr(decl.value);
     this.symbolTable.declareType(
       decl.identifier,
-      result.type, KsSymbolKind.lock);
+      result.type,
+      KsSymbolKind.lock,
+    );
     return result.errors;
   }
 
   // visit declare function
   visitDeclFunction(decl: Decl.Func): TypeErrors {
-    const funcTracker = this.symbolTable
-      .scopedFunctionTracker(decl.start, decl.identifier.lexeme);
+    const funcTracker = this.symbolTable.scopedFunctionTracker(
+      decl.start,
+      decl.identifier.lexeme,
+    );
 
     if (empty(funcTracker)) {
       throw Error('TODO');
@@ -209,7 +243,10 @@ export class TypeChecker implements
     const returnType = symbol.returnValue ? structureType : voidType;
 
     const funcType = createFunctionType(
-      funcTracker.declared.symbol.name.lexeme, returnType, ...paramsTypes);
+      funcTracker.declared.symbol.name.lexeme,
+      returnType,
+      ...paramsTypes,
+    );
 
     this.symbolTable.declareType(symbol.name, funcType, KsSymbolKind.function);
 
@@ -284,20 +321,28 @@ export class TypeChecker implements
       case TokenType.remove:
         // expression must be a node type
         if (!coerce(result.type, nodeType)) {
-          const command = inst.command.type === TokenType.add
-            ? 'add'
-            : 'remove';
+          const command =
+            inst.command.type === TokenType.add ? 'add' : 'remove';
 
-          errors.push(new KsTypeError(
-            inst.expr, `${command} expected a node.` +
-            ' Node may not able to be  be coerced into node type',
-            []));
+          errors.push(
+            new KsTypeError(
+              inst.expr,
+              `${command} expected a node.` +
+                ' Node may not able to be  be coerced into node type',
+              [],
+            ),
+          );
         }
         break;
       case TokenType.edit:
         if (!coerce(result.type, nodeType)) {
-          errors.push(new KsTypeError(
-            inst.expr, 'Path may not be coerced into string type', []));
+          errors.push(
+            new KsTypeError(
+              inst.expr,
+              'Path may not be coerced into string type',
+              [],
+            ),
+          );
         }
         break;
       default:
@@ -328,7 +373,9 @@ export class TypeChecker implements
         new KsTypeError(
           inst.suffix,
           `Cannot set ${this.nodeError(inst.suffix)} as it is a call`,
-          []));
+          [],
+        ),
+      );
     }
 
     const { atom, trailers } = inst.suffix.suffixTerm;
@@ -339,39 +386,48 @@ export class TypeChecker implements
       const setErrors: TypeErrors = [];
 
       if (!coerce(exprResult.type, suffixResult.type)) {
-        setErrors.push(new KsTypeError(
-          inst.suffix,
-          `Cannot set suffix ${this.nodeError(inst.suffix)}` +
-          `of type ${suffixResult.type.name} to ${exprResult.type.name}`,
-          []));
+        setErrors.push(
+          new KsTypeError(
+            inst.suffix,
+            `Cannot set suffix ${this.nodeError(inst.suffix)}` +
+              `of type ${suffixResult.type.name} to ${exprResult.type.name}`,
+            [],
+          ),
+        );
       }
 
-      return errors.concat(
-        suffixResult.errors,
-        setErrors);
+      return errors.concat(suffixResult.errors, setErrors);
     }
 
     if (atom instanceof SuffixTerm.Identifier) {
       const tracker = this.symbolTable.scopedVariableTracker(
         atom.start,
-        atom.token.lexeme);
+        atom.token.lexeme,
+      );
 
-      if (this.script.lazyGlobal
-        && !empty(tracker)
-        && rangeEqual(tracker.declared.range, atom)) {
+      if (
+        this.script.lazyGlobal &&
+        !empty(tracker) &&
+        rangeEqual(tracker.declared.range, atom)
+      ) {
         this.symbolTable.declareType(
-          atom.token, exprResult.type,
-          KsSymbolKind.variable, KsSymbolKind.parameter, KsSymbolKind.lock);
-      } else {
-        this.symbolTable.setType(
-          atom.token, exprResult.type,
+          atom.token,
+          exprResult.type,
+          KsSymbolKind.variable,
+          KsSymbolKind.parameter,
+          KsSymbolKind.lock,
         );
+      } else {
+        this.symbolTable.setType(atom.token, exprResult.type);
       }
     } else {
-      errors.push(new KsTypeError(
-        inst.suffix,
-        `Cannot set ${inst.suffix.toString()}, must be identifier, or suffix`,
-        []));
+      errors.push(
+        new KsTypeError(
+          inst.suffix,
+          `Cannot set ${inst.suffix.toString()}, must be identifier, or suffix`,
+          [],
+        ),
+      );
     }
 
     return errors;
@@ -388,8 +444,13 @@ export class TypeChecker implements
     const errors: TypeErrors = conditionResult.errors;
 
     if (!coerce(conditionResult.type, booleanType)) {
-      errors.push(new KsTypeError(
-        inst.condition, 'Condition may not able to be  be coerced into boolean type', []));
+      errors.push(
+        new KsTypeError(
+          inst.condition,
+          'Condition may not able to be  be coerced into boolean type',
+          [],
+        ),
+      );
     }
 
     const moreErrors = empty(inst.elseInst)
@@ -409,8 +470,13 @@ export class TypeChecker implements
     const errors = conditionResult.errors;
 
     if (!coerce(conditionResult.type, booleanType)) {
-      errors.push(new KsTypeError(
-        inst.condition, 'Condition may not able to be coerced into boolean type', []));
+      errors.push(
+        new KsTypeError(
+          inst.condition,
+          'Condition may not able to be coerced into boolean type',
+          [],
+        ),
+      );
     }
 
     return errors.concat(this.checkInst(inst.inst));
@@ -423,12 +489,18 @@ export class TypeChecker implements
     errors = errors.concat(conditionResult.errors);
 
     if (!coerce(conditionResult.type, booleanType)) {
-      errors.push(new KsTypeError(
-        inst.condition, 'Condition may not able to be coerced into boolean type', []));
+      errors.push(
+        new KsTypeError(
+          inst.condition,
+          'Condition may not able to be coerced into boolean type',
+          [],
+        ),
+      );
     }
     return errors.concat(
       this.checkInst(inst.increment),
-      this.checkInst(inst.inst));
+      this.checkInst(inst.inst),
+    );
   }
 
   // vist when statment
@@ -437,8 +509,13 @@ export class TypeChecker implements
     const errors = conditionResult.errors;
 
     if (!coerce(conditionResult.type, booleanType)) {
-      errors.push(new KsTypeError(
-        inst.condition, 'Condition may not able to be coerced into boolean type', []));
+      errors.push(
+        new KsTypeError(
+          inst.condition,
+          'Condition may not able to be coerced into boolean type',
+          [],
+        ),
+      );
     }
 
     return errors.concat(this.checkInst(inst.inst));
@@ -465,8 +542,13 @@ export class TypeChecker implements
     let errors = result.errors;
 
     if (coerce(result.type, stringType)) {
-      errors = errors.concat(new KsTypeError(
-        inst.target, 'May not be a string identifer for volume', []));
+      errors = errors.concat(
+        new KsTypeError(
+          inst.target,
+          'May not be a string identifer for volume',
+          [],
+        ),
+      );
     }
 
     return errors;
@@ -480,8 +562,9 @@ export class TypeChecker implements
     const { type: type } = result;
 
     if (type.tag !== 'type' || !hasSuffix(type, iterator)) {
-      errors = errors.concat(new KsTypeError(
-        inst.suffix, 'May not be a valid enumerable type', []));
+      errors = errors.concat(
+        new KsTypeError(inst.suffix, 'May not be a valid enumerable type', []),
+      );
     }
 
     // TODO may be able to detect if type is really pure and not mixed
@@ -495,8 +578,13 @@ export class TypeChecker implements
     let errors: TypeErrors = [];
 
     if (coerce(result.type, booleanType)) {
-      errors = errors.concat(new KsTypeError(
-        inst.suffix, 'Condition may not able to be coerced into boolean type', []));
+      errors = errors.concat(
+        new KsTypeError(
+          inst.suffix,
+          'Condition may not able to be coerced into boolean type',
+          [],
+        ),
+      );
     }
 
     return errors.concat(this.checkInst(inst.inst));
@@ -515,17 +603,25 @@ export class TypeChecker implements
 
     if (empty(inst.until)) {
       if (!coerce(result.type, scalarType)) {
-        errors = errors.concat(new KsTypeError(
-          inst.expr, 'Wait requires a scalar type. ' +
-          'This may not able to be coerced into scalar type',
-          []));
+        errors = errors.concat(
+          new KsTypeError(
+            inst.expr,
+            'Wait requires a scalar type. ' +
+              'This may not able to be coerced into scalar type',
+            [],
+          ),
+        );
       }
     } else {
       if (!coerce(result.type, booleanType)) {
-        errors = errors.concat(new KsTypeError(
-          inst.expr, 'Wait requires a boolean type. ' +
-          'This may not able to be coerced into boolean type',
-          []));
+        errors = errors.concat(
+          new KsTypeError(
+            inst.expr,
+            'Wait requires a boolean type. ' +
+              'This may not able to be coerced into boolean type',
+            [],
+          ),
+        );
       }
     }
 
@@ -536,20 +632,21 @@ export class TypeChecker implements
   public visitLog(inst: Inst.Log): TypeErrors {
     const exprResult = this.checkExpr(inst.expr);
     const logResult = this.checkExpr(inst.target);
-    const errors: TypeErrors = exprResult.errors
-      .concat(logResult.errors);
+    const errors: TypeErrors = exprResult.errors.concat(logResult.errors);
 
     if (!coerce(exprResult.type, stringType)) {
-      errors.push(new KsTypeError(
-        inst.expr, 'Can only log a string type. ' +
-        'This may not able to be coerced into string type',
-        []));
+      errors.push(
+        new KsTypeError(
+          inst.expr,
+          'Can only log a string type. ' +
+            'This may not able to be coerced into string type',
+          [],
+        ),
+      );
     }
 
     if (!coerce(exprResult.type, stringType)) {
-      errors.push(new KsTypeError(
-        inst.expr, 'Can only log to a path. ',
-        []));
+      errors.push(new KsTypeError(inst.expr, 'Can only log to a path. ', []));
     }
 
     return errors;
@@ -559,21 +656,28 @@ export class TypeChecker implements
   public visitCopy(inst: Inst.Copy): TypeErrors {
     const sourceResult = this.checkExpr(inst.target);
     const targetResult = this.checkExpr(inst.destination);
-    const errors: TypeErrors = sourceResult.errors
-      .concat(targetResult.errors);
+    const errors: TypeErrors = sourceResult.errors.concat(targetResult.errors);
 
     if (!coerce(sourceResult.type, stringType)) {
-      errors.push(new KsTypeError(
-        inst.target, 'Can only copy from a string or bare path. ' +
-        'This may not able to be coerced into string type',
-        []));
+      errors.push(
+        new KsTypeError(
+          inst.target,
+          'Can only copy from a string or bare path. ' +
+            'This may not able to be coerced into string type',
+          [],
+        ),
+      );
     }
 
     if (!coerce(sourceResult.type, stringType)) {
-      errors.push(new KsTypeError(
-        inst.destination, 'Can only copy to a string or bare path. ' +
-        'This may not able to be coerced into string type',
-        []));
+      errors.push(
+        new KsTypeError(
+          inst.destination,
+          'Can only copy to a string or bare path. ' +
+            'This may not able to be coerced into string type',
+          [],
+        ),
+      );
     }
 
     return errors;
@@ -583,21 +687,30 @@ export class TypeChecker implements
   public visitRename(inst: Inst.Rename): TypeErrors {
     const targetResult = this.checkExpr(inst.target);
     const alternativeResult = this.checkExpr(inst.alternative);
-    const errors: TypeErrors = targetResult.errors
-      .concat(alternativeResult.errors);
+    const errors: TypeErrors = targetResult.errors.concat(
+      alternativeResult.errors,
+    );
 
     if (!coerce(targetResult.type, stringType)) {
-      errors.push(new KsTypeError(
-        inst.target, 'Can only rename from a string or bare path. ' +
-        'This may not able to be coerced into string type',
-        []));
+      errors.push(
+        new KsTypeError(
+          inst.target,
+          'Can only rename from a string or bare path. ' +
+            'This may not able to be coerced into string type',
+          [],
+        ),
+      );
     }
 
     if (!coerce(targetResult.type, stringType)) {
-      errors.push(new KsTypeError(
-        inst.alternative, 'Can only rename to a string or bare path. ' +
-        'This may not able to be coerced into string type',
-        []));
+      errors.push(
+        new KsTypeError(
+          inst.alternative,
+          'Can only rename to a string or bare path. ' +
+            'This may not able to be coerced into string type',
+          [],
+        ),
+      );
     }
 
     return errors;
@@ -607,10 +720,14 @@ export class TypeChecker implements
     const errors: TypeErrors = targetResult.errors;
 
     if (!coerce(targetResult.type, stringType)) {
-      errors.push(new KsTypeError(
-        inst.target, 'Can only delete from a string or bare path. ' +
-        'This may not able to be coerced into string type',
-        []));
+      errors.push(
+        new KsTypeError(
+          inst.target,
+          'Can only delete from a string or bare path. ' +
+            'This may not able to be coerced into string type',
+          [],
+        ),
+      );
     }
 
     if (empty(inst.volume)) {
@@ -618,25 +735,35 @@ export class TypeChecker implements
     }
 
     const volumeResult = this.checkExpr(inst.volume);
-    if (!coerce(targetResult.type, stringType) && !coerce(targetResult.type, pathType)) {
-      errors.push(new KsTypeError(
-        inst.volume, 'Can only rename to a string or bare path. ' +
-        'This may not able to be coerced into string type',
-        []));
+    if (
+      !coerce(targetResult.type, stringType) &&
+      !coerce(targetResult.type, pathType)
+    ) {
+      errors.push(
+        new KsTypeError(
+          inst.volume,
+          'Can only rename to a string or bare path. ' +
+            'This may not able to be coerced into string type',
+          [],
+        ),
+      );
     }
 
     return errors.concat(volumeResult.errors);
   }
   public visitRun(inst: Inst.Run): TypeErrors {
-    if (inst) { }
+    if (inst) {
+    }
     return [];
   }
   public visitRunPath(inst: Inst.RunPath): TypeErrors {
-    if (inst) { }
+    if (inst) {
+    }
     return [];
   }
   public visitRunPathOnce(inst: Inst.RunPathOnce): TypeErrors {
-    if (inst) { }
+    if (inst) {
+    }
     return [];
   }
   public visitCompile(inst: Inst.Compile): TypeErrors {
@@ -644,10 +771,14 @@ export class TypeChecker implements
     const errors: TypeErrors = targetResult.errors;
 
     if (!coerce(targetResult.type, stringType)) {
-      errors.push(new KsTypeError(
-        inst.target, 'Can only compile from a string or bare path. ' +
-        'This may not able to be coerced into string type',
-        []));
+      errors.push(
+        new KsTypeError(
+          inst.target,
+          'Can only compile from a string or bare path. ' +
+            'This may not able to be coerced into string type',
+          [],
+        ),
+      );
     }
 
     if (empty(inst.destination)) {
@@ -656,10 +787,14 @@ export class TypeChecker implements
 
     const destinationResult = this.checkExpr(inst.destination);
     if (!coerce(destinationResult.type, stringType)) {
-      errors.push(new KsTypeError(
-        inst.destination, 'Can only compile to a string or bare path. ' +
-        'This may not able to be coerced into string type',
-        []));
+      errors.push(
+        new KsTypeError(
+          inst.destination,
+          'Can only compile to a string or bare path. ' +
+            'This may not able to be coerced into string type',
+          [],
+        ),
+      );
     }
 
     return errors.concat(destinationResult.errors);
@@ -699,7 +834,9 @@ export class TypeChecker implements
         break;
       default:
         finalType = structureType;
-        errors.push(new KsTypeError(collection, 'Not a valid list identifier', []));
+        errors.push(
+          new KsTypeError(collection, 'Not a valid list identifier', []),
+        );
     }
 
     this.symbolTable.setType(target, listType.toConcreteType(finalType));
@@ -717,8 +854,13 @@ export class TypeChecker implements
     const errors = result.errors;
 
     if (!coerce(result.type, structureType)) {
-      errors.push(new KsTypeError(
-        inst.expr, 'Cannot print a function, can only print structures', []));
+      errors.push(
+        new KsTypeError(
+          inst.expr,
+          'Cannot print a function, can only print structures',
+          [],
+        ),
+      );
     }
 
     return errors;
@@ -737,39 +879,93 @@ export class TypeChecker implements
 
     switch (expr.operator.type) {
       case TokenType.minus:
-        return this.checkOperator(expr, leftResult, rightResult, Operator.subtract);
+        return this.checkOperator(
+          expr,
+          leftResult,
+          rightResult,
+          Operator.subtract,
+        );
       case TokenType.multi:
-        return this.checkOperator(expr, leftResult, rightResult, Operator.multiply);
+        return this.checkOperator(
+          expr,
+          leftResult,
+          rightResult,
+          Operator.multiply,
+        );
       case TokenType.div:
-        return this.checkOperator(expr, leftResult, rightResult, Operator.divide);
+        return this.checkOperator(
+          expr,
+          leftResult,
+          rightResult,
+          Operator.divide,
+        );
       case TokenType.plus:
         return this.checkOperator(expr, leftResult, rightResult, Operator.plus);
       case TokenType.less:
-        return this.checkOperator(expr, leftResult, rightResult, Operator.lessThan);
+        return this.checkOperator(
+          expr,
+          leftResult,
+          rightResult,
+          Operator.lessThan,
+        );
       case TokenType.lessEqual:
-        return this.checkOperator(expr, leftResult, rightResult, Operator.lessThanEqual);
+        return this.checkOperator(
+          expr,
+          leftResult,
+          rightResult,
+          Operator.lessThanEqual,
+        );
       case TokenType.greater:
-        return this.checkOperator(expr, leftResult, rightResult, Operator.greaterThan);
+        return this.checkOperator(
+          expr,
+          leftResult,
+          rightResult,
+          Operator.greaterThan,
+        );
       case TokenType.greaterEqual:
-        return this.checkOperator(expr, leftResult, rightResult, Operator.greaterThanEqual);
+        return this.checkOperator(
+          expr,
+          leftResult,
+          rightResult,
+          Operator.greaterThanEqual,
+        );
       case TokenType.and:
       case TokenType.or:
         const errors = leftResult.errors.concat(rightResult.errors);
-        if (!isSubType(leftResult.type, booleanType)
-        || !isSubType(leftResult.type, booleanType)) {
-          errors.push(new KsTypeError(
-            expr,
-            '"and" and "or" require boolean types. May not be able to coerce one or other', []));
+        if (
+          !isSubType(leftResult.type, booleanType) ||
+          !isSubType(leftResult.type, booleanType)
+        ) {
+          errors.push(
+            new KsTypeError(
+              expr,
+              '"and" and "or" require boolean types. May not be able to coerce one or other',
+              [],
+            ),
+          );
         }
         return { errors, type: booleanType };
       case TokenType.equal:
-        return this.checkOperator(expr, leftResult, rightResult, Operator.equal);
+        return this.checkOperator(
+          expr,
+          leftResult,
+          rightResult,
+          Operator.equal,
+        );
       case TokenType.notEqual:
-        return this.checkOperator(expr, leftResult, rightResult, Operator.notEqual);
+        return this.checkOperator(
+          expr,
+          leftResult,
+          rightResult,
+          Operator.notEqual,
+        );
     }
 
     throw new Error(
-      `Unexpected token ${expr.operator.typeString} type encountered in binary expression`);
+      `Unexpected token ${
+        expr.operator.typeString
+      } type encountered in binary expression`,
+    );
   }
 
   public visitUnary(expr: Expr.Unary): ITypeResultExpr<IArgumentType> {
@@ -782,19 +978,27 @@ export class TypeChecker implements
       case TokenType.minus:
         // TODO check if this is true
         if (!coerce(result.type, scalarType)) {
-          errors.push(new KsTypeError(
-            expr.factor, '+/- only valid for a scalar type. ' +
-            'This may not able to be coerced into scalar type',
-            []));
+          errors.push(
+            new KsTypeError(
+              expr.factor,
+              '+/- only valid for a scalar type. ' +
+                'This may not able to be coerced into scalar type',
+              [],
+            ),
+          );
         }
         finalType = scalarType;
         break;
       case TokenType.not:
         if (!coerce(result.type, booleanType)) {
-          errors.push(new KsTypeError(
-            expr.factor, 'Can only "not" a boolean type. ' +
-            'This may not able to be coerced into string type',
-            []));
+          errors.push(
+            new KsTypeError(
+              expr.factor,
+              'Can only "not" a boolean type. ' +
+                'This may not able to be coerced into string type',
+              [],
+            ),
+          );
         }
         finalType = booleanType;
         break;
@@ -802,10 +1006,12 @@ export class TypeChecker implements
         finalType = booleanType;
         break;
       default:
-        throw new Error(`Invalid Token ${expr.operator.typeString} for unary operator.`);
+        throw new Error(
+          `Invalid Token ${expr.operator.typeString} for unary operator.`,
+        );
     }
 
-    return { errors , type: finalType };
+    return { errors, type: finalType };
   }
   public visitFactor(expr: Expr.Factor): ITypeResultExpr<IArgumentType> {
     const suffixResult = this.checkExpr(expr.suffix);
@@ -813,35 +1019,46 @@ export class TypeChecker implements
     const errors = suffixResult.errors.concat(exponentResult.errors);
 
     if (!coerce(suffixResult.type, scalarType)) {
-      errors.push(new KsTypeError(
-        expr.suffix, 'Can only use scalars as base of power' +
-        'This may not able to be coerced into scalar type',
-        []));
+      errors.push(
+        new KsTypeError(
+          expr.suffix,
+          'Can only use scalars as base of power' +
+            'This may not able to be coerced into scalar type',
+          [],
+        ),
+      );
     }
 
     if (!coerce(exponentResult.type, scalarType)) {
-      errors.push(new KsTypeError(
-        expr.exponent, 'Can only use scalars as exponent of power' +
-        'This may not able to be coerced into scalar type',
-        []));
+      errors.push(
+        new KsTypeError(
+          expr.exponent,
+          'Can only use scalars as exponent of power' +
+            'This may not able to be coerced into scalar type',
+          [],
+        ),
+      );
     }
 
-    return {  errors, type: scalarType };
+    return { errors, type: scalarType };
   }
 
   public visitSuffix(expr: Expr.Suffix): ITypeResultExpr<IArgumentType> {
     const { suffixTerm, trailer } = expr;
     const [firstTrailer, ...remainingTrailers] = suffixTerm.trailers;
 
-    const atom = firstTrailer instanceof SuffixTerm.Call
-      ? this.resolveAtom(suffixTerm.atom, KsSymbolKind.function)
-      : this.resolveAtom(
-        suffixTerm.atom, KsSymbolKind.variable,
-        KsSymbolKind.lock, KsSymbolKind.parameter);
+    const atom =
+      firstTrailer instanceof SuffixTerm.Call
+        ? this.resolveAtom(suffixTerm.atom, KsSymbolKind.function)
+        : this.resolveAtom(
+            suffixTerm.atom,
+            KsSymbolKind.variable,
+            KsSymbolKind.lock,
+            KsSymbolKind.parameter,
+          );
     let current: ITypeResultSuffix<IType> = atom;
 
     if (!empty(firstTrailer)) {
-
       // handle case were suffix is actually a function call
       if (firstTrailer instanceof SuffixTerm.Call) {
         current = this.resolveFunctionCall(firstTrailer, atom);
@@ -872,10 +1089,13 @@ export class TypeChecker implements
     return this.errorsExpr(
       errors,
       current.errors,
-      new KsTypeError(trailer, 'TODO', []));
+      new KsTypeError(trailer, 'TODO', []),
+    );
   }
 
-  public visitAnonymousFunction(_: Expr.AnonymousFunction): ITypeResultExpr<IArgumentType> {
+  public visitAnonymousFunction(
+    _: Expr.AnonymousFunction,
+  ): ITypeResultExpr<IArgumentType> {
     return this.resultExpr(delegateType);
   }
 
@@ -883,8 +1103,8 @@ export class TypeChecker implements
 
   private resolveAtom(
     atom: Atom,
-    ...symbolKinds: KsSymbolKind[])
-    : ITypeResultSuffix<IArgumentType | IFunctionType, ITypeResolved> {
+    ...symbolKinds: KsSymbolKind[]
+  ): ITypeResultSuffix<IArgumentType | IFunctionType, ITypeResolved> {
     if (atom instanceof SuffixTerm.Literal) {
       return this.resolveLiteral(atom);
     }
@@ -900,8 +1120,9 @@ export class TypeChecker implements
     throw new Error('Unknown atom type');
   }
 
-  private resolveLiteral(literal: SuffixTerm.Literal)
-    : ITypeResultSuffix<IArgumentType, ITypeResolved> {
+  private resolveLiteral(
+    literal: SuffixTerm.Literal,
+  ): ITypeResultSuffix<IArgumentType, ITypeResolved> {
     switch (literal.token.type) {
       case TokenType.true:
       case TokenType.false:
@@ -920,37 +1141,56 @@ export class TypeChecker implements
 
   private resolveIdentifier(
     identifer: SuffixTerm.Identifier,
-    symbolKinds: KsSymbolKind[])
-    : ITypeResultSuffix<IArgumentType | IFunctionType, ITypeResolved> {
+    symbolKinds: KsSymbolKind[],
+  ): ITypeResultSuffix<IArgumentType | IFunctionType, ITypeResolved> {
     const type = this.symbolTable.getType(identifer.token, ...symbolKinds);
     const tracker = this.symbolTable.scopedSymbolTracker(
-      identifer.start, identifer.token.lexeme, symbolKinds);
-    return (empty(type) || empty(tracker))
+      identifer.start,
+      identifer.token.lexeme,
+      symbolKinds,
+    );
+    return empty(type) || empty(tracker)
       ? this.errorsAtom(
-        identifer,
-        new KsTypeError(identifer, 'Unable to lookup identifier type', []))
+          identifer,
+          new KsTypeError(identifer, 'Unable to lookup identifier type', []),
+        )
       : this.resultAtom(type, identifer, tracker.declared.symbol.tag);
   }
 
-  private resolveGrouping(grouping: SuffixTerm.Grouping)
-    : ITypeResultSuffix<IArgumentType, ITypeResolved> {
+  private resolveGrouping(
+    grouping: SuffixTerm.Grouping,
+  ): ITypeResultSuffix<IArgumentType, ITypeResolved> {
     const result = this.checkExpr(grouping.expr);
-    return this.resultAtom(result.type, grouping, KsSymbolKind.variable, result.errors);
+    return this.resultAtom(
+      result.type,
+      grouping,
+      KsSymbolKind.variable,
+      result.errors,
+    );
   }
 
   private resolveFunctionCall(
     call: SuffixTerm.Call,
-    current: ITypeResultSuffix<IType, ITypeResolved>)
-    : ITypeResultSuffix<IArgumentType, ITypeResolved> {
+    current: ITypeResultSuffix<IType, ITypeResolved>,
+  ): ITypeResultSuffix<IArgumentType, ITypeResolved> {
     const { type, resolved, errors } = current;
     if (type.tag !== 'function') {
       return this.errorsAtom(
         call,
-        new KsTypeError(call, `Type ${type.name} does not have a call signiture`, []));
+        new KsTypeError(
+          call,
+          `Type ${type.name} does not have a call signiture`,
+          [],
+        ),
+      );
     }
 
     if (!Array.isArray(type.params)) {
-      const callResult = this.resolveVaradicCall(type.params, { type, resolved, errors }, call);
+      const callResult = this.resolveVaradicCall(
+        type.params,
+        { type, resolved, errors },
+        call,
+      );
       return {
         ...callResult,
         resolved: {
@@ -961,7 +1201,11 @@ export class TypeChecker implements
     }
 
     // handle normal functions
-    const callResult = this.resolveNormalCall(type.params, { type, resolved, errors }, call);
+    const callResult = this.resolveNormalCall(
+      type.params,
+      { type, resolved, errors },
+      call,
+    );
     return {
       ...callResult,
       resolved: {
@@ -973,8 +1217,8 @@ export class TypeChecker implements
 
   public visitSuffixTrailer(
     suffixTerm: SuffixTerm.SuffixTrailer,
-    current: ITypeResultSuffix<IType>): ITypeResultSuffix<SuffixTermType> {
-
+    current: ITypeResultSuffix<IType>,
+  ): ITypeResultSuffix<SuffixTermType> {
     // check suffix term and trailers
     const result = this.checkSuffixTerm(suffixTerm.suffixTerm, current);
     const { type, resolved, errors } = result;
@@ -992,26 +1236,31 @@ export class TypeChecker implements
         new KsTypeError(
           suffixTerm.suffixTerm,
           `suffix ${result.type.name} ` +
-          `of type ${result.type.toTypeString()} ` +
-          'does not have a call signiture',
-          []));
+            `of type ${result.type.toTypeString()} ` +
+            'does not have a call signiture',
+          [],
+        ),
+      );
     }
 
     const trailer = this.checkSuffixTerm(
       suffixTerm.trailer,
-      this.suffixTrailerResult(type, suffixTerm));
+      this.suffixTrailerResult(type, suffixTerm),
+    );
     // const node = this.lastSuffixNode(suffixTerm);
 
     return this.resultSuffixTerm(
       trailer.type,
       { ...result.resolved, suffixTrailer: trailer.resolved },
       result.errors,
-      trailer.errors);
+      trailer.errors,
+    );
   }
 
   public visitSuffixTermInvalid(
     suffixTerm: SuffixTerm.Invalid,
-    param: ITypeResultSuffix<IType>): ITypeResultSuffix<IArgumentType> {
+    param: ITypeResultSuffix<IType>,
+  ): ITypeResultSuffix<IArgumentType> {
     if (suffixTerm && param) {
       console.log('TODO');
     }
@@ -1021,7 +1270,8 @@ export class TypeChecker implements
 
   public visitSuffixTerm(
     suffixTerm: SuffixTerm.SuffixTerm,
-    current: ITypeResultSuffix<IType>): ITypeResultSuffix<IArgumentType> {
+    current: ITypeResultSuffix<IType>,
+  ): ITypeResultSuffix<IArgumentType> {
     const atom = this.checkSuffixTerm(suffixTerm.atom, current);
     let result = atom;
 
@@ -1045,7 +1295,8 @@ export class TypeChecker implements
     return this.errorsSuffixTermTrailer(
       this.lastSuffixTermNode(suffixTerm),
       resolved,
-      errors);
+      errors,
+    );
   }
 
   /**
@@ -1055,7 +1306,8 @@ export class TypeChecker implements
    */
   public visitCall(
     call: SuffixTerm.Call,
-    current: ITypeResultSuffix<IType>): ITypeResultSuffix<IArgumentType> {
+    current: ITypeResultSuffix<IType>,
+  ): ITypeResultSuffix<IArgumentType> {
     const { type, resolved, errors } = current;
 
     if (type.tag !== 'suffix') {
@@ -1069,15 +1321,26 @@ export class TypeChecker implements
         resolved,
         new KsTypeError(
           call,
-          `type ${type.name} does not have call signiture`, []));
+          `type ${type.name} does not have call signiture`,
+          [],
+        ),
+      );
     }
 
     if (!Array.isArray(type.params)) {
-      return this.resolveVaradicCall(type.params, { type, resolved, errors }, call);
+      return this.resolveVaradicCall(
+        type.params,
+        { type, resolved, errors },
+        call,
+      );
     }
 
     // handle normal functions
-    return this.resolveNormalCall(type.params, { type, resolved, errors }, call);
+    return this.resolveNormalCall(
+      type.params,
+      { type, resolved, errors },
+      call,
+    );
   }
 
   /**
@@ -1089,14 +1352,20 @@ export class TypeChecker implements
   private resolveVaradicCall(
     params: IVariadicType,
     current: ITypeResultSuffix<ISuffixType | IFunctionType>,
-    call: SuffixTerm.Call): ITypeResultSuffix<IArgumentType> {
+    call: SuffixTerm.Call,
+  ): ITypeResultSuffix<IArgumentType> {
     const { type, resolved, errors } = current;
 
     for (const arg of call.args) {
       const result = this.checkExpr(arg);
       if (!coerce(result.type, params.type)) {
-        errors.push(new KsTypeError(
-          arg, `Function argument could not be coerced into ${params.type.name}`, []));
+        errors.push(
+          new KsTypeError(
+            arg,
+            `Function argument could not be coerced into ${params.type.name}`,
+            [],
+          ),
+        );
       }
     }
 
@@ -1112,14 +1381,20 @@ export class TypeChecker implements
   private resolveNormalCall(
     params: IType[],
     current: ITypeResultSuffix<ISuffixType | IFunctionType>,
-    call: SuffixTerm.Call): ITypeResultSuffix<IArgumentType> {
+    call: SuffixTerm.Call,
+  ): ITypeResultSuffix<IArgumentType> {
     const { type, resolved, errors } = current;
 
     for (const [arg, param] of zip(call.args, params)) {
       const result = this.checkExpr(arg);
       if (!coerce(result.type, param)) {
-        errors.push(new KsTypeError(
-          arg, `Function argument could not be coerced into ${param.name}`, []));
+        errors.push(
+          new KsTypeError(
+            arg,
+            `Function argument could not be coerced into ${param.name}`,
+            [],
+          ),
+        );
       }
     }
 
@@ -1134,7 +1409,8 @@ export class TypeChecker implements
    */
   public visitArrayIndex(
     suffixTerm: SuffixTerm.ArrayIndex,
-    current: ITypeResultSuffix<IType>): ITypeResultSuffix<IArgumentType> {
+    current: ITypeResultSuffix<IType>,
+  ): ITypeResultSuffix<IArgumentType> {
     const { type, errors, resolved } = current;
 
     // TODO confirm indexable types
@@ -1144,13 +1420,19 @@ export class TypeChecker implements
         suffixTerm,
         resolved,
         errors,
-        new KsTypeError(suffixTerm, 'indexing with # requires a list', []));
+        new KsTypeError(suffixTerm, 'indexing with # requires a list', []),
+      );
     }
 
     switch (suffixTerm.indexer.type) {
       // If index is integer we're already in good shape
       case TokenType.integer:
-        return this.resultSuffixTermTrailer(arrayIndexer, suffixTerm, resolved, errors);
+        return this.resultSuffixTermTrailer(
+          arrayIndexer,
+          suffixTerm,
+          resolved,
+          errors,
+        );
 
       // If index is identify check that it holds a integarType
       case TokenType.identifier:
@@ -1163,11 +1445,18 @@ export class TypeChecker implements
             new KsTypeError(
               suffixTerm.indexer,
               `${suffixTerm.indexer.lexeme} is not a scalar type. ` +
-              'Can only use scalar to index with #',
-              []));
+                'Can only use scalar to index with #',
+              [],
+            ),
+          );
         }
 
-        return this.resultSuffixTermTrailer(arrayIndexer, suffixTerm, resolved, errors);
+        return this.resultSuffixTermTrailer(
+          arrayIndexer,
+          suffixTerm,
+          resolved,
+          errors,
+        );
 
       // All other cases are unallowed
       default:
@@ -1177,7 +1466,10 @@ export class TypeChecker implements
           errors,
           new KsTypeError(
             suffixTerm.indexer,
-            'Cannot index array with # other than with scalars or variables', []));
+            'Cannot index array with # other than with scalars or variables',
+            [],
+          ),
+        );
     }
   }
 
@@ -1188,7 +1480,8 @@ export class TypeChecker implements
    */
   public visitArrayBracket(
     suffixTerm: SuffixTerm.ArrayBracket,
-    current: ITypeResultSuffix<IType>): ITypeResultSuffix<IArgumentType> {
+    current: ITypeResultSuffix<IType>,
+  ): ITypeResultSuffix<IArgumentType> {
     const { type, resolved, errors } = current;
     const indexResult = this.checkExpr(suffixTerm.index);
 
@@ -1200,9 +1493,12 @@ export class TypeChecker implements
         errors,
         indexResult.errors,
         new KsTypeError(
-          suffixTerm.index, 'Can only use scalars as list index' +
-          'This may not able to be coerced into scalar type',
-          []));
+          suffixTerm.index,
+          'Can only use scalars as list index' +
+            'This may not able to be coerced into scalar type',
+          [],
+        ),
+      );
     }
 
     // if we know the collection type is a lexicon we need a string indexer
@@ -1213,9 +1509,12 @@ export class TypeChecker implements
         errors,
         indexResult.errors,
         new KsTypeError(
-          suffixTerm.index, 'Can only use string as lexicon index' +
-          'This may not able to be coerced into string type',
-          []));
+          suffixTerm.index,
+          'Can only use string as lexicon index' +
+            'This may not able to be coerced into string type',
+          [],
+        ),
+      );
     }
 
     // if we know the collection type is a string we need a scalar indexer
@@ -1226,12 +1525,20 @@ export class TypeChecker implements
         errors,
         indexResult.errors,
         new KsTypeError(
-          suffixTerm.index, 'Can only use string or scalar as index' +
-          'This may not able to be coerced into string or scalar type',
-          []));
+          suffixTerm.index,
+          'Can only use string or scalar as index' +
+            'This may not able to be coerced into string or scalar type',
+          [],
+        ),
+      );
     }
 
-    return this.resultSuffixTermTrailer(arrayBracketIndexer, suffixTerm, resolved, errors);
+    return this.resultSuffixTermTrailer(
+      arrayBracketIndexer,
+      suffixTerm,
+      resolved,
+      errors,
+    );
   }
 
   /**
@@ -1241,17 +1548,28 @@ export class TypeChecker implements
    */
   public visitDelegate(
     suffixTerm: SuffixTerm.Delegate,
-    current: ITypeResultSuffix<IType>): ITypeResultSuffix<IArgumentType> {
+    current: ITypeResultSuffix<IType>,
+  ): ITypeResultSuffix<IArgumentType> {
     const { type, resolved, errors } = current;
     if (type.tag !== 'function') {
       return this.errorsSuffixTermTrailer(
         suffixTerm,
         resolved,
         errors,
-        new KsTypeError(suffixTerm, 'Can only create delegate of functions', []));
+        new KsTypeError(
+          suffixTerm,
+          'Can only create delegate of functions',
+          [],
+        ),
+      );
     }
 
-    return this.resultSuffixTermTrailer(delegateCreation, suffixTerm, resolved, errors);
+    return this.resultSuffixTermTrailer(
+      delegateCreation,
+      suffixTerm,
+      resolved,
+      errors,
+    );
   }
 
   /**
@@ -1261,7 +1579,8 @@ export class TypeChecker implements
    */
   public visitLiteral(
     _: SuffixTerm.Literal,
-    __: ITypeResultSuffix<IType>): ITypeResultSuffix<IArgumentType> {
+    __: ITypeResultSuffix<IType>,
+  ): ITypeResultSuffix<IArgumentType> {
     throw new Error('Literal should not appear outside of suffix atom');
   }
 
@@ -1272,24 +1591,31 @@ export class TypeChecker implements
    */
   public visitIdentifier(
     suffixTerm: SuffixTerm.Identifier,
-    current: ITypeResultSuffix<IType>): ITypeResultSuffix<SuffixTermType> {
+    current: ITypeResultSuffix<IType>,
+  ): ITypeResultSuffix<SuffixTermType> {
     const { type, resolved, errors } = current;
     const suffix = getSuffix(type, suffixTerm.token.lexeme);
 
     // may need to pass sommething in about if we're in get set context
-    if (empty(suffix))  {
+    if (empty(suffix)) {
       return this.errorsSuffixTerm(
         { ...resolved, node: new TypeNode(suffixError, suffixTerm) },
         errors,
         new KsTypeError(
           suffixTerm,
-          `Could not find suffix ${suffixTerm.token.lexeme} for type ${type.name}`, []));
+          `Could not find suffix ${suffixTerm.token.lexeme} for type ${
+            type.name
+          }`,
+          [],
+        ),
+      );
     }
 
     return this.resultSuffixTerm(
       suffix,
       { ...resolved, node: new TypeNode(suffix, suffixTerm) },
-      errors);
+      errors,
+    );
   }
 
   /**
@@ -1299,7 +1625,8 @@ export class TypeChecker implements
    */
   public visitGrouping(
     _: SuffixTerm.Grouping,
-    __: ITypeResultSuffix<IType>): ITypeResultSuffix<IArgumentType> {
+    __: ITypeResultSuffix<IType>,
+  ): ITypeResultSuffix<IArgumentType> {
     throw new Error('Grouping should not appear outside of suffix atom');
   }
 
@@ -1316,8 +1643,8 @@ export class TypeChecker implements
     expr: IExpr,
     leftResult: ITypeResultExpr<IType>,
     rightResult: ITypeResultExpr<IType>,
-    operator: Operator): ITypeResultExpr<IArgumentType> {
-
+    operator: Operator,
+  ): ITypeResultExpr<IArgumentType> {
     const leftType = leftResult.type;
     const rightType = rightResult.type;
     const errors = leftResult.errors.concat(rightResult.errors);
@@ -1326,9 +1653,15 @@ export class TypeChecker implements
     // TODO could be more efficient
     if (isSubType(leftType, scalarType) && isSubType(rightType, scalarType)) {
       calcType = scalarType;
-    } else if (isSubType(leftType, stringType) || isSubType(rightType, stringType)) {
+    } else if (
+      isSubType(leftType, stringType) ||
+      isSubType(rightType, stringType)
+    ) {
       calcType = stringType;
-    } else if (isSubType(leftType, booleanType) || isSubType(rightType, booleanType)) {
+    } else if (
+      isSubType(leftType, booleanType) ||
+      isSubType(rightType, booleanType)
+    ) {
       calcType = booleanType;
     } else {
       const leftOp = hasOperator(leftType, operator);
@@ -1338,7 +1671,12 @@ export class TypeChecker implements
         return {
           type: structureType,
           errors: errors.concat(
-            new KsTypeError(expr, `${leftType.name} nor ${rightType.name} have TODO operator`, [])),
+            new KsTypeError(
+              expr,
+              `${leftType.name} nor ${rightType.name} have TODO operator`,
+              [],
+            ),
+          ),
         };
       }
 
@@ -1357,7 +1695,12 @@ export class TypeChecker implements
       return {
         type: structureType,
         errors: errors.concat(
-          new KsTypeError(expr, `${calcType.name} type does not have TODO operator`, [])),
+          new KsTypeError(
+            expr,
+            `${calcType.name} type does not have TODO operator`,
+            [],
+          ),
+        ),
       };
     }
 
@@ -1369,7 +1712,8 @@ export class TypeChecker implements
    * @param errors type errors
    */
   private errorsExpr(
-    ...errors: (ITypeError | ITypeError[])[]): ITypeResultExpr<IArgumentType> {
+    ...errors: (ITypeError | ITypeError[])[]
+  ): ITypeResultExpr<IArgumentType> {
     return this.resultExpr(structureType, ...errors);
   }
 
@@ -1380,7 +1724,8 @@ export class TypeChecker implements
    */
   private resultExpr<T extends IType>(
     type: T,
-    ...errors: (ITypeError | ITypeError[])[]): ITypeResultExpr<T> {
+    ...errors: (ITypeError | ITypeError[])[]
+  ): ITypeResultExpr<T> {
     return {
       type,
       errors: ([] as ITypeError[]).concat(...errors),
@@ -1395,8 +1740,8 @@ export class TypeChecker implements
   private errorsSuffixTermTrailer(
     node: SuffixTerm.SuffixTermBase,
     resolved: ITypeResolvedSuffix,
-    ...errors: (ITypeError | ITypeError[])[])
-    : ITypeResultSuffix<IArgumentType, ITypeResolvedSuffix> {
+    ...errors: (ITypeError | ITypeError[])[]
+  ): ITypeResultSuffix<IArgumentType, ITypeResolvedSuffix> {
     return this.resultSuffixTermTrailer(suffixError, node, resolved, ...errors);
   }
 
@@ -1410,8 +1755,8 @@ export class TypeChecker implements
     type: IType,
     node: SuffixTerm.SuffixTermBase,
     resolved: ITypeResolvedSuffix,
-    ...errors: (ITypeError | ITypeError[])[])
-    : ITypeResultSuffix<IArgumentType, ITypeResolvedSuffix> {
+    ...errors: (ITypeError | ITypeError[])[]
+  ): ITypeResultSuffix<IArgumentType, ITypeResolvedSuffix> {
     const { atom: current, termTrailers, suffixTrailer } = resolved;
     let returns = structureType;
     if (type.tag === 'function' || type.tag === 'suffix') {
@@ -1422,8 +1767,13 @@ export class TypeChecker implements
 
     return this.resultSuffixTerm(
       returns,
-      { suffixTrailer, atom: current, termTrailers: [...termTrailers, new TypeNode(type, node)] },
-      ...errors);
+      {
+        suffixTrailer,
+        atom: current,
+        termTrailers: [...termTrailers, new TypeNode(type, node)],
+      },
+      ...errors,
+    );
   }
 
   /**
@@ -1433,12 +1783,9 @@ export class TypeChecker implements
    */
   private errorsSuffixTerm<R extends ITypeResolvedSuffix>(
     resolved: R,
-    ...errors: (ITypeError | ITypeError[])[])
-    : ITypeResultSuffix<ISuffixType, R> {
-    return this.resultSuffixTerm(
-      suffixError,
-      resolved,
-      ...errors);
+    ...errors: (ITypeError | ITypeError[])[]
+  ): ITypeResultSuffix<ISuffixType, R> {
+    return this.resultSuffixTerm(suffixError, resolved, ...errors);
   }
 
   /**
@@ -1450,8 +1797,8 @@ export class TypeChecker implements
   private resultSuffixTerm<T extends IType, R extends ITypeResolvedSuffix>(
     type: T,
     resolved: R,
-    ...errors: (ITypeError | ITypeError[])[])
-    : ITypeResultSuffix<T, R> {
+    ...errors: (ITypeError | ITypeError[])[]
+  ): ITypeResultSuffix<T, R> {
     return {
       type,
       resolved,
@@ -1466,9 +1813,14 @@ export class TypeChecker implements
    */
   private errorsAtom(
     node: SuffixTerm.SuffixTermBase,
-    ...errors: (ITypeError | ITypeError[])[])
-    : ITypeResultSuffix<IArgumentType, ITypeResolved> {
-    return this.resultAtom(structureType, node, KsSymbolKind.variable, ...errors);
+    ...errors: (ITypeError | ITypeError[])[]
+  ): ITypeResultSuffix<IArgumentType, ITypeResolved> {
+    return this.resultAtom(
+      structureType,
+      node,
+      KsSymbolKind.variable,
+      ...errors,
+    );
   }
 
   /**
@@ -1482,8 +1834,8 @@ export class TypeChecker implements
     type: T,
     node: SuffixTerm.SuffixTermBase,
     atomType: KsSymbolKind,
-    ...errors: (ITypeError | ITypeError[])[])
-    : ITypeResultSuffix<T, ITypeResolved> {
+    ...errors: (ITypeError | ITypeError[])[]
+  ): ITypeResultSuffix<T, ITypeResolved> {
     return {
       type,
       errors: ([] as ITypeError[]).concat(...errors),
@@ -1502,21 +1854,21 @@ export class TypeChecker implements
    */
   private suffixTrailerResult<T extends IType>(
     type: T,
-    node: SuffixTerm.SuffixTermBase): ITypeResultSuffix<T, ITypeResolvedSuffix> {
+    node: SuffixTerm.SuffixTermBase,
+  ): ITypeResultSuffix<T, ITypeResolvedSuffix> {
     return {
       type,
       resolved: {
         atom: new TypeNode(type, node),
-        termTrailers: ([] as ITypeNode<IType>[]),
+        termTrailers: [] as ITypeNode<IType>[],
       },
       errors: [],
     };
   }
 
   private lastSuffixTermNode(
-    suffixTerm: SuffixTerm.SuffixTerm)
-    : SuffixTerm.SuffixTermBase {
-
+    suffixTerm: SuffixTerm.SuffixTerm,
+  ): SuffixTerm.SuffixTermBase {
     return suffixTerm.trailers.length > 0
       ? suffixTerm.trailers[suffixTerm.trailers.length - 1]
       : suffixTerm.atom;
@@ -1531,8 +1883,12 @@ export class TypeChecker implements
   }
 }
 
-const accumulateErrors = <T>(items: T[], checker: (item: T) => TypeErrors): TypeErrors => {
+const accumulateErrors = <T>(
+  items: T[],
+  checker: (item: T) => TypeErrors,
+): TypeErrors => {
   return items.reduce(
     (accumulator, item) => accumulator.concat(checker(item)),
-    [] as TypeErrors);
+    [] as TypeErrors,
+  );
 };

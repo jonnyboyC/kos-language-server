@@ -22,7 +22,6 @@ type ScanResult = TokenResult | WhitespaceResult | DiagnosticResult;
  * Class for scanning kerboscript files
  */
 export class Scanner {
-
   /**
    * source string for scanning
    */
@@ -89,8 +88,8 @@ export class Scanner {
     source: string,
     uri: string = '',
     logger: ILogger = mockLogger,
-    tracer: ITracer = mockTracer) {
-
+    tracer: ITracer = mockTracer,
+  ) {
     this.source = source;
     this.logger = logger;
     this.tracer = tracer;
@@ -138,12 +137,14 @@ export class Scanner {
       const tokens: IToken[] = [];
       const scanErrors: Diagnostic[] = [];
 
-      this.logger.info(`Scanning ${this.uri} with ${this.source.length} characters.`);
+      this.logger.info(
+        `Scanning ${this.uri} with ${this.source.length} characters.`,
+      );
 
       // begin scanning
       while (!this.isAtEnd()) {
         this.start = this.current;
-        this.startPosition.character  = this.currentPosition.character;
+        this.startPosition.character = this.currentPosition.character;
         this.startPosition.line = this.currentPosition.line;
 
         const result = this.scanToken();
@@ -159,8 +160,10 @@ export class Scanner {
         }
       }
 
-      this.logger.info(`Finished scanning ${this.uri} with `
-        + `${tokens.length} tokens and ${scanErrors.length} errors.`);
+      this.logger.info(
+        `Finished scanning ${this.uri} with ` +
+          `${tokens.length} tokens and ${scanErrors.length} errors.`,
+      );
 
       return { tokens, scanErrors };
     } catch (err) {
@@ -180,22 +183,37 @@ export class Scanner {
   private scanToken(): ScanResult {
     const c = this.advance();
     switch (c) {
-      case '(': return this.generateToken(TokenType.bracketOpen);
-      case ')': return this.generateToken(TokenType.bracketClose);
-      case '{': return this.generateToken(TokenType.curlyOpen);
-      case '}': return this.generateToken(TokenType.curlyClose);
-      case '[': return this.generateToken(TokenType.squareOpen);
-      case ']': return this.generateToken(TokenType.squareClose);
-      case ',': return this.generateToken(TokenType.comma);
-      case ':': return this.generateToken(TokenType.colon);
-      case '@': return this.generateToken(TokenType.atSign);
-      case '#': return this.generateToken(TokenType.arrayIndex);
+      case '(':
+        return this.generateToken(TokenType.bracketOpen);
+      case ')':
+        return this.generateToken(TokenType.bracketClose);
+      case '{':
+        return this.generateToken(TokenType.curlyOpen);
+      case '}':
+        return this.generateToken(TokenType.curlyClose);
+      case '[':
+        return this.generateToken(TokenType.squareOpen);
+      case ']':
+        return this.generateToken(TokenType.squareClose);
+      case ',':
+        return this.generateToken(TokenType.comma);
+      case ':':
+        return this.generateToken(TokenType.colon);
+      case '@':
+        return this.generateToken(TokenType.atSign);
+      case '#':
+        return this.generateToken(TokenType.arrayIndex);
 
-      case '^': return this.generateToken(TokenType.power);
-      case '+': return this.generateToken(TokenType.plus);
-      case '-': return this.generateToken(TokenType.minus);
-      case '*': return this.generateToken(TokenType.multi);
-      case '=': return this.generateToken(TokenType.equal);
+      case '^':
+        return this.generateToken(TokenType.power);
+      case '+':
+        return this.generateToken(TokenType.plus);
+      case '-':
+        return this.generateToken(TokenType.minus);
+      case '*':
+        return this.generateToken(TokenType.multi);
+      case '=':
+        return this.generateToken(TokenType.equal);
       case '.':
         if (this.isDigit(this.peekNext())) {
           this.decrement();
@@ -231,8 +249,12 @@ export class Scanner {
         if (this.isAlpha(c)) {
           return this.identifier();
         }
-        return this.generateError(`Unexpected symbol, uncountered ${
-          this.source.substr(this.start, this.current - this.start)}`);
+        return this.generateError(
+          `Unexpected symbol, uncountered ${this.source.substr(
+            this.start,
+            this.current - this.start,
+          )}`,
+        );
     }
   }
 
@@ -247,7 +269,9 @@ export class Scanner {
       return this.fileIdentifier();
     }
 
-    const text = this.source.substr(this.start, this.current - this.start).toLowerCase();
+    const text = this.source
+      .substr(this.start, this.current - this.start)
+      .toLowerCase();
     const keyword = keywords.get(text);
     if (!empty(keyword)) {
       return this.generateToken(keyword.type, keyword.literal, true);
@@ -259,13 +283,17 @@ export class Scanner {
    * extract a file identifier
    */
   private fileIdentifier(): TokenResult {
-    while (this.isAlphaNumeric(this.peek())
-    || (this.peek() === '.' && this.isAlphaNumeric(this.peekNext()))) {
+    while (
+      this.isAlphaNumeric(this.peek()) ||
+      (this.peek() === '.' && this.isAlphaNumeric(this.peekNext()))
+    ) {
       this.advance();
       while (this.isAlphaNumeric(this.peek())) this.advance();
     }
 
-    const value = this.source.substr(this.start, this.current - this.start).toLowerCase();
+    const value = this.source
+      .substr(this.start, this.current - this.start)
+      .toLowerCase();
     return this.generateToken(TokenType.fileIdentifier, value, true);
   }
 
@@ -286,7 +314,10 @@ export class Scanner {
 
     // generate literal
     this.advance();
-    const value = this.source.substr(this.start + 1, this.current - this.start - 2);
+    const value = this.source.substr(
+      this.start + 1,
+      this.current - this.start - 2,
+    );
     return this.generateToken(TokenType.string, value);
   }
 
@@ -303,11 +334,15 @@ export class Scanner {
     let next = this.peekNext();
 
     // check if exponent
-    if (!(current === 'e' || current === 'E') || !(
-      next === '+' ||
-      next === '-' ||
-      this.isWhitespace(next) ||
-      this.isDigit(next))) {
+    if (
+      !(current === 'e' || current === 'E') ||
+      !(
+        next === '+' ||
+        next === '-' ||
+        this.isWhitespace(next) ||
+        this.isDigit(next)
+      )
+    ) {
       return possibleNumber;
     }
 
@@ -389,13 +424,19 @@ export class Scanner {
    * @param literal optional literal
    * @param toLower should the lexeme be lowered
    */
-  private generateToken(type: TokenType, literal?: any, toLower?: boolean): TokenResult {
+  private generateToken(
+    type: TokenType,
+    literal?: any,
+    toLower?: boolean,
+  ): TokenResult {
     const text = toLower
       ? this.source.substr(this.start, this.current - this.start).toLowerCase()
       : this.source.substr(this.start, this.current - this.start);
 
     const token = new Token(
-      type, text, literal,
+      type,
+      text,
+      literal,
       this.startPosition.toImmutable(),
       this.currentPosition.toImmutable(),
       this.uri,
@@ -498,9 +539,7 @@ export class Scanner {
    * @param c character to inspect
    */
   private isWhitespace(c: string): boolean {
-    return c === ' '
-      || c === '\r'
-      || c === '\t';
+    return c === ' ' || c === '\r' || c === '\t';
   }
 
   /**
@@ -516,9 +555,7 @@ export class Scanner {
    * @param c character to inspect
    */
   private isAlpha(c: string): boolean {
-    return this.isAscii(c)
-      || c === '_'
-      || identifierTest.test(c);
+    return this.isAscii(c) || c === '_' || identifierTest.test(c);
   }
 
   /**
@@ -526,8 +563,7 @@ export class Scanner {
    * @param c character to inspect
    */
   private isAscii(c: string): boolean {
-    return (c >= 'A' && c <= 'Z')
-      || (c >= 'a' && c <= 'z');
+    return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
   }
 
   /**
@@ -541,7 +577,7 @@ export class Scanner {
 
 // defines unicode range of all language letters
 const identifierTest = new RegExp(
-    '^[\u0041-\u005A\u0061-\u007A\u00AA\u00B5\u00BA\u00C0-' +
+  '^[\u0041-\u005A\u0061-\u007A\u00AA\u00B5\u00BA\u00C0-' +
     '\u00D6\u00D8-\u00F6\u00F8-\u02C1\u02C6-\u02D1\u02E0-' +
     '\u02E4\u02EC\u02EE\u0370-\u0374\u0376\u0377\u037A-' +
     '\u037D\u0386\u0388-\u038A\u038C\u038E-\u03A1\u03A3-' +
@@ -623,7 +659,8 @@ const identifierTest = new RegExp(
     '\uFB46-\uFBB1\uFBD3-\uFD3D\uFD50-\uFD8F\uFD92-\uFDC7' +
     '\uFDF0-\uFDFB\uFE70-\uFE74\uFE76-\uFEFC\uFF21-\uFF3A' +
     '\uFF41-\uFF5A\uFF66-\uFFBE\uFFC2-\uFFC7\uFFCA-\uFFCF' +
-    '\uFFD2-\uFFD7\uFFDA-\uFFDC]*$');
+    '\uFFD2-\uFFD7\uFFDA-\uFFDC]*$',
+);
 
 // keyword map
 const keywords: ITokenMap = new Map([

@@ -66,17 +66,16 @@ export class Block extends Inst {
   constructor(
     public readonly open: IToken,
     public readonly insts: Inst[],
-    public readonly close: IToken) {
+    public readonly close: IToken,
+  ) {
     super();
   }
 
   public toLines(): string[] {
-    return [this.open.lexeme]
-      .concat(
-        ...this.insts.map(t =>
-          t.toLines().map(line => `    ${line}`)),
-        this.close.lexeme,
-      );
+    return [this.open.lexeme].concat(
+      ...this.insts.map(t => t.toLines().map(line => `    ${line}`)),
+      this.close.lexeme,
+    );
   }
 
   public get start(): Position {
@@ -101,14 +100,15 @@ export class Block extends Inst {
 }
 
 export class ExprInst extends Inst {
-  constructor(
-    public readonly suffix: Expr.Suffix) {
+  constructor(public readonly suffix: Expr.Suffix) {
     super();
   }
 
   public toLines(): string[] {
     const suffixLines = this.suffix.toLines();
-    suffixLines[suffixLines.length - 1] = `${suffixLines[suffixLines.length - 1]}.`;
+    suffixLines[suffixLines.length - 1] = `${
+      suffixLines[suffixLines.length - 1]
+    }.`;
 
     return suffixLines;
   }
@@ -137,13 +137,16 @@ export class ExprInst extends Inst {
 export class OnOff extends Inst {
   constructor(
     public readonly suffix: Expr.Suffix,
-    public readonly onOff: IToken) {
+    public readonly onOff: IToken,
+  ) {
     super();
   }
 
   public toLines(): string[] {
     const lines = this.suffix.toLines();
-    lines[lines.length - 1] = `${lines[lines.length - 1]} ${this.onOff.lexeme}.`;
+    lines[lines.length - 1] = `${lines[lines.length - 1]} ${
+      this.onOff.lexeme
+    }.`;
     return lines;
   }
 
@@ -203,9 +206,7 @@ export class Command extends Inst {
 }
 
 export class CommandExpr extends Inst {
-  constructor(
-    public readonly command: IToken,
-    public readonly expr: IExpr) {
+  constructor(public readonly command: IToken, public readonly expr: IExpr) {
     super();
   }
 
@@ -241,7 +242,8 @@ export class CommandExpr extends Inst {
 export class Unset extends Inst {
   constructor(
     public readonly unset: IToken,
-    public readonly identifier: IToken) {
+    public readonly identifier: IToken,
+  ) {
     super();
   }
 
@@ -273,7 +275,8 @@ export class Unset extends Inst {
 export class Unlock extends Inst {
   constructor(
     public readonly unlock: IToken,
-    public readonly identifier: IToken) {
+    public readonly identifier: IToken,
+  ) {
     super();
   }
 
@@ -307,7 +310,8 @@ export class Set extends Inst {
     public readonly set: IToken,
     public readonly suffix: Expr.Suffix,
     public readonly to: IToken,
-    public readonly value: IExpr) {
+    public readonly value: IExpr,
+  ) {
     super();
   }
 
@@ -346,12 +350,15 @@ export class LazyGlobal extends Inst {
   constructor(
     public readonly atSign: IToken,
     public readonly lazyGlobal: IToken,
-    public readonly onOff: IToken) {
+    public readonly onOff: IToken,
+  ) {
     super();
   }
 
   public toLines(): string[] {
-    return [`${this.atSign.lexeme}${this.lazyGlobal.lexeme} ${this.onOff.lexeme}.`];
+    return [
+      `${this.atSign.lexeme}${this.lazyGlobal.lexeme} ${this.onOff.lexeme}.`,
+    ];
   }
 
   public get start(): Position {
@@ -380,7 +387,8 @@ export class If extends Inst {
     public readonly ifToken: IToken,
     public readonly condition: IExpr,
     public readonly ifInst: IInst,
-    public readonly elseInst?: Else) {
+    public readonly elseInst?: Else,
+  ) {
     super();
   }
 
@@ -404,9 +412,7 @@ export class If extends Inst {
   }
 
   public get end(): Position {
-    return empty(this.elseInst)
-    ? this.ifInst.end
-    : this.elseInst.end;
+    return empty(this.elseInst) ? this.ifInst.end : this.elseInst.end;
   }
 
   public get ranges(): Range[] {
@@ -428,9 +434,7 @@ export class If extends Inst {
 }
 
 export class Else extends Inst {
-  constructor(
-    public readonly elseToken: IToken,
-    public readonly inst: IInst) {
+  constructor(public readonly elseToken: IToken, public readonly inst: IInst) {
     super();
   }
 
@@ -465,7 +469,8 @@ export class Until extends Inst {
   constructor(
     public readonly until: IToken,
     public readonly condition: IExpr,
-    public readonly inst: IInst) {
+    public readonly inst: IInst,
+  ) {
     super();
   }
 
@@ -507,7 +512,8 @@ export class From extends Inst {
     public readonly step: IToken,
     public readonly increment: Block,
     public readonly doToken: IToken,
-    public readonly inst: IInst) {
+    public readonly inst: IInst,
+  ) {
     super();
   }
 
@@ -522,7 +528,13 @@ export class From extends Inst {
     incrementLines[0] = `${this.step.lexeme} ${incrementLines[0]}`;
     instLines[0] = `${this.doToken.lexeme} ${instLines[0]}`;
 
-    return linesJoin(' ', initializerLines, conditionLines, incrementLines, instLines);
+    return linesJoin(
+      ' ',
+      initializerLines,
+      conditionLines,
+      incrementLines,
+      instLines,
+    );
   }
 
   public toString(): string {
@@ -539,10 +551,14 @@ export class From extends Inst {
 
   public get ranges(): Range[] {
     return [
-      this.from, this.initializer,
-      this.until, this.condition,
-      this.step, this.increment,
-      this.doToken, this.inst,
+      this.from,
+      this.initializer,
+      this.until,
+      this.condition,
+      this.step,
+      this.increment,
+      this.doToken,
+      this.inst,
     ];
   }
 
@@ -560,7 +576,8 @@ export class When extends Inst {
     public readonly when: IToken,
     public readonly condition: IExpr,
     public readonly then: IToken,
-    public readonly inst: IInst) {
+    public readonly inst: IInst,
+  ) {
     super();
   }
 
@@ -587,10 +604,7 @@ export class When extends Inst {
   }
 
   public get ranges(): Range[] {
-    return [
-      this.when, this.condition,
-      this.then, this.inst,
-    ];
+    return [this.when, this.condition, this.then, this.inst];
   }
 
   public pass<T>(visitor: IInstPasser<T>): T {
@@ -605,7 +619,8 @@ export class When extends Inst {
 export class Return extends Inst {
   constructor(
     public readonly returnToken: IToken,
-    public readonly expr?: IExpr) {
+    public readonly expr?: IExpr,
+  ) {
     super();
   }
 
@@ -630,9 +645,7 @@ export class Return extends Inst {
   }
 
   public get end(): Position {
-    return empty(this.expr)
-      ? this.returnToken.end
-      : this.expr.end;
+    return empty(this.expr) ? this.returnToken.end : this.expr.end;
   }
 
   public get ranges(): Range[] {
@@ -654,8 +667,7 @@ export class Return extends Inst {
 }
 
 export class Break extends Inst {
-  constructor(
-    public readonly breakToken: IToken) {
+  constructor(public readonly breakToken: IToken) {
     super();
   }
 
@@ -692,15 +704,20 @@ export class Switch extends Inst {
   constructor(
     public readonly switchToken: IToken,
     public readonly to: IToken,
-    public readonly target: IExpr) {
+    public readonly target: IExpr,
+  ) {
     super();
   }
 
   public toLines(): string[] {
     const targetLines = this.target.toLines();
 
-    targetLines[0] = `${this.switchToken.lexeme} ${this.to.lexeme} ${targetLines[0]}`;
-    targetLines[targetLines.length - 1] = `${targetLines[targetLines.length - 1]}.`;
+    targetLines[0] = `${this.switchToken.lexeme} ${this.to.lexeme} ${
+      targetLines[0]
+    }`;
+    targetLines[targetLines.length - 1] = `${
+      targetLines[targetLines.length - 1]
+    }.`;
 
     return targetLines;
   }
@@ -732,7 +749,8 @@ export class For extends Inst {
     public readonly identifier: IToken,
     public readonly inToken: IToken,
     public readonly suffix: Expr.Suffix,
-    public readonly inst: IInst) {
+    public readonly inst: IInst,
+  ) {
     super();
   }
 
@@ -740,8 +758,9 @@ export class For extends Inst {
     const suffixLines = this.suffix.toLines();
     const instLines = this.inst.toLines();
 
-    suffixLines[0] = `${this.forToken.lexeme} ${this.identifier.lexeme} `
-      + `${this.inToken.lexeme} ${suffixLines[0]}`;
+    suffixLines[0] =
+      `${this.forToken.lexeme} ${this.identifier.lexeme} ` +
+      `${this.inToken.lexeme} ${suffixLines[0]}`;
 
     return linesJoin(' ', suffixLines, instLines);
   }
@@ -756,8 +775,10 @@ export class For extends Inst {
 
   public get ranges(): Range[] {
     return [
-      this.forToken, this.identifier,
-      this.inToken, this.suffix,
+      this.forToken,
+      this.identifier,
+      this.inToken,
+      this.suffix,
       this.inst,
     ];
   }
@@ -775,7 +796,8 @@ export class On extends Inst {
   constructor(
     public readonly on: IToken,
     public readonly suffix: Expr.Suffix,
-    public readonly inst: IInst) {
+    public readonly inst: IInst,
+  ) {
     super();
   }
 
@@ -811,14 +833,17 @@ export class On extends Inst {
 export class Toggle extends Inst {
   constructor(
     public readonly toggle: IToken,
-    public readonly suffix: Expr.Suffix) {
+    public readonly suffix: Expr.Suffix,
+  ) {
     super();
   }
 
   public toLines(): string[] {
     const suffixLines = this.suffix.toLines();
     suffixLines[0] = `${this.toggle.lexeme} ${suffixLines[0]}`;
-    suffixLines[suffixLines.length - 1] = `${suffixLines[suffixLines.length - 1]}.`;
+    suffixLines[suffixLines.length - 1] = `${
+      suffixLines[suffixLines.length - 1]
+    }.`;
 
     return suffixLines;
   }
@@ -848,7 +873,8 @@ export class Wait extends Inst {
   constructor(
     public readonly wait: IToken,
     public readonly expr: IExpr,
-    public readonly until?: IToken) {
+    public readonly until?: IToken,
+  ) {
     super();
   }
 
@@ -892,7 +918,8 @@ export class Log extends Inst {
     public readonly log: IToken,
     public readonly expr: IExpr,
     public readonly to: IToken,
-    public readonly target: IExpr) {
+    public readonly target: IExpr,
+  ) {
     super();
   }
 
@@ -906,7 +933,9 @@ export class Log extends Inst {
 
     exprLines[0] = `${this.log.lexeme} ${exprLines[0]}`;
     targetLines[0] = `${this.to.lexeme} ${targetLines[0]}`;
-    targetLines[targetLines.length - 1] = `${targetLines[targetLines.length - 1]}.`;
+    targetLines[targetLines.length - 1] = `${
+      targetLines[targetLines.length - 1]
+    }.`;
 
     return linesJoin(' ', exprLines, targetLines);
   }
@@ -937,7 +966,8 @@ export class Copy extends Inst {
     public readonly copy: IToken,
     public readonly target: IExpr,
     public readonly toFrom: IToken,
-    public readonly destination: IExpr) {
+    public readonly destination: IExpr,
+  ) {
     super();
   }
 
@@ -979,7 +1009,8 @@ export class Rename extends Inst {
     public readonly ioIdentifer: IToken,
     public readonly target: IExpr,
     public readonly to: IToken,
-    public readonly alternative: IExpr) {
+    public readonly alternative: IExpr,
+  ) {
     super();
   }
 
@@ -987,8 +1018,9 @@ export class Rename extends Inst {
     const targetLines = this.target.toLines();
     const alternativeLines = this.alternative.toLines();
 
-    targetLines[0] = `${this.rename.lexeme} ${this.fileVolume.lexeme}`
-      + `${this.ioIdentifer.lexeme} ${targetLines[0]}`;
+    targetLines[0] =
+      `${this.rename.lexeme} ${this.fileVolume.lexeme}` +
+      `${this.ioIdentifer.lexeme} ${targetLines[0]}`;
     alternativeLines[0] = `${this.to.lexeme} ${alternativeLines[0]}`;
 
     return linesJoin(' ', targetLines, alternativeLines);
@@ -1004,8 +1036,10 @@ export class Rename extends Inst {
 
   public get ranges(): Range[] {
     return [
-      this.rename, this.ioIdentifer,
-      this.target, this.to,
+      this.rename,
+      this.ioIdentifer,
+      this.target,
+      this.to,
       this.alternative,
     ];
   }
@@ -1024,7 +1058,8 @@ export class Delete extends Inst {
     public readonly deleteToken: IToken,
     public readonly target: IExpr,
     public readonly from?: IToken,
-    public readonly volume?: IExpr) {
+    public readonly volume?: IExpr,
+  ) {
     super();
   }
 
@@ -1035,12 +1070,16 @@ export class Delete extends Inst {
     if (!empty(this.from) && !empty(this.volume)) {
       const volumeLines = this.volume.toLines();
       volumeLines[0] = `${this.from.lexeme} ${volumeLines[0]}`;
-      volumeLines[volumeLines.length - 1] = `${volumeLines[volumeLines.length - 1]}.`;
+      volumeLines[volumeLines.length - 1] = `${
+        volumeLines[volumeLines.length - 1]
+      }.`;
 
       return linesJoin(' ', targetLines, volumeLines);
     }
 
-    targetLines[targetLines.length - 1] = `${targetLines[targetLines.length - 1]}.`;
+    targetLines[targetLines.length - 1] = `${
+      targetLines[targetLines.length - 1]
+    }.`;
     return targetLines;
   }
 
@@ -1049,9 +1088,7 @@ export class Delete extends Inst {
   }
 
   public get end(): Position {
-    return empty(this.volume)
-      ? this.target.end
-      : this.volume.end;
+    return empty(this.volume) ? this.target.end : this.volume.end;
   }
 
   public get ranges(): Range[] {
@@ -1082,7 +1119,8 @@ export class Run extends Inst {
     public readonly args?: IExpr[],
     public readonly close?: IToken,
     public readonly on?: IToken,
-    public readonly expr?: IExpr) {
+    public readonly expr?: IExpr,
+  ) {
     super();
   }
 
@@ -1098,7 +1136,9 @@ export class Run extends Inst {
     if (!empty(this.open) && !empty(this.args) && !empty(this.close)) {
       const argsLines = linesJoin(', ', ...this.args.map(arg => arg.toLines()));
       argsLines[0] = `${this.open.lexeme}${argsLines[0]}`;
-      argsLines[argsLines.length - 1] = `${argsLines[argsLines.length - 1]}${this.close.lexeme}`;
+      argsLines[argsLines.length - 1] = `${argsLines[argsLines.length - 1]}${
+        this.close.lexeme
+      }`;
 
       lines = linesJoin(' ', lines, argsLines);
     }
@@ -1122,8 +1162,8 @@ export class Run extends Inst {
     return !empty(this.expr)
       ? this.expr.end
       : !empty(this.args)
-        ? this.args[this.args.length - 1].end
-        : this.identifier.end;
+      ? this.args[this.args.length - 1].end
+      : this.identifier.end;
   }
 
   public get ranges(): Range[] {
@@ -1164,7 +1204,8 @@ export class RunPath extends Inst {
     public readonly open: IToken,
     public readonly expr: IExpr,
     public readonly close: IToken,
-    public readonly args?: IExpr[]) {
+    public readonly args?: IExpr[],
+  ) {
     super();
   }
 
@@ -1215,7 +1256,8 @@ export class RunPathOnce extends Inst {
     public readonly open: IToken,
     public readonly expr: IExpr,
     public readonly close: IToken,
-    public readonly args?: IExpr[]) {
+    public readonly args?: IExpr[],
+  ) {
     super();
   }
 
@@ -1265,7 +1307,8 @@ export class Compile extends Inst {
     public readonly compile: IToken,
     public readonly target: IExpr,
     public readonly to?: IToken,
-    public readonly destination?: IExpr) {
+    public readonly destination?: IExpr,
+  ) {
     super();
   }
 
@@ -1286,9 +1329,7 @@ export class Compile extends Inst {
   }
 
   public get end(): Position {
-    return empty(this.destination)
-      ? this.target.end
-      : this.destination.end;
+    return empty(this.destination) ? this.target.end : this.destination.end;
   }
 
   public get ranges(): Range[] {
@@ -1315,14 +1356,21 @@ export class List extends Inst {
     public readonly list: IToken,
     public readonly collection?: IToken,
     public readonly inToken?: IToken,
-    public readonly target?: IToken) {
+    public readonly target?: IToken,
+  ) {
     super();
   }
 
   public toLines(): string[] {
-    if (!empty(this.collection) && !empty(this.inToken) && !empty(this.target)) {
-      return [`${this.list.lexeme} ${this.collection.lexeme} `
-        + `${this.inToken.lexeme} ${this.target.lexeme}.`];
+    if (
+      !empty(this.collection) &&
+      !empty(this.inToken) &&
+      !empty(this.target)
+    ) {
+      return [
+        `${this.list.lexeme} ${this.collection.lexeme} ` +
+          `${this.inToken.lexeme} ${this.target.lexeme}.`,
+      ];
     }
 
     if (!empty(this.collection)) {
@@ -1340,8 +1388,8 @@ export class List extends Inst {
     return !empty(this.target)
       ? this.target.end
       : !empty(this.collection)
-        ? this.collection.end
-        : this.list.end;
+      ? this.collection.end
+      : this.list.end;
   }
 
   public get ranges(): Range[] {
@@ -1406,7 +1454,8 @@ export class Print extends Inst {
     public readonly open?: IToken,
     public readonly x?: IExpr,
     public readonly y?: IExpr,
-    public readonly close?: IToken) {
+    public readonly close?: IToken,
+  ) {
     super();
   }
 
@@ -1414,14 +1463,20 @@ export class Print extends Inst {
     let lines = this.expr.toLines();
     lines[0] = `${this.print.lexeme} ${lines[0]}`;
 
-    if (!empty(this.at) && !empty(this.open)
-      && !empty(this.x) && !empty(this.y)
-      && !empty(this.close)) {
+    if (
+      !empty(this.at) &&
+      !empty(this.open) &&
+      !empty(this.x) &&
+      !empty(this.y) &&
+      !empty(this.close)
+    ) {
       const xLines = this.x.toLines();
       const yLines = this.y.toLines();
 
       xLines[0] = `${this.at.lexeme} ${this.open.lexeme}${xLines[0]}`;
-      yLines[yLines.length - 1] = `${yLines[yLines.length - 1]}${this.close.lexeme}`;
+      yLines[yLines.length - 1] = `${yLines[yLines.length - 1]}${
+        this.close.lexeme
+      }`;
 
       const argLines = linesJoin(', ', xLines, yLines);
       lines = linesJoin(' ', lines, argLines);
@@ -1436,19 +1491,19 @@ export class Print extends Inst {
   }
 
   public get end(): Position {
-    return empty(this.close)
-      ? this.expr.end
-      : this.close.end;
+    return empty(this.close) ? this.expr.end : this.close.end;
   }
 
   public get ranges(): Range[] {
     const ranges = [this.print, this.expr];
 
-    if (!empty(this.at)
-      && !empty(this.open)
-      && !empty(this.x)
-      && !empty(this.y)
-      && !empty(this.close)) {
+    if (
+      !empty(this.at) &&
+      !empty(this.open) &&
+      !empty(this.x) &&
+      !empty(this.y) &&
+      !empty(this.close)
+    ) {
       ranges.push(this.at);
       ranges.push(this.open);
       ranges.push(this.x);

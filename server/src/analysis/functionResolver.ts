@@ -1,6 +1,10 @@
 import {
-  IInstVisitor, IExprVisitor, IInst,
-  ScopeType, IExpr, ISuffixTerm,
+  IInstVisitor,
+  IExprVisitor,
+  IInst,
+  ScopeType,
+  IExpr,
+  ISuffixTerm,
   ISuffixTermVisitor,
   IScript,
 } from '../parser/types';
@@ -19,10 +23,11 @@ import { createDiagnostic } from '../utilities/diagnosticsUtilities';
 
 export type Diagnostics = Diagnostic[];
 
-export class FuncResolver implements
-  IExprVisitor<Diagnostics>,
-  IInstVisitor<Diagnostics>,
-  ISuffixTermVisitor<Diagnostics> {
+export class FuncResolver
+  implements
+    IExprVisitor<Diagnostics>,
+    IInstVisitor<Diagnostics>,
+    ISuffixTermVisitor<Diagnostics> {
   private syntaxTree: IScript;
   private scopeBuilder: SymbolTableBuilder;
   private readonly logger: ILogger;
@@ -32,7 +37,8 @@ export class FuncResolver implements
     script: IScript,
     symbolTableBuilder: SymbolTableBuilder,
     logger: ILogger = mockLogger,
-    tracer: ITracer = mockTracer) {
+    tracer: ITracer = mockTracer,
+  ) {
     this.syntaxTree = script;
     this.scopeBuilder = symbolTableBuilder;
     this.logger = logger;
@@ -53,7 +59,7 @@ export class FuncResolver implements
       this.logger.error(`Error occured in resolver ${err}`);
       this.tracer.log(err);
 
-      return[];
+      return [];
     }
   }
 
@@ -113,14 +119,15 @@ export class FuncResolver implements
           scopeType = ScopeType.global;
           break;
         default:
-          throw new Error('Unexpected scope token encountered. Expected local or global.');
+          throw new Error(
+            'Unexpected scope token encountered. Expected local or global.',
+          );
       }
     }
 
     let returnValue = false;
     const parameterDecls: Param[] = [];
     for (const inst of decl.block.insts) {
-
       // get parameters for this function
       if (inst instanceof Param) {
         parameterDecls.push(inst);
@@ -134,7 +141,11 @@ export class FuncResolver implements
     }
     const [parameters, errors] = this.buildParameters(parameterDecls);
     const declareErrors = this.scopeBuilder.declareFunction(
-      scopeType, decl.identifier, parameters, returnValue);
+      scopeType,
+      decl.identifier,
+      parameters,
+      returnValue,
+    );
     const instErrors = this.resolveInst(decl.block);
 
     return empty(declareErrors)
@@ -150,17 +161,24 @@ export class FuncResolver implements
     for (const decl of decls) {
       for (const parameter of decl.parameters) {
         if (defaulted) {
-          errors.push(createDiagnostic(
-            parameter.identifier,
-            'Normal parameters cannot occur after defaulted parameters',
-            DiagnosticSeverity.Error));
+          errors.push(
+            createDiagnostic(
+              parameter.identifier,
+              'Normal parameters cannot occur after defaulted parameters',
+              DiagnosticSeverity.Error,
+            ),
+          );
         }
-        parameters.push(new KsParameter(parameter.identifier, false, SymbolState.declared));
+        parameters.push(
+          new KsParameter(parameter.identifier, false, SymbolState.declared),
+        );
       }
 
       for (const parameter of decl.defaultParameters) {
         defaulted = true;
-        parameters.push(new KsParameter(parameter.identifier, true, SymbolState.declared));
+        parameters.push(
+          new KsParameter(parameter.identifier, true, SymbolState.declared),
+        );
       }
     }
 
@@ -223,12 +241,12 @@ export class FuncResolver implements
   }
 
   public visitIf(inst: Inst.If): Diagnostics {
-    let resolveErrors = this.resolveExpr(inst.condition)
-      .concat(this.resolveInst(inst.ifInst));
+    let resolveErrors = this.resolveExpr(inst.condition).concat(
+      this.resolveInst(inst.ifInst),
+    );
 
     if (inst.elseInst) {
-      resolveErrors = resolveErrors.concat(
-        this.resolveInst(inst.elseInst));
+      resolveErrors = resolveErrors.concat(this.resolveInst(inst.elseInst));
     }
 
     return resolveErrors;
@@ -239,20 +257,19 @@ export class FuncResolver implements
   }
 
   public visitUntil(inst: Inst.Until): Diagnostics {
-    return this.resolveExpr(inst.condition).concat(
-      this.resolveInst(inst.inst));
+    return this.resolveExpr(inst.condition).concat(this.resolveInst(inst.inst));
   }
 
   public visitFrom(inst: Inst.From): Diagnostics {
     return this.resolveInsts(inst.initializer.insts).concat(
       this.resolveExpr(inst.condition),
       this.resolveInsts(inst.increment.insts),
-      this.resolveInst(inst.inst));
+      this.resolveInst(inst.inst),
+    );
   }
 
   public visitWhen(inst: Inst.When): Diagnostics {
-    return this.resolveExpr(inst.condition)
-      .concat(this.resolveInst(inst.inst));
+    return this.resolveExpr(inst.condition).concat(this.resolveInst(inst.inst));
   }
 
   public visitReturn(inst: Inst.Return): Diagnostics {
@@ -272,13 +289,11 @@ export class FuncResolver implements
   }
 
   public visitFor(inst: Inst.For): Diagnostics {
-    return this.resolveExpr(inst.suffix).concat(
-      this.resolveInst(inst.inst));
+    return this.resolveExpr(inst.suffix).concat(this.resolveInst(inst.inst));
   }
 
   public visitOn(inst: Inst.On): Diagnostics {
-    return this.resolveExpr(inst.suffix).concat(
-      this.resolveInst(inst.inst));
+    return this.resolveExpr(inst.suffix).concat(this.resolveInst(inst.inst));
   }
 
   public visitToggle(inst: Inst.Toggle): Diagnostics {
@@ -290,18 +305,19 @@ export class FuncResolver implements
   }
 
   public visitLog(inst: Inst.Log): Diagnostics {
-    return this.resolveExpr(inst.expr).concat(
-      this.resolveExpr(inst.target));
+    return this.resolveExpr(inst.expr).concat(this.resolveExpr(inst.target));
   }
 
   public visitCopy(inst: Inst.Copy): Diagnostics {
     return this.resolveExpr(inst.target).concat(
-      this.resolveExpr(inst.destination));
+      this.resolveExpr(inst.destination),
+    );
   }
 
   public visitRename(inst: Inst.Rename): Diagnostics {
     return this.resolveExpr(inst.target).concat(
-      this.resolveExpr(inst.alternative));
+      this.resolveExpr(inst.alternative),
+    );
   }
 
   public visitDelete(inst: Inst.Delete): Diagnostics {
@@ -309,8 +325,7 @@ export class FuncResolver implements
       return this.resolveExpr(inst.target);
     }
 
-    return this.resolveExpr(inst.target).concat(
-      this.resolveExpr(inst.volume));
+    return this.resolveExpr(inst.target).concat(this.resolveExpr(inst.volume));
   }
 
   public visitRun(inst: Inst.Run): Diagnostics {
@@ -327,7 +342,8 @@ export class FuncResolver implements
     }
 
     return this.resolveExpr(inst.expr).concat(
-      accumulateErrors(inst.args, this.resolveExpr.bind(this)));
+      accumulateErrors(inst.args, this.resolveExpr.bind(this)),
+    );
   }
 
   public visitRunPathOnce(inst: Inst.RunPathOnce): Diagnostics {
@@ -336,7 +352,8 @@ export class FuncResolver implements
     }
 
     return this.resolveExpr(inst.expr).concat(
-      accumulateErrors(inst.args, this.resolveExpr.bind(this)));
+      accumulateErrors(inst.args, this.resolveExpr.bind(this)),
+    );
   }
 
   public visitCompile(inst: Inst.Compile): Diagnostics {
@@ -345,7 +362,8 @@ export class FuncResolver implements
     }
 
     return this.resolveExpr(inst.target).concat(
-      this.resolveExpr(inst.destination));
+      this.resolveExpr(inst.destination),
+    );
   }
 
   public visitList(_: Inst.List): Diagnostics {
@@ -371,8 +389,7 @@ export class FuncResolver implements
   }
 
   public visitBinary(expr: Expr.Binary): Diagnostics {
-    return this.resolveExpr(expr.left)
-      .concat(this.resolveExpr(expr.right));
+    return this.resolveExpr(expr.left).concat(this.resolveExpr(expr.right));
   }
 
   public visitUnary(expr: Expr.Unary): Diagnostics {
@@ -380,8 +397,9 @@ export class FuncResolver implements
   }
 
   public visitFactor(expr: Expr.Factor): Diagnostics {
-    return this.resolveExpr(expr.suffix)
-      .concat(this.resolveExpr(expr.exponent));
+    return this.resolveExpr(expr.suffix).concat(
+      this.resolveExpr(expr.exponent),
+    );
   }
 
   public visitSuffix(expr: Expr.Suffix): Diagnostics {
@@ -452,11 +470,14 @@ export class FuncResolver implements
   public visitGrouping(expr: SuffixTerm.Grouping): Diagnostics {
     return this.resolveExpr(expr.expr);
   }
-
 }
 
-const accumulateErrors = <T>(items: T[], checker: (item: T) => Diagnostics): Diagnostics => {
+const accumulateErrors = <T>(
+  items: T[],
+  checker: (item: T) => Diagnostics,
+): Diagnostics => {
   return items.reduce(
     (accumulator, item) => accumulator.concat(checker(item)),
-    [] as Diagnostics);
+    [] as Diagnostics,
+  );
 };

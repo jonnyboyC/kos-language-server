@@ -1,15 +1,23 @@
 import {
-  IExprClass, IInst, IExprVisitor,
-  IExpr, IExprClassVisitor,
-  GrammarNode, Distribution, IExprPasser, SyntaxKind,
+  IExprClass,
+  IInst,
+  IExprVisitor,
+  IExpr,
+  IExprClassVisitor,
+  GrammarNode,
+  Distribution,
+  IExprPasser,
+  SyntaxKind,
 } from './types';
 import * as SuffixTerm from './suffixTerm';
 import { TokenType } from '../entities/tokentypes';
 import { IToken } from '../entities/types';
 import { Range, Position } from 'vscode-languageserver';
 import {
-  createGrammarUnion, createGrammarOptional,
-  createGrammarRepeat, createConstant,
+  createGrammarUnion,
+  createGrammarOptional,
+  createGrammarRepeat,
+  createConstant,
   createExponential,
 } from './grammarNodes';
 import { empty } from '../utilities/typeGuards';
@@ -21,7 +29,6 @@ import { linesJoin } from './toStringUtils';
  * Expression base class
  */
 export abstract class Expr extends NodeBase implements IExpr {
-
   /**
    * Return the tree node type of expression
    */
@@ -103,7 +110,8 @@ export class Binary extends Expr {
   constructor(
     public readonly left: IExpr,
     public readonly operator: IToken,
-    public readonly right: IExpr) {
+    public readonly right: IExpr,
+  ) {
     super();
   }
 
@@ -120,7 +128,9 @@ export class Binary extends Expr {
   }
 
   public toString(): string {
-    return `${this.left.toString()} ${this.operator.lexeme} ${this.right.toString()}`;
+    return `${this.left.toString()} ${
+      this.operator.lexeme
+    } ${this.right.toString()}`;
   }
 
   public toLines(): string[] {
@@ -157,9 +167,7 @@ export class Unary extends Expr {
    * @param operator unary operator
    * @param factor factor
    */
-  constructor(
-    public readonly operator: IToken,
-    public readonly factor: IExpr) {
+  constructor(public readonly operator: IToken, public readonly factor: IExpr) {
     super();
   }
 
@@ -210,7 +218,6 @@ export class Unary extends Expr {
  * Class holding expression with exponents
  */
 export class Factor extends Expr {
-
   /**
    * Grammer for factor expressions
    */
@@ -225,7 +232,8 @@ export class Factor extends Expr {
   constructor(
     public readonly suffix: IExpr,
     public readonly power: IToken,
-    public readonly exponent: IExpr) {
+    public readonly exponent: IExpr,
+  ) {
     super();
   }
 
@@ -242,7 +250,11 @@ export class Factor extends Expr {
   }
 
   public toLines(): string[] {
-    return linesJoin(this.power.lexeme, this.suffix.toLines(), this.exponent.toLines());
+    return linesJoin(
+      this.power.lexeme,
+      this.suffix.toLines(),
+      this.exponent.toLines(),
+    );
   }
 
   public accept<T>(visitor: IExprVisitor<T>): T {
@@ -262,7 +274,6 @@ export class Factor extends Expr {
  * Class holding all anonymous functions
  */
 export class AnonymousFunction extends Expr {
-
   /**
    * Grammar for anonymous functions
    */
@@ -277,7 +288,8 @@ export class AnonymousFunction extends Expr {
   constructor(
     public readonly open: IToken,
     public readonly insts: IInst[],
-    public readonly close: IToken) {
+    public readonly close: IToken,
+  ) {
     super();
   }
 
@@ -341,7 +353,8 @@ export class Suffix extends Expr {
   constructor(
     public readonly suffixTerm: SuffixTerm.SuffixTerm,
     public colon?: IToken,
-    public trailer?: SuffixTerm.SuffixTrailer) {
+    public trailer?: SuffixTerm.SuffixTrailer,
+  ) {
     super();
   }
 
@@ -350,9 +363,7 @@ export class Suffix extends Expr {
   }
 
   public get end(): Position {
-    return empty(this.trailer)
-      ? this.suffixTerm.end
-      : this.trailer.end;
+    return empty(this.trailer) ? this.suffixTerm.end : this.trailer.end;
   }
 
   public get ranges(): Range[] {
@@ -451,19 +462,12 @@ Unary.grammar = [
       [TokenType.defined, createConstant(1)],
     ),
   ),
-  createGrammarUnion(
-    [Factor, createConstant(1)],
-    [Suffix, createConstant(3)],
-  ),
+  createGrammarUnion([Factor, createConstant(1)], [Suffix, createConstant(3)]),
 ];
 
 Factor.grammar = [
   Suffix,
-  createGrammarOptional(
-    createExponential(2),
-    TokenType.power,
-    Suffix,
-  ),
+  createGrammarOptional(createExponential(2), TokenType.power, Suffix),
 ];
 
 Suffix.grammar = [
