@@ -174,7 +174,7 @@ const definedPath = join(
   '../../../kerboscripts/parser_valid/declaration/definedtest.ks',
 );
 
-const locations: Range[] = [
+const definedLocations: Range[] = [
   { start: new Marker(5, 42), end: new Marker(5, 46) },
   { start: new Marker(8, 42), end: new Marker(8, 46) },
   { start: new Marker(24, 43), end: new Marker(24, 59) },
@@ -194,7 +194,33 @@ ava('basic defined test', (t) => {
   t.is(0, results.parse.parseErrors.length);
   t.true(results.resolveError.length > 0);
 
-  for (const [error, location] of zip(results.resolveError, locations)) {
+  for (const [error, location] of zip(results.resolveError, definedLocations)) {
+    t.is(DiagnosticSeverity.Error, error.severity);
+    t.deepEqual(location.start, error.range.start);
+    t.deepEqual(location.end, error.range.end);
+  }
+});
+
+const usedPath = join(
+  __dirname,
+  '../../../kerboscripts/parser_valid/declaration/usedtest.ks',
+);
+
+const usedLocations: Range[] = [
+  { start: new Marker(0, 6), end: new Marker(0, 7) },
+  { start: new Marker(1, 6), end: new Marker(1, 7) },
+];
+
+// test basic identifier
+ava('basic used test', (t) => {
+  const usedSource = readFileSync(usedPath, 'utf8');
+  const results = resolveSource(usedSource);
+
+  t.is(0, results.scan.scanErrors.length);
+  t.is(0, results.parse.parseErrors.length);
+  t.true(results.resolveError.length > 0);
+
+  for (const [error, location] of zip(results.resolveError, usedLocations)) {
     t.is(DiagnosticSeverity.Error, error.severity);
     t.deepEqual(location.start, error.range.start);
     t.deepEqual(location.end, error.range.end);
