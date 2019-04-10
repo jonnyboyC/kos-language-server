@@ -4,11 +4,12 @@
 .gitignore
 **/tsconfig.json
 **/tsconfig.base.json
+**/buildcache.json
 contributing.md
 .travis.yml
 kerboscripts
 clients/vscode/node_modules/**
-clients/atom/node_modules/**
+clients/atom/**
 !clients/vscode/node_modules/vscode-jsonrpc/**
 !clients/vscode/node_modules/vscode-languageclient/**
 !clients/vscode/node_modules/vscode-languageserver-protocol/**
