@@ -6,6 +6,7 @@
 **/tsconfig.base.json
 contributing.md
 .travis.yml
+kerboscripts
 clients/vscode/node_modules/**
 clients/atom/node_modules/**
 !clients/vscode/node_modules/vscode-jsonrpc/**
