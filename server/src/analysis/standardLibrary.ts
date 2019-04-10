@@ -165,6 +165,7 @@ const functionTypes = [
   createFunctionType('StopAllVoices', voidType),
   createFunctionType('switch', stringType),
   createFunctionType('tan', scalarType),
+  createFunctionType('time', timeSpanType, doubleType),
   createFunctionType('toggleflybywire', voidType, stringType, booleanType),
   createFunctionType(
     'transfer', resourceTransferType,

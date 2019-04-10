@@ -1,11 +1,22 @@
 import { TokenType } from '../entities/tokentypes';
-import { ITokenMap, ScanResult, IScannerError, IScanResult } from './types';
+import { ITokenMap, IScanResult, ScanKind } from './types';
 import { Token, MutableMarker } from '../entities/token';
-import { WhiteSpace } from './whitespace';
-import { ScannerError } from './ScannerError';
 import { IToken } from '../entities/types';
 import { empty } from '../utilities/typeGuards';
 import { mockLogger, mockTracer } from '../utilities/logger';
+import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
+import { createDiagnostic } from '../utilities/diagnosticsUtilities';
+
+type Result<T, S extends ScanKind> = {
+  result: T;
+  kind: S;
+};
+
+type TokenResult = Result<Token, ScanKind.Token>;
+type WhitespaceResult = Result<null, ScanKind.Whitespace>;
+type DiagnosticResult = Result<Diagnostic, ScanKind.Diagnostic>;
+
+type ScanResult = TokenResult | WhitespaceResult | DiagnosticResult;
 
 /**
  * Class for scanning kerboscript files
@@ -53,6 +64,21 @@ export class Scanner {
   private readonly tracer: ITracer;
 
   /**
+   * results for tokens
+   */
+  private readonly tokenResult: TokenResult;
+
+  /**
+   * results for whitespace
+   */
+  private readonly whiteSpaceResult: WhitespaceResult;
+
+  /**
+   * results for diagnostic
+   */
+  private readonly diagnosticResult: DiagnosticResult;
+
+  /**
    * Scanner constructor
    * @param source source string
    * @param uri source uri
@@ -64,6 +90,7 @@ export class Scanner {
     uri: string = '',
     logger: ILogger = mockLogger,
     tracer: ITracer = mockTracer) {
+
     this.source = source;
     this.logger = logger;
     this.tracer = tracer;
@@ -72,6 +99,34 @@ export class Scanner {
     this.current = 0;
     this.startPosition = new MutableMarker(0, 0);
     this.currentPosition = new MutableMarker(0, 0);
+
+    this.tokenResult = {
+      result: new Token(
+        TokenType.not,
+        'placeholder',
+        undefined,
+        { line: 0, character: 0 },
+        { line: 0, character: 0 },
+        'placeholder',
+      ),
+      kind: ScanKind.Token,
+    };
+
+    this.whiteSpaceResult = {
+      result: null,
+      kind: ScanKind.Whitespace,
+    };
+
+    this.diagnosticResult = {
+      result: Diagnostic.create(
+        {
+          start: { line: 0, character: 0 },
+          end: { line: 0, character: 0 },
+        },
+        'placeholder',
+      ),
+      kind: ScanKind.Diagnostic,
+    };
   }
 
   /**
@@ -81,7 +136,7 @@ export class Scanner {
     try {
       // create arrays for valid tokens and encountered errors
       const tokens: IToken[] = [];
-      const scanErrors: IScannerError[] = [];
+      const scanErrors: Diagnostic[] = [];
 
       this.logger.info(`Scanning ${this.uri} with ${this.source.length} characters.`);
 
@@ -92,14 +147,14 @@ export class Scanner {
         this.startPosition.line = this.currentPosition.line;
 
         const result = this.scanToken();
-        switch (result.tag) {
-          case 'token':
-            tokens.push(result);
+        switch (result.kind) {
+          case ScanKind.Token:
+            tokens.push(result.result);
             break;
-          case 'scannerError':
-            scanErrors.push(result);
+          case ScanKind.Diagnostic:
+            scanErrors.push(result.result);
             break;
-          case 'whitespace':
+          case ScanKind.Whitespace:
             break;
         }
       }
@@ -157,16 +212,16 @@ export class Scanner {
       case '/':
         if (this.match('/')) {
           while (this.peek() !== '\n' && !this.isAtEnd()) this.advance();
-          return new WhiteSpace();
+          return this.whiteSpaceResult;
         }
         return this.generateToken(TokenType.div);
       case ' ':
       case '\r':
       case '\t':
-        return new WhiteSpace();
+        return this.whiteSpaceResult;
       case '\n':
         this.incrementLine();
-        return new WhiteSpace();
+        return this.whiteSpaceResult;
       case '"':
         return this.string();
       default:
@@ -184,7 +239,7 @@ export class Scanner {
   /**
    * extract any identifiers
    */
-  private identifier(): Token {
+  private identifier(): TokenResult {
     while (this.isAlphaNumeric(this.peek())) this.advance();
 
     // if "." immediatily followed by alpha numeri
@@ -203,7 +258,7 @@ export class Scanner {
   /**
    * extract a file identifier
    */
-  private fileIdentifier(): Token {
+  private fileIdentifier(): TokenResult {
     while (this.isAlphaNumeric(this.peek())
     || (this.peek() === '.' && this.isAlphaNumeric(this.peekNext()))) {
       this.advance();
@@ -238,7 +293,7 @@ export class Scanner {
   /**
    * extract a number
    */
-  private number(): ScanResult {
+  private number(): TokenResult | DiagnosticResult {
     let isFloat = this.advanceNumber();
     const possibleNumber = this.generateNumber(isFloat);
 
@@ -318,7 +373,7 @@ export class Scanner {
    * remove underscores from number and generate token
    * @param isFloat is the token a float
    */
-  private generateNumber(isFloat: boolean): Token {
+  private generateNumber(isFloat: boolean): TokenResult {
     const numberString = this.source
       .substr(this.start, this.current - this.start)
       .replace(/(\_)/g, '');
@@ -334,29 +389,38 @@ export class Scanner {
    * @param literal optional literal
    * @param toLower should the lexeme be lowered
    */
-  private generateToken(type: TokenType, literal?: any, toLower?: boolean): Token {
+  private generateToken(type: TokenType, literal?: any, toLower?: boolean): TokenResult {
     const text = toLower
       ? this.source.substr(this.start, this.current - this.start).toLowerCase()
       : this.source.substr(this.start, this.current - this.start);
 
-    return new Token(
+    const token = new Token(
       type, text, literal,
       this.startPosition.toImmutable(),
       this.currentPosition.toImmutable(),
       this.uri,
     );
+
+    this.tokenResult.result = token;
+    return this.tokenResult;
   }
 
   /**
    * generate error
-   * @param message error message 
+   * @param message error message
    */
-  private generateError(message: string): IScannerError {
-    return new ScannerError(
+  private generateError(message: string): DiagnosticResult {
+    const diagnostic = createDiagnostic(
+      {
+        start: this.startPosition.toImmutable(),
+        end: this.currentPosition.toImmutable(),
+      },
       message,
-      this.startPosition.toImmutable(),
-      this.currentPosition.toImmutable(),
+      DiagnosticSeverity.Error,
     );
+
+    this.diagnosticResult.result = diagnostic;
+    return this.diagnosticResult;
   }
 
   /**

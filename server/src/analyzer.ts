@@ -5,7 +5,6 @@ import { Parser } from './parser/parser';
 import { FuncResolver } from './analysis/functionResolver';
 import { Scanner } from './scanner/scanner';
 import { Resolver } from './analysis/resolver';
-import { IScannerError } from './scanner/types';
 import { IParseError, ScriptResult, RunInstType } from './parser/types';
 import { KsSymbol, IKsSymbolTracker, KsSymbolKind } from './analysis/types';
 import { mockLogger, mockTracer } from './utilities/logger';
@@ -86,7 +85,7 @@ export class Analyzer {
     const symbolTables: SymbolTable[] = [];
 
     const scanDiagnostics = scanErrors
-      .map(scanError => scanToDiagnostics(scanError, uri));
+      .map(scanError => addDiagnosticsUri(scanError, uri));
     const parserDiagnostics = parseErrors.length === 0
       ? []
       : parseErrors.map(error => error.inner.concat(error))
@@ -589,17 +588,6 @@ export class Analyzer {
     }
   }
 }
-
-// convert scan error to diagnostic
-const scanToDiagnostics = (error: IScannerError, uri: string): IDiagnosticUri => {
-  return {
-    uri,
-    severity: DiagnosticSeverity.Error,
-    range: { start: error.start, end: error.end },
-    message: error.message,
-    source: 'kos-language-server',
-  };
-};
 
 // convert parse error to diagnostic
 const parseToDiagnostics = (error: IParseError, uri: string): IDiagnosticUri => {

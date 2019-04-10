@@ -1,7 +1,7 @@
 import ava, { ExecutionContext } from 'ava';
 import { Scanner } from '../scanner/scanner';
 import { Parser } from './parser';
-import { IScannerError, IScanResult } from '../scanner/types';
+import { IScanResult } from '../scanner/types';
 import { IExpr, INodeResult, Atom, SuffixTermTrailer } from './types';
 import * as Expr from './expr';
 import * as SuffixTerm from './suffixTerm';
@@ -11,6 +11,7 @@ import { join } from 'path';
 import { empty } from '../utilities/typeGuards';
 import { zip } from '../utilities/arrayUtilities';
 import { TokenCheck } from './tokenCheck';
+import { Diagnostic } from 'vscode-languageserver';
 
 // scan source file
 const scan = (source: string) : IScanResult => {
@@ -19,7 +20,7 @@ const scan = (source: string) : IScanResult => {
 };
 
 // parse source
-const parseExpression = (source: string): [INodeResult<IExpr>, IScannerError[]] => {
+const parseExpression = (source: string): [INodeResult<IExpr>, Diagnostic[]] => {
   const { tokens, scanErrors } = scan(source);
   const parser = new Parser('', tokens);
   return [parser.parseExpression(), scanErrors];

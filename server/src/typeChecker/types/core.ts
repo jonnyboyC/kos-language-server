@@ -16,7 +16,7 @@ addSuffixes(
   createArgSuffixType('activate', voidType),
   createArgSuffixType('deactivate', voidType),
   createArgSuffixType('volume', volumeType),
-  createArgSuffixType('tag', stringType),
+  createSetSuffixType('tag', stringType),
   createSetSuffixType('bootFilename', stringType),
   createArgSuffixType('connection', processorConnectionType),
 );

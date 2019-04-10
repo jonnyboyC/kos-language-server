@@ -3,8 +3,7 @@ import * as Inst from './inst';
 import * as SuffixTerm from './suffixTerm';
 import { Var, Lock, Func, Param } from './declare';
 import { IToken } from '../entities/types';
-import { Range, Location } from 'vscode-languageserver';
-import { IScannerError } from '../scanner/types';
+import { Range, Location, Diagnostic } from 'vscode-languageserver';
 import { TokenType } from '../entities/tokentypes';
 
 export interface IRangeSequence extends Range {
@@ -156,7 +155,7 @@ export interface IParseResult {
 }
 
 export interface ScriptResult extends IParseResult {
-  scanErrors: IScannerError[];
+  scanErrors: Diagnostic[];
 }
 
 export interface IFindResult {

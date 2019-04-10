@@ -3,8 +3,8 @@ import { consoleLogger, consoleTracer } from '../utilities/logger';
 import { validExprTypes } from '../parser/expr';
 import { Scanner } from '../scanner/scanner';
 import { Parser } from '../parser/parser';
-import { IScannerError } from '../scanner/types';
 import { INodeResult, IExpr } from '../parser/types';
+import { Diagnostic } from 'vscode-languageserver';
 
 const generator = new Generator({ active: false, rate: 0 }, consoleLogger, consoleTracer);
 // scan source file
@@ -14,7 +14,7 @@ const scan = (source: string) => {
 };
 
 // parse source
-const parseExpression = (source: string): [INodeResult<IExpr>, IScannerError[]] => {
+const parseExpression = (source: string): [INodeResult<IExpr>, Diagnostic[]] => {
   const { tokens, scanErrors } = scan(source);
   const parser = new Parser('', tokens);
   return [parser.parseExpression(), scanErrors];
