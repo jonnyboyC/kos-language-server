@@ -36,7 +36,6 @@ import { SymbolTableBuilder } from './analysis/symbolTableBuilder';
 import { SymbolTable } from './analysis/symbolTable';
 import { TypeChecker } from './typeChecker/typeChecker';
 import {
-  ITypeError,
   ITypeResolvedSuffix,
   ITypeNode,
 } from './typeChecker/types';
@@ -200,7 +199,7 @@ export class Analyzer {
     this.logger.log('');
     performance.mark('type-checking-start');
 
-    typeChecker.check().map(error => typeCheckerToDiagnostics(error, uri));
+    typeChecker.check().map(error => addDiagnosticsUri(error, uri));
 
     // yield typeDiagnostics;
     performance.mark('type-checking-end');
@@ -694,18 +693,4 @@ const parseToDiagnostics = (
 // convert resolver error to diagnostic
 const addDiagnosticsUri = (error: Diagnostic, uri: string): IDiagnosticUri => {
   return { uri, ...error };
-};
-
-// convert type checking error to diagnostic
-const typeCheckerToDiagnostics = (
-  error: ITypeError,
-  uri: string,
-): IDiagnosticUri => {
-  return {
-    uri,
-    severity: DiagnosticSeverity.Hint,
-    range: { start: error.start, end: error.end },
-    message: error.message,
-    source: 'kos-language-server',
-  };
 };
