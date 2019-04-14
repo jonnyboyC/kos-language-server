@@ -14,6 +14,7 @@ import {
   TransportKind,
   ForkOptions,
 } from 'vscode-languageclient';
+import { inspectorProvider } from './commands/lspInspectorProvider';
 import { telnetProvider } from './commands/telnetProvider';
 import { kspProvider } from './commands/kspProvider';
 
@@ -25,6 +26,7 @@ let client: LanguageClient;
  * @param context Current extension context
  */
 export function activate(context: ExtensionContext) {
+
   // The server is implemented in node
   const serverModule = context.asAbsolutePath(
     path.join('server', 'out', 'server.js'),
@@ -69,6 +71,9 @@ export function activate(context: ExtensionContext) {
   const clientOptions: LanguageClientOptions = {
     // Register the server for kos documents
     documentSelector: [{ scheme: 'file', language: 'kos' }],
+
+    // Allow the websocket to be an output channel
+    // outputChannel: websocketOutputChannel
   };
 
   // Create the language client and start the client.
@@ -81,6 +86,10 @@ export function activate(context: ExtensionContext) {
 
   // Start the client. This will also launch the server
   client.start();
+
+  // add inspect provider to commands
+  context.subscriptions.push(
+    commands.registerCommand(inspectorProvider.command, inspectorProvider.commandCallback))
 
   // add run provider to commands
   context.subscriptions.push(

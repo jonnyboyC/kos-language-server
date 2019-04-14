@@ -293,6 +293,20 @@ export class SymbolTableBuilder {
       return this.localConflictError(token, conflictTracker.declared.symbol);
     }
 
+    let diagnostic: Maybe<Diagnostic>;
+
+    // if global we can't shadow
+    if (scopeType === ScopeType.global) {
+      diagnostic = undefined;
+
+    // if local check for shadowing hints
+    } else {
+      const shadowTracker = this.lookup(token, ScopeType.global);
+      diagnostic = empty(shadowTracker)
+        ? undefined
+        : this.shadowSymbolHint(token, shadowTracker.declared.symbol);
+    }
+
     const scope = this.selectScope(scopeType);
     const tracker = new KsSymbolTracker(new KsVariable(scopeType, token), type);
 
@@ -300,7 +314,8 @@ export class SymbolTableBuilder {
     scope.set(token.lexeme, tracker);
 
     this.logger.verbose(`declare variable ${token.lexeme} at ${rangeToString(token)}`);
-    return undefined;
+
+    return diagnostic;
   }
 
   /**
@@ -324,6 +339,20 @@ export class SymbolTableBuilder {
       return this.localConflictError(token, conflictTracker.declared.symbol);
     }
 
+    let diagnostic: Maybe<Diagnostic>;
+
+    // if global we can't shadow
+    if (scopeType === ScopeType.global) {
+      diagnostic = undefined;
+      
+    // if local check for shadowing hints
+    } else {
+      const shadowTracker = this.lookup(token, ScopeType.global);
+      diagnostic = empty(shadowTracker)
+        ? undefined
+        : this.shadowSymbolHint(token, shadowTracker.declared.symbol);
+    }
+
     const scope = this.selectScope(scopeType);
     const tracker = new KsSymbolTracker(
       new KsFunction(
@@ -335,7 +364,8 @@ export class SymbolTableBuilder {
     scope.set(token.lexeme, tracker);
 
     this.logger.verbose(`declare function ${token.lexeme} at ${rangeToString(token)}`);
-    return undefined;
+
+    return diagnostic;
   }
 
   /**
@@ -355,6 +385,20 @@ export class SymbolTableBuilder {
       return this.localConflictError(token, conflictTracker.declared.symbol);
     }
 
+    let diagnostic: Maybe<Diagnostic>;
+
+    // if global we can't shadow
+    if (scopeType === ScopeType.global) {
+      diagnostic = undefined;
+      
+    // if local check for shadowing hints
+    } else {
+      const shadowTracker = this.lookup(token, ScopeType.global);
+      diagnostic = empty(shadowTracker)
+        ? undefined
+        : this.shadowSymbolHint(token, shadowTracker.declared.symbol);
+    }
+
     const scope = this.selectScope(scopeType);
     const tracker = new KsSymbolTracker(new KsLock(scopeType, token), type);
 
@@ -362,7 +406,8 @@ export class SymbolTableBuilder {
     scope.set(token.lexeme, tracker);
 
     this.logger.verbose(`declare lock ${token.lexeme} at ${rangeToString(token)}`);
-    return undefined;
+
+    return diagnostic;
   }
 
   /**
@@ -382,6 +427,20 @@ export class SymbolTableBuilder {
       return this.localConflictError(token, conflictTracker.declared.symbol);
     }
 
+    let diagnostic: Maybe<Diagnostic>;
+
+    // if global we can't shadow
+    if (scopeType === ScopeType.global) {
+      diagnostic = undefined;
+      
+    // if local check for shadowing hints
+    } else {
+      const shadowTracker = this.lookup(token, ScopeType.global);
+      diagnostic = empty(shadowTracker)
+        ? undefined
+        : this.shadowSymbolHint(token, shadowTracker.declared.symbol);
+    }
+
     const scope = this.selectScope(scopeType);
     const tracker = new KsSymbolTracker(new KsParameter(token, defaulted, SymbolState.declared));
 
@@ -389,7 +448,7 @@ export class SymbolTableBuilder {
     scope.set(token.lexeme, tracker);
 
     this.logger.verbose(`declare parameter ${token.lexeme} at ${rangeToString(token)}`);
-    return undefined;
+    return diagnostic;
   }
 
   /**
@@ -595,6 +654,27 @@ export class SymbolTableBuilder {
    */
   private peekScope(): IScope {
     return this.activeScopeNode().scope;
+  }
+
+  /**
+   * generate a resolver error when a declare symbol shadows with an existing on
+   * @param name token for the requested symbol
+   * @param symbol collided symbol
+   */
+  private shadowSymbolHint(name: IToken, symbol: KsSymbol): Diagnostic {
+    return createDiagnostic(
+      name,
+      `${this.pascalCase(KsSymbolKind[symbol.tag])} ${symbol.name.lexeme} `
+      + `already exists here. This ${this.pascalCase(KsSymbolKind[symbol.tag])} shadows it.`,
+      DiagnosticSeverity.Warning,
+      undefined,
+      [
+        DiagnosticRelatedInformation.create(
+          { uri: this.uri, range: symbol.name },
+          'Orignally declared here',
+        ),
+      ],
+    );
   }
 
   /**

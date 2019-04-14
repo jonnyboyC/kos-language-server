@@ -14,7 +14,7 @@ ava('scan all', (t) => {
     const { tokens, scanErrors } = scanner.scanTokens();
     const errorResult = scanErrors.map(error => ({ filePath, ...error }));
 
-    t.true(tokens.length > 0);
-    t.true(errorResult.length === 0);
+    t.true(tokens.length > 0, filePath);
+    t.true(errorResult.length === 0, filePath);
   });
 });

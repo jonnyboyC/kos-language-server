@@ -56,6 +56,38 @@
                     "type": "number",
                     "default": 5410,
                     "description": "The port of the kOS telnet server"
+                },
+                "kos-vscode.lspPort": {
+                    "type": "number",
+                    "default": 7000,
+                    "scope": "window",
+                    "description": "The WebSocket port to stream LSP log data into."
+                },
+                "kos-vscode.trace.server": {
+					"scope": "window",
+					"type": "object",
+					"description": "Traces the communication between VS Code and the language server.",
+					"properties": {
+						"verbosity": {
+							"type": "string",
+							"description": "Controls the verbosity of the trace.",
+							"enum": [
+								"off",
+								"message",
+								"verbose"
+							],
+							"default": "off"
+						},
+						"format": {
+							"type": "string",
+							"description": "Controls the output format of the trace.",
+							"enum": [
+								"text",
+								"json"
+							],
+							"default": "text"
+						}
+					}
                 }
             }
         },
@@ -67,6 +99,10 @@
             {
                 "command": "kos.startksp",
                 "title": "kOS: Start Kerbal Space Program"
+            },
+            {
+                "command": "kos.lspLog",
+                "title": "kOS: Start Lsp Logging"
             }
         ],
         "languages": [

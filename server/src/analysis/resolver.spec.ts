@@ -226,3 +226,28 @@ ava('basic used test', (t) => {
     t.deepEqual(location.end, error.range.end);
   }
 });
+
+const shadowPath = join(
+  __dirname,
+  '../../../kerboscripts/parser_valid/declaration/shadowtest.ks',
+);
+
+const shadowedLocations: Range[] = [
+  { start: new Marker(3, 10), end: new Marker(3, 11) },
+];
+
+// test basic identifier
+ava('basic shadowed test', (t) => {
+  const shadowedSource = readFileSync(shadowPath, 'utf8');
+  const results = resolveSource(shadowedSource);
+
+  t.is(0, results.scan.scanErrors.length);
+  t.is(0, results.parse.parseErrors.length);
+  t.true(results.resolveError.length > 0);
+
+  for (const [error, location] of zip(results.resolveError, shadowedLocations)) {
+    t.is(DiagnosticSeverity.Warning, error.severity);
+    t.deepEqual(location.start, error.range.start);
+    t.deepEqual(location.end, error.range.end);
+  }
+});

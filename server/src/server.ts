@@ -37,6 +37,7 @@ import { Logger } from './utilities/logger';
 import { locationCopy } from './utilities/positionHelpers';
 import { primitiveInitializer } from './typeChecker/types/primitives/initialize';
 import { oribitalInitializer } from './typeChecker/types/orbital/initialize';
+// import { messageQueueType } from './typeChecker/types/communication/messageQueue';
 
 // Create a connection for the server. The connection uses Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -118,7 +119,7 @@ documents.onDidChangeContent(async (change) => {
 
   try {
     const diagnosticResults = analyzer
-    .validateDocument(change.document.uri, change.document.getText());
+      .validateDocument(change.document.uri, change.document.getText());
 
     let total = 0;
     const diagnosticMap: Map<string, IDiagnosticUri[]> = new Map();
@@ -136,10 +137,23 @@ documents.onDidChangeContent(async (change) => {
         diagnosticMap.set(diagnostic.uri, uriDiagnostics);
       }
 
-      for (const [uri, uriDiagnostics] of diagnosticMap.entries()) {
+      for (const [uri, _] of diagnosticMap.entries()) {
         connection.sendDiagnostics({
           uri,
-          diagnostics: uriDiagnostics,
+          diagnostics: [{
+            range: {
+              start: {
+                line: total,
+                character: 0,
+              },
+              end: {
+                line: total,
+                character: 5,
+              },
+            },
+            message: 'fart'
+          }]
+          // diagnostics: uriDiagnostics,
         });
       }
     }
