@@ -1,5 +1,5 @@
 
-export const linesJoin = (separator: string, ...lines: string[][]): string[] => {
+export const joinLines = (separator: string, ...lines: string[][]): string[] => {
   if (lines.length === 1) {
     return lines[0];
   }

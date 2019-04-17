@@ -23,7 +23,7 @@ import {
 import { empty } from '../utilities/typeGuards';
 import { NodeBase } from './base';
 import { flatten } from '../utilities/arrayUtilities';
-import { linesJoin } from './toStringUtils';
+import { joinLines } from './toStringUtils';
 
 /**
  * Expression base class
@@ -137,7 +137,7 @@ export class Binary extends Expr {
     const leftLines = this.left.toLines();
     const rightLines = this.right.toLines();
 
-    return linesJoin(` ${this.operator.lexeme} `, leftLines, rightLines);
+    return joinLines(` ${this.operator.lexeme} `, leftLines, rightLines);
   }
 
   public accept<T>(visitor: IExprVisitor<T>): T {
@@ -250,7 +250,7 @@ export class Factor extends Expr {
   }
 
   public toLines(): string[] {
-    return linesJoin(
+    return joinLines(
       this.power.lexeme,
       this.suffix.toLines(),
       this.exponent.toLines(),
@@ -403,7 +403,7 @@ export class Suffix extends Expr {
 
     if (!empty(this.colon) && !empty(this.trailer)) {
       const trailerLines = this.trailer.toLines();
-      return linesJoin(this.colon.lexeme, suffixTermLines, trailerLines);
+      return joinLines(this.colon.lexeme, suffixTermLines, trailerLines);
     }
 
     return suffixTermLines;

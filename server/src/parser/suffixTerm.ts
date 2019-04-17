@@ -27,7 +27,7 @@ import {
 import { expr } from './expr';
 import { NodeBase } from './base';
 import { empty } from '../utilities/typeGuards';
-import { linesJoin } from './toStringUtils';
+import { joinLines } from './toStringUtils';
 
 /**
  * Base class for all suffix terms
@@ -252,7 +252,7 @@ export class SuffixTerm extends SuffixTermBase {
     const atomLines = this.atom.toLines();
     const trailersLines = this.trailers.map(t => t.toLines());
 
-    return linesJoin('', atomLines, ...trailersLines);
+    return joinLines('', atomLines, ...trailersLines);
   }
 
   public acceptParam<TP, TR>(
@@ -318,7 +318,7 @@ export class Call extends SuffixTermBase {
     }
 
     const argsLines = this.args.map(a => a.toLines());
-    const argsResult = linesJoin(',', ...argsLines);
+    const argsResult = joinLines(',', ...argsLines);
 
     argsResult[0] = `${this.open.lexeme}${argsResult[0]}`;
     argsResult[argsResult.length - 1] = `${argsResult[argsResult.length - 1]}${

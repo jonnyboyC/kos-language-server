@@ -233,7 +233,7 @@ export class Parser {
 
     // match function body
     if (this.matchToken(TokenType.curlyOpen)) {
-      const blockResult = this.instructionBlock();
+      const blockResult = this.block();
       this.matchToken(TokenType.period);
 
       return nodeResult(
@@ -369,7 +369,7 @@ export class Parser {
     switch (this.peek().type) {
       case TokenType.curlyOpen:
         this.advance();
-        return this.instructionBlock();
+        return this.block();
       case TokenType.integer:
       case TokenType.double:
       case TokenType.true:
@@ -481,7 +481,7 @@ export class Parser {
   }
 
   // parse a block of instructions
-  private instructionBlock(): INodeResult<Inst.Block> {
+  private block(): INodeResult<Inst.Block> {
     const open = this.previous();
     const declarations: Inst.Inst[] = [];
 
@@ -666,7 +666,7 @@ export class Parser {
   private from(): INodeResult<Inst.From> {
     const from = this.previous();
     if (this.matchToken(TokenType.curlyOpen)) {
-      const initResult = this.instructionBlock();
+      const initResult = this.block();
       const until = this.consumeTokenThrow(
         'Expected "until" expression following from.',
         Inst.From,
@@ -679,7 +679,7 @@ export class Parser {
         TokenType.step,
       );
       if (this.matchToken(TokenType.curlyOpen)) {
-        const incrementResult = this.instructionBlock();
+        const incrementResult = this.block();
         const doToken = this.consumeTokenThrow(
           'Expected "do" block following step.',
           Inst.From,

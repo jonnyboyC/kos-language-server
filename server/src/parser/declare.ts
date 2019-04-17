@@ -4,7 +4,7 @@ import { TokenType } from '../entities/tokentypes';
 import { empty } from '../utilities/typeGuards';
 import { IToken } from '../entities/types';
 import { Range, Position } from 'vscode-languageserver';
-import { linesJoin } from './toStringUtils';
+import { joinLines } from './toStringUtils';
 
 export abstract class Decl extends Inst {
   constructor() {
@@ -195,7 +195,7 @@ export class Func extends Decl {
       : `${this.scope.toString()} ${this.functionToken.lexeme} ${this.identifier.lexeme}`;
 
     const blockLines = this.block.toLines();
-    return linesJoin(' ', [declareLine], blockLines);
+    return joinLines(' ', [declareLine], blockLines);
   }
 
   public get start(): Position {
@@ -301,14 +301,14 @@ export class Param extends Decl {
       ? [`${this.parameterToken.lexeme}`]
       : [`${this.scope.toString()} ${this.parameterToken.lexeme}`];
 
-    const paramLines = linesJoin(
+    const paramLines = joinLines(
       ', ', ...this.parameters.map(param => param.toLines()));
-    const defaultParamLines = linesJoin(
+    const defaultParamLines = joinLines(
       ', ', ...this.defaultParameters.map(param => param.toLines()));
 
     let lines: string[] = [];
     if (this.parameters.length > 0 && this.defaultParameters.length > 0) {
-      lines = linesJoin(', ', paramLines, defaultParamLines);
+      lines = joinLines(', ', paramLines, defaultParamLines);
     } else if (this.parameters.length > 0) {
       lines = paramLines;
     } else {

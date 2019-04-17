@@ -4,7 +4,7 @@ import { IToken } from '../entities/types';
 import { Range, Position } from 'vscode-languageserver';
 import { empty } from '../utilities/typeGuards';
 import { NodeBase } from './base';
-import { linesJoin } from './toStringUtils';
+import { joinLines } from './toStringUtils';
 
 /**
  * Instruction base class
@@ -320,7 +320,7 @@ export class Set extends Inst {
     const valueLines = this.value.toLines();
 
     suffixLines[0] = `${this.set.lexeme} ${suffixLines[0]}`;
-    const lines = linesJoin(` ${this.to.lexeme} `, suffixLines, valueLines);
+    const lines = joinLines(` ${this.to.lexeme} `, suffixLines, valueLines);
     lines[lines.length - 1] = `${lines[lines.length - 1]}.`;
     return lines;
   }
@@ -397,11 +397,11 @@ export class If extends Inst {
     const instLines = this.ifInst.toLines();
 
     conditionLines[0] = `${this.ifToken.lexeme} ${conditionLines[0]}`;
-    const lines = linesJoin(' ', conditionLines, instLines);
+    const lines = joinLines(' ', conditionLines, instLines);
 
     if (!empty(this.elseInst)) {
       const elseLines = this.elseInst.toLines();
-      return linesJoin(' ', lines, elseLines);
+      return joinLines(' ', lines, elseLines);
     }
 
     return lines;
@@ -479,7 +479,7 @@ export class Until extends Inst {
     const instLines = this.inst.toLines();
 
     conditionLines[0] = `${this.until.lexeme} ${conditionLines[0]}`;
-    return linesJoin(' ', conditionLines, instLines);
+    return joinLines(' ', conditionLines, instLines);
   }
 
   public get start(): Position {
@@ -528,7 +528,7 @@ export class From extends Inst {
     incrementLines[0] = `${this.step.lexeme} ${incrementLines[0]}`;
     instLines[0] = `${this.doToken.lexeme} ${instLines[0]}`;
 
-    return linesJoin(
+    return joinLines(
       ' ',
       initializerLines,
       conditionLines,
@@ -592,7 +592,7 @@ export class When extends Inst {
     conditionLines[0] = `${this.when.lexeme} ${conditionLines[0]}`;
     instLines[0] = `${this.then.lexeme} ${instLines[0]}`;
 
-    return linesJoin(' ', conditionLines, instLines);
+    return joinLines(' ', conditionLines, instLines);
   }
 
   public get start(): Position {
@@ -762,7 +762,7 @@ export class For extends Inst {
       `${this.forToken.lexeme} ${this.identifier.lexeme} ` +
       `${this.inToken.lexeme} ${suffixLines[0]}`;
 
-    return linesJoin(' ', suffixLines, instLines);
+    return joinLines(' ', suffixLines, instLines);
   }
 
   public get start(): Position {
@@ -806,7 +806,7 @@ export class On extends Inst {
     const instLInes = this.inst.toLines();
 
     suffixLines[0] = `${this.on.lexeme} ${suffixLines[0]}`;
-    return linesJoin(' ', suffixLines, instLInes);
+    return joinLines(' ', suffixLines, instLInes);
   }
 
   public get start(): Position {
@@ -937,7 +937,7 @@ export class Log extends Inst {
       targetLines[targetLines.length - 1]
     }.`;
 
-    return linesJoin(' ', exprLines, targetLines);
+    return joinLines(' ', exprLines, targetLines);
   }
 
   public get start(): Position {
@@ -978,7 +978,7 @@ export class Copy extends Inst {
     targetLines[0] = `${this.copy.lexeme} ${targetLines[0]}`;
     destinationLines[0] = `${this.toFrom.lexeme} ${destinationLines[0]}`;
 
-    return linesJoin(' ', targetLines, destinationLines);
+    return joinLines(' ', targetLines, destinationLines);
   }
 
   public get start(): Position {
@@ -1023,7 +1023,7 @@ export class Rename extends Inst {
       `${this.ioIdentifer.lexeme} ${targetLines[0]}`;
     alternativeLines[0] = `${this.to.lexeme} ${alternativeLines[0]}`;
 
-    return linesJoin(' ', targetLines, alternativeLines);
+    return joinLines(' ', targetLines, alternativeLines);
   }
 
   public get start(): Position {
@@ -1074,7 +1074,7 @@ export class Delete extends Inst {
         volumeLines[volumeLines.length - 1]
       }.`;
 
-      return linesJoin(' ', targetLines, volumeLines);
+      return joinLines(' ', targetLines, volumeLines);
     }
 
     targetLines[targetLines.length - 1] = `${
@@ -1134,20 +1134,20 @@ export class Run extends Inst {
       : [`${this.run.lexeme} ${this.once.lexeme} ${this.identifier.lexeme}`];
 
     if (!empty(this.open) && !empty(this.args) && !empty(this.close)) {
-      const argsLines = linesJoin(', ', ...this.args.map(arg => arg.toLines()));
+      const argsLines = joinLines(', ', ...this.args.map(arg => arg.toLines()));
       argsLines[0] = `${this.open.lexeme}${argsLines[0]}`;
       argsLines[argsLines.length - 1] = `${argsLines[argsLines.length - 1]}${
         this.close.lexeme
       }`;
 
-      lines = linesJoin(' ', lines, argsLines);
+      lines = joinLines(' ', lines, argsLines);
     }
 
     if (!empty(this.on) && !empty(this.expr)) {
       const exprLines = this.expr.toLines();
       exprLines[0] = `${this.on.lexeme} ${exprLines[0]}`;
 
-      lines = linesJoin(' ', lines, exprLines);
+      lines = joinLines(' ', lines, exprLines);
     }
 
     lines[lines.length - 1] = `${lines[lines.length - 1]}.`;
@@ -1213,7 +1213,7 @@ export class RunPath extends Inst {
     let lines = this.expr.toLines();
 
     if (!empty(this.args)) {
-      lines = linesJoin(', ', lines, ...this.args.map(arg => arg.toLines()));
+      lines = joinLines(', ', lines, ...this.args.map(arg => arg.toLines()));
     }
 
     lines[0] = `${this.runPath.lexeme}${this.open.lexeme}${lines[0]}`;
@@ -1265,7 +1265,7 @@ export class RunPathOnce extends Inst {
     let lines = this.expr.toLines();
 
     if (!empty(this.args)) {
-      lines = linesJoin(', ', lines, ...this.args.map(arg => arg.toLines()));
+      lines = joinLines(', ', lines, ...this.args.map(arg => arg.toLines()));
     }
 
     lines[0] = `${this.runPath.lexeme}${this.open.lexeme}${lines[0]}`;
@@ -1316,7 +1316,7 @@ export class Compile extends Inst {
     let lines = this.target.toLines();
 
     if (!empty(this.destination) && !empty(this.to)) {
-      lines = linesJoin(` ${this.to.lexeme} `, this.destination.toLines());
+      lines = joinLines(` ${this.to.lexeme} `, this.destination.toLines());
     }
 
     lines[0] = `${this.compile.lexeme} ${lines[0]}`;
@@ -1478,8 +1478,8 @@ export class Print extends Inst {
         this.close.lexeme
       }`;
 
-      const argLines = linesJoin(', ', xLines, yLines);
-      lines = linesJoin(' ', lines, argLines);
+      const argLines = joinLines(', ', xLines, yLines);
+      lines = joinLines(' ', lines, argLines);
     }
 
     lines[lines.length - 1] = `${lines[lines.length - 1]}.`;
