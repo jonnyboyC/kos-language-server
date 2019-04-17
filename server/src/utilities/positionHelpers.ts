@@ -95,6 +95,10 @@ export const rangeToString = (range: Range): string => {
   return `line: ${line} character: ${character}`;
 };
 
+export const positionToString = (range: Position): string => {
+  return `line: ${range.line} character: ${range.character}`;
+};
+
 export const binarySearch = <T extends Range>(ranges: T[], pos: Position): Maybe<T> => {
   const index = binarySearchIndex(ranges, pos);
   return Array.isArray(index)

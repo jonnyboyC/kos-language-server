@@ -44,6 +44,7 @@ import { IType } from './typeChecker/types/types';
 import { binarySearch, rangeContains } from './utilities/positionHelpers';
 
 export class Analyzer {
+  public workspaceFolder?: string;
   public readonly pathResolver: PathResolver;
   public readonly documentInfos: Map<string, IDocumentInfo>;
   public readonly logger: ILogger;
@@ -55,6 +56,7 @@ export class Analyzer {
     this.logger = logger;
     this.tracer = tracer;
     this.documentInfos = new Map();
+    this.workspaceFolder = undefined;
     this.observer = new PerformanceObserver(list => {
       this.logger.info('');
       this.logger.info('-------- performance ---------');
@@ -72,6 +74,7 @@ export class Analyzer {
    */
   public setPath(path: string): void {
     this.pathResolver.volume0Path = path;
+    this.workspaceFolder = path;
   }
 
   /**
@@ -140,6 +143,9 @@ export class Analyzer {
       }
     }
 
+    this.logger.info('');
+    this.logger.info('-------------Semantic Analysis------------');
+
     // generate a scope manager for resolving
     const symbolTableBuilder = new SymbolTableBuilder(uri, this.logger);
 
@@ -167,7 +173,6 @@ export class Analyzer {
     );
 
     // resolve the rest of the script
-    this.logger.log(`Function resolving ${uri}`);
     performance.mark('func-resolver-start');
     const functionDiagnostics = funcResolver
       .resolve()
@@ -177,8 +182,6 @@ export class Analyzer {
     performance.mark('func-resolver-end');
 
     // perform an initial function pass
-    this.logger.log(`Resolving ${uri}`);
-
     performance.mark('resolver-start');
     const resolverDiagnostics = resolver
       .resolve()
@@ -195,8 +198,6 @@ export class Analyzer {
       this.tracer,
     );
 
-    this.logger.log(`Type checking ${uri}`);
-    this.logger.log('');
     performance.mark('type-checking-start');
 
     typeChecker.check().map(error => addDiagnosticsUri(error, uri));
@@ -217,12 +218,6 @@ export class Analyzer {
       'type-checking-end',
     );
 
-    if (resolverDiagnostics.length > 0) {
-      this.logger.warn(
-        `Resolver encountered ${resolverDiagnostics.length} Errors.`,
-      );
-    }
-
     // make sure to delete references so scope manager can be gc'ed
     const documentInfo = this.documentInfos.get(uri);
     if (!empty(documentInfo)) {
@@ -240,6 +235,7 @@ export class Analyzer {
       ),
     });
 
+    this.logger.info('--------------------------------------');
     performance.clearMarks();
 
     yield symbolTable;
@@ -549,38 +545,30 @@ export class Analyzer {
     uri: string,
     text: string,
   ): Promise<ScriptResult> {
-    this.logger.log('');
-    this.logger.log(`Scanning ${uri}`);
-
+    this.logger.info('');
+    this.logger.info('-------------Lexical Analysis------------');
+    
     performance.mark('scanner-start');
-    const scanner = new Scanner(text, uri);
+    const scanner = new Scanner(text, uri, this.logger, this.tracer);
     const { tokens, scanErrors } = scanner.scanTokens();
     performance.mark('scanner-end');
-
+    
     // if scanner found errors report those immediately
     if (scanErrors.length > 0) {
       this.logger.warn(`Scanning encountered ${scanErrors.length} Errors.`);
     }
-
-    // parse scanned tokens
-    this.logger.log(`Parsing ${uri}`);
-
+    
     performance.mark('parser-start');
-    const parser = new Parser(uri, tokens);
+    const parser = new Parser(uri, tokens, this.logger, this.tracer);
     const result = parser.parse();
     performance.mark('parser-end');
-
-    // log errors
-    if (result.parseErrors.length > 0) {
-      this.logger.warn(
-        `Parser encountered ${result.parseErrors.length} Errors.`,
-      );
-    }
 
     // measure performance
     performance.measure('Scanner', 'scanner-start', 'scanner-end');
     performance.measure('Parser', 'parser-start', 'parser-end');
     performance.clearMarks();
+
+    this.logger.info('--------------------------------------');
 
     return {
       scanErrors,

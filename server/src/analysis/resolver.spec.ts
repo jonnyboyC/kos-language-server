@@ -221,7 +221,7 @@ ava('basic used test', (t) => {
   t.true(results.resolveError.length > 0);
 
   for (const [error, location] of zip(results.resolveError, usedLocations)) {
-    t.is(DiagnosticSeverity.Error, error.severity);
+    t.is(DiagnosticSeverity.Warning, error.severity);
     t.deepEqual(location.start, error.range.start);
     t.deepEqual(location.end, error.range.end);
   }

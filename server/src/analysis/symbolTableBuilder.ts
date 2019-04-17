@@ -19,7 +19,7 @@ import { KsSymbolTracker, createEnitityChange } from './tracker';
 import { IArgumentType, IFunctionType } from '../typeChecker/types/types';
 import { SymbolTable } from './symbolTable';
 import { isKsVariable, isKsParameter, isKsLock } from '../entities/entityHelpers';
-import { rangeToString } from '../utilities/positionHelpers';
+import { rangeToString, positionToString } from '../utilities/positionHelpers';
 import { createDiagnostic } from '../utilities/diagnosticsUtilities';
 
 /**
@@ -123,7 +123,7 @@ export class SymbolTableBuilder {
       });
     }
 
-    this.logger.verbose(`begin scope at ${JSON.stringify(range.start)}`);
+    this.logger.verbose(`begin scope at ${positionToString(range.start)}`);
 
     this.activeScopePath.push(next);
     this.backTrackPath = [...this.activeScopePath];
@@ -147,7 +147,7 @@ export class SymbolTableBuilder {
               errors.push(createDiagnostic(
                 tracker.declared.symbol.name,
                 `Parameter ${tracker.declared.symbol.name.lexeme} was not used.`,
-                DiagnosticSeverity.Error));
+                DiagnosticSeverity.Warning));
             }
             break;
           case KsSymbolKind.lock:
@@ -155,7 +155,7 @@ export class SymbolTableBuilder {
               errors.push(createDiagnostic(
                 tracker.declared.symbol.name,
                 `Lock ${tracker.declared.symbol.name.lexeme} was not used.`,
-                DiagnosticSeverity.Error));
+                DiagnosticSeverity.Warning));
             }
             break;
           case KsSymbolKind.variable:
@@ -163,7 +163,7 @@ export class SymbolTableBuilder {
               errors.push(createDiagnostic(
                 tracker.declared.symbol.name,
                 `Variable ${tracker.declared.symbol.name.lexeme} was not used.`,
-                DiagnosticSeverity.Error));
+                DiagnosticSeverity.Warning));
             }
             break;
           default:
@@ -173,7 +173,7 @@ export class SymbolTableBuilder {
     }
 
     if (position.tag === 'real') {
-      this.logger.verbose(`end scope at ${JSON.stringify(position.end)}`);
+      this.logger.verbose(`end scope at ${positionToString(position.end)}`);
     }
     return errors;
   }

@@ -20,6 +20,7 @@ import { SymbolState } from './types';
 import { SymbolTableBuilder } from './symbolTableBuilder';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
 import { createDiagnostic } from '../utilities/diagnosticsUtilities';
+import { sep } from 'path';
 
 export type Diagnostics = Diagnostic[];
 
@@ -28,7 +29,7 @@ export class FuncResolver
     IExprVisitor<Diagnostics>,
     IInstVisitor<Diagnostics>,
     ISuffixTermVisitor<Diagnostics> {
-  private syntaxTree: IScript;
+  private script: IScript;
   private scopeBuilder: SymbolTableBuilder;
   private readonly logger: ILogger;
   private readonly tracer: ITracer;
@@ -39,7 +40,7 @@ export class FuncResolver
     logger: ILogger = mockLogger,
     tracer: ITracer = mockTracer,
   ) {
-    this.syntaxTree = script;
+    this.script = script;
     this.scopeBuilder = symbolTableBuilder;
     this.logger = logger;
     this.tracer = tracer;
@@ -48,11 +49,27 @@ export class FuncResolver
   // resolve the sequence of instructions
   public resolve(): Diagnostics {
     try {
-      this.scopeBuilder.rewindScope();
-      this.scopeBuilder.beginScope(this.syntaxTree);
+      const splits = this.script.uri.split(sep);
+      const file = splits[splits.length - 1];
 
-      const resolveErrors = this.resolveInsts(this.syntaxTree.insts);
+      this.logger.info(
+        `Function Resolving started for ${file}.`,
+      );
+
+      this.scopeBuilder.rewindScope();
+      this.scopeBuilder.beginScope(this.script);
+
+      const resolveErrors = this.resolveInsts(this.script.insts);
       const scopeErrors = this.scopeBuilder.endScope();
+      const allErrors = resolveErrors.concat(scopeErrors);
+
+      this.logger.info(
+        `Function Resolving finished for ${file}`
+      );
+      
+      if (allErrors.length) {
+        this.logger.warn(`Function Resolver encounted ${allErrors.length} errors`);
+      }
 
       return resolveErrors.concat(scopeErrors);
     } catch (err) {

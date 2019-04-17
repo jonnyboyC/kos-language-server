@@ -23,6 +23,7 @@ import { SymbolTableBuilder } from './symbolTableBuilder';
 import { ILocalResult } from './types';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
 import { createDiagnostic } from '../utilities/diagnosticsUtilities';
+import { sep } from 'path';
 
 export type Diagnostics = Diagnostic[];
 
@@ -60,6 +61,13 @@ export class Resolver
   // resolve the sequence of instructions
   public resolve(): Diagnostics {
     try {
+      const splits = this.script.uri.split(sep);
+      const file = splits[splits.length - 1];
+
+      this.logger.info(
+        `Resolving started for ${file}.`,
+      );
+
       this.tableBuilder.rewindScope();
       this.tableBuilder.beginScope(this.script);
       const [firstInst, ...restInsts] = this.script.insts;
@@ -73,7 +81,16 @@ export class Resolver
       const scopeErrors = this.tableBuilder.endScope();
 
       this.script.lazyGlobal = this.lazyGlobal;
-      return firstError.concat(resolveErrors, scopeErrors);
+      const allErrors = firstError.concat(resolveErrors, scopeErrors);
+
+      this.logger.info(
+        `Resolving finished for ${file}`
+      );
+      
+      if (allErrors.length) {
+        this.logger.warn(`Resolver encounted ${allErrors.length} errors`);
+      }
+      return allErrors
     } catch (err) {
       this.logger.error(`Error occured in resolver ${err}`);
       this.tracer.log(err);

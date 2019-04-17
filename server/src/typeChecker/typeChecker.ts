@@ -66,6 +66,7 @@ import { pathType } from './types/io/path';
 import { NodeBase } from '../parser/base';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
 import { createDiagnostic } from '../utilities/diagnosticsUtilities';
+import { sep } from 'path';
 
 type Diagnostics = Diagnostic[];
 type SuffixTermType = ISuffixType | IArgumentType;
@@ -98,7 +99,24 @@ export class TypeChecker
   public check(): Diagnostics {
     // resolve the sequence of instructions
     try {
-      return this.checkInsts(this.script.insts);
+      const splits = this.script.uri.split(sep);
+      const file = splits[splits.length - 1];
+
+      this.logger.info(
+        `Type Checking started for ${file}.`,
+      );
+
+      const typeErrors = this.checkInsts(this.script.insts);
+
+      this.logger.info(
+        `Type Checking finished for ${file}`
+      );
+      
+      if (typeErrors.length) {
+        this.logger.warn(`Type Checking encounted ${typeErrors.length} errors`);
+      }
+
+      return typeErrors;
     } catch (err) {
       this.logger.error(`Error occured in type checker ${err}`);
       this.tracer.log(err);

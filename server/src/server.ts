@@ -21,27 +21,61 @@ import {
   DidCloseTextDocumentParams,
   DocumentSymbolParams,
   SymbolInformation,
-  SymbolKind,
   CompletionParams,
   CompletionTriggerKind,
   ReferenceParams,
   Hover,
+  Diagnostic,
+  IPCMessageReader,
+  IPCMessageWriter,
 } from 'vscode-languageserver';
 import { empty } from './utilities/typeGuards';
 import { Analyzer } from './analyzer';
-import { IDiagnosticUri } from './types';
-import { keywordCompletions } from './utilities/constants';
 import { KsSymbol, KsSymbolKind } from './analysis/types';
-import { entityCompletionItems, suffixCompletionItems } from './utilities/serverUtils';
+import {
+  entityCompletionItems,
+  suffixCompletionItems,
+  documentSymbols,
+} from './utilities/serverUtils';
 import { Logger } from './utilities/logger';
-import { locationCopy } from './utilities/positionHelpers';
 import { primitiveInitializer } from './typeChecker/types/primitives/initialize';
 import { oribitalInitializer } from './typeChecker/types/orbital/initialize';
-// import { messageQueueType } from './typeChecker/types/communication/messageQueue';
+import { cleanDiagnostic, cleanLocation } from './utilities/clean';
+import { MessageReader, MessageWriter, StreamMessageReader, StreamMessageWriter } from 'vscode-languageserver-protocol';
+
+
+let reader: MessageReader;
+let writer: MessageWriter;
+
+let argv = process.argv.slice(2);
+switch (argv[0]) {
+  case '--node-ipc':
+    reader = new IPCMessageReader(process);
+    writer = new IPCMessageWriter(process);
+    break;
+  case '--stdio':
+    reader = new StreamMessageReader(process.stdin);
+    writer = new StreamMessageWriter(process.stdout);
+    break;
+  default:
+    throw new Error('')
+}
+
+writer.onError(([error, message, code]) => {
+  console.log(error);
+  console.log(message);
+  console.log(code);
+});
+
+reader.onError((error) => {
+  console.log(error);
+});
 
 // Create a connection for the server. The connection uses Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
-export const connection = createConnection(ProposedFeatures.all);
+export const connection = createConnection(ProposedFeatures.all, reader, writer);
+
+connection.client;
 
 // REMOVE ME TODO probably need to refactor the type modules as
 // structure and the primitives have a dependnecy loop
@@ -50,14 +84,23 @@ oribitalInitializer();
 
 // Create a simple text document manager. The text document manager
 // supports full document sync only
+
+connection.console;
+
 let workspaceFolder: string = '';
-const analyzer = new Analyzer(new Logger(connection.console, LogLevel.info), connection.tracer);
+const analyzer = new Analyzer(
+  new Logger(connection.console, LogLevel.info),
+  connection.tracer,
+);
 const documents: TextDocuments = new TextDocuments();
 
 connection.onInitialize((params: InitializeParams) => {
   const capabilities = params.capabilities;
   connection.console.log(
-    `[Server(${process.pid}) ${JSON.stringify(capabilities)}] Started and initialize received`);
+    `[Server(${process.pid}) ${JSON.stringify(
+      capabilities, undefined, 2
+    )}] Started and initialize received`,
+  );
 
   if (params.rootPath) {
     analyzer.setPath(params.rootPath);
@@ -69,7 +112,10 @@ connection.onInitialize((params: InitializeParams) => {
   }
 
   connection.console.log(
-    `[Server(${process.pid}) ${workspaceFolder}] Started and initialize received`);
+    `[Server(${
+      process.pid
+    }) ${workspaceFolder}] Started and initialize received`,
+  );
 
   return {
     capabilities: {
@@ -100,12 +146,16 @@ connection.onDidOpenTextDocument((param: DidOpenTextDocumentParams) => {
 
 // monitor when a text document is changed
 connection.onDidChangeTextDocument((param: DidChangeTextDocumentParams) => {
-  connection.console.log(`We received ${param.contentChanges.length} file changes`);
+  connection.console.log(
+    `We received ${param.contentChanges.length} file changes`,
+  );
 });
 
 // monitor file change events
 connection.onDidChangeWatchedFiles((change: DidChangeWatchedFilesParams) => {
-  connection.console.log(`We received ${change.changes.length} file change events`);
+  connection.console.log(
+    `We received ${change.changes.length} file change events`,
+  );
 });
 
 // monitor when a text document is closed
@@ -115,14 +165,15 @@ connection.onDidCloseTextDocument((param: DidCloseTextDocumentParams) => {
 
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
-documents.onDidChangeContent(async (change) => {
-
+documents.onDidChangeContent(async change => {
   try {
-    const diagnosticResults = analyzer
-      .validateDocument(change.document.uri, change.document.getText());
+    const diagnosticResults = analyzer.validateDocument(
+      change.document.uri,
+      change.document.getText(),
+    );
 
     let total = 0;
-    const diagnosticMap: Map<string, IDiagnosticUri[]> = new Map();
+    const diagnosticMap: Map<string, Diagnostic[]> = new Map();
 
     for await (const diagnostics of diagnosticResults) {
       total += diagnostics.length;
@@ -130,30 +181,19 @@ documents.onDidChangeContent(async (change) => {
       for (const diagnostic of diagnostics) {
         let uriDiagnostics = diagnosticMap.get(diagnostic.uri);
         if (empty(uriDiagnostics)) {
-          uriDiagnostics = [];
+          diagnosticMap.set(
+            diagnostic.uri,
+            [cleanDiagnostic(diagnostic)]
+          );
+        } else {
+          uriDiagnostics.push(cleanDiagnostic(diagnostic));
         }
-
-        uriDiagnostics.push(diagnostic);
-        diagnosticMap.set(diagnostic.uri, uriDiagnostics);
       }
 
-      for (const [uri, _] of diagnosticMap.entries()) {
+      for (const [uri, diagnostics] of diagnosticMap.entries()) {
         connection.sendDiagnostics({
           uri,
-          diagnostics: [{
-            range: {
-              start: {
-                line: total,
-                character: 0,
-              },
-              end: {
-                line: total,
-                character: 5,
-              },
-            },
-            message: 'fart'
-          }]
-          // diagnostics: uriDiagnostics,
+          diagnostics,
         });
       }
     }
@@ -184,9 +224,11 @@ connection.onCompletion(
   (completionParams: CompletionParams): CompletionItem[] => {
     const { context } = completionParams;
 
-    if (empty(context) || context.triggerKind !== CompletionTriggerKind.TriggerCharacter) {
-      return entityCompletionItems(analyzer, completionParams)
-        .concat(keywordCompletions);
+    if (
+      empty(context) ||
+      context.triggerKind !== CompletionTriggerKind.TriggerCharacter
+    ) {
+      return entityCompletionItems(analyzer, completionParams);
     }
 
     return suffixCompletionItems(analyzer, completionParams);
@@ -194,34 +236,40 @@ connection.onCompletion(
 );
 
 // This handler provides on hover capabilities
-connection.onHover((positionParmas: TextDocumentPositionParams): Maybe<Hover> => {
-  const { position } = positionParmas;
-  const { uri } = positionParmas.textDocument;
+connection.onHover(
+  (positionParmas: TextDocumentPositionParams): Maybe<Hover> => {
+    const { position } = positionParmas;
+    const { uri } = positionParmas.textDocument;
 
-  const token = analyzer.getToken(position, uri);
-  const typeInfo = analyzer.getSuffixType(position, uri);
-  if (empty(token) || empty(typeInfo)) {
-    return undefined;
-  }
-  const [type, entityType] = typeInfo;
+    const token = analyzer.getToken(position, uri);
+    const typeInfo = analyzer.getSuffixType(position, uri);
+    if (empty(token) || empty(typeInfo)) {
+      return undefined;
+    }
+    const [type, entityType] = typeInfo;
 
-  return {
-    contents: `(${KsSymbolKind[entityType]}) ${token.lexeme}: ${type.toTypeString()} `,
-    range: {
-      start: token.start,
-      end: token.end,
-    },
-  };
-});
+    return {
+      contents: `(${KsSymbolKind[entityType]}) ${
+        token.lexeme
+      }: ${type.toTypeString()} `,
+      range: {
+        start: token.start,
+        end: token.end,
+      },
+    };
+  },
+);
 
 // This handler providers find all references capabilities
-connection.onReferences((referenceParams: ReferenceParams): Maybe<Location[]> => {
-  const { position } = referenceParams;
-  const { uri } = referenceParams.textDocument;
+connection.onReferences(
+  (referenceParams: ReferenceParams): Maybe<Location[]> => {
+    const { position } = referenceParams;
+    const { uri } = referenceParams.textDocument;
 
-  const locations = analyzer.getUsagesLocations(position, uri);
-  return locations && locations.map(loc => locationCopy(loc));
-});
+    const locations = analyzer.getUsagesLocations(position, uri);
+    return locations && locations.map(loc => cleanLocation(loc));
+  },
+);
 
 // This handler provides signature help
 connection.onSignatureHelp(
@@ -239,7 +287,9 @@ connection.onSignatureHelp(
         SignatureInformation.create(
           func.name.lexeme,
           undefined,
-          ...parameters.map(param => ParameterInformation.create(param.name.lexeme)),
+          ...parameters.map(param =>
+            ParameterInformation.create(param.name.lexeme),
+          ),
         ),
       ],
       activeParameter: index,
@@ -251,34 +301,7 @@ connection.onSignatureHelp(
 // This handler provider document symbols in file
 connection.onDocumentSymbol(
   (documentSymbol: DocumentSymbolParams): Maybe<SymbolInformation[]> => {
-    const { uri } = documentSymbol.textDocument;
-
-    const entities = analyzer.getAllFileSymbols(uri);
-    return entities.map((entity) => {
-      let kind: Maybe<SymbolKind> = undefined;
-      switch (entity.tag) {
-        case KsSymbolKind.function:
-          kind = SymbolKind.Function;
-          break;
-        case KsSymbolKind.parameter:
-          kind = SymbolKind.Variable;
-          break;
-        case KsSymbolKind.lock:
-          kind = SymbolKind.Variable;
-          break;
-        case KsSymbolKind.variable:
-          kind = SymbolKind.Variable;
-          break;
-        default:
-          throw new Error('Unknown entity type');
-      }
-
-      return {
-        kind,
-        name: entity.name.lexeme,
-        location: Location.create(entity.name.uri || uri, entity.name),
-      } as SymbolInformation;
-    });
+    return documentSymbols(analyzer, documentSymbol);
   },
 );
 
@@ -289,7 +312,7 @@ connection.onDefinition(
     const { uri } = documentPosition.textDocument;
 
     const location = analyzer.getDeclarationLocation(position, uri);
-    return location && locationCopy(location);
+    return location && cleanLocation(location);
   },
 );
 
@@ -304,7 +327,8 @@ connection.onCompletionResolve(
       const type = analyzer.getType(
         entity.name.start,
         entity.name.lexeme,
-        entity.name.uri);
+        entity.name.uri,
+      );
 
       if (!empty(type)) {
         item.detail = `${item.label}: ${type.toTypeString()}`;

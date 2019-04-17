@@ -28,6 +28,7 @@ import { nodeResult } from './parseResult';
 import { Token, Marker } from '../entities/token';
 import { mockLogger, mockTracer } from '../utilities/logger';
 import { flatten } from '../utilities/arrayUtilities';
+import { sep } from 'path';
 
 type NodeConstructor =
   | Constructor<Expr.Expr>
@@ -66,6 +67,13 @@ export class Parser {
   // parse tokens
   public parse(): IParseResult {
     try {
+      const splits = this.uri.split(sep);
+      const file = splits[splits.length - 1];
+
+      this.logger.info(
+        `Parsing started for ${file} with ${this.tokens.length} tokens.`,
+      );
+
       const instructions: Inst.Inst[] = [];
       let parseErrors: IParseError[] = [];
 
@@ -74,6 +82,15 @@ export class Parser {
         instructions.push(inst);
         parseErrors = parseErrors.concat(errors);
       }
+
+      this.logger.info(
+        `Parsing finished for ${file} with ` +
+          `${this.runInsts.length} run instructions`,
+      );
+      if (parseErrors.length > 0) {
+        this.logger.warn(`Parser encounted ${parseErrors.length} errors`);
+      }
+
       return {
         parseErrors,
         script: new Script(this.uri, instructions, this.runInsts),

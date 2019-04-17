@@ -6,6 +6,7 @@ import { empty } from '../utilities/typeGuards';
 import { mockLogger, mockTracer } from '../utilities/logger';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
 import { createDiagnostic } from '../utilities/diagnosticsUtilities';
+import { sep } from 'path';
 
 type Result<T, S extends ScanKind> = {
   result: T;
@@ -137,8 +138,11 @@ export class Scanner {
       const tokens: IToken[] = [];
       const scanErrors: Diagnostic[] = [];
 
+      const splits = this.uri.split(sep);
+      const file = splits[splits.length - 1];
+
       this.logger.info(
-        `Scanning ${this.uri} with ${this.source.length} characters.`,
+        `Scanning started for ${file} with ${this.source.length} characters.`,
       );
 
       // begin scanning
@@ -161,9 +165,11 @@ export class Scanner {
       }
 
       this.logger.info(
-        `Finished scanning ${this.uri} with ` +
-          `${tokens.length} tokens and ${scanErrors.length} errors.`,
+        `Scanning finished for ${file} with ${tokens.length} tokens.`,
       );
+      if (scanErrors.length > 0) {
+        this.logger.warn(`Scanning encounted ${scanErrors.length} errors`);
+      }
 
       return { tokens, scanErrors };
     } catch (err) {

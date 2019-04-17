@@ -13,6 +13,9 @@ import {
   ServerOptions,
   TransportKind,
   ForkOptions,
+  Message,
+  ErrorAction,
+  CloseAction,
 } from 'vscode-languageclient';
 import { inspectorProvider } from './commands/lspInspectorProvider';
 import { telnetProvider } from './commands/telnetProvider';
@@ -72,8 +75,21 @@ export function activate(context: ExtensionContext) {
     // Register the server for kos documents
     documentSelector: [{ scheme: 'file', language: 'kos' }],
 
+    errorHandler: {
+      error(error: Error, message: Message, count: number): ErrorAction {
+        console.log(error);
+        console.log(message);
+        console.log(count);
+
+        return ErrorAction.Continue
+      },
+      closed(): CloseAction {
+        return CloseAction.Restart;
+      }
+    },
+
     // Allow the websocket to be an output channel
-    // outputChannel: websocketOutputChannel
+    // outputChannel: websocketOutputChannel,
   };
 
   // Create the language client and start the client.

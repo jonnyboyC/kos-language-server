@@ -66,6 +66,18 @@ export class PathResolver {
       uri: join(this.volume0Uri, relativePath, possibleVolumne, ...remaining),
     };
   }
+
+  /**
+   * Get the relative path to volume 0: for a uri
+   * @param uri requested uri
+   */
+  public relativePath(uri: string): string {
+    if (empty(this.volume0Uri)) {
+      return uri;
+    }
+
+    return relative(this.volume0Uri, uri).replace('%20', ' ');
+  }
 }
 
 /**
