@@ -20,3 +20,6 @@ steps:
     npm run compile
   displayName: 'npm install and compile'
 
+- script: npm test
+  displayName: 'ava test runner'
+
