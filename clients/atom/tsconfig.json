@@ -3,8 +3,8 @@
   "compilerOptions": {
     "module": "commonjs",
     "target": "es6",
-    "outDir": "lib",
-    "tsBuildInfoFile": "./out/buildcache.json",
+    "outDir": "dist",
+    "tsBuildInfoFile": "./dist/buildcache.json",
     "rootDir": "src",
     "lib": [
       "es6",

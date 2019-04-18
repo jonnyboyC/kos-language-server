@@ -1,5 +1,5 @@
 import { TextEditor } from 'atom';
-import { AutoLanguageClient, ConnectionType } from 'atom-languageclient';
+import { AutoLanguageClient, ConnectionType, LanguageServerProcess } from 'atom-languageclient';
 import { isAbsolute, join } from 'path';
 import { existsSync } from 'fs';
 
@@ -9,12 +9,12 @@ export class KosLanguageClient extends AutoLanguageClient {
   getServerName(): string { return 'kos-language-server'; }
   getConnectionType(): ConnectionType { return 'ipc'; }
 
-  // startServerProcess(): LanguageServerProcess {
-  //   // return super.spawnChildNode(
-  //   //   [atom.config.get('language-kos.kosServer.path'), '--node-ipc'],
-  //   //   { stdio: [null, null, null, 'ipc'] },
-  //   // );
-  // }
+  startServerProcess(): LanguageServerProcess {
+    return super.spawnChildNode(
+      [atom.config.get('language-kos.kosServer.path'), '--node-ipc'],
+      { stdio: [null, null, null, 'ipc'] },
+    ) as LanguageServerProcess;
+  }
 
   shouldStartForEditor(editor: TextEditor) {
     if (!this.validateKosServerPath()) return false;
