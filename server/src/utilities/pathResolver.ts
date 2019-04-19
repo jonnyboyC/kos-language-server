@@ -12,9 +12,15 @@ import { Location } from 'vscode-languageserver';
  * Class to resolve run instructions or calls to file paths
  */
 export class PathResolver {
-  constructor (
-    public volume0Path?: string,
-    public volume0Uri?: string) { }
+  private replacer: RegExp
+
+  constructor(public volume0Path?: string, public volume0Uri?: string) {
+    if (sep === '\\') {
+      this.replacer = /\\/g
+    } else {
+      this.replacer = new RegExp(sep, 'g');
+    }
+  }
 
   /**
    * Is the resolve ready to resolve paths
@@ -34,7 +40,10 @@ export class PathResolver {
     }
 
     // get relative run path from file
-    const relativePath = relative(this.volume0Uri, dirname(caller.uri)).replace('%20', ' ');
+    const relativePath = relative(this.volume0Uri, dirname(caller.uri)).replace(
+      '%20',
+      ' ',
+    );
 
     // check if the scripts reads from volume 0 "disk"
     // TODO no idea what to do for ship volumes
@@ -44,27 +53,41 @@ export class PathResolver {
       if (possibleVolumne.length > 2) {
         const first = possibleVolumne.slice(2);
 
-        return {
-          caller: { start: caller.range.start, end: caller.range.end },
-          path: join(this.volume0Path, first, ...remaining),
-          uri: join(this.volume0Uri, first, ...remaining),
-        };
+        return this.loadData(caller, first, ...remaining);
       }
 
       // else of style 0:\remaining...
-      return {
-        caller: { start: caller.range.start, end: caller.range.end },
-        path: join(this.volume0Path, ...remaining),
-        uri: join(this.volume0Uri, ...remaining),
-      };
+      return this.loadData(caller, ...remaining);
     }
 
     // if no volumne do a relative lookup
+    return this.loadData(caller, relativePath, possibleVolumne, ...remaining);
+  }
+
+  /**
+   * Creates a load data payload from a caller and path segments
+   * @param caller call location
+   * @param pathSegments path segments
+   */
+  private loadData(
+    caller: Location,
+    ...pathSegments: string[]
+  ): Maybe<ILoadData> {
+    if (empty(this.volume0Path)) return undefined;
+
     return {
       caller: { start: caller.range.start, end: caller.range.end },
-      path: join(this.volume0Path, relativePath, possibleVolumne, ...remaining),
-      uri: join(this.volume0Uri, relativePath, possibleVolumne, ...remaining),
+      path: join(this.volume0Path, ...pathSegments),
+      uri: [this.volume0Uri, this.pathToUri(...pathSegments)].join('/'),
     };
+  }
+
+  /**
+   * Convert a path to a uri
+   * @param pathSegments path segments to convert
+   */
+  private pathToUri(...pathSegments: string[]): string {
+    return join(...pathSegments).replace(this.replacer, '/');
   }
 
   /**
@@ -84,7 +107,9 @@ export class PathResolver {
  * Get io path, currently only supports string literals
  * @param inst io instructions
  */
-export const ioPath = (inst: Inst.Rename | Inst.Copy | Inst.Delete | Inst.Log): Maybe<string> => {
+export const ioPath = (
+  inst: Inst.Rename | Inst.Copy | Inst.Delete | Inst.Log,
+): Maybe<string> => {
   const { target } = inst;
   if (target instanceof SuffixTerm.Literal) {
     return literalPath(target);

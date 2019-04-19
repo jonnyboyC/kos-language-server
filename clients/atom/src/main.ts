@@ -10,6 +10,8 @@ export class KosLanguageClient extends AutoLanguageClient {
   getConnectionType(): ConnectionType { return 'ipc'; }
 
   startServerProcess(): LanguageServerProcess {
+    console.log("start server process");
+
     return super.spawnChildNode(
       [atom.config.get('language-kos.kosServer.path'), '--node-ipc'],
       { stdio: [null, null, null, 'ipc'] },
@@ -17,11 +19,15 @@ export class KosLanguageClient extends AutoLanguageClient {
   }
 
   shouldStartForEditor(editor: TextEditor) {
+    console.log("should start editor");
+
     if (!this.validateKosServerPath()) return false;
     return super.shouldStartForEditor(editor);
   }
 
   validateKosServerPath(): boolean {
+    console.log("validate kos server path");
+
     const kosSpecifiedPath = atom.config.get('language-kos.kosServer.path');
     const isAbsolutelySpecified = isAbsolute(kosSpecifiedPath);
     const kosAbsolutePath = isAbsolutelySpecified
@@ -43,6 +49,8 @@ export class KosLanguageClient extends AutoLanguageClient {
   }
 
   openPackageSettings() {
+    console.log("open package settings");
+
     atom.workspace.open('atom://config/packages/language-kos');
   }
 }

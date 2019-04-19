@@ -17,9 +17,10 @@ import {
   ErrorAction,
   CloseAction,
 } from 'vscode-languageclient';
-import { inspectorProvider } from './commands/lspInspectorProvider';
+import { inspectorProvider, websocketOutputChannel } from './commands/lspInspectorProvider';
 import { telnetProvider } from './commands/telnetProvider';
 import { kspProvider } from './commands/kspProvider';
+import { parse } from 'semver';
 
 let client: LanguageClient;
 
@@ -37,9 +38,7 @@ export function activate(context: ExtensionContext) {
 
   // determine the major version of the bundled node process
   const { version } = process;
-  const [major] = version.slice(1)
-    .split('.')
-    .map(x => parseInt(x, 10));
+  const semver = parse(version);
 
   // The language server debug options
   // --nolazy eagerly compiles the js files so they can be debug
@@ -50,7 +49,7 @@ export function activate(context: ExtensionContext) {
   const runOptions: ForkOptions = { execArgv: [] };
 
   // async generators become default in node 10
-  if (major < 10) {
+  if (semver != null && semver.major < 10) {
     if (debugOptions.execArgv) debugOptions.execArgv.push('--harmony_async_iteration');
     if (runOptions.execArgv) runOptions.execArgv.push('--harmony_async_iteration');
   }
@@ -89,7 +88,7 @@ export function activate(context: ExtensionContext) {
     },
 
     // Allow the websocket to be an output channel
-    // outputChannel: websocketOutputChannel,
+    outputChannel: websocketOutputChannel,
   };
 
   // Create the language client and start the client.

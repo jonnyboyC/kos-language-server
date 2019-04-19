@@ -20,12 +20,12 @@ ava('path resolver', (t) => {
 
   const otherFileLocation: Location = {
     range,
-    uri: join('file:', 'example', 'otherFile.ks'),
+    uri: 'file://example/otherFile.ks',
   };
 
   const otherDirLocation: Location = {
     range,
-    uri: join('file:', 'example', 'up', 'upFile.ks'),
+    uri: 'file://example/up/upFile.ks',
   };
 
   const relative1 = join('relative', 'path', 'file.ks');
@@ -38,11 +38,11 @@ ava('path resolver', (t) => {
   t.is(undefined, pathResolver.resolveUri(otherFileLocation, absolute));
   t.is(undefined, pathResolver.resolveUri(otherFileLocation, weird));
 
-  pathResolver.volume0Path = join('C:', 'example');
-  pathResolver.volume0Uri = join('file:', 'example');
+  pathResolver.volume0Path = join('root', 'example');
+  pathResolver.volume0Uri = 'file://example';
 
-  const resolvedPath = join('C:', 'example', 'relative', 'path', 'file.ks');
-  const resolvedUri = join('file:', 'example', 'relative', 'path', 'file.ks');
+  const resolvedPath = join('root', 'example', 'relative', 'path', 'file.ks');
+  const resolvedUri = 'file://example/relative/path/file.ks';
 
   const relativeResolved1 = pathResolver.resolveUri(otherFileLocation, relative1);
   t.not(undefined, relativeResolved1);
