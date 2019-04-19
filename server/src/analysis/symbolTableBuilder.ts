@@ -21,6 +21,7 @@ import { SymbolTable } from './symbolTable';
 import { isKsVariable, isKsParameter, isKsLock } from '../entities/entityHelpers';
 import { rangeToString, positionToString } from '../utilities/positionHelpers';
 import { createDiagnostic } from '../utilities/diagnosticsUtilities';
+import { builtIn } from '../utilities/constants';
 
 /**
  * The Symbol table builder is used to declare new symbols and track new symbols
@@ -304,7 +305,7 @@ export class SymbolTableBuilder {
       const shadowTracker = this.lookup(token, ScopeType.global);
       diagnostic = empty(shadowTracker)
         ? undefined
-        : this.shadowSymbolHint(token, shadowTracker.declared.symbol);
+        : this.shadowSymbolHint(token, KsSymbolKind.variable, shadowTracker.declared.symbol);
     }
 
     const scope = this.selectScope(scopeType);
@@ -350,7 +351,7 @@ export class SymbolTableBuilder {
       const shadowTracker = this.lookup(token, ScopeType.global);
       diagnostic = empty(shadowTracker)
         ? undefined
-        : this.shadowSymbolHint(token, shadowTracker.declared.symbol);
+        : this.shadowSymbolHint(token, KsSymbolKind.function, shadowTracker.declared.symbol);
     }
 
     const scope = this.selectScope(scopeType);
@@ -396,7 +397,7 @@ export class SymbolTableBuilder {
       const shadowTracker = this.lookup(token, ScopeType.global);
       diagnostic = empty(shadowTracker)
         ? undefined
-        : this.shadowSymbolHint(token, shadowTracker.declared.symbol);
+        : this.shadowSymbolHint(token, KsSymbolKind.lock, shadowTracker.declared.symbol, );
     }
 
     const scope = this.selectScope(scopeType);
@@ -438,7 +439,7 @@ export class SymbolTableBuilder {
       const shadowTracker = this.lookup(token, ScopeType.global);
       diagnostic = empty(shadowTracker)
         ? undefined
-        : this.shadowSymbolHint(token, shadowTracker.declared.symbol);
+        : this.shadowSymbolHint(token, KsSymbolKind.parameter, shadowTracker.declared.symbol);
     }
 
     const scope = this.selectScope(scopeType);
@@ -661,17 +662,17 @@ export class SymbolTableBuilder {
    * @param name token for the requested symbol
    * @param symbol collided symbol
    */
-  private shadowSymbolHint(name: IToken, symbol: KsSymbol): Diagnostic {
+  private shadowSymbolHint(name: IToken, kind: KsSymbolKind, symbol: KsSymbol): Diagnostic {
     return createDiagnostic(
       name,
       `${this.pascalCase(KsSymbolKind[symbol.tag])} ${symbol.name.lexeme} `
-      + `already exists here. This ${this.pascalCase(KsSymbolKind[symbol.tag])} shadows it.`,
+      + `already exists here. This ${KsSymbolKind[kind]} shadows it.`,
       DiagnosticSeverity.Warning,
       undefined,
       [
         DiagnosticRelatedInformation.create(
           { uri: this.uri, range: symbol.name },
-          'Orignally declared here',
+          symbol.name.uri === builtIn ? `${symbol.name.lexeme} is a built in ${KsSymbolKind[symbol.tag]}` : 'Orignally declared here',
         ),
       ],
     );
@@ -686,12 +687,12 @@ export class SymbolTableBuilder {
     return createDiagnostic(
       name,
       `${this.pascalCase(KsSymbolKind[symbol.tag])} ${symbol.name.lexeme} already exists.`,
-      DiagnosticSeverity.Error,
+      DiagnosticSeverity.Warning,
       undefined,
       [
         DiagnosticRelatedInformation.create(
           { uri: this.uri, range: symbol.name },
-          'Orignally declared here',
+          symbol.name.uri === builtIn ? `${symbol.name.lexeme} is a built in ${KsSymbolKind[symbol.tag]}` : 'Orignally declared here',
         ),
       ],
     );

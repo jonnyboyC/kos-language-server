@@ -171,7 +171,7 @@ ava('basic tracker set test', (t) => {
 
 const definedPath = join(
   __dirname,
-  '../../../kerboscripts/parser_valid/declaration/definedtest.ks',
+  '../../../kerboscripts/parser_valid/unitTests/definedtest.ks',
 );
 
 const definedLocations: Range[] = [
@@ -203,7 +203,7 @@ ava('basic defined test', (t) => {
 
 const usedPath = join(
   __dirname,
-  '../../../kerboscripts/parser_valid/declaration/usedtest.ks',
+  '../../../kerboscripts/parser_valid/unitTests/usedtest.ks',
 );
 
 const usedLocations: Range[] = [
@@ -229,7 +229,7 @@ ava('basic used test', (t) => {
 
 const shadowPath = join(
   __dirname,
-  '../../../kerboscripts/parser_valid/declaration/shadowtest.ks',
+  '../../../kerboscripts/parser_valid/unitTests/shadowtest.ks',
 );
 
 const shadowedLocations: Range[] = [
