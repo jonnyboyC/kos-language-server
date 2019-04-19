@@ -5,18 +5,32 @@
 
 trigger:
 - master
+- development
 
 pool:
   vmImage: 'Ubuntu-16.04'
 
+# setup node
 steps:
 - task: NodeTool@0
   inputs:
     versionSpec: '10.x'
   displayName: 'Install Node.js'
 
+# install node dependencies and compile with typescript
 - script: |
     npm install
     npm run compile
   displayName: 'npm install and compile'
+
+# run test
+- script: npx ava --tap | npx tap-xunit > TEST.xml
+  displayName: 'ava test runner'
+
+# publish test results
+- task: PublishTestResults@2
+  inputs:
+    testResultsFormat: xUnit
+    testResultsFiles: '**/TEST*.xml' 
+    failTaskOnFailedTests: true
 
