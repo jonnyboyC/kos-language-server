@@ -75,8 +75,6 @@ reader.onError((error) => {
 // Also include all preview / proposed LSP features.
 export const connection = createConnection(ProposedFeatures.all, reader, writer);
 
-connection.client;
-
 // REMOVE ME TODO probably need to refactor the type modules as
 // structure and the primitives have a dependnecy loop
 primitiveInitializer();
@@ -84,8 +82,6 @@ oribitalInitializer();
 
 // Create a simple text document manager. The text document manager
 // supports full document sync only
-
-connection.console;
 
 let workspaceFolder: string = '';
 const analyzer = new Analyzer(

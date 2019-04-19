@@ -11,7 +11,7 @@
   "npm.enableScriptExplorer": true,
   "prettier.trailingComma": "all",
   "prettier.singleQuote": true,
-  "kos-vscode.trace.server": {
+  "kos-server.trace.server": {
     "format": "json",
     "verbosity": "verbose"
   }

@@ -64,7 +64,7 @@
                     "scope": "window",
                     "description": "The WebSocket port to stream LSP log data into."
                 },
-                "kos-vscode.trace.server": {
+                "kos-server.trace.server": {
                     "scope": "window",
                     "type": "object",
                     "description": "Traces the communication between VS Code and the language server.",

@@ -9,15 +9,13 @@ export const websocketOutputChannel: OutputChannel = {
   name: 'websocket',
   append(value: string) {
     log += value;
-    console.log(value);
   },
   appendLine(value: string) {
     log += value;
 
-    console.log(value);
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(log);
-    }
+    } 
 
     log = '';
   },
