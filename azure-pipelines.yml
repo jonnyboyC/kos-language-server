@@ -24,13 +24,13 @@ steps:
   displayName: 'npm install and compile'
 
 # run test
-- script: npx ava --tap | npx tap-xunit > TEST.xml
-  displayName: 'ava test runner'
+- script: npx jest --ci --config server/jest.config.js --reporters=default --reporters=jest-junit
+  displayName: 'jest test runner'
 
 # publish test results
 - task: PublishTestResults@2
+  condition: succeededOrFailed()
   inputs:
-    testResultsFormat: xUnit
-    testResultsFiles: '**/TEST*.xml' 
-    failTaskOnFailedTests: true
+    testRunner: JUnit
+    testResultsFiles: '**/junit.xml'
 

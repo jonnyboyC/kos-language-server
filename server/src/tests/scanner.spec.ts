@@ -1,4 +1,4 @@
-import ava from 'ava';
+import * as expect from 'expect';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { walkDir } from '../utilities/fsUtilities';
@@ -8,7 +8,7 @@ import { Scanner } from '../scanner/scanner';
 
 const testDir = join(__dirname, '../../../kerboscripts/parser_valid/');
 
-ava('scan all', (t) => {
+test('scan all', () => {
   walkDir(testDir, (filePath) => {
     const kosFile = readFileSync(filePath, 'utf8');
 
@@ -16,8 +16,8 @@ ava('scan all', (t) => {
     const { tokens, scanErrors } = scanner.scanTokens();
     const errorResult = scanErrors.map(error => ({ filePath, ...error }));
 
-    t.true(tokens.length > 0, filePath);
-    t.true(errorResult.length === 0, filePath);
+    expect(tokens.length > 0).toBe(true);
+    expect(errorResult.length === 0).toBe(true);
   });
 });
 
@@ -118,15 +118,15 @@ const sequence = [
   TokenType.period,
 ]
 
-ava('token sequence', (t) => {
+test('token sequence', () => {
   const kosFile = readFileSync(scannerPath, 'utf8');
 
   const scanner = new Scanner(kosFile);
   const { tokens, scanErrors } = scanner.scanTokens();
-  t.true(scanErrors.length === 0);
+  expect(scanErrors.length === 0).toBe(true);
 
   for (const [type, token] of zip(sequence, tokens)) {
-    t.log(`${TokenType[token.type]} vs ${TokenType[type]}`);
-    t.is(token.type, type, `${TokenType[token.type]} vs ${TokenType[type]}`);
+    // t.log(`${TokenType[token.type]} vs ${TokenType[type]}`);
+    expect(token.type).toBe(type);
   }
 });

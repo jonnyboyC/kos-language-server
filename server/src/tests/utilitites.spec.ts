@@ -1,11 +1,11 @@
-import ava from 'ava';
+import * as expect from 'expect';
 import { Location } from 'vscode-languageserver';
 import { join } from 'path';
 import { PathResolver } from '../utilities/pathResolver';
 import { empty } from '../utilities/typeGuards';
 import { rangeEqual } from '../utilities/positionHelpers';
 
-ava('path resolver', (t) => {
+test('path resolver', () => {
   const pathResolver = new PathResolver();
   const range = {
     start: {
@@ -33,10 +33,10 @@ ava('path resolver', (t) => {
   const absolute = join('0:', 'relative', 'path', 'file.ks');
   const weird = join('0:relative', 'path', 'file.ks');
 
-  t.is(undefined, pathResolver.resolveUri(otherFileLocation, relative1));
-  t.is(undefined, pathResolver.resolveUri(otherDirLocation, relative2));
-  t.is(undefined, pathResolver.resolveUri(otherFileLocation, absolute));
-  t.is(undefined, pathResolver.resolveUri(otherFileLocation, weird));
+  expect(undefined).toBe(pathResolver.resolveUri(otherFileLocation, relative1));
+  expect(undefined).toBe(pathResolver.resolveUri(otherDirLocation, relative2));
+  expect(undefined).toBe(pathResolver.resolveUri(otherFileLocation, absolute));
+  expect(undefined).toBe(pathResolver.resolveUri(otherFileLocation, weird));
 
   pathResolver.volume0Path = join('root', 'example');
   pathResolver.volume0Uri = 'file://example';
@@ -45,34 +45,34 @@ ava('path resolver', (t) => {
   const resolvedUri = 'file://example/relative/path/file.ks';
 
   const relativeResolved1 = pathResolver.resolveUri(otherFileLocation, relative1);
-  t.not(undefined, relativeResolved1);
+  expect(undefined).not.toBe(relativeResolved1);
   if (!empty(relativeResolved1)) {
-    t.is(resolvedPath, relativeResolved1.path);
-    t.is(resolvedUri, relativeResolved1.uri);
-    t.true(rangeEqual(range, relativeResolved1.caller));
+    expect(resolvedPath).toBe(relativeResolved1.path);
+    expect(resolvedUri).toBe(relativeResolved1.uri);
+    expect(rangeEqual(range, relativeResolved1.caller)).toBe(true);
   }
 
   const relativeResolved2 = pathResolver.resolveUri(otherDirLocation, relative2);
-  t.not(undefined, relativeResolved2);
+  expect(undefined).not.toBe(relativeResolved2);
   if (!empty(relativeResolved2)) {
-    t.is(resolvedPath, relativeResolved2.path);
-    t.is(resolvedUri, relativeResolved2.uri);
-    t.true(rangeEqual(range, relativeResolved2.caller));
+    expect(resolvedPath).toBe(relativeResolved2.path);
+    expect(resolvedUri).toBe(relativeResolved2.uri);
+    expect(rangeEqual(range, relativeResolved2.caller)).toBe(true);
   }
 
   const absoluteResolved = pathResolver.resolveUri(otherFileLocation, absolute);
-  t.not(undefined, absoluteResolved);
+  expect(undefined).not.toBe(absoluteResolved);
   if (!empty(absoluteResolved)) {
-    t.is(resolvedPath, absoluteResolved.path);
-    t.is(resolvedUri, absoluteResolved.uri);
-    t.true(rangeEqual(range, absoluteResolved.caller));
+    expect(resolvedPath).toBe(absoluteResolved.path);
+    expect(resolvedUri).toBe(absoluteResolved.uri);
+    expect(rangeEqual(range, absoluteResolved.caller)).toBe(true);
   }
 
   const weirdResolved = pathResolver.resolveUri(otherFileLocation, weird);
-  t.not(undefined, weirdResolved);
+  expect(undefined).not.toBe(weirdResolved);
   if (!empty(weirdResolved)) {
-    t.is(resolvedPath, weirdResolved.path);
-    t.is(resolvedUri, weirdResolved.uri);
-    t.true(rangeEqual(range, weirdResolved.caller));
+    expect(resolvedPath).toBe(weirdResolved.path);
+    expect(resolvedUri).toBe(weirdResolved.uri);
+    expect(rangeEqual(range, weirdResolved.caller)).toBe(true);
   }
 });

@@ -26,7 +26,6 @@
     ],
     "scripts": {},
     "devDependencies": {
-        "@types/node": "^11.11.4",
-        "jest": "^24.7.1"
+        "@types/node": "^11.11.4"
     }
 }
