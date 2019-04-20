@@ -1,10 +1,10 @@
 import ava from 'ava';
-import { Scanner } from './scanner';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { walkDir } from '../utilities/fsUtilities';
 import { TokenType } from '../entities/tokentypes';
 import { zip } from '../utilities/arrayUtilities';
+import { Scanner } from '../scanner/scanner';
 
 const testDir = join(__dirname, '../../../kerboscripts/parser_valid/');
 

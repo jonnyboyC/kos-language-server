@@ -1,17 +1,17 @@
 import ava, { ExecutionContext } from 'ava';
-import { Scanner } from '../scanner/scanner';
-import { Parser } from './parser';
-import { IScanResult } from '../scanner/types';
-import { IExpr, INodeResult, Atom, SuffixTermTrailer } from './types';
-import * as Expr from './expr';
-import * as SuffixTerm from './suffixTerm';
-import { TokenType } from '../entities/tokentypes';
 import { readdirSync, statSync, readFileSync } from 'fs';
 import { join } from 'path';
-import { empty } from '../utilities/typeGuards';
-import { zip } from '../utilities/arrayUtilities';
-import { TokenCheck } from './tokenCheck';
 import { Diagnostic } from 'vscode-languageserver';
+import { IScanResult } from '../scanner/types';
+import { Scanner } from '../scanner/scanner';
+import { INodeResult, IExpr, Atom, SuffixTermTrailer } from '../parser/types';
+import { Parser } from '../parser/parser';
+import { TokenCheck } from '../parser/tokenCheck';
+import { zip } from '../utilities/arrayUtilities';
+import { TokenType } from '../entities/tokentypes';
+import * as Expr from '../parser/expr';
+import { empty } from '../utilities/typeGuards';
+import * as SuffixTerm from '../parser/suffixTerm';
 
 // scan source file
 const scan = (source: string) : IScanResult => {

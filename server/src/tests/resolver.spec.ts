@@ -2,11 +2,6 @@ import { Parser } from '../parser/parser';
 import { Scanner } from '../scanner/scanner';
 import { IParseResult } from '../parser/types';
 import ava, { ExecutionContext }from 'ava';
-import { SymbolTable } from './symbolTable';
-import { FuncResolver } from './functionResolver';
-import { SymbolTableBuilder } from './symbolTableBuilder';
-import { Resolver } from './resolver';
-import { KsSymbol, KsSymbolKind } from './types';
 import { empty, unWrap, unWrapMany } from '../utilities/typeGuards';
 import { rangeEqual } from '../utilities/positionHelpers';
 import { Range, Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
@@ -16,6 +11,11 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { zip } from '../utilities/arrayUtilities';
 import { Marker } from '../entities/token';
+import { SymbolTable } from '../analysis/symbolTable';
+import { SymbolTableBuilder } from '../analysis/symbolTableBuilder';
+import { FuncResolver } from '../analysis/functionResolver';
+import { KsSymbol, KsSymbolKind } from '../analysis/types';
+import { Resolver } from '../analysis/resolver';
 
 const fakeUri = 'C:\\fake.ks';
 

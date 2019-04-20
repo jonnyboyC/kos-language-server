@@ -1,9 +1,9 @@
 import ava from 'ava';
-import { PathResolver } from './pathResolver';
 import { Location } from 'vscode-languageserver';
 import { join } from 'path';
-import { empty } from './typeGuards';
-import { rangeEqual } from './positionHelpers';
+import { PathResolver } from '../utilities/pathResolver';
+import { empty } from '../utilities/typeGuards';
+import { rangeEqual } from '../utilities/positionHelpers';
 
 ava('path resolver', (t) => {
   const pathResolver = new PathResolver();
