@@ -1,6 +1,6 @@
 {
     "name": "kos-vscode",
-    "displayName": "KOS (Kerboscript)",
+    "displayName": "kOS (Kerboscript)",
     "description": "Syntax highlighting, auto-complete, and language diagnostics for KerboScript in Kerbal Operating System.",
     "author": "John Chabot",
     "license": "MIT",
@@ -102,8 +102,12 @@
                 "title": "kOS: Start Kerbal Space Program"
             },
             {
-                "command": "kos.lspLog",
-                "title": "kOS: Start Lsp Logging"
+                "command": "kos.startLspLog",
+                "title": "kOS: Route Logging to LSP inspector"
+            },
+            {
+                "command": "kos.startVscodeLog",
+                "title": "kOS: Route Logging to Vscode"
             }
         ],
         "languages": [

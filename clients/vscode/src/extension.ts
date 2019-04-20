@@ -17,7 +17,7 @@ import {
   ErrorAction,
   CloseAction,
 } from 'vscode-languageclient';
-import { inspectorProvider, websocketOutputChannel } from './commands/lspInspectorProvider';
+import { inspectorChannelProvider, channelRouter, vscodeChannelProvider } from './commands/channelRouterProvider';
 import { telnetProvider } from './commands/telnetProvider';
 import { kspProvider } from './commands/kspProvider';
 import { parse } from 'semver';
@@ -88,7 +88,7 @@ export function activate(context: ExtensionContext) {
     },
 
     // Allow the websocket to be an output channel
-    outputChannel: websocketOutputChannel,
+    outputChannel: channelRouter,
   };
 
   // Create the language client and start the client.
@@ -102,9 +102,13 @@ export function activate(context: ExtensionContext) {
   // Start the client. This will also launch the server
   client.start();
 
-  // add inspect provider to commands
+  // add provider to route output to vscode
   context.subscriptions.push(
-    commands.registerCommand(inspectorProvider.command, inspectorProvider.commandCallback))
+    commands.registerCommand(vscodeChannelProvider.command, vscodeChannelProvider.commandCallback))
+
+  // add provider to route output to a websocket
+  context.subscriptions.push(
+    commands.registerCommand(inspectorChannelProvider.command, inspectorChannelProvider.commandCallback))
 
   // add run provider to commands
   context.subscriptions.push(

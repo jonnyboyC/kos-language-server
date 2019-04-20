@@ -28,15 +28,16 @@ Currently the vscode client 0.3.3 implements the follow features
 All commands can be launched with `ctrl+shift+p`
 - launch kerbal space program `kOS: Start Kerbal Space Program`
 - launch telnet client using `kOS: Connect Telnet Client`
-- start language server inspector (debug) `kOS: Start Lsp Logging`
+- Route server logging to LSP inspector `kOS: Route Logging to LSP inspector`
+- Route server logging to Vscode `kOS: Route Logging to Vscode`
 
 ## Settings
 These settings are currently included with the tool
 - `kos-vscode.kerbalSpaceProgramPath` Path to kerbal space program
 - `kos-vscode.telnetHost` Host name of the telnet server
 - `kos-vscode.telnetPort` Host port of the telnet server
-- `kos-vscode.lspPort` Port to send lsp message to for the [LSP Inspector]()
-- `kos-vscode.trace.server`
+- `kos-vscode.lspPort` Port to send lsp message to for the [LSP Inspector](https://marketplace.visualstudio.com/items?itemName=octref.lsp-inspector-webview)
+- `kos-server.trace.server`
   - `verbosity` Detail level of the logs
   - `format` Log format
 
