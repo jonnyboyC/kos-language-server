@@ -4,6 +4,7 @@ out
 dist
 src/**.js
 .idea/*
+.vsix
 
 coverage
 
