@@ -1,5 +1,5 @@
 {
-    "kos-vscode.trace.server": {
+    "kos-server.trace.server": {
         "verbosity": "verbose",
         "format": "json",
     }
