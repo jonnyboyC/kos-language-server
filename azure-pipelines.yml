@@ -20,7 +20,7 @@ steps:
 # install node dependencies and compile with typescript
 - script: |
     npm install
-    npm run compile
+    npm run prod
   displayName: 'npm install and compile'
 
 # run test
