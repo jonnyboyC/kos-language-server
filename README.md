@@ -37,7 +37,7 @@ These settings are currently included with the tool
 - `kos-vscode.telnetHost` Host name of the telnet server
 - `kos-vscode.telnetPort` Host port of the telnet server
 - `kos-vscode.lspPort` Port to send lsp message to for the [LSP Inspector](https://marketplace.visualstudio.com/items?itemName=octref.lsp-inspector-webview)
-- `kos-server.trace.server`
+- `kos-vscode.trace.server`
   - `verbosity` Detail level of the logs
   - `format` Log format
 
