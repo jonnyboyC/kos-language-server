@@ -24,13 +24,20 @@ steps:
   displayName: 'npm install and compile'
 
 # run test
-- script: npx jest --ci --config server/jest.config.js --reporters=default --reporters=jest-junit
+- script: npx jest --ci --config server/jest.config.js
   displayName: 'jest test runner'
 
 # publish test results
-- task: PublishTestResults@2
+- task: PublishTestResults@1
   condition: succeededOrFailed()
   inputs:
     testRunner: JUnit
     testResultsFiles: '**/junit.xml'
+
+# publish coverage results
+- task: PublishTestResults@2
+  inputs:
+    codeCoverageTool: cobertura
+    summaryFileLocation: '**/coverage/coverage.xml'
+    testResultsFiles: '**/coverage'
 

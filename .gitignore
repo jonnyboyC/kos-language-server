@@ -7,4 +7,5 @@ src/**.js
 
 coverage
 
+junit.xml
 package-lock.json

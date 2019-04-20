@@ -6,6 +6,8 @@
 **/tsconfig.base.json
 **/buildcache.json
 contributing.md
+**/junit.xml
+server/coverage
 .travis.yml
 kerboscripts
 node_modules
