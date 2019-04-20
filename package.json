@@ -1,6 +1,6 @@
 {
     "name": "kos-vscode",
-    "displayName": "KOS (Kerboscript)",
+    "displayName": "kOS (Kerboscript)",
     "description": "Syntax highlighting, auto-complete, and language diagnostics for KerboScript in Kerbal Operating System.",
     "author": "John Chabot",
     "license": "MIT",
@@ -64,7 +64,7 @@
                     "scope": "window",
                     "description": "The WebSocket port to stream LSP log data into."
                 },
-                "kos-server.trace.server": {
+                "kos-vscode.trace.server": {
                     "scope": "window",
                     "type": "object",
                     "description": "Traces the communication between VS Code and the language server.",
@@ -102,8 +102,12 @@
                 "title": "kOS: Start Kerbal Space Program"
             },
             {
-                "command": "kos.lspLog",
-                "title": "kOS: Start Lsp Logging"
+                "command": "kos.startLspLog",
+                "title": "kOS: Route Logging to LSP inspector"
+            },
+            {
+                "command": "kos.startVscodeLog",
+                "title": "kOS: Route Logging to Vscode"
             }
         ],
         "languages": [
@@ -128,16 +132,19 @@
         ]
     },
     "scripts": {
-        "vscode:prepublish": "cd clients/vscode && npm run update-vscode && cd ../.. && npm run compile && npm run test",
-        "compile:vscode": "tsc -p ./clients/vscode/tsconfig.json",
-        "compile:atom": "tsc -p ./clients/atom/tsconfig.json",
-        "compile:server": "tsc -p ./server/tsconfig.json",
-        "test": "ava",
-        "test:pipelines": "ava",
+        "vscode:prepublish": "cd clients/vscode && npm run update-vscode && cd ../.. && npm run prod && npm run test",
+        "prod:vscode": "webpack --config ./clients/vscode/webpack.config.js --mode production",
+        "prod:atom": "npm run dev:atom",
+        "prod:server": "webpack --config ./server/webpack.config.js --mode production",
+        "prod": "npm run prod:vscode && npm run prod:atom && npm run prod:server",
+        "dev:vscode": "webpack --config ./clients/vscode/webpack.config.js --mode development",
+        "dev:atom": "tsc -p ./clients/atom/tsconfig.json",
+        "dev:server": "webpack --config ./server/webpack.config.js --mode development",
+        "dev": "npm run dev:vscode && npm run dev:atom && npm run dev:server",
+        "test": "jest --config server/jest.config.js",
         "watch:vscode": "tsc -w -p ./clients/vscode/tsconfig.json",
         "watch:atom": "tsc -w -p ./clients/atom/tsconfig.json",
         "watch:server": "tsc -w -p ./server/tsconfig.json",
-        "compile": "npm run compile:vscode && npm run compile:atom && npm run compile:server",
         "postinstall": "cd clients/vscode && npm install && cd ../atom && npm install && cd ../../server && npm install && cd .."
     },
     "ava": {
@@ -155,8 +162,12 @@
     },
     "homepage": "https://github.com/jonnyboyC/kos-language-server#readme",
     "devDependencies": {
+        "@types/jest": "^24.0.11",
         "ava": "^1.4.1",
+        "jest": "^24.7.1",
+        "jest-junit": "^6.3.0",
         "tap-xunit": "^2.3.0",
+        "ts-jest": "^24.0.2",
         "ts-loader": "^5.3.3",
         "tslint": "^5.16.0",
         "tslint-config-airbnb": "^5.11.1",

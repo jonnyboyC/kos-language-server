@@ -185,13 +185,13 @@ documents.onDidChangeContent(async change => {
           uriDiagnostics.push(cleanDiagnostic(diagnostic));
         }
       }
-
-      for (const [uri, diagnostics] of diagnosticMap.entries()) {
-        connection.sendDiagnostics({
-          uri,
-          diagnostics,
-        });
-      }
+    }
+    
+    for (const [uri, diagnostics] of diagnosticMap.entries()) {
+      connection.sendDiagnostics({
+        uri,
+        diagnostics,
+      });
     }
 
     // if not problems found clear out diagnostics

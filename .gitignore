@@ -4,7 +4,9 @@ out
 dist
 src/**.js
 .idea/*
+.vsix
 
 coverage
 
+junit.xml
 package-lock.json

@@ -1,6 +1,6 @@
 # KOS Language Server
 
-kos-language-server is a language server for Kerboscript of Kerbal Operating System mod.
+kos-language-server is a language server for the Kerboscript language of Kerbal Operating System mod.
 
 ## Features
 Currently the kos-language-server 0.3.3 implements the follow features

@@ -15,8 +15,7 @@
     },
     "dependencies": {
         "jstat": "^1.7.1",
-        "vscode-languageserver": "5.1.0",
-        "ws": "^6.2.1"
+        "vscode-languageserver": "^5.2.1"
     },
     "keywords": [
         "Kerbal Operating System",

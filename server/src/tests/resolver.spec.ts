@@ -1,12 +1,7 @@
+import * as expect from 'expect';
 import { Parser } from '../parser/parser';
 import { Scanner } from '../scanner/scanner';
 import { IParseResult } from '../parser/types';
-import ava, { ExecutionContext }from 'ava';
-import { SymbolTable } from './symbolTable';
-import { FuncResolver } from './functionResolver';
-import { SymbolTableBuilder } from './symbolTableBuilder';
-import { Resolver } from './resolver';
-import { KsSymbol, KsSymbolKind } from './types';
 import { empty, unWrap, unWrapMany } from '../utilities/typeGuards';
 import { rangeEqual } from '../utilities/positionHelpers';
 import { Range, Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
@@ -16,6 +11,11 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { zip } from '../utilities/arrayUtilities';
 import { Marker } from '../entities/token';
+import { SymbolTable } from '../analysis/symbolTable';
+import { SymbolTableBuilder } from '../analysis/symbolTableBuilder';
+import { FuncResolver } from '../analysis/functionResolver';
+import { KsSymbol, KsSymbolKind } from '../analysis/types';
+import { Resolver } from '../analysis/resolver';
 
 const fakeUri = 'C:\\fake.ks';
 
@@ -55,10 +55,10 @@ const resolveSource = (source: string): IResolveResults => {
   };
 };
 
-const noErrors = (result: IResolveResults, t: ExecutionContext<{}>): void => {
-  t.is(0, result.scan.scanErrors.length);
-  t.is(0, result.parse.parseErrors.length);
-  t.is(0, result.resolveError.length);
+const noErrors = (result: IResolveResults): void => {
+  expect(0).toBe(result.scan.scanErrors.length);
+  expect(0).toBe(result.parse.parseErrors.length);
+  expect(0).toBe(result.resolveError.length);
 };
 
 const setSource = `
@@ -71,44 +71,44 @@ print x.
 `;
 
 // test basic identifier
-ava('basic set test', (t) => {
+test('basic set test', () => {
   const results = resolveSource(setSource);
-  noErrors(results, t);
+  noErrors(results);
 
   const { table } = results;
   const symbols = table.fileSymbols();
   const names = new Map(symbols.map((s): [string, KsSymbol] => [s.name.lexeme, s]));
 
-  t.true(names.has('x'));
-  t.true(names.has('y'));
+  expect(names.has('x')).toBe(true);
+  expect(names.has('y')).toBe(true);
 
   const xWrap = names.get('x');
   const yWrap = names.get('y');
 
-  t.false(empty(xWrap));
-  t.false(empty(yWrap));
+  expect(empty(xWrap)).toBe(false);
+  expect(empty(yWrap)).toBe(false);
 
   const x = unWrap(xWrap);
   const y = unWrap(yWrap);
 
-  t.is(x.name.lexeme, 'x');
-  t.is(y.name.lexeme, 'y');
+  expect(x.name.lexeme).toBe('x');
+  expect(y.name.lexeme).toBe('y');
 
-  t.is(x.tag, KsSymbolKind.variable);
-  t.is(y.tag, KsSymbolKind.variable);
+  expect(x.tag).toBe(KsSymbolKind.variable);
+  expect(y.tag).toBe(KsSymbolKind.variable);
 });
 
 // test basic identifier
-ava('basic tracker set test', (t) => {
+test('basic tracker set test', () => {
   const results = resolveSource(setSource);
-  noErrors(results, t);
+  noErrors(results);
 
   const { table } = results;
   const xTrack = table.scopedNamedTracker({ line: 0, character: 0 }, 'x');
   const yTrack = table.scopedNamedTracker({ line: 0, character: 0 }, 'y');
 
-  t.false(empty(xTrack));
-  t.false(empty(yTrack));
+  expect(empty(xTrack)).toBe(false);
+  expect(empty(yTrack)).toBe(false);
 
   const [x, y] = unWrapMany(xTrack, yTrack);
 
@@ -121,31 +121,31 @@ ava('basic tracker set test', (t) => {
     end: { line: 4, character: 5 },
   };
 
-  t.true(rangeEqual(x.declared.range, xRange));
-  t.true(rangeEqual(y.declared.range, yRange));
+  expect(rangeEqual(x.declared.range, xRange)).toBe(true);
+  expect(rangeEqual(y.declared.range, yRange)).toBe(true);
 
   // check the tracked declared properties
-  t.is(x.declared.uri, fakeUri);
-  t.is(y.declared.uri, fakeUri);
+  expect(x.declared.uri).toBe(fakeUri);
+  expect(y.declared.uri).toBe(fakeUri);
 
   // should only be structure as it is the default placeholder
-  t.is(x.declared.type, structureType);
-  t.is(y.declared.type, structureType);
+  expect(x.declared.type).toBe(structureType);
+  expect(y.declared.type).toBe(structureType);
 
-  t.is(x.declared.symbol.name.lexeme, 'x');
-  t.is(y.declared.symbol.name.lexeme, 'y');
+  expect(x.declared.symbol.name.lexeme).toBe('x');
+  expect(y.declared.symbol.name.lexeme).toBe('y');
 
-  t.is(x.declared.symbol.tag, KsSymbolKind.variable);
-  t.is(y.declared.symbol.tag, KsSymbolKind.variable);
+  expect(x.declared.symbol.tag).toBe(KsSymbolKind.variable);
+  expect(y.declared.symbol.tag).toBe(KsSymbolKind.variable);
 
   // check the tracked set properties
   // resolver doesn't track sets
-  t.is(x.sets.length, 0);
-  t.is(y.sets.length, 0);
+  expect(x.sets.length).toBe(0);
+  expect(y.sets.length).toBe(0);
 
   // check the tracked set properties
-  t.is(x.usages.length, 1);
-  t.is(y.usages.length, 1);
+  expect(x.usages.length).toBe(1);
+  expect(y.usages.length).toBe(1);
 
   const [yUsage] = y.usages;
   const [xUsage] = x.usages;
@@ -159,14 +159,14 @@ ava('basic tracker set test', (t) => {
     end: { line: 5, character: 10 },
   };
 
-  t.true(rangeEqual(xUsage.range, xUsageRange));
-  t.true(rangeEqual(yUsage.range, yUsageRange));
+  expect(rangeEqual(xUsage.range, xUsageRange)).toBe(true);
+  expect(rangeEqual(yUsage.range, yUsageRange)).toBe(true);
 
-  t.is(xUsage.uri, fakeUri);
-  t.is(yUsage.uri, fakeUri);
+  expect(xUsage.uri).toBe(fakeUri);
+  expect(yUsage.uri).toBe(fakeUri);
 
-  t.is(xUsage.type, structureType);
-  t.is(yUsage.type, structureType);
+  expect(xUsage.type).toBe(structureType);
+  expect(yUsage.type).toBe(structureType);
 });
 
 const definedPath = join(
@@ -186,18 +186,18 @@ const definedLocations: Range[] = [
 ];
 
 // test basic identifier
-ava('basic defined test', (t) => {
+test('basic defined test', () => {
   const defineSource = readFileSync(definedPath, 'utf8');
   const results = resolveSource(defineSource);
 
-  t.is(0, results.scan.scanErrors.length);
-  t.is(0, results.parse.parseErrors.length);
-  t.true(results.resolveError.length > 0);
+  expect(0).toBe(results.scan.scanErrors.length);
+  expect(0).toBe(results.parse.parseErrors.length);
+  expect(results.resolveError.length > 0).toBe(true);
 
   for (const [error, location] of zip(results.resolveError, definedLocations)) {
-    t.is(DiagnosticSeverity.Error, error.severity);
-    t.deepEqual(location.start, error.range.start);
-    t.deepEqual(location.end, error.range.end);
+    expect(DiagnosticSeverity.Error).toBe(error.severity);
+    expect(location.start).toEqual(error.range.start);
+    expect(location.end).toEqual(error.range.end);
   }
 });
 
@@ -212,18 +212,18 @@ const usedLocations: Range[] = [
 ];
 
 // test basic identifier
-ava('basic used test', (t) => {
+test('basic used test', () => {
   const usedSource = readFileSync(usedPath, 'utf8');
   const results = resolveSource(usedSource);
 
-  t.is(0, results.scan.scanErrors.length);
-  t.is(0, results.parse.parseErrors.length);
-  t.true(results.resolveError.length > 0);
+  expect(0).toBe(results.scan.scanErrors.length);
+  expect(0).toBe(results.parse.parseErrors.length);
+  expect(results.resolveError.length > 0).toBe(true);
 
   for (const [error, location] of zip(results.resolveError, usedLocations)) {
-    t.is(DiagnosticSeverity.Warning, error.severity);
-    t.deepEqual(location.start, error.range.start);
-    t.deepEqual(location.end, error.range.end);
+    expect(DiagnosticSeverity.Warning).toBe(error.severity);
+    expect(location.start).toEqual(error.range.start);
+    expect(location.end).toEqual(error.range.end);
   }
 });
 
@@ -237,17 +237,17 @@ const shadowedLocations: Range[] = [
 ];
 
 // test basic identifier
-ava('basic shadowed test', (t) => {
+test('basic shadowed test', () => {
   const shadowedSource = readFileSync(shadowPath, 'utf8');
   const results = resolveSource(shadowedSource);
 
-  t.is(0, results.scan.scanErrors.length);
-  t.is(0, results.parse.parseErrors.length);
-  t.true(results.resolveError.length > 0);
+  expect(0).toBe(results.scan.scanErrors.length);
+  expect(0).toBe(results.parse.parseErrors.length);
+  expect(results.resolveError.length > 0).toBe(true);
 
   for (const [error, location] of zip(results.resolveError, shadowedLocations)) {
-    t.is(DiagnosticSeverity.Warning, error.severity);
-    t.deepEqual(location.start, error.range.start);
-    t.deepEqual(location.end, error.range.end);
+    expect(DiagnosticSeverity.Warning).toBe(error.severity);
+    expect(location.start).toEqual(error.range.start);
+    expect(location.end).toEqual(error.range.end);
   }
 });
