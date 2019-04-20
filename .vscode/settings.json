@@ -9,9 +9,7 @@
   "typescript.tsc.autoDetect": "off",
   "npm.exclude": ["**/clients", "**/server"],
   "npm.enableScriptExplorer": true,
-  "prettier.trailingComma": "all",
-  "prettier.singleQuote": true,
-  "kos-server.trace.server": {
+  "kos-vscode.trace.server": {
     "format": "json",
     "verbosity": "verbose"
   }

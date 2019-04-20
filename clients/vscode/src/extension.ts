@@ -93,7 +93,7 @@ export function activate(context: ExtensionContext) {
 
   // Create the language client and start the client.
   client = new LanguageClient(
-    'kos-server',
+    'kos-vscode',
     'KOS Language Server',
     serverOptions,
     clientOptions,

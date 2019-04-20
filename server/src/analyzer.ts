@@ -59,7 +59,7 @@ export class Analyzer {
     this.workspaceFolder = undefined;
     this.observer = new PerformanceObserver(list => {
       this.logger.info('');
-      this.logger.info('-------- performance ---------');
+      this.logger.info('-------- Performance ---------');
       for (const entry of list.getEntries()) {
         this.logger.info(`${entry.name} took ${entry.duration} ms`);
       }

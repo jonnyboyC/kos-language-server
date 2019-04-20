@@ -55,11 +55,8 @@ class KosOutputChannel implements OutputChannel {
     this.socket = undefined;
   }
 
-  /**
-   * log output to appropriate channel
-   * @param value value to log
-   */
-  toOutput(value: string): void {
+  append(value: string): void {
+    this.log += value;
     switch (this.output) {
       case OutputChannelKind.websocket:
         if (this.socket !== undefined && this.socket.readyState === WebSocket.OPEN) {
@@ -73,14 +70,19 @@ class KosOutputChannel implements OutputChannel {
     }
   }
 
-  append(value: string): void {
-    this.log += "value";
-    this.toOutput(value);
-  }
-
   appendLine(value: string): void {
     this.log += value;
-    this.toOutput(value);
+    switch (this.output) {
+      case OutputChannelKind.websocket:
+        if (this.socket !== undefined && this.socket.readyState === WebSocket.OPEN) {
+          this.socket.send(this.log);
+          break;
+        }
+        this.defaultChannel.appendLine(value);
+        break;
+      case OutputChannelKind.vscode:
+        this.defaultChannel.appendLine(value);
+    }
     this.log = '';
   }
 
