@@ -28,15 +28,15 @@ steps:
   displayName: 'jest test runner'
 
 # publish test results
-- task: PublishTestResults@1
+- task: PublishTestResults@2
   condition: succeededOrFailed()
   inputs:
     testRunner: JUnit
     testResultsFiles: '$(System.DefaultWorkingDirectory)/junit.xml'
 
 # publish coverage results
-- task: PublishCodeCoverageResults@2
-  inputs:
+- task: PublishCodeCoverageResults@1
+  inputs: 
     codeCoverageTool: Cobertura
     summaryFileLocation: '$(System.DefaultWorkingDirectory)/server/coverage/coverage.xml'
     reportDirectory: '$(System.DefaultWorkingDirectory)/server/coverage'
