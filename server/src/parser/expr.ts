@@ -22,7 +22,7 @@ import {
 } from './grammarNodes';
 import { empty } from '../utilities/typeGuards';
 import { NodeBase } from './base';
-import { flatten } from '../utilities/arrayUtilities';
+import { flatten } from '../utilities/arrayUtils';
 import { joinLines } from './toStringUtils';
 
 /**

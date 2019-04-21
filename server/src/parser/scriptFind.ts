@@ -4,7 +4,7 @@ import * as Inst from './inst';
 import * as Expr from './expr';
 import * as SuffixTerm from './suffixTerm';
 import { Position } from 'vscode-languageserver';
-import { binarySearch } from '../utilities/positionHelpers';
+import { binarySearch } from '../utilities/positionUtils';
 import { empty } from '../utilities/typeGuards';
 import { Token } from '../entities/token';
 import { TraverseTree } from './traverseTree';

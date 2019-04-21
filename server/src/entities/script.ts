@@ -1,7 +1,7 @@
 import { IInst, IScript, RunInstType, SyntaxKind } from '../parser/types';
 import { Range, Position, Location } from 'vscode-languageserver';
 import { NodeBase } from '../parser/base';
-import { flatten } from '../utilities/arrayUtilities';
+import { flatten } from '../utilities/arrayUtils';
 
 export class Script extends NodeBase implements IScript {
   constructor(

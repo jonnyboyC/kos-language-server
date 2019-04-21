@@ -27,7 +27,7 @@ import { Script } from '../entities/script';
 import { nodeResult } from './parseResult';
 import { Token, Marker } from '../entities/token';
 import { mockLogger, mockTracer } from '../utilities/logger';
-import { flatten } from '../utilities/arrayUtilities';
+import { flatten } from '../utilities/arrayUtils';
 import { sep } from 'path';
 
 type NodeConstructor =

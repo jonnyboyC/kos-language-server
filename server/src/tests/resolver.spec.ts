@@ -3,19 +3,20 @@ import { Parser } from '../parser/parser';
 import { Scanner } from '../scanner/scanner';
 import { IParseResult } from '../parser/types';
 import { empty, unWrap, unWrapMany } from '../utilities/typeGuards';
-import { rangeEqual } from '../utilities/positionHelpers';
+import { rangeEqual } from '../utilities/positionUtils';
 import { Range, Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
 import { structureType } from '../typeChecker/types/primitives/structure';
 import { IScanResult } from '../scanner/types';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { zip } from '../utilities/arrayUtilities';
+import { zip } from '../utilities/arrayUtils';
 import { Marker } from '../entities/token';
 import { SymbolTable } from '../analysis/symbolTable';
 import { SymbolTableBuilder } from '../analysis/symbolTableBuilder';
 import { FuncResolver } from '../analysis/functionResolver';
 import { KsSymbol, KsSymbolKind } from '../analysis/types';
 import { Resolver } from '../analysis/resolver';
+import { standardLibrary } from '../analysis/standardLibrary';
 
 const fakeUri = 'C:\\fake.ks';
 
@@ -38,10 +39,15 @@ const parseSource = (source: string)
   return { scan, parse };
 };
 
-const resolveSource = (source: string): IResolveResults => {
+const resolveSource = (source: string, standardLib = false): IResolveResults => {
   const result = parseSource(source);
 
   const symbolTableBuilder = new SymbolTableBuilder(fakeUri);
+
+  if (standardLib) {
+    symbolTableBuilder.linkTable(standardLibrary);
+  }
+
   const functionResolver = new FuncResolver(result.parse.script, symbolTableBuilder);
   const resolver = new Resolver(result.parse.script, symbolTableBuilder);
 
@@ -56,9 +62,9 @@ const resolveSource = (source: string): IResolveResults => {
 };
 
 const noErrors = (result: IResolveResults): void => {
-  expect(0).toBe(result.scan.scanErrors.length);
-  expect(0).toBe(result.parse.parseErrors.length);
-  expect(0).toBe(result.resolveError.length);
+  expect(result.scan.scanErrors.length).toBe(0);
+  expect(result.parse.parseErrors.length).toBe(0);
+  expect(result.resolveError.length).toBe(0);
 };
 
 const setSource = `
@@ -167,6 +173,28 @@ test('basic tracker set test', () => {
 
   expect(xUsage.type).toBe(structureType);
   expect(yUsage.type).toBe(structureType);
+});
+
+const symbolKindPath = join(
+  __dirname,
+  '../../../kerboscripts/parser_valid/unitTests/scannerTest.ks',
+);
+
+// test basic identifier
+test('symbol kind', () => {
+  const symbolKindSource = readFileSync(symbolKindPath, 'utf8');
+  const results = resolveSource(symbolKindSource, true);
+  noErrors(results);
+
+  const { table } = results;
+  const testTracker = table.scopedNamedTracker({ line: 0, character: 0 }, 'test');
+
+  expect(testTracker).not.toBeUndefined();
+  if (testTracker !== undefined) {
+    const { name, tag } = testTracker.declared.symbol;
+    expect(name.lexeme).toBe('test');
+    expect(tag).toBe(KsSymbolKind.function);
+  }
 });
 
 const definedPath = join(
