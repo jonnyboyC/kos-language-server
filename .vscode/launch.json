@@ -10,7 +10,7 @@
 			"stopOnEntry": false,
 			"sourceMaps": true,
 			"outFiles": ["${workspaceRoot}/clients/vscode/out/**/*.js"],
-			"preLaunchTask": "npm: compile"
+			"preLaunchTask": "npm: dev"
 		},
 		{
 			"type": "extensionHost",
@@ -21,7 +21,7 @@
 			"stopOnEntry": false,
 			"sourceMaps": true,
 			"outFiles": ["${workspaceRoot}/clients/vscode/out/**/*.js"],
-			"preLaunchTask": "npm: compile:server"
+			"preLaunchTask": "npm: dev:server"
 		},
 		{
 			"type": "node",

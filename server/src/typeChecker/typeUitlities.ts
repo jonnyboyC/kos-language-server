@@ -15,8 +15,13 @@ import {
 } from './types/types';
 import { VariadicType } from './types/ksType';
 
-export const isCorrectCallType = (callType: CallType, targetCallType: CallType): boolean => {
-  switch (callType) {
+/**
+ * check if the target call type is compatable with real call type
+ * @param queryCallType real call type
+ * @param targetCallType query call type
+ */
+export const isCorrectCallType = (queryCallType: CallType, targetCallType: CallType): boolean => {
+  switch (queryCallType) {
     case CallType.optionalCall:
       return targetCallType === CallType.get
         || targetCallType === CallType.call
@@ -24,14 +29,18 @@ export const isCorrectCallType = (callType: CallType, targetCallType: CallType):
     case CallType.get:
     case CallType.set:
     case CallType.call:
-      return targetCallType === callType;
+      return targetCallType === queryCallType;
   }
 };
 
-// check to see type is a sub type of target type
-export const isSubType = (type: IType, targetType: IType): boolean => {
-  if (type.tag === 'type' && targetType.tag === 'type') {
-    return moveDownPrototype(type, false, (currentType) => {
+/**
+ * check to see type is a sub type of target type
+ * @param queryType query type
+ * @param targetType target type
+ */
+export const isSubType = (queryType: IType, targetType: IType): boolean => {
+  if (queryType.tag === 'type' && targetType.tag === 'type') {
+    return moveDownPrototype(queryType, false, (currentType) => {
       if (currentType === targetType) {
         return true;
       }
@@ -40,9 +49,14 @@ export const isSubType = (type: IType, targetType: IType): boolean => {
     });
   }
 
-  return type === targetType;
+  return queryType === targetType;
 };
 
+/**
+ * Does the given type have the requested operator
+ * @param type type
+ * @param operator operator
+ */
 export const hasOperator = (type: IType, operator: Operator): Maybe<IArgumentType> => {
   if (type.tag === 'type') {
     return moveDownPrototype(type, undefined, (currentType) => {
@@ -57,6 +71,11 @@ export const hasOperator = (type: IType, operator: Operator): Maybe<IArgumentTyp
   return undefined;
 };
 
+/**
+ * Does the given type have the requested suffix
+ * @param type type
+ * @param suffix suffix string
+ */
 export const hasSuffix = (type: IType, suffix: string): boolean => {
   if (type.tag === 'type') {
     return moveDownPrototype(type, false, (currentType) => {
@@ -71,6 +90,11 @@ export const hasSuffix = (type: IType, suffix: string): boolean => {
   return false;
 };
 
+/**
+ * Get the provided suffix from the type if it exists
+ * @param type type
+ * @param suffix suffix string
+ */
 export const getSuffix = (type: IType, suffix: string): Maybe<ISuffixType> => {
   if (type.tag === 'type') {
     return moveDownPrototype(type, undefined, (currentType) => {
@@ -81,6 +105,10 @@ export const getSuffix = (type: IType, suffix: string): Maybe<ISuffixType> => {
   return undefined;
 };
 
+/**
+ * Retreive all suffixes from the given type
+ * @param type type
+ */
 export const allSuffixes = (type: IType): ISuffixType[] => {
   if (type.tag === 'type') {
     const suffixes: Map<string, ISuffixType> = new Map();
@@ -101,6 +129,78 @@ export const allSuffixes = (type: IType): ISuffixType[] => {
   return [];
 };
 
+/**
+ * Is the generic variadic type a full variadic type
+ * @param type maybe full variadic type
+ */
+export const isFullVarType = (type: IGenericVariadicType):type is IVariadicType => {
+  return isFullType(type.type);
+};
+
+/**
+ * Is the generic arguemnt type a full argument type
+ * @param type maybe full argument type
+ */
+export const isFullType = (type: IGenericArgumentType): type is IArgumentType => {
+  return type.fullType;
+};
+
+/**
+ * Create variadic type
+ */
+export const createVarType = memoize((type: IArgumentType): IVariadicType => {
+  return new VariadicType(type);
+});
+
+/**
+ * Add type to prototype chain
+ * @param type type to add prototype 
+ * @param prototype prototype
+ */
+export const addPrototype = <T extends IGenericBasicType>(type: T, prototype: T): void => {
+  type.inherentsFrom = prototype;
+};
+
+/**
+ * Add operator to type
+ * @param type type to add operator
+ * @param operators operators
+ */
+export const addOperators = <T extends IGenericBasicType>(
+  type: T,
+  ...operators: [Operator, IBasicType][]): void => {
+
+  for (const [operator, returnType] of operators) {
+    if (type.operators.has(operator)) {
+      throw new Error(`duplicate operator ${operator} added to type`);
+    }
+
+    type.operators.set(operator, returnType);
+  }
+};
+
+/**
+ * Add suffixes to type
+ * @param type type to add suffixes
+ * @param suffixes suffixes
+ */
+export const addSuffixes = <T extends IGenericBasicType, S extends IGenericSuffixType>(
+  type: T, ...suffixes: S[]): void => {
+  for (const suffix of suffixes) {
+    if (type.suffixes.has(suffix.name)) {
+      throw new Error(`duplicate suffix ${suffix.name} added to type`);
+    }
+
+    type.suffixes.set(suffix.name, suffix);
+  }
+};
+
+/**
+ * Helper function to move down prototype chain
+ * @param type type to query
+ * @param nullValue null if function does not return
+ * @param func query function
+ */
 const moveDownPrototype = <T>(
   type: IArgumentType,
   nullValue: T,
@@ -120,43 +220,3 @@ const moveDownPrototype = <T>(
   }
 };
 
-export const isFullVarType = (type: IGenericVariadicType):type is IVariadicType => {
-  return isFullType(type.type);
-};
-
-export const isFullType = (type: IGenericArgumentType): type is IArgumentType => {
-  return type.fullType;
-};
-
-export const createVarType = memoize((type: IArgumentType): IVariadicType => {
-  return new VariadicType(type);
-});
-
-// add prototype to type
-export const addPrototype = <T extends IGenericBasicType>(type: T, parent: T): void => {
-  type.inherentsFrom = parent;
-};
-
-export const addOperators = <T extends IGenericBasicType>(
-  type: T,
-  ...operators: [Operator, IBasicType][]): void => {
-
-  for (const [operator, returnType] of operators) {
-    if (type.operators.has(operator)) {
-      throw new Error(`duplicate operator ${operator} added to type`);
-    }
-
-    type.operators.set(operator, returnType);
-  }
-};
-
-export const addSuffixes = <T extends IGenericBasicType, S extends IGenericSuffixType>(
-  type: T, ...suffixes: S[]): void => {
-  for (const suffix of suffixes) {
-    if (type.suffixes.has(suffix.name)) {
-      throw new Error(`duplicate suffix ${suffix.name} added to type`);
-    }
-
-    type.suffixes.set(suffix.name, suffix);
-  }
-};

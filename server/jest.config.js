@@ -7,7 +7,6 @@ const config = {
     "jest-junit"
   ],
   coverageReporters: [
-    "text",
     "html",
     "cobertura",
   ],

@@ -9,8 +9,4 @@
   "typescript.tsc.autoDetect": "off",
   "npm.exclude": ["**/clients", "**/server"],
   "npm.enableScriptExplorer": true,
-  "kos-vscode.trace.server": {
-    "format": "json",
-    "verbosity": "verbose"
-  }
 }
