@@ -32,10 +32,11 @@ steps:
   condition: succeededOrFailed()
   inputs:
     testRunner: JUnit
-    testResultsFiles: '**/junit.xml'
+    testResultsFiles: '$(System.DefaultWorkingDirectory)/junit.xml'
 
 # publish coverage results
 - task: PublishCodeCoverageResults@2
   inputs:
     codeCoverageTool: Cobertura
-    summaryFileLocation: '**/coverage.xml'
+    summaryFileLocation: '$(System.DefaultWorkingDirectory)/server/coverage/coverage.xml'
+    reportDirectory: '$(System.DefaultWorkingDirectory)/server/coverage'
