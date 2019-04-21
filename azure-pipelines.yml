@@ -28,16 +28,16 @@ steps:
   displayName: 'jest test runner'
 
 # publish test results
-- task: PublishTestResults@1
+- task: PublishTestResults@2
   condition: succeededOrFailed()
   inputs:
     testRunner: JUnit
     testResultsFiles: '**/junit.xml'
 
 # publish coverage results
-- task: PublishTestResults@2
+- task: PublishCodeCoverageResults@1
   inputs:
-    codeCoverageTool: cobertura
-    summaryFileLocation: '**/coverage/coverage.xml'
-    reportDirectory: '**/coverage'
+    codeCoverageTool: Cobertura
+    summaryFileLocation: '**/server/coverage/coverage.xml'
+    reportDirectory: '**/server/coverage'
 
