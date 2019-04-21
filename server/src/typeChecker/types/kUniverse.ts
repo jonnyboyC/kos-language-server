@@ -28,6 +28,7 @@ addSuffixes(
   createArgSuffixType('revertToLuanch', voidType),
   createArgSuffixType('revertToEditor', voidType),
   createSuffixType('canQuickSave', booleanType),
+  createArgSuffixType('pause', voidType),
   createArgSuffixType('quickSave', voidType),
   createArgSuffixType('quickLoad', voidType),
   createArgSuffixType('quickSaveTo', voidType, stringType),

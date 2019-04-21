@@ -2,7 +2,7 @@ import { IToken } from '../entities/types';
 import { Position } from 'vscode-languageserver';
 import { TokenType } from '../entities/tokentypes';
 import { empty } from './typeGuards';
-import { binarySearchIndex } from './positionHelpers';
+import { binarySearchIndex } from './positionUtils';
 import { Parser } from '../parser/parser';
 
 export const signitureHelper = (tokens: IToken[], pos: Position): Maybe<IdentifierIndex> => {

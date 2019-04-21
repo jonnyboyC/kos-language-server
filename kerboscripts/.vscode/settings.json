@@ -1,0 +1,6 @@
+{
+    "kos-vscode.trace.server": {
+        "verbosity": "message",
+        "format": "text",
+    }
+}

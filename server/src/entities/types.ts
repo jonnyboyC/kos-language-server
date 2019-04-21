@@ -1,7 +1,8 @@
 import { Position, Range, Location } from 'vscode-languageserver';
 import { TokenType } from './tokentypes';
+import { IKsSymbolTracker } from '../analysis/types';
 
-export interface IToken extends Range, Location {
+export interface ITokenBase extends Range, Location {
   readonly tag: 'token';
   readonly type: TokenType;
   readonly lexeme: string;
@@ -11,5 +12,13 @@ export interface IToken extends Range, Location {
   readonly uri: string;
   readonly typeString: string;
   readonly range: Range;
+}
+
+export interface IToken extends ITokenBase {
+  tracker: Maybe<IKsSymbolTracker>;
   toString: () => string;
 }
+
+
+
+

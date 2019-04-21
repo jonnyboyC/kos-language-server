@@ -1,7 +1,14 @@
 import {
-  ISuffixTerm, ISuffixTermVisitor, GrammarNode,
-  IExpr, Atom, SuffixTermTrailer, ISuffixTermClassVisitor,
-  Distribution, ISuffixTermClass, ISuffixTermParamVisitor,
+  ISuffixTerm,
+  ISuffixTermVisitor,
+  GrammarNode,
+  IExpr,
+  Atom,
+  SuffixTermTrailer,
+  ISuffixTermClassVisitor,
+  Distribution,
+  ISuffixTermClass,
+  ISuffixTermParamVisitor,
   ISuffixTermPasser,
   SyntaxKind,
 } from './types';
@@ -9,27 +16,57 @@ import { Range, Position } from 'vscode-languageserver';
 import { IToken } from '../entities/types';
 import { TokenType } from '../entities/tokentypes';
 import {
-  createGrammarOptional, createGrammarUnion,
-  createExponential, createGrammarRepeat,
-  createGamma, createConstant, createNormal,
+  createGrammarOptional,
+  createGrammarUnion,
+  createExponential,
+  createGrammarRepeat,
+  createGamma,
+  createConstant,
+  createNormal,
 } from './grammarNodes';
 import { expr } from './expr';
 import { NodeBase } from './base';
 import { empty } from '../utilities/typeGuards';
+import { joinLines } from './toStringUtils';
 
+/**
+ * Base class for all suffix terms
+ */
 export abstract class SuffixTermBase extends NodeBase implements ISuffixTerm {
+  /**
+   * Tag used to denote syntax node of the instance
+   */
   get tag(): SyntaxKind.suffixTerm {
     return SyntaxKind.suffixTerm;
   }
 
+  /**
+   * Require all subclasses to implement the accept method
+   * Called when the node should execute the visitors methods
+   * @param visitor visitor object
+   */
   public abstract accept<T>(visitor: ISuffixTermVisitor<T>): T;
+
+  /**
+   * Require all subclass to implement the pass method
+   * Call when the node should be passed through
+   * @param visitor visitor object
+   */
   public abstract pass<T>(visitor: ISuffixTermPasser<T>): T;
   public abstract acceptParam<TP, TR>(
     visitor: ISuffixTermParamVisitor<TP, TR>,
-    param: TP): TR;
+    param: TP,
+  ): TR;
 }
 
+/**
+ * Container for tokens constituting an invalid suffix term
+ */
 export class Invalid extends SuffixTermBase {
+  /**
+   * Invalid suffix term constructor
+   * @param tokens tokens in the invalid range
+   */
   constructor(public readonly tokens: IToken[]) {
     super();
   }
@@ -46,11 +83,14 @@ export class Invalid extends SuffixTermBase {
     return [...this.tokens];
   }
 
-  public toString(): string {
-    return this.tokens.join(', ');
+  public toLines(): string[] {
+    return [this.tokens.join(', ')];
   }
 
-  public acceptParam<TP, TR>(visitor: ISuffixTermParamVisitor<TP, TR>, param: TP): TR {
+  public acceptParam<TP, TR>(
+    visitor: ISuffixTermParamVisitor<TP, TR>,
+    param: TP,
+  ): TR {
     return visitor.visitSuffixTermInvalid(this, param);
   }
 
@@ -67,13 +107,26 @@ export class Invalid extends SuffixTermBase {
   }
 }
 
+/**
+ * Class holding all suffix trailers
+ */
 export class SuffixTrailer extends SuffixTermBase {
+  /**
+   * Grammar for the suffix trailers
+   */
   public static grammar: GrammarNode[];
 
+  /**
+   * Constructor for the suffix trailer
+   * @param suffixTerm base suffix term
+   * @param colon colon separating the base from the trailer
+   * @param trailer the suffix trailer
+   */
   constructor(
     public readonly suffixTerm: SuffixTerm,
     public colon?: IToken,
-    public trailer?: SuffixTrailer) {
+    public trailer?: SuffixTrailer,
+  ) {
     super();
   }
 
@@ -82,9 +135,7 @@ export class SuffixTrailer extends SuffixTermBase {
   }
 
   public get end(): Position {
-    return empty(this.trailer)
-      ? this.suffixTerm.end
-      : this.trailer.end;
+    return empty(this.trailer) ? this.suffixTerm.end : this.trailer.end;
   }
 
   public get ranges(): Range[] {
@@ -95,6 +146,9 @@ export class SuffixTrailer extends SuffixTermBase {
     return [this.suffixTerm];
   }
 
+  /**
+   * Method indicating if the suffix ends with a function or suffix call
+   */
   public endsInCall(): boolean {
     // if no trailer check suffix term
     if (empty(this.trailer)) {
@@ -119,14 +173,32 @@ export class SuffixTrailer extends SuffixTermBase {
     return false;
   }
 
-  public toString(): string {
+  public toLines(): string[] {
+    const suffixTermLines = this.suffixTerm.toLines();
+
     if (!empty(this.colon) && !empty(this.trailer)) {
-      return `${this.suffixTerm.toString()}${this.colon.lexeme}${this.trailer.toString()}`;
+      const [joinLine, ...restLines] = this.trailer.toLines();
+
+      if (suffixTermLines.length === 1) {
+        return [`${suffixTermLines[0]}${this.colon.lexeme}${joinLine}`].concat(
+          restLines,
+        );
+      }
+
+      return suffixTermLines
+        .slice(0, suffixTermLines.length - 2)
+        .concat(
+          `${suffixTermLines[0]}${this.colon.lexeme}${joinLine}`,
+          restLines,
+        );
     }
 
-    return this.suffixTerm.toString();
+    return suffixTermLines;
   }
-  public acceptParam<TP, TR>(visitor: ISuffixTermParamVisitor<TP, TR>, param: TP): TR {
+  public acceptParam<TP, TR>(
+    visitor: ISuffixTermParamVisitor<TP, TR>,
+    param: TP,
+  ): TR {
     return visitor.visitSuffixTrailer(this, param);
   }
 
@@ -140,18 +212,31 @@ export class SuffixTrailer extends SuffixTermBase {
 
   public static classAccept<T>(visitor: ISuffixTermClassVisitor<T>): T {
     return visitor.visitSuffixTrailer(this);
-  }}
+  }
+}
 
+/**
+ * Class holding all valid suffix terms
+ */
 export class SuffixTerm extends SuffixTermBase {
+  /**
+   * Grammer for the suffix terms
+   */
   public static grammar: GrammarNode[];
 
+  /**
+   * Constructor for suffix terms
+   * @param atom base item of the suffix term
+   * @param trailers trailers present in the suffixterm
+   */
   constructor(
     public readonly atom: Atom,
-    public readonly trailers: SuffixTermTrailer[]) {
+    public readonly trailers: SuffixTermTrailer[],
+  ) {
     super();
   }
   public get ranges(): Range[] {
-    return [this.atom as Range, ...this.trailers as Range[]];
+    return [this.atom as Range, ...(this.trailers as Range[])];
   }
   public get start(): Position {
     return this.atom.start;
@@ -163,11 +248,17 @@ export class SuffixTerm extends SuffixTermBase {
 
     return this.atom.end;
   }
-  public toString(): string {
-    return `${this.atom.toString()}${this.trailers.map(trailer => trailer.toString()).join('')}`;
+  public toLines(): string[] {
+    const atomLines = this.atom.toLines();
+    const trailersLines = this.trailers.map(t => t.toLines());
+
+    return joinLines('', atomLines, ...trailersLines);
   }
 
-  public acceptParam<TP, TR>(visitor: ISuffixTermParamVisitor<TP, TR>, param: TP): TR {
+  public acceptParam<TP, TR>(
+    visitor: ISuffixTermParamVisitor<TP, TR>,
+    param: TP,
+  ): TR {
     return visitor.visitSuffixTerm(this, param);
   }
 
@@ -184,14 +275,28 @@ export class SuffixTerm extends SuffixTermBase {
   }
 }
 
+/**
+ * Class containing all valid call suffixterm trailers
+ */
 export class Call extends SuffixTermBase {
+  /**
+   * Grammer for the call trailers
+   */
   public static grammar: GrammarNode[];
 
+  /**
+   * Constructor for the suffix term trailers
+   * @param open open paren of the call
+   * @param args arguments for the call
+   * @param close close paren of the call
+   * @param isTrailer indication if this is a trailer
+   */
   constructor(
     public readonly open: IToken,
     public readonly args: IExpr[],
     public readonly close: IToken,
-    public readonly isTrailer: boolean) {
+    public readonly isTrailer: boolean,
+  ) {
     super();
   }
 
@@ -207,12 +312,25 @@ export class Call extends SuffixTermBase {
     return [this.open, ...this.args, this.close];
   }
 
-  public toString(): string {
-    return `${this.open.lexeme}`
-     + `${this.args.map(a => a.toString()).join(', ')}${this.close.lexeme}`;
+  public toLines(): string[] {
+    if (this.args.length === 0) {
+      return [`${this.open.lexeme}${this.close.lexeme}`];
+    }
+
+    const argsLines = this.args.map(a => a.toLines());
+    const argsResult = joinLines(',', ...argsLines);
+
+    argsResult[0] = `${this.open.lexeme}${argsResult[0]}`;
+    argsResult[argsResult.length - 1] = `${argsResult[argsResult.length - 1]}${
+      this.close.lexeme
+    }`;
+    return argsResult;
   }
 
-  public acceptParam<TP, TR>(visitor: ISuffixTermParamVisitor<TP, TR>, param: TP): TR {
+  public acceptParam<TP, TR>(
+    visitor: ISuffixTermParamVisitor<TP, TR>,
+    param: TP,
+  ): TR {
     return visitor.visitCall(this, param);
   }
 
@@ -229,13 +347,26 @@ export class Call extends SuffixTermBase {
   }
 }
 
+/**
+ * Class containing all array index suffix term trailers
+ */
 export class ArrayIndex extends SuffixTermBase {
+  /**
+   * Grammar for the array index suffix term trailers
+   */
   public static grammar: GrammarNode[];
 
+  /**
+   * Constructor for the suffix term trailer
+   * @param indexer # token indicating a index
+   * @param index index to be used
+   * @param isTrailer is the array index in a suffix trailer
+   */
   constructor(
     public readonly indexer: IToken,
     public readonly index: IToken,
-    public readonly isTrailer: boolean) {
+    public readonly isTrailer: boolean,
+  ) {
     super();
   }
 
@@ -251,11 +382,14 @@ export class ArrayIndex extends SuffixTermBase {
     return [this.indexer, this.index];
   }
 
-  public toString(): string {
-    return `${this.indexer.lexeme}${this.index.lexeme}`;
+  public toLines(): string[] {
+    return [`${this.indexer.lexeme}${this.index.lexeme}`];
   }
 
-  public acceptParam<TP, TR>(visitor: ISuffixTermParamVisitor<TP, TR>, param: TP): TR {
+  public acceptParam<TP, TR>(
+    visitor: ISuffixTermParamVisitor<TP, TR>,
+    param: TP,
+  ): TR {
     return visitor.visitArrayIndex(this, param);
   }
 
@@ -272,14 +406,28 @@ export class ArrayIndex extends SuffixTermBase {
   }
 }
 
+/**
+ * Class containing all valid array bracket suffix term trailers
+ */
 export class ArrayBracket extends SuffixTermBase {
+  /**
+   * Grammar for the array bracket suffix term
+   */
   public static grammar: GrammarNode[];
 
+  /**
+   * Constructor for the array bracket suffix term trailer
+   * @param open open bracket
+   * @param index index into the collection
+   * @param close close bracket
+   * @param isTrailer is the suffix term a trailer
+   */
   constructor(
     public readonly open: IToken,
     public readonly index: IExpr,
     public readonly close: IToken,
-    public readonly isTrailer: boolean) {
+    public readonly isTrailer: boolean,
+  ) {
     super();
   }
 
@@ -295,12 +443,18 @@ export class ArrayBracket extends SuffixTermBase {
     return [this.open, this.index, this.close];
   }
 
-  public toString(): string {
-    return `${this.open.lexeme}`
-      + `${this.index.toString()}${this.close.lexeme}`;
+  public toLines(): string[] {
+    const lines = this.index.toLines();
+
+    lines[0] = `${this.open.lexeme}${lines[0]}`;
+    lines[lines.length - 1] = `${lines[lines.length - 1]}${this.close.lexeme}`;
+    return lines;
   }
 
-  public acceptParam<TP, TR>(visitor: ISuffixTermParamVisitor<TP, TR>, param: TP): TR {
+  public acceptParam<TP, TR>(
+    visitor: ISuffixTermParamVisitor<TP, TR>,
+    param: TP,
+  ): TR {
     return visitor.visitArrayBracket(this, param);
   }
 
@@ -317,12 +471,24 @@ export class ArrayBracket extends SuffixTermBase {
   }
 }
 
+/**
+ * Class containing function delgate creation suffix terms
+ */
 export class Delegate extends SuffixTermBase {
+  /**
+   * Grammar for the delgate
+   */
   public static grammar: GrammarNode[];
 
-  constructor (
+  /**
+   * Constructor for the function delegate
+   * @param atSign at sign indicating that function should create a delgate
+   * @param isTrailer is the delgate a suffix trailer
+   */
+  constructor(
     public readonly atSign: IToken,
-    public readonly isTrailer: boolean) {
+    public readonly isTrailer: boolean,
+  ) {
     super();
   }
 
@@ -338,11 +504,14 @@ export class Delegate extends SuffixTermBase {
     return [this.atSign];
   }
 
-  public toString(): string {
-    return this.atSign.lexeme;
+  public toLines(): string[] {
+    return [this.atSign.lexeme];
   }
 
-  public acceptParam<TP, TR>(visitor: ISuffixTermParamVisitor<TP, TR>, param: TP): TR {
+  public acceptParam<TP, TR>(
+    visitor: ISuffixTermParamVisitor<TP, TR>,
+    param: TP,
+  ): TR {
     return visitor.visitDelegate(this, param);
   }
 
@@ -359,12 +528,24 @@ export class Delegate extends SuffixTermBase {
   }
 }
 
+/**
+ * Class containing literal suffix terms
+ */
 export class Literal extends SuffixTermBase {
+  /**
+   * Grammar for literal suffix terms
+   */
   public static grammar: GrammarNode[];
 
+  /**
+   * Constructor for literal suffix term
+   * @param token token for the literal
+   * @param isTrailer is a suffix trailer
+   */
   constructor(
     public readonly token: IToken,
-    public readonly isTrailer: boolean) {
+    public readonly isTrailer: boolean,
+  ) {
     super();
   }
 
@@ -380,11 +561,14 @@ export class Literal extends SuffixTermBase {
     return [this.token];
   }
 
-  public toString(): string {
-    return `${this.token.lexeme}`;
+  public toLines(): string[] {
+    return [`${this.token.lexeme}`];
   }
 
-  public acceptParam<TP, TR>(visitor: ISuffixTermParamVisitor<TP, TR>, param: TP): TR {
+  public acceptParam<TP, TR>(
+    visitor: ISuffixTermParamVisitor<TP, TR>,
+    param: TP,
+  ): TR {
     return visitor.visitLiteral(this, param);
   }
 
@@ -401,12 +585,24 @@ export class Literal extends SuffixTermBase {
   }
 }
 
+/**
+ * Class containing all valid identifiers
+ */
 export class Identifier extends SuffixTermBase {
+  /**
+   * Grammar for valid identifiers
+   */
   public static grammar: GrammarNode[];
 
+  /**
+   * Constructor for suffix term identifiers
+   * @param token identifier token
+   * @param isTrailer is suffix trailer
+   */
   constructor(
     public readonly token: IToken,
-    public readonly isTrailer: boolean) {
+    public readonly isTrailer: boolean,
+  ) {
     super();
   }
 
@@ -423,15 +619,20 @@ export class Identifier extends SuffixTermBase {
   }
 
   public get isKeyword(): boolean {
-    return !(this.token.type === TokenType.identifier
-      || this.token.type === TokenType.fileIdentifier);
+    return !(
+      this.token.type === TokenType.identifier ||
+      this.token.type === TokenType.fileIdentifier
+    );
   }
 
-  public toString(): string {
-    return `${this.token.lexeme}`;
+  public toLines(): string[] {
+    return [`${this.token.lexeme}`];
   }
 
-  public acceptParam<TP, TR>(visitor: ISuffixTermParamVisitor<TP, TR>, param: TP): TR {
+  public acceptParam<TP, TR>(
+    visitor: ISuffixTermParamVisitor<TP, TR>,
+    param: TP,
+  ): TR {
     return visitor.visitIdentifier(this, param);
   }
 
@@ -448,14 +649,28 @@ export class Identifier extends SuffixTermBase {
   }
 }
 
+/**
+ * Class containing all valid groupings
+ */
 export class Grouping extends SuffixTermBase {
+  /**
+   * Grammar for all valid groupings
+   */
   public static grammar: GrammarNode[];
 
+  /**
+   * Grouping constructor
+   * @param open open paren token
+   * @param expr expression within the grouping
+   * @param close close paren token
+   * @param isTrailer is suffix trailer
+   */
   constructor(
     public readonly open: IToken,
     public readonly expr: IExpr,
     public readonly close: IToken,
-    public readonly isTrailer: boolean) {
+    public readonly isTrailer: boolean,
+  ) {
     super();
   }
 
@@ -475,7 +690,18 @@ export class Grouping extends SuffixTermBase {
     return `${this.open.lexeme}${this.expr.toString()}${this.close.lexeme}`;
   }
 
-  public acceptParam<TP, TR>(visitor: ISuffixTermParamVisitor<TP, TR>, param: TP): TR {
+  public toLines(): string[] {
+    const lines = this.expr.toLines();
+
+    lines[0] = `${this.open.lexeme}${lines[0]}`;
+    lines[lines.length - 1] = `${lines[lines.length - 1]}${this.close.lexeme}`;
+    return lines;
+  }
+
+  public acceptParam<TP, TR>(
+    visitor: ISuffixTermParamVisitor<TP, TR>,
+    param: TP,
+  ): TR {
     return visitor.visitGrouping(this, param);
   }
 
@@ -509,10 +735,7 @@ const suffixTermTrailer = createGrammarUnion(...suffixTermTrailers);
 
 SuffixTerm.grammar = [
   atom,
-  createGrammarRepeat(
-    createExponential(1.5),
-    suffixTermTrailer,
-  ),
+  createGrammarRepeat(createExponential(1.5), suffixTermTrailer),
 ];
 
 Call.grammar = [
@@ -520,11 +743,7 @@ Call.grammar = [
   createGrammarOptional(
     createExponential(3),
     expr,
-    createGrammarRepeat(
-      createGamma(1.5, 0.4),
-      TokenType.comma,
-      expr,
-    ),
+    createGrammarRepeat(createGamma(1.5, 0.4), TokenType.comma, expr),
   ),
   TokenType.bracketClose,
 ];
@@ -537,15 +756,9 @@ ArrayIndex.grammar = [
   ),
 ];
 
-ArrayBracket.grammar = [
-  TokenType.bracketOpen,
-  expr,
-  TokenType.bracketClose,
-];
+ArrayBracket.grammar = [TokenType.bracketOpen, expr, TokenType.bracketClose];
 
-Delegate.grammar = [
-  TokenType.atSign,
-];
+Delegate.grammar = [TokenType.atSign];
 
 Literal.grammar = [
   createGrammarUnion(
@@ -558,12 +771,6 @@ Literal.grammar = [
   ),
 ];
 
-Identifier.grammar = [
-  TokenType.identifier,
-];
+Identifier.grammar = [TokenType.identifier];
 
-Grouping.grammar = [
-  TokenType.bracketOpen,
-  expr,
-  TokenType.bracketClose,
-];
+Grouping.grammar = [TokenType.bracketOpen, expr, TokenType.bracketClose];

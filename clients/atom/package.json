@@ -1,6 +1,6 @@
 {
   "name": "ide-kos",
-  "main": "./lib/main.js",
+  "main": "./dist/main.js",
   "version": "0.1.1",
   "description": "Atom client for the KOS-language-server",
   "author": "John Chabot",
@@ -84,7 +84,7 @@
     }
   },
   "devDependencies": {
-    "@types/atom": "^1.31.1",
-    "@types/node": "^11.11.4"
+    "@types/atom": "^1.36.0",
+    "@types/node": "^11.13.6"
   }
 }

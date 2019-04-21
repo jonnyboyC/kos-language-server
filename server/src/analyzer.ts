@@ -1,40 +1,50 @@
-import { DiagnosticSeverity, Position, Location } from 'vscode-languageserver';
-import { IDocumentInfo, ILoadData, IDiagnosticUri, ValidateResult } from './types';
+import {
+  DiagnosticSeverity,
+  Position,
+  Location,
+  Diagnostic,
+} from 'vscode-languageserver';
+import {
+  IDocumentInfo,
+  ILoadData,
+  IDiagnosticUri,
+  ValidateResult,
+} from './types';
 import { performance, PerformanceObserver } from 'perf_hooks';
 import { Parser } from './parser/parser';
 import { FuncResolver } from './analysis/functionResolver';
 import { Scanner } from './scanner/scanner';
 import { Resolver } from './analysis/resolver';
-import { IScannerError } from './scanner/types';
 import { IParseError, ScriptResult, RunInstType } from './parser/types';
-import {
-  IResolverError, KsSymbol, IKsSymbolTracker,
-  KsSymbolKind, ResolverErrorKind,
-} from './analysis/types';
+import { KsSymbol, IKsSymbolTracker, KsSymbolKind } from './analysis/types';
 import { mockLogger, mockTracer } from './utilities/logger';
 import { empty, notEmpty } from './utilities/typeGuards';
 import { ScriptFind } from './parser/scriptFind';
 import { KsFunction } from './entities/function';
 import * as Inst from './parser/inst';
-import { signitureHelper } from './utilities/signitureHelper';
+import { signitureHelper } from './utilities/signitureUtils';
 import * as Expr from './parser/expr';
 import * as SuffixTerm from './parser/suffixTerm';
 import * as Decl from './parser/declare';
 import { PathResolver, runPath } from './utilities/pathResolver';
 import { existsSync } from 'fs';
 import { extname } from 'path';
-import { readFileAsync } from './utilities/fsUtilities';
+import { readFileAsync } from './utilities/fsUtils';
 import { standardLibrary, bodyLibrary } from './analysis/standardLibrary';
 import { builtIn } from './utilities/constants';
 import { SymbolTableBuilder } from './analysis/symbolTableBuilder';
 import { SymbolTable } from './analysis/symbolTable';
 import { TypeChecker } from './typeChecker/typeChecker';
-import { ITypeError, ITypeResolvedSuffix, ITypeNode } from './typeChecker/types';
+import {
+  ITypeResolvedSuffix,
+  ITypeNode,
+} from './typeChecker/types';
 import { IToken } from './entities/types';
 import { IType } from './typeChecker/types/types';
-import { binarySearch, rangeContains } from './utilities/positionHelpers';
+import { binarySearch, rangeContains } from './utilities/positionUtils';
 
 export class Analyzer {
+  public workspaceFolder?: string;
   public readonly pathResolver: PathResolver;
   public readonly documentInfos: Map<string, IDocumentInfo>;
   public readonly logger: ILogger;
@@ -46,9 +56,10 @@ export class Analyzer {
     this.logger = logger;
     this.tracer = tracer;
     this.documentInfos = new Map();
-    this.observer = new PerformanceObserver((list) => {
+    this.workspaceFolder = undefined;
+    this.observer = new PerformanceObserver(list => {
       this.logger.info('');
-      this.logger.info('-------- performance ---------');
+      this.logger.info('-------- Performance ---------');
       for (const entry of list.getEntries()) {
         this.logger.info(`${entry.name} took ${entry.duration} ms`);
       }
@@ -63,6 +74,7 @@ export class Analyzer {
    */
   public setPath(path: string): void {
     this.pathResolver.volume0Path = path;
+    this.workspaceFolder = path;
   }
 
   /**
@@ -73,8 +85,11 @@ export class Analyzer {
     this.pathResolver.volume0Uri = uri;
   }
 
-  public async* validateDocument(uri: string, text: string, depth: number = 0):
-    AsyncIterableIterator<IDiagnosticUri[]> {
+  public async *validateDocument(
+    uri: string,
+    text: string,
+    depth: number = 0,
+  ): AsyncIterableIterator<IDiagnosticUri[]> {
     for await (const result of this.validateDocument_(uri, text, depth)) {
       if (Array.isArray(result)) {
         yield result;
@@ -83,18 +98,27 @@ export class Analyzer {
   }
 
   // main validation code
-  private async* validateDocument_(uri: string, text: string, depth: number):
-    AsyncIterableIterator<ValidateResult> {
-    const { script, parseErrors, scanErrors } = await this.parseDocument(uri, text);
+  private async *validateDocument_(
+    uri: string,
+    text: string,
+    depth: number,
+  ): AsyncIterableIterator<ValidateResult> {
+    const { script, parseErrors, scanErrors } = await this.parseDocument(
+      uri,
+      text,
+    );
     const symbolTables: SymbolTable[] = [];
 
-    const scanDiagnostics = scanErrors
-      .map(scanError => scanToDiagnostics(scanError, uri));
-    const parserDiagnostics = parseErrors.length === 0
-      ? []
-      : parseErrors.map(error => error.inner.concat(error))
-      .reduce((acc, current) => acc.concat(current))
-      .map(error => parseToDiagnostics(error, uri));
+    const scanDiagnostics = scanErrors.map(scanError =>
+      addDiagnosticsUri(scanError, uri),
+    );
+    const parserDiagnostics =
+      parseErrors.length === 0
+        ? []
+        : parseErrors
+            .map(error => error.inner.concat(error))
+            .reduce((acc, current) => acc.concat(current))
+            .map(error => parseToDiagnostics(error, uri));
 
     yield scanDiagnostics;
     yield parserDiagnostics;
@@ -105,7 +129,11 @@ export class Analyzer {
 
       // for each document run validate and yield any results
       for (const loadData of loadDatas) {
-        for await (const result of this.loadAndValidateDocument(uri, loadData, depth)) {
+        for await (const result of this.loadAndValidateDocument(
+          uri,
+          loadData,
+          depth,
+        )) {
           if (Array.isArray(result)) {
             yield result;
           } else {
@@ -115,66 +143,80 @@ export class Analyzer {
       }
     }
 
+    this.logger.info('');
+    this.logger.info('-------------Semantic Analysis------------');
+
     // generate a scope manager for resolving
     const symbolTableBuilder = new SymbolTableBuilder(uri, this.logger);
 
     // add child scopes
     for (const symbolTable of symbolTables) {
-      symbolTableBuilder.addScope(symbolTable);
+      symbolTableBuilder.linkTable(symbolTable);
     }
 
     // add standard library
-    symbolTableBuilder.addScope(standardLibrary);
-    symbolTableBuilder.addScope(this.activeBodyLibrary());
+    symbolTableBuilder.linkTable(standardLibrary);
+    symbolTableBuilder.linkTable(this.activeBodyLibrary());
 
     // generate resolvers
     const funcResolver = new FuncResolver(
-      script, symbolTableBuilder,
-      this.logger, this.tracer);
+      script,
+      symbolTableBuilder,
+      this.logger,
+      this.tracer,
+    );
     const resolver = new Resolver(
-      script, symbolTableBuilder,
-      this.logger, this.tracer);
+      script,
+      symbolTableBuilder,
+      this.logger,
+      this.tracer,
+    );
 
     // resolve the rest of the script
-    this.logger.log(`Function resolving ${uri}`);
     performance.mark('func-resolver-start');
-    const functionDiagnostics = funcResolver.resolve()
-      .map(error => resolverToDiagnostics(error, uri));
+    const functionDiagnostics = funcResolver
+      .resolve()
+      .map(error => addDiagnosticsUri(error, uri));
 
     yield functionDiagnostics;
     performance.mark('func-resolver-end');
 
     // perform an initial function pass
-    this.logger.log(`Resolving ${uri}`);
-
     performance.mark('resolver-start');
-    const resolverDiagnostics = resolver.resolve()
-      .map(error => resolverToDiagnostics(error, uri));
+    const resolverDiagnostics = resolver
+      .resolve()
+      .map(error => addDiagnosticsUri(error, uri));
 
     yield resolverDiagnostics;
     performance.mark('resolver-end');
 
     const symbolTable = symbolTableBuilder.build();
-    const typeChecker = new TypeChecker(script, symbolTable, this.logger, this.tracer);
+    const typeChecker = new TypeChecker(
+      script,
+      symbolTable,
+      this.logger,
+      this.tracer,
+    );
 
-    this.logger.log(`Type checking ${uri}`);
-    this.logger.log('');
     performance.mark('type-checking-start');
 
-    typeChecker.check()
-      .map(error => typeCheckerToDiagnostics(error, uri));
+    typeChecker.check().map(error => addDiagnosticsUri(error, uri));
 
     // yield typeDiagnostics;
     performance.mark('type-checking-end');
 
     // measure performance
-    performance.measure('Function Resolver', 'func-resolver-start', 'func-resolver-end');
+    performance.measure(
+      'Function Resolver',
+      'func-resolver-start',
+      'func-resolver-end',
+    );
     performance.measure('Resolver', 'resolver-start', 'resolver-end');
-    performance.measure('Type Checking', 'type-checking-start', 'type-checking-end');
-
-    if (resolverDiagnostics.length > 0) {
-      this.logger.warn(`Resolver encountered ${resolverDiagnostics.length} Errors.`);
-    }
+    performance.measure(
+      'Type Checking',
+      'type-checking-start',
+      'type-checking-end',
+    );
 
     // make sure to delete references so scope manager can be gc'ed
     const documentInfo = this.documentInfos.get(uri);
@@ -193,6 +235,7 @@ export class Analyzer {
       ),
     });
 
+    this.logger.info('--------------------------------------');
     performance.clearMarks();
 
     yield symbolTable;
@@ -202,7 +245,10 @@ export class Analyzer {
     return bodyLibrary;
   }
 
-  public getSuffixType(pos: Position, uri: string): Maybe<[IType, KsSymbolKind]> {
+  public getSuffixType(
+    pos: Position,
+    uri: string,
+  ): Maybe<[IType, KsSymbolKind]> {
     const documentInfo = this.documentInfos.get(uri);
     if (empty(documentInfo)) {
       return undefined;
@@ -212,8 +258,14 @@ export class Analyzer {
     const { script, symbolsTable } = documentInfo;
     const finder = new ScriptFind();
     const result = finder.find(
-      script, pos, Expr.Suffix, Decl.Var,
-      Decl.Lock, Decl.Func, Decl.Parameter);
+      script,
+      pos,
+      Expr.Suffix,
+      Decl.Var,
+      Decl.Lock,
+      Decl.Func,
+      Decl.Parameter,
+    );
 
     if (empty(result)) {
       return undefined;
@@ -229,64 +281,58 @@ export class Analyzer {
       const result = checker.checkSuffix(node);
 
       if (rangeContains(result.resolved.atom, pos)) {
-        return [
-          result.resolved.atom.type,
-          result.resolved.atomType,
-        ];
+        return [result.resolved.atom.type, result.resolved.atomType];
       }
 
       const suffixNodes = this.resolvedNodes(result.resolved);
       const suffixNode = binarySearch(suffixNodes, pos);
 
       if (suffixNode) {
-        return [
-          suffixNode.type,
-          KsSymbolKind.suffix,
-        ];
+        return [suffixNode.type, KsSymbolKind.suffix];
       }
     }
 
     if (node instanceof Decl.Var) {
-      const tracker = symbolsTable.scopedVariableTracker(pos, node.identifier.lexeme);
+      const tracker = symbolsTable.scopedVariableTracker(
+        pos,
+        node.identifier.lexeme,
+      );
 
       if (tracker) {
-        return [
-          tracker.declared.type,
-          tracker.declared.symbol.tag,
-        ];
+        return [tracker.declared.type, tracker.declared.symbol.tag];
       }
     }
 
     if (node instanceof Decl.Lock) {
-      const tracker = symbolsTable.scopedLockTracker(pos, node.identifier.lexeme);
+      const tracker = symbolsTable.scopedLockTracker(
+        pos,
+        node.identifier.lexeme,
+      );
 
       if (tracker) {
-        return [
-          tracker.declared.type,
-          tracker.declared.symbol.tag,
-        ];
+        return [tracker.declared.type, tracker.declared.symbol.tag];
       }
     }
 
     if (node instanceof Decl.Func) {
-      const tracker = symbolsTable.scopedFunctionTracker(pos, node.identifier.lexeme);
+      const tracker = symbolsTable.scopedFunctionTracker(
+        pos,
+        node.identifier.lexeme,
+      );
 
       if (tracker) {
-        return [
-          tracker.declared.type,
-          tracker.declared.symbol.tag,
-        ];
+        return [tracker.declared.type, tracker.declared.symbol.tag];
       }
     }
 
     if (node instanceof Decl.Parameter) {
-      const tracker = symbolsTable.scopedParameterTracker(pos, node.identifier.lexeme);
+      const tracker = symbolsTable.scopedParameterTracker(
+        pos,
+        node.identifier.lexeme,
+      );
 
       if (tracker) {
-        return [
-          tracker.declared.type,
-          tracker.declared.symbol.tag,
-        ];
+        return [tracker.declared.type, tracker.declared.symbol.tag];
       }
     }
 
@@ -348,9 +394,11 @@ export class Analyzer {
 
   public getUsagesLocations(pos: Position, uri: string): Maybe<Location[]> {
     const documentInfo = this.documentInfos.get(uri);
-    if (empty(documentInfo)
-      || empty(documentInfo.symbolsTable)
-      || empty(documentInfo.script)) {
+    if (
+      empty(documentInfo) ||
+      empty(documentInfo.symbolsTable) ||
+      empty(documentInfo.script)
+    ) {
       return undefined;
     }
 
@@ -370,14 +418,18 @@ export class Analyzer {
       return undefined;
     }
 
-    return tracker.usages.map(usage => usage as Location)
+    return tracker.usages
+      .map(usage => usage as Location)
       .concat(tracker.declared.symbol.name)
       .filter(location => location.uri !== builtIn);
   }
 
   // get a scoped trackers
-  public getScopedTracker(pos: Position, name: string, uri?: string):
-    Maybe<IKsSymbolTracker<KsSymbol>> {
+  public getScopedTracker(
+    pos: Position,
+    name: string,
+    uri?: string,
+  ): Maybe<IKsSymbolTracker<KsSymbol>> {
     if (empty(uri)) {
       const trackers = this.getGlobalTrackers(name);
       return trackers.length === 1 ? trackers[0] : undefined;
@@ -427,8 +479,10 @@ export class Analyzer {
   }
 
   // get function at position
-  public getFunctionAtPosition(pos: Position, uri: string):
-    Maybe<{func: KsFunction, index: number}> {
+  public getFunctionAtPosition(
+    pos: Position,
+    uri: string,
+  ): Maybe<{ func: KsFunction; index: number }> {
     // we need the document info to lookup a signiture
     const documentInfo = this.documentInfos.get(uri);
     if (empty(documentInfo)) return undefined;
@@ -437,7 +491,13 @@ export class Analyzer {
     const finder = new ScriptFind();
 
     // attempt to find a token here get surround invalid inst context
-    const result = finder.find(script, pos, Inst.Invalid, Expr.Invalid, SuffixTerm.Call);
+    const result = finder.find(
+      script,
+      pos,
+      Inst.Invalid,
+      Expr.Invalid,
+      SuffixTerm.Call,
+    );
 
     // currently we only support invalid instructions for signiture completion
     // we could possible support call expressions as well
@@ -455,7 +515,10 @@ export class Analyzer {
       const { identifier, index } = identifierIndex;
 
       // resolve the token to make sure it's actually a function
-      const ksFunction = documentInfo.symbolsTable.scopedFunctionTracker(pos, identifier);
+      const ksFunction = documentInfo.symbolsTable.scopedFunctionTracker(
+        pos,
+        identifier,
+      );
       if (empty(ksFunction)) {
         return undefined;
       }
@@ -478,37 +541,34 @@ export class Analyzer {
   }
 
   // generate the ast from the document string
-  private async parseDocument(uri: string, text: string): Promise<ScriptResult> {
-    this.logger.log('');
-    this.logger.log(`Scanning ${uri}`);
-
+  private async parseDocument(
+    uri: string,
+    text: string,
+  ): Promise<ScriptResult> {
+    this.logger.info('');
+    this.logger.info('-------------Lexical Analysis------------');
+    
     performance.mark('scanner-start');
-    const scanner = new Scanner(text, uri);
+    const scanner = new Scanner(text, uri, this.logger, this.tracer);
     const { tokens, scanErrors } = scanner.scanTokens();
     performance.mark('scanner-end');
-
+    
     // if scanner found errors report those immediately
     if (scanErrors.length > 0) {
       this.logger.warn(`Scanning encountered ${scanErrors.length} Errors.`);
     }
-
-    // parse scanned tokens
-    this.logger.log(`Parsing ${uri}`);
-
+    
     performance.mark('parser-start');
-    const parser = new Parser(uri, tokens);
+    const parser = new Parser(uri, tokens, this.logger, this.tracer);
     const result = parser.parse();
     performance.mark('parser-end');
-
-    // log errors
-    if (result.parseErrors.length > 0) {
-      this.logger.warn(`Parser encountered ${result.parseErrors.length} Errors.`);
-    }
 
     // measure performance
     performance.measure('Scanner', 'scanner-start', 'scanner-end');
     performance.measure('Parser', 'parser-start', 'parser-end');
     performance.clearMarks();
+
+    this.logger.info('--------------------------------------');
 
     return {
       scanErrors,
@@ -520,21 +580,25 @@ export class Analyzer {
   private getValidUri(uri: string, runInsts: RunInstType[]): ILoadData[] {
     // generate uris then remove empty or preloaded documents
     return runInsts
-      .map(inst => this.pathResolver.resolveUri(
-        {
-          uri,
-          range: { start: inst.start, end: inst.end },
-        },
-        runPath(inst)))
+      .map(inst =>
+        this.pathResolver.resolveUri(
+          {
+            uri,
+            range: { start: inst.start, end: inst.end },
+          },
+          runPath(inst),
+        ),
+      )
       .filter(notEmpty);
-      // .filter(uriInsts => !this.documentInfos.has(uriInsts.uri));
+    // .filter(uriInsts => !this.documentInfos.has(uriInsts.uri));
   }
 
   // load an validate a file from disk
-  private async* loadAndValidateDocument(
+  private async *loadAndValidateDocument(
     parentUri: string,
     { uri, caller, path }: ILoadData,
-    depth: number): AsyncIterableIterator<ValidateResult> {
+    depth: number,
+  ): AsyncIterableIterator<ValidateResult> {
     try {
       // non ideal fix for depedency cycle
       // TODO we need to actually check for cycles and do something else
@@ -546,12 +610,14 @@ export class Analyzer {
       const validated = this.tryFindDocument(path, uri);
       if (empty(validated)) {
         return {
-          diagnostics: [{
-            uri: parentUri,
-            range: caller,
-            severity: DiagnosticSeverity.Error,
-            message: `Unable to find ${path}`,
-          }],
+          diagnostics: [
+            {
+              uri: parentUri,
+              range: caller,
+              severity: DiagnosticSeverity.Error,
+              message: `Unable to find ${path}`,
+            },
+          ],
         };
       }
 
@@ -561,22 +627,27 @@ export class Analyzer {
     } catch (err) {
       // if we already checked for the file exists but failed anyways??
       return {
-        diagnostics: [{
-          uri: parentUri,
-          range: caller,
-          severity: DiagnosticSeverity.Error,
-          message: `Unable to read ${path}`,
-        }],
+        diagnostics: [
+          {
+            uri: parentUri,
+            range: caller,
+            severity: DiagnosticSeverity.Error,
+            message: `Unable to read ${path}`,
+          },
+        ],
       };
     }
   }
 
-  private tryFindDocument(path: string, uri: string): Maybe<{path: string, uri: string}> {
+  private tryFindDocument(
+    path: string,
+    uri: string,
+  ): Maybe<{ path: string; uri: string }> {
     const ext = extname(path);
 
     switch (ext) {
       case '.ks':
-      // case '.ksm': probably need to report we can't read ksm files
+        // case '.ksm': probably need to report we can't read ksm files
         if (existsSync(path)) {
           return { path, uri };
         }
@@ -593,19 +664,11 @@ export class Analyzer {
   }
 }
 
-// convert scan error to diagnostic
-const scanToDiagnostics = (error: IScannerError, uri: string): IDiagnosticUri => {
-  return {
-    uri,
-    severity: DiagnosticSeverity.Error,
-    range: { start: error.start, end: error.end },
-    message: error.message,
-    source: 'kos-language-server',
-  };
-};
-
 // convert parse error to diagnostic
-const parseToDiagnostics = (error: IParseError, uri: string): IDiagnosticUri => {
+const parseToDiagnostics = (
+  error: IParseError,
+  uri: string,
+): IDiagnosticUri => {
   return {
     uri,
     severity: DiagnosticSeverity.Error,
@@ -616,36 +679,6 @@ const parseToDiagnostics = (error: IParseError, uri: string): IDiagnosticUri => 
 };
 
 // convert resolver error to diagnostic
-const resolverToDiagnostics = (error: IResolverError, uri: string): IDiagnosticUri => {
-  let severity: DiagnosticSeverity;
-  switch (error.kind)
-  {
-    case ResolverErrorKind.error:
-      severity = DiagnosticSeverity.Warning;
-      break;
-    case ResolverErrorKind.warning:
-      severity = DiagnosticSeverity.Information;
-      break;
-    default:
-      throw new Error(`Unexpected resolver error kind ${error.kind}`);
-  }
-
-  return {
-    uri,
-    severity,
-    range: { start: error.start, end: error.end },
-    message: error.message,
-    source: 'kos-language-server',
-  };
-};
-
-// convert type checking error to diagnostic
-const typeCheckerToDiagnostics = (error: ITypeError, uri: string): IDiagnosticUri => {
-  return {
-    uri,
-    severity: DiagnosticSeverity.Hint,
-    range: { start: error.start, end: error.end },
-    message: error.message,
-    source: 'kos-language-server',
-  };
+const addDiagnosticsUri = (error: Diagnostic, uri: string): IDiagnosticUri => {
+  return { uri, ...error };
 };

@@ -5,18 +5,38 @@
 
 trigger:
 - master
+- development
 
 pool:
   vmImage: 'Ubuntu-16.04'
 
+# setup node
 steps:
 - task: NodeTool@0
   inputs:
     versionSpec: '10.x'
   displayName: 'Install Node.js'
 
+# install node dependencies and compile with typescript
 - script: |
     npm install
-    npm run compile
+    npm run prod
   displayName: 'npm install and compile'
 
+# run test
+- script: npx jest --ci --config server/jest.config.js
+  displayName: 'jest test runner'
+
+# publish test results
+- task: PublishTestResults@2
+  condition: succeededOrFailed()
+  inputs:
+    testRunner: JUnit
+    testResultsFiles: '$(System.DefaultWorkingDirectory)/junit.xml'
+
+# publish coverage results
+- task: PublishCodeCoverageResults@1
+  inputs: 
+    codeCoverageTool: Cobertura
+    summaryFileLocation: '$(System.DefaultWorkingDirectory)/server/coverage/coverage.xml'
+    reportDirectory: '$(System.DefaultWorkingDirectory)/server/coverage'

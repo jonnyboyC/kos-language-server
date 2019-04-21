@@ -1,17 +1,17 @@
-# KOS Language Server
+# kOS Language Server
 
-A language server for the [KOS](https://github.com/KSP-KOS/KOS) mod for Kerbal Space Program. A language server can provide an IDE language support services for a target language, in this case KOS. The main idea here being that adding language support to new IDES is easier as more of the code can be reused between implmentions. For more infromation read this article about the language server protocol [here](https://langserver.org/). As of now the project has only one client of the server an extension for [Visual Studio Code](https://code.visualstudio.com/). The [vscode-extension can be found here](https://marketplace.visualstudio.com/items?itemName=JohnChabot.kos-vscode)
+[![Build Status](https://dev.azure.com/johnchabot2013/KOS-Language-Server/_apis/build/status/jonnyboyC.kos-language-server?branchName=master)](https://dev.azure.com/johnchabot2013/KOS-Language-Server/_build/latest?definitionId=1&branchName=master)
 
-This project is heavily inspired by the [crafting interpreters](http://craftinginterpreters.com/) series. Definitely check it out if your interested in creating your own language.
+A language server for Kerboscript within the [KOS](https://github.com/KSP-KOS/KOS) mod for Kerbal Space Program. A [language server](https://langserver.org/) can provide features typical to an IDE language for the supported target language, in this case Kerboscript. 
 
-![Alt Text](https://i.imgur.com/Xh5yXJi.gif)
+The project currently has client support for [Visual Studio Code](https://code.visualstudio.com/). The extension can be found [here](https://marketplace.visualstudio.com/items?itemName=JohnChabot.kos-vscode). Some work is currently being done to get a client in place for github's Atom editor as well. For additional client support such as sublime text, vim, notepad++ or others please post an issue with the requested editor. 
 
-For additional client support such as sublime text, vim, atom, notepad++ or others please post an issue with the requested IDE. 
+![Extension Demo](https://i.imgur.com/iCixBdU.mp4)
 
-Currently the vscode client 0.3.2 implements the follow features
+## Features
+
+Currently the vscode client 0.3.3 implements the follow features
 - synatx highlighting
-- launch ksp using `ctrl+shift+p  kOS: Start Kerbal Space Program`
-- launch telnet client using `ctrl+shift+p  kOS: Connect Telnet Client`
 - brace detection
 - diagnostics on parsing errors
 - go to definition
@@ -19,14 +19,26 @@ Currently the vscode client 0.3.2 implements the follow features
 - file symbol lookup
 - identify variables that don't exist
 - identify unused variables
+- identify variables that shadow (hide) an existing variable
 - on hover type definitions (experimental)
 
-These features partial implemented and will be coming in 0.3.x
-- basic type inference 
-- type error hints
-- suffix suggestions
 
-In development I'm looking at the follow features
-- function signiture help
-- fuzzy testing of language server
-- detect and run currently viewed file view telnet
+## Commands
+All commands can be launched with `ctrl+shift+p`
+- launch kerbal space program `kOS: Start Kerbal Space Program`
+- launch telnet client using `kOS: Connect Telnet Client`
+- Route server logging to LSP inspector `kOS: Route Logging to LSP inspector`
+- Route server logging to Vscode `kOS: Route Logging to Vscode`
+
+## Settings
+These settings are currently included with the tool
+- `kos-vscode.kerbalSpaceProgramPath` Path to kerbal space program
+- `kos-vscode.telnetHost` Host name of the telnet server
+- `kos-vscode.telnetPort` Host port of the telnet server
+- `kos-vscode.lspPort` Port to send lsp message to for the [LSP Inspector](https://marketplace.visualstudio.com/items?itemName=octref.lsp-inspector-webview)
+- `kos-vscode.trace.server`
+  - `verbosity` Detail level of the logs
+  - `format` Log format
+
+## Influence
+This project is heavily inspired by the [crafting interpreters](http://craftinginterpreters.com/) series. Definitely check it out if your interested in creating your own language, or language tooling.

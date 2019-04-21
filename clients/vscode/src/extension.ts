@@ -13,9 +13,14 @@ import {
   ServerOptions,
   TransportKind,
   ForkOptions,
+  Message,
+  ErrorAction,
+  CloseAction,
 } from 'vscode-languageclient';
+import { inspectorChannelProvider, channelRouter, vscodeChannelProvider } from './commands/channelRouterProvider';
 import { telnetProvider } from './commands/telnetProvider';
 import { kspProvider } from './commands/kspProvider';
+import { parse } from 'semver';
 
 let client: LanguageClient;
 
@@ -25,6 +30,7 @@ let client: LanguageClient;
  * @param context Current extension context
  */
 export function activate(context: ExtensionContext) {
+
   // The server is implemented in node
   const serverModule = context.asAbsolutePath(
     path.join('server', 'out', 'server.js'),
@@ -32,9 +38,7 @@ export function activate(context: ExtensionContext) {
 
   // determine the major version of the bundled node process
   const { version } = process;
-  const [major] = version.slice(1)
-    .split('.')
-    .map(x => parseInt(x, 10));
+  const semver = parse(version);
 
   // The language server debug options
   // --nolazy eagerly compiles the js files so they can be debug
@@ -45,7 +49,7 @@ export function activate(context: ExtensionContext) {
   const runOptions: ForkOptions = { execArgv: [] };
 
   // async generators become default in node 10
-  if (major < 10) {
+  if (semver != null && semver.major < 10) {
     if (debugOptions.execArgv) debugOptions.execArgv.push('--harmony_async_iteration');
     if (runOptions.execArgv) runOptions.execArgv.push('--harmony_async_iteration');
   }
@@ -69,11 +73,27 @@ export function activate(context: ExtensionContext) {
   const clientOptions: LanguageClientOptions = {
     // Register the server for kos documents
     documentSelector: [{ scheme: 'file', language: 'kos' }],
+
+    errorHandler: {
+      error(error: Error, message: Message, count: number): ErrorAction {
+        console.log(error);
+        console.log(message);
+        console.log(count);
+
+        return ErrorAction.Continue
+      },
+      closed(): CloseAction {
+        return CloseAction.Restart;
+      }
+    },
+
+    // Allow the websocket to be an output channel
+    outputChannel: channelRouter,
   };
 
   // Create the language client and start the client.
   client = new LanguageClient(
-    'kosServer',
+    'kos-vscode',
     'KOS Language Server',
     serverOptions,
     clientOptions,
@@ -81,6 +101,14 @@ export function activate(context: ExtensionContext) {
 
   // Start the client. This will also launch the server
   client.start();
+
+  // add provider to route output to vscode
+  context.subscriptions.push(
+    commands.registerCommand(vscodeChannelProvider.command, vscodeChannelProvider.commandCallback))
+
+  // add provider to route output to a websocket
+  context.subscriptions.push(
+    commands.registerCommand(inspectorChannelProvider.command, inspectorChannelProvider.commandCallback))
 
   // add run provider to commands
   context.subscriptions.push(

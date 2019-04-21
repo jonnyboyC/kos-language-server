@@ -1,30 +1,64 @@
 import {
-  IExprClass, IInst, IExprVisitor,
-  IExpr, IExprClassVisitor,
-  GrammarNode, Distribution, IExprPasser, SyntaxKind,
+  IExprClass,
+  IInst,
+  IExprVisitor,
+  IExpr,
+  IExprClassVisitor,
+  GrammarNode,
+  Distribution,
+  IExprPasser,
+  SyntaxKind,
 } from './types';
 import * as SuffixTerm from './suffixTerm';
 import { TokenType } from '../entities/tokentypes';
 import { IToken } from '../entities/types';
 import { Range, Position } from 'vscode-languageserver';
 import {
-  createGrammarUnion, createGrammarOptional,
-  createGrammarRepeat, createConstant,
+  createGrammarUnion,
+  createGrammarOptional,
+  createGrammarRepeat,
+  createConstant,
   createExponential,
 } from './grammarNodes';
 import { empty } from '../utilities/typeGuards';
 import { NodeBase } from './base';
+import { flatten } from '../utilities/arrayUtils';
+import { joinLines } from './toStringUtils';
 
+/**
+ * Expression base class
+ */
 export abstract class Expr extends NodeBase implements IExpr {
+  /**
+   * Return the tree node type of expression
+   */
   get tag(): SyntaxKind.expr {
     return SyntaxKind.expr;
   }
 
+  /**
+   * All expressions implement the pass method
+   * Called when the node should be passed through
+   * @param visitor visitor object
+   */
   public abstract pass<T>(visitor: IExprPasser<T>): T;
+
+  /**
+   * All expressions implement the accept method
+   * Called when the node should execute the visitors methods
+   * @param visitor visitor object
+   */
   public abstract accept<T>(visitor: IExprVisitor<T>): T;
 }
 
+/**
+ * Container for tokens constituting an invalid expression
+ */
 export class Invalid extends Expr {
+  /**
+   * Invalid expression constructor
+   * @param tokens all tokens in the invalid range
+   */
   constructor(public readonly tokens: IToken[]) {
     super();
   }
@@ -41,8 +75,8 @@ export class Invalid extends Expr {
     return [...this.tokens];
   }
 
-  public toString(): string {
-    return this.tokens.join(', ');
+  public toLines(): string[] {
+    return [this.tokens.map(t => t.lexeme).join('')];
   }
 
   public accept<T>(visitor: IExprVisitor<T>): T {
@@ -58,13 +92,26 @@ export class Invalid extends Expr {
   }
 }
 
+/**
+ * Class holding all valid binary expressions in KOS
+ */
 export class Binary extends Expr {
+  /**
+   * Grammar for the binary expression
+   */
   public static grammar: GrammarNode[];
 
+  /**
+   * Constructor for all binary expressions
+   * @param left left expression of the operation
+   * @param operator the operator
+   * @param right right expression of the operation
+   */
   constructor(
     public readonly left: IExpr,
     public readonly operator: IToken,
-    public readonly right: IExpr) {
+    public readonly right: IExpr,
+  ) {
     super();
   }
 
@@ -81,7 +128,16 @@ export class Binary extends Expr {
   }
 
   public toString(): string {
-    return `${this.left.toString()} ${this.operator.lexeme} ${this.right.toString()}`;
+    return `${this.left.toString()} ${
+      this.operator.lexeme
+    } ${this.right.toString()}`;
+  }
+
+  public toLines(): string[] {
+    const leftLines = this.left.toLines();
+    const rightLines = this.right.toLines();
+
+    return joinLines(` ${this.operator.lexeme} `, leftLines, rightLines);
   }
 
   public accept<T>(visitor: IExprVisitor<T>): T {
@@ -97,12 +153,21 @@ export class Binary extends Expr {
   }
 }
 
+/**
+ * Class holding all valid unary expressions in KOS
+ */
 export class Unary extends Expr {
+  /**
+   * Grammar for the unary expressions
+   */
   public static grammar: GrammarNode[];
 
-  constructor(
-    public readonly operator: IToken,
-    public readonly factor: IExpr) {
+  /**
+   * Unary expression constructor
+   * @param operator unary operator
+   * @param factor factor
+   */
+  constructor(public readonly operator: IToken, public readonly factor: IExpr) {
     super();
   }
 
@@ -122,6 +187,20 @@ export class Unary extends Expr {
     return `${this.operator.lexeme} ${this.factor.toString()}`;
   }
 
+  public toLines(): string[] {
+    const lines = this.factor.toLines();
+
+    switch (this.operator.type) {
+      case TokenType.plus:
+      case TokenType.minus:
+        lines[0] = `${this.operator.lexeme}${lines[0]}`;
+        return lines;
+      default:
+        lines[0] = `${this.operator.lexeme} ${lines[0]}`;
+        return lines;
+    }
+  }
+
   public accept<T>(visitor: IExprVisitor<T>): T {
     return visitor.visitUnary(this);
   }
@@ -135,13 +214,26 @@ export class Unary extends Expr {
   }
 }
 
+/**
+ * Class holding expression with exponents
+ */
 export class Factor extends Expr {
+  /**
+   * Grammer for factor expressions
+   */
   public static grammar: GrammarNode[];
 
+  /**
+   * Factor constructor
+   * @param suffix base expression
+   * @param power exponent token
+   * @param exponent exponent expression
+   */
   constructor(
     public readonly suffix: IExpr,
     public readonly power: IToken,
-    public readonly exponent: IExpr) {
+    public readonly exponent: IExpr,
+  ) {
     super();
   }
 
@@ -157,8 +249,12 @@ export class Factor extends Expr {
     return [this.suffix, this.power, this.exponent];
   }
 
-  public toString(): string {
-    return `${this.suffix.toString()} ${this.power.toString()} ${this.exponent.toString()}`;
+  public toLines(): string[] {
+    return joinLines(
+      this.power.lexeme,
+      this.suffix.toLines(),
+      this.exponent.toLines(),
+    );
   }
 
   public accept<T>(visitor: IExprVisitor<T>): T {
@@ -174,13 +270,26 @@ export class Factor extends Expr {
   }
 }
 
+/**
+ * Class holding all anonymous functions
+ */
 export class AnonymousFunction extends Expr {
+  /**
+   * Grammar for anonymous functions
+   */
   public static grammar: GrammarNode[];
 
+  /**
+   * Anonymous Function constructor
+   * @param open open paren token
+   * @param insts function instructions
+   * @param close close paren token
+   */
   constructor(
     public readonly open: IToken,
     public readonly insts: IInst[],
-    public readonly close: IToken) {
+    public readonly close: IToken,
+  ) {
     super();
   }
 
@@ -196,8 +305,21 @@ export class AnonymousFunction extends Expr {
     return [this.open, ...this.insts, this.close];
   }
 
-  public toString(): string {
-    return `{${this.insts.map(i => i.toString()).join(' ')}}`;
+  public toLines(): string[] {
+    const lines = flatten(this.insts.map(inst => inst.toLines()));
+
+    if (lines.length === 0) {
+      return [`${this.open.lexeme} ${this.close.lexeme}`];
+    }
+
+    if (lines.length === 1) {
+      return [`${this.open.lexeme} ${lines[0]} ${this.close.lexeme}`];
+    }
+
+    return [`${this.open.lexeme}`].concat(
+      ...lines.map(line => `    ${line}`),
+      `${this.close.lexeme}`,
+    );
   }
 
   public accept<T>(visitor: IExprVisitor<T>): T {
@@ -213,13 +335,26 @@ export class AnonymousFunction extends Expr {
   }
 }
 
+/**
+ * Class holding all kos suffixes
+ */
 export class Suffix extends Expr {
+  /**
+   * Grammar for suffixes
+   */
   public static grammar: GrammarNode[];
 
+  /**
+   * Suffix constructor
+   * @param suffixTerm base suffix term
+   * @param colon optional suffix color
+   * @param trailer optional suffix trailer
+   */
   constructor(
     public readonly suffixTerm: SuffixTerm.SuffixTerm,
     public colon?: IToken,
-    public trailer?: SuffixTerm.SuffixTrailer) {
+    public trailer?: SuffixTerm.SuffixTrailer,
+  ) {
     super();
   }
 
@@ -228,9 +363,7 @@ export class Suffix extends Expr {
   }
 
   public get end(): Position {
-    return empty(this.trailer)
-      ? this.suffixTerm.end
-      : this.trailer.end;
+    return empty(this.trailer) ? this.suffixTerm.end : this.trailer.end;
   }
 
   public get ranges(): Range[] {
@@ -265,12 +398,15 @@ export class Suffix extends Expr {
     return false;
   }
 
-  public toString(): string {
+  public toLines(): string[] {
+    const suffixTermLines = this.suffixTerm.toLines();
+
     if (!empty(this.colon) && !empty(this.trailer)) {
-      return `${this.suffixTerm.toString()}${this.colon.lexeme}${this.trailer.toString()}`;
+      const trailerLines = this.trailer.toLines();
+      return joinLines(this.colon.lexeme, suffixTermLines, trailerLines);
     }
 
-    return this.suffixTerm.toString();
+    return suffixTermLines;
   }
 
   public accept<T>(visitor: IExprVisitor<T>): T {
@@ -291,6 +427,7 @@ export const validExprTypes: [IExprClass, Distribution][] = [
   [Unary, createConstant(0.5)],
   [Factor, createConstant(0.5)],
   [Suffix, createConstant(3)],
+  // TODO update when insts included
   [AnonymousFunction, createConstant(0)],
 ];
 
@@ -325,16 +462,12 @@ Unary.grammar = [
       [TokenType.defined, createConstant(1)],
     ),
   ),
-  Factor,
+  createGrammarUnion([Factor, createConstant(1)], [Suffix, createConstant(3)]),
 ];
 
 Factor.grammar = [
   Suffix,
-  createGrammarOptional(
-    createExponential(2),
-    TokenType.power,
-    Suffix,
-  ),
+  createGrammarOptional(createExponential(2), TokenType.power, Suffix),
 ];
 
 Suffix.grammar = [

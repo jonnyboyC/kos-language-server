@@ -3,8 +3,7 @@ import * as Inst from './inst';
 import * as SuffixTerm from './suffixTerm';
 import { Var, Lock, Func, Param } from './declare';
 import { IToken } from '../entities/types';
-import { Range, Location } from 'vscode-languageserver';
-import { IScannerError } from '../scanner/types';
+import { Range, Location, Diagnostic } from 'vscode-languageserver';
 import { TokenType } from '../entities/tokentypes';
 
 export interface IRangeSequence extends Range {
@@ -15,6 +14,7 @@ export interface IDeclScope extends Range {
   declare?: IToken;
   scope?: IToken;
   type: ScopeType;
+  toString(): string;
 }
 
 export type SuffixTermTrailer = SuffixTerm.Call
@@ -28,6 +28,7 @@ export type Atom = SuffixTerm.Literal
 
 export interface IParameter extends IRangeSequence {
   identifier: IToken;
+  toLines(): string[];
 }
 
 export enum SyntaxKind {
@@ -43,6 +44,8 @@ export interface IScript extends IRangeSequence {
   runInsts: RunInstType[];
   uri: string;
   toLocation(): Location;
+  toLines(): string[];
+  toString(): string;
   tag: SyntaxKind.script;
 }
 
@@ -50,6 +53,9 @@ export interface IInst extends
   IInstVisitable,
   IInstPassable,
   IRangeSequence {
+  toLocation(uri: string): Location;
+  toLines(): string[];
+  toString(): string;
   tag: SyntaxKind.inst;
 }
 
@@ -58,6 +64,7 @@ export interface IExpr extends
   IExprPassable,
   IRangeSequence {
   toLocation(uri: string): Location;
+  toLines(): string[];
   toString(): string;
   tag: SyntaxKind.expr;
 }
@@ -142,13 +149,13 @@ export interface IParseError extends Range {
   inner: IParseError[];
 }
 
-export interface ParseResult {
+export interface IParseResult {
   script: IScript;
   parseErrors: IParseError[];
 }
 
-export interface ScriptResult extends ParseResult {
-  scanErrors: IScannerError[];
+export interface ScriptResult extends IParseResult {
+  scanErrors: Diagnostic[];
 }
 
 export interface IFindResult {

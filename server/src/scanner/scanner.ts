@@ -1,28 +1,96 @@
 import { TokenType } from '../entities/tokentypes';
-import { ITokenMap, ScanResult, IScannerError, IScanResult } from './types';
+import { ITokenMap, IScanResult, ScanKind } from './types';
 import { Token, MutableMarker } from '../entities/token';
-import { WhiteSpace } from './whitespace';
-import { ScannerError } from './ScannerError';
 import { IToken } from '../entities/types';
 import { empty } from '../utilities/typeGuards';
 import { mockLogger, mockTracer } from '../utilities/logger';
+import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
+import { createDiagnostic } from '../utilities/diagnosticsUtils';
+import { sep } from 'path';
 
+type Result<T, S extends ScanKind> = {
+  result: T;
+  kind: S;
+};
+
+type TokenResult = Result<Token, ScanKind.Token>;
+type WhitespaceResult = Result<null, ScanKind.Whitespace>;
+type DiagnosticResult = Result<Diagnostic, ScanKind.Diagnostic>;
+
+type ScanResult = TokenResult | WhitespaceResult | DiagnosticResult;
+
+/**
+ * Class for scanning kerboscript files
+ */
 export class Scanner {
+  /**
+   * source string for scanning
+   */
   private source: string;
+
+  /**
+   * start character of current token
+   */
   private start: number;
+
+  /**
+   * current character position
+   */
   private current: number;
+
+  /**
+   * current line and character position
+   */
   private currentPosition: MutableMarker;
+
+  /**
+   * start character and line of current token
+   */
   private startPosition: MutableMarker;
+
+  /**
+   * uri of the source file
+   */
   private uri: string;
+
+  /**
+   * logger for the scanner
+   */
   private readonly logger: ILogger;
+
+  /**
+   * tracer for the scanner
+   */
   private readonly tracer: ITracer;
 
-  // scanner initializer
+  /**
+   * results for tokens
+   */
+  private readonly tokenResult: TokenResult;
+
+  /**
+   * results for whitespace
+   */
+  private readonly whiteSpaceResult: WhitespaceResult;
+
+  /**
+   * results for diagnostic
+   */
+  private readonly diagnosticResult: DiagnosticResult;
+
+  /**
+   * Scanner constructor
+   * @param source source string
+   * @param uri source uri
+   * @param logger logger for scanner
+   * @param tracer tracer for scanner
+   */
   constructor(
     source: string,
     uri: string = '',
     logger: ILogger = mockLogger,
-    tracer: ITracer = mockTracer) {
+    tracer: ITracer = mockTracer,
+  ) {
     this.source = source;
     this.logger = logger;
     this.tracer = tracer;
@@ -31,32 +99,76 @@ export class Scanner {
     this.current = 0;
     this.startPosition = new MutableMarker(0, 0);
     this.currentPosition = new MutableMarker(0, 0);
+
+    this.tokenResult = {
+      result: new Token(
+        TokenType.not,
+        'placeholder',
+        undefined,
+        { line: 0, character: 0 },
+        { line: 0, character: 0 },
+        'placeholder',
+      ),
+      kind: ScanKind.Token,
+    };
+
+    this.whiteSpaceResult = {
+      result: null,
+      kind: ScanKind.Whitespace,
+    };
+
+    this.diagnosticResult = {
+      result: Diagnostic.create(
+        {
+          start: { line: 0, character: 0 },
+          end: { line: 0, character: 0 },
+        },
+        'placeholder',
+      ),
+      kind: ScanKind.Diagnostic,
+    };
   }
 
-  // scan all available tokens
+  /**
+   * scan all available tokens
+   */
   public scanTokens(): IScanResult {
     try {
       // create arrays for valid tokens and encountered errors
       const tokens: IToken[] = [];
-      const scanErrors: IScannerError[] = [];
+      const scanErrors: Diagnostic[] = [];
+
+      const splits = this.uri.split(sep);
+      const file = splits[splits.length - 1];
+
+      this.logger.info(
+        `Scanning started for ${file} with ${this.source.length} characters.`,
+      );
 
       // begin scanning
       while (!this.isAtEnd()) {
         this.start = this.current;
-        this.startPosition.character  = this.currentPosition.character;
+        this.startPosition.character = this.currentPosition.character;
         this.startPosition.line = this.currentPosition.line;
 
         const result = this.scanToken();
-        switch (result.tag) {
-          case 'token':
-            tokens.push(result);
+        switch (result.kind) {
+          case ScanKind.Token:
+            tokens.push(result.result);
             break;
-          case 'scannerError':
-            scanErrors.push(result);
+          case ScanKind.Diagnostic:
+            scanErrors.push(result.result);
             break;
-          case 'whitespace':
+          case ScanKind.Whitespace:
             break;
         }
+      }
+
+      this.logger.info(
+        `Scanning finished for ${file} with ${tokens.length} tokens.`,
+      );
+      if (scanErrors.length > 0) {
+        this.logger.warn(`Scanning encounted ${scanErrors.length} errors`);
       }
 
       return { tokens, scanErrors };
@@ -71,27 +183,48 @@ export class Scanner {
     }
   }
 
+  /**
+   * Scan a single token
+   */
   private scanToken(): ScanResult {
     const c = this.advance();
     switch (c) {
-      case '(': return this.generateToken(TokenType.bracketOpen);
-      case ')': return this.generateToken(TokenType.bracketClose);
-      case '{': return this.generateToken(TokenType.curlyOpen);
-      case '}': return this.generateToken(TokenType.curlyClose);
-      case '[': return this.generateToken(TokenType.squareOpen);
-      case ']': return this.generateToken(TokenType.squareClose);
-      case ',': return this.generateToken(TokenType.comma);
-      case ':': return this.generateToken(TokenType.colon);
-      case '@': return this.generateToken(TokenType.atSign);
-      case '#': return this.generateToken(TokenType.arrayIndex);
+      case '(':
+        return this.generateToken(TokenType.bracketOpen);
+      case ')':
+        return this.generateToken(TokenType.bracketClose);
+      case '{':
+        return this.generateToken(TokenType.curlyOpen);
+      case '}':
+        return this.generateToken(TokenType.curlyClose);
+      case '[':
+        return this.generateToken(TokenType.squareOpen);
+      case ']':
+        return this.generateToken(TokenType.squareClose);
+      case ',':
+        return this.generateToken(TokenType.comma);
+      case ':':
+        return this.generateToken(TokenType.colon);
+      case '@':
+        return this.generateToken(TokenType.atSign);
+      case '#':
+        return this.generateToken(TokenType.arrayIndex);
 
-      case '^': return this.generateToken(TokenType.power);
-      case '+': return this.generateToken(TokenType.plus);
-      case '-': return this.generateToken(TokenType.minus);
-      case '*': return this.generateToken(TokenType.multi);
-      case '=': return this.generateToken(TokenType.equal);
+      case '^':
+        return this.generateToken(TokenType.power);
+      case '+':
+        return this.generateToken(TokenType.plus);
+      case '-':
+        return this.generateToken(TokenType.minus);
+      case '*':
+        return this.generateToken(TokenType.multi);
+      case '=':
+        return this.generateToken(TokenType.equal);
       case '.':
-        if (this.isDigit(this.peekNext())) return this.number();
+        if (this.isDigit(this.peekNext())) {
+          this.decrement();
+          return this.number();
+        }
         return this.generateToken(TokenType.period);
       case '<':
         if (this.match('=')) return this.generateToken(TokenType.lessEqual);
@@ -103,16 +236,16 @@ export class Scanner {
       case '/':
         if (this.match('/')) {
           while (this.peek() !== '\n' && !this.isAtEnd()) this.advance();
-          return new WhiteSpace();
+          return this.whiteSpaceResult;
         }
         return this.generateToken(TokenType.div);
       case ' ':
       case '\r':
       case '\t':
-        return new WhiteSpace();
+        return this.whiteSpaceResult;
       case '\n':
         this.incrementLine();
-        return new WhiteSpace();
+        return this.whiteSpaceResult;
       case '"':
         return this.string();
       default:
@@ -122,13 +255,19 @@ export class Scanner {
         if (this.isAlpha(c)) {
           return this.identifier();
         }
-        return this.generateError(`Unexpected symbol, uncountered ${
-          this.source.substr(this.start, this.current - this.start)}`);
+        return this.generateError(
+          `Unexpected symbol, uncountered ${this.source.substr(
+            this.start,
+            this.current - this.start,
+          )}`,
+        );
     }
   }
 
-  // extract any identifiers
-  private identifier(): Token {
+  /**
+   * extract any identifiers
+   */
+  private identifier(): TokenResult {
     while (this.isAlphaNumeric(this.peek())) this.advance();
 
     // if "." immediatily followed by alpha numeri
@@ -136,7 +275,9 @@ export class Scanner {
       return this.fileIdentifier();
     }
 
-    const text = this.source.substr(this.start, this.current - this.start).toLowerCase();
+    const text = this.source
+      .substr(this.start, this.current - this.start)
+      .toLowerCase();
     const keyword = keywords.get(text);
     if (!empty(keyword)) {
       return this.generateToken(keyword.type, keyword.literal, true);
@@ -144,19 +285,27 @@ export class Scanner {
     return this.generateToken(TokenType.identifier, undefined, true);
   }
 
-    // extract a file identifier
-  private fileIdentifier(): Token {
-    while (this.isAlphaNumeric(this.peek())
-    || (this.peek() === '.' && this.isAlphaNumeric(this.peekNext()))) {
+  /**
+   * extract a file identifier
+   */
+  private fileIdentifier(): TokenResult {
+    while (
+      this.isAlphaNumeric(this.peek()) ||
+      (this.peek() === '.' && this.isAlphaNumeric(this.peekNext()))
+    ) {
       this.advance();
       while (this.isAlphaNumeric(this.peek())) this.advance();
     }
 
-    const value = this.source.substr(this.start, this.current - this.start).toLowerCase();
+    const value = this.source
+      .substr(this.start, this.current - this.start)
+      .toLowerCase();
     return this.generateToken(TokenType.fileIdentifier, value, true);
   }
 
-  // extract string
+  /**
+   * extract a string
+   */
   private string(): ScanResult {
     // while closing " not found increment new lines
     while (this.peek() !== '"' && !this.isAtEnd()) {
@@ -171,54 +320,63 @@ export class Scanner {
 
     // generate literal
     this.advance();
-    const value = this.source.substr(this.start + 1, this.current - this.start - 2);
+    const value = this.source.substr(
+      this.start + 1,
+      this.current - this.start - 2,
+    );
     return this.generateToken(TokenType.string, value);
   }
 
-  // extract number
-  private number(): ScanResult {
+  /**
+   * extract a number
+   */
+  private number(): TokenResult | DiagnosticResult {
     let isFloat = this.advanceNumber();
+    const possibleNumber = this.generateNumber(isFloat);
+
     this.advanceWhitespace();
 
     const current = this.peek();
     let next = this.peekNext();
 
-    // parse exponent
-    if ((current === 'e' || current === 'E') && (
-      next === '+' ||
-      next === '-' ||
-      this.isWhitespace(next) ||
-      this.isDigit(next))) {
-
-      isFloat = true;
-
-      // parse optional exponent sign
-      next = this.peekNext();
-      while (this.isWhitespace(next) || next === '+' || next === '-') {
-        this.advance();
-        next = this.peekNext();
-      }
-
-      // unsure number follows exponent
-      if (!this.isDigit(this.peekNext())) {
-        return this.generateError('Expected number following exponet e');
-      }
-
-      // advance exponent number
-      this.advance();
-      this.advanceNumber();
+    // check if exponent
+    if (
+      !(current === 'e' || current === 'E') ||
+      !(
+        next === '+' ||
+        next === '-' ||
+        this.isWhitespace(next) ||
+        this.isDigit(next)
+      )
+    ) {
+      return possibleNumber;
     }
+
+    isFloat = true;
+
+    // parse optional exponent sign
+    next = this.peekNext();
+    while (this.isWhitespace(next) || next === '+' || next === '-') {
+      this.advance();
+      next = this.peekNext();
+    }
+
+    // unsure number follows exponent
+    if (!this.isDigit(this.peekNext())) {
+      return this.generateError('Expected number following exponet e');
+    }
+
+    // advance exponent number
+    this.advance();
+    this.advanceNumber();
 
     // generate float
-    const numberString = this.numberString();
-    if (isFloat) {
-      return this.generateToken(TokenType.double, parseFloat(numberString));
-    }
-
-    return this.generateToken(TokenType.integer, parseInt(numberString, 10));
+    return this.generateNumber(isFloat);
   }
 
-  // advance a number as either an int or double
+  /**
+   * advance a number as either an int or double
+   */
   private advanceNumber(): boolean {
     this.advanceNumberComponent();
     if (this.peek() === '.' && this.isDigit(this.peekNext())) {
@@ -230,91 +388,150 @@ export class Scanner {
     return false;
   }
 
-  // advance number for digits and underscores
+  /**
+   * advance a number before or after a period
+   */
   private advanceNumberComponent(): void {
     let current = this.peek();
-    while (this.isDigit(current)
-      || this.isUnderScore(current)
-      || this.isWhitespace(current)) {
-      this.advance();
+    while (this.isDigit(current) || current === '_') {
+      this.increment();
       current = this.peek();
     }
   }
 
-  // advance through whitespace
+  /**
+   * advance through whitespace
+   */
   private advanceWhitespace(): void {
     let current = this.peek();
     while (this.isWhitespace(current)) {
+      this.increment();
       current = this.peek();
     }
   }
 
-  // remove underscores from number string literal
-  private numberString(): string {
-    return this.source
+  /**
+   * remove underscores from number and generate token
+   * @param isFloat is the token a float
+   */
+  private generateNumber(isFloat: boolean): TokenResult {
+    const numberString = this.source
       .substr(this.start, this.current - this.start)
-      .replace(/(\_|\s)/g, '');
+      .replace(/(\_)/g, '');
+
+    return isFloat
+      ? this.generateToken(TokenType.double, parseFloat(numberString))
+      : this.generateToken(TokenType.integer, parseInt(numberString, 10));
   }
 
-  // generate token from provided token type and optional literal
-  private generateToken(type: TokenType, literal?: any, toLower?: boolean): Token {
+  /**
+   * generate token from provided token type and optional literal
+   * @param type token type
+   * @param literal optional literal
+   * @param toLower should the lexeme be lowered
+   */
+  private generateToken(
+    type: TokenType,
+    literal?: any,
+    toLower?: boolean,
+  ): TokenResult {
     const text = toLower
       ? this.source.substr(this.start, this.current - this.start).toLowerCase()
       : this.source.substr(this.start, this.current - this.start);
 
-    return new Token(
-      type, text, literal,
+    const token = new Token(
+      type,
+      text,
+      literal,
       this.startPosition.toImmutable(),
       this.currentPosition.toImmutable(),
       this.uri,
     );
+
+    this.tokenResult.result = token;
+    return this.tokenResult;
   }
 
-  // generate error
-  private generateError(message: string): IScannerError {
-    return new ScannerError(
+  /**
+   * generate error
+   * @param message error message
+   */
+  private generateError(message: string): DiagnosticResult {
+    const diagnostic = createDiagnostic(
+      {
+        start: this.startPosition.toImmutable(),
+        end: this.currentPosition.toImmutable(),
+      },
       message,
-      this.startPosition.toImmutable(),
-      this.currentPosition.toImmutable(),
+      DiagnosticSeverity.Error,
     );
+
+    this.diagnosticResult.result = diagnostic;
+    return this.diagnosticResult;
   }
 
-  // increment line
+  /**
+   * increment line
+   */
   private incrementLine(): void {
     this.currentPosition.line += 1;
     this.currentPosition.character = 0;
   }
 
-  // incremet file pointer
+  /**
+   * Decrement the file pointer 1 character
+   */
+  private decrement(): void {
+    this.current -= 1;
+    this.currentPosition.character -= 1;
+  }
+
+  /**
+   * Increment the file pointer 1 character
+   */
   private increment(): void {
     this.current += 1;
     this.currentPosition.character += 1;
   }
 
-  // Is end of file
+  /**
+   * Is the pointer current at the end of the file
+   */
   private isAtEnd(): boolean {
     return this.current >= this.source.length;
   }
 
-  // peek ahead
+  /**
+   * Peek ahead one character, return null character if past
+   * the end
+   */
   private peekNext(): string {
     if (this.current + 1 >= this.source.length) return '\0';
     return this.source[this.current + 1];
   }
 
-  // peek current
+  /**
+   * Peek the current chacter return null character is past
+   * the end
+   */
   private peek(): string {
     if (this.isAtEnd()) return '\0';
     return this.source[this.current];
   }
 
-  // increment current file pointers and return character
+  /**
+   * Advance the pointer 1 character returning the current
+   * character
+   */
   private advance(): string {
     this.increment();
     return this.source[this.current - 1];
   }
 
-  // determine if character matches expected
+  /**
+   * Match a character, returns if match was found
+   * @param expected character
+   */
   private match(expected: string): boolean {
     if (this.isAtEnd()) return false;
     if (this.source[this.current] !== expected) return false;
@@ -323,37 +540,50 @@ export class Scanner {
     return true;
   }
 
-  // is same line whitepsace
+  /**
+   * Is the character whitespace
+   * @param c character to inspect
+   */
   private isWhitespace(c: string): boolean {
-    return c === ' '
-      || c === '\r'
-      || c === '\t';
+    return c === ' ' || c === '\r' || c === '\t';
   }
 
-  // is digit character
+  /**
+   * Is the character a digit
+   * @param c character to inspect
+   */
   private isDigit(c: string): boolean {
     return c >= '0' && c <= '9';
   }
 
-  // is alpha character
+  /**
+   * Is the character an alphabet character
+   * @param c character to inspect
+   */
   private isAlpha(c: string): boolean {
-    return identifierTest.test(c) || this.isUnderScore(c);
+    return this.isAscii(c) || c === '_' || identifierTest.test(c);
   }
 
-  // is alpha numeric
+  /**
+   * Is the current character an ascii character
+   * @param c character to inspect
+   */
+  private isAscii(c: string): boolean {
+    return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+  }
+
+  /**
+   * Is the character alpha numeric
+   * @param c character to inspect
+   */
   private isAlphaNumeric(c: string): boolean {
     return this.isAlpha(c) || this.isDigit(c);
-  }
-
-  // is underscore
-  private isUnderScore(c: string): boolean {
-    return c === '_';
   }
 }
 
 // defines unicode range of all language letters
 const identifierTest = new RegExp(
-    '^[\u0041-\u005A\u0061-\u007A\u00AA\u00B5\u00BA\u00C0-' +
+  '^[\u0041-\u005A\u0061-\u007A\u00AA\u00B5\u00BA\u00C0-' +
     '\u00D6\u00D8-\u00F6\u00F8-\u02C1\u02C6-\u02D1\u02E0-' +
     '\u02E4\u02EC\u02EE\u0370-\u0374\u0376\u0377\u037A-' +
     '\u037D\u0386\u0388-\u038A\u038C\u038E-\u03A1\u03A3-' +
@@ -435,7 +665,8 @@ const identifierTest = new RegExp(
     '\uFB46-\uFBB1\uFBD3-\uFD3D\uFD50-\uFD8F\uFD92-\uFDC7' +
     '\uFDF0-\uFDFB\uFE70-\uFE74\uFE76-\uFEFC\uFF21-\uFF3A' +
     '\uFF41-\uFF5A\uFF66-\uFFBE\uFFC2-\uFFC7\uFFCA-\uFFCF' +
-    '\uFFD2-\uFFD7\uFFDA-\uFFDC]*$');
+    '\uFFD2-\uFFD7\uFFDA-\uFFDC]*$',
+);
 
 // keyword map
 const keywords: ITokenMap = new Map([

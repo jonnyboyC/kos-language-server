@@ -130,7 +130,7 @@ lock throttle to th.
 	
 	local vd_runway_edit is vecdraw(v(0,0,0),v(0,0,0),rgba(1,0.7,0,0.5),"",1,false,40).
 	local vd_runway_normal is vecdraw(v(0,0,0),v(0,0,0),rgba(0.7,0,1,0.5),"",1,false,2).
-	
+	 
 	function saveSettings {
 		local lex is lexicon(
 			"stallSpeed", stallSpeed,

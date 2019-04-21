@@ -4,7 +4,7 @@ import { Location } from 'vscode-languageserver';
 import { IExpr, ISuffixTerm } from '../parser/types';
 import { IArgumentType, IFunctionType } from '../typeChecker/types/types';
 import { empty } from '../utilities/typeGuards';
-import { binaryRightKeyIndex } from '../utilities/positionHelpers';
+import { binaryRightKey } from '../utilities/positionUtils';
 import { builtIn } from '../utilities/constants';
 
 export class KsSymbolTracker<T extends KsSymbol>
@@ -36,7 +36,7 @@ export class KsSymbolTracker<T extends KsSymbol>
       ? [this.declared, ...this.sets.filter(set => set.uri === loc.uri)]
       : this.sets.filter(set => set.uri === loc.uri);
 
-    return binaryRightKeyIndex(ranges, loc.range.start, x => x.range);
+    return binaryRightKey(ranges, loc.range.start, x => x.range);
   }
 
   public declareType(type: IArgumentType): void {

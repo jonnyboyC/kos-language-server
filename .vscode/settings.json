@@ -9,5 +9,4 @@
   "typescript.tsc.autoDetect": "off",
   "npm.exclude": ["**/clients", "**/server"],
   "npm.enableScriptExplorer": true,
-  "python.linting.pylintEnabled": true
 }

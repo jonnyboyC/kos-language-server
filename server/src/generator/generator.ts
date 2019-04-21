@@ -2,7 +2,7 @@
 import * as Expr from '../parser/expr';
 import * as Inst from '../parser/inst';
 import * as SuffixTerm from '../parser/suffixTerm';
-import { getRandomInt } from '../utilities/randomUtilities';
+import { getRandomInt } from '../utilities/randomUtils';
 import { mockLogger, mockTracer } from '../utilities/logger';
 import {
   IExprClass, IExprClassVisitor,

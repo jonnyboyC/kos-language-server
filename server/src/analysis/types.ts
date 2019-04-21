@@ -68,17 +68,6 @@ export interface IScopeNode {
   readonly children: IScopeNode[];
 }
 
-export interface IResolverError extends Range {
-  readonly message: string;
-  readonly otherInfo: string[];
-  readonly kind: ResolverErrorKind;
-}
-
-export enum ResolverErrorKind {
-  warning,
-  error,
-}
-
 export interface ISetResolverResult {
   readonly set: Maybe<IToken>;
   readonly used: ILocalResult[];

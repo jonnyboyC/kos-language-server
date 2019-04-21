@@ -8,18 +8,18 @@ class KosLanguageClient extends atom_languageclient_1.AutoLanguageClient {
     getLanguageName() { return 'Kerbal Operating System'; }
     getServerName() { return 'kos-language-server'; }
     getConnectionType() { return 'ipc'; }
-    // startServerProcess(): LanguageServerProcess {
-    //   // return super.spawnChildNode(
-    //   //   [atom.config.get('language-kos.kosServer.path'), '--node-ipc'],
-    //   //   { stdio: [null, null, null, 'ipc'] },
-    //   // );
-    // }
+    startServerProcess() {
+        console.log("start server process");
+        return super.spawnChildNode([atom.config.get('language-kos.kosServer.path'), '--node-ipc'], { stdio: [null, null, null, 'ipc'] });
+    }
     shouldStartForEditor(editor) {
+        console.log("should start editor");
         if (!this.validateKosServerPath())
             return false;
         return super.shouldStartForEditor(editor);
     }
     validateKosServerPath() {
+        console.log("validate kos server path");
         const kosSpecifiedPath = atom.config.get('language-kos.kosServer.path');
         const isAbsolutelySpecified = path_1.isAbsolute(kosSpecifiedPath);
         const kosAbsolutePath = isAbsolutelySpecified
@@ -37,6 +37,7 @@ class KosLanguageClient extends atom_languageclient_1.AutoLanguageClient {
         return false;
     }
     openPackageSettings() {
+        console.log("open package settings");
         atom.workspace.open('atom://config/packages/language-kos');
     }
 }

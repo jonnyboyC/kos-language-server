@@ -2,22 +2,22 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"label": "compile",
+			"label": "dev",
 			"dependsOn": [
 				{
 					"type": "npm",
-					"script": "compile:vscode"
+					"script": "dev:vscode"
 				},
 				{
 					"type": "npm",
-					"script": "compile:server"
+					"script": "dev:server"
 				}
 			],
 			"problemMatcher": []
 		},
 		{
 			"type": "npm",
-			"script": "compile:vscode",
+			"script": "dev:vscode",
 			"group": "build",
 			"presentation": {
 				"panel": "dedicated",
@@ -29,7 +29,7 @@
 		},
 		{
 			"type": "npm",
-			"script": "compile:server",
+			"script": "dev:server",
 			"group": "build",
 			"presentation": {
 				"panel": "dedicated",
