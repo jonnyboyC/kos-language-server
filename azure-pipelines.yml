@@ -39,5 +39,5 @@ steps:
   inputs:
     codeCoverageTool: cobertura
     summaryFileLocation: '**/coverage/coverage.xml'
-    testResultsFiles: '**/coverage'
+    reportDirectory: '**/coverage'
 
