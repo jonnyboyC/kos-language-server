@@ -39,4 +39,3 @@ steps:
   inputs:
     codeCoverageTool: Cobertura
     summaryFileLocation: '**/coverage.xml'
-
