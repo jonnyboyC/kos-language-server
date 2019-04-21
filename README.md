@@ -6,8 +6,7 @@ A language server for Kerboscript within the [KOS](https://github.com/KSP-KOS/KO
 
 The project currently has client support for [Visual Studio Code](https://code.visualstudio.com/). The extension can be found [here](https://marketplace.visualstudio.com/items?itemName=JohnChabot.kos-vscode). Some work is currently being done to get a client in place for github's Atom editor as well. For additional client support such as sublime text, vim, notepad++ or others please post an issue with the requested editor. 
 
-![Alt Text](https://i.imgur.com/Xh5yXJi.gif)
-
+![Extension Demo](https://i.imgur.com/iCixBdU.mp4)
 
 ## Features
 
