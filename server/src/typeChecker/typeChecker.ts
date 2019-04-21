@@ -38,7 +38,7 @@ import { TokenType } from '../entities/tokentypes';
 import { nodeType } from './types/node';
 import { createFunctionType } from './types/ksType';
 import { lexiconType } from './types/collections/lexicon';
-import { zip } from '../utilities/arrayUtilities';
+import { zip } from '../utilities/arrayUtils';
 import { isSubType, hasOperator, getSuffix, hasSuffix } from './typeUitlities';
 import { voidType } from './types/primitives/void';
 import { userListType } from './types/collections/userList';
@@ -54,7 +54,7 @@ import {
 import { delegateType } from './types/primitives/delegate';
 import { TypeNode } from './typeNode';
 import { KsSymbolKind } from '../analysis/types';
-import { rangeEqual, rangeToString } from '../utilities/positionHelpers';
+import { rangeEqual, rangeToString } from '../utilities/positionUtils';
 import { listType } from './types/collections/list';
 import { bodyTargetType } from './types/orbital/bodyTarget';
 import { vesselTargetType } from './types/orbital/vesselTarget';
@@ -65,7 +65,7 @@ import { partType } from './types/parts/part';
 import { pathType } from './types/io/path';
 import { NodeBase } from '../parser/base';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
-import { createDiagnostic } from '../utilities/diagnosticsUtilities';
+import { createDiagnostic } from '../utilities/diagnosticsUtils';
 import { sep } from 'path';
 
 type Diagnostics = Diagnostic[];

@@ -22,7 +22,7 @@ import { mockLogger, mockTracer } from '../utilities/logger';
 import { SymbolTableBuilder } from './symbolTableBuilder';
 import { ILocalResult } from './types';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
-import { createDiagnostic } from '../utilities/diagnosticsUtilities';
+import { createDiagnostic } from '../utilities/diagnosticsUtils';
 import { sep } from 'path';
 
 export type Diagnostics = Diagnostic[];

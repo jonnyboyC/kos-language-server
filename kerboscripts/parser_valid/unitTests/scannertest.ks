@@ -1,6 +1,7 @@
 @lazyglobal on.
 global function test {
     parameter a, b is 10.
+    print(b).
 
     for i in a {
         print(i).
@@ -20,6 +21,8 @@ on t {
     log body:target to "example.txt".
 }
 unlock t.
+
+test(list(), 10).
 
 sas off.
 runpath("definedtest.ks").

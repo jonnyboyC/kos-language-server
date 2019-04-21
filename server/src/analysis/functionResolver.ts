@@ -19,7 +19,7 @@ import { mockLogger, mockTracer } from '../utilities/logger';
 import { SymbolState } from './types';
 import { SymbolTableBuilder } from './symbolTableBuilder';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
-import { createDiagnostic } from '../utilities/diagnosticsUtilities';
+import { createDiagnostic } from '../utilities/diagnosticsUtils';
 import { sep } from 'path';
 
 export type Diagnostics = Diagnostic[];

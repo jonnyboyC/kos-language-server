@@ -19,8 +19,8 @@ import { KsSymbolTracker, createEnitityChange } from './tracker';
 import { IArgumentType, IFunctionType } from '../typeChecker/types/types';
 import { SymbolTable } from './symbolTable';
 import { isKsVariable, isKsParameter, isKsLock } from '../entities/entityHelpers';
-import { rangeToString, positionToString } from '../utilities/positionHelpers';
-import { createDiagnostic } from '../utilities/diagnosticsUtilities';
+import { rangeToString, positionToString } from '../utilities/positionUtils';
+import { createDiagnostic } from '../utilities/diagnosticsUtils';
 import { builtIn } from '../utilities/constants';
 
 /**
@@ -101,7 +101,7 @@ export class SymbolTableBuilder {
    * Add a child symbol table to this symbol table builder
    * @param symbolTable the child symbol table
    */
-  public addScope(symbolTable: SymbolTable): void {
+  public linkTable(symbolTable: SymbolTable): void {
     this.childSymbolTables.add(symbolTable);
   }
 

@@ -1,9 +1,9 @@
 import * as expect from 'expect';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { walkDir } from '../utilities/fsUtilities';
+import { walkDir } from '../utilities/fsUtils';
 import { TokenType } from '../entities/tokentypes';
-import { zip } from '../utilities/arrayUtilities';
+import { zip } from '../utilities/arrayUtils';
 import { Scanner } from '../scanner/scanner';
 
 const testDir = join(__dirname, '../../../kerboscripts/parser_valid/');
@@ -41,6 +41,11 @@ const sequence = [
   TokenType.identifier,
   TokenType.is,
   TokenType.integer,
+  TokenType.period,
+  TokenType.print,
+  TokenType.bracketOpen,
+  TokenType.identifier,
+  TokenType.bracketClose,
   TokenType.period,
   TokenType.for,
   TokenType.identifier,
@@ -107,6 +112,15 @@ const sequence = [
   TokenType.identifier,
   TokenType.period,
   TokenType.identifier,
+  TokenType.bracketOpen,
+  TokenType.list,
+  TokenType.bracketOpen,
+  TokenType.bracketClose,
+  TokenType.comma,
+  TokenType.integer,
+  TokenType.bracketClose,
+  TokenType.period,
+  TokenType.identifier,
   TokenType.off,
   TokenType.period,
   TokenType.runPath,
@@ -126,7 +140,7 @@ test('token sequence', () => {
   expect(scanErrors.length === 0).toBe(true);
 
   for (const [type, token] of zip(sequence, tokens)) {
-    // t.log(`${TokenType[token.type]} vs ${TokenType[type]}`);
+    // console.log(`${TokenType[token.type]} vs ${TokenType[type]}`);
     expect(token.type).toBe(type);
   }
 });

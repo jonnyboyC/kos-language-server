@@ -5,7 +5,7 @@ import * as Expr from './expr';
 import * as SuffixTerm from './suffixTerm';
 import { Token } from '../entities/token';
 import { TraverseTree } from './traverseTree';
-import { flatten } from '../utilities/arrayUtilities';
+import { flatten } from '../utilities/arrayUtils';
 import { IToken } from '../entities/types';
 
 /**

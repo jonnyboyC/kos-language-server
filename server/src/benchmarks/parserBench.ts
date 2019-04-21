@@ -1,5 +1,5 @@
 import { Scanner } from '../scanner/scanner';
-import { walkDir } from '../utilities/fsUtilities';
+import { walkDir } from '../utilities/fsUtils';
 import { readFileSync, statSync } from 'fs';
 import { join } from 'path';
 import { performance } from 'perf_hooks';

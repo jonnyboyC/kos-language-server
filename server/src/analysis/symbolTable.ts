@@ -2,7 +2,7 @@ import { IScopeNode,
   KsSymbol, GraphNode, IKsSymbolTracker, KsSymbolKind,
 } from './types';
 import { Position } from 'vscode-languageserver';
-import { rangeContains } from '../utilities/positionHelpers';
+import { rangeContains } from '../utilities/positionUtils';
 import { mockLogger } from '../utilities/logger';
 import { empty } from '../utilities/typeGuards';
 import { IArgumentType, IFunctionType } from '../typeChecker/types/types';

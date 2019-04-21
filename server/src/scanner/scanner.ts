@@ -5,7 +5,7 @@ import { IToken } from '../entities/types';
 import { empty } from '../utilities/typeGuards';
 import { mockLogger, mockTracer } from '../utilities/logger';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
-import { createDiagnostic } from '../utilities/diagnosticsUtilities';
+import { createDiagnostic } from '../utilities/diagnosticsUtils';
 import { sep } from 'path';
 
 type Result<T, S extends ScanKind> = {

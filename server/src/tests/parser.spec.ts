@@ -7,7 +7,7 @@ import { Scanner } from '../scanner/scanner';
 import { INodeResult, IExpr, Atom, SuffixTermTrailer } from '../parser/types';
 import { Parser } from '../parser/parser';
 import { TokenCheck } from '../parser/tokenCheck';
-import { zip } from '../utilities/arrayUtilities';
+import { zip } from '../utilities/arrayUtils';
 import { TokenType } from '../entities/tokentypes';
 import * as Expr from '../parser/expr';
 import { empty } from '../utilities/typeGuards';

@@ -22,14 +22,14 @@ import { empty, notEmpty } from './utilities/typeGuards';
 import { ScriptFind } from './parser/scriptFind';
 import { KsFunction } from './entities/function';
 import * as Inst from './parser/inst';
-import { signitureHelper } from './utilities/signitureHelper';
+import { signitureHelper } from './utilities/signitureUtils';
 import * as Expr from './parser/expr';
 import * as SuffixTerm from './parser/suffixTerm';
 import * as Decl from './parser/declare';
 import { PathResolver, runPath } from './utilities/pathResolver';
 import { existsSync } from 'fs';
 import { extname } from 'path';
-import { readFileAsync } from './utilities/fsUtilities';
+import { readFileAsync } from './utilities/fsUtils';
 import { standardLibrary, bodyLibrary } from './analysis/standardLibrary';
 import { builtIn } from './utilities/constants';
 import { SymbolTableBuilder } from './analysis/symbolTableBuilder';
@@ -41,7 +41,7 @@ import {
 } from './typeChecker/types';
 import { IToken } from './entities/types';
 import { IType } from './typeChecker/types/types';
-import { binarySearch, rangeContains } from './utilities/positionHelpers';
+import { binarySearch, rangeContains } from './utilities/positionUtils';
 
 export class Analyzer {
   public workspaceFolder?: string;
@@ -151,12 +151,12 @@ export class Analyzer {
 
     // add child scopes
     for (const symbolTable of symbolTables) {
-      symbolTableBuilder.addScope(symbolTable);
+      symbolTableBuilder.linkTable(symbolTable);
     }
 
     // add standard library
-    symbolTableBuilder.addScope(standardLibrary);
-    symbolTableBuilder.addScope(this.activeBodyLibrary());
+    symbolTableBuilder.linkTable(standardLibrary);
+    symbolTableBuilder.linkTable(this.activeBodyLibrary());
 
     // generate resolvers
     const funcResolver = new FuncResolver(
