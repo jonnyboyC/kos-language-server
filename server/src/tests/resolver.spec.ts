@@ -192,7 +192,7 @@ describe('Reolver tracking', () => {
 
   const symbolKindPath = join(
     __dirname,
-    '../../../kerboscripts/parser_valid/unitTests/scannerTest.ks',
+    '../../../kerboscripts/parser_valid/unitTests/scannertest.ks',
   );
 
   // test basic identifier
