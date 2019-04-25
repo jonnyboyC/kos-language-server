@@ -4,7 +4,7 @@ import * as Inst from './inst';
 import * as Expr from './expr';
 import * as SuffixTerm from './suffixTerm';
 import { Position } from 'vscode-languageserver';
-import { binarySearch } from '../utilities/positionUtils';
+import { binarySearch, rangeContains } from '../utilities/positionUtils';
 import { empty } from '../utilities/typeGuards';
 import { Token } from '../entities/token';
 import { TraverseTree } from './traverseTree';
@@ -95,6 +95,23 @@ export class ScriptFind extends TraverseTree<Maybe<IFindResult>> {
           : undefined,
         token: searchResult,
       };
+    }
+
+    // return result if token found
+    if (searchResult instanceof Decl.Scope) {
+      if (!empty(searchResult.scope) && rangeContains(searchResult.scope, this.pos)) {
+        return {
+          node: undefined,
+          token: searchResult.scope,
+        };
+      }
+
+      if (!empty(searchResult.declare) && rangeContains(searchResult.declare, this.pos)) {
+        return {
+          node: undefined,
+          token: searchResult.declare,
+        };
+      }
     }
 
     throw new Error('Unexpected result found.');

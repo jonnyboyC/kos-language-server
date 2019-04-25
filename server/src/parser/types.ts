@@ -10,7 +10,7 @@ export interface IRangeSequence extends Range {
   ranges: Range[];
 }
 
-export interface IDeclScope extends Range {
+export interface IDeclScope extends IRangeSequence {
   declare?: IToken;
   scope?: IToken;
   type: ScopeType;
@@ -178,7 +178,7 @@ export type GrammarNode = IExprClass
   | IGrammarOptional | IGrammarRepeat | IGrammarUnion;
 
 export type RunInstType = Inst.Run | Inst.RunPath | Inst.RunPathOnce;
-export type TreeNode = IScript | IInst | IExpr | ISuffixTerm | IParameter;
+export type TreeNode = IScript | IInst | IExpr | ISuffixTerm | IParameter | IDeclScope
 
 export interface IExprVisitable {
   accept<T>(visitor: IExprVisitor<T>): T;

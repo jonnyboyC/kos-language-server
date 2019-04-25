@@ -21,9 +21,9 @@ interface ILogger extends ILoggerBase {
 const enum LogLevel {
   verbose,
   info,
+  log,
   warn,
   error,
-  log,
   none,
 }
 
