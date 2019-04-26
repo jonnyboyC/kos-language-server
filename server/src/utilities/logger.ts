@@ -29,21 +29,9 @@ export class Logger implements ILogger {
     private readonly connection: ILoggerBase,
     public logLevel: LogLevel) { }
 
-  verbose(message: string) {
-    if (this.logLevel <= LogLevel.verbose) {
-      this.connection.info(message);
-    }
-  }
-
-  log(message: string) {
-    if (this.logLevel <= LogLevel.log) {
-      this.connection.log(message);
-    }
-  }
-
   error(message: string) {
     if (this.logLevel <= LogLevel.error) {
-      this.connection.error(message);
+      this.connection.warn(message);
     }
   }
 
@@ -53,8 +41,20 @@ export class Logger implements ILogger {
     }
   }
 
+  log(message: string) {
+    if (this.logLevel <= LogLevel.log) {
+      this.connection.log(message);
+    }
+  }
+
   info(message: string) {
     if (this.logLevel <= LogLevel.info) {
+      this.connection.info(message);
+    }
+  }
+
+  verbose(message: string) {
+    if (this.logLevel <= LogLevel.verbose) {
       this.connection.info(message);
     }
   }

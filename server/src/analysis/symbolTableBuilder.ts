@@ -266,7 +266,7 @@ export class SymbolTableBuilder {
    * Set a variable symbol
    * @param token token for the variable to set
    */
-  public setVariable(token: IToken): Maybe<Diagnostic> {
+  public setBinding(token: IToken): Maybe<Diagnostic> {
     const tracker = this.lookup(token, ScopeType.global);
 
     // check if variable has already been defined
@@ -518,6 +518,16 @@ export class SymbolTableBuilder {
   }
 
   /**
+   * lookup a parameter
+   * @param token token for the requested parameter
+   * @param scope requested scope lookup
+   */
+  public lookupBinding(token: IToken, scope: ScopeType): Maybe<KsParameter | KsVariable> {
+    const tracker = this.lookupBindingTracker(token, scope);
+    return tracker && tracker.declared.symbol;
+  }
+
+  /**
    * lookup a variable tracker
    * @param token token for the requested variable
    * @param scope requested scope lookup
@@ -570,6 +580,20 @@ export class SymbolTableBuilder {
 
     return !empty(tracker) && isKsParameter(tracker.declared.symbol)
       ? tracker as IKsSymbolTracker<KsParameter>
+      : undefined;
+  }
+
+  /**
+   * lookup a parameter tracker
+   * @param token token for the requested parameter
+   * @param scope requested scope lookup
+   */
+  public lookupBindingTracker(token: IToken, scope: ScopeType):
+    Maybe<IKsSymbolTracker<KsParameter | KsVariable>> {
+    const tracker = this.lookup(token, scope);
+
+    return !empty(tracker) && (isKsParameter(tracker.declared.symbol) || isKsVariable(tracker.declared.symbol))
+      ? tracker as IKsSymbolTracker<KsParameter | KsVariable>
       : undefined;
   }
 

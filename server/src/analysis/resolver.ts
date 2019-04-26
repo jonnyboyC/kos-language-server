@@ -462,14 +462,14 @@ export class Resolver
     let defineError: Maybe<Diagnostic> = undefined;
 
     // if we find the symbol just set it
-    if (!empty(this.tableBuilder.lookupVariable(set, ScopeType.global))) {
-      defineError = this.tableBuilder.setVariable(set);
+    if (!empty(this.tableBuilder.lookupBinding(set, ScopeType.global))) {
+      defineError = this.tableBuilder.setBinding(set);
 
       // if we didn't find it and we're not lazy global add error
     } else if (!this.lazyGlobal) {
       defineError = createDiagnostic(
         set,
-        `Attempted to set ${set.lexeme} which has not be declared.` +
+        `Attempted to set ${set.lexeme} which has not be declared. ` +
           `Either remove lazy global directive or declare ${set.lexeme}`,
         DiagnosticSeverity.Error,
       );

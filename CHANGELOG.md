@@ -1,3 +1,8 @@
+# [0.3.4] (2019-4-25)
+
+## Bug Fixes
+- **Logging** Provided a temporary workarround to logging highing when server errors occur.
+
 # [0.3.3] (2019-4-19)
 
 ## Features

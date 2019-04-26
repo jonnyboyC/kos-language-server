@@ -34,6 +34,22 @@ export class Scope implements IDeclScope {
     throw new Error('Unvalid scope encountered. No socpe or declare tokens');
   }
 
+  public get ranges(): Range[] {
+    if (!empty(this.scope) && !empty(this.declare)) {
+      return [this.declare, this.scope]
+    }
+
+    if (!empty(this.scope)) {
+      return [this.scope];
+    }
+
+    if (!empty(this.declare)) {
+      return [this.declare];
+    }
+
+    throw new Error('Unvalid scope encountered. No socpe or declare tokens');
+  }
+
   public get start(): Position {
     if (!empty(this.scope) && !empty(this.declare)) {
       return this.declare.start;
