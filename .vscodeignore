@@ -13,10 +13,4 @@ kerboscripts
 node_modules
 clients/vscode/node_modules/**
 clients/atom/**
-!clients/vscode/node_modules/vscode-jsonrpc/**
-!clients/vscode/node_modules/vscode-languageclient/**
-!clients/vscode/node_modules/vscode-languageserver-protocol/**
-!clients/vscode/node_modules/vscode-languageserver-types/**
-!clients/vscode/node_modules/ws/**
-!clients/vscode/node_modules/semver/**
-!clients/vscode/node_modules/async-limiter/**
+server/node_modules/**
