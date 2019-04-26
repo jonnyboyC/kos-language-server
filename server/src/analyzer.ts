@@ -271,7 +271,7 @@ export class Analyzer {
       return undefined;
     }
 
-    const { node } = result;
+    const { node, token } = result;
     if (empty(node)) {
       return undefined;
     }
@@ -292,48 +292,10 @@ export class Analyzer {
       }
     }
 
-    if (node instanceof Decl.Var) {
-      const tracker = symbolsTable.scopedVariableTracker(
-        pos,
-        node.identifier.lexeme,
-      );
+    const tracker = symbolsTable.scopedNamedTracker(pos, token.lexeme);
 
-      if (tracker) {
-        return [tracker.declared.type, tracker.declared.symbol.tag];
-      }
-    }
-
-    if (node instanceof Decl.Lock) {
-      const tracker = symbolsTable.scopedLockTracker(
-        pos,
-        node.identifier.lexeme,
-      );
-
-      if (tracker) {
-        return [tracker.declared.type, tracker.declared.symbol.tag];
-      }
-    }
-
-    if (node instanceof Decl.Func) {
-      const tracker = symbolsTable.scopedFunctionTracker(
-        pos,
-        node.identifier.lexeme,
-      );
-
-      if (tracker) {
-        return [tracker.declared.type, tracker.declared.symbol.tag];
-      }
-    }
-
-    if (node instanceof Decl.Parameter) {
-      const tracker = symbolsTable.scopedParameterTracker(
-        pos,
-        node.identifier.lexeme,
-      );
-
-      if (tracker) {
-        return [tracker.declared.type, tracker.declared.symbol.tag];
-      }
+    if (!empty(tracker)) {
+      return [tracker.declared.type, tracker.declared.symbol.tag];
     }
 
     return undefined;

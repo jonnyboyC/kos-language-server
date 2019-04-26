@@ -10,7 +10,8 @@
     "lib": ["es2015", "esnext.asynciterable", "dom"],
     "sourceMap": true,
     "strict": true,
-    "incremental": true
+    "incremental": true,
+    "allowSyntheticDefaultImports": true,
   },
   "include": [
     "src"

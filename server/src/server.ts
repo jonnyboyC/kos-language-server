@@ -31,7 +31,7 @@ import {
 } from 'vscode-languageserver';
 import { empty } from './utilities/typeGuards';
 import { Analyzer } from './analyzer';
-import { KsSymbol, KsSymbolKind } from './analysis/types';
+import { KsSymbolKind } from './analysis/types';
 import {
   entityCompletionItems,
   suffixCompletionItems,
@@ -40,9 +40,9 @@ import {
 import { Logger } from './utilities/logger';
 import { primitiveInitializer } from './typeChecker/types/primitives/initialize';
 import { oribitalInitializer } from './typeChecker/types/orbital/initialize';
-import { cleanDiagnostic, cleanLocation } from './utilities/clean';
+import { cleanDiagnostic, cleanLocation, cleanPosition } from './utilities/clean';
 import { MessageReader, MessageWriter, StreamMessageReader, StreamMessageWriter } from 'vscode-languageserver-protocol';
-
+import { IToken } from './entities/types';
 
 let reader: MessageReader;
 let writer: MessageWriter;
@@ -85,7 +85,7 @@ oribitalInitializer();
 
 let workspaceFolder: string = '';
 const analyzer = new Analyzer(
-  new Logger(connection.console, LogLevel.info),
+  new Logger(connection.console, LogLevel.error),
   connection.tracer,
 );
 const documents: TextDocuments = new TextDocuments();
@@ -137,26 +137,26 @@ connection.onInitialize((params: InitializeParams) => {
 
 // monitor when the editor opens a document
 connection.onDidOpenTextDocument((param: DidOpenTextDocumentParams) => {
-  connection.console.log(`We received ${param.textDocument.uri} was opened`);
+  connection.console.info(`We received ${param.textDocument.uri} was opened`);
 });
 
 // monitor when a text document is changed
 connection.onDidChangeTextDocument((param: DidChangeTextDocumentParams) => {
-  connection.console.log(
+  connection.console.info(
     `We received ${param.contentChanges.length} file changes`,
   );
 });
 
 // monitor file change events
 connection.onDidChangeWatchedFiles((change: DidChangeWatchedFilesParams) => {
-  connection.console.log(
+  connection.console.info(
     `We received ${change.changes.length} file change events`,
   );
 });
 
 // monitor when a text document is closed
 connection.onDidCloseTextDocument((param: DidCloseTextDocumentParams) => {
-  connection.console.log(`We received ${param.textDocument.uri} was closed`);
+  connection.console.info(`We received ${param.textDocument.uri} was closed`);
 });
 
 // The content of a text document has changed. This event is emitted
@@ -249,8 +249,8 @@ connection.onHover(
         token.lexeme
       }: ${type.toTypeString()} `,
       range: {
-        start: token.start,
-        end: token.end,
+        start: cleanPosition(token.start),
+        end: cleanPosition(token.end),
       },
     };
   },
@@ -316,14 +316,14 @@ connection.onDefinition(
 // the completion list.
 connection.onCompletionResolve(
   (item: CompletionItem): CompletionItem => {
-    const entity = item.data as KsSymbol;
+    const token = item.data as IToken;
 
     // this would be a possible spot to pull in doc string if present.
-    if (!empty(entity)) {
+    if (!empty(token)) {
       const type = analyzer.getType(
-        entity.name.start,
-        entity.name.lexeme,
-        entity.name.uri,
+        token.start,
+        token.lexeme,
+        token.uri,
       );
 
       if (!empty(type)) {
