@@ -4,6 +4,8 @@ runoncepath("lib_UI.ks").
 runoncepath("steeringmanager.ks").
 loadSteering().
 
+runoncepath("what.ks").
+
 sas off.
 set st to lookdirup(ship:facing:vector,up:vector).
 lock steering to st.
