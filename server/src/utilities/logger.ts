@@ -31,7 +31,7 @@ export class Logger implements ILogger {
 
   error(message: string) {
     if (this.logLevel <= LogLevel.error) {
-      this.connection.error(message);
+      this.connection.warn(message);
     }
   }
 
