@@ -250,6 +250,38 @@ describe('Reolver tracking', () => {
       expect(tag).toBe(KsSymbolKind.parameter);
       expect(bParamTracker.usages.length).toBe(1);
     }
+
+    // check loop i
+    const iTracker = table.scopedNamedTracker({ line: 6, character: 0 }, 'i');
+    outOfScope = table.scopedNamedTracker(Position.create(4, 0), 'i');
+
+    expect(outOfScope).toBeUndefined();
+    expect(iTracker).not.toBeUndefined();
+    if (iTracker !== undefined) {
+      const { name, tag } = iTracker.declared.symbol;
+      expect(name.lexeme).toBe('i');
+
+      range =  makeRange(5, 8, 5, 9);
+      expect(rangeEqual(name, range)).toBeTruthy();
+      expect(tag).toBe(KsSymbolKind.variable);
+      expect(iTracker.usages.length).toBe(1);
+    }
+
+    // check loop i
+    const xTracker = table.scopedNamedTracker({ line: 11, character: 0 }, 'x');
+    outOfScope = table.scopedNamedTracker(Position.create(13, 0), 'x');
+
+    expect(outOfScope).toBeUndefined();
+    expect(xTracker).not.toBeUndefined();
+    if (xTracker !== undefined) {
+      const { name, tag } = xTracker.declared.symbol;
+      expect(name.lexeme).toBe('x');
+
+      range =  makeRange(9, 17, 9, 18);
+      expect(rangeEqual(name, range)).toBeTruthy();
+      expect(tag).toBe(KsSymbolKind.variable);
+      expect(xTracker.usages.length).toBe(3);
+    }
   });
 })
 

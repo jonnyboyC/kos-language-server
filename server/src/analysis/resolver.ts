@@ -24,6 +24,7 @@ import { ILocalResult } from './types';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
 import { createDiagnostic } from '../utilities/diagnosticsUtils';
 import { sep } from 'path';
+import { IToken } from '../entities/types';
 
 export type Diagnostics = Diagnostic[];
 
@@ -458,35 +459,14 @@ export class Resolver
       ];
     }
 
-    // if variable isn't defined either report error or define
-    let defineError: Maybe<Diagnostic> = undefined;
+    const setError = this.setVariable(set);
 
-    // if we find the symbol just set it
-    if (!empty(this.tableBuilder.lookupBinding(set, ScopeType.global))) {
-      defineError = this.tableBuilder.setBinding(set);
-
-      // if we didn't find it and we're not lazy global add error
-    } else if (!this.lazyGlobal) {
-      defineError = createDiagnostic(
-        set,
-        `Attempted to set ${set.lexeme} which has not be declared. ` +
-          `Either remove lazy global directive or declare ${set.lexeme}`,
-        DiagnosticSeverity.Error,
-      );
-
-      // not found and lazy global so declare global
-    } else {
-      defineError = this.tableBuilder.declareVariable(ScopeType.global, set);
-    }
-
-    const useErrors = this.useExprLocals(inst.value).concat(
-      this.useTokens(used),
-    );
+    const useValueErrors = this.useExprLocals(inst.value)
+    const useInternalErrors = this.useTokens(used);
     const resolveErrors = this.skipExpr(inst.value);
 
-    return !empty(defineError)
-      ? useErrors.concat(resolveErrors, defineError)
-      : useErrors.concat(resolveErrors);
+    return useValueErrors.concat(
+      useInternalErrors, resolveErrors, setError);
   }
 
   /**
@@ -1037,11 +1017,7 @@ export class Resolver
       return [];
     }
 
-    const declareError = this.tableBuilder.declareVariable(
-      ScopeType.local,
-      inst.target,
-    );
-    return !empty(declareError) ? [declareError] : [];
+    return this.setVariable(inst.target);
   }
 
   /**
@@ -1082,6 +1058,39 @@ export class Resolver
    */
   public passPrint(inst: Inst.Print): Diagnostic[] {
     return this.skipExpr(inst.expr);
+  }
+
+  /**
+   * Logic for settings a variable. used by set inst and list command
+   * @param set token to set
+   */
+  private setVariable(set: IToken): Diagnostic[] {
+      // if variable isn't defined either report error or define
+      let defineError: Maybe<Diagnostic> = undefined;
+  
+      // if we find the symbol just set it
+      if (!empty(this.tableBuilder.lookupBinding(set, ScopeType.global))) {
+        defineError = this.tableBuilder.setBinding(set);
+  
+        // if we didn't find it and we're not lazy global add error
+      } else if (!this.lazyGlobal) {
+        defineError = createDiagnostic(
+          set,
+          `Attempted to set ${set.lexeme} which has not be declared. ` +
+            `Either remove lazy global directive or declare ${set.lexeme}`,
+          DiagnosticSeverity.Error,
+        );
+  
+        // not found and lazy global so declare global
+      } else {
+        defineError = this.tableBuilder.declareVariable(ScopeType.global, set);
+      }
+
+      if (!empty(defineError)) {
+        return [defineError];
+      }
+
+      return [];
   }
 
   /* --------------------------------------------
