@@ -7,7 +7,8 @@ import {
   IScript,
   ISuffixTermPasser,
   IExprPasser,
-  IInstPasser,
+  IExprVisitor,
+  ISuffixTermVisitor,
 } from '../parser/types';
 import * as SuffixTerm from '../parser/suffixTerm';
 import * as Expr from '../parser/expr';
@@ -31,9 +32,8 @@ export type Diagnostics = Diagnostic[];
 export class Resolver
   implements
     IInstVisitor<Diagnostics>,
-    IInstPasser<Diagnostics>,
-    IExprPasser<Diagnostics>,
-    ISuffixTermPasser<Diagnostics> {
+    IExprVisitor<Diagnostics>,
+    ISuffixTermVisitor<Diagnostics> {
   private readonly script: Script;
   private readonly tableBuilder: SymbolTableBuilder;
   private readonly logger: ILogger;
@@ -120,16 +120,16 @@ export class Resolver
    * Pass through expression
    * @param expr expression to skip
    */
-  private skipExpr(expr: IExpr): Diagnostics {
-    return expr.pass(this);
+  private resolveExpr(expr: IExpr): Diagnostics {
+    return expr.accept(this);
   }
 
   /**
    * Pass through suffix term
    * @param suffixTerm suffix term to skip
    */
-  private skipSuffixTerm(suffixTerm: ISuffixTerm): Diagnostics {
-    return suffixTerm.pass(this);
+  private resolveSuffixTerm(suffixTerm: ISuffixTerm): Diagnostics {
+    return suffixTerm.accept(this);
   }
 
   /**
@@ -177,19 +177,11 @@ export class Resolver
       decl.identifier,
     );
     const useErrors = this.useExprLocals(decl.value);
-    const resolveErrors = this.skipExpr(decl.value);
+    const resolveErrors = this.resolveExpr(decl.value);
 
     return empty(declareError)
       ? useErrors.concat(resolveErrors)
       : useErrors.concat(declareError, resolveErrors);
-  }
-
-  /**
-   * Pass through the declare variable synatx node
-   * @param decl the syntax node
-   */
-  public passDeclVariable(decl: Decl.Var): Diagnostic[] {
-    return this.skipExpr(decl.value);
   }
 
   /**
@@ -211,7 +203,7 @@ export class Resolver
     }
 
     const useErrors = this.useExprLocals(decl.value);
-    const resolveErrors = this.skipExpr(decl.value);
+    const resolveErrors = this.resolveExpr(decl.value);
 
     return empty(declareError)
       ? useErrors.concat(resolveErrors)
@@ -219,26 +211,10 @@ export class Resolver
   }
 
   /**
-   * Pass through the declare lock syntax node
-   * @param decl the syntax node
-   */
-  public passDeclLock(decl: Decl.Lock): Diagnostic[] {
-    return this.skipExpr(decl.value);
-  }
-
-  /**
    * Visit the declare function syntax node
    * @param decl the syntax node
    */
   public visitDeclFunction(decl: Decl.Func): Diagnostic[] {
-    return this.resolveInst(decl.block);
-  }
-
-  /**
-   * Pass through the declare function syntax node
-   * @param decl the syntax node
-   */
-  public passDeclFunction(decl: Decl.Func): Diagnostic[] {
     return this.resolveInst(decl.block);
   }
 
@@ -285,17 +261,6 @@ export class Resolver
       .filter(this.filterError);
   }
 
-  /**
-   * Pass through the declare parameter syntax node
-   * @param decl the syntax node
-   */
-  public passDeclParameter(decl: Decl.Param): Diagnostic[] {
-    return accumulateErrors(
-      decl.defaultParameters.map(parameter => parameter.value),
-      this.skipExpr.bind(this),
-    );
-  }
-
   /* --------------------------------------------
 
   Instructions
@@ -307,14 +272,6 @@ export class Resolver
    * @param inst the syntax node
    */
   public visitInstInvalid(_: Inst.Invalid): Diagnostics {
-    return [];
-  }
-
-  /**
-   * Pass through the Invalid Inst syntax node
-   * @param inst the syntax node
-   */
-  public passInstInvalid(_: Inst.Invalid): Diagnostic[] {
     return [];
   }
 
@@ -331,31 +288,11 @@ export class Resolver
   }
 
   /**
-   * Pass through the Block Inst syntax node
-   * @param inst the syntax node
-   */
-  public passBlock(inst: Inst.Block): Diagnostic[] {
-    this.tableBuilder.beginScope(inst);
-    const errors = this.resolveInsts(inst.insts);
-    const scopeErrors = this.tableBuilder.endScope();
-
-    return errors.concat(scopeErrors);
-  }
-
-  /**
    * Visit the Expr Inst syntax node
    * @param inst the syntax node
    */
   public visitExpr(inst: Inst.ExprInst): Diagnostics {
-    return this.useExprLocals(inst.suffix).concat(this.skipExpr(inst.suffix));
-  }
-
-  /**
-   * Pass through the Expr Inst syntax node
-   * @param inst the syntax node
-   */
-  public passExpr(inst: Inst.ExprInst): Diagnostic[] {
-    return this.skipExpr(inst.suffix);
+    return this.useExprLocals(inst.suffix).concat(this.resolveExpr(inst.suffix));
   }
 
   /**
@@ -363,15 +300,7 @@ export class Resolver
    * @param inst the syntax node
    */
   public visitOnOff(inst: Inst.OnOff): Diagnostics {
-    return this.useExprLocals(inst.suffix).concat(this.skipExpr(inst.suffix));
-  }
-
-  /**
-   * Pass through the On Off Inst syntax node
-   * @param inst the syntax node
-   */
-  public passOnOff(inst: Inst.OnOff): Diagnostic[] {
-    return this.skipExpr(inst.suffix);
+    return this.useExprLocals(inst.suffix).concat(this.resolveExpr(inst.suffix));
   }
 
   /**
@@ -383,27 +312,11 @@ export class Resolver
   }
 
   /**
-   * Pass through the Command Inst syntax node
-   * @param inst the syntax node
-   */
-  public passCommand(_: Inst.Command): Diagnostic[] {
-    return [];
-  }
-
-  /**
    * Visit the Command Expr Inst syntax node
    * @param inst the syntax node
    */
   public visitCommandExpr(inst: Inst.CommandExpr): Diagnostics {
-    return this.useExprLocals(inst.expr).concat(this.skipExpr(inst.expr));
-  }
-
-  /**
-   * Pass through the Command Expr Inst syntax node
-   * @param inst the syntax node
-   */
-  public passCommandExpr(inst: Inst.CommandExpr): Diagnostic[] {
-    return this.skipExpr(inst.expr);
+    return this.useExprLocals(inst.expr).concat(this.resolveExpr(inst.expr));
   }
 
   /**
@@ -416,28 +329,12 @@ export class Resolver
   }
 
   /**
-   * Pass through the Unset Inst syntax node
-   * @param inst the syntax node
-   */
-  public passUnset(_: Inst.Unset): Diagnostic[] {
-    return [];
-  }
-
-  /**
    * Visit the Unlock Inst syntax node
    * @param inst the syntax node
    */
   public visitUnlock(inst: Inst.Unlock): Diagnostics {
     const error = this.tableBuilder.useLock(inst.identifier);
     return empty(error) ? [] : [error];
-  }
-
-  /**
-   * Pass through the Unlock Inst syntax node
-   * @param inst the syntax node
-   */
-  public passUnlock(_: Inst.Unlock): Diagnostic[] {
-    return [];
   }
 
   /**
@@ -463,18 +360,10 @@ export class Resolver
 
     const useValueErrors = this.useExprLocals(inst.value)
     const useInternalErrors = this.useTokens(used);
-    const resolveErrors = this.skipExpr(inst.value);
+    const resolveErrors = this.resolveExpr(inst.value);
 
     return useValueErrors.concat(
       useInternalErrors, resolveErrors, setError);
-  }
-
-  /**
-   * Pass through the Unlock Inst syntax node
-   * @param inst the syntax node
-   */
-  public passSet(inst: Inst.Set): Diagnostic[] {
-    return this.skipExpr(inst.suffix).concat(this.skipExpr(inst.value));
   }
 
   /**
@@ -498,36 +387,12 @@ export class Resolver
   }
 
   /**
-   * Pass Through the Lazy Global Inst syntax node
-   * @param inst the syntax node
-   */
-  public passLazyGlobal(_: Inst.LazyGlobal): Diagnostic[] {
-    return [];
-  }
-
-  /**
    * Visit the If Inst syntax node
    * @param inst the syntax node
    */
   public visitIf(inst: Inst.If): Diagnostics {
     const errors = this.useExprLocals(inst.condition).concat(
-      this.skipExpr(inst.condition),
-      this.resolveInst(inst.ifInst),
-    );
-
-    if (inst.elseInst) {
-      return errors.concat(this.resolveInst(inst.elseInst));
-    }
-
-    return errors;
-  }
-
-  /**
-   * Pass Through the If Inst syntax node
-   * @param inst the syntax node
-   */
-  public passIf(inst: Inst.If): Diagnostic[] {
-    const errors = this.skipExpr(inst.condition).concat(
+      this.resolveExpr(inst.condition),
       this.resolveInst(inst.ifInst),
     );
 
@@ -547,30 +412,14 @@ export class Resolver
   }
 
   /**
-   * Pass Through the Else Inst syntax node
-   * @param inst the syntax node
-   */
-  public passElse(inst: Inst.Else): Diagnostic[] {
-    return this.resolveInst(inst.inst);
-  }
-
-  /**
    * Visit the When Inst syntax node
    * @param inst the syntax node
    */
   public visitUntil(inst: Inst.Until): Diagnostics {
     return this.useExprLocals(inst.condition).concat(
-      this.skipExpr(inst.condition),
+      this.resolveExpr(inst.condition),
       this.resolveInst(inst.inst),
     );
-  }
-
-  /**
-   * Pass Through the When Inst syntax node
-   * @param inst the syntax node
-   */
-  public passUntil(inst: Inst.Until): Diagnostic[] {
-    return this.skipExpr(inst.condition).concat(this.resolveInst(inst.inst));
   }
 
   /**
@@ -581,7 +430,7 @@ export class Resolver
     this.tableBuilder.beginScope(inst);
 
     const resolverErrors = this.resolveInsts(inst.initializer.insts).concat(
-      this.skipExpr(inst.condition),
+      this.resolveExpr(inst.condition),
       this.resolveInsts(inst.increment.insts),
       this.resolveInst(inst.inst),
     );
@@ -593,40 +442,14 @@ export class Resolver
   }
 
   /**
-   * Pass Through the From Inst syntax node
-   * @param inst the syntax node
-   */
-  public passFrom(inst: Inst.From): Diagnostic[] {
-    this.tableBuilder.beginScope(inst);
-
-    const resolverErrors = this.resolveInsts(inst.initializer.insts).concat(
-      this.skipExpr(inst.condition),
-      this.resolveInsts(inst.increment.insts),
-      this.resolveInst(inst.inst),
-    );
-
-    const scopeErrors = this.tableBuilder.endScope();
-
-    return resolverErrors.concat(scopeErrors);
-  }
-
-  /**
    * Visit the When Inst syntax node
    * @param inst the syntax node
    */
   public visitWhen(inst: Inst.When): Diagnostics {
     return this.useExprLocals(inst.condition).concat(
-      this.skipExpr(inst.condition),
+      this.resolveExpr(inst.condition),
       this.resolveInst(inst.inst),
     );
-  }
-
-  /**
-   * Pass Through the When Inst syntax node
-   * @param inst the syntax node
-   */
-  public passWhen(inst: Inst.When): Diagnostic[] {
-    return this.skipExpr(inst.condition).concat(this.resolveInst(inst.inst));
   }
 
   /**
@@ -635,18 +458,10 @@ export class Resolver
    */
   public visitReturn(inst: Inst.Return): Diagnostics {
     if (inst.expr) {
-      return this.useExprLocals(inst.expr).concat(this.skipExpr(inst.expr));
+      return this.useExprLocals(inst.expr).concat(this.resolveExpr(inst.expr));
     }
 
     return [];
-  }
-
-  /**
-   * Pass Through the Return Inst syntax node
-   * @param inst the syntax node
-   */
-  public passReturn(inst: Inst.Return): Diagnostic[] {
-    return !empty(inst.expr) ? this.skipExpr(inst.expr) : [];
   }
 
   /**
@@ -658,27 +473,11 @@ export class Resolver
   }
 
   /**
-   * Pass Through the Break Inst syntax node
-   * @param inst the syntax node
-   */
-  public passBreak(_: Inst.Break): Diagnostic[] {
-    return [];
-  }
-
-  /**
    * Visit the Switch Inst syntax node
    * @param inst the syntax node
    */
   public visitSwitch(inst: Inst.Switch): Diagnostics {
-    return this.useExprLocals(inst.target).concat(this.skipExpr(inst.target));
-  }
-
-  /**
-   * Pass Through the Switch Inst syntax node
-   * @param inst the syntax node
-   */
-  public passSwitch(inst: Inst.Switch): Diagnostic[] {
-    return this.skipExpr(inst.target);
+    return this.useExprLocals(inst.target).concat(this.resolveExpr(inst.target));
   }
 
   /**
@@ -693,7 +492,7 @@ export class Resolver
     );
 
     const errors = this.useExprLocals(inst.suffix).concat(
-      this.skipExpr(inst.suffix),
+      this.resolveExpr(inst.suffix),
       this.resolveInst(inst.inst),
       this.tableBuilder.endScope(),
     );
@@ -705,35 +504,14 @@ export class Resolver
   }
 
   /**
-   * Pass Through the For Inst syntax node
-   * @param inst the syntax node
-   */
-  public passFor(inst: Inst.For): Diagnostic[] {
-    this.tableBuilder.beginScope(inst);
-
-    return this.skipExpr(inst.suffix).concat(
-      this.resolveInst(inst.inst),
-      this.tableBuilder.endScope(),
-    );
-  }
-
-  /**
    * Visit the On Inst syntax node
    * @param inst the syntax node
    */
   public visitOn(inst: Inst.On): Diagnostics {
     return this.useExprLocals(inst.suffix).concat(
-      this.skipExpr(inst.suffix),
+      this.resolveExpr(inst.suffix),
       this.resolveInst(inst.inst),
     );
-  }
-
-  /**
-   * Pass Through the On Inst syntax node
-   * @param inst the syntax node
-   */
-  public passOn(inst: Inst.On): Diagnostic[] {
-    return this.skipExpr(inst.suffix).concat(this.resolveInst(inst.inst));
   }
 
   /**
@@ -741,15 +519,7 @@ export class Resolver
    * @param inst the syntax node
    */
   public visitToggle(inst: Inst.Toggle): Diagnostics {
-    return this.useExprLocals(inst.suffix).concat(this.skipExpr(inst.suffix));
-  }
-
-  /**
-   * Pass Through the Toggle Inst syntax node
-   * @param inst the syntax node
-   */
-  public passToggle(inst: Inst.Toggle): Diagnostic[] {
-    return this.skipExpr(inst.suffix);
+    return this.useExprLocals(inst.suffix).concat(this.resolveExpr(inst.suffix));
   }
 
   /**
@@ -757,15 +527,7 @@ export class Resolver
    * @param inst the syntax node
    */
   public visitWait(inst: Inst.Wait): Diagnostics {
-    return this.useExprLocals(inst.expr).concat(this.skipExpr(inst.expr));
-  }
-
-  /**
-   * Pass Through the Wait Inst syntax node
-   * @param inst the syntax node
-   */
-  public passWait(inst: Inst.Wait): Diagnostic[] {
-    return this.skipExpr(inst.expr);
+    return this.useExprLocals(inst.expr).concat(this.resolveExpr(inst.expr));
   }
 
   /**
@@ -774,17 +536,9 @@ export class Resolver
    */
   public visitLog(inst: Inst.Log): Diagnostics {
     return this.useExprLocals(inst.expr).concat(
-      this.skipExpr(inst.expr),
-      this.skipExpr(inst.target),
+      this.resolveExpr(inst.expr),
+      this.resolveExpr(inst.target),
     );
-  }
-
-  /**
-   * Pass Through the Log Inst syntax node
-   * @param inst the syntax node
-   */
-  public passLog(inst: Inst.Log): Diagnostic[] {
-    return this.skipExpr(inst.expr).concat(this.skipExpr(inst.target));
   }
 
   /**
@@ -798,17 +552,9 @@ export class Resolver
         'Copy is deprecated as of 1.0.0',
         DiagnosticSeverity.Warning,
       ),
-      this.skipExpr(inst.target),
-      this.skipExpr(inst.destination),
+      this.resolveExpr(inst.target),
+      this.resolveExpr(inst.destination),
     );
-  }
-
-  /**
-   * Pass Through the Copy Inst syntax node
-   * @param inst the syntax node
-   */
-  public passCopy(inst: Inst.Copy): Diagnostic[] {
-    return this.skipExpr(inst.target).concat(this.skipExpr(inst.destination));
   }
 
   /**
@@ -823,17 +569,9 @@ export class Resolver
         DiagnosticSeverity.Warning,
       ),
       this.useExprLocals(inst.alternative),
-      this.skipExpr(inst.target),
-      this.skipExpr(inst.alternative),
+      this.resolveExpr(inst.target),
+      this.resolveExpr(inst.alternative),
     );
-  }
-
-  /**
-   * Pass Through the Rename Inst syntax node
-   * @param inst the syntax node
-   */
-  public passRename(inst: Inst.Rename): Diagnostic[] {
-    return this.skipExpr(inst.target).concat(this.skipExpr(inst.alternative));
   }
 
   /**
@@ -850,28 +588,16 @@ export class Resolver
     if (empty(inst.volume)) {
       return this.useExprLocals(inst.target).concat(
         deprecated,
-        this.skipExpr(inst.target),
+        this.resolveExpr(inst.target),
       );
     }
 
     return this.useExprLocals(inst.target).concat(
       deprecated,
       this.useExprLocals(inst.volume),
-      this.skipExpr(inst.target),
-      this.skipExpr(inst.volume),
+      this.resolveExpr(inst.target),
+      this.resolveExpr(inst.volume),
     );
-  }
-
-  /**
-   * Pass Through the Delete Inst syntax node
-   * @param inst the syntax node
-   */
-  public passDelete(inst: Inst.Delete): Diagnostic[] {
-    if (empty(inst.volume)) {
-      return this.skipExpr(inst.target);
-    }
-
-    return this.skipExpr(inst.target).concat(this.skipExpr(inst.volume));
   }
 
   /**
@@ -885,7 +611,7 @@ export class Resolver
 
     const argError = !empty(inst.args)
       ? accumulateErrors(inst.args, this.useExprLocals.bind(this)).concat(
-          accumulateErrors(inst.args, this.skipExpr.bind(this)),
+          accumulateErrors(inst.args, this.resolveExpr.bind(this)),
         )
       : [];
 
@@ -894,29 +620,9 @@ export class Resolver
     }
 
     return this.useExprLocals(inst.expr).concat(
-      this.skipExpr(inst.expr),
+      this.resolveExpr(inst.expr),
       argError,
     );
-  }
-
-  /**
-   * Pass Through the Run Inst syntax node
-   * @param inst the syntax node
-   */
-  public passRun(inst: Inst.Run): Diagnostic[] {
-    if (empty(inst.args) && empty(inst.expr)) {
-      return [];
-    }
-
-    const argError = !empty(inst.args)
-      ? accumulateErrors(inst.args, this.skipExpr.bind(this))
-      : [];
-
-    if (empty(inst.expr)) {
-      return argError;
-    }
-
-    return argError.concat(this.skipExpr(inst.expr));
   }
 
   /**
@@ -925,27 +631,13 @@ export class Resolver
    */
   public visitRunPath(inst: Inst.RunPath): Diagnostics {
     if (empty(inst.args)) {
-      return this.useExprLocals(inst.expr).concat(this.skipExpr(inst.expr));
+      return this.useExprLocals(inst.expr).concat(this.resolveExpr(inst.expr));
     }
 
     return this.useExprLocals(inst.expr).concat(
-      this.skipExpr(inst.expr),
+      this.resolveExpr(inst.expr),
       accumulateErrors(inst.args, this.useExprLocals.bind(this)),
-      accumulateErrors(inst.args, this.skipExpr.bind(this)),
-    );
-  }
-
-  /**
-   * Pass Through the RunPath Inst syntax node
-   * @param inst the syntax node
-   */
-  public passRunPath(inst: Inst.RunPath): Diagnostic[] {
-    if (empty(inst.args)) {
-      return this.skipExpr(inst.expr);
-    }
-
-    return this.skipExpr(inst.expr).concat(
-      accumulateErrors(inst.args, this.skipExpr.bind(this)),
+      accumulateErrors(inst.args, this.resolveExpr.bind(this)),
     );
   }
 
@@ -955,27 +647,13 @@ export class Resolver
    */
   public visitRunPathOnce(inst: Inst.RunPathOnce): Diagnostics {
     if (empty(inst.args)) {
-      return this.useExprLocals(inst.expr).concat(this.skipExpr(inst.expr));
+      return this.useExprLocals(inst.expr).concat(this.resolveExpr(inst.expr));
     }
 
     return this.useExprLocals(inst.expr).concat(
-      this.skipExpr(inst.expr),
+      this.resolveExpr(inst.expr),
       accumulateErrors(inst.args, this.useExprLocals.bind(this)),
-      accumulateErrors(inst.args, this.skipExpr.bind(this)),
-    );
-  }
-
-  /**
-   * Pass Through the RunPathOnce Inst syntax node
-   * @param inst the syntax node
-   */
-  public passRunPathOnce(inst: Inst.RunPathOnce): Diagnostic[] {
-    if (empty(inst.args)) {
-      return this.skipExpr(inst.expr);
-    }
-
-    return this.skipExpr(inst.expr).concat(
-      accumulateErrors(inst.args, this.skipExpr.bind(this)),
+      accumulateErrors(inst.args, this.resolveExpr.bind(this)),
     );
   }
 
@@ -985,26 +663,14 @@ export class Resolver
    */
   public visitCompile(inst: Inst.Compile): Diagnostics {
     if (empty(inst.destination)) {
-      return this.useExprLocals(inst.target).concat(this.skipExpr(inst.target));
+      return this.useExprLocals(inst.target).concat(this.resolveExpr(inst.target));
     }
 
     return this.useExprLocals(inst.target).concat(
       this.useExprLocals(inst.destination),
-      this.skipExpr(inst.target),
-      this.skipExpr(inst.destination),
+      this.resolveExpr(inst.target),
+      this.resolveExpr(inst.destination),
     );
-  }
-
-  /**
-   * Pass Through the Compile Inst syntax node
-   * @param inst the syntax node
-   */
-  public passCompile(inst: Inst.Compile): Diagnostic[] {
-    if (empty(inst.destination)) {
-      return this.skipExpr(inst.target);
-    }
-
-    return this.skipExpr(inst.target).concat(this.skipExpr(inst.destination));
   }
 
   /**
@@ -1021,14 +687,6 @@ export class Resolver
   }
 
   /**
-   * Pass Through the List Inst syntax node
-   * @param inst the syntax node
-   */
-  public passList(_: Inst.List): Diagnostic[] {
-    return [];
-  }
-
-  /**
    * Visit the Empty Inst syntax node
    * @param inst the syntax node
    */
@@ -1037,27 +695,11 @@ export class Resolver
   }
 
   /**
-   * Pass Through the Empty Inst syntax node
-   * @param inst the syntax node
-   */
-  public passEmpty(_: Inst.Empty): Diagnostic[] {
-    return [];
-  }
-
-  /**
    * Visit the Print Inst syntax node
    * @param inst the syntax node
    */
   public visitPrint(inst: Inst.Print): Diagnostics {
-    return this.useExprLocals(inst.expr).concat(this.skipExpr(inst.expr));
-  }
-
-  /**
-   * Pass Through the Print Inst syntax node
-   * @param inst the syntax node
-   */
-  public passPrint(inst: Inst.Print): Diagnostic[] {
-    return this.skipExpr(inst.expr);
+    return this.useExprLocals(inst.expr).concat(this.resolveExpr(inst.expr));
   }
 
   /**
@@ -1065,32 +707,32 @@ export class Resolver
    * @param set token to set
    */
   private setVariable(set: IToken): Diagnostic[] {
-      // if variable isn't defined either report error or define
-      let defineError: Maybe<Diagnostic> = undefined;
-  
-      // if we find the symbol just set it
-      if (!empty(this.tableBuilder.lookupBinding(set, ScopeType.global))) {
-        defineError = this.tableBuilder.setBinding(set);
-  
-        // if we didn't find it and we're not lazy global add error
-      } else if (!this.lazyGlobal) {
-        defineError = createDiagnostic(
-          set,
-          `Attempted to set ${set.lexeme} which has not be declared. ` +
-            `Either remove lazy global directive or declare ${set.lexeme}`,
-          DiagnosticSeverity.Error,
-        );
-  
-        // not found and lazy global so declare global
-      } else {
-        defineError = this.tableBuilder.declareVariable(ScopeType.global, set);
-      }
+    // if variable isn't defined either report error or define
+    let defineError: Maybe<Diagnostic> = undefined;
 
-      if (!empty(defineError)) {
-        return [defineError];
-      }
+    // if we find the symbol just set it
+    if (!empty(this.tableBuilder.lookupBinding(set, ScopeType.global))) {
+      defineError = this.tableBuilder.setBinding(set);
 
-      return [];
+      // if we didn't find it and we're not lazy global add error
+    } else if (!this.lazyGlobal) {
+      defineError = createDiagnostic(
+        set,
+        `Attempted to set ${set.lexeme} which has not be declared. ` +
+          `Either remove lazy global directive or declare ${set.lexeme}`,
+        DiagnosticSeverity.Error,
+      );
+
+      // not found and lazy global so declare global
+    } else {
+      defineError = this.tableBuilder.declareVariable(ScopeType.global, set);
+    }
+
+    if (!empty(defineError)) {
+      return [defineError];
+    }
+
+    return [];
   }
 
   /* --------------------------------------------
@@ -1099,32 +741,32 @@ export class Resolver
 
   ----------------------------------------------*/
 
-  public passExprInvalid(_: Expr.Invalid): Diagnostic[] {
+  public visitExprInvalid(_: Expr.Invalid): Diagnostic[] {
     return [];
   }
 
-  public passBinary(expr: Expr.Binary): Diagnostic[] {
-    return this.skipExpr(expr.left).concat(this.skipExpr(expr.right));
+  public visitBinary(expr: Expr.Binary): Diagnostic[] {
+    return this.resolveExpr(expr.left).concat(this.resolveExpr(expr.right));
   }
 
-  public passUnary(expr: Expr.Unary): Diagnostic[] {
-    return this.skipExpr(expr.factor);
+  public visitUnary(expr: Expr.Unary): Diagnostic[] {
+    return this.resolveExpr(expr.factor);
   }
 
-  public passFactor(expr: Expr.Factor): Diagnostic[] {
-    return this.skipExpr(expr.suffix).concat(this.skipExpr(expr.exponent));
+  public visitFactor(expr: Expr.Factor): Diagnostic[] {
+    return this.resolveExpr(expr.suffix).concat(this.resolveExpr(expr.exponent));
   }
 
-  public passSuffix(expr: Expr.Suffix): Diagnostic[] {
-    const atom = this.passSuffixTerm(expr.suffixTerm);
+  public visitSuffix(expr: Expr.Suffix): Diagnostic[] {
+    const atom = this.visitSuffixTerm(expr.suffixTerm);
     if (empty(expr.trailer)) {
       return atom;
     }
 
-    return atom.concat(this.skipSuffixTerm(expr.trailer));
+    return atom.concat(this.resolveSuffixTerm(expr.trailer));
   }
 
-  public passAnonymousFunction(expr: Expr.AnonymousFunction): Diagnostic[] {
+  public visitAnonymousFunction(expr: Expr.AnonymousFunction): Diagnostic[] {
     this.tableBuilder.beginScope(expr);
     const errors = this.resolveInsts(expr.insts);
     const scopeErrors = this.tableBuilder.endScope();
@@ -1138,59 +780,59 @@ export class Resolver
 
   ----------------------------------------------*/
 
-  public passSuffixTermInvalid(_: SuffixTerm.Invalid): Diagnostics {
+  public visitSuffixTermInvalid(_: SuffixTerm.Invalid): Diagnostics {
     return [];
   }
 
-  public passSuffixTrailer(suffixTerm: SuffixTerm.SuffixTrailer): Diagnostic[] {
-    const atom = this.passSuffixTerm(suffixTerm.suffixTerm);
+  public visitSuffixTrailer(suffixTerm: SuffixTerm.SuffixTrailer): Diagnostic[] {
+    const atom = this.visitSuffixTerm(suffixTerm.suffixTerm);
     if (empty(suffixTerm.trailer)) {
       return atom;
     }
 
-    return atom.concat(this.skipSuffixTerm(suffixTerm.trailer));
+    return atom.concat(this.resolveSuffixTerm(suffixTerm.trailer));
   }
 
-  public passSuffixTerm(suffixTerm: SuffixTerm.SuffixTerm): Diagnostic[] {
-    const atom = this.skipSuffixTerm(suffixTerm.atom);
+  public visitSuffixTerm(suffixTerm: SuffixTerm.SuffixTerm): Diagnostic[] {
+    const atom = this.resolveSuffixTerm(suffixTerm.atom);
     if (suffixTerm.trailers.length === 0) {
       return atom;
     }
 
     return atom.concat(
       suffixTerm.trailers.reduce(
-        (acc, curr) => acc.concat(this.skipSuffixTerm(curr)),
+        (acc, curr) => acc.concat(this.resolveSuffixTerm(curr)),
         [] as Diagnostic[],
       ),
     );
   }
 
-  public passCall(suffixTerm: SuffixTerm.Call): Diagnostic[] {
-    return accumulateErrors(suffixTerm.args, this.skipExpr.bind(this));
+  public visitCall(suffixTerm: SuffixTerm.Call): Diagnostic[] {
+    return accumulateErrors(suffixTerm.args, this.resolveExpr.bind(this));
   }
 
-  public passArrayIndex(_: SuffixTerm.ArrayIndex): Diagnostic[] {
+  public visitArrayIndex(_: SuffixTerm.ArrayIndex): Diagnostic[] {
     return [];
   }
 
-  public passArrayBracket(suffixTerm: SuffixTerm.ArrayBracket): Diagnostic[] {
-    return this.skipExpr(suffixTerm.index);
+  public visitArrayBracket(suffixTerm: SuffixTerm.ArrayBracket): Diagnostic[] {
+    return this.resolveExpr(suffixTerm.index);
   }
 
-  public passDelegate(_: SuffixTerm.Delegate): Diagnostic[] {
+  public visitDelegate(_: SuffixTerm.Delegate): Diagnostic[] {
     return [];
   }
 
-  public passLiteral(_: SuffixTerm.Literal): Diagnostic[] {
+  public visitLiteral(_: SuffixTerm.Literal): Diagnostic[] {
     return [];
   }
 
-  public passIdentifier(_: SuffixTerm.Identifier): Diagnostic[] {
+  public visitIdentifier(_: SuffixTerm.Identifier): Diagnostic[] {
     return [];
   }
 
-  public passGrouping(suffixTerm: SuffixTerm.Grouping): Diagnostic[] {
-    return this.skipExpr(suffixTerm.expr);
+  public visitGrouping(suffixTerm: SuffixTerm.Grouping): Diagnostic[] {
+    return this.resolveExpr(suffixTerm.expr);
   }
 }
 

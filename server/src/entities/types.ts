@@ -16,6 +16,7 @@ export interface ITokenBase extends Range, Location {
 
 export interface IToken extends ITokenBase {
   tracker: Maybe<IKsSymbolTracker>;
+  readonly lookup: string;
   toString: () => string;
 }
 
