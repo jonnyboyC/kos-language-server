@@ -40,14 +40,23 @@ import {
 import { Logger } from './utilities/logger';
 import { primitiveInitializer } from './typeChecker/types/primitives/initialize';
 import { oribitalInitializer } from './typeChecker/types/orbital/initialize';
-import { cleanDiagnostic, cleanLocation, cleanPosition } from './utilities/clean';
-import { MessageReader, MessageWriter, StreamMessageReader, StreamMessageWriter } from 'vscode-languageserver-protocol';
+import {
+  cleanDiagnostic,
+  cleanLocation,
+  cleanPosition,
+} from './utilities/clean';
+import {
+  MessageReader,
+  MessageWriter,
+  StreamMessageReader,
+  StreamMessageWriter,
+} from 'vscode-languageserver-protocol';
 import { IToken } from './entities/types';
 
 let reader: MessageReader;
 let writer: MessageWriter;
 
-let argv = process.argv.slice(2);
+const argv = process.argv.slice(2);
 switch (argv[0]) {
   case '--node-ipc':
     reader = new IPCMessageReader(process);
@@ -58,7 +67,7 @@ switch (argv[0]) {
     writer = new StreamMessageWriter(process.stdout);
     break;
   default:
-    throw new Error('')
+    throw new Error('');
 }
 
 writer.onError(([error, message, code]) => {
@@ -67,13 +76,17 @@ writer.onError(([error, message, code]) => {
   console.log(code);
 });
 
-reader.onError((error) => {
+reader.onError(error => {
   console.log(error);
 });
 
 // Create a connection for the server. The connection uses Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
-export const connection = createConnection(ProposedFeatures.all, reader, writer);
+export const connection = createConnection(
+  ProposedFeatures.all,
+  reader,
+  writer,
+);
 
 // REMOVE ME TODO probably need to refactor the type modules as
 // structure and the primitives have a dependnecy loop
@@ -94,7 +107,9 @@ connection.onInitialize((params: InitializeParams) => {
   const capabilities = params.capabilities;
   connection.console.log(
     `[Server(${process.pid}) ${JSON.stringify(
-      capabilities, undefined, 2
+      capabilities,
+      undefined,
+      2,
     )}] Started and initialize received`,
   );
 
@@ -175,18 +190,15 @@ documents.onDidChangeContent(async change => {
       total += diagnostics.length;
 
       for (const diagnostic of diagnostics) {
-        let uriDiagnostics = diagnosticMap.get(diagnostic.uri);
+        const uriDiagnostics = diagnosticMap.get(diagnostic.uri);
         if (empty(uriDiagnostics)) {
-          diagnosticMap.set(
-            diagnostic.uri,
-            [cleanDiagnostic(diagnostic)]
-          );
+          diagnosticMap.set(diagnostic.uri, [cleanDiagnostic(diagnostic)]);
         } else {
           uriDiagnostics.push(cleanDiagnostic(diagnostic));
         }
       }
     }
-    
+
     for (const [uri, diagnostics] of diagnosticMap.entries()) {
       connection.sendDiagnostics({
         uri,
@@ -320,11 +332,7 @@ connection.onCompletionResolve(
 
     // this would be a possible spot to pull in doc string if present.
     if (!empty(token)) {
-      const type = analyzer.getType(
-        token.start,
-        token.lexeme,
-        token.uri,
-      );
+      const type = analyzer.getType(token.start, token.lexeme, token.uri);
 
       if (!empty(type)) {
         item.detail = `${item.label}: ${type.toTypeString()}`;

@@ -63,9 +63,7 @@ export class Resolver
       const splits = this.script.uri.split(sep);
       const file = splits[splits.length - 1];
 
-      this.logger.info(
-        `Resolving started for ${file}.`,
-      );
+      this.logger.info(`Resolving started for ${file}.`);
 
       this.tableBuilder.rewindScope();
       this.tableBuilder.beginScope(this.script);
@@ -82,14 +80,12 @@ export class Resolver
       this.script.lazyGlobal = this.lazyGlobal;
       const allErrors = firstError.concat(resolveErrors, scopeErrors);
 
-      this.logger.info(
-        `Resolving finished for ${file}`
-      );
-      
+      this.logger.info(`Resolving finished for ${file}`);
+
       if (allErrors.length) {
         this.logger.warn(`Resolver encounted ${allErrors.length} errors`);
       }
-      return allErrors
+      return allErrors;
     } catch (err) {
       this.logger.error(`Error occured in resolver ${err}`);
       this.tracer.log(err);
@@ -290,7 +286,9 @@ export class Resolver
    * @param inst the syntax node
    */
   public visitExpr(inst: Inst.ExprInst): Diagnostics {
-    return this.useExprLocals(inst.suffix).concat(this.resolveExpr(inst.suffix));
+    return this.useExprLocals(inst.suffix).concat(
+      this.resolveExpr(inst.suffix),
+    );
   }
 
   /**
@@ -298,7 +296,9 @@ export class Resolver
    * @param inst the syntax node
    */
   public visitOnOff(inst: Inst.OnOff): Diagnostics {
-    return this.useExprLocals(inst.suffix).concat(this.resolveExpr(inst.suffix));
+    return this.useExprLocals(inst.suffix).concat(
+      this.resolveExpr(inst.suffix),
+    );
   }
 
   /**
@@ -356,12 +356,11 @@ export class Resolver
 
     const setError = this.setVariable(set);
 
-    const useValueErrors = this.useExprLocals(inst.value)
+    const useValueErrors = this.useExprLocals(inst.value);
     const useInternalErrors = this.useTokens(used);
     const resolveErrors = this.resolveExpr(inst.value);
 
-    return useValueErrors.concat(
-      useInternalErrors, resolveErrors, setError);
+    return useValueErrors.concat(useInternalErrors, resolveErrors, setError);
   }
 
   /**
@@ -475,7 +474,9 @@ export class Resolver
    * @param inst the syntax node
    */
   public visitSwitch(inst: Inst.Switch): Diagnostics {
-    return this.useExprLocals(inst.target).concat(this.resolveExpr(inst.target));
+    return this.useExprLocals(inst.target).concat(
+      this.resolveExpr(inst.target),
+    );
   }
 
   /**
@@ -517,7 +518,9 @@ export class Resolver
    * @param inst the syntax node
    */
   public visitToggle(inst: Inst.Toggle): Diagnostics {
-    return this.useExprLocals(inst.suffix).concat(this.resolveExpr(inst.suffix));
+    return this.useExprLocals(inst.suffix).concat(
+      this.resolveExpr(inst.suffix),
+    );
   }
 
   /**
@@ -661,7 +664,9 @@ export class Resolver
    */
   public visitCompile(inst: Inst.Compile): Diagnostics {
     if (empty(inst.destination)) {
-      return this.useExprLocals(inst.target).concat(this.resolveExpr(inst.target));
+      return this.useExprLocals(inst.target).concat(
+        this.resolveExpr(inst.target),
+      );
     }
 
     return this.useExprLocals(inst.target).concat(
@@ -752,7 +757,9 @@ export class Resolver
   }
 
   public visitFactor(expr: Expr.Factor): Diagnostic[] {
-    return this.resolveExpr(expr.suffix).concat(this.resolveExpr(expr.exponent));
+    return this.resolveExpr(expr.suffix).concat(
+      this.resolveExpr(expr.exponent),
+    );
   }
 
   public visitSuffix(expr: Expr.Suffix): Diagnostic[] {
@@ -782,7 +789,9 @@ export class Resolver
     return [];
   }
 
-  public visitSuffixTrailer(suffixTerm: SuffixTerm.SuffixTrailer): Diagnostic[] {
+  public visitSuffixTrailer(
+    suffixTerm: SuffixTerm.SuffixTrailer,
+  ): Diagnostic[] {
     const atom = this.visitSuffixTerm(suffixTerm.suffixTerm);
     if (empty(suffixTerm.trailer)) {
       return atom;

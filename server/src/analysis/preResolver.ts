@@ -52,9 +52,7 @@ export class FuncResolver
       const splits = this.script.uri.split(sep);
       const file = splits[splits.length - 1];
 
-      this.logger.info(
-        `Function Resolving started for ${file}.`,
-      );
+      this.logger.info(`Function Resolving started for ${file}.`);
 
       this.scopeBuilder.rewindScope();
       this.scopeBuilder.beginScope(this.script);
@@ -63,12 +61,12 @@ export class FuncResolver
       const scopeErrors = this.scopeBuilder.endScope();
       const allErrors = resolveErrors.concat(scopeErrors);
 
-      this.logger.info(
-        `Function Resolving finished for ${file}`
-      );
-      
+      this.logger.info(`Function Resolving finished for ${file}`);
+
       if (allErrors.length) {
-        this.logger.warn(`Function Resolver encounted ${allErrors.length} errors`);
+        this.logger.warn(
+          `Function Resolver encounted ${allErrors.length} errors`,
+        );
       }
 
       return resolveErrors.concat(scopeErrors);
@@ -112,8 +110,8 @@ export class FuncResolver
   }
 
   // check lock declaration
-  public visitDeclLock(_: Lock): Diagnostics {
-    return [];
+  public visitDeclLock(decl: Lock): Diagnostics {
+    return this.resolveExpr(decl.value);
   }
 
   // check function declaration

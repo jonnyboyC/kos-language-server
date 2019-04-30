@@ -12,7 +12,7 @@ import {
 } from './types';
 import { performance, PerformanceObserver } from 'perf_hooks';
 import { Parser } from './parser/parser';
-import { FuncResolver } from './analysis/functionResolver';
+import { FuncResolver } from './analysis/preResolver';
 import { Scanner } from './scanner/scanner';
 import { Resolver } from './analysis/resolver';
 import { IParseError, ScriptResult, RunInstType } from './parser/types';
@@ -509,17 +509,17 @@ export class Analyzer {
   ): Promise<ScriptResult> {
     this.logger.info('');
     this.logger.info('-------------Lexical Analysis------------');
-    
+
     performance.mark('scanner-start');
     const scanner = new Scanner(text, uri, this.logger, this.tracer);
     const { tokens, scanErrors } = scanner.scanTokens();
     performance.mark('scanner-end');
-    
+
     // if scanner found errors report those immediately
     if (scanErrors.length > 0) {
       this.logger.warn(`Scanning encountered ${scanErrors.length} Errors.`);
     }
-    
+
     performance.mark('parser-start');
     const parser = new Parser(uri, tokens, this.logger, this.tracer);
     const result = parser.parse();

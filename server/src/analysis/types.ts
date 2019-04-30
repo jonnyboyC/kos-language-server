@@ -18,6 +18,11 @@ export const enum LockState {
   unlocked,
 }
 
+export interface IFunctionScanResult {
+  parameters: number;
+  return: boolean;
+}
+
 export interface ILocalResult {
   token: IToken;
   expr: IExpr | ISuffixTerm;

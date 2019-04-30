@@ -105,7 +105,7 @@ commandinstruction -> command '.'
 identifierInstruction -> suffix ( 'on' | 'off' )? '.'
 
 // expressions
-expression -> or
+expression -> or | instructionBlock
 
 // binary expresions
 or -> and ('or' and)?
