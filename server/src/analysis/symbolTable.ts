@@ -138,7 +138,7 @@ export class SymbolTable implements GraphNode<SymbolTable> {
     type: IArgumentType | IFunctionType,
     ...symbolKinds: KsSymbolKind[]): void {
 
-    const tracker = this.scopedSymbolTracker(token.start, token.lexeme, symbolKinds);
+    const tracker = this.scopedSymbolTracker(token.start, token.lookup, symbolKinds);
     if (!empty(tracker)) {
       tracker.declareType(type);
     }
@@ -152,7 +152,7 @@ export class SymbolTable implements GraphNode<SymbolTable> {
   public getType(
     token: IToken,
     ...symbolKinds: KsSymbolKind[]): Maybe<IArgumentType | IFunctionType> {
-    const tracker = this.scopedSymbolTracker(token.start, token.lexeme, symbolKinds);
+    const tracker = this.scopedSymbolTracker(token.start, token.lookup, symbolKinds);
     if (!empty(tracker)) {
       return tracker.getType({ range: token, uri: this.uri });
     }
@@ -168,7 +168,7 @@ export class SymbolTable implements GraphNode<SymbolTable> {
   public setType(
     token: IToken,
     type: IArgumentType | IFunctionType): void {
-    const tracker = this.scopedNamedTracker(token.start, token.lexeme);
+    const tracker = this.scopedNamedTracker(token.start, token.lookup);
     if (!empty(tracker)) {
       tracker.setType({ range: token, uri: this.uri }, type);
     }
@@ -188,7 +188,7 @@ export class SymbolTable implements GraphNode<SymbolTable> {
    */
   public globalTrackers(name: string): IKsSymbolTracker[] {
     return Array.from(this.rootScope.scope.values())
-      .filter(tracker => tracker.declared.symbol.name.lexeme === name);
+      .filter(tracker => tracker.declared.symbol.name.lookup === name);
   }
 
   /**
@@ -315,7 +315,7 @@ export class SymbolTable implements GraphNode<SymbolTable> {
 
     // our base filter is to match the symbol lexeme
     const baseFilter = (trackers: IKsSymbolTracker) =>
-      trackers.declared.symbol.name.lexeme === name;
+      trackers.declared.symbol.name.lookup === name;
 
     // our compound filter checkes for any and the other requested filtering operations
     const compoundFilter = empty(symbolFilter)

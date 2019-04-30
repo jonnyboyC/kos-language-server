@@ -89,6 +89,16 @@ set x to y.
 print x.
 `;
 
+const lazyListSource = 
+`
+function example {
+  parameter y.
+  list files in y.
+  print y.
+}
+
+list files in x.
+`
 
 describe('Reolver tracking', () => {
   // test basic identifier
@@ -190,6 +200,33 @@ describe('Reolver tracking', () => {
     expect(yUsage.type).toBe(structureType);
   });
 
+  test('basic list test', () => {
+    const results = resolveSource(lazyListSource);
+    noErrors(results);
+
+    const { table } = results;
+    const symbols = table.fileSymbols();
+    const names = new Map(symbols.map((s): [string, KsSymbol] => [s.name.lexeme, s]));
+
+    expect(names.has('x')).toBe(true);
+    expect(names.has('y')).toBe(true);
+
+    const xWrap = names.get('x');
+    const yWrap = names.get('y');
+
+    expect(empty(xWrap)).toBe(false);
+    expect(empty(yWrap)).toBe(false);
+
+    const x = unWrap(xWrap);
+    const y = unWrap(yWrap);
+
+    expect(x.name.lexeme).toBe('x');
+    expect(y.name.lexeme).toBe('y');
+
+    expect(x.tag).toBe(KsSymbolKind.variable);
+    expect(y.tag).toBe(KsSymbolKind.parameter);
+  })
+
   const symbolKindPath = join(
     __dirname,
     '../../../kerboscripts/parser_valid/unitTests/scannertest.ks',
@@ -250,10 +287,68 @@ describe('Reolver tracking', () => {
       expect(tag).toBe(KsSymbolKind.parameter);
       expect(bParamTracker.usages.length).toBe(1);
     }
+
+    // check loop i
+    const iTracker = table.scopedNamedTracker({ line: 6, character: 0 }, 'i');
+    outOfScope = table.scopedNamedTracker(Position.create(4, 0), 'i');
+
+    expect(outOfScope).toBeUndefined();
+    expect(iTracker).not.toBeUndefined();
+    if (iTracker !== undefined) {
+      const { name, tag } = iTracker.declared.symbol;
+      expect(name.lexeme).toBe('i');
+
+      range =  makeRange(5, 8, 5, 9);
+      expect(rangeEqual(name, range)).toBeTruthy();
+      expect(tag).toBe(KsSymbolKind.variable);
+      expect(iTracker.usages.length).toBe(1);
+    }
+
+    // check loop i
+    const xTracker = table.scopedNamedTracker({ line: 11, character: 0 }, 'x');
+    outOfScope = table.scopedNamedTracker(Position.create(13, 0), 'x');
+
+    expect(outOfScope).toBeUndefined();
+    expect(xTracker).not.toBeUndefined();
+    if (xTracker !== undefined) {
+      const { name, tag } = xTracker.declared.symbol;
+      expect(name.lexeme).toBe('x');
+
+      range =  makeRange(9, 17, 9, 18);
+      expect(rangeEqual(name, range)).toBeTruthy();
+      expect(tag).toBe(KsSymbolKind.variable);
+      expect(xTracker.usages.length).toBe(3);
+    }
   });
 })
 
+const ListSource = 
+`
+@lazyglobal off.
+list files in x.
+`
+
 describe('Resolver errors', () => {
+  const listLocations: Range[] = [
+    { start: new Marker(2, 14), end: new Marker(2, 15) },
+  ];
+
+  // test basic identifier
+  test('basic list test', () => {
+    const results = resolveSource(ListSource);
+  
+    expect(0).toBe(results.scan.scanErrors.length);
+    expect(0).toBe(results.parse.parseErrors.length);
+    expect(results.resolveError.length > 0).toBe(true);
+  
+    for (const [error, location] of zip(results.resolveError, listLocations)) {
+      expect(DiagnosticSeverity.Error).toBe(error.severity);
+      expect(location.start).toEqual(error.range.start);
+      expect(location.end).toEqual(error.range.end);
+    }
+  });
+
+
   const definedPath = join(
     __dirname,
     '../../../kerboscripts/parser_valid/unitTests/definedtest.ks',

@@ -246,7 +246,7 @@ export class TypeChecker
   visitDeclFunction(decl: Decl.Func): Diagnostics {
     const funcTracker = this.symbolTable.scopedFunctionTracker(
       decl.start,
-      decl.identifier.lexeme,
+      decl.identifier.lookup,
     );
 
     if (empty(funcTracker)) {
@@ -261,7 +261,7 @@ export class TypeChecker
     const returnType = symbol.returnValue ? structureType : voidType;
 
     const funcType = createFunctionType(
-      funcTracker.declared.symbol.name.lexeme,
+      funcTracker.declared.symbol.name.lookup,
       returnType,
       ...paramsTypes,
     );
@@ -420,7 +420,7 @@ export class TypeChecker
     if (atom instanceof SuffixTerm.Identifier) {
       const tracker = this.symbolTable.scopedVariableTracker(
         atom.start,
-        atom.token.lexeme,
+        atom.token.lookup,
       );
 
       if (
@@ -830,7 +830,7 @@ export class TypeChecker
     let finalType: IArgumentType;
 
     const errors: Diagnostics = [];
-    switch (collection.lexeme) {
+    switch (collection.lookup) {
       case 'bodies':
         finalType = bodyTargetType;
         break;
@@ -1171,7 +1171,7 @@ export class TypeChecker
     const type = this.symbolTable.getType(identifer.token, ...symbolKinds);
     const tracker = this.symbolTable.scopedSymbolTracker(
       identifer.start,
-      identifer.token.lexeme,
+      identifer.token.lookup,
       symbolKinds,
     );
     return empty(type) || empty(tracker)
@@ -1619,7 +1619,7 @@ export class TypeChecker
     current: ITypeResultSuffix<IType>,
   ): ITypeResultSuffix<SuffixTermType> {
     const { type, resolved, errors } = current;
-    const suffix = getSuffix(type, suffixTerm.token.lexeme);
+    const suffix = getSuffix(type, suffixTerm.token.lookup);
 
     // may need to pass sommething in about if we're in get set context
     if (empty(suffix)) {
@@ -1628,7 +1628,7 @@ export class TypeChecker
         errors,
         createDiagnostic(
           suffixTerm,
-          `Could not find suffix ${suffixTerm.token.lexeme} for type ${
+          `Could not find suffix ${suffixTerm.token.lookup} for type ${
             type.name
           }`,
           DiagnosticSeverity.Hint,

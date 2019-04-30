@@ -312,7 +312,7 @@ export class SymbolTableBuilder {
     const tracker = new KsSymbolTracker(new KsVariable(scopeType, token), type);
 
     token.tracker = tracker;
-    scope.set(token.lexeme, tracker);
+    scope.set(token.lookup, tracker);
 
     this.logger.verbose(`declare variable ${token.lexeme} at ${rangeToString(token)}`);
 
@@ -362,7 +362,7 @@ export class SymbolTableBuilder {
       type);
 
     token.tracker = tracker;
-    scope.set(token.lexeme, tracker);
+    scope.set(token.lookup, tracker);
 
     this.logger.verbose(`declare function ${token.lexeme} at ${rangeToString(token)}`);
 
@@ -404,7 +404,7 @@ export class SymbolTableBuilder {
     const tracker = new KsSymbolTracker(new KsLock(scopeType, token), type);
 
     token.tracker = tracker;
-    scope.set(token.lexeme, tracker);
+    scope.set(token.lookup, tracker);
 
     this.logger.verbose(`declare lock ${token.lexeme} at ${rangeToString(token)}`);
 
@@ -446,7 +446,7 @@ export class SymbolTableBuilder {
     const tracker = new KsSymbolTracker(new KsParameter(token, defaulted, SymbolState.declared));
 
     token.tracker = tracker;
-    scope.set(token.lexeme, tracker);
+    scope.set(token.lookup, tracker);
 
     this.logger.verbose(`declare parameter ${token.lexeme} at ${rangeToString(token)}`);
     return diagnostic;
@@ -604,13 +604,13 @@ export class SymbolTableBuilder {
    */
   private lookup(token: IToken, scope: ScopeType): Maybe<IKsSymbolTracker> {
     if (scope === ScopeType.local) {
-      return this.peekScope().get(token.lexeme);
+      return this.peekScope().get(token.lookup);
     }
 
     const scopes = this.activeScopeStack();
     for (let i = scopes.length - 1; i >= 0; i -= 1) {
       const scope = scopes[i];
-      const tracker = scope.get(token.lexeme);
+      const tracker = scope.get(token.lookup);
       if (!empty(tracker)) {
         return tracker;
       }
@@ -618,7 +618,7 @@ export class SymbolTableBuilder {
 
     // check child scopes symbol is in another file
     for (const child of this.childSymbolTables) {
-      const tracker = child.rootScope.scope.get(token.lexeme);
+      const tracker = child.rootScope.scope.get(token.lookup);
       if (!empty(tracker)) {
         return tracker;
       }

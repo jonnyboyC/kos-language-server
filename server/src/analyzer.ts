@@ -292,7 +292,7 @@ export class Analyzer {
       }
     }
 
-    const tracker = symbolsTable.scopedNamedTracker(pos, token.lexeme);
+    const tracker = symbolsTable.scopedNamedTracker(pos, token.lookup);
 
     if (!empty(tracker)) {
       return [tracker.declared.type, tracker.declared.symbol.tag];
@@ -341,7 +341,7 @@ export class Analyzer {
 
     // check if symbols exists
     const { token } = result;
-    const symbol = symbolsTable.scopedNamedTracker(pos, token.lexeme);
+    const symbol = symbolsTable.scopedNamedTracker(pos, token.lookup);
     if (empty(symbol)) {
       return undefined;
     }
@@ -375,7 +375,7 @@ export class Analyzer {
 
     // try to find the tracker at a given position
     const { token } = result;
-    const tracker = symbolsTable.scopedNamedTracker(pos, token.lexeme);
+    const tracker = symbolsTable.scopedNamedTracker(pos, token.lookup);
     if (empty(tracker)) {
       return undefined;
     }

@@ -28,6 +28,10 @@ export class Token implements IToken {
     this.tracker = undefined;
   }
 
+  public get lookup(): string {
+    return this.lexeme.toLowerCase();
+  }
+
   public get tag(): 'token' {
     return 'token';
   }
