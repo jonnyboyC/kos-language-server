@@ -5,8 +5,6 @@ import {
   ScopeType,
   ISuffixTerm,
   IScript,
-  ISuffixTermPasser,
-  IExprPasser,
   IExprVisitor,
   ISuffixTermVisitor,
 } from '../parser/types';
