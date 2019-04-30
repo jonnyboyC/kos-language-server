@@ -13,7 +13,7 @@ import { zip } from '../utilities/arrayUtils';
 import { Marker } from '../entities/token';
 import { SymbolTable } from '../analysis/symbolTable';
 import { SymbolTableBuilder } from '../analysis/symbolTableBuilder';
-import { FuncResolver } from '../analysis/functionResolver';
+import { FuncResolver } from '../analysis/preResolver';
 import { KsSymbol, KsSymbolKind, IKsSymbolTracker } from '../analysis/types';
 import { Resolver } from '../analysis/resolver';
 import { standardLibrary } from '../analysis/standardLibrary';
@@ -70,7 +70,7 @@ const makeRange = (sLine: number, schar: number, eLine: number, echar: number): 
     end: {
       line: eLine,
       character: echar,
-    }
+    },
   };
 };
 
@@ -80,7 +80,8 @@ const noErrors = (result: IResolveResults): void => {
   expect(result.resolveError.length).toBe(0);
 };
 
-const setSource = `
+const setSource =
+`
 set x to 10.
 set x to "cat".
 
@@ -89,7 +90,7 @@ set x to y.
 print x.
 `;
 
-const lazyListSource = 
+const lazyListSource =
 `
 function example {
   parameter y.
@@ -98,7 +99,7 @@ function example {
 }
 
 list files in x.
-`
+`;
 
 describe('Reolver tracking', () => {
   // test basic identifier
@@ -225,7 +226,7 @@ describe('Reolver tracking', () => {
 
     expect(x.tag).toBe(KsSymbolKind.variable);
     expect(y.tag).toBe(KsSymbolKind.parameter);
-  })
+  });
 
   const symbolKindPath = join(
     __dirname,
@@ -320,13 +321,13 @@ describe('Reolver tracking', () => {
       expect(xTracker.usages.length).toBe(3);
     }
   });
-})
+});
 
-const ListSource = 
+const listSource =
 `
 @lazyglobal off.
 list files in x.
-`
+`;
 
 describe('Resolver errors', () => {
   const listLocations: Range[] = [
@@ -335,12 +336,12 @@ describe('Resolver errors', () => {
 
   // test basic identifier
   test('basic list test', () => {
-    const results = resolveSource(ListSource);
-  
+    const results = resolveSource(listSource);
+
     expect(0).toBe(results.scan.scanErrors.length);
     expect(0).toBe(results.parse.parseErrors.length);
     expect(results.resolveError.length > 0).toBe(true);
-  
+
     for (const [error, location] of zip(results.resolveError, listLocations)) {
       expect(DiagnosticSeverity.Error).toBe(error.severity);
       expect(location.start).toEqual(error.range.start);
@@ -348,12 +349,11 @@ describe('Resolver errors', () => {
     }
   });
 
-
   const definedPath = join(
     __dirname,
     '../../../kerboscripts/parser_valid/unitTests/definedtest.ks',
   );
-  
+
   const definedLocations: Range[] = [
     { start: new Marker(5, 42), end: new Marker(5, 46) },
     { start: new Marker(8, 42), end: new Marker(8, 46) },
@@ -364,71 +364,75 @@ describe('Resolver errors', () => {
     { start: new Marker(53, 41), end: new Marker(53, 52) },
     { start: new Marker(54, 41), end: new Marker(54, 52) },
   ];
-  
+
   // test basic identifier
   test('basic defined test', () => {
     const defineSource = readFileSync(definedPath, 'utf8');
     const results = resolveSource(defineSource);
-  
+
     expect(0).toBe(results.scan.scanErrors.length);
     expect(0).toBe(results.parse.parseErrors.length);
     expect(results.resolveError.length > 0).toBe(true);
-  
+
     for (const [error, location] of zip(results.resolveError, definedLocations)) {
       expect(DiagnosticSeverity.Error).toBe(error.severity);
       expect(location.start).toEqual(error.range.start);
       expect(location.end).toEqual(error.range.end);
     }
   });
-  
+
   const usedPath = join(
     __dirname,
     '../../../kerboscripts/parser_valid/unitTests/usedtest.ks',
   );
-  
+
   const usedLocations: Range[] = [
     { start: new Marker(0, 6), end: new Marker(0, 7) },
     { start: new Marker(1, 6), end: new Marker(1, 7) },
   ];
-  
+
   // test basic identifier
   test('basic used test', () => {
     const usedSource = readFileSync(usedPath, 'utf8');
     const results = resolveSource(usedSource);
-  
+
     expect(0).toBe(results.scan.scanErrors.length);
     expect(0).toBe(results.parse.parseErrors.length);
     expect(results.resolveError.length > 0).toBe(true);
-  
+
     for (const [error, location] of zip(results.resolveError, usedLocations)) {
       expect(DiagnosticSeverity.Warning).toBe(error.severity);
       expect(location.start).toEqual(error.range.start);
       expect(location.end).toEqual(error.range.end);
     }
   });
-  
+
   const shadowPath = join(
     __dirname,
     '../../../kerboscripts/parser_valid/unitTests/shadowtest.ks',
   );
-  
+
   const shadowedLocations: Range[] = [
     { start: new Marker(3, 10), end: new Marker(3, 11) },
   ];
-  
+
   // test basic identifier
   test('basic shadowed test', () => {
     const shadowedSource = readFileSync(shadowPath, 'utf8');
     const results = resolveSource(shadowedSource);
-  
+
     expect(0).toBe(results.scan.scanErrors.length);
     expect(0).toBe(results.parse.parseErrors.length);
     expect(results.resolveError.length > 0).toBe(true);
-  
+
     for (const [error, location] of zip(results.resolveError, shadowedLocations)) {
       expect(DiagnosticSeverity.Warning).toBe(error.severity);
       expect(location.start).toEqual(error.range.start);
       expect(location.end).toEqual(error.range.end);
     }
   });
-})
+});
+
+describe('Function Scan', () => {
+
+});
