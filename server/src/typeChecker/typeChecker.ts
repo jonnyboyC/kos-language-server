@@ -1118,8 +1118,8 @@ export class TypeChecker
     );
   }
 
-  public visitAnonymousFunction(
-    _: Expr.AnonymousFunction,
+  public visitLambda(
+    _: Expr.Lambda,
   ): ITypeResultExpr<IArgumentType> {
     return this.resultExpr(delegateType);
   }

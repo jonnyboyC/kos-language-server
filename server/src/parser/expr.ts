@@ -273,7 +273,7 @@ export class Factor extends Expr {
 /**
  * Class holding all anonymous functions
  */
-export class AnonymousFunction extends Expr {
+export class Lambda extends Expr {
   /**
    * Grammar for anonymous functions
    */
@@ -323,7 +323,7 @@ export class AnonymousFunction extends Expr {
   }
 
   public accept<T>(visitor: IExprVisitor<T>): T {
-    return visitor.visitAnonymousFunction(this);
+    return visitor.visitLambda(this);
   }
 
   public pass<T>(visitor: IExprPasser<T>): T {
@@ -428,7 +428,7 @@ export const validExprTypes: [IExprClass, Distribution][] = [
   [Factor, createConstant(0.5)],
   [Suffix, createConstant(3)],
   // TODO update when insts included
-  [AnonymousFunction, createConstant(0)],
+  [Lambda, createConstant(0)],
 ];
 
 export const expr = createGrammarUnion(...validExprTypes);
@@ -479,7 +479,7 @@ Suffix.grammar = [
   ),
 ];
 
-AnonymousFunction.grammar = [
+Lambda.grammar = [
   TokenType.curlyOpen,
   //
   TokenType.curlyClose,

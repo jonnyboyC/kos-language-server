@@ -9,7 +9,7 @@ import * as Inst from './inst';
 import * as Expr from './expr';
 import * as SuffixTerm from './suffixTerm';
 
-export abstract class TraverseTree<T> implements
+export abstract class TreeExecute<T> implements
   IExprVisitor<T>,
   IInstVisitor<T>,
   ISuffixTermVisitor<T> {
@@ -189,7 +189,7 @@ export abstract class TraverseTree<T> implements
   public visitGrouping(suffixTerm: SuffixTerm.Grouping): T {
     return this.nodeAction(suffixTerm);
   }
-  public visitAnonymousFunction(expr: Expr.AnonymousFunction): T {
+  public visitLambda(expr: Expr.Lambda): T {
     return this.nodeAction(expr);
   }
 }

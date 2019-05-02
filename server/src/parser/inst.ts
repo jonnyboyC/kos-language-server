@@ -133,7 +133,6 @@ export class ExprInst extends Inst {
     return visitor.visitExpr(this);
   }
 }
-
 export class OnOff extends Inst {
   constructor(
     public readonly suffix: Expr.Suffix,
@@ -170,14 +169,9 @@ export class OnOff extends Inst {
     return visitor.visitOnOff(this);
   }
 }
-
 export class Command extends Inst {
   constructor(public readonly command: IToken) {
     super();
-  }
-
-  public toString(): string {
-    throw new Error('Method not implemented.');
   }
 
   public toLines(): string[] {
@@ -204,7 +198,6 @@ export class Command extends Inst {
     return visitor.visitCommand(this);
   }
 }
-
 export class CommandExpr extends Inst {
   constructor(public readonly command: IToken, public readonly expr: IExpr) {
     super();
@@ -537,10 +530,6 @@ export class From extends Inst {
     );
   }
 
-  public toString(): string {
-    throw new Error('Method not implemented.');
-  }
-
   public get start(): Position {
     return this.from.start;
   }
@@ -581,10 +570,6 @@ export class When extends Inst {
     super();
   }
 
-  public toString(): string {
-    throw new Error('Method not implemented.');
-  }
-
   public toLines(): string[] {
     const conditionLines = this.condition.toLines();
     const instLines = this.inst.toLines();
@@ -622,10 +607,6 @@ export class Return extends Inst {
     public readonly expr?: IExpr,
   ) {
     super();
-  }
-
-  public toString(): string {
-    throw new Error('Method not implemented.');
   }
 
   public toLines(): string[] {
@@ -669,10 +650,6 @@ export class Return extends Inst {
 export class Break extends Inst {
   constructor(public readonly breakToken: IToken) {
     super();
-  }
-
-  public toString(): string {
-    throw new Error('Method not implemented.');
   }
 
   public toLines(): string[] {
@@ -923,10 +900,6 @@ export class Log extends Inst {
     super();
   }
 
-  public toString(): string {
-    throw new Error('Method not implemented.');
-  }
-
   public toLines(): string[] {
     const exprLines = this.expr.toLines();
     const targetLines = this.target.toLines();
@@ -1122,10 +1095,6 @@ export class Run extends Inst {
     public readonly expr?: IExpr,
   ) {
     super();
-  }
-
-  public toString(): string {
-    throw new Error('Method not implemented.');
   }
 
   public toLines(): string[] {

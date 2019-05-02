@@ -771,7 +771,7 @@ export class Resolver
     return atom.concat(this.resolveSuffixTerm(expr.trailer));
   }
 
-  public visitAnonymousFunction(expr: Expr.AnonymousFunction): Diagnostic[] {
+  public visitLambda(expr: Expr.Lambda): Diagnostic[] {
     this.tableBuilder.beginScope(expr);
     const errors = this.resolveInsts(expr.insts);
     const scopeErrors = this.tableBuilder.endScope();

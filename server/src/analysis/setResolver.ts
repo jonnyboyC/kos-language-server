@@ -40,7 +40,7 @@ export class SetResolver implements
     return setResult(result.set, result.used, this.localResolver.resolveSuffixTerm(expr.trailer));
   }
 
-  public visitAnonymousFunction(_: Expr.AnonymousFunction): ISetResolverResult {
+  public visitLambda(_: Expr.Lambda): ISetResolverResult {
     return setResult();
   }
 

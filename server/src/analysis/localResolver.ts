@@ -8,6 +8,11 @@ export class LocalResolver implements
   IExprVisitor<ILocalResult[]>,
   ISuffixTermVisitor<ILocalResult[]> {
 
+  private isTrailer: boolean;
+  constructor() {
+    this.isTrailer = false;
+  }
+
   public resolveExpr(expr: IExpr): ILocalResult[] {
     return expr.accept(this);
   }
@@ -36,19 +41,24 @@ export class LocalResolver implements
 
     return atom.concat(this.resolveSuffixTerm(expr.trailer));
   }
-  public visitAnonymousFunction(_: Expr.AnonymousFunction): ILocalResult[] {
+  public visitLambda(_: Expr.Lambda): ILocalResult[] {
     return [];
   }
   public visitSuffixTermInvalid(_: SuffixTerm.Invalid): ILocalResult[] {
     return [];
   }
   public visitSuffixTrailer(suffixTerm: SuffixTerm.SuffixTrailer): ILocalResult[] {
-    const atom = this.resolveSuffixTerm(suffixTerm.suffixTerm);
-    if (empty(suffixTerm.trailer)) {
-      return atom;
-    }
+    const old = this.isTrailer;
+    this.isTrailer = true;
 
-    return atom.concat(this.resolveSuffixTerm(suffixTerm.trailer));
+    const atom = this.resolveSuffixTerm(suffixTerm.suffixTerm);
+
+    const result = empty(suffixTerm.trailer)
+      ? atom
+      : atom.concat(this.resolveSuffixTerm(suffixTerm.trailer));
+
+    this.isTrailer = old;
+    return result;
   }
   public visitSuffixTerm(suffixTerm: SuffixTerm.SuffixTerm): ILocalResult[] {
     const atom = this.resolveSuffixTerm(suffixTerm.atom);
@@ -80,7 +90,7 @@ export class LocalResolver implements
     return [];
   }
   public visitIdentifier(suffixTerm: SuffixTerm.Identifier): ILocalResult[] {
-    return suffixTerm.isTrailer ? [] : [{ expr: suffixTerm, token: suffixTerm.token }];
+    return this.isTrailer ? [] : [{ expr: suffixTerm, token: suffixTerm.token }];
   }
   public visitGrouping(suffixTerm: SuffixTerm.Grouping): ILocalResult[] {
     return this.resolveExpr(suffixTerm.expr);

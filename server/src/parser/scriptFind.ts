@@ -7,14 +7,14 @@ import { Position } from 'vscode-languageserver';
 import { binarySearch, rangeContains } from '../utilities/positionUtils';
 import { empty } from '../utilities/typeGuards';
 import { Token } from '../entities/token';
-import { TraverseTree } from './traverseTree';
+import { TreeExecute } from './treeExecute';
 
 type Contexts = Constructor<Expr.Expr>
   | Constructor<Inst.Inst>
   | Constructor<SuffixTerm.SuffixTermBase>
   | Constructor<Decl.Parameter>;
 
-export class ScriptFind extends TraverseTree<Maybe<IFindResult>> {
+export class ScriptFind extends TreeExecute<Maybe<IFindResult>> {
 
   private pos: Position;
   private contexts: Contexts[];

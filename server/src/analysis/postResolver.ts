@@ -428,7 +428,7 @@ export class FuncResolver
     return suffixTerm.concat(this.resolveSuffixTerm(expr.trailer));
   }
 
-  public visitAnonymousFunction(expr: Expr.AnonymousFunction): Diagnostics {
+  public visitLambda(expr: Expr.Lambda): Diagnostics {
     return this.resolveInsts(expr.insts);
   }
 

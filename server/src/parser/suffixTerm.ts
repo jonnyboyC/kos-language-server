@@ -289,13 +289,11 @@ export class Call extends SuffixTermBase {
    * @param open open paren of the call
    * @param args arguments for the call
    * @param close close paren of the call
-   * @param isTrailer indication if this is a trailer
    */
   constructor(
     public readonly open: IToken,
     public readonly args: IExpr[],
     public readonly close: IToken,
-    public readonly isTrailer: boolean,
   ) {
     super();
   }
@@ -360,13 +358,8 @@ export class ArrayIndex extends SuffixTermBase {
    * Constructor for the suffix term trailer
    * @param indexer # token indicating a index
    * @param index index to be used
-   * @param isTrailer is the array index in a suffix trailer
    */
-  constructor(
-    public readonly indexer: IToken,
-    public readonly index: IToken,
-    public readonly isTrailer: boolean,
-  ) {
+  constructor(public readonly indexer: IToken, public readonly index: IToken) {
     super();
   }
 
@@ -420,13 +413,11 @@ export class ArrayBracket extends SuffixTermBase {
    * @param open open bracket
    * @param index index into the collection
    * @param close close bracket
-   * @param isTrailer is the suffix term a trailer
    */
   constructor(
     public readonly open: IToken,
     public readonly index: IExpr,
     public readonly close: IToken,
-    public readonly isTrailer: boolean,
   ) {
     super();
   }
@@ -483,12 +474,8 @@ export class Delegate extends SuffixTermBase {
   /**
    * Constructor for the function delegate
    * @param atSign at sign indicating that function should create a delgate
-   * @param isTrailer is the delgate a suffix trailer
    */
-  constructor(
-    public readonly atSign: IToken,
-    public readonly isTrailer: boolean,
-  ) {
+  constructor(public readonly atSign: IToken) {
     super();
   }
 
@@ -540,12 +527,8 @@ export class Literal extends SuffixTermBase {
   /**
    * Constructor for literal suffix term
    * @param token token for the literal
-   * @param isTrailer is a suffix trailer
    */
-  constructor(
-    public readonly token: IToken,
-    public readonly isTrailer: boolean,
-  ) {
+  constructor(public readonly token: IToken) {
     super();
   }
 
@@ -597,12 +580,8 @@ export class Identifier extends SuffixTermBase {
   /**
    * Constructor for suffix term identifiers
    * @param token identifier token
-   * @param isTrailer is suffix trailer
    */
-  constructor(
-    public readonly token: IToken,
-    public readonly isTrailer: boolean,
-  ) {
+  constructor(public readonly token: IToken) {
     super();
   }
 
@@ -663,13 +642,11 @@ export class Grouping extends SuffixTermBase {
    * @param open open paren token
    * @param expr expression within the grouping
    * @param close close paren token
-   * @param isTrailer is suffix trailer
    */
   constructor(
     public readonly open: IToken,
     public readonly expr: IExpr,
     public readonly close: IToken,
-    public readonly isTrailer: boolean,
   ) {
     super();
   }

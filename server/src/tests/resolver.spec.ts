@@ -17,6 +17,8 @@ import { FuncResolver } from '../analysis/preResolver';
 import { KsSymbol, KsSymbolKind, IKsSymbolTracker } from '../analysis/types';
 import { Resolver } from '../analysis/resolver';
 import { standardLibrary } from '../analysis/standardLibrary';
+import { FunctionScan } from '../analysis/functionScan';
+import * as Decl from '../parser/declare';
 
 const fakeUri = 'C:\\fake.ks';
 
@@ -72,6 +74,11 @@ const makeRange = (sLine: number, schar: number, eLine: number, echar: number): 
       character: echar,
     },
   };
+};
+
+const noParseErrors = (result: Pick<IResolveResults, 'scan' | 'parse'>): void => {
+  expect(result.scan.scanErrors.length).toBe(0);
+  expect(result.parse.parseErrors.length).toBe(0);
 };
 
 const noErrors = (result: IResolveResults): void => {
@@ -396,8 +403,8 @@ describe('Resolver errors', () => {
     const usedSource = readFileSync(usedPath, 'utf8');
     const results = resolveSource(usedSource);
 
-    expect(0).toBe(results.scan.scanErrors.length);
-    expect(0).toBe(results.parse.parseErrors.length);
+    expect(results.scan.scanErrors.length).toBe(0);
+    expect(results.parse.parseErrors.length).toBe(0);
     expect(results.resolveError.length > 0).toBe(true);
 
     for (const [error, location] of zip(results.resolveError, usedLocations)) {
@@ -421,8 +428,8 @@ describe('Resolver errors', () => {
     const shadowedSource = readFileSync(shadowPath, 'utf8');
     const results = resolveSource(shadowedSource);
 
-    expect(0).toBe(results.scan.scanErrors.length);
-    expect(0).toBe(results.parse.parseErrors.length);
+    expect(results.scan.scanErrors.length).toBe(0);
+    expect(results.parse.parseErrors.length).toBe(0);
     expect(results.resolveError.length > 0).toBe(true);
 
     for (const [error, location] of zip(results.resolveError, shadowedLocations)) {
@@ -433,6 +440,114 @@ describe('Resolver errors', () => {
   });
 });
 
-describe('Function Scan', () => {
+const emptyFunction = `
+function empty { }
+`;
 
+const returnFunction = `
+function returning {
+  return 10.
+}
+`;
+
+const complicatedFunction = `
+function complicated {
+  parameter first.
+  parameter x, y, other is 10.
+
+  if x < 10 {
+    return other.
+  }
+
+  local total is 0.
+  for i in y {
+    for j in first {
+      set total to total + other + j.
+
+      if total > 1e3 {
+        return total.
+      }
+    }
+  }
+
+  local function inner {
+    parameter a.
+    print(a).
+
+    return a.
+  }
+
+  return 10.
+}
+`;
+
+describe('Function Scan', () => {
+  test('empty function', () => {
+    const parseResult = parseSource(emptyFunction);
+    noParseErrors(parseResult);
+
+    const { script } = parseResult.parse;
+    expect(script.insts.length).toBe(1);
+
+    const [funcInst] = script.insts;
+    expect(funcInst).toBeInstanceOf(Decl.Func);
+
+    const funcScanner = new FunctionScan();
+
+    if (funcInst instanceof Decl.Func) {
+      const scanResult = funcScanner.scan(funcInst.block);
+      expect(scanResult).not.toBeUndefined();
+
+      if (!empty(scanResult)) {
+        expect(scanResult.return).toBe(false);
+        expect(scanResult.parameters).toBe(0);
+      }
+    }
+  });
+
+  test('returning function', () => {
+    const parseResult = parseSource(returnFunction);
+    noParseErrors(parseResult);
+
+    const { script } = parseResult.parse;
+    expect(script.insts.length).toBe(1);
+
+    const [funcInst] = script.insts;
+    expect(funcInst).toBeInstanceOf(Decl.Func);
+
+    const funcScanner = new FunctionScan();
+
+    if (funcInst instanceof Decl.Func) {
+      const scanResult = funcScanner.scan(funcInst.block);
+      expect(scanResult).not.toBeUndefined();
+
+      if (!empty(scanResult)) {
+        expect(scanResult.return).toBe(true);
+        expect(scanResult.parameters).toBe(0);
+      }
+    }
+  });
+
+  test('complicated function', () => {
+    const parseResult = parseSource(complicatedFunction);
+    noParseErrors(parseResult);
+
+    const { script } = parseResult.parse;
+    expect(script.insts.length).toBe(1);
+
+    const [funcInst] = script.insts;
+    expect(funcInst).toBeInstanceOf(Decl.Func);
+
+    const funcScanner = new FunctionScan();
+
+    if (funcInst instanceof Decl.Func) {
+      const scanResult = funcScanner.scan(funcInst.block);
+      expect(scanResult).not.toBeUndefined();
+
+      if (!empty(scanResult)) {
+        expect(scanResult.return).toBe(true);
+        expect(scanResult.parameters).toBe(4);
+      }
+    }
+  });
 });
