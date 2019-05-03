@@ -156,66 +156,13 @@ export class SymbolTableBuilder {
   /**
    * Pop the current scope off the stack
    */
-  public endScope(): Diagnostic[] {
-    const { scope, position } = this.activeScopeNode();
+  public endScope(): void {
+    const { position } = this.activeScopeNode();
     this.path.active.pop();
-
-    const errors = [];
-    if (!empty(scope)) {
-      for (const tracker of scope.values()) {
-        switch (tracker.declared.symbol.tag) {
-          case KsSymbolKind.function:
-            break;
-          case KsSymbolKind.parameter:
-            if (tracker.usages.length === 0) {
-              errors.push(
-                createDiagnostic(
-                  tracker.declared.symbol.name,
-                  `Parameter ${
-                    tracker.declared.symbol.name.lexeme
-                  } was not used.`,
-                  DiagnosticSeverity.Warning,
-                ),
-              );
-            }
-            break;
-          case KsSymbolKind.lock:
-            if (
-              !tracker.declared.symbol.cooked &&
-              tracker.usages.length === 0
-            ) {
-              errors.push(
-                createDiagnostic(
-                  tracker.declared.symbol.name,
-                  `Lock ${tracker.declared.symbol.name.lexeme} was not used.`,
-                  DiagnosticSeverity.Warning,
-                ),
-              );
-            }
-            break;
-          case KsSymbolKind.variable:
-            if (tracker.usages.length === 0) {
-              errors.push(
-                createDiagnostic(
-                  tracker.declared.symbol.name,
-                  `Variable ${
-                    tracker.declared.symbol.name.lexeme
-                  } was not used.`,
-                  DiagnosticSeverity.Warning,
-                ),
-              );
-            }
-            break;
-          default:
-            throw new Error();
-        }
-      }
-    }
 
     if (position.tag === 'real') {
       this.logger.verbose(`end scope at ${positionToString(position.end)}`);
     }
-    return errors;
   }
 
   /**
@@ -237,6 +184,16 @@ export class SymbolTableBuilder {
    */
   public scopeDepth(): number {
     return this.activeScopeStack().length;
+  }
+
+  /**
+   * Find all unused symbols in this symbol table builder
+   */
+  public findUnused(): Diagnostic[] {
+    const errors: Diagnostic[] = [];
+
+    this.findScopeNodeUnused(this.rootScope, errors);
+    return errors;
   }
 
   /**
@@ -706,6 +663,76 @@ export class SymbolTableBuilder {
         isKsVariable(tracker.declared.symbol))
       ? (tracker as IKsSymbolTracker<KsParameter | KsVariable>)
       : undefined;
+  }
+
+  /**
+   * Find all unused symbol in a scope node that aren't used and
+   * it's children
+   * @param node scope node
+   * @param errors cumulative errors
+   */
+  private findScopeNodeUnused(node: IScopeNode, errors: Diagnostic[]): void {
+    this.findScopeUnused(node.scope, errors);
+
+    for (const childNode of node.children) {
+      this.findScopeNodeUnused(childNode, errors);
+    }
+  }
+
+  /**
+   * Find all unused symbols in a scope that aren't used
+   * @param scope scope to check
+   * @param errors cumulative errors
+   */
+  private findScopeUnused(scope: IScope, errors: Diagnostic[]): void {
+    for (const tracker of scope.values()) {
+      switch (tracker.declared.symbol.tag) {
+        case KsSymbolKind.function:
+          break;
+        case KsSymbolKind.parameter:
+          if (tracker.usages.length === 0) {
+            errors.push(
+              createDiagnostic(
+                tracker.declared.symbol.name,
+                `Parameter ${
+                  tracker.declared.symbol.name.lexeme
+                } was not used.`,
+                DiagnosticSeverity.Warning,
+              ),
+            );
+          }
+          break;
+        case KsSymbolKind.lock:
+          if (
+            !tracker.declared.symbol.cooked &&
+            tracker.usages.length === 0
+          ) {
+            errors.push(
+              createDiagnostic(
+                tracker.declared.symbol.name,
+                `Lock ${tracker.declared.symbol.name.lexeme} was not used.`,
+                DiagnosticSeverity.Warning,
+              ),
+            );
+          }
+          break;
+        case KsSymbolKind.variable:
+          if (tracker.usages.length === 0) {
+            errors.push(
+              createDiagnostic(
+                tracker.declared.symbol.name,
+                `Variable ${
+                  tracker.declared.symbol.name.lexeme
+                } was not used.`,
+                DiagnosticSeverity.Warning,
+              ),
+            );
+          }
+          break;
+        default:
+          throw new Error('Unknown symbol found');
+      }
+    }
   }
 
   /**

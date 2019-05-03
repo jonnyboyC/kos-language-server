@@ -94,18 +94,17 @@ export class PreResolver
       this.tableBuilder.beginScope(this.script);
 
       const resolveErrors = this.resolveInsts(this.script.insts);
-      const scopeErrors = this.tableBuilder.endScope();
-      const allErrors = resolveErrors.concat(scopeErrors);
+      this.tableBuilder.endScope();
 
       this.logger.info(`Function Resolving finished for ${file}`);
 
-      if (allErrors.length) {
+      if (resolveErrors.length) {
         this.logger.warn(
-          `Function Resolver encounted ${allErrors.length} errors`,
+          `Function Resolver encounted ${resolveErrors.length} errors`,
         );
       }
 
-      return resolveErrors.concat(scopeErrors);
+      return resolveErrors;
     } catch (err) {
       this.logger.error(`Error occured in resolver ${err}`);
       this.tracer.log(err);

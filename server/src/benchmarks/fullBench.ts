@@ -64,6 +64,8 @@ for (let i = 0; i < 10; i += 1) {
     const resolver = new Resolver(script, symbolTableBuilder);
     preResolver.resolve();
     resolver.resolve();
+
+    symbolTableBuilder.findUnused();
     const resolveEnd = performance.now();
 
     scanResults.push({

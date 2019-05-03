@@ -54,10 +54,11 @@ const resolveSource = (source: string, standardLib = false): IResolveResults => 
 
   const preResolverError = functionResolver.resolve();
   const resolverErrors = resolver.resolve();
+  const ususedErrors = symbolTableBuilder.findUnused();
 
   return {
     ...result,
-    resolveError: preResolverError.concat(resolverErrors),
+    resolveError: preResolverError.concat(resolverErrors, ususedErrors),
     table: symbolTableBuilder.build(),
   };
 };
@@ -105,6 +106,7 @@ function example {
 }
 
 list files in x.
+print x.
 `;
 
 describe('Resolver tracking', () => {
@@ -207,7 +209,7 @@ describe('Resolver tracking', () => {
     expect(yUsage.type).toBe(structureType);
   });
 
-  test('basic list test', () => {
+  test('lazy list test', () => {
     const results = resolveSource(lazyListSource);
     noErrors(results);
 

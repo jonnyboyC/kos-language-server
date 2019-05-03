@@ -188,6 +188,11 @@ export class Analyzer {
       .map(error => addDiagnosticsUri(error, uri));
 
     yield resolverDiagnostics;
+    const unusedDiagnostics = symbolTableBuilder
+      .findUnused()
+      .map(error => addDiagnosticsUri(error, uri));
+
+    yield unusedDiagnostics;
     performance.mark('resolver-end');
 
     const symbolTable = symbolTableBuilder.build();

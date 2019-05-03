@@ -24,6 +24,7 @@ import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
 import { createDiagnostic } from '../utilities/diagnosticsUtils';
 import { sep } from 'path';
 import { IToken } from '../entities/types';
+// tslint:disable-next-line: import-name
 import Denque from 'denque';
 
 type Diagnostics = Diagnostic[];
@@ -84,14 +85,14 @@ export class Resolver
 
       // resolve reset
       const resolveErrors = this.resolveInsts(restInsts);
-      const scopeErrors = this.tableBuilder.endScope();
+      this.tableBuilder.endScope();
 
       this.script.lazyGlobal = this.lazyGlobal;
       this.initialPass = false;
 
       // process all deferred nodes
       let current: Maybe<IDeferred>;
-      let allErrors = firstError.concat(resolveErrors, scopeErrors);
+      let allErrors = firstError.concat(resolveErrors);
 
       // process deferred queue
       while (current = this.deferred.pop()) {
@@ -303,9 +304,9 @@ export class Resolver
   public visitBlock(inst: Inst.Block): Diagnostics {
     this.tableBuilder.beginScope(inst);
     const errors = this.resolveInsts(inst.insts);
-    const scopeErrors = this.tableBuilder.endScope();
+    this.tableBuilder.endScope();
 
-    return errors.concat(scopeErrors);
+    return errors;
   }
 
   /**
@@ -460,9 +461,9 @@ export class Resolver
     );
 
     const useErrors = this.useExprLocals(inst.condition);
-    const scopeErrors = this.tableBuilder.endScope();
+    this.tableBuilder.endScope();
 
-    return resolverErrors.concat(useErrors, scopeErrors);
+    return resolverErrors.concat(useErrors);
   }
 
   /**
@@ -524,8 +525,9 @@ export class Resolver
     const errors = this.useExprLocals(inst.suffix).concat(
       this.resolveExpr(inst.suffix),
       this.resolveInst(inst.inst),
-      this.tableBuilder.endScope(),
     );
+
+    this.tableBuilder.endScope();
 
     if (!empty(declareError)) {
       return errors.concat(declareError);
@@ -809,9 +811,9 @@ export class Resolver
   public visitLambda(expr: Expr.Lambda): Diagnostic[] {
     this.tableBuilder.beginScope(expr);
     const errors = this.resolveInsts(expr.insts);
-    const scopeErrors = this.tableBuilder.endScope();
+    this.tableBuilder.endScope();
 
-    return errors.concat(scopeErrors);
+    return errors;
   }
 
   /* --------------------------------------------
