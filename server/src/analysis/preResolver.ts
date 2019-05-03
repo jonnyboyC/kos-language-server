@@ -13,18 +13,16 @@ import * as Expr from '../parser/expr';
 import * as Inst from '../parser/inst';
 import { Var, Lock, Func, Param } from '../parser/declare';
 import { empty } from '../utilities/typeGuards';
-import { KsParameter } from '../entities/parameters';
 import { TokenType } from '../entities/tokentypes';
 import { mockLogger, mockTracer } from '../utilities/logger';
-import { SymbolState } from './types';
 import { SymbolTableBuilder } from './symbolTableBuilder';
-import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
-import { createDiagnostic } from '../utilities/diagnosticsUtils';
+import { Diagnostic } from 'vscode-languageserver';
 import { sep } from 'path';
+import { FunctionScan } from './functionScan';
 
 export type Diagnostics = Diagnostic[];
 
-export class FuncResolver
+export class PreResolver
   implements
     IExprVisitor<Diagnostics>,
     IInstVisitor<Diagnostics>,
@@ -33,6 +31,7 @@ export class FuncResolver
   private scopeBuilder: SymbolTableBuilder;
   private readonly logger: ILogger;
   private readonly tracer: ITracer;
+  private readonly functionScan: FunctionScan;
 
   constructor(
     script: IScript,
@@ -44,6 +43,7 @@ export class FuncResolver
     this.scopeBuilder = symbolTableBuilder;
     this.logger = logger;
     this.tracer = tracer;
+    this.functionScan = new FunctionScan();
   }
 
   // resolve the sequence of instructions
@@ -54,7 +54,7 @@ export class FuncResolver
 
       this.logger.info(`Function Resolving started for ${file}.`);
 
-      this.scopeBuilder.rewindScope();
+      this.scopeBuilder.rewind();
       this.scopeBuilder.beginScope(this.script);
 
       const resolveErrors = this.resolveInsts(this.script.insts);
@@ -140,64 +140,19 @@ export class FuncResolver
       }
     }
 
-    let returnValue = false;
-    const parameterDecls: Param[] = [];
-    for (const inst of decl.block.insts) {
-      // get parameters for this function
-      if (inst instanceof Param) {
-        parameterDecls.push(inst);
-        continue;
-      }
-
-      // determine if return exists
-      if (inst instanceof Inst.Return) {
-        returnValue = true;
-      }
-    }
-    const [parameters, errors] = this.buildParameters(parameterDecls);
+    const result = this.functionScan.scan(decl.block);
     const declareErrors = this.scopeBuilder.declareFunction(
       scopeType,
       decl.identifier,
-      parameters,
-      returnValue,
+      result.requiredParameters,
+      result.optionalParameters,
+      result.return,
     );
     const instErrors = this.resolveInst(decl.block);
 
     return empty(declareErrors)
-      ? instErrors.concat(errors)
-      : instErrors.concat(errors, declareErrors);
-  }
-
-  private buildParameters(decls: Param[]): [KsParameter[], Diagnostics] {
-    const parameters: KsParameter[] = [];
-    const errors: Diagnostics = [];
-    let defaulted = false;
-
-    for (const decl of decls) {
-      for (const parameter of decl.parameters) {
-        if (defaulted) {
-          errors.push(
-            createDiagnostic(
-              parameter.identifier,
-              'Normal parameters cannot occur after defaulted parameters',
-              DiagnosticSeverity.Error,
-            ),
-          );
-        }
-        parameters.push(
-          new KsParameter(parameter.identifier, false, SymbolState.declared),
-        );
-      }
-
-      for (const parameter of decl.defaultParameters) {
-        defaulted = true;
-        parameters.push(
-          new KsParameter(parameter.identifier, true, SymbolState.declared),
-        );
-      }
-    }
-
-    return [parameters, errors];
+      ? instErrors
+      : instErrors.concat(declareErrors);
   }
 
   // check parameter declaration

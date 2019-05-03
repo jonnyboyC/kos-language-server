@@ -17,7 +17,10 @@ interface IBenchResult {
 walkDir(testDir, (filePath) => {
   const kosFile = readFileSync(filePath, 'utf8');
   const scanner = new Scanner(kosFile);
-  scanner.scanTokens();
+  const { tokens } = scanner.scanTokens();
+
+  const parser = new Parser('', tokens);
+  parser.parse();
 });
 
 let results: IBenchResult[] = [];

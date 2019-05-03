@@ -1,4 +1,3 @@
-import * as expect from 'expect';
 import { readdirSync, statSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { Diagnostic } from 'vscode-languageserver';

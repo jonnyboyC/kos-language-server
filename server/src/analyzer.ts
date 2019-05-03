@@ -12,7 +12,7 @@ import {
 } from './types';
 import { performance, PerformanceObserver } from 'perf_hooks';
 import { Parser } from './parser/parser';
-import { FuncResolver } from './analysis/preResolver';
+import { PreResolver } from './analysis/preResolver';
 import { Scanner } from './scanner/scanner';
 import { Resolver } from './analysis/resolver';
 import { IParseError, ScriptResult, RunInstType } from './parser/types';
@@ -159,7 +159,7 @@ export class Analyzer {
     symbolTableBuilder.linkTable(this.activeBodyLibrary());
 
     // generate resolvers
-    const funcResolver = new FuncResolver(
+    const funcResolver = new PreResolver(
       script,
       symbolTableBuilder,
       this.logger,

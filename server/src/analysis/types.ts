@@ -19,7 +19,8 @@ export const enum LockState {
 }
 
 export interface IFunctionScanResult {
-  parameters: number;
+  optionalParameters: number;
+  requiredParameters: number;
   return: boolean;
 }
 
@@ -40,6 +41,11 @@ export interface IKsSymbolTracker<T extends KsSymbol = KsSymbol> {
   declareType(type: IArgumentType | IFunctionType): void;
   getType(loc: Location): Maybe<IArgumentType | IFunctionType>;
   setType(loc: Location, type: IArgumentType | IFunctionType): void;
+}
+
+export interface IScopePath {
+  active: IStack<number>;
+  backTrack: IStack<number>;
 }
 
 export interface IKsChange extends Location {

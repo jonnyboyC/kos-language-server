@@ -1,3 +1,5 @@
+// if file is used to check the scanner produces the correct
+// set of tokens upon scanning the file
 @lazyglobal on.
 global function test {
     parameter a, b is 10.

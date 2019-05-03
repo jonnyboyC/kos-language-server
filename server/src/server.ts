@@ -11,11 +11,11 @@ import {
   InitializeParams,
   CompletionItem,
   TextDocumentPositionParams,
-  SignatureHelp,
+  // SignatureHelp,
   Location,
   DidChangeWatchedFilesParams,
-  SignatureInformation,
-  ParameterInformation,
+  // SignatureInformation,
+  // ParameterInformation,
   DidOpenTextDocumentParams,
   DidChangeTextDocumentParams,
   DidCloseTextDocumentParams,
@@ -138,9 +138,9 @@ connection.onInitialize((params: InitializeParams) => {
         // triggerCharacters: [':'],
       },
 
-      signatureHelpProvider: {
-        triggerCharacters: ['(', ','],
-      },
+      // signatureHelpProvider: {
+      //   triggerCharacters: ['(', ','],
+      // },
 
       hoverProvider: true,
       referencesProvider: true,
@@ -280,31 +280,31 @@ connection.onReferences(
 );
 
 // This handler provides signature help
-connection.onSignatureHelp(
-  (documentPosition: TextDocumentPositionParams): SignatureHelp => {
-    const { position } = documentPosition;
-    const { uri } = documentPosition.textDocument;
+// connection.onSignatureHelp(
+//   (documentPosition: TextDocumentPositionParams): SignatureHelp => {
+//     const { position } = documentPosition;
+//     const { uri } = documentPosition.textDocument;
 
-    const result = analyzer.getFunctionAtPosition(position, uri);
-    if (empty(result)) return defaultSigniture();
+//     const result = analyzer.getFunctionAtPosition(position, uri);
+//     if (empty(result)) return defaultSigniture();
 
-    const { func, index } = result;
-    const { parameters } = func;
-    return {
-      signatures: [
-        SignatureInformation.create(
-          func.name.lexeme,
-          undefined,
-          ...parameters.map(param =>
-            ParameterInformation.create(param.name.lexeme),
-          ),
-        ),
-      ],
-      activeParameter: index,
-      activeSignature: 0,
-    };
-  },
-);
+//     const { func, index } = result;
+//     const { parameters } = func;
+//     return {
+//       signatures: [
+//         SignatureInformation.create(
+//           func.name.lexeme,
+//           undefined,
+//           ...parameters.map(param =>
+//             ParameterInformation.create(param.name.lexeme),
+//           ),
+//         ),
+//       ],
+//       activeParameter: index,
+//       activeSignature: 0,
+//     };
+//   },
+// );
 
 // This handler provider document symbols in file
 connection.onDocumentSymbol(
@@ -343,11 +343,11 @@ connection.onCompletionResolve(
   },
 );
 
-const defaultSigniture = (): SignatureHelp => ({
-  signatures: [],
-  activeParameter: null,
-  activeSignature: null,
-});
+// const defaultSigniture = (): SignatureHelp => ({
+//   signatures: [],
+//   activeParameter: null,
+//   activeSignature: null,
+// });
 
 // Make the text document manager listen on the connection
 // for open, change and close text document events

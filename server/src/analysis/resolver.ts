@@ -19,13 +19,18 @@ import { TokenType } from '../entities/tokentypes';
 import { Script } from '../entities/script';
 import { mockLogger, mockTracer } from '../utilities/logger';
 import { SymbolTableBuilder } from './symbolTableBuilder';
-import { ILocalResult } from './types';
+import { ILocalResult, IScopePath } from './types';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
 import { createDiagnostic } from '../utilities/diagnosticsUtils';
 import { sep } from 'path';
 import { IToken } from '../entities/types';
+import Denque from 'denque';
 
-export type Diagnostics = Diagnostic[];
+type Diagnostics = Diagnostic[];
+interface IDeferred {
+  path: IScopePath;
+  node: IInst;
+}
 
 export class Resolver
   implements
@@ -38,8 +43,10 @@ export class Resolver
   private readonly tracer: ITracer;
   private readonly localResolver: LocalResolver;
   private readonly setResolver: SetResolver;
+  private readonly deferred: any;
   private lazyGlobal: boolean;
   private firstInst: boolean;
+  private initialPass: boolean;
 
   constructor(
     script: IScript,
@@ -51,8 +58,10 @@ export class Resolver
     this.tableBuilder = symbolTableBuilder;
     this.localResolver = new LocalResolver();
     this.setResolver = new SetResolver(this.localResolver);
+    this.deferred = new Denque();
     this.lazyGlobal = true;
     this.firstInst = true;
+    this.initialPass = true;
     this.logger = logger;
     this.tracer = tracer;
   }
@@ -65,7 +74,7 @@ export class Resolver
 
       this.logger.info(`Resolving started for ${file}.`);
 
-      this.tableBuilder.rewindScope();
+      this.tableBuilder.rewind();
       this.tableBuilder.beginScope(this.script);
       const [firstInst, ...restInsts] = this.script.insts;
 
@@ -78,7 +87,21 @@ export class Resolver
       const scopeErrors = this.tableBuilder.endScope();
 
       this.script.lazyGlobal = this.lazyGlobal;
-      const allErrors = firstError.concat(resolveErrors, scopeErrors);
+      this.initialPass = false;
+
+      // process all deferred nodes
+      let current: Maybe<IDeferred>;
+      let allErrors = firstError.concat(resolveErrors, scopeErrors);
+
+      // process deferred queue
+      while (current = this.deferred.pop()) {
+
+        // set scope path
+        this.tableBuilder.setPath(current.path);
+
+        // resolve deferred node
+        allErrors = allErrors.concat(this.resolveInst(current.node));
+      }
 
       this.logger.info(`Resolving finished for ${file}`);
 
@@ -209,6 +232,10 @@ export class Resolver
    * @param decl the syntax node
    */
   public visitDeclFunction(decl: Decl.Func): Diagnostic[] {
+    if (this.initialPass) {
+      return this.deferNode(decl);
+    }
+
     return this.resolveInst(decl.block);
   }
 
@@ -443,6 +470,10 @@ export class Resolver
    * @param inst the syntax node
    */
   public visitWhen(inst: Inst.When): Diagnostics {
+    if (this.initialPass) {
+      return this.deferNode(inst);
+    }
+
     return this.useExprLocals(inst.condition).concat(
       this.resolveExpr(inst.condition),
       this.resolveInst(inst.inst),
@@ -507,6 +538,10 @@ export class Resolver
    * @param inst the syntax node
    */
   public visitOn(inst: Inst.On): Diagnostics {
+    if (this.initialPass) {
+      return this.deferNode(inst);
+    }
+
     return this.useExprLocals(inst.suffix).concat(
       this.resolveExpr(inst.suffix),
       this.resolveInst(inst.inst),
@@ -840,6 +875,19 @@ export class Resolver
 
   public visitGrouping(suffixTerm: SuffixTerm.Grouping): Diagnostic[] {
     return this.resolveExpr(suffixTerm.expr);
+  }
+
+  /**
+   * Defer a node for later execution
+   * @param node node to defer
+   */
+  private deferNode(node: IInst): Diagnostic[] {
+    this.deferred.push({
+      node,
+      path: this.tableBuilder.getPath(),
+    });
+
+    return [];
   }
 }
 

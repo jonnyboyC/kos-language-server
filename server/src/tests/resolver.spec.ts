@@ -1,4 +1,3 @@
-import * as expect from 'expect';
 import { Parser } from '../parser/parser';
 import { Scanner } from '../scanner/scanner';
 import { IParseResult } from '../parser/types';
@@ -13,7 +12,7 @@ import { zip } from '../utilities/arrayUtils';
 import { Marker } from '../entities/token';
 import { SymbolTable } from '../analysis/symbolTable';
 import { SymbolTableBuilder } from '../analysis/symbolTableBuilder';
-import { FuncResolver } from '../analysis/preResolver';
+import { PreResolver } from '../analysis/preResolver';
 import { KsSymbol, KsSymbolKind, IKsSymbolTracker } from '../analysis/types';
 import { Resolver } from '../analysis/resolver';
 import { standardLibrary } from '../analysis/standardLibrary';
@@ -50,7 +49,7 @@ const resolveSource = (source: string, standardLib = false): IResolveResults => 
     symbolTableBuilder.linkTable(standardLibrary);
   }
 
-  const functionResolver = new FuncResolver(result.parse.script, symbolTableBuilder);
+  const functionResolver = new PreResolver(result.parse.script, symbolTableBuilder);
   const resolver = new Resolver(result.parse.script, symbolTableBuilder);
 
   const funcResolverError = functionResolver.resolve();
@@ -500,7 +499,8 @@ describe('Function Scan', () => {
 
       if (!empty(scanResult)) {
         expect(scanResult.return).toBe(false);
-        expect(scanResult.parameters).toBe(0);
+        expect(scanResult.requiredParameters).toBe(0);
+        expect(scanResult.optionalParameters).toBe(0);
       }
     }
   });
@@ -523,7 +523,8 @@ describe('Function Scan', () => {
 
       if (!empty(scanResult)) {
         expect(scanResult.return).toBe(true);
-        expect(scanResult.parameters).toBe(0);
+        expect(scanResult.requiredParameters).toBe(0);
+        expect(scanResult.optionalParameters).toBe(0);
       }
     }
   });
@@ -546,7 +547,8 @@ describe('Function Scan', () => {
 
       if (!empty(scanResult)) {
         expect(scanResult.return).toBe(true);
-        expect(scanResult.parameters).toBe(4);
+        expect(scanResult.requiredParameters).toBe(3);
+        expect(scanResult.optionalParameters).toBe(1);
       }
     }
   });

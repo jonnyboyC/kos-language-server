@@ -22,7 +22,8 @@ export class FunctionScan extends TreeTraverse {
   constructor() {
     super();
     this.result = {
-      parameters: 0,
+      requiredParameters: 0,
+      optionalParameters: 0,
       return: false,
     };
   }
@@ -31,9 +32,10 @@ export class FunctionScan extends TreeTraverse {
    * Scan the function node for parameters and return instructions
    * @param node function body
    */
-  public scan(node: TreeNode): Maybe<IFunctionScanResult> {
+  public scan(node: TreeNode): IFunctionScanResult {
     this.result = {
-      parameters: 0,
+      requiredParameters: 0,
+      optionalParameters: 0,
       return: false,
     };
 
@@ -73,8 +75,8 @@ export class FunctionScan extends TreeTraverse {
       // Note this has no logic to detect parameters in loops
       // increment parameter count
       if (node instanceof Decl.Param) {
-        this.result.parameters +=
-          node.defaultParameters.length + node.parameters.length;
+        this.result.requiredParameters += node.parameters.length;
+        this.result.optionalParameters += node.defaultParameters.length;
       }
 
       return true;
