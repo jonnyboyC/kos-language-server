@@ -1,6 +1,6 @@
 import {
   IExprVisitor, IInstVisitor, IInst,
-  IExpr, TreeNode,
+  IExpr, ScriptNode,
   ISuffixTermVisitor,
   ISuffixTerm,
 } from './types';
@@ -16,7 +16,7 @@ export abstract class TreeExecute<T> implements
 
   constructor() { }
 
-  protected abstract nodeAction(node: TreeNode): T;
+  protected abstract nodeAction(node: ScriptNode): T;
 
   // find an instruction
   protected instAction(inst: IInst): T {

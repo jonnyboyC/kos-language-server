@@ -159,7 +159,7 @@ export class Analyzer {
     symbolTableBuilder.linkTable(this.activeBodyLibrary());
 
     // generate resolvers
-    const funcResolver = new PreResolver(
+    const preResolver = new PreResolver(
       script,
       symbolTableBuilder,
       this.logger,
@@ -173,13 +173,13 @@ export class Analyzer {
     );
 
     // resolve the rest of the script
-    performance.mark('func-resolver-start');
-    const functionDiagnostics = funcResolver
+    performance.mark('pre-resolver-start');
+    const preDiagnostics = preResolver
       .resolve()
       .map(error => addDiagnosticsUri(error, uri));
 
-    yield functionDiagnostics;
-    performance.mark('func-resolver-end');
+    yield preDiagnostics;
+    performance.mark('pre-resolver-end');
 
     // perform an initial function pass
     performance.mark('resolver-start');
@@ -207,9 +207,9 @@ export class Analyzer {
 
     // measure performance
     performance.measure(
-      'Function Resolver',
-      'func-resolver-start',
-      'func-resolver-end',
+      'Pre Resolver',
+      'pre-resolver-start',
+      'pre-resolver-end',
     );
     performance.measure('Resolver', 'resolver-start', 'resolver-end');
     performance.measure(
@@ -229,7 +229,7 @@ export class Analyzer {
       symbolsTable: symbolTable,
       diagnostics: scanDiagnostics.concat(
         parserDiagnostics,
-        functionDiagnostics,
+        preDiagnostics,
         resolverDiagnostics,
         // typeDiagnostics,
       ),

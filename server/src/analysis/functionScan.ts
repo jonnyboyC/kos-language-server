@@ -1,5 +1,5 @@
 import { IFunctionScanResult } from './types';
-import { TreeNode } from '../parser/types';
+import { ScriptNode } from '../parser/types';
 import * as Decl from '../parser/declare';
 import * as Expr from '../parser/expr';
 import * as Inst from '../parser/inst';
@@ -32,7 +32,7 @@ export class FunctionScan extends TreeTraverse {
    * Scan the function node for parameters and return instructions
    * @param node function body
    */
-  public scan(node: TreeNode): IFunctionScanResult {
+  public scan(node: ScriptNode): IFunctionScanResult {
     this.result = {
       requiredParameters: 0,
       optionalParameters: 0,
@@ -54,7 +54,7 @@ export class FunctionScan extends TreeTraverse {
    * Action to apply at each node traversed
    * @param node node in question
    */
-  protected nodeAction(node: TreeNode): boolean {
+  protected nodeAction(node: ScriptNode): boolean {
     // traverse anonymous functions
     if (node instanceof Expr.Lambda) {
       return true;

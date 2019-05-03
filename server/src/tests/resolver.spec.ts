@@ -52,12 +52,12 @@ const resolveSource = (source: string, standardLib = false): IResolveResults => 
   const functionResolver = new PreResolver(result.parse.script, symbolTableBuilder);
   const resolver = new Resolver(result.parse.script, symbolTableBuilder);
 
-  const funcResolverError = functionResolver.resolve();
+  const preResolverError = functionResolver.resolve();
   const resolverErrors = resolver.resolve();
 
   return {
     ...result,
-    resolveError: funcResolverError.concat(resolverErrors),
+    resolveError: preResolverError.concat(resolverErrors),
     table: symbolTableBuilder.build(),
   };
 };
@@ -107,7 +107,7 @@ function example {
 list files in x.
 `;
 
-describe('Reolver tracking', () => {
+describe('Resolver tracking', () => {
   // test basic identifier
   test('basic set test', () => {
     const results = resolveSource(setSource);
@@ -257,14 +257,14 @@ describe('Reolver tracking', () => {
       const { name, tag } = testTracker.declared.symbol;
       expect(name.lexeme).toBe('test');
 
-      range =  makeRange(1, 16, 1, 20);
-      expect(rangeEqual(name, range)).toBeTruthy();
+      range =  makeRange(3, 16, 3, 20);
+      expect(rangeEqual(name, range)).toBe(true);
       expect(tag).toBe(KsSymbolKind.function);
       expect(testTracker.usages.length).toBe(1);
     }
 
     // check param a
-    const aParamTracker = table.scopedNamedTracker({ line: 2, character: 0 }, 'a');
+    const aParamTracker = table.scopedNamedTracker({ line: 4, character: 0 }, 'a');
     outOfScope = table.scopedNamedTracker(Position.create(0, 0), 'a');
 
     expect(outOfScope).toBeUndefined();
@@ -273,14 +273,14 @@ describe('Reolver tracking', () => {
       const { name, tag } = aParamTracker.declared.symbol;
       expect(name.lexeme).toBe('a');
 
-      range =  makeRange(2, 14, 2, 15);
+      range =  makeRange(4, 14, 4, 15);
       expect(rangeEqual(name, range)).toBeTruthy();
       expect(tag).toBe(KsSymbolKind.parameter);
       expect(aParamTracker.usages.length).toBe(1);
     }
 
     // check param b
-    const bParamTracker = table.scopedNamedTracker({ line: 2, character: 0 }, 'b');
+    const bParamTracker = table.scopedNamedTracker({ line: 4, character: 0 }, 'b');
     outOfScope = table.scopedNamedTracker(Position.create(0, 0), 'b');
 
     expect(outOfScope).toBeUndefined();
@@ -289,15 +289,15 @@ describe('Reolver tracking', () => {
       const { name, tag } = bParamTracker.declared.symbol;
       expect(name.lexeme).toBe('b');
 
-      range =  makeRange(2, 17, 2, 18);
+      range =  makeRange(4, 17, 4, 18);
       expect(rangeEqual(name, range)).toBeTruthy();
       expect(tag).toBe(KsSymbolKind.parameter);
       expect(bParamTracker.usages.length).toBe(1);
     }
 
     // check loop i
-    const iTracker = table.scopedNamedTracker({ line: 6, character: 0 }, 'i');
-    outOfScope = table.scopedNamedTracker(Position.create(4, 0), 'i');
+    const iTracker = table.scopedNamedTracker({ line: 8, character: 0 }, 'i');
+    outOfScope = table.scopedNamedTracker(Position.create(6, 0), 'i');
 
     expect(outOfScope).toBeUndefined();
     expect(iTracker).not.toBeUndefined();
@@ -305,15 +305,15 @@ describe('Reolver tracking', () => {
       const { name, tag } = iTracker.declared.symbol;
       expect(name.lexeme).toBe('i');
 
-      range =  makeRange(5, 8, 5, 9);
+      range =  makeRange(7, 8, 7, 9);
       expect(rangeEqual(name, range)).toBeTruthy();
       expect(tag).toBe(KsSymbolKind.variable);
       expect(iTracker.usages.length).toBe(1);
     }
 
     // check loop i
-    const xTracker = table.scopedNamedTracker({ line: 11, character: 0 }, 'x');
-    outOfScope = table.scopedNamedTracker(Position.create(13, 0), 'x');
+    const xTracker = table.scopedNamedTracker({ line: 13, character: 0 }, 'x');
+    outOfScope = table.scopedNamedTracker(Position.create(15, 0), 'x');
 
     expect(outOfScope).toBeUndefined();
     expect(xTracker).not.toBeUndefined();
@@ -321,7 +321,7 @@ describe('Reolver tracking', () => {
       const { name, tag } = xTracker.declared.symbol;
       expect(name.lexeme).toBe('x');
 
-      range =  makeRange(9, 17, 9, 18);
+      range =  makeRange(11, 17, 11, 18);
       expect(rangeEqual(name, range)).toBeTruthy();
       expect(tag).toBe(KsSymbolKind.variable);
       expect(xTracker.usages.length).toBe(3);
@@ -361,14 +361,14 @@ describe('Resolver errors', () => {
   );
 
   const definedLocations: Range[] = [
-    { start: new Marker(5, 42), end: new Marker(5, 46) },
-    { start: new Marker(8, 42), end: new Marker(8, 46) },
-    { start: new Marker(24, 43), end: new Marker(24, 59) },
-    { start: new Marker(30, 41), end: new Marker(30, 51) },
-    { start: new Marker(31, 41), end: new Marker(31, 57) },
-    { start: new Marker(49, 43), end: new Marker(49, 54) },
-    { start: new Marker(53, 41), end: new Marker(53, 52) },
-    { start: new Marker(54, 41), end: new Marker(54, 52) },
+    { start: new Marker(7, 42), end: new Marker(7, 46) },
+    { start: new Marker(10, 42), end: new Marker(10, 46) },
+    { start: new Marker(26, 43), end: new Marker(26, 59) },
+    { start: new Marker(32, 41), end: new Marker(32, 51) },
+    { start: new Marker(33, 41), end: new Marker(33, 57) },
+    { start: new Marker(51, 43), end: new Marker(51, 54) },
+    { start: new Marker(55, 41), end: new Marker(55, 52) },
+    { start: new Marker(56, 41), end: new Marker(56, 52) },
   ];
 
   // test basic identifier
@@ -380,7 +380,10 @@ describe('Resolver errors', () => {
     expect(0).toBe(results.parse.parseErrors.length);
     expect(results.resolveError.length > 0).toBe(true);
 
-    for (const [error, location] of zip(results.resolveError, definedLocations)) {
+    const sortedErrors = results.resolveError
+      .sort((a, b) => a.range.start.line - b.range.start.line);
+
+    for (const [error, location] of zip(sortedErrors, definedLocations)) {
       expect(DiagnosticSeverity.Error).toBe(error.severity);
       expect(location.start).toEqual(error.range.start);
       expect(location.end).toEqual(error.range.end);
@@ -393,8 +396,8 @@ describe('Resolver errors', () => {
   );
 
   const usedLocations: Range[] = [
-    { start: new Marker(0, 6), end: new Marker(0, 7) },
     { start: new Marker(1, 6), end: new Marker(1, 7) },
+    { start: new Marker(2, 6), end: new Marker(2, 7) },
   ];
 
   // test basic identifier
@@ -419,7 +422,7 @@ describe('Resolver errors', () => {
   );
 
   const shadowedLocations: Range[] = [
-    { start: new Marker(3, 10), end: new Marker(3, 11) },
+    { start: new Marker(4, 10), end: new Marker(4, 11) },
   ];
 
   // test basic identifier

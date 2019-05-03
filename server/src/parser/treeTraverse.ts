@@ -1,6 +1,6 @@
 import {
   IExprVisitor, IInstVisitor, IInst,
-  IExpr, TreeNode,
+  IExpr, ScriptNode,
   ISuffixTermVisitor,
   ISuffixTerm,
 } from './types';
@@ -17,7 +17,7 @@ export abstract class TreeTraverse implements
 
   constructor() { }
 
-  protected abstract nodeAction(node: TreeNode): boolean;
+  protected abstract nodeAction(node: ScriptNode): boolean;
 
   // find an instruction
   protected instAction(inst: IInst): void {

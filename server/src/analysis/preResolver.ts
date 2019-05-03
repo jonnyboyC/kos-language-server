@@ -22,17 +22,50 @@ import { FunctionScan } from './functionScan';
 
 export type Diagnostics = Diagnostic[];
 
+/**
+ * The pre resolver run prior to the resolver. Its main purpose is to
+ * find and store function declaration location of functions is kerboscripts
+ * does not matter.
+ */
 export class PreResolver
   implements
     IExprVisitor<Diagnostics>,
     IInstVisitor<Diagnostics>,
     ISuffixTermVisitor<Diagnostics> {
+
+  /**
+   * current script being processed
+   */
   private script: IScript;
-  private scopeBuilder: SymbolTableBuilder;
+
+  /**
+   * symbol table builder
+   */
+  private tableBuilder: SymbolTableBuilder;
+
+  /**
+   * logger
+   */
   private readonly logger: ILogger;
+
+  /**
+   * tracer
+   */
   private readonly tracer: ITracer;
+
+  /**
+   * function scan to find parameters and return
+   * instructions
+   */
   private readonly functionScan: FunctionScan;
 
+  /**
+   * Pre resolver constructor
+   * @param script pre resolver script
+   * @param symbolTableBuilder symbol table builder
+   * @param logger logger
+   * @param tracer tracer
+   */
   constructor(
     script: IScript,
     symbolTableBuilder: SymbolTableBuilder,
@@ -40,13 +73,16 @@ export class PreResolver
     tracer: ITracer = mockTracer,
   ) {
     this.script = script;
-    this.scopeBuilder = symbolTableBuilder;
+    this.tableBuilder = symbolTableBuilder;
     this.logger = logger;
     this.tracer = tracer;
     this.functionScan = new FunctionScan();
   }
 
-  // resolve the sequence of instructions
+  /**
+   * Perform an initial resolver pass on the script instructions,
+   * for function declarations
+   */
   public resolve(): Diagnostics {
     try {
       const splits = this.script.uri.split(sep);
@@ -54,11 +90,11 @@ export class PreResolver
 
       this.logger.info(`Function Resolving started for ${file}.`);
 
-      this.scopeBuilder.rewind();
-      this.scopeBuilder.beginScope(this.script);
+      this.tableBuilder.rewind();
+      this.tableBuilder.beginScope(this.script);
 
       const resolveErrors = this.resolveInsts(this.script.insts);
-      const scopeErrors = this.scopeBuilder.endScope();
+      const scopeErrors = this.tableBuilder.endScope();
       const allErrors = resolveErrors.concat(scopeErrors);
 
       this.logger.info(`Function Resolving finished for ${file}`);
@@ -114,7 +150,11 @@ export class PreResolver
     return this.resolveExpr(decl.value);
   }
 
-  // check function declaration
+  /**
+   * Because function don't need forward declaration in kerboscript
+   * we need to find and add their symbols first
+   * @param decl function declaration
+   */
   public visitDeclFunction(decl: Func): Diagnostics {
     const scopeToken = decl.scope && decl.scope.scope;
 
@@ -122,7 +162,7 @@ export class PreResolver
 
     // functions are default global at file scope and local everywhere else
     if (empty(scopeToken)) {
-      scopeType = this.scopeBuilder.isFileScope()
+      scopeType = this.tableBuilder.isFileScope()
         ? ScopeType.global
         : ScopeType.local;
     } else {
@@ -141,7 +181,7 @@ export class PreResolver
     }
 
     const result = this.functionScan.scan(decl.block);
-    const declareErrors = this.scopeBuilder.declareFunction(
+    const declareErrors = this.tableBuilder.declareFunction(
       scopeType,
       decl.identifier,
       result.requiredParameters,
@@ -171,9 +211,9 @@ export class PreResolver
   }
 
   public visitBlock(inst: Inst.Block): Diagnostics {
-    this.scopeBuilder.beginScope(inst);
+    this.tableBuilder.beginScope(inst);
     const errors = this.resolveInsts(inst.insts);
-    this.scopeBuilder.endScope();
+    this.tableBuilder.endScope();
 
     return errors;
   }

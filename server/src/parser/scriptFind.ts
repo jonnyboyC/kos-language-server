@@ -28,6 +28,12 @@ export class ScriptFind extends TreeExecute<Maybe<IFindResult>> {
     this.contexts = [];
   }
 
+  /**
+   * Find a token within a tree node
+   * @param syntaxNode node to search in
+   * @param pos position to find
+   * @param contexts list of contexts to captures
+   */
   public find(syntaxNode: TreeNode, pos: Position, ...contexts: Contexts[]): Maybe<IFindResult> {
     this.pos = pos;
     this.contexts = contexts;
