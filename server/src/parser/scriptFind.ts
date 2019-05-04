@@ -82,6 +82,26 @@ export class ScriptFind extends TreeExecute<Maybe<IFindResult>> {
       return findResult;
     }
 
+    // search an optional parameter
+    if (searchResult instanceof Decl.DefaultParam) {
+      if (rangeContains(searchResult.identifier, this.pos)) {
+        return {
+          token: searchResult.identifier,
+          node: this.isContext(node)
+            ? node
+            : this.isContext(searchResult)
+              ? searchResult
+              : undefined,
+        };
+      }
+      if (rangeContains(searchResult.value, this.pos)) {
+        return this.exprAction(searchResult.value);
+      }
+
+      return undefined;
+    }
+
+    // search a normal parameter
     if (searchResult instanceof Decl.Parameter) {
       return {
         node: this.isContext(node)
