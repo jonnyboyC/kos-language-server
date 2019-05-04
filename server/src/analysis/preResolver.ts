@@ -13,27 +13,59 @@ import * as Expr from '../parser/expr';
 import * as Inst from '../parser/inst';
 import { Var, Lock, Func, Param } from '../parser/declare';
 import { empty } from '../utilities/typeGuards';
-import { KsParameter } from '../entities/parameters';
 import { TokenType } from '../entities/tokentypes';
 import { mockLogger, mockTracer } from '../utilities/logger';
-import { SymbolState } from './types';
 import { SymbolTableBuilder } from './symbolTableBuilder';
-import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
-import { createDiagnostic } from '../utilities/diagnosticsUtils';
+import { Diagnostic } from 'vscode-languageserver';
 import { sep } from 'path';
+import { FunctionScan } from './functionScan';
 
 export type Diagnostics = Diagnostic[];
 
-export class FuncResolver
+/**
+ * The pre resolver run prior to the resolver. Its main purpose is to
+ * find and store function declaration location of functions is kerboscripts
+ * does not matter.
+ */
+export class PreResolver
   implements
     IExprVisitor<Diagnostics>,
     IInstVisitor<Diagnostics>,
     ISuffixTermVisitor<Diagnostics> {
+
+  /**
+   * current script being processed
+   */
   private script: IScript;
-  private scopeBuilder: SymbolTableBuilder;
+
+  /**
+   * symbol table builder
+   */
+  private tableBuilder: SymbolTableBuilder;
+
+  /**
+   * logger
+   */
   private readonly logger: ILogger;
+
+  /**
+   * tracer
+   */
   private readonly tracer: ITracer;
 
+  /**
+   * function scan to find parameters and return
+   * instructions
+   */
+  private readonly functionScan: FunctionScan;
+
+  /**
+   * Pre resolver constructor
+   * @param script pre resolver script
+   * @param symbolTableBuilder symbol table builder
+   * @param logger logger
+   * @param tracer tracer
+   */
   constructor(
     script: IScript,
     symbolTableBuilder: SymbolTableBuilder,
@@ -41,37 +73,38 @@ export class FuncResolver
     tracer: ITracer = mockTracer,
   ) {
     this.script = script;
-    this.scopeBuilder = symbolTableBuilder;
+    this.tableBuilder = symbolTableBuilder;
     this.logger = logger;
     this.tracer = tracer;
+    this.functionScan = new FunctionScan();
   }
 
-  // resolve the sequence of instructions
+  /**
+   * Perform an initial resolver pass on the script instructions,
+   * for function declarations
+   */
   public resolve(): Diagnostics {
     try {
       const splits = this.script.uri.split(sep);
       const file = splits[splits.length - 1];
 
-      this.logger.info(
-        `Function Resolving started for ${file}.`,
-      );
+      this.logger.info(`Function Resolving started for ${file}.`);
 
-      this.scopeBuilder.rewindScope();
-      this.scopeBuilder.beginScope(this.script);
+      this.tableBuilder.rewind();
+      this.tableBuilder.beginScope(this.script);
 
       const resolveErrors = this.resolveInsts(this.script.insts);
-      const scopeErrors = this.scopeBuilder.endScope();
-      const allErrors = resolveErrors.concat(scopeErrors);
+      this.tableBuilder.endScope();
 
-      this.logger.info(
-        `Function Resolving finished for ${file}`
-      );
-      
-      if (allErrors.length) {
-        this.logger.warn(`Function Resolver encounted ${allErrors.length} errors`);
+      this.logger.info(`Function Resolving finished for ${file}`);
+
+      if (resolveErrors.length) {
+        this.logger.warn(
+          `Function Resolver encounted ${resolveErrors.length} errors`,
+        );
       }
 
-      return resolveErrors.concat(scopeErrors);
+      return resolveErrors;
     } catch (err) {
       this.logger.error(`Error occured in resolver ${err}`);
       this.tracer.log(err);
@@ -112,11 +145,15 @@ export class FuncResolver
   }
 
   // check lock declaration
-  public visitDeclLock(_: Lock): Diagnostics {
-    return [];
+  public visitDeclLock(decl: Lock): Diagnostics {
+    return this.resolveExpr(decl.value);
   }
 
-  // check function declaration
+  /**
+   * Because function don't need forward declaration in kerboscript
+   * we need to find and add their symbols first
+   * @param decl function declaration
+   */
   public visitDeclFunction(decl: Func): Diagnostics {
     const scopeToken = decl.scope && decl.scope.scope;
 
@@ -124,7 +161,7 @@ export class FuncResolver
 
     // functions are default global at file scope and local everywhere else
     if (empty(scopeToken)) {
-      scopeType = this.scopeBuilder.isFileScope()
+      scopeType = this.tableBuilder.isFileScope()
         ? ScopeType.global
         : ScopeType.local;
     } else {
@@ -142,64 +179,19 @@ export class FuncResolver
       }
     }
 
-    let returnValue = false;
-    const parameterDecls: Param[] = [];
-    for (const inst of decl.block.insts) {
-      // get parameters for this function
-      if (inst instanceof Param) {
-        parameterDecls.push(inst);
-        continue;
-      }
-
-      // determine if return exists
-      if (inst instanceof Inst.Return) {
-        returnValue = true;
-      }
-    }
-    const [parameters, errors] = this.buildParameters(parameterDecls);
-    const declareErrors = this.scopeBuilder.declareFunction(
+    const result = this.functionScan.scan(decl.block);
+    const declareErrors = this.tableBuilder.declareFunction(
       scopeType,
       decl.identifier,
-      parameters,
-      returnValue,
+      result.requiredParameters,
+      result.optionalParameters,
+      result.return,
     );
     const instErrors = this.resolveInst(decl.block);
 
     return empty(declareErrors)
-      ? instErrors.concat(errors)
-      : instErrors.concat(errors, declareErrors);
-  }
-
-  private buildParameters(decls: Param[]): [KsParameter[], Diagnostics] {
-    const parameters: KsParameter[] = [];
-    const errors: Diagnostics = [];
-    let defaulted = false;
-
-    for (const decl of decls) {
-      for (const parameter of decl.parameters) {
-        if (defaulted) {
-          errors.push(
-            createDiagnostic(
-              parameter.identifier,
-              'Normal parameters cannot occur after defaulted parameters',
-              DiagnosticSeverity.Error,
-            ),
-          );
-        }
-        parameters.push(
-          new KsParameter(parameter.identifier, false, SymbolState.declared),
-        );
-      }
-
-      for (const parameter of decl.defaultParameters) {
-        defaulted = true;
-        parameters.push(
-          new KsParameter(parameter.identifier, true, SymbolState.declared),
-        );
-      }
-    }
-
-    return [parameters, errors];
+      ? instErrors
+      : instErrors.concat(declareErrors);
   }
 
   // check parameter declaration
@@ -218,9 +210,9 @@ export class FuncResolver
   }
 
   public visitBlock(inst: Inst.Block): Diagnostics {
-    this.scopeBuilder.beginScope(inst);
+    this.tableBuilder.beginScope(inst);
     const errors = this.resolveInsts(inst.insts);
-    this.scopeBuilder.endScope();
+    this.tableBuilder.endScope();
 
     return errors;
   }
@@ -428,8 +420,8 @@ export class FuncResolver
     return suffixTerm.concat(this.resolveSuffixTerm(expr.trailer));
   }
 
-  public visitAnonymousFunction(expr: Expr.AnonymousFunction): Diagnostics {
-    return this.resolveInsts(expr.insts);
+  public visitLambda(expr: Expr.Lambda): Diagnostics {
+    return this.resolveInst(expr.block);
   }
 
   /* --------------------------------------------

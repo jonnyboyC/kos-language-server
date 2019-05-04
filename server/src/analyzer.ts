@@ -12,7 +12,7 @@ import {
 } from './types';
 import { performance, PerformanceObserver } from 'perf_hooks';
 import { Parser } from './parser/parser';
-import { FuncResolver } from './analysis/functionResolver';
+import { PreResolver } from './analysis/preResolver';
 import { Scanner } from './scanner/scanner';
 import { Resolver } from './analysis/resolver';
 import { IParseError, ScriptResult, RunInstType } from './parser/types';
@@ -159,7 +159,7 @@ export class Analyzer {
     symbolTableBuilder.linkTable(this.activeBodyLibrary());
 
     // generate resolvers
-    const funcResolver = new FuncResolver(
+    const preResolver = new PreResolver(
       script,
       symbolTableBuilder,
       this.logger,
@@ -173,13 +173,13 @@ export class Analyzer {
     );
 
     // resolve the rest of the script
-    performance.mark('func-resolver-start');
-    const functionDiagnostics = funcResolver
+    performance.mark('pre-resolver-start');
+    const preDiagnostics = preResolver
       .resolve()
       .map(error => addDiagnosticsUri(error, uri));
 
-    yield functionDiagnostics;
-    performance.mark('func-resolver-end');
+    yield preDiagnostics;
+    performance.mark('pre-resolver-end');
 
     // perform an initial function pass
     performance.mark('resolver-start');
@@ -188,6 +188,11 @@ export class Analyzer {
       .map(error => addDiagnosticsUri(error, uri));
 
     yield resolverDiagnostics;
+    const unusedDiagnostics = symbolTableBuilder
+      .findUnused()
+      .map(error => addDiagnosticsUri(error, uri));
+
+    yield unusedDiagnostics;
     performance.mark('resolver-end');
 
     const symbolTable = symbolTableBuilder.build();
@@ -207,9 +212,9 @@ export class Analyzer {
 
     // measure performance
     performance.measure(
-      'Function Resolver',
-      'func-resolver-start',
-      'func-resolver-end',
+      'Pre Resolver',
+      'pre-resolver-start',
+      'pre-resolver-end',
     );
     performance.measure('Resolver', 'resolver-start', 'resolver-end');
     performance.measure(
@@ -229,7 +234,7 @@ export class Analyzer {
       symbolsTable: symbolTable,
       diagnostics: scanDiagnostics.concat(
         parserDiagnostics,
-        functionDiagnostics,
+        preDiagnostics,
         resolverDiagnostics,
         // typeDiagnostics,
       ),
@@ -509,17 +514,17 @@ export class Analyzer {
   ): Promise<ScriptResult> {
     this.logger.info('');
     this.logger.info('-------------Lexical Analysis------------');
-    
+
     performance.mark('scanner-start');
     const scanner = new Scanner(text, uri, this.logger, this.tracer);
     const { tokens, scanErrors } = scanner.scanTokens();
     performance.mark('scanner-end');
-    
+
     // if scanner found errors report those immediately
     if (scanErrors.length > 0) {
       this.logger.warn(`Scanning encountered ${scanErrors.length} Errors.`);
     }
-    
+
     performance.mark('parser-start');
     const parser = new Parser(uri, tokens, this.logger, this.tracer);
     const result = parser.parse();

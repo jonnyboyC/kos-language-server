@@ -14,6 +14,7 @@
         "url": "https://github.com/jonnyboyC/kos-language-server"
     },
     "dependencies": {
+        "denque": "^1.4.1",
         "jstat": "^1.7.1",
         "vscode-languageserver": "^5.2.1"
     },

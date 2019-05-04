@@ -1,4 +1,3 @@
-import * as expect from 'expect';
 import { readdirSync, statSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { Diagnostic } from 'vscode-languageserver';
@@ -14,13 +13,15 @@ import { empty } from '../utilities/typeGuards';
 import * as SuffixTerm from '../parser/suffixTerm';
 
 // scan source file
-const scan = (source: string) : IScanResult => {
+const scan = (source: string): IScanResult => {
   const scanner = new Scanner(source);
   return scanner.scanTokens();
 };
 
 // parse source
-const parseExpression = (source: string): [INodeResult<IExpr>, Diagnostic[]] => {
+const parseExpression = (
+  source: string,
+): [INodeResult<IExpr>, Diagnostic[]] => {
   const { tokens, scanErrors } = scan(source);
   const parser = new Parser('', tokens);
   return [parser.parseExpression(), scanErrors];
@@ -32,52 +33,51 @@ type callbackFunc = (fileName: string) => void;
 const tokenCheck = new TokenCheck();
 
 const walkDir = (dir: string, callback: callbackFunc): void => {
-  readdirSync(dir).forEach((f) => {
+  readdirSync(dir).forEach(f => {
     const dirPath = join(dir, f);
     const isDirectory = statSync(dirPath).isDirectory();
-    isDirectory ?
-      walkDir(dirPath, callback) : callback(join(dir, f));
+    isDirectory ? walkDir(dirPath, callback) : callback(join(dir, f));
   });
 };
 
 describe('Parse all test files', () => {
   test('parse all', () => {
-    walkDir(testDir, (filePath) => {
+    walkDir(testDir, filePath => {
       const kosFile = readFileSync(filePath, 'utf8');
-  
+
       const scanner = new Scanner(kosFile, filePath);
       const { tokens, scanErrors } = scanner.scanTokens();
-  
+
       expect(scanErrors.length === 0).toBe(true);
       const parser = new Parser('', tokens);
       const { parseErrors } = parser.parse();
-  
+
       expect(parseErrors.length === 0).toBe(true);
     });
   });
-  
+
   test('parse all validate', () => {
-    walkDir(testDir, (filePath) => {
+    walkDir(testDir, filePath => {
       const kosFile = readFileSync(filePath, 'utf8');
-  
+
       const scanner1 = new Scanner(kosFile, filePath);
       const scanResults1 = scanner1.scanTokens();
-  
+
       expect(scanResults1.scanErrors.length === 0).toBe(true);
       const parser1 = new Parser('', scanResults1.tokens);
       const parseResults1 = parser1.parse();
       expect(parseResults1.parseErrors.length === 0).toBe(true);
-  
+
       const prettyKosFile = parseResults1.script.toString();
       const scanner2 = new Scanner(prettyKosFile, filePath);
       const scanResults2 = scanner2.scanTokens();
-  
+
       expect(scanResults1.scanErrors.length === 0).toBe(true);
       const parser2 = new Parser('', scanResults2.tokens);
       const parseResults2 = parser2.parse();
-  
+
       expect(parseResults2.parseErrors.length === 0).toBe(true);
-  
+
       const zipped = zip(
         tokenCheck.orderedTokens(parseResults1.script),
         tokenCheck.orderedTokens(parseResults2.script),
@@ -89,7 +89,6 @@ describe('Parse all test files', () => {
     });
   });
 });
-
 
 interface IAtomTest {
   source: string;
@@ -105,10 +104,7 @@ const atomTest = (source: string, type: TokenType, literal: any): IAtomTest => {
   };
 };
 
-const testAtom = (
-  value: IExpr,
-  testFunct: (atom: Atom) => void) => {
-
+const testAtom = (value: IExpr, testFunct: (atom: Atom) => void) => {
   expect(value instanceof Expr.Suffix).toBe(true);
   if (value instanceof Expr.Suffix) {
     expect(empty(value.trailer)).toBe(true);
@@ -120,7 +116,6 @@ const testAtom = (
   }
 };
 
-
 interface ICallTest {
   source: string;
   callee: string;
@@ -130,8 +125,8 @@ interface ICallTest {
 const testSuffixTerm = (
   value: IExpr,
   atomTest: (atom: Atom) => void,
-  ...trailerTests: ((trailer: SuffixTermTrailer) => void)[]) => {
-
+  ...trailerTests: ((trailer: SuffixTermTrailer) => void)[]
+) => {
   expect(value instanceof Expr.Suffix).toBe(true);
   if (value instanceof Expr.Suffix) {
     expect(empty(value.trailer)).toBe(true);
@@ -140,16 +135,21 @@ const testSuffixTerm = (
       expect(trailerTests.length).toBe(value.suffixTerm.trailers.length);
       atomTest(value.suffixTerm.atom);
 
-      for (const [trailerTest, trailer] of zip(trailerTests, value.suffixTerm.trailers)) {
+      for (const [trailerTest, trailer] of zip(
+        trailerTests,
+        value.suffixTerm.trailers,
+      )) {
         trailerTest(trailer);
       }
     }
   }
 };
 
-const callTest = (source: string, callee: string, args: Constructor<SuffixTerm.SuffixTermBase>[])
-  : ICallTest => ({ source, callee, args });
-
+const callTest = (
+  source: string,
+  callee: string,
+  args: Constructor<SuffixTerm.SuffixTermBase>[],
+): ICallTest => ({ source, callee, args });
 
 interface IBinaryTest {
   source: string;
@@ -169,7 +169,8 @@ const binaryTest = (
   left: Constructor<SuffixTerm.SuffixTermBase | Expr.Expr>,
   leftLiteral: any,
   right: Constructor<SuffixTerm.SuffixTermBase | Expr.Expr>,
-  rightLiteral: any): IBinaryTest => {
+  rightLiteral: any,
+): IBinaryTest => {
   return {
     source,
     operator,
@@ -194,15 +195,21 @@ describe('Parse expressions', () => {
       atomTest('"true if until"', TokenType.string, 'true if until'),
       atomTest('true', TokenType.true, true),
       atomTest('false', TokenType.false, false),
-      atomTest('fileVariable.thing', TokenType.fileIdentifier, 'filevariable.thing'),
+      atomTest(
+        'fileVariable.thing',
+        TokenType.fileIdentifier,
+        'filevariable.thing',
+      ),
     ];
 
     for (const expression of validExpressions) {
-      const [{ value, errors }, scanErrors] = parseExpression(expression.source);
+      const [{ value, errors }, scanErrors] = parseExpression(
+        expression.source,
+      );
       expect(errors.length).toBe(0);
       expect(scanErrors.length).toBe(0);
 
-      testAtom(value, (atom) => {
+      testAtom(value, atom => {
         expect(atom instanceof SuffixTerm.Literal).toBe(true);
         if (atom instanceof SuffixTerm.Literal) {
           expect(atom.token.type).toBe(expression.type);
@@ -234,11 +241,13 @@ describe('Parse expressions', () => {
     ];
 
     for (const expression of validExpressions) {
-      const [{ value, errors }, scanErrors] = parseExpression(expression.source);
+      const [{ value, errors }, scanErrors] = parseExpression(
+        expression.source,
+      );
       expect(errors.length).toBe(0);
       expect(scanErrors.length).toBe(0);
 
-      testAtom(value, (atom) => {
+      testAtom(value, atom => {
         expect(atom instanceof SuffixTerm.Identifier).toBe(true);
         if (atom instanceof SuffixTerm.Identifier) {
           expect(expression.type).toBe(atom.token.type);
@@ -264,35 +273,42 @@ describe('Parse expressions', () => {
     }
   });
 
-
   // test basic identifier
   test('valid call', () => {
     const validExpressions = [
-      callTest('test(4, "car")', 'test', [SuffixTerm.Literal, SuffixTerm.Literal]),
-      callTest('БНЯД(varName, 14.3)', 'бняд', [SuffixTerm.Identifier, SuffixTerm.Literal]),
+      callTest('test(4, "car")', 'test', [
+        SuffixTerm.Literal,
+        SuffixTerm.Literal,
+      ]),
+      callTest('БНЯД(varName, 14.3)', 'бняд', [
+        SuffixTerm.Identifier,
+        SuffixTerm.Literal,
+      ]),
       callTest('_variableName()', '_variablename', []),
     ];
 
     for (const expression of validExpressions) {
-      const [{ value, errors }, scannerErrors] = parseExpression(expression.source);
+      const [{ value, errors }, scannerErrors] = parseExpression(
+        expression.source,
+      );
       expect(errors.length).toBe(0);
       expect(scannerErrors.length).toBe(0);
 
       testSuffixTerm(
         value,
-        (atom) => {
+        atom => {
           expect(atom instanceof SuffixTerm.Identifier).toBe(true);
           if (atom instanceof SuffixTerm.Identifier) {
             expect(expression.callee).toBe(atom.token.lookup);
           }
         },
-        (trailer) => {
+        trailer => {
           expect(trailer instanceof SuffixTerm.Call).toBe(true);
           if (trailer instanceof SuffixTerm.Call) {
             expect(expression.args.length).toBe(trailer.args.length);
 
             for (let i = 0; i < expression.args.length; i += 1) {
-              testAtom(trailer.args[i], (atom) => {
+              testAtom(trailer.args[i], atom => {
                 expect(atom instanceof expression.args[i]).toBe(true);
               });
             }
@@ -320,32 +336,44 @@ describe('Parse expressions', () => {
   // test basic binary
   test('valid binary', () => {
     const validExpressions = [
-      binaryTest('10 + 5', TokenType.plus, SuffixTerm.Literal, 10, SuffixTerm.Literal, 5),
+      binaryTest(
+        '10 + 5',
+        TokenType.plus,
+        SuffixTerm.Literal,
+        10,
+        SuffixTerm.Literal,
+        5,
+      ),
       binaryTest(
         '"example" + "other"',
         TokenType.plus,
         SuffixTerm.Literal,
         'example',
         SuffixTerm.Literal,
-        'other'),
+        'other',
+      ),
       binaryTest(
         'variable <> false',
         TokenType.notEqual,
         SuffixTerm.Identifier,
         undefined,
         SuffixTerm.Literal,
-        false),
+        false,
+      ),
       binaryTest(
         'suffix:call(10, 5) <= 10 ^ 3',
         TokenType.lessEqual,
         Expr.Suffix,
         undefined,
         Expr.Factor,
-        undefined),
+        undefined,
+      ),
     ];
 
     for (const expression of validExpressions) {
-      const [{ value, errors }, scannerErrors] = parseExpression(expression.source);
+      const [{ value, errors }, scannerErrors] = parseExpression(
+        expression.source,
+      );
       expect(value instanceof Expr.Binary).toBe(true);
       expect(errors.length === 0).toBe(true);
       expect(scannerErrors.length === 0).toBe(true);
@@ -353,30 +381,29 @@ describe('Parse expressions', () => {
       if (value instanceof Expr.Binary) {
         expect(value.operator.type).toBe(expression.operator);
 
-        if (expression.leftArm.expr.prototype instanceof SuffixTerm.SuffixTermBase) {
-          testSuffixTerm(
-            value.left,
-            (atom) => {
-              expect(atom instanceof expression.leftArm.expr).toBe(true);
-              if (atom instanceof SuffixTerm.Literal) {
-                expect(expression.leftArm.literal).toBe(atom.token.literal);
-              }
-            },
-          );
+        if (
+          expression.leftArm.expr.prototype instanceof SuffixTerm.SuffixTermBase
+        ) {
+          testSuffixTerm(value.left, atom => {
+            expect(atom instanceof expression.leftArm.expr).toBe(true);
+            if (atom instanceof SuffixTerm.Literal) {
+              expect(expression.leftArm.literal).toBe(atom.token.literal);
+            }
+          });
         } else {
           expect(value.left instanceof expression.leftArm.expr).toBe(true);
         }
 
-        if (expression.rightArm.expr.prototype instanceof SuffixTerm.SuffixTermBase) {
-          testSuffixTerm(
-            value.right,
-            (atom) => {
-              expect(atom instanceof expression.rightArm.expr).toBe(true);
-              if (atom instanceof SuffixTerm.Literal) {
-                expect(expression.rightArm.literal).toBe(atom.token.literal);
-              }
-            },
-          );
+        if (
+          expression.rightArm.expr.prototype instanceof
+          SuffixTerm.SuffixTermBase
+        ) {
+          testSuffixTerm(value.right, atom => {
+            expect(atom instanceof expression.rightArm.expr).toBe(true);
+            if (atom instanceof SuffixTerm.Literal) {
+              expect(expression.rightArm.literal).toBe(atom.token.literal);
+            }
+          });
         } else {
           expect(value.right instanceof expression.rightArm.expr).toBe(true);
         }
@@ -384,4 +411,3 @@ describe('Parse expressions', () => {
     }
   });
 });
-

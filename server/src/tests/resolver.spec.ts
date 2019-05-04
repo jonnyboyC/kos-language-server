@@ -1,4 +1,3 @@
-import * as expect from 'expect';
 import { Parser } from '../parser/parser';
 import { Scanner } from '../scanner/scanner';
 import { IParseResult } from '../parser/types';
@@ -13,10 +12,12 @@ import { zip } from '../utilities/arrayUtils';
 import { Marker } from '../entities/token';
 import { SymbolTable } from '../analysis/symbolTable';
 import { SymbolTableBuilder } from '../analysis/symbolTableBuilder';
-import { FuncResolver } from '../analysis/functionResolver';
+import { PreResolver } from '../analysis/preResolver';
 import { KsSymbol, KsSymbolKind, IKsSymbolTracker } from '../analysis/types';
 import { Resolver } from '../analysis/resolver';
 import { standardLibrary } from '../analysis/standardLibrary';
+import { FunctionScan } from '../analysis/functionScan';
+import * as Decl from '../parser/declare';
 
 const fakeUri = 'C:\\fake.ks';
 
@@ -24,7 +25,7 @@ interface IResolveResults {
   scan: IScanResult;
   parse: IParseResult;
   table: SymbolTable;
-  resolveError: Diagnostic[];
+  resolveDiagnostics: Diagnostic[];
 }
 
 // parse source
@@ -48,15 +49,16 @@ const resolveSource = (source: string, standardLib = false): IResolveResults => 
     symbolTableBuilder.linkTable(standardLibrary);
   }
 
-  const functionResolver = new FuncResolver(result.parse.script, symbolTableBuilder);
+  const functionResolver = new PreResolver(result.parse.script, symbolTableBuilder);
   const resolver = new Resolver(result.parse.script, symbolTableBuilder);
 
-  const funcResolverError = functionResolver.resolve();
+  const preResolverError = functionResolver.resolve();
   const resolverErrors = resolver.resolve();
+  const ususedErrors = symbolTableBuilder.findUnused();
 
   return {
     ...result,
-    resolveError: funcResolverError.concat(resolverErrors),
+    resolveDiagnostics: preResolverError.concat(resolverErrors, ususedErrors),
     table: symbolTableBuilder.build(),
   };
 };
@@ -70,17 +72,23 @@ const makeRange = (sLine: number, schar: number, eLine: number, echar: number): 
     end: {
       line: eLine,
       character: echar,
-    }
+    },
   };
+};
+
+const noParseErrors = (result: Pick<IResolveResults, 'scan' | 'parse'>): void => {
+  expect(result.scan.scanErrors.length).toBe(0);
+  expect(result.parse.parseErrors.length).toBe(0);
 };
 
 const noErrors = (result: IResolveResults): void => {
   expect(result.scan.scanErrors.length).toBe(0);
   expect(result.parse.parseErrors.length).toBe(0);
-  expect(result.resolveError.length).toBe(0);
+  expect(result.resolveDiagnostics.length).toBe(0);
 };
 
-const setSource = `
+const setSource =
+`
 set x to 10.
 set x to "cat".
 
@@ -89,7 +97,7 @@ set x to y.
 print x.
 `;
 
-const lazyListSource = 
+const lazyListSource =
 `
 function example {
   parameter y.
@@ -98,9 +106,10 @@ function example {
 }
 
 list files in x.
-`
+print x.
+`;
 
-describe('Reolver tracking', () => {
+describe('Resolver tracking', () => {
   // test basic identifier
   test('basic set test', () => {
     const results = resolveSource(setSource);
@@ -200,7 +209,7 @@ describe('Reolver tracking', () => {
     expect(yUsage.type).toBe(structureType);
   });
 
-  test('basic list test', () => {
+  test('lazy list test', () => {
     const results = resolveSource(lazyListSource);
     noErrors(results);
 
@@ -225,7 +234,7 @@ describe('Reolver tracking', () => {
 
     expect(x.tag).toBe(KsSymbolKind.variable);
     expect(y.tag).toBe(KsSymbolKind.parameter);
-  })
+  });
 
   const symbolKindPath = join(
     __dirname,
@@ -250,14 +259,14 @@ describe('Reolver tracking', () => {
       const { name, tag } = testTracker.declared.symbol;
       expect(name.lexeme).toBe('test');
 
-      range =  makeRange(1, 16, 1, 20);
-      expect(rangeEqual(name, range)).toBeTruthy();
+      range =  makeRange(3, 16, 3, 20);
+      expect(rangeEqual(name, range)).toBe(true);
       expect(tag).toBe(KsSymbolKind.function);
       expect(testTracker.usages.length).toBe(1);
     }
 
     // check param a
-    const aParamTracker = table.scopedNamedTracker({ line: 2, character: 0 }, 'a');
+    const aParamTracker = table.scopedNamedTracker({ line: 4, character: 0 }, 'a');
     outOfScope = table.scopedNamedTracker(Position.create(0, 0), 'a');
 
     expect(outOfScope).toBeUndefined();
@@ -266,14 +275,14 @@ describe('Reolver tracking', () => {
       const { name, tag } = aParamTracker.declared.symbol;
       expect(name.lexeme).toBe('a');
 
-      range =  makeRange(2, 14, 2, 15);
+      range =  makeRange(4, 14, 4, 15);
       expect(rangeEqual(name, range)).toBeTruthy();
       expect(tag).toBe(KsSymbolKind.parameter);
       expect(aParamTracker.usages.length).toBe(1);
     }
 
     // check param b
-    const bParamTracker = table.scopedNamedTracker({ line: 2, character: 0 }, 'b');
+    const bParamTracker = table.scopedNamedTracker({ line: 4, character: 0 }, 'b');
     outOfScope = table.scopedNamedTracker(Position.create(0, 0), 'b');
 
     expect(outOfScope).toBeUndefined();
@@ -282,15 +291,15 @@ describe('Reolver tracking', () => {
       const { name, tag } = bParamTracker.declared.symbol;
       expect(name.lexeme).toBe('b');
 
-      range =  makeRange(2, 17, 2, 18);
+      range =  makeRange(4, 17, 4, 18);
       expect(rangeEqual(name, range)).toBeTruthy();
       expect(tag).toBe(KsSymbolKind.parameter);
       expect(bParamTracker.usages.length).toBe(1);
     }
 
     // check loop i
-    const iTracker = table.scopedNamedTracker({ line: 6, character: 0 }, 'i');
-    outOfScope = table.scopedNamedTracker(Position.create(4, 0), 'i');
+    const iTracker = table.scopedNamedTracker({ line: 8, character: 0 }, 'i');
+    outOfScope = table.scopedNamedTracker(Position.create(6, 0), 'i');
 
     expect(outOfScope).toBeUndefined();
     expect(iTracker).not.toBeUndefined();
@@ -298,15 +307,15 @@ describe('Reolver tracking', () => {
       const { name, tag } = iTracker.declared.symbol;
       expect(name.lexeme).toBe('i');
 
-      range =  makeRange(5, 8, 5, 9);
+      range =  makeRange(7, 8, 7, 9);
       expect(rangeEqual(name, range)).toBeTruthy();
       expect(tag).toBe(KsSymbolKind.variable);
       expect(iTracker.usages.length).toBe(1);
     }
 
-    // check loop i
-    const xTracker = table.scopedNamedTracker({ line: 11, character: 0 }, 'x');
-    outOfScope = table.scopedNamedTracker(Position.create(13, 0), 'x');
+    // check loop x
+    const xTracker = table.scopedNamedTracker({ line: 13, character: 0 }, 'x');
+    outOfScope = table.scopedNamedTracker(Position.create(15, 0), 'x');
 
     expect(outOfScope).toBeUndefined();
     expect(xTracker).not.toBeUndefined();
@@ -314,19 +323,33 @@ describe('Reolver tracking', () => {
       const { name, tag } = xTracker.declared.symbol;
       expect(name.lexeme).toBe('x');
 
-      range =  makeRange(9, 17, 9, 18);
+      range =  makeRange(11, 17, 11, 18);
       expect(rangeEqual(name, range)).toBeTruthy();
       expect(tag).toBe(KsSymbolKind.variable);
       expect(xTracker.usages.length).toBe(3);
     }
-  });
-})
 
-const ListSource = 
+    // check loop x
+    const tTracker = table.scopedNamedTracker({ line: 16, character: 0 }, 't');
+
+    expect(tTracker).not.toBeUndefined();
+    if (tTracker !== undefined) {
+      const { name, tag } = tTracker.declared.symbol;
+      expect(name.lexeme).toBe('t');
+
+      range =  makeRange(17, 5, 17, 6);
+      expect(rangeEqual(name, range)).toBeTruthy();
+      expect(tag).toBe(KsSymbolKind.lock);
+      expect(tTracker.usages.length).toBe(2);
+    }
+  });
+});
+
+const listSource =
 `
 @lazyglobal off.
 list files in x.
-`
+`;
 
 describe('Resolver errors', () => {
   const listLocations: Range[] = [
@@ -335,100 +358,246 @@ describe('Resolver errors', () => {
 
   // test basic identifier
   test('basic list test', () => {
-    const results = resolveSource(ListSource);
-  
+    const results = resolveSource(listSource);
+
     expect(0).toBe(results.scan.scanErrors.length);
     expect(0).toBe(results.parse.parseErrors.length);
-    expect(results.resolveError.length > 0).toBe(true);
-  
-    for (const [error, location] of zip(results.resolveError, listLocations)) {
+    expect(results.resolveDiagnostics.length > 0).toBe(true);
+
+    for (const [error, location] of zip(results.resolveDiagnostics, listLocations)) {
       expect(DiagnosticSeverity.Error).toBe(error.severity);
       expect(location.start).toEqual(error.range.start);
       expect(location.end).toEqual(error.range.end);
     }
   });
-
 
   const definedPath = join(
     __dirname,
     '../../../kerboscripts/parser_valid/unitTests/definedtest.ks',
   );
-  
+
   const definedLocations: Range[] = [
-    { start: new Marker(5, 42), end: new Marker(5, 46) },
-    { start: new Marker(8, 42), end: new Marker(8, 46) },
-    { start: new Marker(24, 43), end: new Marker(24, 59) },
-    { start: new Marker(30, 41), end: new Marker(30, 51) },
-    { start: new Marker(31, 41), end: new Marker(31, 57) },
-    { start: new Marker(49, 43), end: new Marker(49, 54) },
-    { start: new Marker(53, 41), end: new Marker(53, 52) },
-    { start: new Marker(54, 41), end: new Marker(54, 52) },
+    { start: new Marker(7, 42), end: new Marker(7, 46) },
+    { start: new Marker(10, 42), end: new Marker(10, 46) },
+    { start: new Marker(26, 43), end: new Marker(26, 59) },
+    { start: new Marker(32, 41), end: new Marker(32, 51) },
+    { start: new Marker(33, 41), end: new Marker(33, 57) },
+    { start: new Marker(51, 43), end: new Marker(51, 54) },
+    { start: new Marker(55, 41), end: new Marker(55, 52) },
+    { start: new Marker(56, 41), end: new Marker(56, 52) },
   ];
-  
+
   // test basic identifier
   test('basic defined test', () => {
     const defineSource = readFileSync(definedPath, 'utf8');
     const results = resolveSource(defineSource);
-  
+
     expect(0).toBe(results.scan.scanErrors.length);
     expect(0).toBe(results.parse.parseErrors.length);
-    expect(results.resolveError.length > 0).toBe(true);
-  
-    for (const [error, location] of zip(results.resolveError, definedLocations)) {
+    expect(results.resolveDiagnostics.length > 0).toBe(true);
+
+    const sortedErrors = results.resolveDiagnostics
+      .sort((a, b) => a.range.start.line - b.range.start.line);
+
+    for (const [error, location] of zip(sortedErrors, definedLocations)) {
       expect(DiagnosticSeverity.Error).toBe(error.severity);
       expect(location.start).toEqual(error.range.start);
       expect(location.end).toEqual(error.range.end);
     }
   });
-  
+
   const usedPath = join(
     __dirname,
     '../../../kerboscripts/parser_valid/unitTests/usedtest.ks',
   );
-  
+
   const usedLocations: Range[] = [
-    { start: new Marker(0, 6), end: new Marker(0, 7) },
     { start: new Marker(1, 6), end: new Marker(1, 7) },
+    { start: new Marker(2, 6), end: new Marker(2, 7) },
   ];
-  
+
   // test basic identifier
   test('basic used test', () => {
     const usedSource = readFileSync(usedPath, 'utf8');
     const results = resolveSource(usedSource);
-  
-    expect(0).toBe(results.scan.scanErrors.length);
-    expect(0).toBe(results.parse.parseErrors.length);
-    expect(results.resolveError.length > 0).toBe(true);
-  
-    for (const [error, location] of zip(results.resolveError, usedLocations)) {
+
+    expect(results.scan.scanErrors.length).toBe(0);
+    expect(results.parse.parseErrors.length).toBe(0);
+    expect(results.resolveDiagnostics.length > 0).toBe(true);
+
+    for (const [error, location] of zip(results.resolveDiagnostics, usedLocations)) {
       expect(DiagnosticSeverity.Warning).toBe(error.severity);
       expect(location.start).toEqual(error.range.start);
       expect(location.end).toEqual(error.range.end);
     }
   });
-  
+
   const shadowPath = join(
     __dirname,
     '../../../kerboscripts/parser_valid/unitTests/shadowtest.ks',
   );
-  
+
   const shadowedLocations: Range[] = [
-    { start: new Marker(3, 10), end: new Marker(3, 11) },
+    { start: new Marker(4, 10), end: new Marker(4, 11) },
   ];
-  
-  // test basic identifier
+
+  // test shadowing
   test('basic shadowed test', () => {
     const shadowedSource = readFileSync(shadowPath, 'utf8');
     const results = resolveSource(shadowedSource);
-  
-    expect(0).toBe(results.scan.scanErrors.length);
-    expect(0).toBe(results.parse.parseErrors.length);
-    expect(results.resolveError.length > 0).toBe(true);
-  
-    for (const [error, location] of zip(results.resolveError, shadowedLocations)) {
+
+    expect(results.scan.scanErrors.length).toBe(0);
+    expect(results.parse.parseErrors.length).toBe(0);
+    expect(results.resolveDiagnostics.length > 0).toBe(true);
+
+    for (const [error, location] of zip(results.resolveDiagnostics, shadowedLocations)) {
       expect(DiagnosticSeverity.Warning).toBe(error.severity);
       expect(location.start).toEqual(error.range.start);
       expect(location.end).toEqual(error.range.end);
     }
   });
-})
+
+  const deferredPath = join(
+    __dirname,
+    '../../../kerboscripts/parser_valid/unitTests/deferredtest.ks',
+  );
+
+  const deferredLocations: Range[] = [
+    { start: new Marker(3, 10), end: new Marker(3, 11) },
+    { start: new Marker(4, 10), end: new Marker(4, 11) },
+    { start: new Marker(7, 3), end: new Marker(7, 4) },
+    { start: new Marker(8, 10), end: new Marker(8, 11) },
+    { start: new Marker(16, 14), end: new Marker(16, 15) },
+  ];
+
+  // test deferred resolving
+  test('basic deferred test', () => {
+    const deferredSource = readFileSync(deferredPath, 'utf8');
+    const results = resolveSource(deferredSource);
+
+    expect(results.scan.scanErrors.length).toBe(0);
+    expect(results.parse.parseErrors.length).toBe(0);
+    expect(results.resolveDiagnostics.length > 0).toBe(true);
+
+    for (const [error, location] of zip(results.resolveDiagnostics, deferredLocations)) {
+      expect(error.severity).toBe(DiagnosticSeverity.Hint);
+      expect(location.start).toEqual(error.range.start);
+      expect(location.end).toEqual(error.range.end);
+    }
+  });
+});
+
+const emptyFunction = `
+function empty { }
+`;
+
+const returnFunction = `
+function returning {
+  return 10.
+}
+`;
+
+const complicatedFunction = `
+function complicated {
+  parameter first.
+  parameter x, y, other is 10.
+
+  if x < 10 {
+    return other.
+  }
+
+  local total is 0.
+  for i in y {
+    for j in first {
+      set total to total + other + j.
+
+      if total > 1e3 {
+        return total.
+      }
+    }
+  }
+
+  local function inner {
+    parameter a.
+    print(a).
+
+    return a.
+  }
+
+  return 10.
+}
+`;
+
+describe('Function Scan', () => {
+  test('empty function', () => {
+    const parseResult = parseSource(emptyFunction);
+    noParseErrors(parseResult);
+
+    const { script } = parseResult.parse;
+    expect(script.insts.length).toBe(1);
+
+    const [funcInst] = script.insts;
+    expect(funcInst).toBeInstanceOf(Decl.Func);
+
+    const funcScanner = new FunctionScan();
+
+    if (funcInst instanceof Decl.Func) {
+      const scanResult = funcScanner.scan(funcInst.block);
+      expect(scanResult).not.toBeUndefined();
+
+      if (!empty(scanResult)) {
+        expect(scanResult.return).toBe(false);
+        expect(scanResult.requiredParameters).toBe(0);
+        expect(scanResult.optionalParameters).toBe(0);
+      }
+    }
+  });
+
+  test('returning function', () => {
+    const parseResult = parseSource(returnFunction);
+    noParseErrors(parseResult);
+
+    const { script } = parseResult.parse;
+    expect(script.insts.length).toBe(1);
+
+    const [funcInst] = script.insts;
+    expect(funcInst).toBeInstanceOf(Decl.Func);
+
+    const funcScanner = new FunctionScan();
+
+    if (funcInst instanceof Decl.Func) {
+      const scanResult = funcScanner.scan(funcInst.block);
+      expect(scanResult).not.toBeUndefined();
+
+      if (!empty(scanResult)) {
+        expect(scanResult.return).toBe(true);
+        expect(scanResult.requiredParameters).toBe(0);
+        expect(scanResult.optionalParameters).toBe(0);
+      }
+    }
+  });
+
+  test('complicated function', () => {
+    const parseResult = parseSource(complicatedFunction);
+    noParseErrors(parseResult);
+
+    const { script } = parseResult.parse;
+    expect(script.insts.length).toBe(1);
+
+    const [funcInst] = script.insts;
+    expect(funcInst).toBeInstanceOf(Decl.Func);
+
+    const funcScanner = new FunctionScan();
+
+    if (funcInst instanceof Decl.Func) {
+      const scanResult = funcScanner.scan(funcInst.block);
+      expect(scanResult).not.toBeUndefined();
+
+      if (!empty(scanResult)) {
+        expect(scanResult.return).toBe(true);
+        expect(scanResult.requiredParameters).toBe(3);
+        expect(scanResult.optionalParameters).toBe(1);
+      }
+    }
+  });
+});

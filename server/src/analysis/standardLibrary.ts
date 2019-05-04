@@ -355,7 +355,10 @@ for (const functionType of functionTypes) {
       new Marker(0, 0),
       builtIn,
     ),
-    [],
+    Array.isArray(functionType.params)
+      ? functionType.params.length
+      : -1,
+    0,
     false,
     functionType);
 }

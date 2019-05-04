@@ -434,7 +434,7 @@ export class Scanner {
     type: TokenType,
     literal?: any,
   ): TokenResult {
-    const text = this.source.substr(this.start, this.current - this.start)
+    const text = this.source.substr(this.start, this.current - this.start);
 
     const token = new Token(
       type,

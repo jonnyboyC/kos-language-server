@@ -1,9 +1,21 @@
-import * as expect from 'expect';
 import { Location, Position, Range } from 'vscode-languageserver';
 import { join } from 'path';
 import { PathResolver } from '../utilities/pathResolver';
 import { empty } from '../utilities/typeGuards';
-import { rangeEqual, positionAfter, positionBefore, positionEqual, positionAfterEqual, positionBeforeEqual, positionToString, rangeContains, rangeIntersection, rangeBefore, rangeAfter, rangeToString } from '../utilities/positionUtils';
+import {
+  rangeEqual,
+  positionAfter,
+  positionBefore,
+  positionEqual,
+  positionAfterEqual,
+  positionBeforeEqual,
+  positionToString,
+  rangeContains,
+  rangeIntersection,
+  rangeBefore,
+  rangeAfter,
+  rangeToString,
+} from '../utilities/positionUtils';
 
 test('path resolver', () => {
   const pathResolver = new PathResolver();
@@ -12,7 +24,7 @@ test('path resolver', () => {
       line: 0,
       character: 0,
     },
-    end : {
+    end: {
       line: 0,
       character: 1,
     },
@@ -33,10 +45,10 @@ test('path resolver', () => {
   const absolute = join('0:', 'relative', 'path', 'file.ks');
   const weird = join('0:relative', 'path', 'file.ks');
 
-  expect(undefined).toBe(pathResolver.resolveUri(otherFileLocation, relative1));
-  expect(undefined).toBe(pathResolver.resolveUri(otherDirLocation, relative2));
-  expect(undefined).toBe(pathResolver.resolveUri(otherFileLocation, absolute));
-  expect(undefined).toBe(pathResolver.resolveUri(otherFileLocation, weird));
+  expect(pathResolver.resolveUri(otherFileLocation, relative1)).toBeUndefined();
+  expect(pathResolver.resolveUri(otherDirLocation, relative2)).toBeUndefined();
+  expect(pathResolver.resolveUri(otherFileLocation, absolute)).toBeUndefined();
+  expect(pathResolver.resolveUri(otherFileLocation, weird)).toBeUndefined();
 
   pathResolver.volume0Path = join('root', 'example');
   pathResolver.volume0Uri = 'file://example';
@@ -44,7 +56,10 @@ test('path resolver', () => {
   const resolvedPath = join('root', 'example', 'relative', 'path', 'file.ks');
   const resolvedUri = 'file://example/relative/path/file.ks';
 
-  const relativeResolved1 = pathResolver.resolveUri(otherFileLocation, relative1);
+  const relativeResolved1 = pathResolver.resolveUri(
+    otherFileLocation,
+    relative1,
+  );
   expect(undefined).not.toBe(relativeResolved1);
   if (!empty(relativeResolved1)) {
     expect(resolvedPath).toBe(relativeResolved1.path);
@@ -52,7 +67,10 @@ test('path resolver', () => {
     expect(rangeEqual(range, relativeResolved1.caller)).toBe(true);
   }
 
-  const relativeResolved2 = pathResolver.resolveUri(otherDirLocation, relative2);
+  const relativeResolved2 = pathResolver.resolveUri(
+    otherDirLocation,
+    relative2,
+  );
   expect(undefined).not.toBe(relativeResolved2);
   if (!empty(relativeResolved2)) {
     expect(resolvedPath).toBe(relativeResolved2.path);
@@ -81,22 +99,22 @@ test('position utils', () => {
   const pos1: Position = {
     line: 5,
     character: 10,
-  }
+  };
 
   const pos2: Position = {
     line: 5,
     character: 11,
-  }
+  };
 
   const pos3: Position = {
     line: 4,
     character: 2,
-  }
+  };
 
   const pos4: Position = {
     line: 4,
     character: 8,
-  }
+  };
 
   // pos 1
   expect(positionEqual(pos1, pos1)).toBeTruthy();
@@ -133,8 +151,8 @@ test('position utils', () => {
   expect(positionBefore(pos4, pos2)).toBeTruthy();
   expect(positionAfter(pos4, pos3)).toBeTruthy();
 
-  expect(positionToString(pos1)).toBe('line: 6 character: 11')
-})
+  expect(positionToString(pos1)).toBe('line: 6 character: 11');
+});
 
 test('ranger utils', () => {
   const range1: Range = {
@@ -145,8 +163,8 @@ test('ranger utils', () => {
     end: {
       line: 5,
       character: 18,
-    }
-  }
+    },
+  };
 
   const rangeWithin: Range = {
     start: {
@@ -156,8 +174,8 @@ test('ranger utils', () => {
     end: {
       line: 5,
       character: 16,
-    }
-  }
+    },
+  };
 
   const rangeIntersect: Range = {
     start: {
@@ -167,8 +185,8 @@ test('ranger utils', () => {
     end: {
       line: 4,
       character: 14,
-    }
-  }
+    },
+  };
 
   const rangeOther: Range = {
     start: {
@@ -178,15 +196,14 @@ test('ranger utils', () => {
     end: {
       line: 4,
       character: 1,
-    }
-  }
-
+    },
+  };
 
   // pos 1
   expect(rangeEqual(range1, range1)).toBeTruthy();
   expect(rangeEqual(rangeWithin, rangeWithin)).toBeTruthy();
   expect(rangeEqual(rangeIntersect, rangeIntersect)).toBeTruthy();
- 
+
   expect(rangeContains(range1, rangeWithin.start)).toBeTruthy();
   expect(rangeContains(range1, rangeWithin.end)).toBeTruthy();
 
@@ -199,8 +216,10 @@ test('ranger utils', () => {
   expect(rangeBefore(range1, { line: 5, character: 20 })).toBeTruthy();
   expect(rangeBefore(range1, { line: 6, character: 1 })).toBeTruthy();
 
-  expect(rangeToString(range1)).toBe('line: 5 character: 3 to line: 6 character: 19');
+  expect(rangeToString(range1)).toBe(
+    'line: 5 character: 3 to line: 6 character: 19',
+  );
   expect(rangeToString(rangeWithin)).toBe('line: 6 character: 5-17');
   expect(rangeToString(rangeIntersect)).toBe('line: 5 character: 2-15');
   expect(rangeToString(rangeOther)).toBe('line: 5 character: 2');
-})
+});

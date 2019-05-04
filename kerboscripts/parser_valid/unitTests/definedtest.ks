@@ -1,3 +1,5 @@
+// This test mirrors kos's defined operator test
+// we should statically identify all undefined values
 // Tests the defined operator.
 print "Because this test uses globals, it is vital that it only be run".
 print "after a TOGGLE POWER has guaranteed the globals are cleared".

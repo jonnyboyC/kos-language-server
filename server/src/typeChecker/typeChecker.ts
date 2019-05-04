@@ -255,9 +255,13 @@ export class TypeChecker
 
     const { symbol } = funcTracker.declared;
     const paramsTypes: IArgumentType[] = [];
-    for (let i = 0; i < symbol.parameters.length; i += 1) {
+    for (let i = 0; i < symbol.requiredParameters; i += 1) {
       paramsTypes.push(structureType);
     }
+    for (let i = 0; i < symbol.optionalParameters; i += 1) {
+      paramsTypes.push(structureType);
+    }
+
     const returnType = symbol.returnValue ? structureType : voidType;
 
     const funcType = createFunctionType(
@@ -1118,8 +1122,8 @@ export class TypeChecker
     );
   }
 
-  public visitAnonymousFunction(
-    _: Expr.AnonymousFunction,
+  public visitLambda(
+    _: Expr.Lambda,
   ): ITypeResultExpr<IArgumentType> {
     return this.resultExpr(delegateType);
   }
