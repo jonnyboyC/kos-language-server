@@ -25,7 +25,7 @@ interface IResolveResults {
   scan: IScanResult;
   parse: IParseResult;
   table: SymbolTable;
-  resolveError: Diagnostic[];
+  resolveDiagnostics: Diagnostic[];
 }
 
 // parse source
@@ -58,7 +58,7 @@ const resolveSource = (source: string, standardLib = false): IResolveResults => 
 
   return {
     ...result,
-    resolveError: preResolverError.concat(resolverErrors, ususedErrors),
+    resolveDiagnostics: preResolverError.concat(resolverErrors, ususedErrors),
     table: symbolTableBuilder.build(),
   };
 };
@@ -84,7 +84,7 @@ const noParseErrors = (result: Pick<IResolveResults, 'scan' | 'parse'>): void =>
 const noErrors = (result: IResolveResults): void => {
   expect(result.scan.scanErrors.length).toBe(0);
   expect(result.parse.parseErrors.length).toBe(0);
-  expect(result.resolveError.length).toBe(0);
+  expect(result.resolveDiagnostics.length).toBe(0);
 };
 
 const setSource =
@@ -313,7 +313,7 @@ describe('Resolver tracking', () => {
       expect(iTracker.usages.length).toBe(1);
     }
 
-    // check loop i
+    // check loop x
     const xTracker = table.scopedNamedTracker({ line: 13, character: 0 }, 'x');
     outOfScope = table.scopedNamedTracker(Position.create(15, 0), 'x');
 
@@ -327,6 +327,20 @@ describe('Resolver tracking', () => {
       expect(rangeEqual(name, range)).toBeTruthy();
       expect(tag).toBe(KsSymbolKind.variable);
       expect(xTracker.usages.length).toBe(3);
+    }
+
+    // check loop x
+    const tTracker = table.scopedNamedTracker({ line: 16, character: 0 }, 't');
+
+    expect(tTracker).not.toBeUndefined();
+    if (tTracker !== undefined) {
+      const { name, tag } = tTracker.declared.symbol;
+      expect(name.lexeme).toBe('t');
+
+      range =  makeRange(17, 5, 17, 6);
+      expect(rangeEqual(name, range)).toBeTruthy();
+      expect(tag).toBe(KsSymbolKind.lock);
+      expect(tTracker.usages.length).toBe(2);
     }
   });
 });
@@ -348,9 +362,9 @@ describe('Resolver errors', () => {
 
     expect(0).toBe(results.scan.scanErrors.length);
     expect(0).toBe(results.parse.parseErrors.length);
-    expect(results.resolveError.length > 0).toBe(true);
+    expect(results.resolveDiagnostics.length > 0).toBe(true);
 
-    for (const [error, location] of zip(results.resolveError, listLocations)) {
+    for (const [error, location] of zip(results.resolveDiagnostics, listLocations)) {
       expect(DiagnosticSeverity.Error).toBe(error.severity);
       expect(location.start).toEqual(error.range.start);
       expect(location.end).toEqual(error.range.end);
@@ -380,9 +394,9 @@ describe('Resolver errors', () => {
 
     expect(0).toBe(results.scan.scanErrors.length);
     expect(0).toBe(results.parse.parseErrors.length);
-    expect(results.resolveError.length > 0).toBe(true);
+    expect(results.resolveDiagnostics.length > 0).toBe(true);
 
-    const sortedErrors = results.resolveError
+    const sortedErrors = results.resolveDiagnostics
       .sort((a, b) => a.range.start.line - b.range.start.line);
 
     for (const [error, location] of zip(sortedErrors, definedLocations)) {
@@ -409,9 +423,9 @@ describe('Resolver errors', () => {
 
     expect(results.scan.scanErrors.length).toBe(0);
     expect(results.parse.parseErrors.length).toBe(0);
-    expect(results.resolveError.length > 0).toBe(true);
+    expect(results.resolveDiagnostics.length > 0).toBe(true);
 
-    for (const [error, location] of zip(results.resolveError, usedLocations)) {
+    for (const [error, location] of zip(results.resolveDiagnostics, usedLocations)) {
       expect(DiagnosticSeverity.Warning).toBe(error.severity);
       expect(location.start).toEqual(error.range.start);
       expect(location.end).toEqual(error.range.end);
@@ -427,17 +441,46 @@ describe('Resolver errors', () => {
     { start: new Marker(4, 10), end: new Marker(4, 11) },
   ];
 
-  // test basic identifier
+  // test shadowing
   test('basic shadowed test', () => {
     const shadowedSource = readFileSync(shadowPath, 'utf8');
     const results = resolveSource(shadowedSource);
 
     expect(results.scan.scanErrors.length).toBe(0);
     expect(results.parse.parseErrors.length).toBe(0);
-    expect(results.resolveError.length > 0).toBe(true);
+    expect(results.resolveDiagnostics.length > 0).toBe(true);
 
-    for (const [error, location] of zip(results.resolveError, shadowedLocations)) {
+    for (const [error, location] of zip(results.resolveDiagnostics, shadowedLocations)) {
       expect(DiagnosticSeverity.Warning).toBe(error.severity);
+      expect(location.start).toEqual(error.range.start);
+      expect(location.end).toEqual(error.range.end);
+    }
+  });
+
+  const deferredPath = join(
+    __dirname,
+    '../../../kerboscripts/parser_valid/unitTests/deferredtest.ks',
+  );
+
+  const deferredLocations: Range[] = [
+    { start: new Marker(3, 10), end: new Marker(3, 11) },
+    { start: new Marker(4, 10), end: new Marker(4, 11) },
+    { start: new Marker(7, 3), end: new Marker(7, 4) },
+    { start: new Marker(8, 10), end: new Marker(8, 11) },
+    { start: new Marker(16, 14), end: new Marker(16, 15) },
+  ];
+
+  // test deferred resolving
+  test('basic deferred test', () => {
+    const deferredSource = readFileSync(deferredPath, 'utf8');
+    const results = resolveSource(deferredSource);
+
+    expect(results.scan.scanErrors.length).toBe(0);
+    expect(results.parse.parseErrors.length).toBe(0);
+    expect(results.resolveDiagnostics.length > 0).toBe(true);
+
+    for (const [error, location] of zip(results.resolveDiagnostics, deferredLocations)) {
+      expect(error.severity).toBe(DiagnosticSeverity.Hint);
       expect(location.start).toEqual(error.range.start);
       expect(location.end).toEqual(error.range.end);
     }

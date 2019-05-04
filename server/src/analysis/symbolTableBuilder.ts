@@ -32,7 +32,11 @@ import {
   isKsParameter,
   isKsLock,
 } from '../entities/entityHelpers';
-import { rangeToString, positionToString } from '../utilities/positionUtils';
+import {
+  rangeToString,
+  positionToString,
+  rangeBefore,
+} from '../utilities/positionUtils';
 import { createDiagnostic } from '../utilities/diagnosticsUtils';
 import { builtIn } from '../utilities/constants';
 
@@ -522,11 +526,29 @@ export class SymbolTableBuilder {
       );
     }
 
+    // indicate usage
     token.tracker = tracker;
     tracker.usages.push(createEnitityChange(token, expr));
     this.logger.verbose(
       `Use ${symbolType} ${token.lexeme} at ${rangeToString(token)}`,
     );
+
+    // check if a variable may not be defined in a runtime situtation
+    if (rangeBefore(token, tracker.declared.range.start)) {
+      return createDiagnostic(
+        token,
+        `${symbolType} ${token.lexeme} may not exist at script runtime.`,
+        DiagnosticSeverity.Hint,
+        undefined,
+        [
+          DiagnosticRelatedInformation.create(
+            { uri: tracker.declared.uri, range: tracker.declared.range },
+            `${token.lexeme} is declared after this use`,
+          ),
+        ],
+      );
+    }
+
     return undefined;
   }
 
@@ -703,10 +725,7 @@ export class SymbolTableBuilder {
           }
           break;
         case KsSymbolKind.lock:
-          if (
-            !tracker.declared.symbol.cooked &&
-            tracker.usages.length === 0
-          ) {
+          if (!tracker.declared.symbol.cooked && tracker.usages.length === 0) {
             errors.push(
               createDiagnostic(
                 tracker.declared.symbol.name,
@@ -721,9 +740,7 @@ export class SymbolTableBuilder {
             errors.push(
               createDiagnostic(
                 tracker.declared.symbol.name,
-                `Variable ${
-                  tracker.declared.symbol.name.lexeme
-                } was not used.`,
+                `Variable ${tracker.declared.symbol.name.lexeme} was not used.`,
                 DiagnosticSeverity.Warning,
               ),
             );
