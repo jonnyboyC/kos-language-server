@@ -179,8 +179,7 @@ export type GrammarNode = IExprClass
 
 export type RunInstType = Inst.Run | Inst.RunPath | Inst.RunPathOnce;
 export type ScriptNode = IInst | IExpr | ISuffixTerm;
-export type TreeNode = IScript | IInst | IExpr | ISuffixTerm | IParameter | IDeclScope
-
+export type TreeNode = IScript | IInst | IExpr | ISuffixTerm | IParameter | IDeclScope;
 
 export interface IExprVisitable {
   accept<T>(visitor: IExprVisitor<T>): T;

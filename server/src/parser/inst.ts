@@ -5,6 +5,7 @@ import { Range, Position } from 'vscode-languageserver';
 import { empty } from '../utilities/typeGuards';
 import { NodeBase } from './base';
 import { joinLines } from './toStringUtils';
+import { flatten } from '../utilities/arrayUtils';
 
 /**
  * Instruction base class
@@ -72,9 +73,19 @@ export class Block extends Inst {
   }
 
   public toLines(): string[] {
-    return [this.open.lexeme].concat(
-      ...this.insts.map(t => t.toLines().map(line => `    ${line}`)),
-      this.close.lexeme,
+    const lines = flatten(this.insts.map(inst => inst.toLines()));
+
+    if (lines.length === 0) {
+      return [`${this.open.lexeme} ${this.close.lexeme}`];
+    }
+
+    if (lines.length === 1) {
+      return [`${this.open.lexeme} ${lines[0]} ${this.close.lexeme}`];
+    }
+
+    return [`${this.open.lexeme}`].concat(
+      ...lines.map(line => `    ${line}`),
+      `${this.close.lexeme}`,
     );
   }
 

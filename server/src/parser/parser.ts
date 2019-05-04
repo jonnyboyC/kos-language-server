@@ -1165,7 +1165,7 @@ export class Parser {
     try {
       // match anonymous function
       if (this.matchToken(TokenType.curlyOpen)) {
-        return this.anonymousFunction();
+        return this.lambda();
       }
 
       // other match conditional
@@ -1445,40 +1445,10 @@ export class Parser {
     return nodeResult(new SuffixTerm.ArrayIndex(indexer, index), []);
   }
 
-  // parse anonymous function
-  private anonymousFunction(): INodeResult<Expr.Lambda> {
-    const open = this.previous();
-    const declarations: Inst.Inst[] = [];
-    let parseErrors: IParseError[] = [];
-
-    // while not at end and until closing curly keep parsing instructions
-    while (!this.check(TokenType.curlyClose) && !this.isAtEnd()) {
-      const { value: inst, errors } = this.declaration();
-      declarations.push(inst);
-      parseErrors = parseErrors.concat(errors);
-    }
-
-    // check closing curly is found
-    const close = this.consumeTokenThrow(
-      'Expected "}" to finish instruction block',
-      Expr.Lambda,
-      TokenType.curlyClose,
-    );
-
-    // if inner errors found bundle and throw
-    if (parseErrors.length > 0) {
-      const error = this.error(
-        open,
-        Expr.Lambda,
-        'Error found in this block.',
-      );
-      error.inner = parseErrors;
-      throw error;
-    }
-    return nodeResult(
-      new Expr.Lambda(open, declarations, close),
-      parseErrors,
-    );
+  // parse lambda expression
+  private lambda(): INodeResult<Expr.Lambda> {
+    const { value, errors } = this.block();
+    return nodeResult(new Expr.Lambda(value), errors);
   }
 
   // match atom expressions literals, identifers, list, and parenthesis

@@ -7,6 +7,7 @@ import {
   IScript,
   IExprVisitor,
   ISuffixTermVisitor,
+  SyntaxKind,
 } from '../parser/types';
 import * as SuffixTerm from '../parser/suffixTerm';
 import * as Expr from '../parser/expr';
@@ -30,7 +31,7 @@ import Denque from 'denque';
 type Diagnostics = Diagnostic[];
 interface IDeferred {
   path: IScopePath;
-  node: IInst;
+  node: IInst | IExpr;
 }
 
 export class Resolver
@@ -44,10 +45,10 @@ export class Resolver
   private readonly tracer: ITracer;
   private readonly localResolver: LocalResolver;
   private readonly setResolver: SetResolver;
-  private readonly deferred: any;
+  private readonly deferred: Denque<IDeferred>;
   private lazyGlobal: boolean;
   private firstInst: boolean;
-  private initialPass: boolean;
+  private deferResolve: boolean;
 
   constructor(
     script: IScript,
@@ -62,7 +63,7 @@ export class Resolver
     this.deferred = new Denque();
     this.lazyGlobal = true;
     this.firstInst = true;
-    this.initialPass = true;
+    this.deferResolve = true;
     this.logger = logger;
     this.tracer = tracer;
   }
@@ -88,20 +89,28 @@ export class Resolver
       this.tableBuilder.endScope();
 
       this.script.lazyGlobal = this.lazyGlobal;
-      this.initialPass = false;
+      this.deferResolve = false;
 
       // process all deferred nodes
       let current: Maybe<IDeferred>;
       let allErrors = firstError.concat(resolveErrors);
 
       // process deferred queue
-      while (current = this.deferred.pop()) {
+      while (current = this.deferred.shift()) {
+        this.deferResolve = false;
 
         // set scope path
         this.tableBuilder.setPath(current.path);
 
         // resolve deferred node
-        allErrors = allErrors.concat(this.resolveInst(current.node));
+        switch (current.node.tag) {
+          case SyntaxKind.expr:
+            allErrors = allErrors.concat(this.resolveExpr(current.node));
+            break;
+          case SyntaxKind.inst:
+            allErrors = allErrors.concat(this.resolveInst(current.node));
+            break;
+        }
       }
 
       this.logger.info(`Resolving finished for ${file}`);
@@ -233,8 +242,8 @@ export class Resolver
    * @param decl the syntax node
    */
   public visitDeclFunction(decl: Decl.Func): Diagnostic[] {
-    if (this.initialPass) {
-      return this.deferNode(decl);
+    if (this.executeDeferred()) {
+      return this.deferNode(decl, decl.block);
     }
 
     return this.resolveInst(decl.block);
@@ -471,8 +480,8 @@ export class Resolver
    * @param inst the syntax node
    */
   public visitWhen(inst: Inst.When): Diagnostics {
-    if (this.initialPass) {
-      return this.deferNode(inst);
+    if (this.executeDeferred()) {
+      return this.deferNode(inst, inst.inst);
     }
 
     return this.useExprLocals(inst.condition).concat(
@@ -540,8 +549,8 @@ export class Resolver
    * @param inst the syntax node
    */
   public visitOn(inst: Inst.On): Diagnostics {
-    if (this.initialPass) {
-      return this.deferNode(inst);
+    if (this.executeDeferred()) {
+      return this.deferNode(inst, inst.inst);
     }
 
     return this.useExprLocals(inst.suffix).concat(
@@ -809,11 +818,11 @@ export class Resolver
   }
 
   public visitLambda(expr: Expr.Lambda): Diagnostic[] {
-    this.tableBuilder.beginScope(expr);
-    const errors = this.resolveInsts(expr.insts);
-    this.tableBuilder.endScope();
+    if (this.executeDeferred()) {
+      return this.deferNode(expr, expr.block);
+    }
 
-    return errors;
+    return this.resolveInst(expr.block);
   }
 
   /* --------------------------------------------
@@ -880,14 +889,34 @@ export class Resolver
   }
 
   /**
+   * Only allow one defer node to be executed at a time
+   */
+  private executeDeferred(): boolean {
+    if (this.deferResolve) {
+
+
+      return true;
+    }
+
+    this.deferResolve = true;
+    return false;
+  }
+
+  /**
    * Defer a node for later execution
    * @param node node to defer
    */
-  private deferNode(node: IInst): Diagnostic[] {
+  private deferNode(node: IInst | IExpr, block: IInst): Diagnostic[] {
     this.deferred.push({
       node,
       path: this.tableBuilder.getPath(),
     });
+
+    // for now kinda a hack for now may need to look at scope building again
+    if (block instanceof Inst.Block) {
+      this.tableBuilder.beginScope(block);
+      this.tableBuilder.endScope();
+    }
 
     return [];
   }

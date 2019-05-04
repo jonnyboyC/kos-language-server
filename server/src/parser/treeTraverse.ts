@@ -284,9 +284,7 @@ export abstract class TreeTraverse implements
   }
   public visitLambda(expr: Expr.Lambda): void {
     if (this.nodeAction(expr)) {
-      for (const inst of expr.insts) {
-        this.instAction(inst);
-      }
+      this.instAction(expr.block);
     }
   }
   public visitSuffixTermInvalid(suffixTerm: SuffixTerm.Invalid): void {

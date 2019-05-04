@@ -421,7 +421,7 @@ export class PreResolver
   }
 
   public visitLambda(expr: Expr.Lambda): Diagnostics {
-    return this.resolveInsts(expr.insts);
+    return this.resolveInst(expr.block);
   }
 
   /* --------------------------------------------
