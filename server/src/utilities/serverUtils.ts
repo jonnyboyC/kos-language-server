@@ -6,24 +6,120 @@ import {
   DocumentSymbolParams,
   SymbolInformation,
   SymbolKind,
+  IPCMessageReader,
+  IPCMessageWriter,
+  StreamMessageReader,
+  StreamMessageWriter,
+  MessageReader,
+  MessageWriter,
 } from 'vscode-languageserver';
 import { empty } from './typeGuards';
 import { allSuffixes } from '../typeChecker/typeUitlities';
 import { CallType } from '../typeChecker/types/types';
 import { KsSymbolKind } from '../analysis/types';
 import { cleanLocation, cleanToken, cleanCompletion } from './clean';
+import { IServer } from '../server';
 import { keywordCompletions } from './constants';
+
+/**
+ * Get the connection primitives based on the request connection type
+ * @param connectionType connection type
+ */
+export const getConnectionPrimitives = (
+  connectionType: string,
+): { writer: MessageWriter; reader: MessageReader } => {
+  let reader: MessageReader;
+  let writer: MessageWriter;
+
+  switch (connectionType) {
+    case '--node-ipc':
+      reader = new IPCMessageReader(process);
+      writer = new IPCMessageWriter(process);
+      break;
+    case '--stdio':
+      reader = new StreamMessageReader(process.stdin);
+      writer = new StreamMessageWriter(process.stdout);
+      break;
+    default:
+      throw new Error('');
+  }
+
+  writer.onError(([error, message, code]) => {
+    console.log(error);
+    console.log(message);
+    console.log(code);
+  });
+
+  reader.onError(error => {
+    console.log(error);
+  });
+
+  return {
+    reader,
+    writer,
+  };
+};
+
+/**
+ * Get the connection primitives based on the request connection type
+ * @param connectionType connection type
+ */
+export const updateServer = (server: IServer): void => {
+  const { clientConfig } = server;
+
+  let caseKind: CaseKind = CaseKind.camelcase;
+  switch (clientConfig.completionCase) {
+    case 'lowercase':
+      caseKind = CaseKind.lowercase;
+      break;
+    case 'uppercase':
+      caseKind = CaseKind.uppercase;
+      break;
+    case 'camelcase':
+      caseKind = CaseKind.camelcase;
+      break;
+    case 'pascalcase':
+      caseKind = CaseKind.pascalcase;
+      break;
+  }
+
+  let logLevel: LogLevel = LogLevel.error;
+  switch (clientConfig.trace.server.level) {
+    case 'verbose':
+      logLevel = LogLevel.verbose;
+      break;
+    case 'info':
+      logLevel = LogLevel.info;
+      break;
+    case 'log':
+      logLevel = LogLevel.info;
+      break;
+    case 'warn':
+      logLevel = LogLevel.warn;
+      break;
+    case 'error':
+      logLevel = LogLevel.error;
+      break;
+    case 'none':
+      logLevel = LogLevel.none;
+      break;
+  }
+
+  server.keywords = keywordCompletions(caseKind);
+  server.analyzer.logger.level = logLevel;
+};
 
 export const entityCompletionItems = (
   analyzer: Analyzer,
   documentPosition: TextDocumentPositionParams,
+  keywordCompletions: CompletionItem[],
 ): CompletionItem[] => {
   const { position } = documentPosition;
   const { uri } = documentPosition.textDocument;
 
   const entities = analyzer.getScopedSymbols(position, uri);
   return entities
-    .map((entity) => {
+    .map(entity => {
       let kind: Maybe<CompletionItemKind> = undefined;
       switch (entity.tag) {
         case KsSymbolKind.function:
@@ -67,7 +163,7 @@ export const suffixCompletionItems = (
   const [type] = typeInfo;
   const suffixes = allSuffixes(type);
 
-  return suffixes.map((suffix) => {
+  return suffixes.map(suffix => {
     switch (suffix.callType) {
       case CallType.call:
       case CallType.optionalCall:
@@ -96,7 +192,7 @@ export const documentSymbols = (
   const { uri } = documentSymbol.textDocument;
 
   const entities = analyzer.getAllFileSymbols(uri);
-  return entities.map((entity) => {
+  return entities.map(entity => {
     let kind: Maybe<SymbolKind> = undefined;
     switch (entity.tag) {
       case KsSymbolKind.function:

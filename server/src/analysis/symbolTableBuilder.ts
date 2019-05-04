@@ -534,7 +534,12 @@ export class SymbolTableBuilder {
     );
 
     // check if a variable may not be defined in a runtime situtation
-    if (rangeBefore(token, tracker.declared.range.start)) {
+    // functions will always be availbe because they are executed
+    // during a pre pass
+    if (
+      rangeBefore(token, tracker.declared.range.start) &&
+      tracker.declared.symbol.tag !== KsSymbolKind.function
+    ) {
       return createDiagnostic(
         token,
         `${symbolType} ${token.lexeme} may not exist at script runtime.`,

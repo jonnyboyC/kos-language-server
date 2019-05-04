@@ -1,7 +1,3 @@
-/* --------------------------------------------------------------------------------------------
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See License.txt in the project root for license information.
- * ------------------------------------------------------------------------------------------ */
 'use strict';
 
 import {
@@ -11,11 +7,8 @@ import {
   InitializeParams,
   CompletionItem,
   TextDocumentPositionParams,
-  // SignatureHelp,
   Location,
   DidChangeWatchedFilesParams,
-  // SignatureInformation,
-  // ParameterInformation,
   DidOpenTextDocumentParams,
   DidChangeTextDocumentParams,
   DidCloseTextDocumentParams,
@@ -26,8 +19,9 @@ import {
   ReferenceParams,
   Hover,
   Diagnostic,
-  IPCMessageReader,
-  IPCMessageWriter,
+  MessageReader,
+  MessageWriter,
+  DidChangeConfigurationNotification,
 } from 'vscode-languageserver';
 import { empty } from './utilities/typeGuards';
 import { Analyzer } from './analyzer';
@@ -36,6 +30,8 @@ import {
   entityCompletionItems,
   suffixCompletionItems,
   documentSymbols,
+  getConnectionPrimitives,
+  updateServer,
 } from './utilities/serverUtils';
 import { Logger } from './utilities/logger';
 import { primitiveInitializer } from './typeChecker/types/primitives/initialize';
@@ -45,40 +41,42 @@ import {
   cleanLocation,
   cleanPosition,
 } from './utilities/clean';
-import {
-  MessageReader,
-  MessageWriter,
-  StreamMessageReader,
-  StreamMessageWriter,
-} from 'vscode-languageserver-protocol';
 import { IToken } from './entities/types';
+import { keywordCompletions, serverName } from './utilities/constants';
 
-let reader: MessageReader;
-let writer: MessageWriter;
-
-const argv = process.argv.slice(2);
-switch (argv[0]) {
-  case '--node-ipc':
-    reader = new IPCMessageReader(process);
-    writer = new IPCMessageWriter(process);
-    break;
-  case '--stdio':
-    reader = new StreamMessageReader(process.stdin);
-    writer = new StreamMessageWriter(process.stdout);
-    break;
-  default:
-    throw new Error('');
+export interface IClientConfiguration {
+  completionCase: 'lowercase' | 'uppercase' | 'camelcase' | 'pascalcase';
+  kerbalSpaceProgramPath?: string;
+  telnetHost: string;
+  telnetPort: number;
+  lspPort: number;
+  trace: {
+    server: {
+      verbosity: 'off' | 'message' | 'verbose';
+      format: 'text' | 'json';
+      level: 'verbose' | 'info' | 'log' | 'warn' | 'error' | 'none';
+    };
+  };
 }
 
-writer.onError(([error, message, code]) => {
-  console.log(error);
-  console.log(message);
-  console.log(code);
-});
+export interface IClientCapabilities {
+  hasConfiguration: boolean;
+  hasWorkspaceFolder: boolean;
+}
 
-reader.onError(error => {
-  console.log(error);
-});
+export interface IServer {
+  reader: MessageReader;
+  writer: MessageWriter;
+  workspaceFolder: string;
+  workspaceUri: string;
+  keywords: CompletionItem[];
+  clientConfig: IClientConfiguration;
+  clientCapability: IClientCapabilities;
+  analyzer: Analyzer;
+}
+
+// get connection primitives based on command argument
+const { reader, writer } = getConnectionPrimitives(process.argv[2]);
 
 // Create a connection for the server. The connection uses Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -93,18 +91,50 @@ export const connection = createConnection(
 primitiveInitializer();
 oribitalInitializer();
 
+// default client configuration
+const defaultClientConfiguration: IClientConfiguration = {
+  kerbalSpaceProgramPath: undefined,
+  telnetHost: '127.0.0.1',
+  telnetPort: 5410,
+  lspPort: 7000,
+  completionCase: 'camelcase',
+  trace: {
+    server: {
+      verbosity: 'off',
+      format: 'text',
+      level: 'error',
+    },
+  },
+};
+
+// create server options object
+const server: IServer = {
+  reader,
+  writer,
+  workspaceFolder: '',
+  workspaceUri: '',
+  clientCapability: {
+    hasConfiguration: false,
+    hasWorkspaceFolder: false,
+  },
+  keywords: keywordCompletions(CaseKind.camelcase),
+  clientConfig: defaultClientConfiguration,
+  analyzer: new Analyzer(
+    new Logger(connection.console, LogLevel.info),
+    connection.tracer,
+  ),
+};
+
 // Create a simple text document manager. The text document manager
 // supports full document sync only
-
-let workspaceFolder: string = '';
-const analyzer = new Analyzer(
-  new Logger(connection.console, LogLevel.error),
-  connection.tracer,
-);
 const documents: TextDocuments = new TextDocuments();
 
+/**
+ * Initialize the server from the client
+ */
 connection.onInitialize((params: InitializeParams) => {
-  const capabilities = params.capabilities;
+  const { capabilities, rootPath, rootUri } = params;
+
   connection.console.log(
     `[Server(${process.pid}) ${JSON.stringify(
       capabilities,
@@ -113,19 +143,32 @@ connection.onInitialize((params: InitializeParams) => {
     )}] Started and initialize received`,
   );
 
-  if (params.rootPath) {
-    analyzer.setPath(params.rootPath);
-    workspaceFolder = params.rootPath;
+  // does the client support configurations
+  server.clientCapability.hasConfiguration = !!(
+    capabilities.workspace && !!capabilities.workspace.configuration
+  );
+
+  // does the client support workspace folders
+  server.clientCapability.hasWorkspaceFolder = !!(
+    capabilities.workspace && !!capabilities.workspace.workspaceFolders
+  );
+
+  // get root path if it exists
+  if (rootPath) {
+    server.analyzer.setPath(rootPath);
+    server.workspaceFolder = rootPath;
   }
 
-  if (params.rootUri) {
-    analyzer.setUri(params.rootUri);
+  // get root uri if it exists
+  if (rootUri) {
+    server.analyzer.setUri(rootUri);
+    server.workspaceUri = rootUri;
   }
 
   connection.console.log(
-    `[Server(${
-      process.pid
-    }) ${workspaceFolder}] Started and initialize received`,
+    `[Server(${process.pid}) ${
+      server.workspaceFolder
+    }] Started and initialize received`,
   );
 
   return {
@@ -148,6 +191,51 @@ connection.onInitialize((params: InitializeParams) => {
       definitionProvider: true,
     },
   };
+});
+
+/**
+ * Once connection is initialized make additional registrations based
+ * on client capability
+ */
+connection.onInitialized(async () => {
+  const { clientCapability } = server;
+
+  // register for all configuration changes.
+  if (clientCapability.hasConfiguration) {
+    connection.client.register(DidChangeConfigurationNotification.type, {
+      section: serverName,
+    });
+  }
+
+  // register workspace changes
+  if (clientCapability.hasWorkspaceFolder) {
+    connection.workspace.onDidChangeWorkspaceFolders(_ => {
+      connection.console.log('Workspace folder change event received.');
+    });
+  }
+
+  server.clientConfig = await getDocumentSettings();
+  updateServer(server);
+});
+
+/**
+ * When the client changes a configuration update our server settings
+ */
+connection.onDidChangeConfiguration(change => {
+  const { clientCapability } = server;
+
+  if (clientCapability.hasConfiguration) {
+    if (change.settings && serverName in change.settings) {
+      Object.assign(
+        server.clientConfig,
+        defaultClientConfiguration,
+        change.settings[serverName],
+      );
+    }
+
+    // update server on client config
+    updateServer(server);
+  }
 });
 
 // monitor when the editor opens a document
@@ -178,7 +266,7 @@ connection.onDidCloseTextDocument((param: DidCloseTextDocumentParams) => {
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent(async change => {
   try {
-    const diagnosticResults = analyzer.validateDocument(
+    const diagnosticResults = server.analyzer.validateDocument(
       change.document.uri,
       change.document.getText(),
     );
@@ -236,10 +324,14 @@ connection.onCompletion(
       empty(context) ||
       context.triggerKind !== CompletionTriggerKind.TriggerCharacter
     ) {
-      return entityCompletionItems(analyzer, completionParams);
+      return entityCompletionItems(
+        server.analyzer,
+        completionParams,
+        server.keywords,
+      );
     }
 
-    return suffixCompletionItems(analyzer, completionParams);
+    return suffixCompletionItems(server.analyzer, completionParams);
   },
 );
 
@@ -249,8 +341,8 @@ connection.onHover(
     const { position } = positionParmas;
     const { uri } = positionParmas.textDocument;
 
-    const token = analyzer.getToken(position, uri);
-    const typeInfo = analyzer.getSuffixType(position, uri);
+    const token = server.analyzer.getToken(position, uri);
+    const typeInfo = server.analyzer.getSuffixType(position, uri);
     if (empty(token) || empty(typeInfo)) {
       return undefined;
     }
@@ -274,7 +366,7 @@ connection.onReferences(
     const { position } = referenceParams;
     const { uri } = referenceParams.textDocument;
 
-    const locations = analyzer.getUsagesLocations(position, uri);
+    const locations = server.analyzer.getUsagesLocations(position, uri);
     return locations && locations.map(loc => cleanLocation(loc));
   },
 );
@@ -309,7 +401,7 @@ connection.onReferences(
 // This handler provider document symbols in file
 connection.onDocumentSymbol(
   (documentSymbol: DocumentSymbolParams): Maybe<SymbolInformation[]> => {
-    return documentSymbols(analyzer, documentSymbol);
+    return documentSymbols(server.analyzer, documentSymbol);
   },
 );
 
@@ -319,7 +411,7 @@ connection.onDefinition(
     const { position } = documentPosition;
     const { uri } = documentPosition.textDocument;
 
-    const location = analyzer.getDeclarationLocation(position, uri);
+    const location = server.analyzer.getDeclarationLocation(position, uri);
     return location && cleanLocation(location);
   },
 );
@@ -332,7 +424,11 @@ connection.onCompletionResolve(
 
     // this would be a possible spot to pull in doc string if present.
     if (!empty(token)) {
-      const type = analyzer.getType(token.start, token.lexeme, token.uri);
+      const type = server.analyzer.getType(
+        token.start,
+        token.lexeme,
+        token.uri,
+      );
 
       if (!empty(type)) {
         item.detail = `${item.label}: ${type.toTypeString()}`;
@@ -342,6 +438,17 @@ connection.onCompletionResolve(
     return item;
   },
 );
+
+const getDocumentSettings = (): Thenable<IClientConfiguration> => {
+  if (!server.clientCapability.hasConfiguration) {
+    return Promise.resolve(defaultClientConfiguration);
+  }
+
+  return connection.workspace.getConfiguration({
+    scopeUri: server.workspaceUri,
+    section: serverName,
+  });
+};
 
 // const defaultSigniture = (): SignatureHelp => ({
 //   signatures: [],
