@@ -30,33 +30,45 @@ import { PathResolver, runPath } from './utilities/pathResolver';
 import { existsSync } from 'fs';
 import { extname } from 'path';
 import { readFileAsync } from './utilities/fsUtils';
-import { standardLibrary, bodyLibrary } from './analysis/standardLibrary';
+import {
+  standardLibraryBuilder,
+  bodyLibraryBuilder,
+} from './analysis/standardLibrary';
 import { builtIn } from './utilities/constants';
 import { SymbolTableBuilder } from './analysis/symbolTableBuilder';
 import { SymbolTable } from './analysis/symbolTable';
 import { TypeChecker } from './typeChecker/typeChecker';
-import {
-  ITypeResolvedSuffix,
-  ITypeNode,
-} from './typeChecker/types';
+import { ITypeResolvedSuffix, ITypeNode } from './typeChecker/types';
 import { IToken } from './entities/types';
 import { IType } from './typeChecker/types/types';
 import { binarySearch, rangeContains } from './utilities/positionUtils';
 
 export class Analyzer {
   public workspaceFolder?: string;
+
+  private standardLibrary: SymbolTable;
+  private bodyLibrary: SymbolTable;
+
   public readonly pathResolver: PathResolver;
   public readonly documentInfos: Map<string, IDocumentInfo>;
   public readonly logger: ILogger;
   public readonly tracer: ITracer;
   public readonly observer: PerformanceObserver;
 
-  constructor(logger: ILogger = mockLogger, tracer: ITracer = mockTracer) {
+  constructor(
+    caseKind: CaseKind = CaseKind.camelcase,
+    logger: ILogger = mockLogger,
+    tracer: ITracer = mockTracer,
+  ) {
     this.pathResolver = new PathResolver();
     this.logger = logger;
     this.tracer = tracer;
     this.documentInfos = new Map();
     this.workspaceFolder = undefined;
+
+    this.standardLibrary = standardLibraryBuilder(caseKind);
+    this.bodyLibrary = bodyLibraryBuilder(caseKind);
+
     this.observer = new PerformanceObserver(list => {
       this.logger.info('');
       this.logger.info('-------- Performance ---------');
@@ -83,6 +95,15 @@ export class Analyzer {
    */
   public setUri(uri: string): void {
     this.pathResolver.volume0Uri = uri;
+  }
+
+  /**
+   * Set the case of the body library and standard library
+   * @param caseKind case to set
+   */
+  public setCase(caseKind: CaseKind) {
+    this.standardLibrary = standardLibraryBuilder(caseKind);
+    this.bodyLibrary = bodyLibraryBuilder(caseKind);
   }
 
   public async *validateDocument(
@@ -155,7 +176,7 @@ export class Analyzer {
     }
 
     // add standard library
-    symbolTableBuilder.linkTable(standardLibrary);
+    symbolTableBuilder.linkTable(this.standardLibrary);
     symbolTableBuilder.linkTable(this.activeBodyLibrary());
 
     // generate resolvers
@@ -247,7 +268,7 @@ export class Analyzer {
   }
 
   private activeBodyLibrary(): SymbolTable {
-    return bodyLibrary;
+    return this.bodyLibrary;
   }
 
   public getSuffixType(
@@ -414,7 +435,7 @@ export class Analyzer {
 
   // get a global trackers
   public getGlobalTrackers(name: string): IKsSymbolTracker<KsSymbol>[] {
-    return standardLibrary.globalTrackers(name);
+    return this.standardLibrary.globalTrackers(name);
   }
 
   // get all tracker at position

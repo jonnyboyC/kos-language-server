@@ -39,6 +39,7 @@ import {
 } from '../utilities/positionUtils';
 import { createDiagnostic } from '../utilities/diagnosticsUtils';
 import { builtIn } from '../utilities/constants';
+import { toCase } from '../utilities/stringUtils';
 
 /**
  * The Symbol table builder is used to declare new symbols and track new symbols
@@ -534,7 +535,12 @@ export class SymbolTableBuilder {
     );
 
     // check if a variable may not be defined in a runtime situtation
-    if (rangeBefore(token, tracker.declared.range.start)) {
+    // functions will always be availbe because they are executed
+    // during a pre pass
+    if (
+      rangeBefore(token, tracker.declared.range.start) &&
+      tracker.declared.symbol.tag !== KsSymbolKind.function
+    ) {
       return createDiagnostic(
         token,
         `${symbolType} ${token.lexeme} may not exist at script runtime.`,
@@ -852,7 +858,7 @@ export class SymbolTableBuilder {
   ): Diagnostic {
     return createDiagnostic(
       name,
-      `${this.pascalCase(KsSymbolKind[symbol.tag])} ${symbol.name.lexeme} ` +
+      `${toCase(CaseKind.pascalcase, KsSymbolKind[symbol.tag])} ${symbol.name.lexeme} ` +
         `already exists here. This ${KsSymbolKind[kind]} shadows it.`,
       DiagnosticSeverity.Warning,
       undefined,
@@ -875,7 +881,7 @@ export class SymbolTableBuilder {
   private localConflictError(name: IToken, symbol: KsSymbol): Diagnostic {
     return createDiagnostic(
       name,
-      `${this.pascalCase(KsSymbolKind[symbol.tag])} ${
+      `${toCase(CaseKind.pascalcase, KsSymbolKind[symbol.tag])} ${
         symbol.name.lexeme
       } already exists.`,
       DiagnosticSeverity.Warning,
@@ -889,13 +895,5 @@ export class SymbolTableBuilder {
         ),
       ],
     );
-  }
-
-  /**
-   * Convert a string to pascalCase
-   * @param str string
-   */
-  private pascalCase(str: string): string {
-    return str.charAt(0).toUpperCase() + str.slice(1);
   }
 }

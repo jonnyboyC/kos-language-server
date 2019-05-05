@@ -64,6 +64,16 @@
                     "scope": "window",
                     "description": "The WebSocket port to stream LSP log data into."
                 },
+                "kos-vscode.completionCase": {
+                    "type": "string",
+                    "default": "camelcase",
+                    "enum": [
+                        "lowercase",
+                        "uppercase",
+                        "camelcase",
+                        "pascalcase"
+                    ]
+                },
                 "kos-vscode.trace.server": {
                     "scope": "window",
                     "type": "object",
@@ -87,6 +97,19 @@
                                 "json"
                             ],
                             "default": "text"
+                        },
+                        "level": {
+                            "type": "string",
+                            "description": "Controls the level of mesage log.",
+                            "enum": [
+                                "verbose",
+                                "info",
+                                "log",
+                                "warn",
+                                "error",
+                                "none"
+                            ],
+                            "default": "error"
                         }
                     }
                 }

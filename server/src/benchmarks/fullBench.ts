@@ -7,7 +7,7 @@ import { Parser } from '../parser/parser';
 import { SymbolTableBuilder } from '../analysis/symbolTableBuilder';
 import { PreResolver } from '../analysis/preResolver';
 import { Resolver } from '../analysis/resolver';
-import { standardLibrary } from '../analysis/standardLibrary';
+import { standardLibraryBuilder } from '../analysis/standardLibrary';
 
 const testDir = join(__dirname, '../../../kerboscripts/parser_valid/');
 
@@ -28,7 +28,7 @@ walkDir(testDir, (filePath) => {
   const { script } = parser.parse();
 
   const symbolTableBuilder = new SymbolTableBuilder('');
-  symbolTableBuilder.linkTable(standardLibrary);
+  symbolTableBuilder.linkTable(standardLibraryBuilder(CaseKind.lowercase));
 
   const preResolver = new PreResolver(script, symbolTableBuilder);
   const resolver = new Resolver(script, symbolTableBuilder);
@@ -58,7 +58,7 @@ for (let i = 0; i < 10; i += 1) {
 
     const resolverStart = performance.now();
     const symbolTableBuilder = new SymbolTableBuilder('');
-    symbolTableBuilder.linkTable(standardLibrary);
+    symbolTableBuilder.linkTable(standardLibraryBuilder(CaseKind.lowercase));
 
     const preResolver = new PreResolver(script, symbolTableBuilder);
     const resolver = new Resolver(script, symbolTableBuilder);

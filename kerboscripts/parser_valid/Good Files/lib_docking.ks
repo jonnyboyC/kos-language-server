@@ -44,7 +44,6 @@ FUNCTION approach_port {
     translate(v(0,0,0)).
   }
 
-
   FUNCTION ensure_range {
     PARAMETER targetPort, dockingPort, distance, speed.
 

@@ -15,9 +15,9 @@ import { SymbolTableBuilder } from '../analysis/symbolTableBuilder';
 import { PreResolver } from '../analysis/preResolver';
 import { KsSymbol, KsSymbolKind, IKsSymbolTracker } from '../analysis/types';
 import { Resolver } from '../analysis/resolver';
-import { standardLibrary } from '../analysis/standardLibrary';
 import { FunctionScan } from '../analysis/functionScan';
 import * as Decl from '../parser/declare';
+import { standardLibraryBuilder } from '../analysis/standardLibrary';
 
 const fakeUri = 'C:\\fake.ks';
 
@@ -46,7 +46,7 @@ const resolveSource = (source: string, standardLib = false): IResolveResults => 
   const symbolTableBuilder = new SymbolTableBuilder(fakeUri);
 
   if (standardLib) {
-    symbolTableBuilder.linkTable(standardLibrary);
+    symbolTableBuilder.linkTable(standardLibraryBuilder(CaseKind.lowercase));
   }
 
   const functionResolver = new PreResolver(result.parse.script, symbolTableBuilder);

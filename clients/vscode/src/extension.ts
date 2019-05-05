@@ -17,7 +17,11 @@ import {
   ErrorAction,
   CloseAction,
 } from 'vscode-languageclient';
-import { inspectorChannelProvider, channelRouter, vscodeChannelProvider } from './commands/channelRouterProvider';
+import {
+  inspectorChannelProvider,
+  channelRouter,
+  vscodeChannelProvider,
+} from './commands/channelRouterProvider';
 import { telnetProvider } from './commands/telnetProvider';
 import { kspProvider } from './commands/kspProvider';
 import { parse } from 'semver';
@@ -30,7 +34,6 @@ let client: LanguageClient;
  * @param context Current extension context
  */
 export function activate(context: ExtensionContext) {
-
   // The server is implemented in node
   const serverModule = context.asAbsolutePath(
     path.join('server', 'out', 'server.js'),
@@ -43,15 +46,21 @@ export function activate(context: ExtensionContext) {
   // The language server debug options
   // --nolazy eagerly compiles the js files so they can be debug
   // --inspect=6009 says to run the server in inspector mode on port 6009
-  const debugOptions: ForkOptions = { execArgv: ['--nolazy', '--inspect=6009'] };
+  const debugOptions: ForkOptions = {
+    execArgv: ['--nolazy', '--inspect=6009'],
+  };
 
   // The language server production options
   const runOptions: ForkOptions = { execArgv: [] };
 
   // async generators become default in node 10
   if (semver != null && semver.major < 10) {
-    if (debugOptions.execArgv) debugOptions.execArgv.push('--harmony_async_iteration');
-    if (runOptions.execArgv) runOptions.execArgv.push('--harmony_async_iteration');
+    if (debugOptions.execArgv) {
+      debugOptions.execArgv.push('--harmony_async_iteration');
+    }
+    if (runOptions.execArgv) {
+      runOptions.execArgv.push('--harmony_async_iteration');
+    }
   }
 
   // If the extension is launched in debug mode then the debug server options are used
@@ -80,11 +89,11 @@ export function activate(context: ExtensionContext) {
         console.log(message);
         console.log(count);
 
-        return ErrorAction.Continue
+        return ErrorAction.Continue;
       },
       closed(): CloseAction {
         return CloseAction.Restart;
-      }
+      },
     },
 
     // Allow the websocket to be an output channel
@@ -104,19 +113,32 @@ export function activate(context: ExtensionContext) {
 
   // add provider to route output to vscode
   context.subscriptions.push(
-    commands.registerCommand(vscodeChannelProvider.command, vscodeChannelProvider.commandCallback))
+    commands.registerCommand(
+      vscodeChannelProvider.command,
+      vscodeChannelProvider.commandCallback,
+    ),
+  );
 
   // add provider to route output to a websocket
   context.subscriptions.push(
-    commands.registerCommand(inspectorChannelProvider.command, inspectorChannelProvider.commandCallback))
+    commands.registerCommand(
+      inspectorChannelProvider.command,
+      inspectorChannelProvider.commandCallback,
+    ),
+  );
 
   // add run provider to commands
   context.subscriptions.push(
-    commands.registerCommand(telnetProvider.command, telnetProvider.commandCallback));
+    commands.registerCommand(
+      telnetProvider.command,
+      telnetProvider.commandCallback,
+    ),
+  );
 
   // add start provider to commands
   context.subscriptions.push(
-    commands.registerCommand(kspProvider.command, kspProvider.commandCallback));
+    commands.registerCommand(kspProvider.command, kspProvider.commandCallback),
+  );
 }
 
 /**
@@ -125,7 +147,9 @@ export function activate(context: ExtensionContext) {
  */
 export function deactivate(): Thenable<void> {
   if (!client) {
-    return new Promise(() => { return; });
+    return new Promise(() => {
+      return;
+    });
   }
 
   // call lsp client stop method

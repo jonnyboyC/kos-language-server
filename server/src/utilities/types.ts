@@ -1,12 +1,35 @@
+/**
+ * Maybe type for things that might be undefined
+ */
 type Maybe<T> = T | undefined;
+
+/**
+ * Helper type the dual of pick
+ */
 type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
+
+/**
+ * Require certain fields to not be undefined or null
+ */
 type PartialRequire<T, K extends keyof T> = Required<Pick<T, K>> & Omit<T, K>;
 
+/**
+ * The type helper restricts the type to constructor functions
+ * or classes
+ */
+type Constructor<T = {}> = new (...args: any[]) => T;
+
+/**
+ * Currenlty used in signiture utilities
+ */
 interface IdentifierIndex {
   identifier: string;
   index: number;
 }
 
+/**
+ * Base logger interface, mirror vscodes logger
+ */
 interface ILoggerBase {
   error(message: string): void;
   warn(message: string): void;
@@ -14,10 +37,18 @@ interface ILoggerBase {
   log(message: string): void;
 }
 
+/**
+ * Interface for internal logger
+ */
 interface ILogger extends ILoggerBase {
+  level: LogLevel;
+
   verbose(message: string): void;
 }
 
+/**
+ * Logging level internal to kos-language-server
+ */
 const enum LogLevel {
   verbose,
   info,
@@ -27,8 +58,20 @@ const enum LogLevel {
   none,
 }
 
+/**
+ * Interface for internal tracer
+ */
 interface ITracer {
   log(message: string, verbose?: string): void;
 }
 
-type Constructor<T = {}> = new (...args: any[]) => T;
+/**
+ * This is used by the various completion functionailities
+ * to decide how they should be cased
+ */
+const enum CaseKind {
+  lowercase,
+  uppercase,
+  camelcase,
+  pascalcase,
+}
