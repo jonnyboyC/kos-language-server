@@ -12,7 +12,7 @@ import {
 } from './types';
 import { performance, PerformanceObserver } from 'perf_hooks';
 import { Parser } from './parser/parser';
-import { FuncResolver } from './analysis/functionResolver';
+import { PreResolver } from './analysis/preResolver';
 import { Scanner } from './scanner/scanner';
 import { Resolver } from './analysis/resolver';
 import { IParseError, ScriptResult, RunInstType } from './parser/types';
@@ -30,33 +30,45 @@ import { PathResolver, runPath } from './utilities/pathResolver';
 import { existsSync } from 'fs';
 import { extname } from 'path';
 import { readFileAsync } from './utilities/fsUtils';
-import { standardLibrary, bodyLibrary } from './analysis/standardLibrary';
+import {
+  standardLibraryBuilder,
+  bodyLibraryBuilder,
+} from './analysis/standardLibrary';
 import { builtIn } from './utilities/constants';
 import { SymbolTableBuilder } from './analysis/symbolTableBuilder';
 import { SymbolTable } from './analysis/symbolTable';
 import { TypeChecker } from './typeChecker/typeChecker';
-import {
-  ITypeResolvedSuffix,
-  ITypeNode,
-} from './typeChecker/types';
+import { ITypeResolvedSuffix, ITypeNode } from './typeChecker/types';
 import { IToken } from './entities/types';
 import { IType } from './typeChecker/types/types';
 import { binarySearch, rangeContains } from './utilities/positionUtils';
 
 export class Analyzer {
   public workspaceFolder?: string;
+
+  private standardLibrary: SymbolTable;
+  private bodyLibrary: SymbolTable;
+
   public readonly pathResolver: PathResolver;
   public readonly documentInfos: Map<string, IDocumentInfo>;
   public readonly logger: ILogger;
   public readonly tracer: ITracer;
   public readonly observer: PerformanceObserver;
 
-  constructor(logger: ILogger = mockLogger, tracer: ITracer = mockTracer) {
+  constructor(
+    caseKind: CaseKind = CaseKind.camelcase,
+    logger: ILogger = mockLogger,
+    tracer: ITracer = mockTracer,
+  ) {
     this.pathResolver = new PathResolver();
     this.logger = logger;
     this.tracer = tracer;
     this.documentInfos = new Map();
     this.workspaceFolder = undefined;
+
+    this.standardLibrary = standardLibraryBuilder(caseKind);
+    this.bodyLibrary = bodyLibraryBuilder(caseKind);
+
     this.observer = new PerformanceObserver(list => {
       this.logger.info('');
       this.logger.info('-------- Performance ---------');
@@ -83,6 +95,15 @@ export class Analyzer {
    */
   public setUri(uri: string): void {
     this.pathResolver.volume0Uri = uri;
+  }
+
+  /**
+   * Set the case of the body library and standard library
+   * @param caseKind case to set
+   */
+  public setCase(caseKind: CaseKind) {
+    this.standardLibrary = standardLibraryBuilder(caseKind);
+    this.bodyLibrary = bodyLibraryBuilder(caseKind);
   }
 
   public async *validateDocument(
@@ -155,11 +176,11 @@ export class Analyzer {
     }
 
     // add standard library
-    symbolTableBuilder.linkTable(standardLibrary);
+    symbolTableBuilder.linkTable(this.standardLibrary);
     symbolTableBuilder.linkTable(this.activeBodyLibrary());
 
     // generate resolvers
-    const funcResolver = new FuncResolver(
+    const preResolver = new PreResolver(
       script,
       symbolTableBuilder,
       this.logger,
@@ -173,13 +194,13 @@ export class Analyzer {
     );
 
     // resolve the rest of the script
-    performance.mark('func-resolver-start');
-    const functionDiagnostics = funcResolver
+    performance.mark('pre-resolver-start');
+    const preDiagnostics = preResolver
       .resolve()
       .map(error => addDiagnosticsUri(error, uri));
 
-    yield functionDiagnostics;
-    performance.mark('func-resolver-end');
+    yield preDiagnostics;
+    performance.mark('pre-resolver-end');
 
     // perform an initial function pass
     performance.mark('resolver-start');
@@ -188,6 +209,11 @@ export class Analyzer {
       .map(error => addDiagnosticsUri(error, uri));
 
     yield resolverDiagnostics;
+    const unusedDiagnostics = symbolTableBuilder
+      .findUnused()
+      .map(error => addDiagnosticsUri(error, uri));
+
+    yield unusedDiagnostics;
     performance.mark('resolver-end');
 
     const symbolTable = symbolTableBuilder.build();
@@ -207,9 +233,9 @@ export class Analyzer {
 
     // measure performance
     performance.measure(
-      'Function Resolver',
-      'func-resolver-start',
-      'func-resolver-end',
+      'Pre Resolver',
+      'pre-resolver-start',
+      'pre-resolver-end',
     );
     performance.measure('Resolver', 'resolver-start', 'resolver-end');
     performance.measure(
@@ -229,7 +255,7 @@ export class Analyzer {
       symbolsTable: symbolTable,
       diagnostics: scanDiagnostics.concat(
         parserDiagnostics,
-        functionDiagnostics,
+        preDiagnostics,
         resolverDiagnostics,
         // typeDiagnostics,
       ),
@@ -242,7 +268,7 @@ export class Analyzer {
   }
 
   private activeBodyLibrary(): SymbolTable {
-    return bodyLibrary;
+    return this.bodyLibrary;
   }
 
   public getSuffixType(
@@ -292,7 +318,7 @@ export class Analyzer {
       }
     }
 
-    const tracker = symbolsTable.scopedNamedTracker(pos, token.lexeme);
+    const tracker = symbolsTable.scopedNamedTracker(pos, token.lookup);
 
     if (!empty(tracker)) {
       return [tracker.declared.type, tracker.declared.symbol.tag];
@@ -341,7 +367,7 @@ export class Analyzer {
 
     // check if symbols exists
     const { token } = result;
-    const symbol = symbolsTable.scopedNamedTracker(pos, token.lexeme);
+    const symbol = symbolsTable.scopedNamedTracker(pos, token.lookup);
     if (empty(symbol)) {
       return undefined;
     }
@@ -375,7 +401,7 @@ export class Analyzer {
 
     // try to find the tracker at a given position
     const { token } = result;
-    const tracker = symbolsTable.scopedNamedTracker(pos, token.lexeme);
+    const tracker = symbolsTable.scopedNamedTracker(pos, token.lookup);
     if (empty(tracker)) {
       return undefined;
     }
@@ -409,7 +435,7 @@ export class Analyzer {
 
   // get a global trackers
   public getGlobalTrackers(name: string): IKsSymbolTracker<KsSymbol>[] {
-    return standardLibrary.globalTrackers(name);
+    return this.standardLibrary.globalTrackers(name);
   }
 
   // get all tracker at position
@@ -509,17 +535,17 @@ export class Analyzer {
   ): Promise<ScriptResult> {
     this.logger.info('');
     this.logger.info('-------------Lexical Analysis------------');
-    
+
     performance.mark('scanner-start');
     const scanner = new Scanner(text, uri, this.logger, this.tracer);
     const { tokens, scanErrors } = scanner.scanTokens();
     performance.mark('scanner-end');
-    
+
     // if scanner found errors report those immediately
     if (scanErrors.length > 0) {
       this.logger.warn(`Scanning encountered ${scanErrors.length} Errors.`);
     }
-    
+
     performance.mark('parser-start');
     const parser = new Parser(uri, tokens, this.logger, this.tracer);
     const result = parser.parse();

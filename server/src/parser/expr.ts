@@ -1,6 +1,5 @@
 import {
   IExprClass,
-  IInst,
   IExprVisitor,
   IExpr,
   IExprClassVisitor,
@@ -10,6 +9,7 @@ import {
   SyntaxKind,
 } from './types';
 import * as SuffixTerm from './suffixTerm';
+import * as Inst from './inst';
 import { TokenType } from '../entities/tokentypes';
 import { IToken } from '../entities/types';
 import { Range, Position } from 'vscode-languageserver';
@@ -22,7 +22,6 @@ import {
 } from './grammarNodes';
 import { empty } from '../utilities/typeGuards';
 import { NodeBase } from './base';
-import { flatten } from '../utilities/arrayUtils';
 import { joinLines } from './toStringUtils';
 
 /**
@@ -273,7 +272,7 @@ export class Factor extends Expr {
 /**
  * Class holding all anonymous functions
  */
-export class AnonymousFunction extends Expr {
+export class Lambda extends Expr {
   /**
    * Grammar for anonymous functions
    */
@@ -286,44 +285,29 @@ export class AnonymousFunction extends Expr {
    * @param close close paren token
    */
   constructor(
-    public readonly open: IToken,
-    public readonly insts: IInst[],
-    public readonly close: IToken,
+    public readonly block: Inst.Block,
   ) {
     super();
   }
 
   public get start(): Position {
-    return this.open.start;
+    return this.block.start;
   }
 
   public get end(): Position {
-    return this.close.end;
+    return this.block.end;
   }
 
   public get ranges(): Range[] {
-    return [this.open, ...this.insts, this.close];
+    return this.block.ranges;
   }
 
   public toLines(): string[] {
-    const lines = flatten(this.insts.map(inst => inst.toLines()));
-
-    if (lines.length === 0) {
-      return [`${this.open.lexeme} ${this.close.lexeme}`];
-    }
-
-    if (lines.length === 1) {
-      return [`${this.open.lexeme} ${lines[0]} ${this.close.lexeme}`];
-    }
-
-    return [`${this.open.lexeme}`].concat(
-      ...lines.map(line => `    ${line}`),
-      `${this.close.lexeme}`,
-    );
+    return this.block.toLines();
   }
 
   public accept<T>(visitor: IExprVisitor<T>): T {
-    return visitor.visitAnonymousFunction(this);
+    return visitor.visitLambda(this);
   }
 
   public pass<T>(visitor: IExprPasser<T>): T {
@@ -428,7 +412,7 @@ export const validExprTypes: [IExprClass, Distribution][] = [
   [Factor, createConstant(0.5)],
   [Suffix, createConstant(3)],
   // TODO update when insts included
-  [AnonymousFunction, createConstant(0)],
+  [Lambda, createConstant(0)],
 ];
 
 export const expr = createGrammarUnion(...validExprTypes);
@@ -479,7 +463,7 @@ Suffix.grammar = [
   ),
 ];
 
-AnonymousFunction.grammar = [
+Lambda.grammar = [
   TokenType.curlyOpen,
   //
   TokenType.curlyClose,

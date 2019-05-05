@@ -64,6 +64,16 @@
                     "scope": "window",
                     "description": "The WebSocket port to stream LSP log data into."
                 },
+                "kos-vscode.completionCase": {
+                    "type": "string",
+                    "default": "camelcase",
+                    "enum": [
+                        "lowercase",
+                        "uppercase",
+                        "camelcase",
+                        "pascalcase"
+                    ]
+                },
                 "kos-vscode.trace.server": {
                     "scope": "window",
                     "type": "object",
@@ -87,6 +97,19 @@
                                 "json"
                             ],
                             "default": "text"
+                        },
+                        "level": {
+                            "type": "string",
+                            "description": "Controls the level of mesage log.",
+                            "enum": [
+                                "verbose",
+                                "info",
+                                "log",
+                                "warn",
+                                "error",
+                                "none"
+                            ],
+                            "default": "error"
                         }
                     }
                 }
@@ -141,7 +164,7 @@
         "dev:atom": "tsc -p ./clients/atom/tsconfig.json",
         "dev:server": "tsc -p ./server/tsconfig.json",
         "dev": "npm run dev:vscode && npm run dev:atom && npm run dev:server",
-        "test": "jest --config server/jest.config.js",
+        "test": "jest --config server/jest.config.js --verbose",
         "watch:vscode": "tsc -w -p ./clients/vscode/tsconfig.json",
         "watch:atom": "tsc -w -p ./clients/atom/tsconfig.json",
         "watch:server": "tsc -w -p ./server/tsconfig.json",

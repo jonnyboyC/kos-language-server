@@ -1,12 +1,12 @@
-import { isCorrectCallType, isSubType } from "../typeChecker/typeUitlities";
-import { CallType } from "../typeChecker/types/types";
-import { stringType } from "../typeChecker/types/primitives/string";
-import { booleanType } from "../typeChecker/types/primitives/boolean";
-import { structureType } from "../typeChecker/types/primitives/structure";
-import { partType } from "../typeChecker/types/parts/part";
-import { dockingPortType } from "../typeChecker/types/parts/dockingPort";
-import { primitiveInitializer } from "../typeChecker/types/primitives/initialize";
-import { oribitalInitializer } from "../typeChecker/types/orbital/initialize";
+import { isCorrectCallType, isSubType } from '../typeChecker/typeUitlities';
+import { CallType } from '../typeChecker/types/types';
+import { stringType } from '../typeChecker/types/primitives/string';
+import { booleanType } from '../typeChecker/types/primitives/boolean';
+import { structureType } from '../typeChecker/types/primitives/structure';
+import { partType } from '../typeChecker/types/parts/part';
+import { dockingPortType } from '../typeChecker/types/parts/dockingPort';
+import { primitiveInitializer } from '../typeChecker/types/primitives/initialize';
+import { oribitalInitializer } from '../typeChecker/types/orbital/initialize';
 
 primitiveInitializer();
 oribitalInitializer();

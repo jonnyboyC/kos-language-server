@@ -104,7 +104,7 @@ export class Generator implements IExprClassVisitor<string> {
   visitSuffix(exprClass: IExprClass<Expr.Suffix>): string {
     return this.generateGrammarNodes(exprClass.grammar);
   }
-  visitAnonymousFunction(exprClass: IExprClass<Expr.AnonymousFunction>): string {
+  visitAnonymousFunction(exprClass: IExprClass<Expr.Lambda>): string {
     return this.generateGrammarNodes(exprClass.grammar);
   }
   visitSuffixTerm(exprClass: ISuffixTermClass<SuffixTerm.SuffixTerm>): string {

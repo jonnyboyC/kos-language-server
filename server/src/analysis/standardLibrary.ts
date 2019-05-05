@@ -2,9 +2,7 @@ import { ScopeType } from '../parser/types';
 import { Token, Marker } from '../entities/token';
 import { TokenType } from '../entities/tokentypes';
 import { queueType } from '../typeChecker/types/collections/queue';
-import {
-  structureType,
-} from '../typeChecker/types/primitives/structure';
+import { structureType } from '../typeChecker/types/primitives/structure';
 import { createVarType } from '../typeChecker/typeUitlities';
 import { listType } from '../typeChecker/types/collections/list';
 import { stackType } from '../typeChecker/types/collections/stack';
@@ -40,8 +38,11 @@ import { volumeFileType } from '../typeChecker/types/io/volumneFile';
 import { pidLoopType } from '../typeChecker/types/pidLoop';
 import { volumeItemType } from '../typeChecker/types/io/volumeItem';
 import { volumeDirectoryType } from '../typeChecker/types/io/volumeDirectory';
-import { createFunctionType, createVarFunctionType } from '../typeChecker/types/ksType';
-import { IArgumentType } from '../typeChecker/types/types';
+import {
+  createFunctionType,
+  createVarFunctionType,
+} from '../typeChecker/types/ksType';
+import { IArgumentType, IFunctionType } from '../typeChecker/types/types';
 import { delegateType } from '../typeChecker/types/primitives/delegate';
 import { kUniverseType } from '../typeChecker/types/kUniverse';
 import { homeConnectionType } from '../typeChecker/types/communication/homeConnection';
@@ -53,7 +54,11 @@ import { steeringManagerType } from '../typeChecker/types/steeringManager';
 import { terminalStructType } from '../typeChecker/types/terminalStruct';
 import { voidType } from '../typeChecker/types/primitives/void';
 import { userListType } from '../typeChecker/types/collections/userList';
-import { scalarType, doubleType, integarType } from '../typeChecker/types/primitives/scalar';
+import {
+  scalarType,
+  doubleType,
+  integarType,
+} from '../typeChecker/types/primitives/scalar';
 import { stringType } from '../typeChecker/types/primitives/string';
 import { booleanType } from '../typeChecker/types/primitives/boolean';
 import { coreType } from '../typeChecker/types/core';
@@ -65,139 +70,431 @@ import { vesselSensorsType } from '../typeChecker/types/vessel/vesselSensors';
 import { serializableStructureType } from '../typeChecker/types/primitives/serializeableStructure';
 import { bodyTargetType } from '../typeChecker/types/orbital/bodyTarget';
 import { vesselTargetType } from '../typeChecker/types/orbital/vesselTarget';
+import { SymbolTable } from './symbolTable';
+import { toCase } from '../utilities/stringUtils';
 
-const functionTypes = [
-  createFunctionType('abs', scalarType, scalarType),
-  createFunctionType('add', voidType, nodeType),
-  createFunctionType('addAlarm', kacAlarmType, stringType, stringType, scalarType, stringType),
-  createFunctionType('allwaypoints', listType.toConcreteType(waypointType)),
-  createFunctionType('angleaxis', directionType, vectorType, scalarType),
-  createFunctionType('anglediff', scalarType, scalarType, scalarType),
-  createFunctionType('arccos', scalarType),
-  createFunctionType('arcsin', scalarType),
-  createFunctionType('arctan', scalarType),
-  createFunctionType('arctan2', scalarType),
+const functionTypes: [string[], IFunctionType][] = [
+  [['abs'], createFunctionType('abs', scalarType, scalarType)],
+  [['add'], createFunctionType('add', voidType, nodeType)],
+  [
+    ['add', 'alarm'],
+    createFunctionType(
+      'addalarm',
+      kacAlarmType,
+      stringType,
+      stringType,
+      scalarType,
+      stringType,
+    ),
+  ],
+  [
+    ['all', 'waypoints'],
+    createFunctionType('allwaypoints', listType.toConcreteType(waypointType)),
+  ],
+  [
+    ['angle', 'axis'],
+    createFunctionType('angleaxis', directionType, vectorType, scalarType),
+  ],
+  [
+    ['angle', 'diff'],
+    createFunctionType('anglediff', scalarType, scalarType, scalarType),
+  ],
+  [['arc', 'cos'], createFunctionType('arccos', scalarType)],
+  [['arc', 'sin'], createFunctionType('arcsin', scalarType)],
+  [['arc', 'tan'], createFunctionType('arctan', scalarType)],
+  [['arc', 'tan2'], createFunctionType('arctan2', scalarType)],
   // TODO need to figure out name collision for scope manager
-  // createFunctionType('body', bodyTargetType, stringType),
-  createFunctionType('bodyatmosphere', bodyAtmosphereType, stringType),
-  createFunctionType('buildlist', /* TODO Union */ scalarType, stringType),
-  createFunctionType('career', careerType),
-  createFunctionType('cd', voidType, stringType),
-  createFunctionType('ceiling', scalarType, scalarType),
-  createFunctionType('char', stringType, scalarType),
-  createFunctionType('chdir', voidType, stringType),
-  createFunctionType('clearguis', voidType),
-  createFunctionType('clearscreen', voidType),
-  createFunctionType('clearvecdraws', voidType),
-  createFunctionType('constant', constantType),
-  createFunctionType('copypath', voidType, stringType, stringType),
-  createFunctionType('cos', scalarType),
-  createFunctionType('create', volumeFileType, stringType),
-  createFunctionType('createdir', volumeDirectoryType, stringType),
-  createFunctionType('debugdump', voidType),
-  createFunctionType('debugfreezegame', scalarType),
-  createFunctionType('deleteAlarm', booleanType, stringType),
-  createFunctionType('deletepath', voidType, stringType, stringType),
-  createFunctionType('edit', voidType, pathType),
-  createFunctionType('exists', booleanType, stringType),
-  createFunctionType('floor', scalarType, scalarType),
-  createFunctionType('GetVoice', voiceType, integarType),
-  createFunctionType('gui', guiWidgetType, integarType, integarType),
-  createFunctionType('heading', directionType, scalarType, scalarType),
-  createFunctionType('highlight', highlightType, structureType, rgbaType),
-  createFunctionType('hsv', hsvaType, scalarType, scalarType, scalarType),
-  createFunctionType('hsva', hsvaType, scalarType, scalarType, scalarType, scalarType),
-  createFunctionType(
-    'hudtext', voidType, stringType, integarType,
-    integarType, rgbaType, booleanType),
-  createFunctionType('latlng', geoCoordinatesType, scalarType, scalarType),
-  createVarFunctionType('lex', lexiconType, createVarType(structureType)),
-  createVarFunctionType('lexicon', lexiconType, createVarType(structureType)),
-  createVarFunctionType('list', userListType, createVarType(structureType)),
-  createFunctionType('listAlarms', listType.toConcreteType(kacAlarmType), stringType),
-  createFunctionType('ln', scalarType, scalarType),
-  createFunctionType('log10', scalarType, scalarType),
-  createFunctionType('logfile', voidType, stringType, stringType),
-  createFunctionType('lookdirup', directionType, vectorType, vectorType),
-  createFunctionType('makebuiltindelegate', builtInDelegateType, stringType),
-  createFunctionType('max', scalarType, scalarType, scalarType),
-  createFunctionType('min', scalarType, scalarType, scalarType),
-  createFunctionType('mod', scalarType, scalarType, scalarType),
-  createFunctionType('movepath', voidType, stringType, stringType),
-  createFunctionType('node', nodeType, scalarType, scalarType, scalarType, scalarType),
-  createFunctionType('note', noteType, scalarType, scalarType, scalarType, scalarType),
-  createFunctionType('open', volumeItemType, stringType),
-  createFunctionType('orbitat', orbitInfoType, orbitableType, timeSpanType),
-  createFunctionType('path', pathType, stringType),
-  createFunctionType(
-    'pidloop', pidLoopType, scalarType,
-    scalarType, scalarType, scalarType, scalarType),
-  createFunctionType('positionat', vectorType, orbitableType, timeSpanType),
-  createFunctionType('print', voidType, structureType),
-  createFunctionType('printat', structureType, scalarType, scalarType),
-  createFunctionType('printlist', voidType, stringType),
-  createFunctionType('processor', partType, /* TODO Union Type */ stringType),
-  createFunctionType('profileresult', voidType),
-  createFunctionType('q', directionType, scalarType, scalarType, scalarType, scalarType),
-  createVarFunctionType(
-    'queue', queueType.toConcreteType(structureType), createVarType(structureType)),
-  createFunctionType('r', directionType, scalarType, scalarType, scalarType),
-  createFunctionType('random', scalarType),
-  createFunctionType('range', rangeType, integarType, integarType, integarType),
-  createFunctionType('readjson', serializableStructureType, stringType), // TODO Union Types
-  createFunctionType('reboot', voidType),
-  createFunctionType('remove', voidType, nodeType),
-  createFunctionType('rgb', rgbaType, scalarType, scalarType, scalarType),
-  createFunctionType('rgba', rgbaType, scalarType, scalarType, scalarType, scalarType),
-  createFunctionType('rotatefromto', directionType, vectorType, vectorType),
-  createFunctionType('round', scalarType, scalarType),
-  createFunctionType('scriptpath', pathType),
-  createFunctionType('selectautopilotmode', voidType, stringType),
-  createFunctionType('shutdown', voidType),
-  createFunctionType('sin', scalarType),
-  createFunctionType(
-    'slidenote', noteType, scalarType,
-    scalarType, scalarType, scalarType, scalarType),
-  createFunctionType('sqrt', scalarType, scalarType),
-  createVarFunctionType(
-    'stack', stackType.toConcreteType(structureType), createVarType(structureType)),
-  createFunctionType('stage', voidType),
-  createFunctionType('StopAllVoices', voidType),
-  createFunctionType('switch', stringType),
-  createFunctionType('tan', scalarType),
-  createFunctionType('time', timeSpanType, doubleType),
-  createFunctionType('toggleflybywire', voidType, stringType, booleanType),
-  createFunctionType(
-    'transfer', resourceTransferType,
-    stringType, structureType, structureType, scalarType),
-  createFunctionType(
-    'transferall', resourceTransferType,
-    stringType, structureType, structureType),
-  createFunctionType('unchar', scalarType, stringType),
-  createVarFunctionType(
-    'uniqueset', uniqueSetType.toConcreteType(structureType), createVarType(structureType)),
-  createFunctionType('v', vectorType, scalarType, scalarType, scalarType),
-  createFunctionType('vang', vectorType, vectorType, vectorType),
-  createFunctionType('vcrs', vectorType, vectorType, vectorType),
-  createFunctionType('vdot', vectorType, vectorType, vectorType),
-  createFunctionType(
-    'vecdraw', vectorRendererType, vectorType, vectorType, rgbaType,
-    stringType, scalarType, booleanType, scalarType),
-  createFunctionType(
-    'vecdrawargs', vectorRendererType, vectorType, vectorType, rgbaType,
-    stringType, scalarType, booleanType, scalarType),
-  createFunctionType('vectorangle', scalarType, vectorType, vectorType),
-  createFunctionType('vectorcrossproduct', vectorType, vectorType, vectorType),
-  createFunctionType('vectordotproduct', vectorType, vectorType, vectorType),
-  createFunctionType('vectorexclude', vectorType, vectorType, vectorType),
-  createFunctionType('velocityat', vectorType, orbitableType, timeSpanType),
-  createFunctionType('vessel', vesselTargetType, stringType),
-  createFunctionType('volume', volumeType, stringType),
-  createFunctionType('vxcl', vectorType, vectorType, vectorType),
-  createFunctionType('warpto', voidType, scalarType),
-  createFunctionType('waypoint', waypointType, stringType),
+  // createFunctionType('body', bodyTargetType, stringType)],
+  [
+    ['body', 'atmosphere'],
+    createFunctionType('bodyatmosphere', bodyAtmosphereType, stringType),
+  ],
+  [
+    ['build', 'list'],
+    createFunctionType('buildlist', /* TODO Union */ scalarType, stringType),
+  ],
+  [['career'], createFunctionType('career', careerType)],
+  [['cd'], createFunctionType('cd', voidType, stringType)],
+  [['ceiling'], createFunctionType('ceiling', scalarType, scalarType)],
+  [['char'], createFunctionType('char', stringType, scalarType)],
+  [['chdir'], createFunctionType('chdir', voidType, stringType)],
+  [['clear', 'guis'], createFunctionType('clearguis', voidType)],
+  [['clear', 'screen'], createFunctionType('clearscreen', voidType)],
+  [['clear', 'vec', 'draws'], createFunctionType('clearvecdraws', voidType)],
+  [['constant'], createFunctionType('constant', constantType)],
+  [
+    ['copy', 'path'],
+    createFunctionType('copypath', voidType, stringType, stringType),
+  ],
+  [['cos'], createFunctionType('cos', scalarType)],
+  [['create'], createFunctionType('create', volumeFileType, stringType)],
+  [
+    ['create', 'dir'],
+    createFunctionType('createdir', volumeDirectoryType, stringType),
+  ],
+  [['debug', 'dump'], createFunctionType('debugdump', voidType)],
+  [
+    ['debug', 'freeze', 'game'],
+    createFunctionType('debugfreezegame', scalarType),
+  ],
+  [
+    ['delete', 'alarm'],
+    createFunctionType('deleteAlarm', booleanType, stringType),
+  ],
+  [
+    ['delete', 'path'],
+    createFunctionType('deletepath', voidType, stringType, stringType),
+  ],
+  [['edit'], createFunctionType('edit', voidType, pathType)],
+  [['exists'], createFunctionType('exists', booleanType, stringType)],
+  [['floor'], createFunctionType('floor', scalarType, scalarType)],
+  [['get', 'voice'], createFunctionType('getvoice', voiceType, integarType)],
+  [['gui'], createFunctionType('gui', guiWidgetType, integarType, integarType)],
+  [
+    ['heading'],
+    createFunctionType('heading', directionType, scalarType, scalarType),
+  ],
+  [
+    ['highlight'],
+    createFunctionType('highlight', highlightType, structureType, rgbaType),
+  ],
+  [
+    ['hsv'],
+    createFunctionType('hsv', hsvaType, scalarType, scalarType, scalarType),
+  ],
+  [
+    ['hsva'],
+    createFunctionType(
+      'hsva',
+      hsvaType,
+      scalarType,
+      scalarType,
+      scalarType,
+      scalarType,
+    ),
+  ],
+  [
+    ['hudtext'],
+    createFunctionType(
+      'hudtext',
+      voidType,
+      stringType,
+      integarType,
+      integarType,
+      rgbaType,
+      booleanType,
+    ),
+  ],
+  [
+    ['latlng'],
+    createFunctionType('latlng', geoCoordinatesType, scalarType, scalarType),
+  ],
+  [
+    ['lex'],
+    createVarFunctionType('lex', lexiconType, createVarType(structureType)),
+  ],
+  [
+    ['lexicon'],
+    createVarFunctionType('lexicon', lexiconType, createVarType(structureType)),
+  ],
+  [
+    ['list'],
+    createVarFunctionType('list', userListType, createVarType(structureType)),
+  ],
+  [
+    ['list', 'alarms'],
+    createFunctionType(
+      'listAlarms',
+      listType.toConcreteType(kacAlarmType),
+      stringType,
+    ),
+  ],
+  [['ln'], createFunctionType('ln', scalarType, scalarType)],
+  [['log10'], createFunctionType('log10', scalarType, scalarType)],
+  [
+    ['log', 'file'],
+    createFunctionType('logfile', voidType, stringType, stringType),
+  ],
+  [
+    ['look', 'dir', 'up'],
+    createFunctionType('lookdirup', directionType, vectorType, vectorType),
+  ],
+  [
+    ['make', 'builtin', 'delegate'],
+    createFunctionType('makebuiltindelegate', builtInDelegateType, stringType),
+  ],
+  [['max'], createFunctionType('max', scalarType, scalarType, scalarType)],
+  [['min'], createFunctionType('min', scalarType, scalarType, scalarType)],
+  [['mod'], createFunctionType('mod', scalarType, scalarType, scalarType)],
+  [
+    ['move', 'path'],
+    createFunctionType('movepath', voidType, stringType, stringType),
+  ],
+  [
+    ['node'],
+    createFunctionType(
+      'node',
+      nodeType,
+      scalarType,
+      scalarType,
+      scalarType,
+      scalarType,
+    ),
+  ],
+  [
+    ['note'],
+    createFunctionType(
+      'note',
+      noteType,
+      scalarType,
+      scalarType,
+      scalarType,
+      scalarType,
+    ),
+  ],
+  [['open'], createFunctionType('open', volumeItemType, stringType)],
+  [
+    ['orbit', 'at'],
+    createFunctionType('orbitat', orbitInfoType, orbitableType, timeSpanType),
+  ],
+  [['path'], createFunctionType('path', pathType, stringType)],
+  [
+    ['pid', 'loop'],
+    createFunctionType(
+      'pidloop',
+      pidLoopType,
+      scalarType,
+      scalarType,
+      scalarType,
+      scalarType,
+      scalarType,
+    ),
+  ],
+  [
+    ['position', 'at'],
+    createFunctionType('positionat', vectorType, orbitableType, timeSpanType),
+  ],
+  [['print'], createFunctionType('print', voidType, structureType)],
+  [
+    ['print', 'at'],
+    createFunctionType('printat', structureType, scalarType, scalarType),
+  ],
+  [['print', 'list'], createFunctionType('printlist', voidType, stringType)],
+  [
+    ['processor'],
+    createFunctionType('processor', partType, /* TODO Union Type */ stringType),
+  ],
+  [['profile', 'result'], createFunctionType('profileresult', voidType)],
+  [
+    ['q'],
+    createFunctionType(
+      'q',
+      directionType,
+      scalarType,
+      scalarType,
+      scalarType,
+      scalarType,
+    ),
+  ],
+  [
+    ['queue'],
+    createVarFunctionType(
+      'queue',
+      queueType.toConcreteType(structureType),
+      createVarType(structureType),
+    ),
+  ],
+  [
+    ['r'],
+    createFunctionType('r', directionType, scalarType, scalarType, scalarType),
+  ],
+  [['random'], createFunctionType('random', scalarType)],
+  [
+    ['range'],
+    createFunctionType(
+      'range',
+      rangeType,
+      integarType,
+      integarType,
+      integarType,
+    ),
+  ],
+  [
+    ['read', 'json'],
+    createFunctionType('readjson', serializableStructureType, stringType),
+  ], // TODO Union Types
+  [['reboot'], createFunctionType('reboot', voidType)],
+  [['remove'], createFunctionType('remove', voidType, nodeType)],
+  [
+    ['rgb'],
+    createFunctionType('rgb', rgbaType, scalarType, scalarType, scalarType),
+  ],
+  [
+    ['rgba'],
+    createFunctionType(
+      'rgba',
+      rgbaType,
+      scalarType,
+      scalarType,
+      scalarType,
+      scalarType,
+    ),
+  ],
+  [
+    ['rotate', 'from', 'to'],
+    createFunctionType('rotatefromto', directionType, vectorType, vectorType),
+  ],
+  [['round'], createFunctionType('round', scalarType, scalarType)],
+  [['script', 'path'], createFunctionType('scriptpath', pathType)],
+  [
+    ['select', 'auto', 'pilot', 'mode'],
+    createFunctionType('selectautopilotmode', voidType, stringType),
+  ],
+  [['shutdown'], createFunctionType('shutdown', voidType)],
+  [['sin'], createFunctionType('sin', scalarType)],
+  [
+    ['slide', 'note'],
+    createFunctionType(
+      'slidenote',
+      noteType,
+      scalarType,
+      scalarType,
+      scalarType,
+      scalarType,
+      scalarType,
+    ),
+  ],
+  [['sqrt'], createFunctionType('sqrt', scalarType, scalarType)],
+  [
+    ['stack'],
+    createVarFunctionType(
+      'stack',
+      stackType.toConcreteType(structureType),
+      createVarType(structureType),
+    ),
+  ],
+  [['stage'], createFunctionType('stage', voidType)],
+  [['stop', 'all', 'voices'], createFunctionType('stopallvoices', voidType)],
+  [['switch'], createFunctionType('switch', stringType)],
+  [['tan'], createFunctionType('tan', scalarType)],
+  [
+    ['toggle', 'fly', 'by', 'wire'],
+    createFunctionType('toggleflybywire', voidType, stringType, booleanType),
+  ],
+  [
+    ['transfer'],
+    createFunctionType(
+      'transfer',
+      resourceTransferType,
+      stringType,
+      structureType,
+      structureType,
+      scalarType,
+    ),
+  ],
+  [
+    ['transfer', 'all'],
+    createFunctionType(
+      'transferall',
+      resourceTransferType,
+      stringType,
+      structureType,
+      structureType,
+    ),
+  ],
+  [['unchar'], createFunctionType('unchar', scalarType, stringType)],
+  [
+    ['unique', 'set'],
+    createVarFunctionType(
+      'uniqueset',
+      uniqueSetType.toConcreteType(structureType),
+      createVarType(structureType),
+    ),
+  ],
+  [
+    ['v'],
+    createFunctionType('v', vectorType, scalarType, scalarType, scalarType),
+  ],
+  [
+    ['v', 'ang'],
+    createFunctionType('vang', vectorType, vectorType, vectorType),
+  ],
+  [
+    ['v', 'crs'],
+    createFunctionType('vcrs', vectorType, vectorType, vectorType),
+  ],
+  [
+    ['v', 'dot'],
+    createFunctionType('vdot', vectorType, vectorType, vectorType),
+  ],
+  [
+    ['vec', 'draw'],
+    createFunctionType(
+      'vecdraw',
+      vectorRendererType,
+      vectorType,
+      vectorType,
+      rgbaType,
+      stringType,
+      scalarType,
+      booleanType,
+      scalarType,
+    ),
+  ],
+  [
+    ['vec', 'draw', 'args'],
+    createFunctionType(
+      'vecdrawargs',
+      vectorRendererType,
+      vectorType,
+      vectorType,
+      rgbaType,
+      stringType,
+      scalarType,
+      booleanType,
+      scalarType,
+    ),
+  ],
+  [
+    ['vector', 'angle'],
+    createFunctionType('vectorangle', scalarType, vectorType, vectorType),
+  ],
+  [
+    ['vector', 'cross', 'product'],
+    createFunctionType(
+      'vectorcrossproduct',
+      vectorType,
+      vectorType,
+      vectorType,
+    ),
+  ],
+  [
+    ['vector', 'dot', 'product'],
+    createFunctionType('vectordotproduct', vectorType, vectorType, vectorType),
+  ],
+  [
+    ['vector', 'exclude'],
+    createFunctionType('vectorexclude', vectorType, vectorType, vectorType),
+  ],
+  [
+    ['velocity', 'at'],
+    createFunctionType('velocityat', vectorType, orbitableType, timeSpanType),
+  ],
+  [['vessel'], createFunctionType('vessel', vesselTargetType, stringType)],
+  [['volume'], createFunctionType('volume', volumeType, stringType)],
+  [['vxcl'], createFunctionType('vxcl', vectorType, vectorType, vectorType)],
+  [['warp', 'to'], createFunctionType('warpto', voidType, scalarType)],
+  [['waypoint'], createFunctionType('waypoint', waypointType, stringType)],
   // TODO Union Types
-  createFunctionType('writejson', volumeFileType, serializableStructureType, stringType),
+  [
+    ['write', 'json'],
+    createFunctionType(
+      'writejson',
+      volumeFileType,
+      serializableStructureType,
+      stringType,
+    ),
+  ],
 ];
 
 // createFunctionType('rename_file_deprecated', /* TODO */ scalarType),
@@ -206,119 +503,119 @@ const functionTypes = [
 // createFunctionType('delete_deprecated', /* TODO */ scalarType),
 // createFunctionType('run', /* TODO */ scalarType),
 
-const locks: [string, IArgumentType][] = [
-  ['throttle', scalarType],
-  ['steering', directionType],
-  ['wheelthrottle', scalarType],
-  ['wheelsteering', directionType],
-  ['sasMode', stringType],
-  ['navMode', stringType],
+const locks: [string[], IArgumentType][] = [
+  [['throttle'], scalarType],
+  [['steering'], directionType],
+  [['wheel', 'throttle'], scalarType],
+  [['wheel', 'steering'], directionType],
+  [['sas', 'mode'], stringType],
+  [['nav', 'mode'], stringType],
 ];
 
-const variables: [string, IArgumentType][] = [
-  ['abort', booleanType], // TODO
-  ['activeship', vesselTargetType],
-  ['addons', addonListType],
-  ['ag1', booleanType], // TODO
-  ['ag10', booleanType], // TODO
-  ['ag2', booleanType], // TODO
-  ['ag3', booleanType], // TODO
-  ['ag4', booleanType], // TODO
-  ['ag5', booleanType], // TODO
-  ['ag6', booleanType], // TODO
-  ['ag7', booleanType], // TODO
-  ['ag8', booleanType], // TODO
-  ['ag9', booleanType], // TODO
-  ['airspeed', scalarType],
-  ['allnodes', listType.toConcreteType(nodeType)],
-  ['alt', vesselAltType],
-  ['altitude', scalarType],
-  ['angularmomentum', vectorType],
-  ['angularvel', vectorType],
-  ['angularvelocity', vectorType],
-  ['apoapsis', scalarType],
-  ['archive', volumeType],
-  ['availablethrust', scalarType],
-  ['bays', booleanType], // TODO
-  ['black', rgbaType],
-  ['blue', rgbaType],
-  ['body', bodyTargetType],
-  ['brakes', booleanType], // TODO
-  ['chutes', booleanType],
-  ['chutessafe', booleanType],
-  ['config', configType], // TODO
-  ['constant', constantType],
-  ['controlconnection', controlConnectionType],
-  ['core', coreType],
-  ['cyan', rgbaType],
-  ['deploydrills', booleanType],
-  ['donothing', delegateType],
-  ['drills', booleanType],
-  ['encounter', orbitInfoType], // TODO Union
-  ['eta', vesselEtaType],
-  ['facing', directionType],
-  ['fuelcells', booleanType],
-  ['gear', booleanType], // TODO
-  ['geoposition', geoCoordinatesType],
-  ['gray', rgbaType],
-  ['green', rgbaType],
-  ['grey', rgbaType],
-  ['hasnode', booleanType],
-  ['hastarget', booleanType],
-  ['heading', scalarType],
-  ['homeconnection', homeConnectionType],
-  ['intakes', booleanType],
-  ['isru', booleanType],
-  ['kuniverse', kUniverseType],
-  ['ladders', booleanType],
-  ['latitude', scalarType],
-  ['legs', booleanType],
-  ['lights', booleanType], // TODO
-  ['longitude', scalarType],
-  ['magenta', rgbaType],
-  ['mapview', booleanType], // TODO
-  ['mass', scalarType],
-  ['maxthrust', scalarType],
-  ['missiontime', scalarType], // TODO
-  ['nextnode', nodeType],
-  ['north', directionType],
-  ['obt', orbitInfoType],
-  ['orbit', orbitInfoType],
-  ['panels', booleanType],
-  ['periapsis', scalarType],
-  ['prograde', directionType],
-  ['purple', rgbaType],
-  ['radiators', booleanType],
-  ['rcs', booleanType], // TODO
-  ['red', rgbaType],
-  ['retrograde', directionType],
-  ['sas', booleanType], // TODO
-  ['sensor', vesselSensorsType],
-  ['sessiontime', doubleType],
-  ['ship', vesselTargetType],
-  ['shipname', stringType],
-  ['solarprimevector', vectorType],
-  ['srfprograde', directionType],
-  ['srfretrograde', directionType],
-  ['stage', stageType],
-  ['status', stringType],
-  ['steeringmanager', steeringManagerType],
-  ['surfacespeed', scalarType],
-  ['target', structureType], // TODO Union
-  ['terminal', terminalStructType],
-  ['time', timeSpanType],
-  ['up', directionType],
-  ['velocity', orbitableType],
-  ['version', versionInfoType],
-  ['verticalspeed', scalarType],
-  ['volume:name', stringType],
-  ['warp', integarType],
-  ['warpmode', stringType],
-  ['white', rgbaType],
-  ['yellow', rgbaType],
+const variables: [string[], IArgumentType][] = [
+  [['abort'], booleanType], // TODO
+  [['active', 'ship'], vesselTargetType],
+  [['addons'], addonListType],
+  [['ag1'], booleanType], // TODO
+  [['ag10'], booleanType], // TODO
+  [['ag2'], booleanType], // TODO
+  [['ag3'], booleanType], // TODO
+  [['ag4'], booleanType], // TODO
+  [['ag5'], booleanType], // TODO
+  [['ag6'], booleanType], // TODO
+  [['ag7'], booleanType], // TODO
+  [['ag8'], booleanType], // TODO
+  [['ag9'], booleanType], // TODO
+  [['airspeed'], scalarType],
+  [['all', 'nodes'], listType.toConcreteType(nodeType)],
+  [['alt'], vesselAltType],
+  [['altitude'], scalarType],
+  [['angular', 'momentum'], vectorType],
+  [['angular', 'vel'], vectorType],
+  [['angular', 'velocity'], vectorType],
+  [['apoapsis'], scalarType],
+  [['archive'], volumeType],
+  [['available', 'thrust'], scalarType],
+  [['bays'], booleanType], // TODO
+  [['black'], rgbaType],
+  [['blue'], rgbaType],
+  [['body'], bodyTargetType],
+  [['brakes'], booleanType], // TODO
+  [['chutes'], booleanType],
+  [['chutes', 'safe'], booleanType],
+  [['config'], configType], // TODO
+  [['constant'], constantType],
+  [['control', 'connection'], controlConnectionType],
+  [['core'], coreType],
+  [['cyan'], rgbaType],
+  [['deploy', 'drills'], booleanType],
+  [['donothing'], delegateType],
+  [['drills'], booleanType],
+  [['encounter'], orbitInfoType], // TODO Union
+  [['eta'], vesselEtaType],
+  [['facing'], directionType],
+  [['fuel', 'cells'], booleanType],
+  [['gear'], booleanType], // TODO
+  [['geo', 'position'], geoCoordinatesType],
+  [['gray'], rgbaType],
+  [['green'], rgbaType],
+  [['grey'], rgbaType],
+  [['has', 'node'], booleanType],
+  [['has', 'target'], booleanType],
+  [['heading'], scalarType],
+  [['home', 'connection'], homeConnectionType],
+  [['intakes'], booleanType],
+  [['isru'], booleanType],
+  [['kuniverse'], kUniverseType],
+  [['ladders'], booleanType],
+  [['latitude'], scalarType],
+  [['legs'], booleanType],
+  [['lights'], booleanType], // TODO
+  [['longitude'], scalarType],
+  [['magenta'], rgbaType],
+  [['map', 'view'], booleanType], // TODO
+  [['mass'], scalarType],
+  [['max', 'thrust'], scalarType],
+  [['mission', 'time'], scalarType], // TODO
+  [['next', 'node'], nodeType],
+  [['north'], directionType],
+  [['obt'], orbitInfoType],
+  [['orbit'], orbitInfoType],
+  [['panels'], booleanType],
+  [['periapsis'], scalarType],
+  [['prograde'], directionType],
+  [['purple'], rgbaType],
+  [['radiators'], booleanType],
+  [['rcs'], booleanType], // TODO
+  [['red'], rgbaType],
+  [['retrograde'], directionType],
+  [['sas'], booleanType], // TODO
+  [['sensor'], vesselSensorsType],
+  [['session', 'time'], doubleType],
+  [['ship'], vesselTargetType],
+  [['ship', 'name'], stringType],
+  [['solar', 'prime', 'vector'], vectorType],
+  [['srf', 'prograde'], directionType],
+  [['srf', 'retrograde'], directionType],
+  [['stage'], stageType],
+  [['status'], stringType],
+  [['steering', 'manager'], steeringManagerType],
+  [['surface', 'speed'], scalarType],
+  [['target'], structureType], // TODO Union
+  [['terminal'], terminalStructType],
+  [['time'], timeSpanType],
+  [['up'], directionType],
+  [['velocity'], orbitableType],
+  [['version'], versionInfoType],
+  [['vertical', 'speed'], scalarType],
+  [['volume:name'], stringType],
+  [['warp'], integarType],
+  [['warpmode'], stringType],
+  [['white'], rgbaType],
+  [['yellow'], rgbaType],
 ];
 
-const bodies : [string, IArgumentType][] = [
+const bodies: [string, IArgumentType][] = [
   ['kerbol', bodyTargetType],
   ['moho', bodyTargetType],
   ['eve', bodyTargetType],
@@ -341,66 +638,77 @@ const bodies : [string, IArgumentType][] = [
 // obsoleted
 //  ['groundspeed', scalarType],
 
-const libraryBuilder = new SymbolTableBuilder(builtIn);
-const bodyBuilder = new SymbolTableBuilder(builtIn);
+export const standardLibraryBuilder = (caseKind: CaseKind): SymbolTable => {
+  const libraryBuilder = new SymbolTableBuilder(builtIn);
 
-for (const functionType of functionTypes) {
-  libraryBuilder.declareFunction(
-    ScopeType.global,
-    new Token(
-      TokenType.identifier,
-      functionType.name,
-      undefined,
-      new Marker(0, 0),
-      new Marker(0, 0),
-      builtIn,
-    ),
-    [],
-    false,
-    functionType);
-}
+  for (const [segements, functionType] of functionTypes) {
+    libraryBuilder.declareFunction(
+      ScopeType.global,
+      new Token(
+        TokenType.identifier,
+        toCase(caseKind, ...segements),
+        undefined,
+        new Marker(0, 0),
+        new Marker(0, 0),
+        builtIn,
+      ),
+      Array.isArray(functionType.params) ? functionType.params.length : -1,
+      0,
+      false,
+      functionType,
+    );
+  }
 
-for (const [identifier, type] of variables) {
-  libraryBuilder.declareVariable(
-    ScopeType.global,
-    new Token(
-      TokenType.identifier,
-      identifier,
-      undefined,
-      new Marker(0, 0),
-      new Marker(0, 0),
-      builtIn,
-    ),
-    type);
-}
+  for (const [segements, type] of variables) {
+    libraryBuilder.declareVariable(
+      ScopeType.global,
+      new Token(
+        TokenType.identifier,
+        toCase(caseKind, ...segements),
+        undefined,
+        new Marker(0, 0),
+        new Marker(0, 0),
+        builtIn,
+      ),
+      type,
+    );
+  }
 
-for (const [identifier, type] of bodies) {
-  bodyBuilder.declareVariable(
-    ScopeType.global,
-    new Token(
-      TokenType.identifier,
-      identifier,
-      undefined,
-      new Marker(0, 0),
-      new Marker(0, 0),
-      builtIn,
-    ),
-    type);
-}
+  for (const [segment, type] of locks) {
+    libraryBuilder.declareLock(
+      ScopeType.global,
+      new Token(
+        TokenType.identifier,
+        toCase(caseKind, ...segment),
+        undefined,
+        new Marker(0, 0),
+        new Marker(0, 0),
+        builtIn,
+      ),
+      type,
+    );
+  }
 
-for (const [identifier, type] of locks) {
-  libraryBuilder.declareLock(
-    ScopeType.global,
-    new Token(
-      TokenType.identifier,
-      identifier,
-      undefined,
-      new Marker(0, 0),
-      new Marker(0, 0),
-      builtIn,
-    ),
-    type);
-}
+  return libraryBuilder.build();
+};
 
-export const standardLibrary = libraryBuilder.build();
-export const bodyLibrary = bodyBuilder.build();
+export const bodyLibraryBuilder = (caseKind: CaseKind): SymbolTable => {
+  const bodyBuilder = new SymbolTableBuilder(builtIn);
+
+  for (const [identifier, type] of bodies) {
+    bodyBuilder.declareVariable(
+      ScopeType.global,
+      new Token(
+        TokenType.identifier,
+        toCase(caseKind, identifier),
+        undefined,
+        new Marker(0, 0),
+        new Marker(0, 0),
+        builtIn,
+      ),
+      type,
+    );
+  }
+
+  return bodyBuilder.build();
+};

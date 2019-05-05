@@ -178,7 +178,8 @@ export type GrammarNode = IExprClass
   | IGrammarOptional | IGrammarRepeat | IGrammarUnion;
 
 export type RunInstType = Inst.Run | Inst.RunPath | Inst.RunPathOnce;
-export type TreeNode = IScript | IInst | IExpr | ISuffixTerm | IParameter | IDeclScope
+export type ScriptNode = IInst | IExpr | ISuffixTerm;
+export type TreeNode = IScript | IInst | IExpr | ISuffixTerm | IParameter | IDeclScope;
 
 export interface IExprVisitable {
   accept<T>(visitor: IExprVisitor<T>): T;
@@ -190,7 +191,7 @@ export interface IExprVisitor<T> {
   visitUnary(expr: Expr.Unary): T;
   visitFactor(expr: Expr.Factor): T;
   visitSuffix(expr: Expr.Suffix): T;
-  visitAnonymousFunction(expr: Expr.AnonymousFunction): T;
+  visitLambda(expr: Expr.Lambda): T;
 }
 
 export interface IExprPassable {
@@ -203,7 +204,7 @@ export interface IExprPasser<T> {
   passUnary(expr: Expr.Unary): T;
   passFactor(expr: Expr.Factor): T;
   passSuffix(expr: Expr.Suffix): T;
-  passAnonymousFunction(expr: Expr.AnonymousFunction): T;
+  passAnonymousFunction(expr: Expr.Lambda): T;
 }
 
 export interface ISuffixTermVisitable {
@@ -269,7 +270,7 @@ export interface IExprClassVisitor<T> {
   visitUnary(exprClass: Constructor<Expr.Unary>): T;
   visitFactor(exprClass: Constructor<Expr.Factor>): T;
   visitSuffix(exprClass: Constructor<Expr.Suffix>): T;
-  visitAnonymousFunction(exprClass: Constructor<Expr.AnonymousFunction>): T;
+  visitAnonymousFunction(exprClass: Constructor<Expr.Lambda>): T;
 }
 
 export interface ISuffixTermVisitableClass {

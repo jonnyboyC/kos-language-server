@@ -10,7 +10,7 @@ export class KsLock {
   { }
 
   get cooked(): boolean {
-    switch (this.name.lexeme) {
+    switch (this.name.lookup) {
       case 'throttle':
       case 'steering':
       case 'wheelthrottle':

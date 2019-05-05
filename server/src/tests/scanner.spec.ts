@@ -1,4 +1,3 @@
-import * as expect from 'expect';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { walkDir } from '../utilities/fsUtils';

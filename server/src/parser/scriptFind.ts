@@ -7,14 +7,14 @@ import { Position } from 'vscode-languageserver';
 import { binarySearch, rangeContains } from '../utilities/positionUtils';
 import { empty } from '../utilities/typeGuards';
 import { Token } from '../entities/token';
-import { TraverseTree } from './traverseTree';
+import { TreeExecute } from './treeExecute';
 
 type Contexts = Constructor<Expr.Expr>
   | Constructor<Inst.Inst>
   | Constructor<SuffixTerm.SuffixTermBase>
   | Constructor<Decl.Parameter>;
 
-export class ScriptFind extends TraverseTree<Maybe<IFindResult>> {
+export class ScriptFind extends TreeExecute<Maybe<IFindResult>> {
 
   private pos: Position;
   private contexts: Contexts[];
@@ -28,6 +28,12 @@ export class ScriptFind extends TraverseTree<Maybe<IFindResult>> {
     this.contexts = [];
   }
 
+  /**
+   * Find a token within a tree node
+   * @param syntaxNode node to search in
+   * @param pos position to find
+   * @param contexts list of contexts to captures
+   */
   public find(syntaxNode: TreeNode, pos: Position, ...contexts: Contexts[]): Maybe<IFindResult> {
     this.pos = pos;
     this.contexts = contexts;
@@ -76,6 +82,26 @@ export class ScriptFind extends TraverseTree<Maybe<IFindResult>> {
       return findResult;
     }
 
+    // search an optional parameter
+    if (searchResult instanceof Decl.DefaultParam) {
+      if (rangeContains(searchResult.identifier, this.pos)) {
+        return {
+          token: searchResult.identifier,
+          node: this.isContext(node)
+            ? node
+            : this.isContext(searchResult)
+              ? searchResult
+              : undefined,
+        };
+      }
+      if (rangeContains(searchResult.value, this.pos)) {
+        return this.exprAction(searchResult.value);
+      }
+
+      return undefined;
+    }
+
+    // search a normal parameter
     if (searchResult instanceof Decl.Parameter) {
       return {
         node: this.isContext(node)
