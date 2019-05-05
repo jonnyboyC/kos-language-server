@@ -21,7 +21,9 @@ export const toCase = (caseKind: CaseKind, ...segments: string[]): string => {
  * @param segments string segments
  */
 const toPascalCase = (...segments: string[]): string => {
-  return segments.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join('');
+  return segments
+    .map(s => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase())
+    .join('');
 };
 
 /**
@@ -34,5 +36,8 @@ const toCamelCase = (...segments: string[]): string => {
   }
 
   const [first, ...rest] = segments;
-  return [first.toLowerCase(), ...rest.map(s => s.charAt(0).toUpperCase() + s.slice(1))].join('');
+  return [
+    first.toLowerCase(),
+    ...rest.map(s => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()),
+  ].join('');
 };

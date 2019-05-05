@@ -240,19 +240,19 @@ describe('position utils', () => {
 
 describe('to case', () => {
   test('case changes', () => {
-    expect('example').toBe(toCase(CaseKind.lowercase, 'example'));
-    expect('EXAMPLE').toBe(toCase(CaseKind.uppercase, 'example'));
-    expect('Example').toBe(toCase(CaseKind.pascalcase, 'example'));
-    expect('example').toBe(toCase(CaseKind.camelcase, 'example'));
+    expect(toCase(CaseKind.lowercase, 'example')).toBe('example');
+    expect(toCase(CaseKind.uppercase, 'example')).toBe('EXAMPLE');
+    expect(toCase(CaseKind.pascalcase, 'example')).toBe('Example');
+    expect(toCase(CaseKind.camelcase, 'example')).toBe('example');
 
-    expect('example').toBe(toCase(CaseKind.lowercase, 'EXAMPLE'));
-    expect('EXAMPLE').toBe(toCase(CaseKind.uppercase, 'EXAMPLE'));
-    expect('Example').toBe(toCase(CaseKind.pascalcase, 'EXAMPLE'));
-    expect('example').toBe(toCase(CaseKind.camelcase, 'EXAMPLE'));
+    expect(toCase(CaseKind.lowercase, 'EXAMPLE')).toBe('example');
+    expect(toCase(CaseKind.uppercase, 'EXAMPLE')).toBe('EXAMPLE');
+    expect(toCase(CaseKind.pascalcase, 'EXAMPLE')).toBe('Example');
+    expect(toCase(CaseKind.camelcase, 'EXAMPLE')).toBe('example');
 
-    expect('exampleexample').toBe(toCase(CaseKind.lowercase, 'EXAMPLE', 'example'));
-    expect('EXAMPLEEXAMPLE').toBe(toCase(CaseKind.uppercase, 'EXAMPLE', 'example'));
-    expect('ExampleExample').toBe(toCase(CaseKind.pascalcase, 'EXAMPLE', 'example'));
-    expect('exampleExample').toBe(toCase(CaseKind.camelcase, 'EXAMPLE', 'example'));
-  })
-})
+    expect(toCase(CaseKind.lowercase, 'EXAMPLE', 'example')).toBe('exampleexample');
+    expect(toCase(CaseKind.uppercase, 'EXAMPLE', 'example')).toBe('EXAMPLEEXAMPLE');
+    expect(toCase(CaseKind.pascalcase, 'EXAMPLE', 'example')).toBe('ExampleExample');
+    expect(toCase(CaseKind.camelcase, 'EXAMPLE', 'example')).toBe('exampleExample');
+  });
+});
