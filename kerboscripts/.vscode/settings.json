@@ -7,5 +7,5 @@
     "kos-vscode.lspPort": 7000,
     "lspInspector.port": 7000,
     "kos-vscode.telnetPort": 5415,
-    "kos-vscode.completionCase": "uppercase"
+    "kos-vscode.completionCase": "pascalcase"
 }

@@ -1,4 +1,5 @@
 import { CompletionItemKind, CompletionItem } from 'vscode-languageserver';
+import { toCase } from './stringUtils';
 
 export const builtIn = 'builtIn';
 export const iterator = 'iterator';
@@ -136,27 +137,7 @@ export const keywordCompletions = (caseKind: CaseKind): CompletionItem[] => {
   const casedKeywords: string[] = [];
 
   for (const segments of keywordSegments) {
-    switch (caseKind) {
-      case CaseKind.lowercase:
-        casedKeywords.push(segments.join('').toLowerCase());
-        break;
-      case CaseKind.uppercase:
-        casedKeywords.push(segments.join('').toUpperCase());
-        break;
-      case CaseKind.pascalcase:
-        casedKeywords.push(segments.map(s => s[0].toUpperCase() + s.slice(1)).join(''));
-        break;
-      case CaseKind.camelcase:
-        if (segments.length === 1) {
-          casedKeywords.push(segments[0]);
-        } else {
-          const [first, ...rest] = segments;
-          const casedRest = rest.map(s => s[0].toUpperCase() + s.slice(1));
-
-          casedKeywords.push([first, ...casedRest].join(''));
-        }
-        break;
-    }
+    casedKeywords.push(toCase(caseKind, ...segments));
   }
 
   return casedKeywords.map(keyword => ({

@@ -120,6 +120,7 @@ const server: IServer = {
   keywords: keywordCompletions(CaseKind.camelcase),
   clientConfig: defaultClientConfiguration,
   analyzer: new Analyzer(
+    CaseKind.camelcase,
     new Logger(connection.console, LogLevel.info),
     connection.tracer,
   ),
