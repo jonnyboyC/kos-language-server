@@ -18,9 +18,10 @@ Currently the vscode client 0.3.4 implements the follow features
 - go to definition
 - basic auto complete
 - file symbol lookup
-- identify variables that don't exist
-- identify unused variables
-- identify variables that shadow (hide) an existing variable
+- identify symbols that don't exist
+- identify unused symbols
+- identify symbols that shadow (hide) an existing variable
+- identify symbols that may not exist at runtime
 - on hover type definitions (experimental)
 
 
@@ -34,12 +35,14 @@ All commands can be launched with `ctrl+shift+p`
 ## Settings
 These settings are currently included with the tool
 - `kos-vscode.kerbalSpaceProgramPath` Path to kerbal space program
+- `kos-vscode.completionCase` Indicate the perferred completion case for built in symbols
 - `kos-vscode.telnetHost` Host name of the telnet server
 - `kos-vscode.telnetPort` Host port of the telnet server
 - `kos-vscode.lspPort` Port to send lsp message to for the [LSP Inspector](https://marketplace.visualstudio.com/items?itemName=octref.lsp-inspector-webview)
 - `kos-vscode.trace.server`
   - `verbosity` Detail level of the logs
   - `format` Log format
+  - `level` Message level
 
 ## Influence
 This project is heavily inspired by the [crafting interpreters](http://craftinginterpreters.com/) series. Definitely check it out if your interested in creating your own language, or language tooling.

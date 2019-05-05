@@ -1,6 +1,31 @@
 # [0.4.0] (2019-5-4)
 
 ## Features
+- **New Settings** The following settings have been added
+    - `kos-vscode.completionCase`: indicate completion casing more below.
+    - `kos-vscode.trace.server.level`: this changes the level the the language server reports messages. This is primarily for extension development.
+
+- **Code Completion Casing** The release has several improvements to code completion. The language server will not preserve the original casing of the author. For example previously is a variable was declared as `set Example to "example".` the server would provide completion as `example` instead of `Example` this has now been rectified. In addition keywords, and symbols from kos itself can now set a preferred casing with the new setting `kos-vscode.completionCase`.
+
+    - `kos-vscode.completionCase` has the following options:
+        - "lowercase" example: `examplevariable`
+        - "uppercase" example: `EXAMPLEVARIABLE`
+        - "camelcase" example: `exampleVariable`
+        - "pascalcase" example: `ExampleVariable`
+
+## Bug Fixes
+- **Symbol may not exist in triggers / functions**: previously the follow would report a "symbol may not exist error".
+
+      function example {
+        print(b).
+      }
+
+      set b to 10.
+      example().
+
+  this now indicates via a hint that `b` may not be defined during the script run. Usages and go to defintion should both now work in this situation.
+- **true / false syntax**: previously the syntax highlighting would only highlight `true` or `false` if all lowercase. Now highlighting works for any casing of `TRUE` or `FALSE`. 
+
 
 ## Bug Fixes
 
