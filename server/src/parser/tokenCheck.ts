@@ -4,14 +4,14 @@ import * as Inst from './inst';
 import * as Expr from './expr';
 import * as SuffixTerm from './suffixTerm';
 import { Token } from '../entities/token';
-import { TraverseTree } from './traverseTree';
+import { TreeExecute } from './treeExecute';
 import { flatten } from '../utilities/arrayUtils';
 import { IToken } from '../entities/types';
 
 /**
  * Check all tokens in a given tree node
  */
-export class TokenCheck extends TraverseTree<IToken[]> {
+export class TokenCheck extends TreeExecute<IToken[]> {
 
   /**
    * Construct token check

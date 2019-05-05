@@ -344,7 +344,7 @@ export class Param extends Decl {
 
   public get end(): Position {
     return this.defaultParameters.length > 0
-      ? this.defaultParameters[this.defaultParameters.length - 1].identifier.end
+      ? this.defaultParameters[this.defaultParameters.length - 1].value.end
       : this.parameters[this.parameters.length - 1].end;
   }
 

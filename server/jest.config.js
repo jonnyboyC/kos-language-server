@@ -10,6 +10,7 @@ const config = {
     "html",
     "cobertura",
   ],
+  rootDir: "src",
   globals: {
     'ts-jest': {
       suiteName: "jest tests",

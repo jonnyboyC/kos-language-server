@@ -1,4 +1,3 @@
-import * as expect from 'expect';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { walkDir } from '../utilities/fsUtils';
@@ -9,7 +8,7 @@ import { Scanner } from '../scanner/scanner';
 const testDir = join(__dirname, '../../../kerboscripts/parser_valid/');
 
 test('scan all', () => {
-  walkDir(testDir, (filePath) => {
+  walkDir(testDir, filePath => {
     const kosFile = readFileSync(filePath, 'utf8');
 
     const scanner = new Scanner(kosFile);
@@ -130,7 +129,7 @@ const sequence = [
   TokenType.period,
   TokenType.reboot,
   TokenType.period,
-]
+];
 
 test('token sequence', () => {
   const kosFile = readFileSync(scannerPath, 'utf8');

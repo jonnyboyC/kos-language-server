@@ -1,5 +1,6 @@
 import { IKosCommand } from './types';
 import { workspace, OutputChannel, window } from 'vscode';
+// tslint:disable-next-line: import-name
 import WebSocket from 'ws';
 
 /**
@@ -112,7 +113,7 @@ class KosOutputChannel implements OutputChannel {
    * @param port port number
    */
   public routeSocket(port: number) {
-    this.socket = new WebSocket(`ws://localhost:${port}`)
+    this.socket = new WebSocket(`ws://localhost:${port}`);
     this.output = OutputChannelKind.websocket;
   }
 
@@ -137,7 +138,6 @@ class KosOutputChannel implements OutputChannel {
 }
 
 export const channelRouter = new KosOutputChannel('kOS (Kerboscript)')
-
 
 export const inspectorChannelProvider: IKosCommand = {
   command: 'kos.startLspLog',

@@ -280,9 +280,9 @@ export class Scanner {
       .toLowerCase();
     const keyword = keywords.get(text);
     if (!empty(keyword)) {
-      return this.generateToken(keyword.type, keyword.literal, true);
+      return this.generateToken(keyword.type, keyword.literal);
     }
-    return this.generateToken(TokenType.identifier, undefined, true);
+    return this.generateToken(TokenType.identifier, undefined);
   }
 
   /**
@@ -300,7 +300,7 @@ export class Scanner {
     const value = this.source
       .substr(this.start, this.current - this.start)
       .toLowerCase();
-    return this.generateToken(TokenType.fileIdentifier, value, true);
+    return this.generateToken(TokenType.fileIdentifier, value);
   }
 
   /**
@@ -433,11 +433,8 @@ export class Scanner {
   private generateToken(
     type: TokenType,
     literal?: any,
-    toLower?: boolean,
   ): TokenResult {
-    const text = toLower
-      ? this.source.substr(this.start, this.current - this.start).toLowerCase()
-      : this.source.substr(this.start, this.current - this.start);
+    const text = this.source.substr(this.start, this.current - this.start);
 
     const token = new Token(
       type,

@@ -1,6 +1,6 @@
 import {
   IExprVisitor, IInstVisitor, IInst,
-  IExpr, TreeNode,
+  IExpr, ScriptNode,
   ISuffixTermVisitor,
   ISuffixTerm,
 } from './types';
@@ -9,14 +9,14 @@ import * as Inst from './inst';
 import * as Expr from './expr';
 import * as SuffixTerm from './suffixTerm';
 
-export abstract class TraverseTree<T> implements
+export abstract class TreeExecute<T> implements
   IExprVisitor<T>,
   IInstVisitor<T>,
   ISuffixTermVisitor<T> {
 
   constructor() { }
 
-  protected abstract nodeAction(node: TreeNode): T;
+  protected abstract nodeAction(node: ScriptNode): T;
 
   // find an instruction
   protected instAction(inst: IInst): T {
@@ -189,7 +189,7 @@ export abstract class TraverseTree<T> implements
   public visitGrouping(suffixTerm: SuffixTerm.Grouping): T {
     return this.nodeAction(suffixTerm);
   }
-  public visitAnonymousFunction(expr: Expr.AnonymousFunction): T {
+  public visitLambda(expr: Expr.Lambda): T {
     return this.nodeAction(expr);
   }
 }

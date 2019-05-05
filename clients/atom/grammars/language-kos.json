@@ -1066,7 +1066,7 @@
             "begin": "(^[ \\t]+)?(//)",
             "beginCaptures": {
                 "1": {
-                    "name": "punctuation.whitespace.comment.leading.js"
+                    "name": "punctuation.whitespace.comment.leading.kos"
                 },
                 "2": {
                     "name": "comment.line.double-slash.kos"
@@ -1099,11 +1099,11 @@
                 },
                 {
                     "name": "constant.language.true.kos",
-                    "match": "\\btrue(?![_[:alnum:]\\:])"
+                    "match": "(?i)\\btrue(?![_[:alnum:]\\:])"
                 },
                 {
                     "name": "constant.language.false.kos",
-                    "match": "\\bfalse(?![_[:alnum:]\\:])"
+                    "match": "(?i)\\bfalse(?![_[:alnum:]\\:])"
                 }
             ]
         },

@@ -2,6 +2,6 @@
   "extends": "tslint-config-airbnb",
   "rules": {
     "arrow-parens": false,
-    "ter-arrow-parens": false,
+    "ter-arrow-parens": false
   }
 }
