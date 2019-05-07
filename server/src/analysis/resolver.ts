@@ -273,17 +273,17 @@ export class Resolver
     const scopeType = ScopeType.local;
 
     // need to check if default paraemter can really be abbitrary expr
-    const parameterErrors = decl.parameters.map(parameter =>
+    const parameterErrors = decl.requiredParameters.map(parameter =>
       this.tableBuilder.declareParameter(
         scopeType,
         parameter.identifier,
         false,
       ),
     );
-    const defaultParameterErrors = decl.defaultParameters.map(parameter =>
+    const defaultParameterErrors = decl.optionalParameters.map(parameter =>
       this.tableBuilder.declareParameter(scopeType, parameter.identifier, true),
     );
-    const defaultUseErrors = decl.defaultParameters.map(parameter =>
+    const defaultUseErrors = decl.optionalParameters.map(parameter =>
       this.useExprLocals(parameter.value),
     );
 

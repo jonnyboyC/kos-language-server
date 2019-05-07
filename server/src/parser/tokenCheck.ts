@@ -49,11 +49,11 @@ export class TokenCheck extends TreeExecute<IToken[]> {
         tokens.push(this.instAction(childNode));
       } else if (childNode instanceof Decl.Param) {
         const params = [];
-        for (const param of childNode.parameters) {
+        for (const param of childNode.requiredParameters) {
           params.push(param.identifier);
         }
 
-        for (const param of childNode.defaultParameters) {
+        for (const param of childNode.optionalParameters) {
           params.push(param.identifier);
           params.push(param.toIs);
           params.push(...this.exprAction(param.value));
