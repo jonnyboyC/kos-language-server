@@ -18,6 +18,8 @@ import { Resolver } from '../analysis/resolver';
 import { FunctionScan } from '../analysis/functionScan';
 import * as Decl from '../parser/declare';
 import { standardLibraryBuilder } from '../analysis/standardLibrary';
+import { LocalResolver } from '../analysis/localResolver';
+import * as Inst from '../parser/inst';
 
 const fakeUri = 'C:\\fake.ks';
 
@@ -598,6 +600,57 @@ describe('Function Scan', () => {
         expect(scanResult.requiredParameters).toBe(3);
         expect(scanResult.optionalParameters).toBe(1);
       }
+    }
+  });
+});
+
+describe('Local Resolver', () => {
+  test('local resolver test 1', () => {
+    const source = 'set a to Thing:other[used1]:finally(used2, used3).';
+    const result = parseSource(source);
+    noParseErrors(result);
+
+    const { script } = result.parse;
+    const inst = script.insts[0];
+
+    const resolver = new LocalResolver();
+    if (inst instanceof Inst.Set) {
+      const resolverResult = resolver.resolveExpr(inst.value);
+      expect(resolverResult.length).toBe(4);
+      const [thing, used1, used2, used3] = resolverResult;
+
+      expect(thing.token.lexeme).toBe('Thing');
+      expect(used1.token.lexeme).toBe('used1');
+      expect(used2.token.lexeme).toBe('used2');
+      expect(used3.token.lexeme).toBe('used3');
+
+    } else {
+      expect(true).toBeFalsy();
+    }
+  });
+
+  test('local resolver test 2', () => {
+    const source = 'set a to (first:suffix(nest:call(1), array["yo"]) ^ exponent) < example#3.';
+    const result = parseSource(source);
+    noParseErrors(result);
+
+    const { script } = result.parse;
+    const inst = script.insts[0];
+
+    const resolver = new LocalResolver();
+    if (inst instanceof Inst.Set) {
+      const resolverResult = resolver.resolveExpr(inst.value);
+      expect(resolverResult.length).toBe(5);
+      const [first, nest, array, exponent, example] = resolverResult;
+
+      expect(first.token.lexeme).toBe('first');
+      expect(nest.token.lexeme).toBe('nest');
+      expect(array.token.lexeme).toBe('array');
+      expect(exponent.token.lexeme).toBe('exponent');
+      expect(example.token.lexeme).toBe('example');
+
+    } else {
+      expect(true).toBeFalsy();
     }
   });
 });

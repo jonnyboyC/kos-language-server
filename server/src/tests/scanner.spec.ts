@@ -7,16 +7,18 @@ import { Scanner } from '../scanner/scanner';
 
 const testDir = join(__dirname, '../../../kerboscripts/parser_valid/');
 
-test('scan all', () => {
-  walkDir(testDir, filePath => {
-    const kosFile = readFileSync(filePath, 'utf8');
+describe('Scan all files', () => {
+  test('scan all', () => {
+    walkDir(testDir, filePath => {
+      const kosFile = readFileSync(filePath, 'utf8');
 
-    const scanner = new Scanner(kosFile);
-    const { tokens, scanErrors } = scanner.scanTokens();
-    const errorResult = scanErrors.map(error => ({ filePath, ...error }));
+      const scanner = new Scanner(kosFile);
+      const { tokens, scanErrors } = scanner.scanTokens();
+      const errorResult = scanErrors.map(error => ({ filePath, ...error }));
 
-    expect(tokens.length > 0).toBe(true);
-    expect(errorResult.length === 0).toBe(true);
+      expect(tokens.length > 0).toBe(true);
+      expect(errorResult.length === 0).toBe(true);
+    });
   });
 });
 
@@ -131,15 +133,17 @@ const sequence = [
   TokenType.period,
 ];
 
-test('token sequence', () => {
-  const kosFile = readFileSync(scannerPath, 'utf8');
+describe('Scan test file', () => {
+  test('token sequence', () => {
+    const kosFile = readFileSync(scannerPath, 'utf8');
 
-  const scanner = new Scanner(kosFile);
-  const { tokens, scanErrors } = scanner.scanTokens();
-  expect(scanErrors.length === 0).toBe(true);
+    const scanner = new Scanner(kosFile);
+    const { tokens, scanErrors } = scanner.scanTokens();
+    expect(scanErrors.length === 0).toBe(true);
 
-  for (const [type, token] of zip(sequence, tokens)) {
-    // console.log(`${TokenType[token.type]} vs ${TokenType[type]}`);
-    expect(token.type).toBe(type);
-  }
+    for (const [type, token] of zip(sequence, tokens)) {
+      // console.log(`${TokenType[token.type]} vs ${TokenType[type]}`);
+      expect(token.type).toBe(type);
+    }
+  });
 });
