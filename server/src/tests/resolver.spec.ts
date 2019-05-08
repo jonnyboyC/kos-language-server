@@ -20,6 +20,7 @@ import * as Decl from '../parser/declare';
 import { standardLibraryBuilder } from '../analysis/standardLibrary';
 import { LocalResolver } from '../analysis/localResolver';
 import * as Inst from '../parser/inst';
+import { SetResolver } from '../analysis/setResolver';
 
 const fakeUri = 'C:\\fake.ks';
 
@@ -648,6 +649,38 @@ describe('Local Resolver', () => {
       expect(array.token.lexeme).toBe('array');
       expect(exponent.token.lexeme).toBe('exponent');
       expect(example.token.lexeme).toBe('example');
+
+    } else {
+      expect(true).toBeFalsy();
+    }
+  });
+});
+
+describe('Set Resolver', () => {
+  test('set resolver test 1', () => {
+    const source = 'set Thing(fart):other[used1]:finally(used2, used3):planet to 10.';
+    const result = parseSource(source);
+    noParseErrors(result);
+
+    const { script } = result.parse;
+    const inst = script.insts[0];
+
+    const local = new LocalResolver();
+    const resolver = new SetResolver(local);
+    if (inst instanceof Inst.Set) {
+      const { used, set } = resolver.resolveExpr(inst.suffix);
+      expect(set).not.toBeUndefined();
+      if (!empty(set)) {
+        expect(set.lexeme).toBe('Thing');
+      }
+
+      expect(used.length).toBe(4);
+
+      const [fart, used1, used2, used3] = used;
+      expect(fart.token.lexeme).toBe('fart');
+      expect(used1.token.lexeme).toBe('used1');
+      expect(used2.token.lexeme).toBe('used2');
+      expect(used3.token.lexeme).toBe('used3');
 
     } else {
       expect(true).toBeFalsy();
