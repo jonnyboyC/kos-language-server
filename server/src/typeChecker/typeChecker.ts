@@ -284,6 +284,8 @@ export class TypeChecker
       const { symbol } = tracker.declared;
       if (symbol.tag === KsSymbolKind.function) {
         const paramsTypes: IArgumentType[] = [];
+
+        // TODO eventually we should tag ks parameter to the function type
         for (let i = 0; i < symbol.requiredParameters; i += 1) {
           paramsTypes.push(structureType);
         }
@@ -299,7 +301,11 @@ export class TypeChecker
           ...paramsTypes,
         );
 
-        this.symbolTable.declareType(symbol.name, funcType, KsSymbolKind.function);
+        this.symbolTable.declareType(
+          symbol.name,
+          funcType,
+          KsSymbolKind.function,
+        );
       }
     }
 
@@ -339,42 +345,61 @@ export class TypeChecker
 
   // ----------------------------- Instructions -----------------------------------------
 
-  // visit invalid inst
+  /**
+   * Vist an invalid instruction
+   * @param _ invalid instruction
+   */
   public visitInstInvalid(_: Inst.Invalid): Diagnostics {
     return [];
   }
 
-  // visit block
+  /**
+   * Vist a block instruction
+   * @param inst instruction block
+   */
   public visitBlock(inst: Inst.Block): Diagnostics {
     return accumulateErrors(inst.insts, this.checkInst.bind(this));
   }
 
-  // visit expression instruction
+  /**
+   * Visit an instruction expression
+   * @param inst instruction expression
+   */
   public visitExpr(inst: Inst.ExprInst): Diagnostics {
     const result = this.checkExpr(inst.suffix);
     return result.errors;
   }
 
-  // visit on off
+  /**
+   * Visit an on off instruction
+   * @param inst on / off instruction
+   */
   public visitOnOff(inst: Inst.OnOff): Diagnostics {
     const result = this.checkExpr(inst.suffix);
     return result.errors;
   }
 
-  // visit command
+  /**
+   * Visit a command instruction
+   * @param _ command instruction
+   */
   public visitCommand(_: Inst.Command): Diagnostics {
     return [];
   }
 
-  // visit command expression
+  /**
+   * Visit a command expression instruction
+   * @param inst command expression instruction
+   */
   public visitCommandExpr(inst: Inst.CommandExpr): Diagnostics {
     const result = this.checkExpr(inst.expr);
     const errors: Diagnostics = result.errors;
 
     switch (inst.command.type) {
+      // commands for adding and removing nodes
       case TokenType.add:
       case TokenType.remove:
-        // expression must be a node type
+        // expression must be a node type for node commands
         if (!coerce(result.type, nodeType)) {
           const command =
             inst.command.type === TokenType.add ? 'add' : 'remove';
@@ -389,6 +414,7 @@ export class TypeChecker
           );
         }
         break;
+      // command to edit a file
       case TokenType.edit:
         if (!coerce(result.type, nodeType)) {
           errors.push(
@@ -407,23 +433,33 @@ export class TypeChecker
     return result.errors;
   }
 
-  // visit unset
+  /**
+   * Visit an unset instruction
+   * @param _ unset instruction
+   */
   public visitUnset(_: Inst.Unset): Diagnostics {
     return [];
   }
 
-  // visit unlock
+  /**
+   * Visit an unlock instruction
+   * @param _ unlock instruction
+   */
   public visitUnlock(_: Inst.Unlock): Diagnostics {
     return [];
   }
 
   // visit set
+  /**
+   * Visit set instruction
+   * @param inst set instruction
+   */
   public visitSet(inst: Inst.Set): Diagnostics {
     const exprResult = this.checkExpr(inst.value);
     const errors = exprResult.errors;
 
-    // check if set ends in call
-    if (inst.suffix.endsInCall()) {
+    // check if suffix is settable
+    if (!inst.suffix.isSettable()) {
       return errors.concat(
         createDiagnostic(
           inst.suffix,
@@ -455,25 +491,26 @@ export class TypeChecker
     }
 
     if (atom instanceof SuffixTerm.Identifier) {
-      const tracker = this.symbolTable.scopedVariableTracker(
-        atom.start,
-        atom.token.lookup,
-      );
+      const { tracker } = atom.token;
 
-      if (
-        this.script.lazyGlobal &&
-        !empty(tracker) &&
-        rangeEqual(tracker.declared.range, atom)
-      ) {
-        this.symbolTable.declareType(
-          atom.token,
-          exprResult.type,
-          KsSymbolKind.variable,
-          KsSymbolKind.parameter,
-          KsSymbolKind.lock,
-        );
-      } else {
-        this.symbolTable.setType(atom.token, exprResult.type);
+      if (!empty(tracker)) {
+
+        // if lazy global declare type
+        if (this.script.lazyGlobal) {
+          this.symbolTable.declareType(
+            atom.token,
+            exprResult.type,
+            KsSymbolKind.variable,
+            KsSymbolKind.parameter,
+
+            // need to double check this one
+            KsSymbolKind.lock,
+          );
+
+        // else set type
+        } else {
+          this.symbolTable.setType(atom.token, exprResult.type);
+        }
       }
     } else {
       errors.push(

@@ -391,7 +391,7 @@ export class Resolver
       ];
     }
 
-    const setError = this.setVariable(set);
+    const setError = this.setBinding(set);
 
     const useValueErrors = this.useExprLocals(inst.value);
     const useInternalErrors = this.useTokens(used);
@@ -732,7 +732,7 @@ export class Resolver
       return [];
     }
 
-    return this.setVariable(inst.target);
+    return this.setBinding(inst.target);
   }
 
   /**
@@ -755,7 +755,7 @@ export class Resolver
    * Logic for settings a variable. used by set inst and list command
    * @param set token to set
    */
-  private setVariable(set: IToken): Diagnostic[] {
+  private setBinding(set: IToken): Diagnostic[] {
     // if variable isn't defined either report error or define
     let defineError: Maybe<Diagnostic> = undefined;
 
