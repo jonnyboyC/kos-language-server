@@ -360,7 +360,7 @@ describe('Resolver errors', () => {
   ];
 
   // test basic identifier
-  test('basic list test', () => {
+  test('list command', () => {
     const results = resolveSource(listSource);
 
     expect(0).toBe(results.scan.scanErrors.length);
@@ -391,7 +391,7 @@ describe('Resolver errors', () => {
   ];
 
   // test basic identifier
-  test('basic defined test', () => {
+  test('defined command', () => {
     const defineSource = readFileSync(definedPath, 'utf8');
     const results = resolveSource(defineSource);
 
@@ -420,7 +420,7 @@ describe('Resolver errors', () => {
   ];
 
   // test basic identifier
-  test('basic used test', () => {
+  test('used symbols', () => {
     const usedSource = readFileSync(usedPath, 'utf8');
     const results = resolveSource(usedSource);
 
@@ -445,7 +445,7 @@ describe('Resolver errors', () => {
   ];
 
   // test shadowing
-  test('basic shadowed test', () => {
+  test('shadowed symbols', () => {
     const shadowedSource = readFileSync(shadowPath, 'utf8');
     const results = resolveSource(shadowedSource);
 
@@ -474,7 +474,7 @@ describe('Resolver errors', () => {
   ];
 
   // test deferred resolving
-  test('basic deferred test', () => {
+  test('deferred nodes', () => {
     const deferredSource = readFileSync(deferredPath, 'utf8');
     const results = resolveSource(deferredSource);
 
@@ -484,6 +484,57 @@ describe('Resolver errors', () => {
 
     for (const [error, location] of zip(results.resolveDiagnostics, deferredLocations)) {
       expect(error.severity).toBe(DiagnosticSeverity.Hint);
+      expect(location.start).toEqual(error.range.start);
+      expect(location.end).toEqual(error.range.end);
+    }
+  });
+
+  const breakPath = join(
+    __dirname,
+    '../../../kerboscripts/parser_valid/unitTests/breaktest.ks',
+  );
+
+  const breakLocations: Range[] = [
+    { start: new Marker(9, 0), end: new Marker(9, 5) },
+    { start: new Marker(21, 0), end: new Marker(21, 5) },
+  ];
+
+  // invalid break locations
+  test('break locations', () => {
+    const deferredSource = readFileSync(breakPath, 'utf8');
+    const results = resolveSource(deferredSource);
+
+    expect(results.scan.scanErrors.length).toBe(0);
+    expect(results.parse.parseErrors.length).toBe(0);
+    expect(results.resolveDiagnostics.length > 0).toBe(true);
+
+    for (const [error, location] of zip(results.resolveDiagnostics, breakLocations)) {
+      expect(error.severity).toBe(DiagnosticSeverity.Error);
+      expect(location.start).toEqual(error.range.start);
+      expect(location.end).toEqual(error.range.end);
+    }
+  });
+
+  const returnPath = join(
+    __dirname,
+    '../../../kerboscripts/parser_valid/unitTests/returntest.ks',
+  );
+
+  const returnLocations: Range[] = [
+    { start: new Marker(9, 0), end: new Marker(9, 6) },
+  ];
+
+  // invalid return locations
+  test('return locations', () => {
+    const deferredSource = readFileSync(returnPath, 'utf8');
+    const results = resolveSource(deferredSource);
+
+    expect(results.scan.scanErrors.length).toBe(0);
+    expect(results.parse.parseErrors.length).toBe(0);
+    expect(results.resolveDiagnostics.length > 0).toBe(true);
+
+    for (const [error, location] of zip(results.resolveDiagnostics, returnLocations)) {
+      expect(error.severity).toBe(DiagnosticSeverity.Error);
       expect(location.start).toEqual(error.range.start);
       expect(location.end).toEqual(error.range.end);
     }

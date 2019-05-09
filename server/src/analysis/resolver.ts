@@ -20,7 +20,7 @@ import { TokenType } from '../entities/tokentypes';
 import { Script } from '../entities/script';
 import { mockLogger, mockTracer } from '../utilities/logger';
 import { SymbolTableBuilder } from './symbolTableBuilder';
-import { ILocalResult, IScopePath } from './types';
+import { ILocalResult, IDeferred } from './types';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
 import { createDiagnostic } from '../utilities/diagnosticsUtils';
 import { sep } from 'path';
@@ -29,27 +29,94 @@ import { IToken } from '../entities/types';
 import Denque from 'denque';
 
 type Diagnostics = Diagnostic[];
-interface IDeferred {
-  path: IScopePath;
-  node: IInst | IExpr;
-}
 
 export class Resolver
   implements
     IInstVisitor<Diagnostics>,
     IExprVisitor<Diagnostics>,
     ISuffixTermVisitor<Diagnostics> {
+  /**
+   * Script the resolver executes on
+   */
   private readonly script: Script;
+
+  /**
+   * Symbol table builder
+   */
   private readonly tableBuilder: SymbolTableBuilder;
+
+  /**
+   * Logger to log messages
+   */
   private readonly logger: ILogger;
+
+  /**
+   * Tracer to log traces
+   */
   private readonly tracer: ITracer;
+
+  /**
+   * Local resolver to find used local symbols in an expression
+   */
   private readonly localResolver: LocalResolver;
+
+  /**
+   * Set resolver to find set symbols and used symbols
+   */
   private readonly setResolver: SetResolver;
+
+  /**
+   * Queue of deferred nodes to execute
+   */
   private readonly deferred: Denque<IDeferred>;
+
+  /**
+   * Is the script using the lazy global directive
+   */
   private lazyGlobal: boolean;
+
+  /**
+   * Is this the first instruction of the script
+   */
   private firstInst: boolean;
+
+  /**
+   * Should resolution be deferred
+   */
   private deferResolve: boolean;
 
+  /**
+   * How many functions deep is the current location
+   */
+  private functionDepth: number;
+
+  /**
+   * How many loops deep is the current location
+   */
+  private loopDepth: number;
+
+  /**
+   * Cached bound method for resolving instruction
+   */
+  private readonly resolveInstBind = this.resolveInst.bind(this);
+
+  /**
+   * Cached bound method for using locals in an expreesion
+   */
+  private readonly useExprLocalsBind = this.useExprLocals.bind(this);
+
+  /**
+   * Cached bound method for resolving an expression
+   */
+  private readonly resolveExprBind = this.resolveExpr.bind(this);
+
+  /**
+   * Resolver constructor
+   * @param script script to resolve
+   * @param symbolTableBuilder symbol table builder
+   * @param logger logger
+   * @param tracer tracer
+   */
   constructor(
     script: IScript,
     symbolTableBuilder: SymbolTableBuilder,
@@ -64,11 +131,16 @@ export class Resolver
     this.lazyGlobal = true;
     this.firstInst = true;
     this.deferResolve = true;
+    this.loopDepth = 0;
+    this.functionDepth = 0;
+
     this.logger = logger;
     this.tracer = tracer;
   }
 
-  // resolve the sequence of instructions
+  /**
+   * Resolve a script
+   */
   public resolve(): Diagnostics {
     try {
       const splits = this.script.uri.split(sep);
@@ -96,11 +168,13 @@ export class Resolver
       let allErrors = firstError.concat(resolveErrors);
 
       // process deferred queue
-      while (current = this.deferred.shift()) {
+      while ((current = this.deferred.shift())) {
         this.deferResolve = false;
 
-        // set scope path
+        // set scope path and current depths
         this.tableBuilder.setPath(current.path);
+        this.functionDepth = current.functionDepth;
+        this.loopDepth = current.loopDepth;
 
         // resolve deferred node
         switch (current.node.tag) {
@@ -132,7 +206,7 @@ export class Resolver
    * @param insts instructions
    */
   private resolveInsts(insts: IInst[]): Diagnostics {
-    return accumulateErrors(insts, this.resolveInst.bind(this));
+    return accumulateErrors(insts, this.resolveInstBind);
   }
 
   /**
@@ -246,7 +320,7 @@ export class Resolver
       return this.deferNode(decl, decl.block);
     }
 
-    return this.resolveInst(decl.block);
+    return this.trackFunction(() => this.resolveInst(decl.block));
   }
 
   /**
@@ -450,10 +524,12 @@ export class Resolver
    * @param inst the syntax node
    */
   public visitUntil(inst: Inst.Until): Diagnostics {
-    return this.useExprLocals(inst.condition).concat(
+    const conditionErrors = this.useExprLocals(inst.condition).concat(
       this.resolveExpr(inst.condition),
-      this.resolveInst(inst.inst),
     );
+
+    const bodyErrors = this.trackLoop(() => this.resolveInstBind(inst.inst));
+    return conditionErrors.concat(bodyErrors);
   }
 
   /**
@@ -461,18 +537,20 @@ export class Resolver
    * @param inst the syntax node
    */
   public visitFrom(inst: Inst.From): Diagnostics {
+    // begin hidden loop scope
     this.tableBuilder.beginScope(inst);
 
     const resolverErrors = this.resolveInsts(inst.initializer.insts).concat(
       this.resolveExpr(inst.condition),
+      this.useExprLocalsBind(inst.condition),
       this.resolveInsts(inst.increment.insts),
-      this.resolveInst(inst.inst),
     );
 
-    const useErrors = this.useExprLocals(inst.condition);
-    this.tableBuilder.endScope();
+    const bodyErrors = this.trackLoop(() => this.resolveInst(inst.inst));
 
-    return resolverErrors.concat(useErrors);
+    // end hidden loop scope
+    this.tableBuilder.endScope();
+    return resolverErrors.concat(bodyErrors);
   }
 
   /**
@@ -495,19 +573,39 @@ export class Resolver
    * @param inst the syntax node
    */
   public visitReturn(inst: Inst.Return): Diagnostics {
+    let valueErrors: Diagnostics = [];
+
     if (inst.expr) {
-      return this.useExprLocals(inst.expr).concat(this.resolveExpr(inst.expr));
+      valueErrors = this.useExprLocals(inst.expr).concat(
+        this.resolveExpr(inst.expr),
+      );
     }
 
-    return [];
+    return this.functionDepth < 1
+      ? valueErrors.concat(
+          createDiagnostic(
+            inst.returnToken,
+            'Return appeared outside of function body',
+            DiagnosticSeverity.Error,
+          ),
+        )
+      : valueErrors;
   }
 
   /**
    * Visit the Break Inst syntax node
    * @param inst the syntax node
    */
-  public visitBreak(_: Inst.Break): Diagnostics {
-    return [];
+  public visitBreak(inst: Inst.Break): Diagnostics {
+    return this.loopDepth < 1
+      ? [
+          createDiagnostic(
+            inst,
+            'Break appeared outside of a loop',
+            DiagnosticSeverity.Error,
+          ),
+        ]
+      : [];
   }
 
   /**
@@ -525,23 +623,25 @@ export class Resolver
    * @param inst the syntax node
    */
   public visitFor(inst: Inst.For): Diagnostics {
-    this.tableBuilder.beginScope(inst);
-    const declareError = this.tableBuilder.declareVariable(
-      ScopeType.local,
-      inst.identifier,
-    );
+    return this.trackLoop(() => {
+      this.tableBuilder.beginScope(inst);
+      const declareError = this.tableBuilder.declareVariable(
+        ScopeType.local,
+        inst.identifier,
+      );
 
-    const errors = this.useExprLocals(inst.suffix).concat(
-      this.resolveExpr(inst.suffix),
-      this.resolveInst(inst.inst),
-    );
+      const errors = this.useExprLocals(inst.suffix).concat(
+        this.resolveExpr(inst.suffix),
+        this.resolveInst(inst.inst),
+      );
 
-    this.tableBuilder.endScope();
+      this.tableBuilder.endScope();
 
-    if (!empty(declareError)) {
-      return errors.concat(declareError);
-    }
-    return errors;
+      if (!empty(declareError)) {
+        return errors.concat(declareError);
+      }
+      return errors;
+    });
   }
 
   /**
@@ -657,8 +757,8 @@ export class Resolver
     }
 
     const argError = !empty(inst.args)
-      ? accumulateErrors(inst.args, this.useExprLocals.bind(this)).concat(
-          accumulateErrors(inst.args, this.resolveExpr.bind(this)),
+      ? accumulateErrors(inst.args, this.useExprLocalsBind).concat(
+          accumulateErrors(inst.args, this.resolveExprBind),
         )
       : [];
 
@@ -683,8 +783,8 @@ export class Resolver
 
     return this.useExprLocals(inst.expr).concat(
       this.resolveExpr(inst.expr),
-      accumulateErrors(inst.args, this.useExprLocals.bind(this)),
-      accumulateErrors(inst.args, this.resolveExpr.bind(this)),
+      accumulateErrors(inst.args, this.useExprLocalsBind),
+      accumulateErrors(inst.args, this.resolveExprBind),
     );
   }
 
@@ -699,8 +799,8 @@ export class Resolver
 
     return this.useExprLocals(inst.expr).concat(
       this.resolveExpr(inst.expr),
-      accumulateErrors(inst.args, this.useExprLocals.bind(this)),
-      accumulateErrors(inst.args, this.resolveExpr.bind(this)),
+      accumulateErrors(inst.args, this.useExprLocalsBind),
+      accumulateErrors(inst.args, this.resolveExprBind),
     );
   }
 
@@ -755,7 +855,7 @@ export class Resolver
    * Logic for settings a variable. used by set inst and list command
    * @param set token to set
    */
-  private setBinding(set: IToken): Diagnostic[] {
+  private setBinding(set: IToken): Diagnostics {
     // if variable isn't defined either report error or define
     let defineError: Maybe<Diagnostic> = undefined;
 
@@ -790,25 +890,25 @@ export class Resolver
 
   ----------------------------------------------*/
 
-  public visitExprInvalid(_: Expr.Invalid): Diagnostic[] {
+  public visitExprInvalid(_: Expr.Invalid): Diagnostics {
     return [];
   }
 
-  public visitBinary(expr: Expr.Binary): Diagnostic[] {
+  public visitBinary(expr: Expr.Binary): Diagnostics {
     return this.resolveExpr(expr.left).concat(this.resolveExpr(expr.right));
   }
 
-  public visitUnary(expr: Expr.Unary): Diagnostic[] {
+  public visitUnary(expr: Expr.Unary): Diagnostics {
     return this.resolveExpr(expr.factor);
   }
 
-  public visitFactor(expr: Expr.Factor): Diagnostic[] {
+  public visitFactor(expr: Expr.Factor): Diagnostics {
     return this.resolveExpr(expr.suffix).concat(
       this.resolveExpr(expr.exponent),
     );
   }
 
-  public visitSuffix(expr: Expr.Suffix): Diagnostic[] {
+  public visitSuffix(expr: Expr.Suffix): Diagnostics {
     const atom = this.visitSuffixTerm(expr.suffixTerm);
     if (empty(expr.trailer)) {
       return atom;
@@ -817,7 +917,7 @@ export class Resolver
     return atom.concat(this.resolveSuffixTerm(expr.trailer));
   }
 
-  public visitLambda(expr: Expr.Lambda): Diagnostic[] {
+  public visitLambda(expr: Expr.Lambda): Diagnostics {
     if (this.executeDeferred()) {
       return this.deferNode(expr, expr.block);
     }
@@ -835,9 +935,7 @@ export class Resolver
     return [];
   }
 
-  public visitSuffixTrailer(
-    suffixTerm: SuffixTerm.SuffixTrailer,
-  ): Diagnostic[] {
+  public visitSuffixTrailer(suffixTerm: SuffixTerm.SuffixTrailer): Diagnostics {
     const atom = this.visitSuffixTerm(suffixTerm.suffixTerm);
     if (empty(suffixTerm.trailer)) {
       return atom;
@@ -846,7 +944,7 @@ export class Resolver
     return atom.concat(this.resolveSuffixTerm(suffixTerm.trailer));
   }
 
-  public visitSuffixTerm(suffixTerm: SuffixTerm.SuffixTerm): Diagnostic[] {
+  public visitSuffixTerm(suffixTerm: SuffixTerm.SuffixTerm): Diagnostics {
     const atom = this.resolveSuffixTerm(suffixTerm.atom);
     if (suffixTerm.trailers.length === 0) {
       return atom;
@@ -855,36 +953,36 @@ export class Resolver
     return atom.concat(
       suffixTerm.trailers.reduce(
         (acc, curr) => acc.concat(this.resolveSuffixTerm(curr)),
-        [] as Diagnostic[],
+        [] as Diagnostics,
       ),
     );
   }
 
-  public visitCall(suffixTerm: SuffixTerm.Call): Diagnostic[] {
-    return accumulateErrors(suffixTerm.args, this.resolveExpr.bind(this));
+  public visitCall(suffixTerm: SuffixTerm.Call): Diagnostics {
+    return accumulateErrors(suffixTerm.args, this.resolveExprBind);
   }
 
-  public visitArrayIndex(_: SuffixTerm.ArrayIndex): Diagnostic[] {
+  public visitArrayIndex(_: SuffixTerm.ArrayIndex): Diagnostics {
     return [];
   }
 
-  public visitArrayBracket(suffixTerm: SuffixTerm.ArrayBracket): Diagnostic[] {
+  public visitArrayBracket(suffixTerm: SuffixTerm.ArrayBracket): Diagnostics {
     return this.resolveExpr(suffixTerm.index);
   }
 
-  public visitDelegate(_: SuffixTerm.Delegate): Diagnostic[] {
+  public visitDelegate(_: SuffixTerm.Delegate): Diagnostics {
     return [];
   }
 
-  public visitLiteral(_: SuffixTerm.Literal): Diagnostic[] {
+  public visitLiteral(_: SuffixTerm.Literal): Diagnostics {
     return [];
   }
 
-  public visitIdentifier(_: SuffixTerm.Identifier): Diagnostic[] {
+  public visitIdentifier(_: SuffixTerm.Identifier): Diagnostics {
     return [];
   }
 
-  public visitGrouping(suffixTerm: SuffixTerm.Grouping): Diagnostic[] {
+  public visitGrouping(suffixTerm: SuffixTerm.Grouping): Diagnostics {
     return this.resolveExpr(suffixTerm.expr);
   }
 
@@ -893,8 +991,6 @@ export class Resolver
    */
   private executeDeferred(): boolean {
     if (this.deferResolve) {
-
-
       return true;
     }
 
@@ -903,12 +999,36 @@ export class Resolver
   }
 
   /**
+   * Track when the function depth has increased or decreased
+   * @param functionFunc function body
+   */
+  private trackFunction(functionFunc: () => Diagnostics): Diagnostics {
+    this.functionDepth += 1;
+    const result = functionFunc();
+    this.functionDepth -= 1;
+    return result;
+  }
+
+  /**
+   * Tracket when the loop depth has increased or decreased
+   * @param loopFunc loop body
+   */
+  private trackLoop(loopFunc: () => Diagnostics): Diagnostics {
+    this.loopDepth += 1;
+    const result = loopFunc();
+    this.loopDepth -= 1;
+    return result;
+  }
+
+  /**
    * Defer a node for later execution
    * @param node node to defer
    */
-  private deferNode(node: IInst | IExpr, block: IInst): Diagnostic[] {
+  private deferNode(node: IInst | IExpr, block: IInst): Diagnostics {
     this.deferred.push({
       node,
+      functionDepth: this.functionDepth,
+      loopDepth: this.loopDepth,
       path: this.tableBuilder.getPath(),
     });
 

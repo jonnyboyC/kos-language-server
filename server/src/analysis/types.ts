@@ -5,7 +5,7 @@ import { IToken } from '../entities/types';
 import { KsParameter } from '../entities/parameters';
 import { Range, Location } from 'vscode-languageserver';
 import { IArgumentType, IFunctionType } from '../typeChecker/types/types';
-import { IExpr, ISuffixTerm } from '../parser/types';
+import { IExpr, ISuffixTerm, IInst } from '../parser/types';
 
 export const enum SymbolState {
   declared,
@@ -92,6 +92,31 @@ export enum KsSymbolKind {
   lock,
   parameter,
   suffix,
+}
+
+/**
+ * This representing a syntax nod that will be executed later
+ */
+export interface IDeferred {
+  /**
+   * Path to scope
+   */
+  path: IScopePath;
+
+  /**
+   * How many loops deep is the current location
+   */
+  loopDepth: number;
+
+  /**
+   * How many functions deep is the current location
+   */
+  functionDepth: number;
+
+  /**
+   * Node to be executed later
+   */
+  node: IInst | IExpr;
 }
 
 // tslint:disable-next-line:prefer-array-literal
