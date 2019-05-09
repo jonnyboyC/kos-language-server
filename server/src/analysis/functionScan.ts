@@ -75,8 +75,8 @@ export class FunctionScan extends TreeTraverse {
       // Note this has no logic to detect parameters in loops
       // increment parameter count
       if (node instanceof Decl.Param) {
-        this.result.requiredParameters += node.parameters.length;
-        this.result.optionalParameters += node.defaultParameters.length;
+        this.result.requiredParameters += node.requiredParameters.length;
+        this.result.optionalParameters += node.optionalParameters.length;
       }
 
       return true;

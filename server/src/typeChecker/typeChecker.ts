@@ -30,6 +30,7 @@ import {
   ISuffixType,
   IFunctionType,
   CallType,
+  TypeKind,
 } from './types/types';
 import { structureType } from './types/primitives/structure';
 import { coerce } from './coerce';
@@ -54,7 +55,7 @@ import {
 import { delegateType } from './types/primitives/delegate';
 import { TypeNode } from './typeNode';
 import { KsSymbolKind } from '../analysis/types';
-import { rangeEqual, rangeToString } from '../utilities/positionUtils';
+import { rangeToString } from '../utilities/positionUtils';
 import { listType } from './types/collections/list';
 import { bodyTargetType } from './types/orbital/bodyTarget';
 import { vesselTargetType } from './types/orbital/vesselTarget';
@@ -71,6 +72,10 @@ import { sep } from 'path';
 type Diagnostics = Diagnostic[];
 type SuffixTermType = ISuffixType | IArgumentType;
 
+/**
+ * The type checker attempts to identify places where the rules of the type
+ * system are broken.
+ */
 export class TypeChecker
   implements
     IInstVisitor<Diagnostics>,
@@ -84,6 +89,8 @@ export class TypeChecker
   private readonly script: Script;
   private readonly symbolTable: SymbolTable;
 
+  private readonly checkInstBind = this.checkInst.bind(this);
+
   constructor(
     script: Script,
     symbolTable: SymbolTable,
@@ -96,22 +103,21 @@ export class TypeChecker
     this.tracer = tracer;
   }
 
+  /**
+   * Check the source file for type errors
+   */
   public check(): Diagnostics {
     // resolve the sequence of instructions
     try {
       const splits = this.script.uri.split(sep);
       const file = splits[splits.length - 1];
 
-      this.logger.info(
-        `Type Checking started for ${file}.`,
-      );
+      this.logger.info(`Type Checking started for ${file}.`);
 
       const typeErrors = this.checkInsts(this.script.insts);
 
-      this.logger.info(
-        `Type Checking finished for ${file}`
-      );
-      
+      this.logger.info(`Type Checking finished for ${file}`);
+
       if (typeErrors.length) {
         this.logger.warn(`Type Checking encounted ${typeErrors.length} errors`);
       }
@@ -124,6 +130,10 @@ export class TypeChecker
     }
   }
 
+  /**
+   * Check a suffix for it's type
+   * @param suffix suffix to check
+   */
   public checkSuffix(
     suffix: Expr.Suffix,
   ): ITypeResultSuffix<IType, ITypeResolved> {
@@ -156,7 +166,7 @@ export class TypeChecker
       }
 
       const { type, resolved, errors } = current;
-      if (type.tag === 'suffix' || type.tag === 'function') {
+      if (type.tag === TypeKind.suffix || type.tag === TypeKind.function) {
         // const node = this.lastSuffixTermNode(suffixTerm);
         return this.errorsSuffixTerm(
           resolved,
@@ -195,22 +205,35 @@ export class TypeChecker
     }
   }
 
-  // check all collection of instructions
+  /**
+   * check a collection of instructions
+   * @param insts instruction sto check
+   */
   private checkInsts(insts: IInst[]): Diagnostics {
-    return accumulateErrors(insts, this.checkInst.bind(this));
+    return accumulateErrors(insts, this.checkInstBind);
   }
 
-  // check for an instruction
+  /**
+   * Check an instruction for errors
+   * @param inst instruction to check
+   */
   private checkInst(inst: IInst): Diagnostics {
     return inst.accept(this);
   }
 
-  // check for an expression
+  /**
+   * Check an expression for errors
+   * @param expr expression to check
+   */
   private checkExpr(expr: IExpr): ITypeResultExpr<IArgumentType> {
     return expr.accept(this);
   }
 
-  // check suffix terms
+  /**
+   * Check a suffix term for errors
+   * @param suffixTerm suffix term to check
+   * @param current type resolved so far
+   */
   private checkSuffixTerm(
     suffixTerm: ISuffixTerm,
     current: ITypeResultSuffix<IType>,
@@ -220,85 +243,102 @@ export class TypeChecker
 
   // ----------------------------- Declaration -----------------------------------------
 
-  // visit declare variable
+  /**
+   * Visit a variable declaration
+   * @param decl variable declaration
+   */
   visitDeclVariable(decl: Decl.Var): Diagnostics {
     const result = this.checkExpr(decl.value);
-    this.symbolTable.declareType(
-      decl.identifier,
-      result.type,
-      KsSymbolKind.variable,
-    );
+    const { tracker } = decl.identifier;
+
+    if (!empty(tracker)) {
+      tracker.declareType(result.type);
+    }
+
     return result.errors;
   }
 
-  // visit declare lock
+  /**
+   * Vist a lock declaration
+   * @param decl lock declaration
+   */
   visitDeclLock(decl: Decl.Lock): Diagnostics {
     const result = this.checkExpr(decl.value);
-    this.symbolTable.declareType(
-      decl.identifier,
-      result.type,
-      KsSymbolKind.lock,
-    );
+    const { tracker } = decl.identifier;
+
+    if (!empty(tracker)) {
+      tracker.declareType(result.type);
+    }
+
     return result.errors;
   }
 
-  // visit declare function
+  /**
+   * Visit a function declaration
+   * @param decl function declaration
+   */
   visitDeclFunction(decl: Decl.Func): Diagnostics {
-    const funcTracker = this.symbolTable.scopedFunctionTracker(
-      decl.start,
-      decl.identifier.lookup,
-    );
-
-    if (empty(funcTracker)) {
-      throw Error('TODO');
-    }
-
-    const { symbol } = funcTracker.declared;
-    const paramsTypes: IArgumentType[] = [];
-    for (let i = 0; i < symbol.requiredParameters; i += 1) {
-      paramsTypes.push(structureType);
-    }
-    for (let i = 0; i < symbol.optionalParameters; i += 1) {
-      paramsTypes.push(structureType);
-    }
-
-    const returnType = symbol.returnValue ? structureType : voidType;
-
-    const funcType = createFunctionType(
-      funcTracker.declared.symbol.name.lookup,
-      returnType,
-      ...paramsTypes,
-    );
-
-    this.symbolTable.declareType(symbol.name, funcType, KsSymbolKind.function);
-
     const errors = this.checkInst(decl.block);
+    const { tracker } = decl.identifier;
+
+    if (!empty(tracker)) {
+      const { symbol } = tracker.declared;
+      if (symbol.tag === KsSymbolKind.function) {
+        const paramsTypes: IArgumentType[] = [];
+
+        // TODO eventually we should tag ks parameter to the function type
+        for (let i = 0; i < symbol.requiredParameters; i += 1) {
+          paramsTypes.push(structureType);
+        }
+        for (let i = 0; i < symbol.optionalParameters; i += 1) {
+          paramsTypes.push(structureType);
+        }
+
+        const returnType = symbol.returnValue ? structureType : voidType;
+
+        const funcType = createFunctionType(
+          tracker.declared.symbol.name.lookup,
+          returnType,
+          ...paramsTypes,
+        );
+
+        this.symbolTable.declareType(
+          symbol.name,
+          funcType,
+          KsSymbolKind.function,
+        );
+      }
+    }
+
     return errors;
   }
 
-  // visit declare parameter
+  /**
+   * Visit a parameter declaration
+   * @param decl parameter declaration
+   */
   visitDeclParameter(decl: Decl.Param): Diagnostics {
     let errors: Diagnostics = [];
 
-    // loop over defaulted parameters
-    for (const defaulted of decl.defaultParameters) {
-      const valueResult = this.checkExpr(defaulted.value);
-      this.symbolTable.declareType(
-        defaulted.identifier,
-        valueResult.type,
-        KsSymbolKind.parameter,
-      );
+    // loop over normal parameters
+    for (const required of decl.requiredParameters) {
+      const { tracker } = required.identifier;
 
-      errors = errors.concat(valueResult.errors);
+      if (!empty(tracker)) {
+        tracker.declareType(structureType);
+      }
     }
 
-    // loop over normal parameters
-    for (const parameter of decl.parameters) {
-      this.symbolTable.declareType(
-        parameter.identifier,
-        structureType,
-        KsSymbolKind.parameter,
-      );
+    // loop over defaulted parameters
+    for (const optional of decl.optionalParameters) {
+      const valueResult = this.checkExpr(optional.value);
+      const { tracker } = optional.identifier;
+
+      if (!empty(tracker)) {
+        tracker.declareType(valueResult.type);
+      }
+
+      errors = errors.concat(valueResult.errors);
     }
 
     return errors;
@@ -306,42 +346,61 @@ export class TypeChecker
 
   // ----------------------------- Instructions -----------------------------------------
 
-  // visit invalid inst
+  /**
+   * Vist an invalid instruction
+   * @param _ invalid instruction
+   */
   public visitInstInvalid(_: Inst.Invalid): Diagnostics {
     return [];
   }
 
-  // visit block
+  /**
+   * Vist a block instruction
+   * @param inst instruction block
+   */
   public visitBlock(inst: Inst.Block): Diagnostics {
-    return accumulateErrors(inst.insts, this.checkInst.bind(this));
+    return accumulateErrors(inst.insts, this.checkInstBind);
   }
 
-  // visit expression instruction
+  /**
+   * Visit an instruction expression
+   * @param inst instruction expression
+   */
   public visitExpr(inst: Inst.ExprInst): Diagnostics {
     const result = this.checkExpr(inst.suffix);
     return result.errors;
   }
 
-  // visit on off
+  /**
+   * Visit an on off instruction
+   * @param inst on / off instruction
+   */
   public visitOnOff(inst: Inst.OnOff): Diagnostics {
     const result = this.checkExpr(inst.suffix);
     return result.errors;
   }
 
-  // visit command
+  /**
+   * Visit a command instruction
+   * @param _ command instruction
+   */
   public visitCommand(_: Inst.Command): Diagnostics {
     return [];
   }
 
-  // visit command expression
+  /**
+   * Visit a command expression instruction
+   * @param inst command expression instruction
+   */
   public visitCommandExpr(inst: Inst.CommandExpr): Diagnostics {
     const result = this.checkExpr(inst.expr);
     const errors: Diagnostics = result.errors;
 
     switch (inst.command.type) {
+      // commands for adding and removing nodes
       case TokenType.add:
       case TokenType.remove:
-        // expression must be a node type
+        // expression must be a node type for node commands
         if (!coerce(result.type, nodeType)) {
           const command =
             inst.command.type === TokenType.add ? 'add' : 'remove';
@@ -356,6 +415,7 @@ export class TypeChecker
           );
         }
         break;
+      // command to edit a file
       case TokenType.edit:
         if (!coerce(result.type, nodeType)) {
           errors.push(
@@ -374,23 +434,33 @@ export class TypeChecker
     return result.errors;
   }
 
-  // visit unset
+  /**
+   * Visit an unset instruction
+   * @param _ unset instruction
+   */
   public visitUnset(_: Inst.Unset): Diagnostics {
     return [];
   }
 
-  // visit unlock
+  /**
+   * Visit an unlock instruction
+   * @param _ unlock instruction
+   */
   public visitUnlock(_: Inst.Unlock): Diagnostics {
     return [];
   }
 
   // visit set
+  /**
+   * Visit set instruction
+   * @param inst set instruction
+   */
   public visitSet(inst: Inst.Set): Diagnostics {
     const exprResult = this.checkExpr(inst.value);
     const errors = exprResult.errors;
 
-    // check if set ends in call
-    if (inst.suffix.endsInCall()) {
+    // check if suffix is settable
+    if (!inst.suffix.isSettable()) {
       return errors.concat(
         createDiagnostic(
           inst.suffix,
@@ -422,25 +492,26 @@ export class TypeChecker
     }
 
     if (atom instanceof SuffixTerm.Identifier) {
-      const tracker = this.symbolTable.scopedVariableTracker(
-        atom.start,
-        atom.token.lookup,
-      );
+      const { tracker } = atom.token;
 
-      if (
-        this.script.lazyGlobal &&
-        !empty(tracker) &&
-        rangeEqual(tracker.declared.range, atom)
-      ) {
-        this.symbolTable.declareType(
-          atom.token,
-          exprResult.type,
-          KsSymbolKind.variable,
-          KsSymbolKind.parameter,
-          KsSymbolKind.lock,
-        );
-      } else {
-        this.symbolTable.setType(atom.token, exprResult.type);
+      if (!empty(tracker)) {
+
+        // if lazy global declare type
+        if (this.script.lazyGlobal) {
+          this.symbolTable.declareType(
+            atom.token,
+            exprResult.type,
+            KsSymbolKind.variable,
+            KsSymbolKind.parameter,
+
+            // need to double check this one
+            KsSymbolKind.lock,
+          );
+
+        // else set type
+        } else {
+          this.symbolTable.setType(atom.token, exprResult.type);
+        }
       }
     } else {
       errors.push(
@@ -576,14 +647,17 @@ export class TypeChecker
     return errors;
   }
 
-  // visit for
+  /**
+   * Visit a for loop
+   * @param inst for loop instruction
+   */
   public visitFor(inst: Inst.For): Diagnostics {
     const result = this.checkExpr(inst.suffix);
     let errors: Diagnostics = [];
 
-    const { type: type } = result;
+    const { type } = result;
 
-    if (type.tag !== 'type' || !hasSuffix(type, iterator)) {
+    if (type.tag !== TypeKind.basic || !hasSuffix(type, iterator)) {
       errors = errors.concat(
         createDiagnostic(
           inst.suffix,
@@ -672,7 +746,13 @@ export class TypeChecker
     }
 
     if (!coerce(exprResult.type, stringType)) {
-      errors.push(createDiagnostic(inst.expr, 'Can only log to a path. ', DiagnosticSeverity.Hint));
+      errors.push(
+        createDiagnostic(
+          inst.expr,
+          'Can only log to a path. ',
+          DiagnosticSeverity.Hint,
+        ),
+      );
     }
 
     return errors;
@@ -864,7 +944,11 @@ export class TypeChecker
       default:
         finalType = structureType;
         errors.push(
-          createDiagnostic(collection, 'Not a valid list identifier', DiagnosticSeverity.Hint),
+          createDiagnostic(
+            collection,
+            'Not a valid list identifier',
+            DiagnosticSeverity.Hint,
+          ),
         );
     }
 
@@ -1101,7 +1185,7 @@ export class TypeChecker
     }
 
     const { type, errors } = current;
-    if (type.tag === 'suffix' || type.tag === 'function') {
+    if (type.tag === TypeKind.suffix || type.tag === TypeKind.function) {
       throw new Error('Type shouldn');
     }
 
@@ -1111,7 +1195,7 @@ export class TypeChecker
 
     current = this.checkSuffixTerm(trailer, current);
 
-    if (current.type.tag === 'type') {
+    if (current.type.tag === TypeKind.basic) {
       return this.resultExpr(current.type, current.errors);
     }
 
@@ -1122,9 +1206,7 @@ export class TypeChecker
     );
   }
 
-  public visitLambda(
-    _: Expr.Lambda,
-  ): ITypeResultExpr<IArgumentType> {
+  public visitLambda(_: Expr.Lambda): ITypeResultExpr<IArgumentType> {
     return this.resultExpr(delegateType);
   }
 
@@ -1181,7 +1263,11 @@ export class TypeChecker
     return empty(type) || empty(tracker)
       ? this.errorsAtom(
           identifer,
-          createDiagnostic(identifer, 'Unable to lookup identifier type', DiagnosticSeverity.Hint),
+          createDiagnostic(
+            identifer,
+            'Unable to lookup identifier type',
+            DiagnosticSeverity.Hint,
+          ),
         )
       : this.resultAtom(type, identifer, tracker.declared.symbol.tag);
   }
@@ -1203,7 +1289,7 @@ export class TypeChecker
     current: ITypeResultSuffix<IType, ITypeResolved>,
   ): ITypeResultSuffix<IArgumentType, ITypeResolved> {
     const { type, resolved, errors } = current;
-    if (type.tag !== 'function') {
+    if (type.tag !== TypeKind.function) {
       return this.errorsAtom(
         call,
         createDiagnostic(
@@ -1254,7 +1340,7 @@ export class TypeChecker
 
     // if no trailer exist attempt to return
     if (empty(suffixTerm.trailer)) {
-      if (type.tag === 'type') {
+      if (type.tag === TypeKind.basic) {
         return { type, resolved, errors };
       }
 
@@ -1311,7 +1397,7 @@ export class TypeChecker
     const { type, resolved, errors } = result;
 
     // if we only have some basic type return it
-    if (type.tag === 'type') {
+    if (type.tag === TypeKind.basic) {
       return { type, resolved, errors };
     }
 
@@ -1339,9 +1425,9 @@ export class TypeChecker
   ): ITypeResultSuffix<IArgumentType> {
     const { type, resolved, errors } = current;
 
-    if (type.tag !== 'suffix') {
+    if (type.tag !== TypeKind.suffix) {
       // TEST we can apparently call a suffix with no argument fine.
-      if (type.tag === 'type' && call.args.length === 0) {
+      if (type.tag === TypeKind.basic && call.args.length === 0) {
         return this.resultSuffixTermTrailer(type, call, resolved);
       }
 
@@ -1449,7 +1535,11 @@ export class TypeChecker
         suffixTerm,
         resolved,
         errors,
-        createDiagnostic(suffixTerm, 'indexing with # requires a list', DiagnosticSeverity.Hint),
+        createDiagnostic(
+          suffixTerm,
+          'indexing with # requires a list',
+          DiagnosticSeverity.Hint,
+        ),
       );
     }
 
@@ -1580,7 +1670,7 @@ export class TypeChecker
     current: ITypeResultSuffix<IType>,
   ): ITypeResultSuffix<IArgumentType> {
     const { type, resolved, errors } = current;
-    if (type.tag !== 'function') {
+    if (type.tag !== TypeKind.function) {
       return this.errorsSuffixTermTrailer(
         suffixTerm,
         resolved,
@@ -1788,7 +1878,7 @@ export class TypeChecker
   ): ITypeResultSuffix<IArgumentType, ITypeResolvedSuffix> {
     const { atom: current, termTrailers, suffixTrailer } = resolved;
     let returns = structureType;
-    if (type.tag === 'function' || type.tag === 'suffix') {
+    if (type.tag === TypeKind.function || type.tag === TypeKind.suffix) {
       returns = type.returns;
     } else {
       returns = type;

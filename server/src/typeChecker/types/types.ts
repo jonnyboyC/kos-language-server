@@ -4,6 +4,13 @@ interface ITypeMeta<T> {
   toConcreteType(type: IArgumentType): T;
 }
 
+export const enum TypeKind {
+  basic,
+  variadic,
+  suffix,
+  function,
+}
+
 export const enum CallType {
   get,
   set,
@@ -47,17 +54,17 @@ export interface ITemplateSuffixType<TBasicType, TVariadicType, TConcreteType>
 
 export interface IGenericBasicType
   extends ITemplateBasicType<IGenericSuffixType, IArgumentType> {
-  tag: 'type';
+  tag: TypeKind.basic;
 }
 
 export interface IGenericSuffixType
   extends ITemplateSuffixType<IGenericArgumentType, IGenericVariadicType, ISuffixType> {
-  tag: 'suffix';
+  tag: TypeKind.suffix;
 }
 
 export interface IGenericVariadicType extends ITypeMeta<IVariadicType> {
   type: IGenericBasicType;
-  tag: 'variadic';
+  tag: TypeKind.variadic;
 }
 
 export type IGenericArgumentType = IGenericBasicType;
@@ -66,20 +73,20 @@ export interface IBasicType extends IGenericBasicType {
   inherentsFrom?: IArgumentType;
   suffixes: Map<string, ISuffixType>;
   fullType: true;
-  tag: 'type';
+  tag: TypeKind.basic;
 }
 
 export interface ISuffixType extends IGenericSuffixType {
   params: IArgumentType[] | IVariadicType;
   returns: IArgumentType;
   fullType: true;
-  tag: 'suffix';
+  tag: TypeKind.suffix;
 }
 
 export interface IVariadicType extends IGenericVariadicType {
   type: IBasicType;
   fullType: true;
-  tag: 'variadic';
+  tag: TypeKind.variadic;
 }
 
 export type IArgumentType = IBasicType;
@@ -94,7 +101,7 @@ export interface IFunctionType extends ITypeMeta<IFunctionType> {
   params: IArgumentType[] | IVariadicType;
   returns: IArgumentType;
   fullType: true;
-  tag: 'function';
+  tag: TypeKind.function;
 }
 
 export type IType = IArgumentType | IFunctionType | ISuffixType;

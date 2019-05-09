@@ -18,6 +18,9 @@ import { Resolver } from '../analysis/resolver';
 import { FunctionScan } from '../analysis/functionScan';
 import * as Decl from '../parser/declare';
 import { standardLibraryBuilder } from '../analysis/standardLibrary';
+import { LocalResolver } from '../analysis/localResolver';
+import * as Inst from '../parser/inst';
+import { SetResolver } from '../analysis/setResolver';
 
 const fakeUri = 'C:\\fake.ks';
 
@@ -357,7 +360,7 @@ describe('Resolver errors', () => {
   ];
 
   // test basic identifier
-  test('basic list test', () => {
+  test('list command', () => {
     const results = resolveSource(listSource);
 
     expect(0).toBe(results.scan.scanErrors.length);
@@ -388,7 +391,7 @@ describe('Resolver errors', () => {
   ];
 
   // test basic identifier
-  test('basic defined test', () => {
+  test('defined command', () => {
     const defineSource = readFileSync(definedPath, 'utf8');
     const results = resolveSource(defineSource);
 
@@ -417,7 +420,7 @@ describe('Resolver errors', () => {
   ];
 
   // test basic identifier
-  test('basic used test', () => {
+  test('used symbols', () => {
     const usedSource = readFileSync(usedPath, 'utf8');
     const results = resolveSource(usedSource);
 
@@ -442,7 +445,7 @@ describe('Resolver errors', () => {
   ];
 
   // test shadowing
-  test('basic shadowed test', () => {
+  test('shadowed symbols', () => {
     const shadowedSource = readFileSync(shadowPath, 'utf8');
     const results = resolveSource(shadowedSource);
 
@@ -471,7 +474,7 @@ describe('Resolver errors', () => {
   ];
 
   // test deferred resolving
-  test('basic deferred test', () => {
+  test('deferred nodes', () => {
     const deferredSource = readFileSync(deferredPath, 'utf8');
     const results = resolveSource(deferredSource);
 
@@ -481,6 +484,57 @@ describe('Resolver errors', () => {
 
     for (const [error, location] of zip(results.resolveDiagnostics, deferredLocations)) {
       expect(error.severity).toBe(DiagnosticSeverity.Hint);
+      expect(location.start).toEqual(error.range.start);
+      expect(location.end).toEqual(error.range.end);
+    }
+  });
+
+  const breakPath = join(
+    __dirname,
+    '../../../kerboscripts/parser_valid/unitTests/breaktest.ks',
+  );
+
+  const breakLocations: Range[] = [
+    { start: new Marker(9, 0), end: new Marker(9, 5) },
+    { start: new Marker(21, 0), end: new Marker(21, 5) },
+  ];
+
+  // invalid break locations
+  test('break locations', () => {
+    const deferredSource = readFileSync(breakPath, 'utf8');
+    const results = resolveSource(deferredSource);
+
+    expect(results.scan.scanErrors.length).toBe(0);
+    expect(results.parse.parseErrors.length).toBe(0);
+    expect(results.resolveDiagnostics.length > 0).toBe(true);
+
+    for (const [error, location] of zip(results.resolveDiagnostics, breakLocations)) {
+      expect(error.severity).toBe(DiagnosticSeverity.Error);
+      expect(location.start).toEqual(error.range.start);
+      expect(location.end).toEqual(error.range.end);
+    }
+  });
+
+  const returnPath = join(
+    __dirname,
+    '../../../kerboscripts/parser_valid/unitTests/returntest.ks',
+  );
+
+  const returnLocations: Range[] = [
+    { start: new Marker(9, 0), end: new Marker(9, 6) },
+  ];
+
+  // invalid return locations
+  test('return locations', () => {
+    const deferredSource = readFileSync(returnPath, 'utf8');
+    const results = resolveSource(deferredSource);
+
+    expect(results.scan.scanErrors.length).toBe(0);
+    expect(results.parse.parseErrors.length).toBe(0);
+    expect(results.resolveDiagnostics.length > 0).toBe(true);
+
+    for (const [error, location] of zip(results.resolveDiagnostics, returnLocations)) {
+      expect(error.severity).toBe(DiagnosticSeverity.Error);
       expect(location.start).toEqual(error.range.start);
       expect(location.end).toEqual(error.range.end);
     }
@@ -598,6 +652,89 @@ describe('Function Scan', () => {
         expect(scanResult.requiredParameters).toBe(3);
         expect(scanResult.optionalParameters).toBe(1);
       }
+    }
+  });
+});
+
+describe('Local Resolver', () => {
+  test('local resolver test 1', () => {
+    const source = 'set a to Thing:other[used1]:finally(used2, used3).';
+    const result = parseSource(source);
+    noParseErrors(result);
+
+    const { script } = result.parse;
+    const inst = script.insts[0];
+
+    const resolver = new LocalResolver();
+    if (inst instanceof Inst.Set) {
+      const resolverResult = resolver.resolveExpr(inst.value);
+      expect(resolverResult.length).toBe(4);
+      const [thing, used1, used2, used3] = resolverResult;
+
+      expect(thing.token.lexeme).toBe('Thing');
+      expect(used1.token.lexeme).toBe('used1');
+      expect(used2.token.lexeme).toBe('used2');
+      expect(used3.token.lexeme).toBe('used3');
+
+    } else {
+      expect(true).toBeFalsy();
+    }
+  });
+
+  test('local resolver test 2', () => {
+    const source = 'set a to (first:suffix(nest:call(1), array["yo"]) ^ exponent) < example#3.';
+    const result = parseSource(source);
+    noParseErrors(result);
+
+    const { script } = result.parse;
+    const inst = script.insts[0];
+
+    const resolver = new LocalResolver();
+    if (inst instanceof Inst.Set) {
+      const resolverResult = resolver.resolveExpr(inst.value);
+      expect(resolverResult.length).toBe(5);
+      const [first, nest, array, exponent, example] = resolverResult;
+
+      expect(first.token.lexeme).toBe('first');
+      expect(nest.token.lexeme).toBe('nest');
+      expect(array.token.lexeme).toBe('array');
+      expect(exponent.token.lexeme).toBe('exponent');
+      expect(example.token.lexeme).toBe('example');
+
+    } else {
+      expect(true).toBeFalsy();
+    }
+  });
+});
+
+describe('Set Resolver', () => {
+  test('set resolver test 1', () => {
+    const source = 'set Thing(fart):other[used1]:finally(used2, used3):planet to 10.';
+    const result = parseSource(source);
+    noParseErrors(result);
+
+    const { script } = result.parse;
+    const inst = script.insts[0];
+
+    const local = new LocalResolver();
+    const resolver = new SetResolver(local);
+    if (inst instanceof Inst.Set) {
+      const { used, set } = resolver.resolveExpr(inst.suffix);
+      expect(set).not.toBeUndefined();
+      if (!empty(set)) {
+        expect(set.lexeme).toBe('Thing');
+      }
+
+      expect(used.length).toBe(4);
+
+      const [fart, used1, used2, used3] = used;
+      expect(fart.token.lexeme).toBe('fart');
+      expect(used1.token.lexeme).toBe('used1');
+      expect(used2.token.lexeme).toBe('used2');
+      expect(used3.token.lexeme).toBe('used3');
+
+    } else {
+      expect(true).toBeFalsy();
     }
   });
 });
