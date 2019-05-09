@@ -89,6 +89,8 @@ export class TypeChecker
   private readonly script: Script;
   private readonly symbolTable: SymbolTable;
 
+  private readonly checkInstBind = this.checkInst.bind(this);
+
   constructor(
     script: Script,
     symbolTable: SymbolTable,
@@ -208,7 +210,7 @@ export class TypeChecker
    * @param insts instruction sto check
    */
   private checkInsts(insts: IInst[]): Diagnostics {
-    return accumulateErrors(insts, this.checkInst.bind(this));
+    return accumulateErrors(insts, this.checkInstBind);
   }
 
   /**
@@ -357,7 +359,7 @@ export class TypeChecker
    * @param inst instruction block
    */
   public visitBlock(inst: Inst.Block): Diagnostics {
-    return accumulateErrors(inst.insts, this.checkInst.bind(this));
+    return accumulateErrors(inst.insts, this.checkInstBind);
   }
 
   /**
