@@ -30,6 +30,7 @@ import {
   ISuffixType,
   IFunctionType,
   CallType,
+  TypeKind,
 } from './types/types';
 import { structureType } from './types/primitives/structure';
 import { coerce } from './coerce';
@@ -54,7 +55,7 @@ import {
 import { delegateType } from './types/primitives/delegate';
 import { TypeNode } from './typeNode';
 import { KsSymbolKind } from '../analysis/types';
-import { rangeEqual, rangeToString } from '../utilities/positionUtils';
+import { rangeToString } from '../utilities/positionUtils';
 import { listType } from './types/collections/list';
 import { bodyTargetType } from './types/orbital/bodyTarget';
 import { vesselTargetType } from './types/orbital/vesselTarget';
@@ -163,7 +164,7 @@ export class TypeChecker
       }
 
       const { type, resolved, errors } = current;
-      if (type.tag === 'suffix' || type.tag === 'function') {
+      if (type.tag === TypeKind.suffix || type.tag === TypeKind.function) {
         // const node = this.lastSuffixTermNode(suffixTerm);
         return this.errorsSuffixTerm(
           resolved,
@@ -269,8 +270,6 @@ export class TypeChecker
 
     return result.errors;
   }
-
-  // visit declare function
 
   /**
    * Visit a function declaration
@@ -646,14 +645,17 @@ export class TypeChecker
     return errors;
   }
 
-  // visit for
+  /**
+   * Visit a for loop
+   * @param inst for loop instruction
+   */
   public visitFor(inst: Inst.For): Diagnostics {
     const result = this.checkExpr(inst.suffix);
     let errors: Diagnostics = [];
 
-    const { type: type } = result;
+    const { type } = result;
 
-    if (type.tag !== 'type' || !hasSuffix(type, iterator)) {
+    if (type.tag !== TypeKind.basic || !hasSuffix(type, iterator)) {
       errors = errors.concat(
         createDiagnostic(
           inst.suffix,
@@ -1181,7 +1183,7 @@ export class TypeChecker
     }
 
     const { type, errors } = current;
-    if (type.tag === 'suffix' || type.tag === 'function') {
+    if (type.tag === TypeKind.suffix || type.tag === TypeKind.function) {
       throw new Error('Type shouldn');
     }
 
@@ -1191,7 +1193,7 @@ export class TypeChecker
 
     current = this.checkSuffixTerm(trailer, current);
 
-    if (current.type.tag === 'type') {
+    if (current.type.tag === TypeKind.basic) {
       return this.resultExpr(current.type, current.errors);
     }
 
@@ -1285,7 +1287,7 @@ export class TypeChecker
     current: ITypeResultSuffix<IType, ITypeResolved>,
   ): ITypeResultSuffix<IArgumentType, ITypeResolved> {
     const { type, resolved, errors } = current;
-    if (type.tag !== 'function') {
+    if (type.tag !== TypeKind.function) {
       return this.errorsAtom(
         call,
         createDiagnostic(
@@ -1336,7 +1338,7 @@ export class TypeChecker
 
     // if no trailer exist attempt to return
     if (empty(suffixTerm.trailer)) {
-      if (type.tag === 'type') {
+      if (type.tag === TypeKind.basic) {
         return { type, resolved, errors };
       }
 
@@ -1393,7 +1395,7 @@ export class TypeChecker
     const { type, resolved, errors } = result;
 
     // if we only have some basic type return it
-    if (type.tag === 'type') {
+    if (type.tag === TypeKind.basic) {
       return { type, resolved, errors };
     }
 
@@ -1421,9 +1423,9 @@ export class TypeChecker
   ): ITypeResultSuffix<IArgumentType> {
     const { type, resolved, errors } = current;
 
-    if (type.tag !== 'suffix') {
+    if (type.tag !== TypeKind.suffix) {
       // TEST we can apparently call a suffix with no argument fine.
-      if (type.tag === 'type' && call.args.length === 0) {
+      if (type.tag === TypeKind.basic && call.args.length === 0) {
         return this.resultSuffixTermTrailer(type, call, resolved);
       }
 
@@ -1666,7 +1668,7 @@ export class TypeChecker
     current: ITypeResultSuffix<IType>,
   ): ITypeResultSuffix<IArgumentType> {
     const { type, resolved, errors } = current;
-    if (type.tag !== 'function') {
+    if (type.tag !== TypeKind.function) {
       return this.errorsSuffixTermTrailer(
         suffixTerm,
         resolved,
@@ -1874,7 +1876,7 @@ export class TypeChecker
   ): ITypeResultSuffix<IArgumentType, ITypeResolvedSuffix> {
     const { atom: current, termTrailers, suffixTrailer } = resolved;
     let returns = structureType;
-    if (type.tag === 'function' || type.tag === 'suffix') {
+    if (type.tag === TypeKind.function || type.tag === TypeKind.suffix) {
       returns = type.returns;
     } else {
       returns = type;
