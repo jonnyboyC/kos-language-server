@@ -1,5 +1,5 @@
-[submodule "grammars"]
-	path = clients\\vscode\\kos-grammar
+[submodule "clients/vscode/kos-grammar"]
+	path = clients/vscode/kos-grammar
 	url = https://github.com/jonnyboyC/kos-grammar.git
 	branch = master
 [submodule "clients/atom"]
