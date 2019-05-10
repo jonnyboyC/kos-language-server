@@ -1,0 +1,4 @@
+[submodule "grammars"]
+	path = clients\\vscode\\kos-grammar
+	url = https://github.com/jonnyboyC/kos-grammar.git
+	branch = master
