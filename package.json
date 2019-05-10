@@ -150,7 +150,7 @@
             {
                 "language": "kos",
                 "scopeName": "source.kos",
-                "path": "./clients/vscode/grammars/language-kos.json"
+                "path": "./clients/vscode/kos-grammar/language-kos.json"
             }
         ]
     },
