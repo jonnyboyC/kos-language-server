@@ -11,7 +11,7 @@ import { languageServer } from './constants';
  * @param message message for the diagnostic
  * @param severity severity of the diagnostic
  * @param code error code
- * @param relatedInformation other related information 
+ * @param relatedInformation other related information
  */
 export const createDiagnostic = (
   range: Range,
