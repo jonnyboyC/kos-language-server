@@ -151,16 +151,38 @@ const callTest = (
   args: Constructor<SuffixTerm.SuffixTermBase>[],
 ): ICallTest => ({ source, callee, args });
 
+interface ExpressionComponent {
+  expr: Constructor<SuffixTerm.SuffixTermBase | Expr.Expr>;
+  literal: any;
+}
+
+interface IUnaryTest {
+  source: string;
+  operator: TokenType;
+  base: ExpressionComponent;
+}
+
+const unaryTest = (
+  source: string,
+  operator: TokenType,
+  base: Constructor<SuffixTerm.SuffixTermBase | Expr.Expr>,
+  baseLiteral: any,
+): IUnaryTest => {
+  return {
+    source,
+    operator,
+    base: {
+      expr: base,
+      literal: baseLiteral,
+    },
+  };
+};
+
 interface IBinaryTest {
   source: string;
   operator: TokenType;
-  leftArm: IBinaryArm;
-  rightArm: IBinaryArm;
-}
-
-interface IBinaryArm {
-  expr: Constructor<SuffixTerm.SuffixTermBase | Expr.Expr>;
-  literal: any;
+  leftArm: ExpressionComponent;
+  rightArm: ExpressionComponent;
 }
 
 const binaryTest = (
@@ -330,6 +352,61 @@ describe('Parse expressions', () => {
       const [{ value }, scannerErrors] = parseExpression(expression.source);
       expect(value instanceof SuffixTerm.Identifier).toBe(false);
       expect(scannerErrors.length === 0).toBe(true);
+    }
+  });
+
+  test('valid unary', () => {
+    const validExpressions = [
+      unaryTest(
+        '+ 5',
+        TokenType.plus,
+        SuffixTerm.Literal,
+        5,
+      ),
+      unaryTest(
+        'defined other',
+        TokenType.defined,
+        SuffixTerm.Identifier,
+        undefined,
+      ),
+      unaryTest(
+        'not false',
+        TokenType.not,
+        SuffixTerm.Literal,
+        false,
+      ),
+      unaryTest(
+        '-suffix:call(10, 5)',
+        TokenType.minus,
+        Expr.Suffix,
+        undefined,
+      ),
+    ];
+
+    for (const expression of validExpressions) {
+      const [{ value, errors }, scannerErrors] = parseExpression(
+        expression.source,
+      );
+      expect(value instanceof Expr.Unary).toBe(true);
+      expect(errors.length === 0).toBe(true);
+      expect(scannerErrors.length === 0).toBe(true);
+
+      if (value instanceof Expr.Unary) {
+        expect(value.operator.type).toBe(expression.operator);
+
+        if (
+          expression.base.expr.prototype instanceof SuffixTerm.SuffixTermBase
+        ) {
+          testSuffixTerm(value.factor, atom => {
+            expect(atom instanceof expression.base.expr).toBe(true);
+            if (atom instanceof SuffixTerm.Literal) {
+              expect(expression.base.literal).toBe(atom.token.literal);
+            }
+          });
+        } else {
+          expect(value.factor instanceof expression.base.expr).toBe(true);
+        }
+      }
     }
   });
 

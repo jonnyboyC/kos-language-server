@@ -149,25 +149,36 @@ export class SuffixTrailer extends SuffixTermBase {
   /**
    * Method indicating if the suffix ends with a function or suffix call
    */
-  public endsInCall(): boolean {
+  public isSettable(): boolean {
     // if no trailer check suffix term
     if (empty(this.trailer)) {
-      const suffixTermTrailers = this.suffixTerm.trailers;
+      const { atom, trailers } = this.suffixTerm;
 
       // check for suffix term trailers
-      if (suffixTermTrailers.length > 0) {
-        const lastTrailer = suffixTermTrailers[suffixTermTrailers.length - 1];
-        if (lastTrailer instanceof Call) {
+      if (trailers.length > 0) {
+        const lastTrailer = trailers[trailers.length - 1];
+        if (lastTrailer instanceof Identifier) {
+          return true;
+        }
+
+        if (lastTrailer instanceof ArrayBracket) {
+          return true;
+        }
+
+        if (lastTrailer instanceof ArrayIndex) {
           return true;
         }
       }
 
+      if (atom instanceof Identifier) {
+        return true;
+      }
       return false;
     }
 
     // check nested trailers
     if (this.trailer instanceof SuffixTrailer) {
-      return this.trailer.endsInCall();
+      return this.trailer.isSettable();
     }
 
     return false;

@@ -13,6 +13,7 @@ import {
   IVariadicType,
   IFunctionType,
   Operator,
+  TypeKind,
 } from './types';
 import { memoize } from '../../utilities/memoize';
 
@@ -60,8 +61,8 @@ export class GenericType implements IGenericBasicType {
     return false;
   }
 
-  public get tag(): 'type' {
-    return 'type';
+  public get tag(): TypeKind.basic {
+    return TypeKind.basic;
   }
 }
 
@@ -135,8 +136,8 @@ export class GenericSuffixType implements IGenericSuffixType {
     return false;
   }
 
-  public get tag(): 'suffix' {
-    return 'suffix';
+  public get tag(): TypeKind.suffix {
+    return TypeKind.suffix;
   }
 }
 
@@ -162,8 +163,8 @@ export class Type implements IBasicType {
     return true;
   }
 
-  public get tag(): 'type' {
-    return 'type';
+  public get tag(): TypeKind.basic {
+    return TypeKind.basic;
   }
 }
 
@@ -194,8 +195,8 @@ export class SuffixType implements ISuffixType {
     return true;
   }
 
-  public get tag(): 'suffix' {
-    return 'suffix';
+  public get tag(): TypeKind.suffix {
+    return TypeKind.suffix;
   }
 }
 
@@ -229,8 +230,8 @@ export class GenericVariadicType implements IGenericVariadicType {
     this.concreteTypes.set(type, newType);
     return newType;
   }
-  public get tag(): 'variadic' {
-    return 'variadic';
+  public get tag(): TypeKind.variadic {
+    return TypeKind.variadic;
   }
 }
 
@@ -244,8 +245,8 @@ export class VariadicType extends GenericVariadicType implements IVariadicType {
   public get fullType(): true {
     return true;
   }
-  public get tag(): 'variadic' {
-    return 'variadic';
+  public get tag(): TypeKind.variadic {
+    return TypeKind.variadic;
   }
 }
 
@@ -268,8 +269,8 @@ export class FunctionType implements IFunctionType {
     return this;
   }
 
-  public get tag(): 'function' {
-    return 'function';
+  public get tag(): TypeKind.function {
+    return TypeKind.function;
   }
 
   public get fullType(): true {

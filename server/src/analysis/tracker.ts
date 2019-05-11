@@ -11,7 +11,7 @@ export class KsSymbolTracker<T extends KsSymbol>
   implements IKsSymbolTracker {
   public readonly declared: IKsDeclared<T>;
   public readonly sets: IKsChange[];
-  public readonly usages: IKsChange[];
+  public readonly usages: Location[];
 
   constructor(
     public symbol: T,

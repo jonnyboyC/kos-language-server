@@ -1,5 +1,12 @@
 import { Inst, Block } from './inst';
-import { IDeclScope, IExpr, IInstVisitor, ScopeType, IParameter, IInstPasser } from './types';
+import {
+  IDeclScope,
+  IExpr,
+  IInstVisitor,
+  ScopeType,
+  IParameter,
+  IInstPasser,
+} from './types';
 import { TokenType } from '../entities/tokentypes';
 import { empty } from '../utilities/typeGuards';
 import { IToken } from '../entities/types';
@@ -15,8 +22,8 @@ export abstract class Decl extends Inst {
 export class Scope implements IDeclScope {
   constructor(
     public readonly scope?: IToken,
-    public readonly declare?: IToken) {
-  }
+    public readonly declare?: IToken,
+  ) {}
 
   public toString(): string {
     if (!empty(this.scope) && !empty(this.declare)) {
@@ -36,7 +43,7 @@ export class Scope implements IDeclScope {
 
   public get ranges(): Range[] {
     if (!empty(this.scope) && !empty(this.declare)) {
-      return [this.declare, this.scope]
+      return [this.declare, this.scope];
     }
 
     if (!empty(this.scope)) {
@@ -103,14 +110,16 @@ export class Var extends Decl {
     public readonly identifier: IToken,
     public readonly toIs: IToken,
     public readonly value: IExpr,
-    public readonly scope: IDeclScope) {
+    public readonly scope: IDeclScope,
+  ) {
     super();
   }
 
   public toLines(): string[] {
     const lines = this.value.toLines();
-    lines[0] = `${this.scope.toString()} ${this.identifier.lexeme} `
-      + `${this.toIs.lexeme} ${lines[0]}`;
+    lines[0] =
+      `${this.scope.toString()} ${this.identifier.lexeme} ` +
+      `${this.toIs.lexeme} ${lines[0]}`;
 
     lines[lines.length - 1] = `${lines[lines.length - 1]}.`;
     return lines;
@@ -143,18 +152,22 @@ export class Lock extends Decl {
     public readonly identifier: IToken,
     public readonly to: IToken,
     public readonly value: IExpr,
-    public readonly scope?: IDeclScope) {
+    public readonly scope?: IDeclScope,
+  ) {
     super();
   }
 
   public toLines(): string[] {
     const lines = this.value.toLines();
     if (empty(this.scope)) {
-      lines[0] = `${this.lock.lexeme} ${this.identifier.lexeme} `
-        + `${this.to.lexeme} ${lines[0]}`;
+      lines[0] =
+        `${this.lock.lexeme} ${this.identifier.lexeme} ` +
+        `${this.to.lexeme} ${lines[0]}`;
     } else {
-      lines[0] = `${this.scope.toString()} ${this.lock.lexeme} ${this.identifier.lexeme} `
-        + `${this.to.lexeme} ${lines[0]}`;
+      lines[0] =
+        `${this.scope.toString()} ${this.lock.lexeme} ${
+          this.identifier.lexeme
+        } ` + `${this.to.lexeme} ${lines[0]}`;
     }
 
     lines[lines.length - 1] = `${lines[lines.length - 1]}.`;
@@ -163,9 +176,7 @@ export class Lock extends Decl {
   }
 
   public get start(): Position {
-    return empty(this.scope)
-      ? this.lock.start
-      : this.scope.start;
+    return empty(this.scope) ? this.lock.start : this.scope.start;
   }
 
   public get end(): Position {
@@ -174,17 +185,10 @@ export class Lock extends Decl {
 
   public get ranges(): Range[] {
     if (!empty(this.scope)) {
-      return [
-        this.scope, this.lock,
-        this.identifier, this.to,
-        this.value,
-      ];
+      return [this.scope, this.lock, this.identifier, this.to, this.value];
     }
 
-    return [
-      this.lock, this.identifier,
-      this.to, this.value,
-    ];
+    return [this.lock, this.identifier, this.to, this.value];
   }
 
   public pass<T>(visitor: IInstPasser<T>): T {
@@ -201,23 +205,24 @@ export class Func extends Decl {
     public readonly functionToken: IToken,
     public readonly identifier: IToken,
     public readonly block: Block,
-    public readonly scope?: IDeclScope) {
+    public readonly scope?: IDeclScope,
+  ) {
     super();
   }
 
   public toLines(): string[] {
     const declareLine = empty(this.scope)
       ? `${this.functionToken.lexeme} ${this.identifier.lexeme}`
-      : `${this.scope.toString()} ${this.functionToken.lexeme} ${this.identifier.lexeme}`;
+      : `${this.scope.toString()} ${this.functionToken.lexeme} ${
+          this.identifier.lexeme
+        }`;
 
     const blockLines = this.block.toLines();
     return joinLines(' ', [declareLine], blockLines);
   }
 
   public get start(): Position {
-    return empty(this.scope)
-      ? this.functionToken.start
-      : this.scope.start;
+    return empty(this.scope) ? this.functionToken.start : this.scope.start;
   }
 
   public get end(): Position {
@@ -226,16 +231,10 @@ export class Func extends Decl {
 
   public get ranges(): Range[] {
     if (!empty(this.scope)) {
-      return [
-        this.scope, this.functionToken,
-        this.identifier, this.block,
-      ];
+      return [this.scope, this.functionToken, this.identifier, this.block];
     }
 
-    return [
-      this.functionToken, this.identifier,
-      this.block,
-    ];
+    return [this.functionToken, this.identifier, this.block];
   }
 
   public pass<T>(visitor: IInstPasser<T>): T {
@@ -248,8 +247,7 @@ export class Func extends Decl {
 }
 
 export class Parameter implements IParameter {
-  constructor(
-    public readonly identifier: IToken) { }
+  constructor(public readonly identifier: IToken) {}
 
   public toLines(): string[] {
     return [this.identifier.lexeme];
@@ -276,7 +274,8 @@ export class DefaultParam extends Parameter {
   constructor(
     identifier: IToken,
     public readonly toIs: IToken,
-    public readonly value: IExpr) {
+    public readonly value: IExpr,
+  ) {
     super(identifier);
   }
 
@@ -306,9 +305,10 @@ export class DefaultParam extends Parameter {
 export class Param extends Decl {
   constructor(
     public readonly parameterToken: IToken,
-    public readonly parameters: Parameter[],
-    public readonly defaultParameters: DefaultParam[],
-    public readonly scope?: IDeclScope) {
+    public readonly requiredParameters: Parameter[],
+    public readonly optionalParameters: DefaultParam[],
+    public readonly scope?: IDeclScope,
+  ) {
     super();
   }
 
@@ -318,14 +318,21 @@ export class Param extends Decl {
       : [`${this.scope.toString()} ${this.parameterToken.lexeme}`];
 
     const paramLines = joinLines(
-      ', ', ...this.parameters.map(param => param.toLines()));
+      ', ',
+      ...this.requiredParameters.map(param => param.toLines()),
+    );
     const defaultParamLines = joinLines(
-      ', ', ...this.defaultParameters.map(param => param.toLines()));
+      ', ',
+      ...this.optionalParameters.map(param => param.toLines()),
+    );
 
     let lines: string[] = [];
-    if (this.parameters.length > 0 && this.defaultParameters.length > 0) {
+    if (
+      this.requiredParameters.length > 0 &&
+      this.optionalParameters.length > 0
+    ) {
       lines = joinLines(', ', paramLines, defaultParamLines);
-    } else if (this.parameters.length > 0) {
+    } else if (this.requiredParameters.length > 0) {
       lines = paramLines;
     } else {
       lines = defaultParamLines;
@@ -337,30 +344,29 @@ export class Param extends Decl {
   }
 
   public get start(): Position {
-    return empty(this.scope)
-      ? this.parameterToken.start
-      : this.scope.start;
+    return empty(this.scope) ? this.parameterToken.start : this.scope.start;
   }
 
   public get end(): Position {
-    return this.defaultParameters.length > 0
-      ? this.defaultParameters[this.defaultParameters.length - 1].value.end
-      : this.parameters[this.parameters.length - 1].end;
+    return this.optionalParameters.length > 0
+      ? this.optionalParameters[this.optionalParameters.length - 1].value.end
+      : this.requiredParameters[this.requiredParameters.length - 1].end;
   }
 
   public get ranges(): Range[] {
     if (!empty(this.scope)) {
       return [
-        this.scope, this.parameterToken,
-        ...this.parameters,
-        ...this.defaultParameters,
+        this.scope,
+        this.parameterToken,
+        ...this.requiredParameters,
+        ...this.optionalParameters,
       ];
     }
 
     return [
       this.parameterToken,
-      ...this.parameters,
-      ...this.defaultParameters,
+      ...this.requiredParameters,
+      ...this.optionalParameters,
     ];
   }
 

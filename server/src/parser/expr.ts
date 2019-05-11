@@ -358,17 +358,29 @@ export class Suffix extends Expr {
     return [this.suffixTerm];
   }
 
-  public endsInCall(): boolean {
+  public isSettable(): boolean {
     // if no trailer check suffix term
     if (empty(this.trailer)) {
-      const suffixTermTrailers = this.suffixTerm.trailers;
+      const { atom, trailers } = this.suffixTerm;
 
       // check for suffix term trailers
-      if (suffixTermTrailers.length > 0) {
-        const lastTrailer = suffixTermTrailers[suffixTermTrailers.length - 1];
-        if (lastTrailer instanceof SuffixTerm.Call) {
+      if (trailers.length > 0) {
+        const lastTrailer = trailers[trailers.length - 1];
+        if (lastTrailer instanceof SuffixTerm.Identifier) {
           return true;
         }
+
+        if (lastTrailer instanceof SuffixTerm.ArrayBracket) {
+          return true;
+        }
+
+        if (lastTrailer instanceof SuffixTerm.ArrayIndex) {
+          return true;
+        }
+      }
+
+      if (atom instanceof SuffixTerm.Identifier) {
+        return true;
       }
 
       return false;
@@ -376,7 +388,7 @@ export class Suffix extends Expr {
 
     // check nested trailers
     if (this.trailer instanceof Suffix) {
-      return this.trailer.endsInCall();
+      return this.trailer.isSettable();
     }
 
     return false;
