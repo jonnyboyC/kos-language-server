@@ -36,7 +36,7 @@ export interface IScope extends Map<string, IKsSymbolTracker> {
 export interface IKsSymbolTracker<T extends KsSymbol = KsSymbol> {
   declared: IKsDeclared<T>;
   sets: IKsChange[];
-  usages: IKsChange[];
+  usages: Location[];
 
   declareType(type: IArgumentType | IFunctionType): void;
   getType(loc: Location): Maybe<IArgumentType | IFunctionType>;

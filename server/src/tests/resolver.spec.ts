@@ -207,9 +207,6 @@ describe('Resolver tracking', () => {
 
     expect(xUsage.uri).toBe(fakeUri);
     expect(yUsage.uri).toBe(fakeUri);
-
-    expect(xUsage.type).toBe(structureType);
-    expect(yUsage.type).toBe(structureType);
   });
 
   test('lazy list test', () => {
