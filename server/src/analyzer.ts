@@ -141,8 +141,7 @@ export class Analyzer {
             .reduce((acc, current) => acc.concat(current))
             .map(error => parseToDiagnostics(error, uri));
 
-    yield scanDiagnostics;
-    yield parserDiagnostics;
+    yield scanDiagnostics.concat(parserDiagnostics);
 
     // if any run instruction exist get uri then load
     if (script.runInsts.length > 0 && this.pathResolver.ready) {
@@ -153,7 +152,7 @@ export class Analyzer {
         for await (const result of this.loadAndValidateDocument(
           uri,
           loadData,
-          depth,
+          depth + 1,
         )) {
           if (Array.isArray(result)) {
             yield result;
@@ -193,7 +192,7 @@ export class Analyzer {
       this.tracer,
     );
 
-    // resolve the rest of the script
+    // traverse the ast to find functions to pre populate symbol table
     performance.mark('pre-resolver-start');
     const preDiagnostics = preResolver
       .resolve()
@@ -202,13 +201,15 @@ export class Analyzer {
     yield preDiagnostics;
     performance.mark('pre-resolver-end');
 
-    // perform an initial function pass
+    // traverse the ast again to resolve the remaning symbols
     performance.mark('resolver-start');
     const resolverDiagnostics = resolver
       .resolve()
       .map(error => addDiagnosticsUri(error, uri));
 
     yield resolverDiagnostics;
+
+    // find scopes were symbols were never used
     const unusedDiagnostics = symbolTableBuilder
       .findUnused()
       .map(error => addDiagnosticsUri(error, uri));
@@ -216,7 +217,10 @@ export class Analyzer {
     yield unusedDiagnostics;
     performance.mark('resolver-end');
 
+    // build the final symbol table
     const symbolTable = symbolTableBuilder.build();
+
+    // perform type checking
     const typeChecker = new TypeChecker(
       script,
       symbolTable,
@@ -245,9 +249,10 @@ export class Analyzer {
     );
 
     // make sure to delete references so scope manager can be gc'ed
-    const documentInfo = this.documentInfos.get(uri);
+    let documentInfo: Maybe<IDocumentInfo> = this.documentInfos.get(uri);
     if (!empty(documentInfo)) {
       documentInfo.symbolsTable.removeSelf();
+      documentInfo = undefined;
     }
 
     this.documentInfos.set(uri, {

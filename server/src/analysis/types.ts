@@ -33,13 +33,42 @@ export interface IScope extends Map<string, IKsSymbolTracker> {
   symbols(): KsSymbol[];
 }
 
+/**
+ * Interface for tracking symbols throughout a kerboscript
+ */
 export interface IKsSymbolTracker<T extends KsSymbol = KsSymbol> {
+  /**
+   * Information about the original declaration of the symbol
+   */
   declared: IKsDeclared<T>;
+
+  /**
+   * Infromation about locations where the this symbol was set
+   */
   sets: IKsChange[];
+
+  /**
+   * Locations where this symbol was used
+   */
   usages: Location[];
 
+  /**
+   * Set the declared type of this symbol
+   * @param type type to declare this symbol
+   */
   declareType(type: IArgumentType | IFunctionType): void;
+
+  /**
+   * Get the type at a location
+   * @param loc query location
+   */
   getType(loc: Location): Maybe<IArgumentType | IFunctionType>;
+
+  /**
+   * Set the type at a location
+   * @param loc location to set
+   * @param type type to set
+   */
   setType(loc: Location, type: IArgumentType | IFunctionType): void;
 }
 
