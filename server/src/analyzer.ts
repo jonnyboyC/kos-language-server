@@ -41,7 +41,7 @@ import { TypeChecker } from './typeChecker/typeChecker';
 import { ITypeResolvedSuffix, ITypeNode } from './typeChecker/types';
 import { IToken } from './entities/types';
 import { IType } from './typeChecker/types/types';
-import { binarySearch, rangeContains } from './utilities/positionUtils';
+import { binarySearch, rangeContainsPos } from './utilities/positionUtils';
 
 export class Analyzer {
   public workspaceFolder?: string;
@@ -223,7 +223,6 @@ export class Analyzer {
     // perform type checking
     const typeChecker = new TypeChecker(
       script,
-      symbolTable,
       this.logger,
       this.tracer,
     );
@@ -308,10 +307,10 @@ export class Analyzer {
     }
 
     if (node instanceof Expr.Suffix) {
-      const checker = new TypeChecker(script, symbolsTable);
+      const checker = new TypeChecker(script);
       const result = checker.checkSuffix(node);
 
-      if (rangeContains(result.resolved.atom, pos)) {
+      if (rangeContainsPos(result.resolved.atom, pos)) {
         return [result.resolved.atom.type, result.resolved.atomType];
       }
 

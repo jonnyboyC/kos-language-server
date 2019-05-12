@@ -20,7 +20,6 @@ import {
 } from './types';
 import { mockLogger, mockTracer } from '../utilities/logger';
 import { Script } from '../entities/script';
-import { SymbolTable } from '../analysis/symbolTable';
 import { empty } from '../utilities/typeGuards';
 import {
   IArgumentType,
@@ -87,18 +86,15 @@ export class TypeChecker
   private readonly logger: ILogger;
   private readonly tracer: ITracer;
   private readonly script: Script;
-  private readonly symbolTable: SymbolTable;
 
   private readonly checkInstBind = this.checkInst.bind(this);
 
   constructor(
     script: Script,
-    symbolTable: SymbolTable,
     logger: ILogger = mockLogger,
     tracer: ITracer = mockTracer,
   ) {
     this.script = script;
-    this.symbolTable = symbolTable;
     this.logger = logger;
     this.tracer = tracer;
   }
@@ -141,15 +137,7 @@ export class TypeChecker
       const { suffixTerm, trailer } = suffix;
       const [firstTrailer, ...remainingTrailers] = suffixTerm.trailers;
 
-      const atom =
-        firstTrailer instanceof SuffixTerm.Call
-          ? this.resolveAtom(suffixTerm.atom, KsSymbolKind.function)
-          : this.resolveAtom(
-              suffixTerm.atom,
-              KsSymbolKind.lock,
-              KsSymbolKind.parameter,
-              KsSymbolKind.variable,
-            );
+      const atom = this.resolveAtom(suffixTerm.atom);
       let current: ITypeResultSuffix<IType> = atom;
 
       if (!empty(firstTrailer)) {
@@ -302,11 +290,7 @@ export class TypeChecker
           ...paramsTypes,
         );
 
-        this.symbolTable.declareType(
-          symbol.name,
-          funcType,
-          KsSymbolKind.function,
-        );
+        tracker.declareType(funcType);
       }
     }
 
@@ -495,22 +479,13 @@ export class TypeChecker
       const { tracker } = atom.token;
 
       if (!empty(tracker)) {
-
         // if lazy global declare type
         if (this.script.lazyGlobal) {
-          this.symbolTable.declareType(
-            atom.token,
-            exprResult.type,
-            KsSymbolKind.variable,
-            KsSymbolKind.parameter,
+          tracker.declareType(exprResult.type);
 
-            // need to double check this one
-            KsSymbolKind.lock,
-          );
-
-        // else set type
+          // else set type
         } else {
-          this.symbolTable.setType(atom.token, exprResult.type);
+          tracker.setType(atom.token, exprResult.type);
         }
       }
     } else {
@@ -668,7 +643,11 @@ export class TypeChecker
     }
 
     // TODO may be able to detect if type is really pure and not mixed
-    this.symbolTable.setType(inst.identifier, structureType);
+    const { tracker } = inst.identifier;
+
+    if (!empty(tracker)) {
+      tracker.setType(inst.identifier, structureType);
+    }
     return errors.concat(this.checkInst(inst.inst));
   }
 
@@ -952,7 +931,11 @@ export class TypeChecker
         );
     }
 
-    this.symbolTable.setType(target, listType.toConcreteType(finalType));
+    const { tracker } = target;
+    if (!empty(tracker)) {
+      tracker.setType(target, listType.toConcreteType(finalType));
+    }
+
     return errors;
   }
 
@@ -1160,15 +1143,7 @@ export class TypeChecker
     const { suffixTerm, trailer } = expr;
     const [firstTrailer, ...remainingTrailers] = suffixTerm.trailers;
 
-    const atom =
-      firstTrailer instanceof SuffixTerm.Call
-        ? this.resolveAtom(suffixTerm.atom, KsSymbolKind.function)
-        : this.resolveAtom(
-            suffixTerm.atom,
-            KsSymbolKind.variable,
-            KsSymbolKind.lock,
-            KsSymbolKind.parameter,
-          );
+    const atom = this.resolveAtom(suffixTerm.atom);
     let current: ITypeResultSuffix<IType> = atom;
 
     if (!empty(firstTrailer)) {
@@ -1214,14 +1189,13 @@ export class TypeChecker
 
   private resolveAtom(
     atom: Atom,
-    ...symbolKinds: KsSymbolKind[]
   ): ITypeResultSuffix<IArgumentType | IFunctionType, ITypeResolved> {
     if (atom instanceof SuffixTerm.Literal) {
       return this.resolveLiteral(atom);
     }
 
     if (atom instanceof SuffixTerm.Identifier) {
-      return this.resolveIdentifier(atom, symbolKinds);
+      return this.resolveIdentifier(atom);
     }
 
     if (atom instanceof SuffixTerm.Grouping) {
@@ -1252,14 +1226,10 @@ export class TypeChecker
 
   private resolveIdentifier(
     identifer: SuffixTerm.Identifier,
-    symbolKinds: KsSymbolKind[],
   ): ITypeResultSuffix<IArgumentType | IFunctionType, ITypeResolved> {
-    const type = this.symbolTable.getType(identifer.token, ...symbolKinds);
-    const tracker = this.symbolTable.scopedSymbolTracker(
-      identifer.start,
-      identifer.token.lookup,
-      symbolKinds,
-    );
+    const { tracker } = identifer.token;
+    const type = tracker && tracker.getType(identifer.token);
+
     return empty(type) || empty(tracker)
       ? this.errorsAtom(
           identifer,
@@ -1555,7 +1525,9 @@ export class TypeChecker
 
       // If index is identify check that it holds a integarType
       case TokenType.identifier:
-        const type = this.symbolTable.getType(suffixTerm.indexer);
+        const { tracker } = suffixTerm.indexer;
+        const type = tracker && tracker.getType(suffixTerm.indexer);
+
         if (empty(type) || !coerce(type, integarType)) {
           return this.errorsSuffixTermTrailer(
             suffixTerm,

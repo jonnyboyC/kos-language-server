@@ -3,7 +3,7 @@ import {
   IDeclScope,
   IExpr,
   IInstVisitor,
-  ScopeType,
+  ScopeKind,
   IParameter,
   IInstPasser,
 } from './types';
@@ -89,16 +89,16 @@ export class Scope implements IDeclScope {
     throw new Error('Unvalid scope encountered. No socpe or declare tokens');
   }
 
-  public get type(): ScopeType {
+  public get type(): ScopeKind {
     if (empty(this.scope)) {
-      return ScopeType.local;
+      return ScopeKind.local;
     }
 
     switch (this.scope.type) {
       case TokenType.local:
-        return ScopeType.local;
+        return ScopeKind.local;
       case TokenType.global:
-        return ScopeType.global;
+        return ScopeKind.global;
       default:
         throw new Error('Unknown scope type found');
     }

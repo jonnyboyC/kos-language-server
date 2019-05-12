@@ -367,7 +367,7 @@ export class ArrayIndex extends SuffixTermBase {
 
   /**
    * Constructor for the suffix term trailer
-   * @param indexer # token indicating a index
+   * @param indexer "#" token indicating a index
    * @param index index to be used
    */
   constructor(public readonly indexer: IToken, public readonly index: IToken) {

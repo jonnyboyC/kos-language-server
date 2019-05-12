@@ -1,17 +1,16 @@
 import { IScopeNode,
-  KsSymbol, GraphNode, IKsSymbolTracker, KsSymbolKind,
+  KsSymbol, GraphNode, IKsSymbolTracker,
 } from './types';
 import { Position } from 'vscode-languageserver';
-import { rangeContains } from '../utilities/positionUtils';
+import { rangeContainsPos } from '../utilities/positionUtils';
 import { mockLogger } from '../utilities/logger';
 import { empty } from '../utilities/typeGuards';
-import { IArgumentType, IFunctionType } from '../typeChecker/types/types';
 import { KsFunction } from '../entities/function';
 import { KsLock } from '../entities/lock';
 import { KsVariable } from '../entities/variable';
 import { KsParameter } from '../entities/parameters';
 import { isKsFunction, isKsLock, isKsVariable, isKsParameter } from '../entities/entityHelpers';
-import { IToken } from '../entities/types';
+import { ScopeKind } from '../parser/types';
 
 /**
  * The Symbol table is used to update and retreive symbol type infromation
@@ -128,53 +127,6 @@ export class SymbolTable implements GraphNode<SymbolTable> {
   }
 
   /**
-   * Declare a symbol's type
-   * @param token the token for the requested symbol
-   * @param type the type to declare the symbol
-   * @param symbolKinds appropriate symbol kinds
-   */
-  public declareType(
-    token: IToken,
-    type: IArgumentType | IFunctionType,
-    ...symbolKinds: KsSymbolKind[]): void {
-
-    const tracker = this.scopedSymbolTracker(token.start, token.lookup, symbolKinds);
-    if (!empty(tracker)) {
-      tracker.declareType(type);
-    }
-  }
-
-  /**
-   * Get the symbols current type
-   * @param token the token for the requested symbol
-   * @param symbolKinds appropriate symbol kinds
-   */
-  public getType(
-    token: IToken,
-    ...symbolKinds: KsSymbolKind[]): Maybe<IArgumentType | IFunctionType> {
-    const tracker = this.scopedSymbolTracker(token.start, token.lookup, symbolKinds);
-    if (!empty(tracker)) {
-      return tracker.getType({ range: token, uri: this.uri });
-    }
-
-    return undefined;
-  }
-
-  /**
-   * Set the type for the provide symbol
-   * @param token the token for the symbol to set
-   * @param type the type to set the token
-   */
-  public setType(
-    token: IToken,
-    type: IArgumentType | IFunctionType): void {
-    const tracker = this.scopedNamedTracker(token.start, token.lookup);
-    if (!empty(tracker)) {
-      tracker.setType({ range: token, uri: this.uri }, type);
-    }
-  }
-
-  /**
    * get every symbol in the file
    */
   public fileSymbols(): KsSymbol[] {
@@ -265,44 +217,6 @@ export class SymbolTable implements GraphNode<SymbolTable> {
   }
 
   /**
-   * get a symbol tracker of a given kind a specified position
-   * @param pos position to check
-   * @param name symbol name
-   * @param symbolKinds symbol kinds to check
-   */
-  public scopedSymbolTracker(
-    pos: Position, name: string,
-    symbolKinds: KsSymbolKind[]): Maybe<IKsSymbolTracker> {
-
-    // generate compound filter for possible symbols
-    const filters: ((symbol: KsSymbol) => boolean)[] = [];
-    for (const symbolKind of symbolKinds) {
-      switch (symbolKind)
-      {
-        case KsSymbolKind.function:
-          filters.push(isKsFunction);
-          break;
-        case KsSymbolKind.parameter:
-          filters.push(isKsParameter);
-          break;
-        case KsSymbolKind.lock:
-          filters.push(isKsLock);
-          break;
-        case KsSymbolKind.variable:
-          filters.push(isKsVariable);
-          break;
-        default:
-          throw new Error('Unexpected symbol');
-      }
-    }
-
-    const tracker = this.scopedNamedTracker(
-      pos, name, tracker =>  filters.some(filter => filter(tracker.declared.symbol)));
-
-    return tracker;
-  }
-
-  /**
    * Get a tracker for a given symbol under a filter condition and position
    * @param pos position to check
    * @param name name of the symbol
@@ -384,14 +298,14 @@ export class SymbolTable implements GraphNode<SymbolTable> {
 
     for (const node of nodes) {
       const { position } = node;
-      switch (position.tag) {
+      switch (position.kind) {
         // if global it is available
-        case 'global':
+        case ScopeKind.global:
           return this.scopedTrackersDepth(pos, node.children)
             .concat(Array.from(node.scope.values()));
         // if the scope has a real position check if we're in the bounds
-        case 'real':
-          if (rangeContains(position, pos)) {
+        case ScopeKind.local:
+          if (rangeContainsPos(position, pos)) {
             return this.scopedTrackersDepth(pos, node.children)
               .concat(Array.from(node.scope.values()));
           }
@@ -416,9 +330,9 @@ export class SymbolTable implements GraphNode<SymbolTable> {
 
     for (const node of nodes) {
       const { position } = node;
-      switch (position.tag) {
+      switch (position.kind) {
         // if global it is available
-        case 'global':
+        case ScopeKind.global:
           childSymbol = this.scopedTrackerDepth(pos, node.children, trackerFilter);
           if (!empty(childSymbol)) {
             return childSymbol;
@@ -430,8 +344,8 @@ export class SymbolTable implements GraphNode<SymbolTable> {
           }
           break;
         // if the scope has a real position check if we're in the bounds
-        case 'real':
-          if (rangeContains(position, pos)) {
+        case ScopeKind.local:
+          if (rangeContainsPos(position, pos)) {
             childSymbol = this.scopedTrackerDepth(pos, node.children, trackerFilter);
             if (!empty(childSymbol)) {
               return childSymbol;

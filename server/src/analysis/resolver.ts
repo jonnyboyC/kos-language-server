@@ -2,7 +2,7 @@ import {
   IInstVisitor,
   IExpr,
   IInst,
-  ScopeType,
+  ScopeKind,
   ISuffixTerm,
   IScript,
   IExprVisitor,
@@ -20,7 +20,7 @@ import { TokenType } from '../entities/tokentypes';
 import { Script } from '../entities/script';
 import { mockLogger, mockTracer } from '../utilities/logger';
 import { SymbolTableBuilder } from './symbolTableBuilder';
-import { ILocalResult, IDeferred } from './types';
+import { IDeferred } from './types';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
 import { createDiagnostic } from '../utilities/diagnosticsUtils';
 import { sep } from 'path';
@@ -172,7 +172,7 @@ export class Resolver
         this.deferResolve = false;
 
         // set scope path and current depths
-        this.tableBuilder.setPath(current.path);
+        this.tableBuilder.setPath(current.path, current.activeScope);
         this.functionDepth = current.functionDepth;
         this.loopDepth = current.loopDepth;
 
@@ -243,11 +243,11 @@ export class Resolver
 
   /**
    * attempt to use ever token in the collection
-   * @param results local results to use
+   * @param tokens local results to use
    */
-  private useTokens(results: ILocalResult[]): Diagnostics {
-    return results
-      .map(({ token, expr }) => this.tableBuilder.useSymbol(token, expr))
+  private useTokens(tokens: IToken[]): Diagnostics {
+    return tokens
+      .map((token) => this.tableBuilder.useSymbol(token))
       .filter(this.filterError);
   }
 
@@ -271,7 +271,7 @@ export class Resolver
    */
   public visitDeclVariable(decl: Decl.Var): Diagnostics {
     // determine scope type
-    const scopeType = !empty(decl.scope) ? decl.scope.type : ScopeType.global;
+    const scopeType = !empty(decl.scope) ? decl.scope.type : ScopeKind.global;
 
     const declareError = this.tableBuilder.declareVariable(
       scopeType,
@@ -291,11 +291,11 @@ export class Resolver
    */
   public visitDeclLock(decl: Decl.Lock): Diagnostic[] {
     // determine scope type
-    const scopeType = !empty(decl.scope) ? decl.scope.type : ScopeType.global;
+    const scopeType = !empty(decl.scope) ? decl.scope.type : ScopeKind.global;
 
     const lookup = this.tableBuilder.lookupLock(
       decl.identifier,
-      ScopeType.global,
+      ScopeKind.global,
     );
     let declareError: Maybe<Diagnostic> = undefined;
 
@@ -344,7 +344,7 @@ export class Resolver
     }
 
     // all parameters are local
-    const scopeType = ScopeType.local;
+    const scopeType = ScopeKind.local;
 
     // need to check if default paraemter can really be abbitrary expr
     const parameterErrors = decl.requiredParameters.map(parameter =>
@@ -455,7 +455,7 @@ export class Resolver
 
     // check if a set target exists
     if (empty(set)) {
-      const [{ token }] = this.localResolver.resolveExpr(inst.suffix);
+      const [token] = this.localResolver.resolveExpr(inst.suffix);
       return [
         createDiagnostic(
           token,
@@ -626,7 +626,7 @@ export class Resolver
     return this.trackLoop(() => {
       this.tableBuilder.beginScope(inst);
       const declareError = this.tableBuilder.declareVariable(
-        ScopeType.local,
+        ScopeKind.local,
         inst.identifier,
       );
 
@@ -860,7 +860,7 @@ export class Resolver
     let defineError: Maybe<Diagnostic> = undefined;
 
     // if we find the symbol just set it
-    if (!empty(this.tableBuilder.lookupBinding(set, ScopeType.global))) {
+    if (!empty(this.tableBuilder.lookupBinding(set, ScopeKind.global))) {
       defineError = this.tableBuilder.setBinding(set);
 
       // if we didn't find it and we're not lazy global add error
@@ -874,7 +874,7 @@ export class Resolver
 
       // not found and lazy global so declare global
     } else {
-      defineError = this.tableBuilder.declareVariable(ScopeType.global, set);
+      defineError = this.tableBuilder.declareVariable(ScopeKind.global, set);
     }
 
     if (!empty(defineError)) {
@@ -1029,7 +1029,7 @@ export class Resolver
       node,
       functionDepth: this.functionDepth,
       loopDepth: this.loopDepth,
-      path: this.tableBuilder.getPath(),
+      ...this.tableBuilder.getPath(),
     });
 
     // for now kinda a hack for now may need to look at scope building again

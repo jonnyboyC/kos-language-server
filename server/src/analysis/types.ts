@@ -5,7 +5,7 @@ import { IToken } from '../entities/types';
 import { KsParameter } from '../entities/parameters';
 import { Range, Location } from 'vscode-languageserver';
 import { IArgumentType, IFunctionType } from '../typeChecker/types/types';
-import { IExpr, ISuffixTerm, IInst } from '../parser/types';
+import { IExpr, IInst, ScopeKind } from '../parser/types';
 
 export const enum SymbolState {
   declared,
@@ -24,11 +24,6 @@ export interface IFunctionScanResult {
   return: boolean;
 }
 
-export interface ILocalResult {
-  token: IToken;
-  expr: IExpr | ISuffixTerm;
-}
-
 export interface IScope extends Map<string, IKsSymbolTracker> {
   symbols(): KsSymbol[];
 }
@@ -45,7 +40,7 @@ export interface IKsSymbolTracker<T extends KsSymbol = KsSymbol> {
   /**
    * Infromation about locations where the this symbol was set
    */
-  sets: IKsChange[];
+  sets: IKsSet[];
 
   /**
    * Locations where this symbol was used
@@ -77,9 +72,8 @@ export interface IScopePath {
   backTrack: IStack<number>;
 }
 
-export interface IKsChange extends Location {
+export interface IKsSet extends Location {
   type: IArgumentType;
-  expr?: IExpr | ISuffixTerm;
 }
 
 export interface IKsDeclared<T extends KsSymbol> extends Location {
@@ -88,14 +82,14 @@ export interface IKsDeclared<T extends KsSymbol> extends Location {
 }
 
 export interface IRealScopePosition extends Range {
-  tag: 'real';
+  kind: ScopeKind.local;
 }
 
 export interface IGlobalScopePosition {
-  tag: 'global';
+  kind: ScopeKind.global;
 }
 
-type IScopePosition = IRealScopePosition | IGlobalScopePosition;
+export type IScopePosition = IRealScopePosition | IGlobalScopePosition;
 
 export interface GraphNode<T> {
   value: T;
@@ -103,6 +97,7 @@ export interface GraphNode<T> {
 }
 
 export interface IScopeNode {
+  readonly parent: Maybe<IScopeNode>;
   readonly position: IScopePosition;
   readonly scope: IScope;
   readonly children: IScopeNode[];
@@ -110,7 +105,7 @@ export interface IScopeNode {
 
 export interface ISetResolverResult {
   readonly set: Maybe<IToken>;
-  readonly used: ILocalResult[];
+  readonly used: IToken[];
 }
 
 export type KsSymbol = KsVariable | KsFunction | KsLock | KsParameter;
@@ -131,6 +126,11 @@ export interface IDeferred {
    * Path to scope
    */
   path: IScopePath;
+
+  /**
+   * Path to scope
+   */
+  activeScope: IScopeNode;
 
   /**
    * How many loops deep is the current location

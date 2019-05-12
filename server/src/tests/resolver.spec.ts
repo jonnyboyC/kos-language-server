@@ -327,9 +327,10 @@ describe('Resolver tracking', () => {
       expect(rangeEqual(name, range)).toBeTruthy();
       expect(tag).toBe(KsSymbolKind.variable);
       expect(xTracker.usages.length).toBe(3);
+      expect(xTracker.sets.length).toBe(1);
     }
 
-    // check loop x
+    // check t lock
     const tTracker = table.scopedNamedTracker({ line: 16, character: 0 }, 't');
 
     expect(tTracker).not.toBeUndefined();
@@ -400,7 +401,7 @@ describe('Resolver errors', () => {
       .sort((a, b) => a.range.start.line - b.range.start.line);
 
     for (const [error, location] of zip(sortedErrors, definedLocations)) {
-      expect(DiagnosticSeverity.Error).toBe(error.severity);
+      expect(error.severity).toBe(DiagnosticSeverity.Warning);
       expect(location.start).toEqual(error.range.start);
       expect(location.end).toEqual(error.range.end);
     }
@@ -668,10 +669,10 @@ describe('Local Resolver', () => {
       expect(resolverResult.length).toBe(4);
       const [thing, used1, used2, used3] = resolverResult;
 
-      expect(thing.token.lexeme).toBe('Thing');
-      expect(used1.token.lexeme).toBe('used1');
-      expect(used2.token.lexeme).toBe('used2');
-      expect(used3.token.lexeme).toBe('used3');
+      expect(thing.lexeme).toBe('Thing');
+      expect(used1.lexeme).toBe('used1');
+      expect(used2.lexeme).toBe('used2');
+      expect(used3.lexeme).toBe('used3');
 
     } else {
       expect(true).toBeFalsy();
@@ -692,11 +693,11 @@ describe('Local Resolver', () => {
       expect(resolverResult.length).toBe(5);
       const [first, nest, array, exponent, example] = resolverResult;
 
-      expect(first.token.lexeme).toBe('first');
-      expect(nest.token.lexeme).toBe('nest');
-      expect(array.token.lexeme).toBe('array');
-      expect(exponent.token.lexeme).toBe('exponent');
-      expect(example.token.lexeme).toBe('example');
+      expect(first.lexeme).toBe('first');
+      expect(nest.lexeme).toBe('nest');
+      expect(array.lexeme).toBe('array');
+      expect(exponent.lexeme).toBe('exponent');
+      expect(example.lexeme).toBe('example');
 
     } else {
       expect(true).toBeFalsy();
@@ -725,10 +726,10 @@ describe('Set Resolver', () => {
       expect(used.length).toBe(4);
 
       const [fart, used1, used2, used3] = used;
-      expect(fart.token.lexeme).toBe('fart');
-      expect(used1.token.lexeme).toBe('used1');
-      expect(used2.token.lexeme).toBe('used2');
-      expect(used3.token.lexeme).toBe('used3');
+      expect(fart.lexeme).toBe('fart');
+      expect(used1.lexeme).toBe('used1');
+      expect(used2.lexeme).toBe('used2');
+      expect(used3.lexeme).toBe('used3');
 
     } else {
       expect(true).toBeFalsy();

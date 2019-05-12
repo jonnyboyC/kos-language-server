@@ -10,7 +10,7 @@ import {
   positionAfterEqual,
   positionBeforeEqual,
   positionToString,
-  rangeContains,
+  rangeContainsPos,
   rangeIntersection,
   rangeBefore,
   rangeAfter,
@@ -217,8 +217,8 @@ describe('position utils', () => {
     expect(rangeEqual(rangeWithin, rangeWithin)).toBeTruthy();
     expect(rangeEqual(rangeIntersect, rangeIntersect)).toBeTruthy();
 
-    expect(rangeContains(range1, rangeWithin.start)).toBeTruthy();
-    expect(rangeContains(range1, rangeWithin.end)).toBeTruthy();
+    expect(rangeContainsPos(range1, rangeWithin.start)).toBeTruthy();
+    expect(rangeContainsPos(range1, rangeWithin.end)).toBeTruthy();
 
     expect(rangeIntersection(range1, rangeIntersect)).toBeTruthy();
     expect(rangeIntersection(rangeIntersect, range1)).toBeTruthy();
