@@ -1,3 +1,16 @@
+# [0.5.0] (2019-5-13)
+
+## Features
+- **Break and Return Diagnostics** The language server is now able to find breaks outside of loops and returns outside of functions. A diagnostics reports when these occure
+- **On Hover Improvements** Overall the on hover has been improved. The server now indicates the response is code can should be formatted as such. Additionally some symbols that previously wouldn't allow on hover now work as expected
+
+## Bug Fixes
+- **Return Syntax Highlighting** syntax highlighting now occurs correct for all forms of return. Previously only `return expression.` would highlight correctly but `return.` now highlights as well
+
+## Other
+- **Type Checker Performance** Some changes to how the type checker looks up symbols has results in a speed up for `5x - 10x`
+- **Atom Client and Grammar Submodules** The atom client and the textmat grammar have sucessfully been moved to thier own repos and included here as submodules
+
 # [0.4.0] (2019-5-4)
 
 ## Features
@@ -26,8 +39,6 @@
   this now indicates via a hint that `b` may not be defined during the script run. Usages and go to defintion should both now work in this situation.
 - **true / false syntax**: previously the syntax highlighting would only highlight `true` or `false` if all lowercase. Now highlighting works for any casing of `TRUE` or `FALSE`. 
 
-
-## Bug Fixes
 
 # [0.3.4] (2019-4-25)
 
