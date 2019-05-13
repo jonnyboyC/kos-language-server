@@ -13,7 +13,7 @@ export interface IRangeSequence extends Range {
 export interface IDeclScope extends IRangeSequence {
   declare?: IToken;
   scope?: IToken;
-  type: ScopeType;
+  type: ScopeKind;
   toString(): string;
 }
 
@@ -168,7 +168,7 @@ export interface INodeResult<T> {
   value: T;
 }
 
-export enum ScopeType {
+export enum ScopeKind {
   local,
   global,
 }

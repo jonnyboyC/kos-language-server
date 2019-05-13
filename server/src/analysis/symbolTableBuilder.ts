@@ -1,12 +1,11 @@
 import { empty } from '../utilities/typeGuards';
-import { ScopeType, IExpr, ISuffixTerm } from '../parser/types';
+import { ScopeKind } from '../parser/types';
 import { KsVariable } from '../entities/variable';
 import {
   SymbolState,
   IScope,
   IScopeNode,
   KsSymbol,
-  IStack,
   IKsSymbolTracker,
   KsSymbolKind,
   IScopePath,
@@ -24,7 +23,7 @@ import { KsParameter } from '../entities/parameters';
 import { ScopePosition } from './scopePosition';
 import { mockLogger } from '../utilities/logger';
 import { Scope } from './scope';
-import { KsSymbolTracker, createEnitityChange } from './tracker';
+import { KsSymbolTracker, createSymbolSet } from './tracker';
 import { IArgumentType, IFunctionType } from '../typeChecker/types/types';
 import { SymbolTable } from './symbolTable';
 import {
@@ -40,6 +39,7 @@ import {
 import { createDiagnostic } from '../utilities/diagnosticsUtils';
 import { builtIn } from '../utilities/constants';
 import { toCase } from '../utilities/stringUtils';
+import { cleanLocation } from '../utilities/clean';
 
 /**
  * The Symbol table builder is used to declare new symbols and track new symbols
@@ -55,6 +55,11 @@ export class SymbolTableBuilder {
    * The root scope include the global scope and it's children
    */
   private readonly rootScope: IScopeNode;
+
+  /**
+   * The active scope
+   */
+  private activeScope: IScopeNode;
 
   /**
    * The scope path in the scope
@@ -80,10 +85,12 @@ export class SymbolTableBuilder {
     this.logger = logger;
     this.global = new Scope();
     this.rootScope = {
+      parent: undefined,
       scope: this.global,
       children: [],
-      position: { tag: 'global' },
+      position: { kind: ScopeKind.global },
     };
+    this.activeScope = this.rootScope;
     this.path = {
       active: [],
       backTrack: [],
@@ -111,17 +118,31 @@ export class SymbolTableBuilder {
       active: [],
       backTrack: [],
     };
+    this.activeScope = this.rootScope;
   }
 
-  public getPath(): IScopePath {
+  /**
+   * Get the current scope path TODO consider recomputing active scope
+   * when set
+   */
+  public getPath(): { path: IScopePath; activeScope: IScopeNode } {
     return {
-      active: [...this.path.active],
-      backTrack: [...this.path.backTrack],
+      activeScope: this.activeScope,
+      path: {
+        active: [...this.path.active],
+        backTrack: [...this.path.backTrack],
+      },
     };
   }
 
-  public setPath(path: IScopePath): void {
+  /**
+   * Set the current scope path
+   * @param path current path
+   * @param activeScope current scope
+   */
+  public setPath(path: IScopePath, activeScope: IScopeNode): void {
     this.path = path;
+    this.activeScope = activeScope;
   }
 
   /**
@@ -137,20 +158,32 @@ export class SymbolTableBuilder {
    * @param range the range of the new scope
    */
   public beginScope(range: Range): void {
+    // determine next scope node
     const depth = this.path.active.length - 1;
     const next = !empty(this.path.backTrack[depth + 1])
       ? this.path.backTrack[depth + 1] + 1
       : 0;
 
-    const activeNode = this.activeScopeNode();
+    const currentScope = this.activeScope;
+    let activeScope: IScopeNode;
 
-    if (empty(activeNode.children[next])) {
-      activeNode.children.push({
+    // generate a new scope node if it doesn't exist
+    if (empty(currentScope.children[next])) {
+      activeScope = {
+        parent: currentScope,
         scope: new Scope(),
         position: new ScopePosition(range.start, range.end),
         children: [],
-      });
+      };
+
+      currentScope.children.push(activeScope);
+
+      // or get the existing one
+    } else {
+      activeScope = currentScope.children[next];
     }
+
+    this.activeScope = activeScope;
 
     this.logger.verbose(`begin scope at ${positionToString(range.start)}`);
 
@@ -162,11 +195,18 @@ export class SymbolTableBuilder {
    * Pop the current scope off the stack
    */
   public endScope(): void {
-    const { position } = this.activeScopeNode();
+    const currentScope = this.activeScope;
+    if (empty(currentScope.parent)) {
+      throw new Error('Attempted to pop the global scope');
+    }
+
+    this.activeScope = currentScope.parent;
     this.path.active.pop();
 
-    if (position.tag === 'real') {
-      this.logger.verbose(`end scope at ${positionToString(position.end)}`);
+    if (currentScope.position.kind === ScopeKind.local) {
+      this.logger.verbose(
+        `end scope at ${positionToString(currentScope.position.end)}`,
+      );
     }
   }
 
@@ -181,14 +221,14 @@ export class SymbolTableBuilder {
    * Indicate if the current scope if global scope
    */
   public isGlobalScope(): boolean {
-    return this.activeScopeNode() === this.rootScope;
+    return this.activeScope === this.rootScope;
   }
 
   /**
    * Returns the current scope depth
    */
   public scopeDepth(): number {
-    return this.activeScopeStack().length;
+    return this.path.active.length;
   }
 
   /**
@@ -204,70 +244,60 @@ export class SymbolTableBuilder {
   /**
    * Use a symbol in the symbol table
    * @param name token for the current symbol
-   * @param expr the expresion the symbol was used in
    */
-  public useSymbol(name: IToken, expr: IExpr | ISuffixTerm): Maybe<Diagnostic> {
-    const tracker = this.lookup(name, ScopeType.global);
+  public useSymbol(name: IToken): Maybe<Diagnostic> {
+    const tracker = this.lookup(name.lookup, ScopeKind.global);
 
     // check if symbols exists
     if (empty(tracker)) {
       return createDiagnostic(
         name,
         `Symbol ${name.lexeme} may not exist`,
-        DiagnosticSeverity.Error,
+        DiagnosticSeverity.Warning,
       );
     }
 
-    return this.checkUseSymbol(
-      name,
-      tracker,
-      tracker.declared.symbol.tag,
-      expr,
-    );
+    return this.checkUseSymbol(name, tracker, tracker.declared.symbol.tag);
   }
 
   /**
    * Use a variable symbol
    * @param name token for the current variable
-   * @param expr the expression the symbol was used in
    */
-  public useVariable(name: IToken, expr?: IExpr): Maybe<Diagnostic> {
-    const variable = this.lookupVariableTracker(name, ScopeType.global);
+  public useVariable(name: IToken): Maybe<Diagnostic> {
+    const variable = this.lookupVariableTracker(name, ScopeKind.global);
 
-    return this.checkUseSymbol(name, variable, KsSymbolKind.variable, expr);
+    return this.checkUseSymbol(name, variable, KsSymbolKind.variable);
   }
 
   /**
    * Use a function symbol
    * @param name token for the current function
-   * @param expr the expression the symbol was used in
    */
-  public useFunction(name: IToken, expr?: IExpr): Maybe<Diagnostic> {
-    const func = this.lookupFunctionTracker(name, ScopeType.global);
+  public useFunction(name: IToken): Maybe<Diagnostic> {
+    const func = this.lookupFunctionTracker(name, ScopeKind.global);
 
-    return this.checkUseSymbol(name, func, KsSymbolKind.function, expr);
+    return this.checkUseSymbol(name, func, KsSymbolKind.function);
   }
 
   /**
    * Use a lock symbol
    * @param name token for the current lock
-   * @param expr the expression the symbol was used in
    */
-  public useLock(name: IToken, expr?: IExpr): Maybe<Diagnostic> {
-    const lock = this.lookupLockTracker(name, ScopeType.global);
+  public useLock(name: IToken): Maybe<Diagnostic> {
+    const lock = this.lookupLockTracker(name, ScopeKind.global);
 
-    return this.checkUseSymbol(name, lock, KsSymbolKind.lock, expr);
+    return this.checkUseSymbol(name, lock, KsSymbolKind.lock);
   }
 
   /**
    * Use a parameter symbol
    * @param name token for the current parameter
-   * @param expr the expression the symbol was used in
    */
-  public useParameter(name: IToken, expr: IExpr): Maybe<Diagnostic> {
-    const parameter = this.lookupParameterTracker(name, ScopeType.global);
+  public useParameter(name: IToken): Maybe<Diagnostic> {
+    const parameter = this.lookupParameterTracker(name, ScopeKind.global);
 
-    return this.checkUseSymbol(name, parameter, KsSymbolKind.parameter, expr);
+    return this.checkUseSymbol(name, parameter, KsSymbolKind.parameter);
   }
 
   /**
@@ -275,18 +305,19 @@ export class SymbolTableBuilder {
    * @param token token for the variable to set
    */
   public setBinding(token: IToken): Maybe<Diagnostic> {
-    const tracker = this.lookup(token, ScopeType.global);
+    const tracker = this.lookup(token.lookup, ScopeKind.global);
 
     // check if variable has already been defined
     if (empty(tracker)) {
       return createDiagnostic(
         token,
         `${token.lexeme} may not exist`,
-        DiagnosticSeverity.Error,
+        DiagnosticSeverity.Warning,
       );
     }
 
     token.tracker = tracker;
+    tracker.sets.push(createSymbolSet(token));
     this.logger.verbose(
       `set variable ${token.lexeme} at ${rangeToString(token)}`,
     );
@@ -300,11 +331,11 @@ export class SymbolTableBuilder {
    * @param type type to declare variable as
    */
   public declareVariable(
-    scopeType: ScopeType,
+    scopeType: ScopeKind,
     token: IToken,
     type?: IArgumentType,
   ): Maybe<Diagnostic> {
-    const conflictTracker = this.lookup(token, scopeType);
+    const conflictTracker = this.lookup(token.lookup, scopeType);
 
     // check if variable has already been defined
     if (!empty(conflictTracker)) {
@@ -314,12 +345,12 @@ export class SymbolTableBuilder {
     let diagnostic: Maybe<Diagnostic>;
 
     // if global we can't shadow
-    if (scopeType === ScopeType.global) {
+    if (scopeType === ScopeKind.global) {
       diagnostic = undefined;
 
       // if local check for shadowing hints
     } else {
-      const shadowTracker = this.lookup(token, ScopeType.global);
+      const shadowTracker = this.lookup(token.lookup, ScopeKind.global);
       diagnostic = empty(shadowTracker)
         ? undefined
         : this.shadowSymbolHint(
@@ -329,11 +360,15 @@ export class SymbolTableBuilder {
           );
     }
 
-    const scope = this.selectScope(scopeType);
-    const tracker = new KsSymbolTracker(new KsVariable(scopeType, token), type);
+    const scopeNode = this.selectScopeNode(scopeType);
+    const tracker = new KsSymbolTracker(
+      new KsVariable(scopeType, token),
+      this.uri,
+      type,
+    );
 
     token.tracker = tracker;
-    scope.set(token.lookup, tracker);
+    scopeNode.scope.set(token.lookup, tracker);
 
     this.logger.verbose(
       `declare variable ${token.lexeme} at ${rangeToString(token)}`,
@@ -352,14 +387,14 @@ export class SymbolTableBuilder {
    * @param type type to declare function as
    */
   public declareFunction(
-    scopeType: ScopeType,
+    scopeType: ScopeKind,
     token: IToken,
     requiredParameters: number,
     optionalParameters: number,
     returnValue: boolean,
     type?: IFunctionType,
   ): Maybe<Diagnostic> {
-    const conflictTracker = this.lookup(token, scopeType);
+    const conflictTracker = this.lookup(token.lookup, scopeType);
 
     // check if variable has already been defined
     if (!empty(conflictTracker)) {
@@ -369,12 +404,12 @@ export class SymbolTableBuilder {
     let diagnostic: Maybe<Diagnostic>;
 
     // if global we can't shadow
-    if (scopeType === ScopeType.global) {
+    if (scopeType === ScopeKind.global) {
       diagnostic = undefined;
 
       // if local check for shadowing hints
     } else {
-      const shadowTracker = this.lookup(token, ScopeType.global);
+      const shadowTracker = this.lookup(token.lookup, ScopeKind.global);
       diagnostic = empty(shadowTracker)
         ? undefined
         : this.shadowSymbolHint(
@@ -384,7 +419,7 @@ export class SymbolTableBuilder {
           );
     }
 
-    const scope = this.selectScope(scopeType);
+    const scopeNode = this.selectScopeNode(scopeType);
     const tracker = new KsSymbolTracker(
       new KsFunction(
         scopeType,
@@ -393,11 +428,12 @@ export class SymbolTableBuilder {
         optionalParameters,
         returnValue,
       ),
+      this.uri,
       type,
     );
 
     token.tracker = tracker;
-    scope.set(token.lookup, tracker);
+    scopeNode.scope.set(token.lookup, tracker);
 
     this.logger.verbose(
       `declare function ${token.lexeme} at ${rangeToString(token)}`,
@@ -413,11 +449,11 @@ export class SymbolTableBuilder {
    * @param type type to declare lock as
    */
   public declareLock(
-    scopeType: ScopeType,
+    scopeType: ScopeKind,
     token: IToken,
     type?: IArgumentType,
   ): Maybe<Diagnostic> {
-    const conflictTracker = this.lookup(token, scopeType);
+    const conflictTracker = this.lookup(token.lookup, scopeType);
 
     // check if variable has already been defined
     if (!empty(conflictTracker)) {
@@ -427,12 +463,12 @@ export class SymbolTableBuilder {
     let diagnostic: Maybe<Diagnostic>;
 
     // if global we can't shadow
-    if (scopeType === ScopeType.global) {
+    if (scopeType === ScopeKind.global) {
       diagnostic = undefined;
 
       // if local check for shadowing hints
     } else {
-      const shadowTracker = this.lookup(token, ScopeType.global);
+      const shadowTracker = this.lookup(token.lookup, ScopeKind.global);
       diagnostic = empty(shadowTracker)
         ? undefined
         : this.shadowSymbolHint(
@@ -442,11 +478,15 @@ export class SymbolTableBuilder {
           );
     }
 
-    const scope = this.selectScope(scopeType);
-    const tracker = new KsSymbolTracker(new KsLock(scopeType, token), type);
+    const scopeNode = this.selectScopeNode(scopeType);
+    const tracker = new KsSymbolTracker(
+      new KsLock(scopeType, token),
+      this.uri,
+      type,
+    );
 
     token.tracker = tracker;
-    scope.set(token.lookup, tracker);
+    scopeNode.scope.set(token.lookup, tracker);
 
     this.logger.verbose(
       `declare lock ${token.lexeme} at ${rangeToString(token)}`,
@@ -462,11 +502,11 @@ export class SymbolTableBuilder {
    * @param defaulted is the parameter defaulted
    */
   public declareParameter(
-    scopeType: ScopeType,
+    scopeType: ScopeKind,
     token: IToken,
     defaulted: boolean,
   ): Maybe<Diagnostic> {
-    const conflictTracker = this.lookup(token, scopeType);
+    const conflictTracker = this.lookup(token.lookup, scopeType);
 
     // check if variable has already been defined
     if (!empty(conflictTracker)) {
@@ -476,12 +516,12 @@ export class SymbolTableBuilder {
     let diagnostic: Maybe<Diagnostic>;
 
     // if global we can't shadow
-    if (scopeType === ScopeType.global) {
+    if (scopeType === ScopeKind.global) {
       diagnostic = undefined;
 
       // if local check for shadowing hints
     } else {
-      const shadowTracker = this.lookup(token, ScopeType.global);
+      const shadowTracker = this.lookup(token.lookup, ScopeKind.global);
       diagnostic = empty(shadowTracker)
         ? undefined
         : this.shadowSymbolHint(
@@ -491,13 +531,14 @@ export class SymbolTableBuilder {
           );
     }
 
-    const scope = this.selectScope(scopeType);
+    const scopeNode = this.selectScopeNode(scopeType);
     const tracker = new KsSymbolTracker(
       new KsParameter(token, defaulted, SymbolState.declared),
+      this.uri,
     );
 
     token.tracker = tracker;
-    scope.set(token.lookup, tracker);
+    scopeNode.scope.set(token.lookup, tracker);
 
     this.logger.verbose(
       `declare parameter ${token.lexeme} at ${rangeToString(token)}`,
@@ -516,20 +557,19 @@ export class SymbolTableBuilder {
     token: IToken,
     tracker: Maybe<IKsSymbolTracker>,
     symbolType: KsSymbolKind,
-    expr?: IExpr | ISuffixTerm,
   ): Maybe<Diagnostic> {
     // check that variable has already been defined
     if (empty(tracker)) {
       return createDiagnostic(
         token,
         `${symbolType} ${token.lexeme} may not exist.`,
-        DiagnosticSeverity.Error,
+        DiagnosticSeverity.Warning,
       );
     }
 
     // indicate usage
     token.tracker = tracker;
-    tracker.usages.push(createEnitityChange(token, expr));
+    tracker.usages.push(cleanLocation(token));
     this.logger.verbose(
       `Use ${symbolType} ${token.lexeme} at ${rangeToString(token)}`,
     );
@@ -563,7 +603,7 @@ export class SymbolTableBuilder {
    * @param token token for the requested variable
    * @param scope requested scope lookup
    */
-  public lookupVariable(token: IToken, scope: ScopeType): Maybe<KsVariable> {
+  public lookupVariable(token: IToken, scope: ScopeKind): Maybe<KsVariable> {
     const tracker = this.lookupVariableTracker(token, scope);
     return tracker && tracker.declared.symbol;
   }
@@ -573,7 +613,7 @@ export class SymbolTableBuilder {
    * @param token token for the requested function
    * @param scope requested scope lookup
    */
-  public lookupFunction(token: IToken, scope: ScopeType): Maybe<KsFunction> {
+  public lookupFunction(token: IToken, scope: ScopeKind): Maybe<KsFunction> {
     const tracker = this.lookupFunctionTracker(token, scope);
     return tracker && tracker.declared.symbol;
   }
@@ -583,7 +623,7 @@ export class SymbolTableBuilder {
    * @param token token for the requested lock
    * @param scope requested scope lookup
    */
-  public lookupLock(token: IToken, scope: ScopeType): Maybe<KsLock> {
+  public lookupLock(token: IToken, scope: ScopeKind): Maybe<KsLock> {
     const tracker = this.lookupLockTracker(token, scope);
     return tracker && tracker.declared.symbol;
   }
@@ -593,7 +633,7 @@ export class SymbolTableBuilder {
    * @param token token for the requested parameter
    * @param scope requested scope lookup
    */
-  public lookupParameter(token: IToken, scope: ScopeType): Maybe<KsParameter> {
+  public lookupParameter(token: IToken, scope: ScopeKind): Maybe<KsParameter> {
     const tracker = this.lookupParameterTracker(token, scope);
     return tracker && tracker.declared.symbol;
   }
@@ -605,7 +645,7 @@ export class SymbolTableBuilder {
    */
   public lookupBinding(
     token: IToken,
-    scope: ScopeType,
+    scope: ScopeKind,
   ): Maybe<KsParameter | KsVariable> {
     const tracker = this.lookupBindingTracker(token, scope);
     return tracker && tracker.declared.symbol;
@@ -614,13 +654,13 @@ export class SymbolTableBuilder {
   /**
    * lookup a variable tracker
    * @param token token for the requested variable
-   * @param scope requested scope lookup
+   * @param scopeKind requested scope lookup
    */
   public lookupVariableTracker(
     token: IToken,
-    scope: ScopeType,
+    scopeKind: ScopeKind,
   ): Maybe<IKsSymbolTracker<KsVariable>> {
-    const tracker = this.lookup(token, scope);
+    const tracker = this.lookup(token.lookup, scopeKind);
 
     return !empty(tracker) && isKsVariable(tracker.declared.symbol)
       ? (tracker as IKsSymbolTracker<KsVariable>)
@@ -630,13 +670,13 @@ export class SymbolTableBuilder {
   /**
    * lookup a function tracker
    * @param token token for the requested function
-   * @param scope requested scope lookup
+   * @param scopeKind requested scope lookup
    */
   public lookupFunctionTracker(
     token: IToken,
-    scope: ScopeType,
+    scopeKind: ScopeKind,
   ): Maybe<IKsSymbolTracker<KsFunction>> {
-    const tracker = this.lookup(token, scope);
+    const tracker = this.lookup(token.lookup, scopeKind);
 
     return !empty(tracker) && isKsVariable(tracker.declared.symbol)
       ? (tracker as IKsSymbolTracker<KsFunction>)
@@ -646,13 +686,13 @@ export class SymbolTableBuilder {
   /**
    * lookup a lock tracker
    * @param token token for the requested lock
-   * @param scope requested scope lookup
+   * @param scopeKind requested scope lookup
    */
   public lookupLockTracker(
     token: IToken,
-    scope: ScopeType,
+    scopeKind: ScopeKind,
   ): Maybe<IKsSymbolTracker<KsLock>> {
-    const tracker = this.lookup(token, scope);
+    const tracker = this.lookup(token.lookup, scopeKind);
 
     return !empty(tracker) && isKsLock(tracker.declared.symbol)
       ? (tracker as IKsSymbolTracker<KsLock>)
@@ -662,13 +702,13 @@ export class SymbolTableBuilder {
   /**
    * lookup a parameter tracker
    * @param token token for the requested parameter
-   * @param scope requested scope lookup
+   * @param scopeKind requested scope lookup
    */
   public lookupParameterTracker(
     token: IToken,
-    scope: ScopeType,
+    scopeKind: ScopeKind,
   ): Maybe<IKsSymbolTracker<KsParameter>> {
-    const tracker = this.lookup(token, scope);
+    const tracker = this.lookup(token.lookup, scopeKind);
 
     return !empty(tracker) && isKsParameter(tracker.declared.symbol)
       ? (tracker as IKsSymbolTracker<KsParameter>)
@@ -678,13 +718,13 @@ export class SymbolTableBuilder {
   /**
    * lookup a parameter tracker
    * @param token token for the requested parameter
-   * @param scope requested scope lookup
+   * @param scopeKind requested scope lookup
    */
   public lookupBindingTracker(
     token: IToken,
-    scope: ScopeType,
+    scopeKind: ScopeKind,
   ): Maybe<IKsSymbolTracker<KsParameter | KsVariable>> {
-    const tracker = this.lookup(token, scope);
+    const tracker = this.lookup(token.lookup, scopeKind);
 
     return !empty(tracker) &&
       (isKsParameter(tracker.declared.symbol) ||
@@ -759,29 +799,48 @@ export class SymbolTableBuilder {
   }
 
   /**
-   * Lookup a symbol in the active scope stack
-   * @param token token for the requested symbol
-   * @param scope scope type for the lookup local or global
+   * Determine if a symbol tracker is in the current path
+   * @param lookup token lookup string
+   * @param scopeKind scope kind for the lookup local or global
    */
-  private lookup(token: IToken, scope: ScopeType): Maybe<IKsSymbolTracker> {
-    if (scope === ScopeType.local) {
-      return this.peekScope().get(token.lookup);
+  private lookup(
+    lookup: string,
+    scopeKind: ScopeKind,
+  ): Maybe<IKsSymbolTracker> {
+    const scopeNode = this.lookupScopeNode(lookup, scopeKind);
+    if (empty(scopeNode)) {
+      return undefined;
     }
 
-    const scopes = this.activeScopeStack();
-    for (let i = scopes.length - 1; i >= 0; i -= 1) {
-      const scope = scopes[i];
-      const tracker = scope.get(token.lookup);
-      if (!empty(tracker)) {
-        return tracker;
+    return scopeNode.scope.get(lookup);
+  }
+
+  /**
+   * Determine if a scope in the current path contains a symbol of interest
+   * @param lookup token lookup string
+   * @param scopeKind scope kind for the lookup local or global
+   */
+  private lookupScopeNode(
+    lookup: string,
+    scopeKind: ScopeKind,
+  ): Maybe<IScopeNode> {
+    if (scopeKind === ScopeKind.local) {
+      return this.peekScope().has(lookup) ? this.activeScope : undefined;
+    }
+
+    let currentScope: Maybe<IScopeNode> = this.activeScope;
+    while (!empty(currentScope)) {
+      if (currentScope.scope.has(lookup)) {
+        return currentScope;
       }
+
+      currentScope = currentScope.parent;
     }
 
     // check child scopes symbol is in another file
     for (const child of this.childSymbolTables) {
-      const tracker = child.rootScope.scope.get(token.lookup);
-      if (!empty(tracker)) {
-        return tracker;
+      if (child.rootScope.scope.has(lookup)) {
+        return child.rootScope;
       }
     }
 
@@ -792,58 +851,15 @@ export class SymbolTableBuilder {
    * Retrieve the appropriate scope
    * @param type scope type global or local
    */
-  private selectScope(type: ScopeType): IScope {
-    return type === ScopeType.global ? this.global : this.peekScope();
-  }
-
-  /**
-   * Get the currently active scope node
-   */
-  private activeScopeNode(): IScopeNode {
-    let scopeNode = this.rootScope;
-
-    for (const scopeId of this.path.active) {
-      scopeNode = scopeNode.children[scopeId];
-
-      if (empty(scopeNode)) {
-        throw new Error(
-          `Unable to find scope node for path ${JSON.stringify(
-            this.path.active,
-          )}`,
-        );
-      }
-    }
-
-    return scopeNode;
-  }
-
-  /**
-   * Generate an actual scope of the current scope path
-   */
-  private activeScopeStack(): IStack<IScope> {
-    const scopes: IStack<IScope> = [this.rootScope.scope];
-    let scopeNode = this.rootScope;
-
-    for (const scopeId of this.path.active) {
-      scopeNode = scopeNode.children[scopeId];
-
-      if (empty(scopeNode)) {
-        throw new Error(
-          `Unable to find scope stack for path ${JSON.stringify(
-            this.path.active,
-          )}`,
-        );
-      }
-      scopes.push(scopeNode.scope);
-    }
-    return scopes;
+  private selectScopeNode(type: ScopeKind): IScopeNode {
+    return type === ScopeKind.global ? this.rootScope : this.activeScope;
   }
 
   /**
    * Retrieve the currently active scope
    */
   private peekScope(): IScope {
-    return this.activeScopeNode().scope;
+    return this.activeScope.scope;
   }
 
   /**
@@ -858,8 +874,9 @@ export class SymbolTableBuilder {
   ): Diagnostic {
     return createDiagnostic(
       name,
-      `${toCase(CaseKind.pascalcase, KsSymbolKind[symbol.tag])} ${symbol.name.lexeme} ` +
-        `already exists here. This ${KsSymbolKind[kind]} shadows it.`,
+      `${toCase(CaseKind.pascalcase, KsSymbolKind[symbol.tag])} ${
+        symbol.name.lexeme
+      } ` + `already exists here. This ${KsSymbolKind[kind]} shadows it.`,
       DiagnosticSeverity.Warning,
       undefined,
       [

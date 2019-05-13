@@ -275,6 +275,7 @@ documents.onDidChangeContent(async change => {
     let total = 0;
     const diagnosticMap: Map<string, Diagnostic[]> = new Map();
 
+    // retrieve diagnostics from analyzer
     for await (const diagnostics of diagnosticResults) {
       total += diagnostics.length;
 
@@ -288,6 +289,7 @@ documents.onDidChangeContent(async change => {
       }
     }
 
+    // send diagnostics to each document reported
     for (const [uri, diagnostics] of diagnosticMap.entries()) {
       connection.sendDiagnostics({
         uri,
@@ -350,9 +352,14 @@ connection.onHover(
     const [type, entityType] = typeInfo;
 
     return {
-      contents: `(${KsSymbolKind[entityType]}) ${
-        token.lexeme
-      }: ${type.toTypeString()} `,
+      contents: {
+        // Note doesn't does do much other than format it as code
+        // may look into adding type def syntax highlighting
+        language: 'kos',
+        value: `(${KsSymbolKind[entityType]}) ${
+          token.lexeme
+        }: ${type.toTypeString()} `,
+      },
       range: {
         start: cleanPosition(token.start),
         end: cleanPosition(token.end),
