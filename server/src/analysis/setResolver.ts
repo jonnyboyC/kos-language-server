@@ -2,9 +2,10 @@ import { IExprVisitor, IExpr, ISuffixTerm, ISuffixTermVisitor } from '../parser/
 import * as Expr from '../parser/expr';
 import * as SuffixTerm from '../parser/suffixTerm';
 import { LocalResolver } from './localResolver';
-import { ISetResolverResult, ILocalResult } from './types';
+import { ISetResolverResult } from './types';
 import { setResult } from './setResult';
 import { empty } from '../utilities/typeGuards';
+import { IToken } from '../entities/types';
 
 /**
  * Identify all local sybmbols used and all used symbols
@@ -121,7 +122,7 @@ export class SetResolver implements
 
     return setResult(result.set, result.used, expr.trailers.reduce(
       (acc, curr) => acc.concat(this.localResolver.resolveSuffixTerm(curr)),
-      [] as ILocalResult[]));
+      [] as IToken[]));
   }
 
   /**

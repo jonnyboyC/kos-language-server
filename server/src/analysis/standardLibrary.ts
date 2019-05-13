@@ -1,4 +1,4 @@
-import { ScopeType } from '../parser/types';
+import { ScopeKind } from '../parser/types';
 import { Token, Marker } from '../entities/token';
 import { TokenType } from '../entities/tokentypes';
 import { queueType } from '../typeChecker/types/collections/queue';
@@ -643,7 +643,7 @@ export const standardLibraryBuilder = (caseKind: CaseKind): SymbolTable => {
 
   for (const [segements, functionType] of functionTypes) {
     libraryBuilder.declareFunction(
-      ScopeType.global,
+      ScopeKind.global,
       new Token(
         TokenType.identifier,
         toCase(caseKind, ...segements),
@@ -661,7 +661,7 @@ export const standardLibraryBuilder = (caseKind: CaseKind): SymbolTable => {
 
   for (const [segements, type] of variables) {
     libraryBuilder.declareVariable(
-      ScopeType.global,
+      ScopeKind.global,
       new Token(
         TokenType.identifier,
         toCase(caseKind, ...segements),
@@ -676,7 +676,7 @@ export const standardLibraryBuilder = (caseKind: CaseKind): SymbolTable => {
 
   for (const [segment, type] of locks) {
     libraryBuilder.declareLock(
-      ScopeType.global,
+      ScopeKind.global,
       new Token(
         TokenType.identifier,
         toCase(caseKind, ...segment),
@@ -697,7 +697,7 @@ export const bodyLibraryBuilder = (caseKind: CaseKind): SymbolTable => {
 
   for (const [identifier, type] of bodies) {
     bodyBuilder.declareVariable(
-      ScopeType.global,
+      ScopeKind.global,
       new Token(
         TokenType.identifier,
         toCase(caseKind, identifier),

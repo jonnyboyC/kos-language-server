@@ -1,5 +1,6 @@
 import { IRealScopePosition } from './types';
 import { Position } from 'vscode-languageserver';
+import { ScopeKind } from '../parser/types';
 
 export class ScopePosition implements IRealScopePosition {
   constructor(
@@ -7,7 +8,7 @@ export class ScopePosition implements IRealScopePosition {
     public end: Position) {
   }
 
-  get tag(): 'real' {
-    return 'real';
+  get kind(): ScopeKind.local {
+    return ScopeKind.local;
   }
 }

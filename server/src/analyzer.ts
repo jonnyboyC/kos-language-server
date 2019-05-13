@@ -41,7 +41,7 @@ import { TypeChecker } from './typeChecker/typeChecker';
 import { ITypeResolvedSuffix, ITypeNode } from './typeChecker/types';
 import { IToken } from './entities/types';
 import { IType } from './typeChecker/types/types';
-import { binarySearch, rangeContains } from './utilities/positionUtils';
+import { binarySearch, rangeContainsPos } from './utilities/positionUtils';
 
 export class Analyzer {
   public workspaceFolder?: string;
@@ -141,8 +141,7 @@ export class Analyzer {
             .reduce((acc, current) => acc.concat(current))
             .map(error => parseToDiagnostics(error, uri));
 
-    yield scanDiagnostics;
-    yield parserDiagnostics;
+    yield scanDiagnostics.concat(parserDiagnostics);
 
     // if any run instruction exist get uri then load
     if (script.runInsts.length > 0 && this.pathResolver.ready) {
@@ -153,7 +152,7 @@ export class Analyzer {
         for await (const result of this.loadAndValidateDocument(
           uri,
           loadData,
-          depth,
+          depth + 1,
         )) {
           if (Array.isArray(result)) {
             yield result;
@@ -193,7 +192,7 @@ export class Analyzer {
       this.tracer,
     );
 
-    // resolve the rest of the script
+    // traverse the ast to find functions to pre populate symbol table
     performance.mark('pre-resolver-start');
     const preDiagnostics = preResolver
       .resolve()
@@ -202,13 +201,15 @@ export class Analyzer {
     yield preDiagnostics;
     performance.mark('pre-resolver-end');
 
-    // perform an initial function pass
+    // traverse the ast again to resolve the remaning symbols
     performance.mark('resolver-start');
     const resolverDiagnostics = resolver
       .resolve()
       .map(error => addDiagnosticsUri(error, uri));
 
     yield resolverDiagnostics;
+
+    // find scopes were symbols were never used
     const unusedDiagnostics = symbolTableBuilder
       .findUnused()
       .map(error => addDiagnosticsUri(error, uri));
@@ -216,10 +217,12 @@ export class Analyzer {
     yield unusedDiagnostics;
     performance.mark('resolver-end');
 
+    // build the final symbol table
     const symbolTable = symbolTableBuilder.build();
+
+    // perform type checking
     const typeChecker = new TypeChecker(
       script,
-      symbolTable,
       this.logger,
       this.tracer,
     );
@@ -245,9 +248,10 @@ export class Analyzer {
     );
 
     // make sure to delete references so scope manager can be gc'ed
-    const documentInfo = this.documentInfos.get(uri);
+    let documentInfo: Maybe<IDocumentInfo> = this.documentInfos.get(uri);
     if (!empty(documentInfo)) {
       documentInfo.symbolsTable.removeSelf();
+      documentInfo = undefined;
     }
 
     this.documentInfos.set(uri, {
@@ -281,7 +285,7 @@ export class Analyzer {
     }
 
     // try to find an symbol at the position
-    const { script, symbolsTable } = documentInfo;
+    const { script } = documentInfo;
     const finder = new ScriptFind();
     const result = finder.find(
       script,
@@ -303,10 +307,10 @@ export class Analyzer {
     }
 
     if (node instanceof Expr.Suffix) {
-      const checker = new TypeChecker(script, symbolsTable);
+      const checker = new TypeChecker(script);
       const result = checker.checkSuffix(node);
 
-      if (rangeContains(result.resolved.atom, pos)) {
+      if (rangeContainsPos(result.resolved.atom, pos)) {
         return [result.resolved.atom.type, result.resolved.atomType];
       }
 
@@ -318,8 +322,7 @@ export class Analyzer {
       }
     }
 
-    const tracker = symbolsTable.scopedNamedTracker(pos, token.lookup);
-
+    const { tracker } = token;
     if (!empty(tracker)) {
       return [tracker.declared.type, tracker.declared.symbol.tag];
     }

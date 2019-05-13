@@ -2,7 +2,7 @@ import {
   IInstVisitor,
   IExprVisitor,
   IInst,
-  ScopeType,
+  ScopeKind,
   IExpr,
   ISuffixTerm,
   ISuffixTermVisitor,
@@ -157,20 +157,20 @@ export class PreResolver
   public visitDeclFunction(decl: Func): Diagnostics {
     const scopeToken = decl.scope && decl.scope.scope;
 
-    let scopeType: ScopeType;
+    let scopeType: ScopeKind;
 
     // functions are default global at file scope and local everywhere else
     if (empty(scopeToken)) {
       scopeType = this.tableBuilder.isFileScope()
-        ? ScopeType.global
-        : ScopeType.local;
+        ? ScopeKind.global
+        : ScopeKind.local;
     } else {
       switch (scopeToken.type) {
         case TokenType.local:
-          scopeType = ScopeType.local;
+          scopeType = ScopeKind.local;
           break;
         case TokenType.global:
-          scopeType = ScopeType.global;
+          scopeType = ScopeKind.global;
           break;
         default:
           throw new Error(
