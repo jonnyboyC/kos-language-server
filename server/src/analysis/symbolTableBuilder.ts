@@ -39,6 +39,7 @@ import {
 import { createDiagnostic } from '../utilities/diagnosticsUtils';
 import { builtIn } from '../utilities/constants';
 import { toCase } from '../utilities/stringUtils';
+import { cleanLocation } from '../utilities/clean';
 
 /**
  * The Symbol table builder is used to declare new symbols and track new symbols
@@ -120,6 +121,10 @@ export class SymbolTableBuilder {
     this.activeScope = this.rootScope;
   }
 
+  /**
+   * Get the current scope path TODO consider recomputing active scope
+   * when set
+   */
   public getPath(): { path: IScopePath; activeScope: IScopeNode } {
     return {
       activeScope: this.activeScope,
@@ -130,6 +135,11 @@ export class SymbolTableBuilder {
     };
   }
 
+  /**
+   * Set the current scope path
+   * @param path current path
+   * @param activeScope current scope
+   */
   public setPath(path: IScopePath, activeScope: IScopeNode): void {
     this.path = path;
     this.activeScope = activeScope;
@@ -307,6 +317,7 @@ export class SymbolTableBuilder {
     }
 
     token.tracker = tracker;
+    tracker.sets.push(createSymbolSet(token));
     this.logger.verbose(
       `set variable ${token.lexeme} at ${rangeToString(token)}`,
     );
@@ -558,7 +569,7 @@ export class SymbolTableBuilder {
 
     // indicate usage
     token.tracker = tracker;
-    tracker.usages.push(createSymbolSet(token));
+    tracker.usages.push(cleanLocation(token));
     this.logger.verbose(
       `Use ${symbolType} ${token.lexeme} at ${rangeToString(token)}`,
     );

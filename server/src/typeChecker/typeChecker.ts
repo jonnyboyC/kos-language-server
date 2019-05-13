@@ -479,11 +479,9 @@ export class TypeChecker
       const { tracker } = atom.token;
 
       if (!empty(tracker)) {
-        // if lazy global declare type
-        if (this.script.lazyGlobal) {
+        // update declare or set type
+        if (tracker.declared.symbol.name === atom.token) {
           tracker.declareType(exprResult.type);
-
-          // else set type
         } else {
           tracker.setType(atom.token, exprResult.type);
         }

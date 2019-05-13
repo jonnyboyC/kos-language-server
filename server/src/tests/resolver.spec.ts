@@ -182,8 +182,7 @@ describe('Resolver tracking', () => {
     expect(y.declared.symbol.tag).toBe(KsSymbolKind.variable);
 
     // check the tracked set properties
-    // resolver doesn't track sets
-    expect(x.sets.length).toBe(0);
+    expect(x.sets.length).toBe(2);
     expect(y.sets.length).toBe(0);
 
     // check the tracked set properties
@@ -263,6 +262,7 @@ describe('Resolver tracking', () => {
       expect(rangeEqual(name, range)).toBe(true);
       expect(tag).toBe(KsSymbolKind.function);
       expect(testTracker.usages.length).toBe(1);
+      expect(testTracker.sets.length).toBe(0);
     }
 
     // check param a
@@ -279,6 +279,7 @@ describe('Resolver tracking', () => {
       expect(rangeEqual(name, range)).toBeTruthy();
       expect(tag).toBe(KsSymbolKind.parameter);
       expect(aParamTracker.usages.length).toBe(1);
+      expect(aParamTracker.sets.length).toBe(0);
     }
 
     // check param b
@@ -295,6 +296,7 @@ describe('Resolver tracking', () => {
       expect(rangeEqual(name, range)).toBeTruthy();
       expect(tag).toBe(KsSymbolKind.parameter);
       expect(bParamTracker.usages.length).toBe(1);
+      expect(bParamTracker.sets.length).toBe(0);
     }
 
     // check loop i
@@ -311,6 +313,7 @@ describe('Resolver tracking', () => {
       expect(rangeEqual(name, range)).toBeTruthy();
       expect(tag).toBe(KsSymbolKind.variable);
       expect(iTracker.usages.length).toBe(1);
+      expect(iTracker.sets.length).toBe(0);
     }
 
     // check loop x
@@ -342,6 +345,7 @@ describe('Resolver tracking', () => {
       expect(rangeEqual(name, range)).toBeTruthy();
       expect(tag).toBe(KsSymbolKind.lock);
       expect(tTracker.usages.length).toBe(2);
+      expect(tTracker.sets.length).toBe(0);
     }
   });
 });

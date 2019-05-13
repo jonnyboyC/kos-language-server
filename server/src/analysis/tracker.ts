@@ -37,8 +37,6 @@ export class KsSymbolTracker<T extends KsSymbol> implements IKsSymbolTracker {
     this.usages = [];
   }
 
-
-
   public declareType(type: IArgumentType): void {
     this.declared.type = type;
   }
@@ -53,7 +51,11 @@ export class KsSymbolTracker<T extends KsSymbol> implements IKsSymbolTracker {
       return this.declared;
     }
 
-    const ranges = this.sets.filter(set => set.uri === loc.uri);
+    // Will need ot do better this sort of handles the case of
+    // local x is 0. set x to x + 1.
+    const ranges = this.sets.filter(
+      set => set.uri === loc.uri && set.type !== structureType,
+    );
     const found = binaryRightKey(ranges, loc.range.start, x => x.range);
 
     return found || this.declared;
