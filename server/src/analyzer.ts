@@ -285,7 +285,7 @@ export class Analyzer {
     }
 
     // try to find an symbol at the position
-    const { script, symbolsTable } = documentInfo;
+    const { script } = documentInfo;
     const finder = new ScriptFind();
     const result = finder.find(
       script,
@@ -322,8 +322,7 @@ export class Analyzer {
       }
     }
 
-    const tracker = symbolsTable.scopedNamedTracker(pos, token.lookup);
-
+    const { tracker } = token;
     if (!empty(tracker)) {
       return [tracker.declared.type, tracker.declared.symbol.tag];
     }
