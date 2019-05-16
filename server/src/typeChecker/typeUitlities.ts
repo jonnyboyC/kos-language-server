@@ -154,7 +154,7 @@ export const createVarType = memoize((type: IArgumentType): IVariadicType => {
 
 /**
  * Add type to prototype chain
- * @param type type to add prototype 
+ * @param type type to add prototype
  * @param prototype prototype
  */
 export const addPrototype = <T extends IGenericBasicType>(type: T, prototype: T): void => {
@@ -219,4 +219,3 @@ const moveDownPrototype = <T>(
     currentType = currentType.inherentsFrom;
   }
 };
-

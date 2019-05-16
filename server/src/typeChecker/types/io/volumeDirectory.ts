@@ -10,6 +10,6 @@ addPrototype(volumeDirectoryType, volumeItemType);
 
 addSuffixes(
   volumeDirectoryType,
-  createArgSuffixType('iterator', enumeratorType),
+  createArgSuffixType('iterator', enumeratorType.toConcreteType(volumeItemType)),
   createSuffixType('list', lexiconType),
 );
