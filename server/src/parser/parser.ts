@@ -28,7 +28,6 @@ import { nodeResult } from './parseResult';
 import { Token, Marker } from '../entities/token';
 import { mockLogger, mockTracer } from '../utilities/logger';
 import { flatten } from '../utilities/arrayUtils';
-import { sep } from 'path';
 
 type NodeConstructor =
   | Constructor<Expr.Expr>
@@ -67,7 +66,7 @@ export class Parser {
   // parse tokens
   public parse(): IParseResult {
     try {
-      const splits = this.uri.split(sep);
+      const splits = this.uri.split('/');
       const file = splits[splits.length - 1];
 
       this.logger.info(
