@@ -17,8 +17,8 @@ addPrototype(enumerableType, serializableStructureType);
 
 addSuffixes(
   enumerableType,
-  createArgSuffixType(iterator, enumeratorType),
-  createArgSuffixType('reverseIterator', enumeratorType),
+  createGenericArgSuffixType(iterator, enumeratorType),
+  createGenericArgSuffixType('reverseIterator', enumeratorType),
   createArgSuffixType('length', scalarType),
   createGenericArgSuffixType('contains', booleanType, tType),
   createArgSuffixType('empty', booleanType),

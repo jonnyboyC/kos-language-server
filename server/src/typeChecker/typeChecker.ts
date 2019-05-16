@@ -66,7 +66,6 @@ import { pathType } from './types/io/path';
 import { NodeBase } from '../parser/base';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
 import { createDiagnostic } from '../utilities/diagnosticsUtils';
-import { sep } from 'path';
 
 type Diagnostics = Diagnostic[];
 type SuffixTermType = ISuffixType | IArgumentType;
@@ -105,7 +104,7 @@ export class TypeChecker
   public check(): Diagnostics {
     // resolve the sequence of instructions
     try {
-      const splits = this.script.uri.split(sep);
+      const splits = this.script.uri.split('/');
       const file = splits[splits.length - 1];
 
       this.logger.info(`Type Checking started for ${file}.`);
@@ -521,7 +520,10 @@ export class TypeChecker
 
     return empty(inst.elseInst)
       ? errors.concat(this.checkInst(inst.ifInst))
-      : errors.concat(this.checkInst(inst.ifInst), this.checkInst(inst.elseInst));
+      : errors.concat(
+          this.checkInst(inst.ifInst),
+          this.checkInst(inst.elseInst),
+        );
   }
 
   // visit else instruction
@@ -643,7 +645,18 @@ export class TypeChecker
     const { tracker } = inst.identifier;
 
     if (!empty(tracker)) {
-      tracker.setType(inst.identifier, structureType);
+      const collectionIterator = getSuffix(type, iterator);
+
+      if (!empty(collectionIterator)) {
+        const value = getSuffix(collectionIterator.returns, 'value');
+
+        tracker.setType(
+          inst.identifier,
+          value && value.returns || structureType,
+        );
+      } else {
+        tracker.setType(inst.identifier, structureType);
+      }
     }
     return errors.concat(this.checkInst(inst.inst));
   }
