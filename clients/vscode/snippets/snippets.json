@@ -111,10 +111,33 @@
     "function": {
         "prefix": "func",
         "body": [
+            "function ${1:name} {",
+            "\t${2:body}",
+            "}"
+        ],
+        "description": "Function declaration"
+    },
+    "function scope": {
+        "prefix": "funcScope",
+        "body": [
             "${1|local,global|} function ${2:name} {",
             "\t${3:body}",
             "}"
         ],
-        "description": "Function Declaration"
+        "description": "Function declaration with scope"
+    },
+    "variable": {
+        "prefix": "var",
+        "body": [
+            "${1|local,global|} ${2:name} is ${3:value}."
+        ],
+        "description": "Variable declaration"
+    },
+    "lock": {
+        "prefix": "lock",
+        "body": [
+            "lock ${1:name} to ${2:expression}."
+        ],
+        "description": "Variable declaration"
     }
 }
