@@ -519,10 +519,9 @@ export class TypeChecker
       );
     }
 
-    const moreErrors = empty(inst.elseInst)
-      ? [this.checkInst(inst.ifInst)]
-      : [this.checkInst(inst.ifInst), this.checkInst(inst.elseInst)];
-    return errors.concat(...moreErrors);
+    return empty(inst.elseInst)
+      ? errors.concat(this.checkInst(inst.ifInst))
+      : errors.concat(this.checkInst(inst.ifInst), this.checkInst(inst.elseInst));
   }
 
   // visit else instruction
