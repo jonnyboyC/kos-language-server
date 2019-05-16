@@ -1,4 +1,4 @@
-import { isCorrectCallType, isSubType } from '../typeChecker/typeUitlities';
+import { isCorrectCallType, isSubType, addPrototype, addSuffixes, hasSuffix } from '../typeChecker/typeUitlities';
 import { CallType } from '../typeChecker/types/types';
 import { stringType } from '../typeChecker/types/primitives/string';
 import { booleanType } from '../typeChecker/types/primitives/boolean';
@@ -7,6 +7,7 @@ import { partType } from '../typeChecker/types/parts/part';
 import { dockingPortType } from '../typeChecker/types/parts/dockingPort';
 import { primitiveInitializer } from '../typeChecker/types/primitives/initialize';
 import { oribitalInitializer } from '../typeChecker/types/orbital/initialize';
+import { createStructureType, createSuffixType, createArgSuffixType } from '../typeChecker/types/ksType';
 
 primitiveInitializer();
 oribitalInitializer();
@@ -34,7 +35,7 @@ describe('Type Utilities', () => {
     expect(isCorrectCallType(CallType.optionalCall, CallType.optionalCall)).toBe(true);
   });
 
-  test('Is Subtype', () => {
+  test('Is Subtype 1', () => {
 
     expect(isSubType(stringType, stringType)).toBe(true);
     expect(isSubType(stringType, booleanType)).toBe(false);
@@ -65,6 +66,64 @@ describe('Type Utilities', () => {
     expect(isSubType(dockingPortType, structureType)).toBe(true);
     expect(isSubType(dockingPortType, partType)).toBe(true);
     expect(isSubType(dockingPortType, dockingPortType)).toBe(true);
+  });
+
+  test('Is Subtype 2', () => {
+    const aType = createStructureType('a');
+    const bType = createStructureType('b');
+    const cType = createStructureType('c');
+
+    addPrototype(bType, aType);
+    addPrototype(cType, aType);
+
+    expect(isSubType(bType, aType)).toBe(true);
+    expect(isSubType(cType, aType)).toBe(true);
+
+    expect(isSubType(aType, bType)).toBe(false);
+    expect(isSubType(cType, bType)).toBe(false);
+
+    expect(isSubType(bType, cType)).toBe(false);
+    expect(isSubType(aType, cType)).toBe(false);
+  });
+
+  test('Has Suffix', () => {
+    const aType = createStructureType('a');
+    const bType = createStructureType('b');
+    const cType = createStructureType('c');
+    const dType = createStructureType('d');
+
+
+
+    addSuffixes(
+      aType,
+      createSuffixType('example1', cType),
+      createSuffixType('example2', cType), 
+    );
+
+    addSuffixes(
+      bType,
+      createSuffixType('example3', cType),
+    );
+
+    addPrototype(bType, aType);
+
+    addSuffixes(
+      cType,
+      createArgSuffixType('example', dType, dType));
+
+    expect(hasSuffix(aType, 'example1')).toBe(true);
+    expect(hasSuffix(aType, 'example2')).toBe(true);
+    expect(hasSuffix(aType, 'example3')).toBe(false);
+
+    expect(hasSuffix(bType, 'example1')).toBe(true);
+    expect(hasSuffix(bType, 'example2')).toBe(true);
+    expect(hasSuffix(bType, 'example3')).toBe(true);
+    expect(hasSuffix(bType, 'other')).toBe(false);
+
+    expect(hasSuffix(cType, 'example')).toBe(true);
+    expect(hasSuffix(cType, 'other')).toBe(false);
+
+    expect(hasSuffix(dType, 'any')).toBe(false);
   });
 });
 

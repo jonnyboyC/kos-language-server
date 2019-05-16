@@ -17,6 +17,7 @@ import {
   rangeToString,
 } from '../utilities/positionUtils';
 import { toCase } from '../utilities/stringUtils';
+import { Logger } from '../utilities/logger';
 
 describe('path resolver', () => {
   test('path resolver', () => {
@@ -250,9 +251,82 @@ describe('to case', () => {
     expect(toCase(CaseKind.pascalcase, 'EXAMPLE')).toBe('Example');
     expect(toCase(CaseKind.camelcase, 'EXAMPLE')).toBe('example');
 
-    expect(toCase(CaseKind.lowercase, 'EXAMPLE', 'example')).toBe('exampleexample');
-    expect(toCase(CaseKind.uppercase, 'EXAMPLE', 'example')).toBe('EXAMPLEEXAMPLE');
-    expect(toCase(CaseKind.pascalcase, 'EXAMPLE', 'example')).toBe('ExampleExample');
-    expect(toCase(CaseKind.camelcase, 'EXAMPLE', 'example')).toBe('exampleExample');
+    expect(toCase(CaseKind.lowercase, 'EXAMPLE', 'example')).toBe(
+      'exampleexample',
+    );
+    expect(toCase(CaseKind.uppercase, 'EXAMPLE', 'example')).toBe(
+      'EXAMPLEEXAMPLE',
+    );
+    expect(toCase(CaseKind.pascalcase, 'EXAMPLE', 'example')).toBe(
+      'ExampleExample',
+    );
+    expect(toCase(CaseKind.camelcase, 'EXAMPLE', 'example')).toBe(
+      'exampleExample',
+    );
+  });
+});
+
+describe('logger', () => {
+  test('log level', () => {
+    const mockBase = {
+      lastLevel: LogLevel.verbose,
+      lastMessage: '',
+      log(message: string) {
+        mockBase.lastLevel = LogLevel.log;
+        mockBase.lastMessage = message;
+      },
+      info(message: string) {
+        mockBase.lastLevel = LogLevel.info;
+        mockBase.lastMessage = message;
+      },
+      warn(message: string) {
+        mockBase.lastLevel = LogLevel.warn;
+        mockBase.lastMessage = message;
+      },
+      error(message: string) {
+        mockBase.lastLevel = LogLevel.error;
+        mockBase.lastMessage = message;
+      },
+    };
+
+    const logger = new Logger(mockBase, LogLevel.info);
+
+    expect(logger.level).toBe(LogLevel.info);
+
+    logger.info('info');
+    expect(mockBase.lastLevel).toBe(LogLevel.info);
+    expect(mockBase.lastMessage).toBe('info');
+
+    logger.log('log');
+    expect(mockBase.lastLevel).toBe(LogLevel.log);
+    expect(mockBase.lastMessage).toBe('log');
+
+    logger.warn('warn');
+    expect(mockBase.lastLevel).toBe(LogLevel.warn);
+    expect(mockBase.lastMessage).toBe('warn');
+
+    // TODO this is a temporary thing until we get the 
+    // errors in the type checker under control
+    logger.error('error');
+    expect(mockBase.lastLevel).toBe(LogLevel.warn);
+    expect(mockBase.lastMessage).toBe('error');
+
+    // set logging off
+    logger.level = LogLevel.none;
+    logger.info('info');
+    expect(mockBase.lastLevel).toBe(LogLevel.warn);
+    expect(mockBase.lastMessage).toBe('error');
+
+    logger.log('log');
+    expect(mockBase.lastLevel).toBe(LogLevel.warn);
+    expect(mockBase.lastMessage).toBe('error');
+
+    logger.warn('warn');
+    expect(mockBase.lastLevel).toBe(LogLevel.warn);
+    expect(mockBase.lastMessage).toBe('error');
+
+    logger.error('error');
+    expect(mockBase.lastLevel).toBe(LogLevel.warn);
+    expect(mockBase.lastMessage).toBe('error');
   });
 });
