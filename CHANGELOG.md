@@ -1,3 +1,17 @@
+# [0.5.1] (2019-5-16)
+
+## Features
+- **Code snippets** Many code snippets have been added for control flow, and declarations. Feel free to suggest more on the github issue tracker.
+- **Minor List Hover improvement** In some limited cases we can identify the element of a list more specifically than structure. for example will identify that i is an int.
+
+      for i in range(10) {
+          print(i).
+      }
+
+## Bug Fixes
+- **Return In Anoymous Functions** Previously, Anoymous functions were not correctly counted as a valid scope for returns and would mark as an error. This has been fixed and will no longer provide a false positive
+- **Return Syntax Highlighting v2** syntax highlighting now **correctly** occurs correct for all forms of return. Previously `return.` used the wrong textmate form and would capture the remainder of the file. 
+
 # [0.5.0] (2019-5-13)
 
 ## Features

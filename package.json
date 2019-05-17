@@ -4,7 +4,7 @@
     "description": "Syntax highlighting, auto-complete, and language diagnostics for KerboScript in Kerbal Operating System.",
     "author": "John Chabot",
     "license": "MIT",
-    "version": "0.5.0",
+    "version": "0.5.1",
     "galleryBanner": {
         "color": "#a3a3a3",
         "theme": "dark"
@@ -116,8 +116,7 @@
                 }
             }
         },
-        "commands": [
-            {
+        "commands": [{
                 "command": "kos.startTelnet",
                 "title": "kOS: Connect Telnet Client"
             },
@@ -134,32 +133,26 @@
                 "title": "kOS: Route Logging to Vscode"
             }
         ],
-        "languages": [
-            {
-                "id": "kos",
-                "aliases": [
-                    "Kerbal Operating System",
-                    "kos"
-                ],
-                "extensions": [
-                    ".ks"
-                ],
-                "configuration": "./kos.configuration.json"
-            }
-        ],
-        "grammars": [
-            {
-                "language": "kos",
-                "scopeName": "source.kos",
-                "path": "./clients/vscode/kos-grammar/language-kos.json"
-            }
-        ],
-        "snippets": [
-            {
-                "language": "kos",
-                "path": "clients/vscode/snippets/snippets.json"
-            }
-        ]
+        "languages": [{
+            "id": "kos",
+            "aliases": [
+                "Kerbal Operating System",
+                "kos"
+            ],
+            "extensions": [
+                ".ks"
+            ],
+            "configuration": "./kos.configuration.json"
+        }],
+        "grammars": [{
+            "language": "kos",
+            "scopeName": "source.kos",
+            "path": "./clients/vscode/kos-grammar/language-kos.json"
+        }],
+        "snippets": [{
+            "language": "kos",
+            "path": "clients/vscode/snippets/snippets.json"
+        }]
     },
     "scripts": {
         "vscode:prepublish": "cd clients/vscode && npm run update-vscode && cd ../.. && npm run prod && npm run test",
