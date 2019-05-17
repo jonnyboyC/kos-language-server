@@ -22,6 +22,7 @@ import {
   MessageReader,
   MessageWriter,
   DidChangeConfigurationNotification,
+  DocumentHighlight,
 } from 'vscode-languageserver';
 import { empty } from './utilities/typeGuards';
 import { Analyzer } from './analyzer';
@@ -40,6 +41,7 @@ import {
   cleanDiagnostic,
   cleanLocation,
   cleanPosition,
+  cleanRange,
 } from './utilities/clean';
 import { IToken } from './entities/types';
 import { keywordCompletions, serverName } from './utilities/constants';
@@ -186,6 +188,7 @@ connection.onInitialize((params: InitializeParams) => {
       //   triggerCharacters: ['(', ','],
       // },
 
+      documentHighlightProvider: true,
       hoverProvider: true,
       referencesProvider: true,
       documentSymbolProvider: true,
@@ -318,7 +321,9 @@ documents.onDidChangeContent(async change => {
   }
 });
 
-// This handler provides the initial list of the completion items.
+/**
+ * This handler provide completition items capability
+ */
 connection.onCompletion(
   (completionParams: CompletionParams): CompletionItem[] => {
     const { context } = completionParams;
@@ -338,11 +343,28 @@ connection.onCompletion(
   },
 );
 
-// This handler provides on hover capabilities
+/**
+ * This handler provides document highlighting capability
+ */
+connection.onDocumentHighlight(
+  (positionParams: TextDocumentPositionParams): DocumentHighlight[] => {
+    const { position } = positionParams;
+    const { uri } = positionParams.textDocument;
+
+    const locations = server.analyzer.getFileUsageRanges(position, uri);
+    return empty(locations)
+      ? []
+      : locations.map(range => ({ range: cleanRange(range) }));
+  },
+);
+
+/**
+ * This handlers provides on hover capability
+ */
 connection.onHover(
-  (positionParmas: TextDocumentPositionParams): Maybe<Hover> => {
-    const { position } = positionParmas;
-    const { uri } = positionParmas.textDocument;
+  (positionParams: TextDocumentPositionParams): Maybe<Hover> => {
+    const { position } = positionParams;
+    const { uri } = positionParams.textDocument;
 
     const token = server.analyzer.getToken(position, uri);
     const typeInfo = server.analyzer.getSuffixType(position, uri);
@@ -368,13 +390,15 @@ connection.onHover(
   },
 );
 
-// This handler providers find all references capabilities
+/**
+ * This handler provides the find all reference capability
+ */
 connection.onReferences(
   (referenceParams: ReferenceParams): Maybe<Location[]> => {
     const { position } = referenceParams;
     const { uri } = referenceParams.textDocument;
 
-    const locations = server.analyzer.getUsagesLocations(position, uri);
+    const locations = server.analyzer.getUsageLocations(position, uri);
     return locations && locations.map(loc => cleanLocation(loc));
   },
 );
@@ -406,14 +430,18 @@ connection.onReferences(
 //   },
 // );
 
-// This handler provider document symbols in file
+/**
+ * This handler provides document symbols capability
+ */
 connection.onDocumentSymbol(
   (documentSymbol: DocumentSymbolParams): Maybe<SymbolInformation[]> => {
     return documentSymbols(server.analyzer, documentSymbol);
   },
 );
 
-// This handler provides definition help
+/**
+ * This handler provides defintition capability
+ */
 connection.onDefinition(
   (documentPosition: TextDocumentPositionParams): Maybe<Location> => {
     const { position } = documentPosition;
@@ -424,8 +452,10 @@ connection.onDefinition(
   },
 );
 
-// This handler resolve additional information for the item selected in
-// the completion list.
+/**
+ * This handler provider compleition item resolution capability. This provides
+ * additional information for the currently compeltion item selection
+ */
 connection.onCompletionResolve(
   (item: CompletionItem): CompletionItem => {
     const token = item.data as IToken;

@@ -3,6 +3,7 @@ import {
   Position,
   Location,
   Diagnostic,
+  Range,
 } from 'vscode-languageserver';
 import {
   IDocumentInfo,
@@ -383,7 +384,12 @@ export class Analyzer {
     return symbol.declared.symbol.name;
   }
 
-  public getUsagesLocations(pos: Position, uri: string): Maybe<Location[]> {
+  /**
+   * Get all usage locations in all files
+   * @param pos position in document
+   * @param uri uri of document
+   */
+  public getUsageLocations(pos: Position, uri: string): Maybe<Location[]> {
     const documentInfo = this.documentInfos.get(uri);
     if (
       empty(documentInfo) ||
@@ -413,6 +419,22 @@ export class Analyzer {
       .map(usage => usage as Location)
       .concat(tracker.declared.symbol.name)
       .filter(location => location.uri !== builtIn);
+  }
+
+  /**
+   * Get all usage ranges in a provide file
+   * @param pos position in document
+   * @param uri uri of document
+   */
+  public getFileUsageRanges(pos: Position, uri: string): Maybe<Range[]> {
+    const locations = this.getUsageLocations(pos, uri);
+    if (empty(locations)) {
+      return locations;
+    }
+
+    return locations
+      .filter(loc => loc.uri === uri)
+      .map(loc => loc.range);
   }
 
   // get a scoped trackers
