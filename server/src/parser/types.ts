@@ -24,7 +24,8 @@ export type SuffixTermTrailer = SuffixTerm.Call
 
 export type Atom = SuffixTerm.Literal
   | SuffixTerm.Identifier
-  | SuffixTerm.Grouping;
+  | SuffixTerm.Grouping
+  | SuffixTerm.Invalid;
 
 export interface IParameter extends IRangeSequence {
   identifier: IToken;
@@ -144,7 +145,6 @@ export interface IConstantDistribution {
 export interface IParseError extends Range {
   tag: 'parseError';
   token: IToken;
-  otherInfo: string[];
   message: string;
   inner: IParseError[];
 }
@@ -172,6 +172,10 @@ export enum ScopeKind {
   local,
   global,
 }
+
+export type PartialNode = {
+  [key: string]: IToken | TreeNode;
+};
 
 export type GrammarNode = IExprClass
   | IInstClass | ISuffixTermClass | TokenType

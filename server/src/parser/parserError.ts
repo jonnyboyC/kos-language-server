@@ -1,4 +1,4 @@
-import { IParseError } from './types';
+import { IParseError, PartialNode } from './types';
 import { IToken } from '../entities/types';
 import { Position } from 'vscode-languageserver';
 import { Expr } from './expr';
@@ -7,11 +7,26 @@ import { Inst } from './inst';
 export class ParseError implements IParseError {
   public readonly inner: IParseError[];
 
+  public readonly token: IToken;
+  public readonly failed: FailedConstructor;
+  public readonly message: string;
+  public readonly moreInfo?: string;
+  public readonly partial?: PartialNode;
+
   constructor(
-    public readonly token: IToken,
-    public readonly failed: FailedConstructor,
-    public readonly message: string,
-    public readonly otherInfo: string[]) {
+    token: IToken,
+    failed: FailedConstructor,
+    message: string,
+    moreInfo?: string,
+    partial?: PartialNode) {
+
+    this.token = token;
+    this.failed = failed;
+    this.message = message;
+    this.moreInfo = moreInfo;
+
+    this.partial = partial;
+
     this.inner = [];
   }
 

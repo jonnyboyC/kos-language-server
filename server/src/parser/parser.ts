@@ -1654,10 +1654,10 @@ export class Parser {
     token: IToken,
     failed: Maybe<NodeConstructor>,
     message: string,
-    ...extraInfo: string[]
+    moreInfo?: string,
   ): IParseError {
     if (empty(failed)) {
-      return new ParseError(token, failedUnknown(), message, extraInfo);
+      return new ParseError(token, failedUnknown(), message, moreInfo);
     }
 
     if (failed.prototype instanceof Expr.Expr) {
@@ -1665,7 +1665,7 @@ export class Parser {
         token,
         failedExpr(failed as { new (): Expr.Expr }),
         message,
-        extraInfo,
+        moreInfo,
       );
     }
     if (failed.prototype instanceof Inst.Inst) {
@@ -1673,11 +1673,11 @@ export class Parser {
         token,
         failedInst(failed as { new (): Inst.Inst }),
         message,
-        extraInfo,
+        moreInfo,
       );
     }
 
-    return new ParseError(token, failedUnknown(), message, extraInfo);
+    return new ParseError(token, failedUnknown(), message, moreInfo);
   }
 
   // attempt to synchronize parser
