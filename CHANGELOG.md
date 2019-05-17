@@ -11,6 +11,7 @@
 ## Bug Fixes
 - **Return In Anoymous Functions** Previously, Anoymous functions were not correctly counted as a valid scope for returns and would mark as an error. This has been fixed and will no longer provide a false positive
 - **Return Syntax Highlighting v2** syntax highlighting now **correctly** occurs correct for all forms of return. Previously `return.` used the wrong textmate form and would capture the remainder of the file. 
+- **Default function scope logic** A bug was introduced that caused function declared at the script level to not default to global scope. This would cause library scripts to be run to not place these functions in global scope.
 
 # [0.5.0] (2019-5-13)
 
