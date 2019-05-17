@@ -14,3 +14,4 @@ node_modules
 clients/vscode/node_modules/**
 clients/atom/**
 server/node_modules/**
+server/src/coverage

@@ -155,7 +155,7 @@
         }]
     },
     "scripts": {
-        "vscode:prepublish": "cd clients/vscode && npm run update-vscode && cd ../.. && npm run prod && npm run test",
+        "vscode:prepublish": "cd clients/vscode && npm run update-vscode && cd ../.. && node build/clean.js && npm run prod && npm run test",
         "prod:vscode": "webpack --config ./clients/vscode/webpack.config.js --mode production",
         "prod:atom": "tsc -p ./clients/atom/tsconfig.json",
         "prod:server": "webpack --config ./server/webpack.config.js --mode production",
