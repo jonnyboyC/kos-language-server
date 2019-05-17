@@ -153,7 +153,7 @@ export class TypeChecker
       }
 
       const { type, resolved, errors } = current;
-      if (type.tag === TypeKind.suffix || type.tag === TypeKind.function) {
+      if (type.kind === TypeKind.suffix || type.kind === TypeKind.function) {
         // const node = this.lastSuffixTermNode(suffixTerm);
         return this.errorsSuffixTerm(
           resolved,
@@ -631,7 +631,7 @@ export class TypeChecker
 
     const { type } = result;
 
-    if (type.tag !== TypeKind.basic || !hasSuffix(type, iterator)) {
+    if (type.kind !== TypeKind.basic || !hasSuffix(type, iterator)) {
       errors = errors.concat(
         createDiagnostic(
           inst.suffix,
@@ -1170,7 +1170,7 @@ export class TypeChecker
     }
 
     const { type, errors } = current;
-    if (type.tag === TypeKind.suffix || type.tag === TypeKind.function) {
+    if (type.kind === TypeKind.suffix || type.kind === TypeKind.function) {
       throw new Error('Type shouldn');
     }
 
@@ -1180,7 +1180,7 @@ export class TypeChecker
 
     current = this.checkSuffixTerm(trailer, current);
 
-    if (current.type.tag === TypeKind.basic) {
+    if (current.type.kind === TypeKind.basic) {
       return this.resultExpr(current.type, current.errors);
     }
 
@@ -1269,7 +1269,7 @@ export class TypeChecker
     current: ITypeResultSuffix<IType, ITypeResolved>,
   ): ITypeResultSuffix<IArgumentType, ITypeResolved> {
     const { type, resolved, errors } = current;
-    if (type.tag !== TypeKind.function) {
+    if (type.kind !== TypeKind.function) {
       return this.errorsAtom(
         call,
         createDiagnostic(
@@ -1320,7 +1320,7 @@ export class TypeChecker
 
     // if no trailer exist attempt to return
     if (empty(suffixTerm.trailer)) {
-      if (type.tag === TypeKind.basic) {
+      if (type.kind === TypeKind.basic) {
         return { type, resolved, errors };
       }
 
@@ -1377,7 +1377,7 @@ export class TypeChecker
     const { type, resolved, errors } = result;
 
     // if we only have some basic type return it
-    if (type.tag === TypeKind.basic) {
+    if (type.kind === TypeKind.basic) {
       return { type, resolved, errors };
     }
 
@@ -1405,9 +1405,9 @@ export class TypeChecker
   ): ITypeResultSuffix<IArgumentType> {
     const { type, resolved, errors } = current;
 
-    if (type.tag !== TypeKind.suffix) {
+    if (type.kind !== TypeKind.suffix) {
       // TEST we can apparently call a suffix with no argument fine.
-      if (type.tag === TypeKind.basic && call.args.length === 0) {
+      if (type.kind === TypeKind.basic && call.args.length === 0) {
         return this.resultSuffixTermTrailer(type, call, resolved);
       }
 
@@ -1652,7 +1652,7 @@ export class TypeChecker
     current: ITypeResultSuffix<IType>,
   ): ITypeResultSuffix<IArgumentType> {
     const { type, resolved, errors } = current;
-    if (type.tag !== TypeKind.function) {
+    if (type.kind !== TypeKind.function) {
       return this.errorsSuffixTermTrailer(
         suffixTerm,
         resolved,
@@ -1860,7 +1860,7 @@ export class TypeChecker
   ): ITypeResultSuffix<IArgumentType, ITypeResolvedSuffix> {
     const { atom: current, termTrailers, suffixTrailer } = resolved;
     let returns = structureType;
-    if (type.tag === TypeKind.function || type.tag === TypeKind.suffix) {
+    if (type.kind === TypeKind.function || type.kind === TypeKind.suffix) {
       returns = type.returns;
     } else {
       returns = type;

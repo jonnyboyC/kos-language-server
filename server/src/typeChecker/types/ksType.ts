@@ -16,22 +16,52 @@ import {
 } from './types';
 import { memoize } from '../../utilities/memoize';
 
+/**
+ * This represents a generic type, typically the containers of kos
+ */
 export class GenericType implements IGenericBasicType {
+
+  /**
+   * A memoized mapping of this genertic type to concrete types
+   */
   private concreteTypes: Map<IArgumentType, IBasicType>;
+
+  /**
+   * Operators that are applicable for this type
+   */
   public operators: Map<Operator, IBasicType>;
+
+  /**
+   * Suffixes attach to this type
+   */
   public suffixes: Map<string, IGenericSuffixType>;
+
+  /**
+   * Does this type inherent from another type
+   */
   public inherentsFrom?: IGenericArgumentType;
 
+  /**
+   * Constructor a generic type
+   * @param name name of generic type
+   */
   constructor(public readonly name: string) {
     this.suffixes = new Map();
     this.concreteTypes = new Map();
     this.operators = new Map();
   }
 
+  /**
+   * Convert this type into a type string
+   */
   public toTypeString(): string {
-    return this.name;
+    return `${this.name}<T>`;
   }
 
+  /**
+   * Convert this type into it's concrete representation
+   * @param type type parameter
+   */
   public toConcreteType(type: IArgumentType): IArgumentType {
     if (this === tType) {
       return type;
@@ -60,18 +90,38 @@ export class GenericType implements IGenericBasicType {
     return newType;
   }
 
+  /**
+   * Is this a full type
+   */
   public get fullType(): boolean {
     return false;
   }
 
-  public get tag(): TypeKind.basic {
+  /**
+   * What is the type kind of this type
+   */
+  public get kind(): TypeKind.basic {
     return TypeKind.basic;
   }
 }
 
+/**
+ * This represents a generic suffix type, typically suffixes of containers in kos
+ */
 export class GenericSuffixType implements IGenericSuffixType {
+
+  /**
+   * A memoized mapping of this genertic type to concrete types
+   */
   private concreteTypes: Map<IArgumentType, ISuffixType>;
 
+  /**
+   * Construct a generic suffix type
+   * @param name name of the type
+   * @param callType call type of this suffix
+   * @param params parameters for this suffix
+   * @param returns return type of this suffix
+   */
   constructor(
     public readonly name: string,
     public readonly callType: CallType,
@@ -81,6 +131,9 @@ export class GenericSuffixType implements IGenericSuffixType {
     this.concreteTypes = new Map();
   }
 
+  /**
+   * Convert this type to a type string
+   */
   public toTypeString(): string {
     const returnString = returnTypeString(this.returns);
     if (this.callType !== CallType.call && this.callType !== CallType.optionalCall) {
@@ -91,22 +144,10 @@ export class GenericSuffixType implements IGenericSuffixType {
     return `<T>(${paramsString}) => ${returnString}`;
   }
 
-  private newParameters(params: IGenericArgumentType[] | IGenericVariadicType, type: IArgumentType):
-    IArgumentType[] | IVariadicType {
-
-    // check if variadic type
-    if (!Array.isArray(params)) {
-      return params.toConcreteType(type);
-    }
-
-    const newParams: IArgumentType[] = [];
-    for (const param of params) {
-      newParams.push(param.toConcreteType(type));
-    }
-
-    return newParams;
-  }
-
+  /**
+   * Convert this type into it's concrete representation
+   * @param type type parameter
+   */
   public toConcreteType(type: IArgumentType): ISuffixType {
     // check cache
     const cache = this.concreteTypes.get(type);
@@ -125,43 +166,113 @@ export class GenericSuffixType implements IGenericSuffixType {
     return newType;
   }
 
+  /**
+   * Is this type a full type
+   */
   public get fullType(): boolean {
     return false;
   }
 
-  public get tag(): TypeKind.suffix {
+  /**
+   * What is the kind of this type
+   */
+  public get kind(): TypeKind.suffix {
     return TypeKind.suffix;
+  }
+
+  /**
+   * Generate new parameters types for suffixes with calls
+   * @param params parameters to convert to concrete types
+   * @param type type parameter
+   */
+  private newParameters(params: IGenericArgumentType[] | IGenericVariadicType, type: IArgumentType):
+    IArgumentType[] | IVariadicType {
+
+    // check if variadic type
+    if (!Array.isArray(params)) {
+      return params.toConcreteType(type);
+    }
+
+    const newParams: IArgumentType[] = [];
+    for (const param of params) {
+      newParams.push(param.toConcreteType(type));
+    }
+
+    return newParams;
   }
 }
 
+/**
+ * This represents a type
+ */
 export class Type implements IBasicType {
+
+  /**
+   * Suffixes attach to this type
+   */
   public suffixes: Map<string, ISuffixType>;
+
+  /**
+   * Does this type inherent from another type
+   */
   public inherentsFrom?: IArgumentType;
+
+  /**
+   * Operators that are applicable for this type
+   */
   public operators: Map<Operator, IBasicType>;
 
+  /**
+   * Type constructor
+   * @param name name of the new type
+   */
   constructor(public readonly name: string) {
     this.suffixes = new Map();
     this.operators = new Map();
   }
 
+  /**
+   * Convert this type into it's concrete representation
+   * @param _ type parameter
+   */
   public toConcreteType(_: IArgumentType): IArgumentType {
     return this;
   }
 
+  /**
+   * Convert this type into a type string
+   */
   public toTypeString(): string {
     return this.name;
   }
 
+  /**
+   * Is this a full type
+   */
   public get fullType(): true {
     return true;
   }
 
-  public get tag(): TypeKind.basic {
+  /**
+   * What is the kind of this type
+   */
+  public get kind(): TypeKind.basic {
     return TypeKind.basic;
   }
 }
 
+/**
+ * This represents a suffix type
+ */
 export class SuffixType implements ISuffixType {
+
+  /**
+   * Construct a suffix type
+   * @param name name of the type
+   * @param callType call type of this suffix
+   * @param params parameters for this suffix
+   * @param returns return type of this suffix
+   */
   constructor(
     public readonly name: string,
     public readonly callType: CallType,
@@ -169,6 +280,9 @@ export class SuffixType implements ISuffixType {
     public readonly returns: IArgumentType) {
   }
 
+  /**
+   * Generate the type string for this suffix type
+   */
   public toTypeString(): string {
     const returnString = returnTypeString(this.returns);
     if (this.callType !== CallType.call && this.callType !== CallType.optionalCall) {
@@ -179,25 +293,46 @@ export class SuffixType implements ISuffixType {
     return `(${paramsString}) => ${returnString}`;
   }
 
-  // tslint:disable-next-line:variable-name
-  public toConcreteType(_type: IArgumentType): ISuffixType {
+  /**
+   * Convert this type into it's concrete representation
+   * @param _ type parameter
+   */
+  public toConcreteType(_: IArgumentType): ISuffixType {
     return this;
   }
 
+  /**
+   * Is this a full type
+   */
   public get fullType(): true {
     return true;
   }
 
-  public get tag(): TypeKind.suffix {
+  /**
+   * What is the kind of this type
+   */
+  public get kind(): TypeKind.suffix {
     return TypeKind.suffix;
   }
 }
 
+/**
+ * Represents a constant type, or a type with a fixed value
+ */
 export class ConstantType<T> extends Type implements IConstantType<T> {
+
+  /**
+   * Construct a constant type
+   * @param name name of this constant type
+   * @param value value of this constant type
+   */
   constructor(name: string, public readonly value: T) {
     super(name);
   }
 
+  /**
+   * Create a type string from this type
+   */
   public toTypeString(): string {
     return `${super.toTypeString()} = ${this.value}`;
   }
@@ -223,7 +358,7 @@ export class GenericVariadicType implements IGenericVariadicType {
     this.concreteTypes.set(type, newType);
     return newType;
   }
-  public get tag(): TypeKind.variadic {
+  public get kind(): TypeKind.variadic {
     return TypeKind.variadic;
   }
 }
@@ -238,7 +373,7 @@ export class VariadicType extends GenericVariadicType implements IVariadicType {
   public get fullType(): true {
     return true;
   }
-  public get tag(): TypeKind.variadic {
+  public get kind(): TypeKind.variadic {
     return TypeKind.variadic;
   }
 }
@@ -262,7 +397,7 @@ export class FunctionType implements IFunctionType {
     return this;
   }
 
-  public get tag(): TypeKind.function {
+  public get kind(): TypeKind.function {
     return TypeKind.function;
   }
 

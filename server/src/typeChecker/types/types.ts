@@ -54,17 +54,17 @@ export interface ITemplateSuffixType<TBasicType, TVariadicType, TConcreteType>
 
 export interface IGenericBasicType
   extends ITemplateBasicType<IGenericSuffixType, IArgumentType> {
-  tag: TypeKind.basic;
+  kind: TypeKind.basic;
 }
 
 export interface IGenericSuffixType
   extends ITemplateSuffixType<IGenericArgumentType, IGenericVariadicType, ISuffixType> {
-  tag: TypeKind.suffix;
+  kind: TypeKind.suffix;
 }
 
 export interface IGenericVariadicType extends ITypeMeta<IVariadicType> {
   type: IGenericBasicType;
-  tag: TypeKind.variadic;
+  kind: TypeKind.variadic;
 }
 
 export type IGenericArgumentType = IGenericBasicType;
@@ -73,20 +73,20 @@ export interface IBasicType extends IGenericBasicType {
   inherentsFrom?: IArgumentType;
   suffixes: Map<string, ISuffixType>;
   fullType: true;
-  tag: TypeKind.basic;
+  kind: TypeKind.basic;
 }
 
 export interface ISuffixType extends IGenericSuffixType {
   params: IArgumentType[] | IVariadicType;
   returns: IArgumentType;
   fullType: true;
-  tag: TypeKind.suffix;
+  kind: TypeKind.suffix;
 }
 
 export interface IVariadicType extends IGenericVariadicType {
   type: IBasicType;
   fullType: true;
-  tag: TypeKind.variadic;
+  kind: TypeKind.variadic;
 }
 
 export type IArgumentType = IBasicType;
@@ -101,7 +101,7 @@ export interface IFunctionType extends ITypeMeta<IFunctionType> {
   params: IArgumentType[] | IVariadicType;
   returns: IArgumentType;
   fullType: true;
-  tag: TypeKind.function;
+  kind: TypeKind.function;
 }
 
 export type IType = IArgumentType | IFunctionType | ISuffixType;
