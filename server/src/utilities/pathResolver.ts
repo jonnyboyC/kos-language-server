@@ -12,11 +12,11 @@ import { Location } from 'vscode-languageserver';
  * Class to resolve run instructions or calls to file paths
  */
 export class PathResolver {
-  private replacer: RegExp
+  private replacer: RegExp;
 
   constructor(public volume0Path?: string, public volume0Uri?: string) {
     if (sep === '\\') {
-      this.replacer = /\\/g
+      this.replacer = /\\/g;
     } else {
       this.replacer = new RegExp(sep, 'g');
     }
@@ -47,7 +47,7 @@ export class PathResolver {
 
     // check if the scripts reads from volume 0 "disk"
     // TODO no idea what to do for ship volumes
-    const [possibleVolumne, ...remaining] = path.split(sep);
+    const [possibleVolumne, ...remaining] = path.split('/');
     if (possibleVolumne.startsWith('0:')) {
       // if of style 0:first\remaining...
       if (possibleVolumne.length > 2) {

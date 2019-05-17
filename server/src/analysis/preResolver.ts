@@ -17,7 +17,6 @@ import { TokenType } from '../entities/tokentypes';
 import { mockLogger, mockTracer } from '../utilities/logger';
 import { SymbolTableBuilder } from './symbolTableBuilder';
 import { Diagnostic } from 'vscode-languageserver';
-import { sep } from 'path';
 import { FunctionScan } from './functionScan';
 
 export type Diagnostics = Diagnostic[];
@@ -85,7 +84,7 @@ export class PreResolver
    */
   public resolve(): Diagnostics {
     try {
-      const splits = this.script.uri.split(sep);
+      const splits = this.script.uri.split('/');
       const file = splits[splits.length - 1];
 
       this.logger.info(`Function Resolving started for ${file}.`);

@@ -1,5 +1,4 @@
 import { empty } from '../../utilities/typeGuards';
-import { createVarType, isFullType, isFullVarType } from '../typeUitlities';
 import {
   IGenericArgumentType,
   IArgumentType,
@@ -34,6 +33,10 @@ export class GenericType implements IGenericBasicType {
   }
 
   public toConcreteType(type: IArgumentType): IArgumentType {
+    if (this === tType) {
+      return type;
+    }
+
     // check cache
     const cache = this.concreteTypes.get(type);
     if (!empty(cache)) {
@@ -41,6 +44,7 @@ export class GenericType implements IGenericBasicType {
     }
 
     const newType = new Type(this.name);
+    this.concreteTypes.set(type, newType);
 
     const newInherentsFrom = !empty(this.inherentsFrom)
       ? this.inherentsFrom.toConcreteType(type)
@@ -53,7 +57,6 @@ export class GenericType implements IGenericBasicType {
     newType.operators = new Map(this.operators);
     newType.inherentsFrom = newInherentsFrom;
 
-    this.concreteTypes.set(type, newType);
     return newType;
   }
 
@@ -93,25 +96,15 @@ export class GenericSuffixType implements IGenericSuffixType {
 
     // check if variadic type
     if (!Array.isArray(params)) {
-      return isFullVarType(params)
-        ? params
-        : createVarType(type);
+      return params.toConcreteType(type);
     }
 
     const newParams: IArgumentType[] = [];
     for (const param of params) {
-      newParams.push(isFullType(param) ? param : type);
+      newParams.push(param.toConcreteType(type));
     }
 
     return newParams;
-  }
-
-  private newReturn(
-    returns: IGenericArgumentType,
-    type: IArgumentType): IArgumentType {
-    return !empty(returns) && isFullType(returns)
-      ? returns
-      : type;
   }
 
   public toConcreteType(type: IArgumentType): ISuffixType {
@@ -125,7 +118,7 @@ export class GenericSuffixType implements IGenericSuffixType {
     const newParams = this.newParameters(this.params, type);
 
     // generate concrete return
-    const newReturns = this.newReturn(this.returns, type);
+    const newReturns = this.returns.toConcreteType(type);
     const newType = new SuffixType(this.name, this.callType, newParams, newReturns);
 
     this.concreteTypes.set(type, newType);
@@ -145,13 +138,13 @@ export class Type implements IBasicType {
   public suffixes: Map<string, ISuffixType>;
   public inherentsFrom?: IArgumentType;
   public operators: Map<Operator, IBasicType>;
+
   constructor(public readonly name: string) {
     this.suffixes = new Map();
     this.operators = new Map();
   }
 
-  // tslint:disable-next-line:variable-name
-  public toConcreteType(_type: IArgumentType): IArgumentType {
+  public toConcreteType(_: IArgumentType): IArgumentType {
     return this;
   }
 

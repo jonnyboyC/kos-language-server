@@ -23,7 +23,6 @@ import { SymbolTableBuilder } from './symbolTableBuilder';
 import { IDeferred } from './types';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
 import { createDiagnostic } from '../utilities/diagnosticsUtils';
-import { sep } from 'path';
 import { IToken } from '../entities/types';
 // tslint:disable-next-line: import-name
 import Denque from 'denque';
@@ -143,7 +142,7 @@ export class Resolver
    */
   public resolve(): Diagnostics {
     try {
-      const splits = this.script.uri.split(sep);
+      const splits = this.script.uri.split('/');
       const file = splits[splits.length - 1];
 
       this.logger.info(`Resolving started for ${file}.`);
@@ -922,7 +921,7 @@ export class Resolver
       return this.deferNode(expr, expr.block);
     }
 
-    return this.resolveInst(expr.block);
+    return this.trackFunction(() => this.resolveInst(expr.block));
   }
 
   /* --------------------------------------------

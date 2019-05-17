@@ -11,9 +11,10 @@ The project currently has client support for [Visual Studio Code](https://code.v
 
 ## Features
 
-Currently the vscode client 0.5.0 implements the follow features
+Currently the vscode client 0.5.1 implements the follow features
 - synatx highlighting
 - brace detection
+- code snippets
 - diagnostics on parsing errors
 - go to definition
 - basic auto complete

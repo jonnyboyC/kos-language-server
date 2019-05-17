@@ -523,7 +523,7 @@ describe('Resolver errors', () => {
   );
 
   const returnLocations: Range[] = [
-    { start: new Marker(9, 0), end: new Marker(9, 6) },
+    { start: new Marker(14, 4), end: new Marker(14, 10) },
   ];
 
   // invalid return locations
