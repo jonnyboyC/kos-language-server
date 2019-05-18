@@ -297,7 +297,7 @@ export class PreResolver
   }
 
   public visitFor(inst: Inst.For): Diagnostics {
-    return this.resolveExpr(inst.suffix).concat(this.resolveInst(inst.inst));
+    return this.resolveExpr(inst.collection).concat(this.resolveInst(inst.inst));
   }
 
   public visitOn(inst: Inst.On): Diagnostics {

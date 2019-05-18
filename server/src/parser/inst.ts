@@ -1,8 +1,15 @@
-import { IInst, IExpr, IInstVisitor, SyntaxKind, IInstPasser } from './types';
+import {
+  IInst,
+  IExpr,
+  IInstVisitor,
+  SyntaxKind,
+  IInstPasser,
+  NodeDataBuilder,
+} from './types';
 import * as Expr from './expr';
 import { IToken } from '../entities/types';
 import { Range, Position } from 'vscode-languageserver';
-import { empty } from '../utilities/typeGuards';
+import { empty, unWrap } from '../utilities/typeGuards';
 import { NodeBase } from './base';
 import { joinLines } from './toStringUtils';
 import { flatten } from '../utilities/arrayUtils';
@@ -64,12 +71,16 @@ export class Invalid extends Inst {
 }
 
 export class Block extends Inst {
-  constructor(
-    public readonly open: IToken,
-    public readonly insts: Inst[],
-    public readonly close: IToken,
-  ) {
+  public readonly open: IToken;
+  public readonly insts: Inst[];
+  public readonly close: IToken;
+
+  constructor(builder: NodeDataBuilder<Block>) {
     super();
+
+    this.open = unWrap(builder.open);
+    this.insts = unWrap(builder.insts);
+    this.close = unWrap(builder.close);
   }
 
   public toLines(): string[] {
@@ -310,13 +321,17 @@ export class Unlock extends Inst {
 }
 
 export class Set extends Inst {
-  constructor(
-    public readonly set: IToken,
-    public readonly suffix: Expr.Suffix,
-    public readonly to: IToken,
-    public readonly value: IExpr,
-  ) {
+  public readonly set: IToken;
+  public readonly suffix: Expr.Suffix;
+  public readonly to: IToken;
+  public readonly value: IExpr;
+
+  constructor(builder: NodeDataBuilder<Set>) {
     super();
+    this.set = unWrap(builder.set);
+    this.suffix = unWrap(builder.suffix);
+    this.to = unWrap(builder.to);
+    this.value = unWrap(builder.value);
   }
 
   public toLines(): string[] {
@@ -387,13 +402,17 @@ export class LazyGlobal extends Inst {
 }
 
 export class If extends Inst {
-  constructor(
-    public readonly ifToken: IToken,
-    public readonly condition: IExpr,
-    public readonly ifInst: IInst,
-    public readonly elseInst?: Else,
-  ) {
+  public readonly ifToken: IToken;
+  public readonly condition: IExpr;
+  public readonly ifInst: IInst;
+  public readonly elseInst?: Else;
+
+  constructor(builder: NodeDataBuilder<If>) {
     super();
+    this.ifToken = unWrap(builder.ifToken);
+    this.condition = unWrap(builder.condition);
+    this.ifInst = unWrap(builder.ifInst);
+    this.elseInst = builder.elseInst;
   }
 
   public toLines(): string[] {
@@ -438,8 +457,14 @@ export class If extends Inst {
 }
 
 export class Else extends Inst {
-  constructor(public readonly elseToken: IToken, public readonly inst: IInst) {
+  public readonly elseToken: IToken;
+  public readonly inst: IInst;
+
+  constructor(builder: NodeDataBuilder<Else>) {
     super();
+
+    this.elseToken = unWrap(builder.elseToken);
+    this.inst = unWrap(builder.inst);
   }
 
   public toLines(): string[] {
@@ -732,22 +757,27 @@ export class Switch extends Inst {
 }
 
 export class For extends Inst {
-  constructor(
-    public readonly forToken: IToken,
-    public readonly identifier: IToken,
-    public readonly inToken: IToken,
-    public readonly suffix: Expr.Suffix,
-    public readonly inst: IInst,
-  ) {
+  public readonly forToken: IToken;
+  public readonly element: IToken;
+  public readonly inToken: IToken;
+  public readonly collection: Expr.Suffix;
+  public readonly inst: IInst;
+
+  constructor(builder: NodeDataBuilder<For>) {
     super();
+    this.forToken = unWrap(builder.forToken);
+    this.element = unWrap(builder.element);
+    this.inToken = unWrap(builder.inToken);
+    this.collection = unWrap(builder.collection);
+    this.inst = unWrap(builder.inst);
   }
 
   public toLines(): string[] {
-    const suffixLines = this.suffix.toLines();
+    const suffixLines = this.collection.toLines();
     const instLines = this.inst.toLines();
 
     suffixLines[0] =
-      `${this.forToken.lexeme} ${this.identifier.lexeme} ` +
+      `${this.forToken.lexeme} ${this.element.lexeme} ` +
       `${this.inToken.lexeme} ${suffixLines[0]}`;
 
     return joinLines(' ', suffixLines, instLines);
@@ -764,9 +794,9 @@ export class For extends Inst {
   public get ranges(): Range[] {
     return [
       this.forToken,
-      this.identifier,
+      this.element,
       this.inToken,
-      this.suffix,
+      this.collection,
       this.inst,
     ];
   }
@@ -1427,16 +1457,23 @@ export class Empty extends Inst {
 }
 
 export class Print extends Inst {
-  constructor(
-    public readonly print: IToken,
-    public readonly expr: IExpr,
-    public readonly at?: IToken,
-    public readonly open?: IToken,
-    public readonly x?: IExpr,
-    public readonly y?: IExpr,
-    public readonly close?: IToken,
-  ) {
+  public readonly print: IToken;
+  public readonly expr: IExpr;
+  public readonly at?: IToken;
+  public readonly open?: IToken;
+  public readonly x?: IExpr;
+  public readonly y?: IExpr;
+  public readonly close?: IToken;
+
+  constructor(builder: NodeDataBuilder<Print>) {
     super();
+    this.print = unWrap(builder.print);
+    this.expr = unWrap(builder.expr);
+    this.at = builder.at;
+    this.open = builder.open;
+    this.x = builder.x;
+    this.y = builder.y;
+    this.close = builder.close;
   }
 
   public toLines(): string[] {

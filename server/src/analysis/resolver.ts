@@ -626,11 +626,11 @@ export class Resolver
       this.tableBuilder.beginScope(inst);
       const declareError = this.tableBuilder.declareVariable(
         ScopeKind.local,
-        inst.identifier,
+        inst.element,
       );
 
-      const errors = this.useExprLocals(inst.suffix).concat(
-        this.resolveExpr(inst.suffix),
+      const errors = this.useExprLocals(inst.collection).concat(
+        this.resolveExpr(inst.collection),
         this.resolveInst(inst.inst),
       );
 

@@ -20,24 +20,22 @@ type PartialRequire<T, K extends keyof T> = Required<Pick<T, K>> & Omit<T, K>;
 type Constructor<T = {}> = new (...args: any[]) => T;
 
 /**
- * This type helper picks all the property names that are functions
+ * This type helper gets all property names of type T that extend type U
  */
-type FunctionPropertyNames<T> = { [K in keyof T]: T[K] extends Function ? K : never }[keyof T];
+type PropertyNames<T, U> = { [K in keyof T]: T[K] extends U ? K : never }[keyof T];
 
 /**
- * This type helper picks all properties off an interface that are functions
+ * This type helper get all properties of type T that extend type U
  */
-type FunctionProperties<T> = Pick<T, FunctionPropertyNames<T>>;
+type Properties<T, U> = Pick<T, PropertyNames<T, U>>;
 
 /**
- * This type helper picks all property name that are not functions
+ * Create a writable version of a readonly mapped type
  */
-type NonFunctionPropertyNames<T> = { [K in keyof T]: T[K] extends Function ? never : K }[keyof T];
+type Writeable<T> = {
+  -readonly [P in keyof T]-?: T[P]
+};
 
-/**
- * This type helper picks all properties off an interface that are not functions
- */
-type NonFunctionProperties<T> = Pick<T, NonFunctionPropertyNames<T>>;
 /**
  * Currenlty used in signiture utilities
  */

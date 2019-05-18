@@ -5,6 +5,7 @@ import { Var, Lock, Func, Param } from './declare';
 import { IToken } from '../entities/types';
 import { Range, Location, Diagnostic } from 'vscode-languageserver';
 import { TokenType } from '../entities/tokentypes';
+import { NodeBase } from './base';
 
 export interface IRangeSequence extends Range {
   ranges: Range[];
@@ -16,6 +17,10 @@ export interface IDeclScope extends IRangeSequence {
   type: ScopeKind;
   toString(): string;
 }
+
+export type NodeDataBuilder<T> = Partial<Writeable<NodeData<T>>>;
+
+export type NodeData<T> = Properties<T, IToken | NodeBase | NodeBase[] | undefined>;
 
 export type SuffixTermTrailer = SuffixTerm.Call
   | SuffixTerm.ArrayBracket
@@ -174,7 +179,7 @@ export enum ScopeKind {
 }
 
 export type PartialNode = {
-  [key: string]: IToken | TreeNode;
+  [key: string]: IToken | TreeNode | undefined;
 };
 
 export type GrammarNode = IExprClass

@@ -147,7 +147,7 @@ export abstract class TreeTraverse implements
   }
   public visitFor(inst: Inst.For): void {
     if (this.nodeAction(inst)) {
-      this.exprAction(inst.suffix);
+      this.exprAction(inst.collection);
       this.instAction(inst.inst);
     }
   }

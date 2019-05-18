@@ -626,7 +626,7 @@ export class TypeChecker
    * @param inst for loop instruction
    */
   public visitFor(inst: Inst.For): Diagnostics {
-    const result = this.checkExpr(inst.suffix);
+    const result = this.checkExpr(inst.collection);
     let errors: Diagnostics = [];
 
     const { type } = result;
@@ -634,7 +634,7 @@ export class TypeChecker
     if (type.kind !== TypeKind.basic || !hasSuffix(type, iterator)) {
       errors = errors.concat(
         createDiagnostic(
-          inst.suffix,
+          inst.collection,
           'May not be a valid enumerable type',
           DiagnosticSeverity.Hint,
         ),
@@ -642,7 +642,7 @@ export class TypeChecker
     }
 
     // TODO may be able to detect if type is really pure and not mixed
-    const { tracker } = inst.identifier;
+    const { tracker } = inst.element;
 
     if (!empty(tracker)) {
       const collectionIterator = getSuffix(type, iterator);
@@ -651,11 +651,11 @@ export class TypeChecker
         const value = getSuffix(collectionIterator.returns, 'value');
 
         tracker.setType(
-          inst.identifier,
+          inst.element,
           value && value.returns || structureType,
         );
       } else {
-        tracker.setType(inst.identifier, structureType);
+        tracker.setType(inst.element, structureType);
       }
     }
     return errors.concat(this.checkInst(inst.inst));
