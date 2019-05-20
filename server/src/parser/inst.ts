@@ -155,12 +155,16 @@ export class ExprInst extends Inst {
     return visitor.visitExpr(this);
   }
 }
+
 export class OnOff extends Inst {
-  constructor(
-    public readonly suffix: Expr.Suffix,
-    public readonly onOff: IToken,
-  ) {
+  public readonly suffix: Expr.Suffix;
+  public readonly onOff: IToken;
+
+  constructor(builder: NodeDataBuilder<OnOff>) {
     super();
+
+    this.suffix = unWrap(builder.suffix);
+    this.onOff = unWrap(builder.onOff);
   }
 
   public toLines(): string[] {
@@ -221,8 +225,14 @@ export class Command extends Inst {
   }
 }
 export class CommandExpr extends Inst {
-  constructor(public readonly command: IToken, public readonly expr: IExpr) {
+  public readonly command: IToken;
+  public readonly expr: IExpr;
+
+  constructor(builder: NodeDataBuilder<CommandExpr>) {
     super();
+
+    this.command = unWrap(builder.command);
+    this.expr = unWrap(builder.expr);
   }
 
   public toLines(): string[] {
@@ -255,11 +265,14 @@ export class CommandExpr extends Inst {
 }
 
 export class Unset extends Inst {
-  constructor(
-    public readonly unset: IToken,
-    public readonly identifier: IToken,
-  ) {
+  public readonly unset: IToken;
+  public readonly identifier: IToken;
+
+  constructor(builder: NodeDataBuilder<Unset>) {
     super();
+
+    this.unset = unWrap(builder.unset);
+    this.identifier = unWrap(builder.identifier);
   }
 
   public toLines(): string[] {
@@ -288,11 +301,14 @@ export class Unset extends Inst {
 }
 
 export class Unlock extends Inst {
-  constructor(
-    public readonly unlock: IToken,
-    public readonly identifier: IToken,
-  ) {
+  public readonly unlock: IToken;
+  public readonly identifier: IToken;
+
+  constructor(builder: NodeDataBuilder<Unlock>) {
     super();
+
+    this.unlock = unWrap(builder.unlock);
+    this.identifier = unWrap(builder.identifier);
   }
 
   public toLines(): string[] {
@@ -366,12 +382,16 @@ export class Set extends Inst {
 }
 
 export class LazyGlobal extends Inst {
-  constructor(
-    public readonly atSign: IToken,
-    public readonly lazyGlobal: IToken,
-    public readonly onOff: IToken,
-  ) {
+  public readonly atSign: IToken;
+  public readonly lazyGlobal: IToken;
+  public readonly onOff: IToken;
+
+  constructor(builder: NodeDataBuilder<LazyGlobal>) {
     super();
+
+    this.atSign = unWrap(builder.atSign);
+    this.lazyGlobal = unWrap(builder.lazyGlobal);
+    this.onOff = unWrap(builder.onOff);
   }
 
   public toLines(): string[] {
@@ -495,12 +515,16 @@ export class Else extends Inst {
 }
 
 export class Until extends Inst {
-  constructor(
-    public readonly until: IToken,
-    public readonly condition: IExpr,
-    public readonly inst: IInst,
-  ) {
+  public readonly until: IToken;
+  public readonly condition: IExpr;
+  public readonly inst: IInst;
+
+  constructor(builder: NodeDataBuilder<Until>) {
     super();
+
+    this.until = unWrap(builder.until);
+    this.condition = unWrap(builder.condition);
+    this.inst = unWrap(builder.inst);
   }
 
   public toLines(): string[] {
@@ -533,17 +557,25 @@ export class Until extends Inst {
 }
 
 export class From extends Inst {
-  constructor(
-    public readonly from: IToken,
-    public readonly initializer: Block,
-    public readonly until: IToken,
-    public readonly condition: IExpr,
-    public readonly step: IToken,
-    public readonly increment: Block,
-    public readonly doToken: IToken,
-    public readonly inst: IInst,
-  ) {
+  public readonly from: IToken;
+  public readonly initializer: Block;
+  public readonly until: IToken;
+  public readonly condition: IExpr;
+  public readonly step: IToken;
+  public readonly increment: Block;
+  public readonly doToken: IToken;
+  public readonly inst: IInst;
+  constructor(builder: NodeDataBuilder<From>) {
     super();
+
+    this.from = unWrap(builder.from);
+    this.initializer = unWrap(builder.initializer);
+    this.until = unWrap(builder.until);
+    this.condition = unWrap(builder.condition);
+    this.step = unWrap(builder.step);
+    this.increment = unWrap(builder.increment);
+    this.doToken = unWrap(builder.doToken);
+    this.inst = unWrap(builder.inst);
   }
 
   public toLines(): string[] {
@@ -597,13 +629,17 @@ export class From extends Inst {
 }
 
 export class When extends Inst {
-  constructor(
-    public readonly when: IToken,
-    public readonly condition: IExpr,
-    public readonly then: IToken,
-    public readonly inst: IInst,
-  ) {
+  public readonly when: IToken;
+  public readonly condition: IExpr;
+  public readonly then: IToken;
+  public readonly inst: IInst;
+
+  constructor(builder: NodeDataBuilder<When>) {
     super();
+    this.when = unWrap(builder.when);
+    this.condition = unWrap(builder.condition);
+    this.then = unWrap(builder.then);
+    this.inst = unWrap(builder.inst);
   }
 
   public toLines(): string[] {
@@ -638,16 +674,19 @@ export class When extends Inst {
 }
 
 export class Return extends Inst {
-  constructor(
-    public readonly returnToken: IToken,
-    public readonly expr?: IExpr,
-  ) {
+  public readonly returnToken: IToken;
+  public readonly value?: IExpr;
+
+  constructor(builder: NodeDataBuilder<Return>) {
     super();
+
+    this.returnToken = unWrap(builder.returnToken);
+    this.value = builder.value;
   }
 
   public toLines(): string[] {
-    if (!empty(this.expr)) {
-      const exprLines = this.expr.toLines();
+    if (!empty(this.value)) {
+      const exprLines = this.value.toLines();
 
       exprLines[0] = `${this.returnToken.lexeme} ${exprLines[0]}`;
       exprLines[exprLines.length - 1] = `${exprLines[exprLines.length - 1]}.`;
@@ -662,13 +701,13 @@ export class Return extends Inst {
   }
 
   public get end(): Position {
-    return empty(this.expr) ? this.returnToken.end : this.expr.end;
+    return empty(this.value) ? this.returnToken.end : this.value.end;
   }
 
   public get ranges(): Range[] {
     let ranges: Range[] = [this.returnToken];
-    if (!empty(this.expr)) {
-      ranges = ranges.concat(this.expr.ranges);
+    if (!empty(this.value)) {
+      ranges = ranges.concat(this.value.ranges);
     }
 
     return ranges;
@@ -714,12 +753,16 @@ export class Break extends Inst {
 }
 
 export class Switch extends Inst {
-  constructor(
-    public readonly switchToken: IToken,
-    public readonly to: IToken,
-    public readonly target: IExpr,
-  ) {
+  public readonly switchToken: IToken;
+  public readonly to: IToken;
+  public readonly target: IExpr;
+
+  constructor(builder: NodeDataBuilder<Switch>) {
     super();
+
+    this.switchToken = unWrap(builder.switchToken);
+    this.to = unWrap(builder.to);
+    this.target = unWrap(builder.target);
   }
 
   public toLines(): string[] {
@@ -811,12 +854,16 @@ export class For extends Inst {
 }
 
 export class On extends Inst {
-  constructor(
-    public readonly on: IToken,
-    public readonly suffix: Expr.Suffix,
-    public readonly inst: IInst,
-  ) {
+  public readonly on: IToken;
+  public readonly suffix: Expr.Suffix;
+  public readonly inst: IInst;
+
+  constructor(builder: NodeDataBuilder<On>) {
     super();
+
+    this.on = unWrap(builder.on);
+    this.suffix = unWrap(builder.suffix);
+    this.inst = unWrap(builder.inst);
   }
 
   public toLines(): string[] {
@@ -849,11 +896,14 @@ export class On extends Inst {
 }
 
 export class Toggle extends Inst {
-  constructor(
-    public readonly toggle: IToken,
-    public readonly suffix: Expr.Suffix,
-  ) {
+  public readonly toggle: IToken;
+  public readonly suffix: Expr.Suffix;
+
+  constructor(builder: NodeDataBuilder<Toggle>) {
     super();
+
+    this.toggle = unWrap(builder.toggle);
+    this.suffix = unWrap(builder.suffix);
   }
 
   public toLines(): string[] {
@@ -888,12 +938,16 @@ export class Toggle extends Inst {
 }
 
 export class Wait extends Inst {
-  constructor(
-    public readonly wait: IToken,
-    public readonly expr: IExpr,
-    public readonly until?: IToken,
-  ) {
+  public readonly wait: IToken;
+  public readonly until?: IToken;
+  public readonly expr: IExpr;
+
+  constructor(builder: NodeDataBuilder<Wait>) {
     super();
+
+    this.wait = unWrap(builder.wait);
+    this.until = builder.until;
+    this.expr = unWrap(builder.expr);
   }
 
   public toLines(): string[] {
@@ -932,13 +986,18 @@ export class Wait extends Inst {
 }
 
 export class Log extends Inst {
-  constructor(
-    public readonly log: IToken,
-    public readonly expr: IExpr,
-    public readonly to: IToken,
-    public readonly target: IExpr,
-  ) {
+  public readonly log: IToken;
+  public readonly expr: IExpr;
+  public readonly to: IToken;
+  public readonly target: IExpr;
+
+  constructor(builder: NodeDataBuilder<Log>) {
     super();
+
+    this.log = unWrap(builder.log);
+    this.expr = unWrap(builder.expr);
+    this.to = unWrap(builder.to);
+    this.target = unWrap(builder.target);
   }
 
   public toLines(): string[] {
@@ -976,13 +1035,18 @@ export class Log extends Inst {
 }
 
 export class Copy extends Inst {
-  constructor(
-    public readonly copy: IToken,
-    public readonly target: IExpr,
-    public readonly toFrom: IToken,
-    public readonly destination: IExpr,
-  ) {
+  public readonly copy: IToken;
+  public readonly target: IExpr;
+  public readonly toFrom: IToken;
+  public readonly destination: IExpr;
+
+  constructor(builder: NodeDataBuilder<Copy>) {
     super();
+
+    this.copy = unWrap(builder.copy);
+    this.target = unWrap(builder.target);
+    this.toFrom = unWrap(builder.toFrom);
+    this.destination = unWrap(builder.destination);
   }
 
   public toLines(): string[] {
@@ -1017,15 +1081,22 @@ export class Copy extends Inst {
 }
 
 export class Rename extends Inst {
-  constructor(
-    public readonly rename: IToken,
-    public readonly fileVolume: IToken,
-    public readonly ioIdentifer: IToken,
-    public readonly target: IExpr,
-    public readonly to: IToken,
-    public readonly alternative: IExpr,
-  ) {
+  public readonly rename: IToken;
+  public readonly fileVolume: IToken;
+  public readonly identifier: IToken;
+  public readonly target: IExpr;
+  public readonly to: IToken;
+  public readonly alternative: IExpr;
+
+  constructor(builder: NodeDataBuilder<Rename>) {
     super();
+
+    this.rename = unWrap(builder.rename);
+    this.fileVolume = unWrap(builder.fileVolume);
+    this.identifier = unWrap(builder.identifier);
+    this.target = unWrap(builder.target);
+    this.to = unWrap(builder.to);
+    this.alternative = unWrap(builder.alternative);
   }
 
   public toLines(): string[] {
@@ -1034,7 +1105,7 @@ export class Rename extends Inst {
 
     targetLines[0] =
       `${this.rename.lexeme} ${this.fileVolume.lexeme}` +
-      `${this.ioIdentifer.lexeme} ${targetLines[0]}`;
+      `${this.identifier.lexeme} ${targetLines[0]}`;
     alternativeLines[0] = `${this.to.lexeme} ${alternativeLines[0]}`;
 
     return joinLines(' ', targetLines, alternativeLines);
@@ -1051,7 +1122,7 @@ export class Rename extends Inst {
   public get ranges(): Range[] {
     return [
       this.rename,
-      this.ioIdentifer,
+      this.identifier,
       this.target,
       this.to,
       this.alternative,
@@ -1068,13 +1139,18 @@ export class Rename extends Inst {
 }
 
 export class Delete extends Inst {
-  constructor(
-    public readonly deleteToken: IToken,
-    public readonly target: IExpr,
-    public readonly from?: IToken,
-    public readonly volume?: IExpr,
-  ) {
+  public readonly deleteToken: IToken;
+  public readonly target: IExpr;
+  public readonly from?: IToken;
+  public readonly volume?: IExpr;
+
+  constructor(builder: NodeDataBuilder<Delete>) {
     super();
+
+    this.deleteToken = unWrap(builder.deleteToken);
+    this.target = unWrap(builder.target);
+    this.from = builder.deleteToken;
+    this.volume = builder.volume;
   }
 
   public toLines(): string[] {
@@ -1125,17 +1201,26 @@ export class Delete extends Inst {
 }
 
 export class Run extends Inst {
-  constructor(
-    public readonly run: IToken,
-    public readonly identifier: IToken,
-    public readonly once?: IToken,
-    public readonly open?: IToken,
-    public readonly args?: IExpr[],
-    public readonly close?: IToken,
-    public readonly on?: IToken,
-    public readonly expr?: IExpr,
-  ) {
+  public readonly run: IToken;
+  public readonly identifier: IToken;
+  public readonly once?: IToken;
+  public readonly open?: IToken;
+  public readonly args?: IExpr[];
+  public readonly close?: IToken;
+  public readonly on?: IToken;
+  public readonly expr?: IExpr;
+
+  constructor(builder: NodeDataBuilder<Run>) {
     super();
+
+    this.run = unWrap(builder.run);
+    this.identifier = unWrap(builder.identifier);
+    this.once = builder.once;
+    this.open = builder.open;
+    this.args = builder.args;
+    this.close = builder.close;
+    this.on = builder.on;
+    this.expr = builder.expr;
   }
 
   public toLines(): string[] {
@@ -1209,14 +1294,20 @@ export class Run extends Inst {
 }
 
 export class RunPath extends Inst {
-  constructor(
-    public readonly runPath: IToken,
-    public readonly open: IToken,
-    public readonly expr: IExpr,
-    public readonly close: IToken,
-    public readonly args?: IExpr[],
-  ) {
+  public readonly runPath: IToken;
+  public readonly open: IToken;
+  public readonly expr: IExpr;
+  public readonly close: IToken;
+  public readonly args?: IExpr[];
+
+  constructor(builder: NodeDataBuilder<RunPath>) {
     super();
+
+    this.runPath = unWrap(builder.runPath);
+    this.open = unWrap(builder.open);
+    this.expr = unWrap(builder.expr);
+    this.close = unWrap(builder.close);
+    this.args = builder.args;
   }
 
   public toLines(): string[] {
@@ -1261,14 +1352,20 @@ export class RunPath extends Inst {
 }
 
 export class RunPathOnce extends Inst {
-  constructor(
-    public readonly runPath: IToken,
-    public readonly open: IToken,
-    public readonly expr: IExpr,
-    public readonly close: IToken,
-    public readonly args?: IExpr[],
-  ) {
+  public readonly runPath: IToken;
+  public readonly open: IToken;
+  public readonly expr: IExpr;
+  public readonly close: IToken;
+  public readonly args?: IExpr[];
+
+  constructor(builder: NodeDataBuilder<RunPathOnce>) {
     super();
+
+    this.runPath = unWrap(builder.runPath);
+    this.open = unWrap(builder.open);
+    this.expr = unWrap(builder.expr);
+    this.close = unWrap(builder.close);
+    this.args = builder.args;
   }
 
   public toLines(): string[] {
@@ -1313,13 +1410,18 @@ export class RunPathOnce extends Inst {
 }
 
 export class Compile extends Inst {
-  constructor(
-    public readonly compile: IToken,
-    public readonly target: IExpr,
-    public readonly to?: IToken,
-    public readonly destination?: IExpr,
-  ) {
+  public readonly compile: IToken;
+  public readonly target: IExpr;
+  public readonly to?: IToken;
+  public readonly destination?: IExpr;
+
+  constructor(builder: NodeDataBuilder<Compile>) {
     super();
+
+    this.compile = unWrap(builder.compile);
+    this.target = unWrap(builder.target);
+    this.to = builder.to;
+    this.destination = builder.destination;
   }
 
   public toLines(): string[] {
@@ -1362,13 +1464,18 @@ export class Compile extends Inst {
 }
 
 export class List extends Inst {
-  constructor(
-    public readonly list: IToken,
-    public readonly collection?: IToken,
-    public readonly inToken?: IToken,
-    public readonly target?: IToken,
-  ) {
+  public readonly list: IToken;
+  public readonly collection?: IToken;
+  public readonly inToken?: IToken;
+  public readonly target?: IToken;
+
+  constructor(builder: NodeDataBuilder<List>) {
     super();
+
+    this.list = unWrap(builder.list);
+    this.collection = builder.collection;
+    this.inToken = builder.inToken;
+    this.target = builder.target;
   }
 
   public toLines(): string[] {

@@ -281,8 +281,8 @@ export class PreResolver
   }
 
   public visitReturn(inst: Inst.Return): Diagnostics {
-    if (inst.expr) {
-      return this.resolveExpr(inst.expr);
+    if (inst.value) {
+      return this.resolveExpr(inst.value);
     }
 
     return [];

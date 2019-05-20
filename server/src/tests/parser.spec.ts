@@ -512,6 +512,27 @@ const varDeclareTest = (
   };
 };
 
+interface ILockDeclareTest {
+  source: string;
+  identifier: string;
+  scope?: ScopeKind;
+  value: Constructor<Expr.Expr>;
+}
+
+const lockDeclareTest = (
+  source: string,
+  identifier: string,
+  scope?: ScopeKind,
+  value: Constructor<Expr.Expr>,
+): ILockDeclareTest => {
+  return {
+    source,
+    identifier,
+    scope,
+    value,
+  };
+};
+
 describe('Parse instruction', () => {
   test('valid variable declarations', () => {
     const validDeclarations = [
@@ -549,6 +570,54 @@ describe('Parse instruction', () => {
       if (inst instanceof Decl.Var) {
         expect(inst.identifier.lexeme).toBe(declaration.identifier);
         expect(inst.scope.type).toBe(declaration.scope);
+        expect(inst.value instanceof declaration.value).toBe(true);
+      }
+    }
+  });
+
+  test('valid lock declarations', () => {
+    const validDeclarations = [
+      lockDeclareTest(
+        'lock a to { return 10. }.',
+        'a',
+        ScopeKind.local,
+        Expr.Lambda,
+      ),
+      lockDeclareTest(
+        'local lock other to "example" + "another".',
+        'other',
+        ScopeKind.local,
+        Expr.Binary,
+      ),
+      lockDeclareTest(
+        'declare global lock another is thing:withSuffix[10].',
+        'another',
+        ScopeKind.global,
+        Expr.Suffix,
+      ),
+    ];
+
+    for (const declaration of validDeclarations) {
+      const { script, parseErrors } = parse(declaration.source);
+
+      expect(parseErrors.length).toBe(0);
+      expect(script.insts.length).toBe(1);
+      expect(script.runInsts.length).toBe(0);
+
+      const [inst] = script.insts;
+
+      expect(inst instanceof Decl.Lock).toBe(true);
+
+      if (inst instanceof Decl.Lock) {
+        expect(inst.identifier.lexeme).toBe(declaration.identifier);
+        if (empty(declaration.scope)) {
+          expect(inst.scope).toBeUndefined();
+        } else {
+          if ()
+
+          expect(inst.scope.type).toBe(declaration.scope);
+        }
+
         expect(inst.value instanceof declaration.value).toBe(true);
       }
     }

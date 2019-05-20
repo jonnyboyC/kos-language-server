@@ -574,9 +574,9 @@ export class Resolver
   public visitReturn(inst: Inst.Return): Diagnostics {
     let valueErrors: Diagnostics = [];
 
-    if (inst.expr) {
-      valueErrors = this.useExprLocals(inst.expr).concat(
-        this.resolveExpr(inst.expr),
+    if (inst.value) {
+      valueErrors = this.useExprLocals(inst.value).concat(
+        this.resolveExpr(inst.value),
       );
     }
 

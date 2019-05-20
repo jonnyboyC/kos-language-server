@@ -591,7 +591,7 @@ export class TypeChecker
   // visit return
   public visitReturn(inst: Inst.Return): Diagnostics {
     const errors: Diagnostics = [];
-    if (!empty(inst.expr)) {
+    if (!empty(inst.value)) {
       // TODO maybe update function type?
     }
 

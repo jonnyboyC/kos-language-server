@@ -132,8 +132,8 @@ export abstract class TreeTraverse implements
   }
   public visitReturn(inst: Inst.Return): void {
     if (this.nodeAction(inst)) {
-      if (!empty(inst.expr)) {
-        this.exprAction(inst.expr);
+      if (!empty(inst.value)) {
+        this.exprAction(inst.value);
       }
     }
   }
