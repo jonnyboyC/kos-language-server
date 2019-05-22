@@ -10,10 +10,11 @@ import {
 import * as Expr from './expr';
 import { IToken } from '../entities/types';
 import { Range, Position } from 'vscode-languageserver';
-import { empty, unWrap } from '../utilities/typeGuards';
+import { empty, unWrap, notEmpty } from '../utilities/typeGuards';
 import { NodeBase } from './base';
 import { joinLines } from './toStringUtils';
 import { flatten } from '../utilities/arrayUtils';
+import { rangeOrder, rangeContains } from '../utilities/positionUtils';
 
 /**
  * Instruction base class
@@ -67,7 +68,36 @@ export class Invalid extends Inst {
   }
 
   public get ranges(): Range[] {
-    return [...this.tokens];
+    if (empty(this.partial)) {
+      return this.tokens;
+    }
+
+    // order each piece of the partial by it's range
+    let segments = Object.values(this.partial)
+      .filter(notEmpty)
+      .sort(rangeOrder);
+
+    // attempt to add tokens to segments
+    for (const token of this.tokens) {
+      let overlap = false;
+
+      // check for overlap
+      for (const segment of segments) {
+        if (rangeContains(segment, token)) {
+          overlap = true;
+          break;
+        }
+      }
+
+      // if no overall add to segments
+      if (!overlap) {
+        segments.push(token);
+      }
+    }
+
+    // reorder segments
+    segments = segments.sort(rangeOrder);
+    return segments;
   }
 
   public pass<T>(visitor: IInstPasser<T>): T {
