@@ -522,8 +522,8 @@ interface ILockDeclareTest {
 const lockDeclareTest = (
   source: string,
   identifier: string,
-  scope?: ScopeKind,
   value: Constructor<Expr.Expr>,
+  scope?: ScopeKind,
 ): ILockDeclareTest => {
   return {
     source,
@@ -580,20 +580,20 @@ describe('Parse instruction', () => {
       lockDeclareTest(
         'lock a to { return 10. }.',
         'a',
-        ScopeKind.local,
         Expr.Lambda,
+        undefined,
       ),
       lockDeclareTest(
         'local lock other to "example" + "another".',
         'other',
-        ScopeKind.local,
         Expr.Binary,
+        ScopeKind.local,
       ),
       lockDeclareTest(
-        'declare global lock another is thing:withSuffix[10].',
+        'declare global lock another to thing:withSuffix[10].',
         'another',
-        ScopeKind.global,
         Expr.Suffix,
+        ScopeKind.global,
       ),
     ];
 
@@ -613,9 +613,11 @@ describe('Parse instruction', () => {
         if (empty(declaration.scope)) {
           expect(inst.scope).toBeUndefined();
         } else {
-          if ()
-
-          expect(inst.scope.type).toBe(declaration.scope);
+          if (empty(inst.scope)) {
+            fail();
+          } else {
+            expect(inst.scope.type).toBe(declaration.scope);
+          }
         }
 
         expect(inst.value instanceof declaration.value).toBe(true);
