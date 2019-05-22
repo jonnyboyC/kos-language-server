@@ -179,9 +179,16 @@ export class Parser {
         this.logger.verbose(JSON.stringify(error.partial));
         this.synchronize(error.failed);
 
+        const tokens = this.tokens.slice(start, this.current);
+
         return {
           errors: [error],
-          value: new Inst.Invalid(this.tokens.slice(start, this.current)),
+          value: new Inst.Invalid(
+            start === this.current
+              ? this.peek().end
+              : tokens[0].start,
+            tokens,
+            error.partial),
         };
       }
       throw error;
@@ -593,7 +600,9 @@ export class Parser {
     return nodeResult(new Inst.CommandExpr(builder), expr.errors);
   }
 
-  // parse unset instruction
+  /**
+   * Parse unset instruction
+   */
   private unset(): INodeResult<Inst.Unset> {
     const builder: NodeDataBuilder<Inst.Unset> = {
       unset: this.previous(),
@@ -611,7 +620,9 @@ export class Parser {
     return nodeResult(new Inst.Unset(builder), []);
   }
 
-  // parse unlock instruction
+  /**
+   * Parse unlock instruction
+   */
   private unlock(): INodeResult<Inst.Unlock> {
     const builder: NodeDataBuilder<Inst.Unlock> = {
       unlock: this.previous(),
@@ -661,7 +672,9 @@ export class Parser {
     );
   }
 
-  // parse lazy global
+  /**
+   * Parse lazy global instruction
+   */
   private lazyGlobal(): INodeResult<Inst.LazyGlobal> {
     const builder: NodeDataBuilder<Inst.LazyGlobal> = {
       atSign: this.previous(),
@@ -728,7 +741,10 @@ export class Parser {
       );
     }
 
-    return nodeResult(new Inst.If(builder), inst.errors);
+    return nodeResult(
+      new Inst.If(builder),
+      flatten([conditionResult.errors, inst.errors]),
+    );
   }
 
   // parse until instruction

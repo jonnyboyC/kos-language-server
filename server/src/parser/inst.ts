@@ -5,6 +5,7 @@ import {
   SyntaxKind,
   IInstPasser,
   NodeDataBuilder,
+  PartialNode,
 } from './types';
 import * as Expr from './expr';
 import { IToken } from '../entities/types';
@@ -41,7 +42,11 @@ export abstract class Inst extends NodeBase implements IInst {
 }
 
 export class Invalid extends Inst {
-  constructor(public readonly tokens: IToken[]) {
+  constructor(
+    public readonly pos: Position,
+    public readonly tokens: IToken[],
+    public readonly partial?: PartialNode,
+  ) {
     super();
   }
 
@@ -50,11 +55,15 @@ export class Invalid extends Inst {
   }
 
   public get start(): Position {
-    return this.tokens[0].start;
+    return this.tokens.length > 0
+      ? this.tokens[0].start
+      : this.pos;
   }
 
   public get end(): Position {
-    return this.tokens[this.tokens.length - 1].end;
+    return this.tokens.length > 0
+      ? this.tokens[this.tokens.length - 1].end
+      : this.pos;
   }
 
   public get ranges(): Range[] {
