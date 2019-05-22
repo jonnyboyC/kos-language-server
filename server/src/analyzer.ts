@@ -17,7 +17,7 @@ import { PreResolver } from './analysis/preResolver';
 import { Scanner } from './scanner/scanner';
 import { Resolver } from './analysis/resolver';
 import { IParseError, ScriptResult, RunInstType } from './parser/types';
-import { KsSymbol, IKsSymbolTracker, KsSymbolKind } from './analysis/types';
+import { KsSymbol, KsSymbolKind } from './analysis/types';
 import { mockLogger, mockTracer } from './utilities/logger';
 import { empty, notEmpty } from './utilities/typeGuards';
 import { ScriptFind } from './parser/scriptFind';

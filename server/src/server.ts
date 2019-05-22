@@ -328,18 +328,26 @@ connection.onCompletion(
   (completionParams: CompletionParams): CompletionItem[] => {
     const { context } = completionParams;
 
-    if (
-      empty(context) ||
-      context.triggerKind !== CompletionTriggerKind.TriggerCharacter
-    ) {
-      return entityCompletionItems(
-        server.analyzer,
-        completionParams,
-        server.keywords,
-      );
-    }
+    try {
+      if (
+        empty(context) ||
+        context.triggerKind !== CompletionTriggerKind.TriggerCharacter
+      ) {
+        return entityCompletionItems(
+          server.analyzer,
+          completionParams,
+          server.keywords,
+        );
+      }
 
-    return suffixCompletionItems(server.analyzer, completionParams);
+      return suffixCompletionItems(server.analyzer, completionParams);
+    } catch (err) {
+      if (err instanceof Error) {
+        connection.console.warn(`${err.message} ${err.stack}`);
+      }
+
+      return [];
+    }
   },
 );
 
@@ -458,16 +466,24 @@ connection.onDefinition(
  */
 connection.onCompletionResolve(
   (item: CompletionItem): CompletionItem => {
-    const token = item.data as IToken;
+    try {
+      const token = item.data as Maybe<IToken>;
 
-    if (!empty(token.tracker)) {
-      const type = token.tracker.getType({ uri: token.uri, range: token.range });
-      if (!empty(type)) {
-        item.detail = `${item.label}: ${type.toTypeString()}`;
+      if (!empty(token) && !empty(token.tracker)) {
+        const type = token.tracker.getType({ uri: token.uri, range: token.range });
+        if (!empty(type)) {
+          item.detail = `${item.label}: ${type.toTypeString()}`;
+        }
       }
-    }
 
-    return item;
+      return item;
+    } catch (err) {
+      if (err instanceof Error) {
+        connection.console.error(`${err.message} ${err.stack}`);
+      }
+
+      return item;
+    }
   },
 );
 
