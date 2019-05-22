@@ -107,6 +107,13 @@ export class Analyzer {
     this.bodyLibrary = bodyLibraryBuilder(caseKind);
   }
 
+  /**
+   * Validate a document in asynchronous stages. This produces diagnostics about known errors or
+   * potential problems in the provided script
+   * @param uri uri of the document
+   * @param text source text of the document
+   * @param depth TODO remove: current depth of the document
+   */
   public async *validateDocument(
     uri: string,
     text: string,
@@ -119,7 +126,13 @@ export class Analyzer {
     }
   }
 
-  // main validation code
+  /**
+   * Main validation function for a document. Lexically and semantically understands a document.
+   * Will additionally perform the same analysis on other run scripts found in this script
+   * @param uri uri of the document
+   * @param text source text of the document
+   * @param depth TODO remove: current depth of the document
+   */
   private async *validateDocument_(
     uri: string,
     text: string,
@@ -272,10 +285,20 @@ export class Analyzer {
     yield symbolTable;
   }
 
+  /**
+   * Get the symbol table corresponding active set of celetrial bodies for the user.
+   * This allows for bodies other than that in stock ksp to be incorporated
+   */
   private activeBodyLibrary(): SymbolTable {
+    /** TODO actually load other bodies */
     return this.bodyLibrary;
   }
 
+  /**
+   * Get the type of a suffix at a particular location in a script
+   * @param pos position to inspect
+   * @param uri uri of the document
+   */
   public getSuffixType(
     pos: Position,
     uri: string,
@@ -291,6 +314,7 @@ export class Analyzer {
     const result = finder.find(
       script,
       pos,
+      Inst.Invalid,
       Expr.Suffix,
       Decl.Var,
       Decl.Lock,
@@ -323,6 +347,10 @@ export class Analyzer {
       }
     }
 
+    if (node instanceof Inst.Invalid) {
+      console.log();
+    }
+
     const { tracker } = token;
     if (!empty(tracker)) {
       return [tracker.declared.type, tracker.declared.symbol.tag];
@@ -331,6 +359,10 @@ export class Analyzer {
     return undefined;
   }
 
+  /**
+   * Gets an array of nodes corresponding to a suffix type checking. This
+   * method will be removed when the type checker is updated
+   */
   private resolvedNodes(resolved: ITypeResolvedSuffix<IType>): ITypeNode[] {
     const nodes = [resolved.atom, ...resolved.termTrailers];
     return empty(resolved.suffixTrailer)
@@ -338,7 +370,11 @@ export class Analyzer {
       : nodes.concat(this.resolvedNodes(resolved.suffixTrailer));
   }
 
-  // get the token at a position
+  /**
+   * Get the token at the provided position in the text document
+   * @param pos position in the text document
+   * @param uri uri of the text document
+   */
   public getToken(pos: Position, uri: string): Maybe<IToken> {
     const documentInfo = this.documentInfos.get(uri);
     if (empty(documentInfo)) {
@@ -353,7 +389,11 @@ export class Analyzer {
     return result && result.token;
   }
 
-  // get a token at a position in a document
+  /**
+   * Get the declaration location for the token at the provided position
+   * @param pos position in the document
+   * @param uri uri of the document
+   */
   public getDeclarationLocation(pos: Position, uri: string): Maybe<Location> {
     const documentInfo = this.documentInfos.get(uri);
     if (empty(documentInfo)) {
@@ -437,39 +477,11 @@ export class Analyzer {
       .map(loc => loc.range);
   }
 
-  // get a scoped trackers
-  public getScopedTracker(
-    pos: Position,
-    name: string,
-    uri?: string,
-  ): Maybe<IKsSymbolTracker<KsSymbol>> {
-    if (empty(uri)) {
-      const trackers = this.getGlobalTrackers(name);
-      return trackers.length === 1 ? trackers[0] : undefined;
-    }
-
-    const documentInfo = this.documentInfos.get(uri);
-
-    if (!empty(documentInfo) && !empty(documentInfo.symbolsTable)) {
-      return documentInfo.symbolsTable.scopedNamedTracker(pos, name);
-    }
-
-    const trackers = this.getGlobalTrackers(name);
-    return trackers.length === 1 ? trackers[0] : undefined;
-  }
-
-  // get a global trackers
-  public getGlobalTrackers(name: string): IKsSymbolTracker<KsSymbol>[] {
-    return this.standardLibrary.globalTrackers(name);
-  }
-
-  // get all tracker at position
-  public getType(pos: Position, name: string, uri?: string): Maybe<IType> {
-    const tracker = this.getScopedTracker(pos, name, uri);
-    return tracker && tracker.declared.type;
-  }
-
-  // get symbols at position
+  /**
+   * Get all symbols in scope at a particulare location in the file
+   * @param pos position in document
+   * @param uri document uri
+   */
   public getScopedSymbols(pos: Position, uri: string): KsSymbol[] {
     const documentInfo = this.documentInfos.get(uri);
 
@@ -480,7 +492,10 @@ export class Analyzer {
     return [];
   }
 
-  // get all file symbols
+  /**
+   * Get all symbols in a provided file
+   * @param uri document uri
+   */
   public getAllFileSymbols(uri: string): KsSymbol[] {
     const documentInfo = this.documentInfos.get(uri);
 
@@ -553,7 +568,11 @@ export class Analyzer {
     return undefined;
   }
 
-  // generate the ast from the document string
+  /**
+   * Generate a ast from the provided source text
+   * @param uri uri to document
+   * @param text source text of document
+   */
   private async parseDocument(
     uri: string,
     text: string,
@@ -652,6 +671,11 @@ export class Analyzer {
     }
   }
 
+  /**
+   * Try to find a document in the workspace
+   * @param path path to file
+   * @param uri uri to file
+   */
   private tryFindDocument(
     path: string,
     uri: string,

@@ -460,14 +460,8 @@ connection.onCompletionResolve(
   (item: CompletionItem): CompletionItem => {
     const token = item.data as IToken;
 
-    // this would be a possible spot to pull in doc string if present.
-    if (!empty(token)) {
-      const type = server.analyzer.getType(
-        token.start,
-        token.lexeme,
-        token.uri,
-      );
-
+    if (!empty(token.tracker)) {
+      const type = token.tracker.getType({ uri: token.uri, range: token.range });
       if (!empty(type)) {
         item.detail = `${item.label}: ${type.toTypeString()}`;
       }
