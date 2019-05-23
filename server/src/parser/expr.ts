@@ -9,7 +9,7 @@ import {
   SyntaxKind,
 } from './types';
 import * as SuffixTerm from './suffixTerm';
-import * as Inst from './inst';
+import * as Stmt from './stmt';
 import { TokenType } from '../entities/tokentypes';
 import { IToken } from '../entities/types';
 import { Range, Position } from 'vscode-languageserver';
@@ -280,12 +280,10 @@ export class Lambda extends Expr {
 
   /**
    * Anonymous Function constructor
-   * @param open open paren token
-   * @param insts function instructions
-   * @param close close paren token
+   * @param block the scope for the lambda
    */
   constructor(
-    public readonly block: Inst.Block,
+    public readonly block: Stmt.Block,
   ) {
     super();
   }

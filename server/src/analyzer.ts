@@ -16,13 +16,13 @@ import { Parser } from './parser/parser';
 import { PreResolver } from './analysis/preResolver';
 import { Scanner } from './scanner/scanner';
 import { Resolver } from './analysis/resolver';
-import { IParseError, ScriptResult, RunInstType } from './parser/types';
+import { IParseError, ScriptResult, RunStmtType } from './parser/types';
 import { KsSymbol, KsSymbolKind } from './analysis/types';
 import { mockLogger, mockTracer } from './utilities/logger';
 import { empty, notEmpty } from './utilities/typeGuards';
 import { ScriptFind } from './parser/scriptFind';
 import { KsFunction } from './entities/function';
-import * as Inst from './parser/inst';
+import * as Stmt from './parser/stmt';
 import { signitureHelper } from './utilities/signitureUtils';
 import * as Expr from './parser/expr';
 import * as SuffixTerm from './parser/suffixTerm';
@@ -157,9 +157,9 @@ export class Analyzer {
 
     yield scanDiagnostics.concat(parserDiagnostics);
 
-    // if any run instruction exist get uri then load
-    if (script.runInsts.length > 0 && this.pathResolver.ready) {
-      const loadDatas = this.getValidUri(uri, script.runInsts);
+    // if any run statement exist get uri then load
+    if (script.runStmts.length > 0 && this.pathResolver.ready) {
+      const loadDatas = this.getValidUri(uri, script.runStmts);
 
       // for each document run validate and yield any results
       for (const loadData of loadDatas) {
@@ -314,7 +314,7 @@ export class Analyzer {
     const result = finder.find(
       script,
       pos,
-      Inst.Invalid,
+      Stmt.Invalid,
       Expr.Suffix,
       Decl.Var,
       Decl.Lock,
@@ -347,7 +347,7 @@ export class Analyzer {
       }
     }
 
-    if (node instanceof Inst.Invalid) {
+    if (node instanceof Stmt.Invalid) {
       console.log();
     }
 
@@ -522,21 +522,21 @@ export class Analyzer {
     const result = finder.find(
       script,
       pos,
-      Inst.Invalid,
+      Stmt.Invalid,
       Expr.Invalid,
       SuffixTerm.Call,
     );
 
-    // currently we only support invalid instructions for signiture completion
+    // currently we only support invalid statements for signiture completion
     // we could possible support call expressions as well
     if (empty(result) || empty(result.node)) {
       return undefined;
     }
 
-    // determine the identifier of the invalid instruction and parameter index
+    // determine the identifier of the invalid statement and parameter index
     const { node } = result;
 
-    if (node instanceof Inst.Invalid) {
+    if (node instanceof Stmt.Invalid) {
       const identifierIndex = signitureHelper(node.tokens, pos);
       if (empty(identifierIndex)) return undefined;
 
@@ -608,10 +608,10 @@ export class Analyzer {
     };
   }
 
-  // get usable file uri from run instructions
-  private getValidUri(uri: string, runInsts: RunInstType[]): ILoadData[] {
+  // get usable file uri from run statements
+  private getValidUri(uri: string, runStmts: RunStmtType[]): ILoadData[] {
     // generate uris then remove empty or preloaded documents
-    return runInsts
+    return runStmts
       .map(inst =>
         this.pathResolver.resolveUri(
           {
@@ -622,7 +622,7 @@ export class Analyzer {
         ),
       )
       .filter(notEmpty);
-    // .filter(uriInsts => !this.documentInfos.has(uriInsts.uri));
+    // .filter(uriStmts => !this.documentInfos.has(uriStmts.uri));
   }
 
   // load an validate a file from disk

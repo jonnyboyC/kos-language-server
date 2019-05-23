@@ -33,7 +33,7 @@
         "body": [
             "set ${1:suffix} to ${2:value}."
         ],
-        "description": "Set Instruction"
+        "description": "Set statement"
     },
     "until": {
         "prefix": "until",

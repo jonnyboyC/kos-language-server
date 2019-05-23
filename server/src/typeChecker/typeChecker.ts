@@ -1,7 +1,7 @@
 import {
   IExprVisitor,
-  IInstVisitor,
-  IInst,
+  IStmtVisitor,
+  IStmt,
   IExpr,
   ISuffixTerm,
   Atom,
@@ -9,7 +9,7 @@ import {
 } from '../parser/types';
 import * as SuffixTerm from '../parser/suffixTerm';
 import * as Expr from '../parser/expr';
-import * as Inst from '../parser/inst';
+import * as Stmt from '../parser/stmt';
 import * as Decl from '../parser/declare';
 import {
   ITypeResultExpr,
@@ -76,7 +76,7 @@ type SuffixTermType = ISuffixType | IArgumentType;
  */
 export class TypeChecker
   implements
-    IInstVisitor<Diagnostics>,
+    IStmtVisitor<Diagnostics>,
     IExprVisitor<ITypeResultExpr<IArgumentType>>,
     ISuffixTermParamVisitor<
       ITypeResultSuffix<IType>,
@@ -86,7 +86,7 @@ export class TypeChecker
   private readonly tracer: ITracer;
   private readonly script: Script;
 
-  private readonly checkInstBind = this.checkInst.bind(this);
+  private readonly checkStmtBind = this.checkStmt.bind(this);
 
   constructor(
     script: Script,
@@ -102,14 +102,14 @@ export class TypeChecker
    * Check the source file for type errors
    */
   public check(): Diagnostics {
-    // resolve the sequence of instructions
+    // resolve the sequence of statements
     try {
       const splits = this.script.uri.split('/');
       const file = splits[splits.length - 1];
 
       this.logger.info(`Type Checking started for ${file}.`);
 
-      const typeErrors = this.checkInsts(this.script.insts);
+      const typeErrors = this.checkStmts(this.script.stmts);
 
       this.logger.info(`Type Checking finished for ${file}`);
 
@@ -193,19 +193,19 @@ export class TypeChecker
   }
 
   /**
-   * check a collection of instructions
-   * @param insts instruction sto check
+   * check a collection of statements
+   * @param stmts statements to check
    */
-  private checkInsts(insts: IInst[]): Diagnostics {
-    return accumulateErrors(insts, this.checkInstBind);
+  private checkStmts(stmts: IStmt[]): Diagnostics {
+    return accumulateErrors(stmts, this.checkStmtBind);
   }
 
   /**
-   * Check an instruction for errors
-   * @param inst instruction to check
+   * Check an statement for errors
+   * @param stmt statement to check
    */
-  private checkInst(inst: IInst): Diagnostics {
-    return inst.accept(this);
+  private checkStmt(stmt: IStmt): Diagnostics {
+    return stmt.accept(this);
   }
 
   /**
@@ -265,7 +265,7 @@ export class TypeChecker
    * @param decl function declaration
    */
   visitDeclFunction(decl: Decl.Func): Diagnostics {
-    const errors = this.checkInst(decl.block);
+    const errors = this.checkStmt(decl.block);
     const { tracker } = decl.identifier;
 
     if (!empty(tracker)) {
@@ -327,70 +327,70 @@ export class TypeChecker
     return errors;
   }
 
-  // ----------------------------- Instructions -----------------------------------------
+  // ----------------------------- Statements -----------------------------------------
 
   /**
-   * Vist an invalid instruction
-   * @param _ invalid instruction
+   * Vist an invalid statement
+   * @param _ invalid statement
    */
-  public visitInstInvalid(_: Inst.Invalid): Diagnostics {
+  public visitStmtInvalid(_: Stmt.Invalid): Diagnostics {
     return [];
   }
 
   /**
-   * Vist a block instruction
-   * @param inst instruction block
+   * Vist a block statement
+   * @param stmt statement block
    */
-  public visitBlock(inst: Inst.Block): Diagnostics {
-    return accumulateErrors(inst.insts, this.checkInstBind);
+  public visitBlock(stmt: Stmt.Block): Diagnostics {
+    return accumulateErrors(stmt.stmts, this.checkStmtBind);
   }
 
   /**
-   * Visit an instruction expression
-   * @param inst instruction expression
+   * Visit an statement expression
+   * @param stmt statement expression
    */
-  public visitExpr(inst: Inst.ExprInst): Diagnostics {
-    const result = this.checkExpr(inst.suffix);
+  public visitExpr(stmt: Stmt.ExprStmt): Diagnostics {
+    const result = this.checkExpr(stmt.suffix);
     return result.errors;
   }
 
   /**
-   * Visit an on off instruction
-   * @param inst on / off instruction
+   * Visit an on off statement
+   * @param stmt on / off statement
    */
-  public visitOnOff(inst: Inst.OnOff): Diagnostics {
-    const result = this.checkExpr(inst.suffix);
+  public visitOnOff(stmt: Stmt.OnOff): Diagnostics {
+    const result = this.checkExpr(stmt.suffix);
     return result.errors;
   }
 
   /**
-   * Visit a command instruction
-   * @param _ command instruction
+   * Visit a command statement
+   * @param _ command statement
    */
-  public visitCommand(_: Inst.Command): Diagnostics {
+  public visitCommand(_: Stmt.Command): Diagnostics {
     return [];
   }
 
   /**
-   * Visit a command expression instruction
-   * @param inst command expression instruction
+   * Visit a command expression statement
+   * @param stmt command expression statement
    */
-  public visitCommandExpr(inst: Inst.CommandExpr): Diagnostics {
-    const result = this.checkExpr(inst.expr);
+  public visitCommandExpr(stmt: Stmt.CommandExpr): Diagnostics {
+    const result = this.checkExpr(stmt.expr);
     const errors: Diagnostics = result.errors;
 
-    switch (inst.command.type) {
+    switch (stmt.command.type) {
       // commands for adding and removing nodes
       case TokenType.add:
       case TokenType.remove:
         // expression must be a node type for node commands
         if (!coerce(result.type, nodeType)) {
           const command =
-            inst.command.type === TokenType.add ? 'add' : 'remove';
+            stmt.command.type === TokenType.add ? 'add' : 'remove';
 
           errors.push(
             createDiagnostic(
-              inst.expr,
+              stmt.expr,
               `${command} expected a node.` +
                 ' Node may not able to be  be coerced into node type',
               DiagnosticSeverity.Hint,
@@ -403,7 +403,7 @@ export class TypeChecker
         if (!coerce(result.type, nodeType)) {
           errors.push(
             createDiagnostic(
-              inst.expr,
+              stmt.expr,
               'Path may not be coerced into string type',
               DiagnosticSeverity.Hint,
             ),
@@ -418,53 +418,53 @@ export class TypeChecker
   }
 
   /**
-   * Visit an unset instruction
-   * @param _ unset instruction
+   * Visit an unset statement
+   * @param _ unset statement
    */
-  public visitUnset(_: Inst.Unset): Diagnostics {
+  public visitUnset(_: Stmt.Unset): Diagnostics {
     return [];
   }
 
   /**
-   * Visit an unlock instruction
-   * @param _ unlock instruction
+   * Visit an unlock statement
+   * @param _ unlock statement
    */
-  public visitUnlock(_: Inst.Unlock): Diagnostics {
+  public visitUnlock(_: Stmt.Unlock): Diagnostics {
     return [];
   }
 
   // visit set
   /**
-   * Visit set instruction
-   * @param inst set instruction
+   * Visit set statement
+   * @param stmt set statement
    */
-  public visitSet(inst: Inst.Set): Diagnostics {
-    const exprResult = this.checkExpr(inst.value);
+  public visitSet(stmt: Stmt.Set): Diagnostics {
+    const exprResult = this.checkExpr(stmt.value);
     const errors = exprResult.errors;
 
     // check if suffix is settable
-    if (!inst.suffix.isSettable()) {
+    if (!stmt.suffix.isSettable()) {
       return errors.concat(
         createDiagnostic(
-          inst.suffix,
-          `Cannot set ${this.nodeError(inst.suffix)} as it is a call`,
+          stmt.suffix,
+          `Cannot set ${this.nodeError(stmt.suffix)} as it is a call`,
           DiagnosticSeverity.Hint,
         ),
       );
     }
 
-    const { atom, trailers } = inst.suffix.suffixTerm;
+    const { atom, trailers } = stmt.suffix.suffixTerm;
 
     // if a suffix trailer exists we are a full suffix
-    if (!empty(inst.suffix.trailer) || trailers.length > 0) {
-      const suffixResult = this.checkExpr(inst.suffix);
+    if (!empty(stmt.suffix.trailer) || trailers.length > 0) {
+      const suffixResult = this.checkExpr(stmt.suffix);
       const setErrors: Diagnostics = [];
 
       if (!coerce(exprResult.type, suffixResult.type)) {
         setErrors.push(
           createDiagnostic(
-            inst.suffix,
-            `Cannot set suffix ${this.nodeError(inst.suffix)}` +
+            stmt.suffix,
+            `Cannot set suffix ${this.nodeError(stmt.suffix)}` +
               `of type ${suffixResult.type.name} to ${exprResult.type.name}`,
             DiagnosticSeverity.Hint,
           ),
@@ -488,8 +488,8 @@ export class TypeChecker
     } else {
       errors.push(
         createDiagnostic(
-          inst.suffix,
-          `Cannot set ${inst.suffix.toString()}, must be identifier, or suffix`,
+          stmt.suffix,
+          `Cannot set ${stmt.suffix.toString()}, must be identifier, or suffix`,
           DiagnosticSeverity.Hint,
         ),
       );
@@ -499,99 +499,99 @@ export class TypeChecker
   }
 
   // visit lazy global directive
-  public visitLazyGlobal(_: Inst.LazyGlobal): Diagnostics {
+  public visitLazyGlobal(_: Stmt.LazyGlobal): Diagnostics {
     return [];
   }
 
-  // visit if instruction
-  public visitIf(inst: Inst.If): Diagnostics {
-    const conditionResult = this.checkExpr(inst.condition);
+  // visit if statement
+  public visitIf(stmt: Stmt.If): Diagnostics {
+    const conditionResult = this.checkExpr(stmt.condition);
     const errors: Diagnostics = conditionResult.errors;
 
     if (!coerce(conditionResult.type, booleanType)) {
       errors.push(
         createDiagnostic(
-          inst.condition,
+          stmt.condition,
           'Condition may not able to be  be coerced into boolean type',
           DiagnosticSeverity.Hint,
         ),
       );
     }
 
-    return empty(inst.elseInst)
-      ? errors.concat(this.checkInst(inst.ifInst))
+    return empty(stmt.elseStmt)
+      ? errors.concat(this.checkStmt(stmt.body))
       : errors.concat(
-          this.checkInst(inst.ifInst),
-          this.checkInst(inst.elseInst),
+          this.checkStmt(stmt.body),
+          this.checkStmt(stmt.elseStmt),
         );
   }
 
-  // visit else instruction
-  public visitElse(inst: Inst.Else): Diagnostics {
-    return this.checkInst(inst.inst);
+  // visit else statement
+  public visitElse(stmt: Stmt.Else): Diagnostics {
+    return this.checkStmt(stmt.body);
   }
 
-  // visit until instruction
-  public visitUntil(inst: Inst.Until): Diagnostics {
-    const conditionResult = this.checkExpr(inst.condition);
+  // visit until statement
+  public visitUntil(stmt: Stmt.Until): Diagnostics {
+    const conditionResult = this.checkExpr(stmt.condition);
     const errors = conditionResult.errors;
 
     if (!coerce(conditionResult.type, booleanType)) {
       errors.push(
         createDiagnostic(
-          inst.condition,
+          stmt.condition,
           'Condition may not able to be coerced into boolean type',
           DiagnosticSeverity.Hint,
         ),
       );
     }
 
-    return errors.concat(this.checkInst(inst.inst));
+    return errors.concat(this.checkStmt(stmt.body));
   }
 
   // visit from loop
-  public visitFrom(inst: Inst.From): Diagnostics {
-    let errors: Diagnostics = this.checkInst(inst.initializer);
-    const conditionResult = this.checkExpr(inst.condition);
+  public visitFrom(stmt: Stmt.From): Diagnostics {
+    let errors: Diagnostics = this.checkStmt(stmt.initializer);
+    const conditionResult = this.checkExpr(stmt.condition);
     errors = errors.concat(conditionResult.errors);
 
     if (!coerce(conditionResult.type, booleanType)) {
       errors.push(
         createDiagnostic(
-          inst.condition,
+          stmt.condition,
           'Condition may not able to be coerced into boolean type',
           DiagnosticSeverity.Hint,
         ),
       );
     }
     return errors.concat(
-      this.checkInst(inst.increment),
-      this.checkInst(inst.inst),
+      this.checkStmt(stmt.increment),
+      this.checkStmt(stmt.body),
     );
   }
 
   // vist when statment
-  public visitWhen(inst: Inst.When): Diagnostics {
-    const conditionResult = this.checkExpr(inst.condition);
+  public visitWhen(stmt: Stmt.When): Diagnostics {
+    const conditionResult = this.checkExpr(stmt.condition);
     const errors = conditionResult.errors;
 
     if (!coerce(conditionResult.type, booleanType)) {
       errors.push(
         createDiagnostic(
-          inst.condition,
+          stmt.condition,
           'Condition may not able to be coerced into boolean type',
           DiagnosticSeverity.Hint,
         ),
       );
     }
 
-    return errors.concat(this.checkInst(inst.inst));
+    return errors.concat(this.checkStmt(stmt.body));
   }
 
   // visit return
-  public visitReturn(inst: Inst.Return): Diagnostics {
+  public visitReturn(stmt: Stmt.Return): Diagnostics {
     const errors: Diagnostics = [];
-    if (!empty(inst.value)) {
+    if (!empty(stmt.value)) {
       // TODO maybe update function type?
     }
 
@@ -599,19 +599,19 @@ export class TypeChecker
   }
 
   // visit break
-  public visitBreak(_: Inst.Break): Diagnostics {
+  public visitBreak(_: Stmt.Break): Diagnostics {
     return [];
   }
 
   // visit switch
-  public visitSwitch(inst: Inst.Switch): Diagnostics {
-    const result = this.checkExpr(inst.target);
+  public visitSwitch(stmt: Stmt.Switch): Diagnostics {
+    const result = this.checkExpr(stmt.target);
     let errors = result.errors;
 
     if (coerce(result.type, stringType)) {
       errors = errors.concat(
         createDiagnostic(
-          inst.target,
+          stmt.target,
           'May not be a string identifer for volume',
           DiagnosticSeverity.Hint,
         ),
@@ -623,10 +623,10 @@ export class TypeChecker
 
   /**
    * Visit a for loop
-   * @param inst for loop instruction
+   * @param stmt for loop statement
    */
-  public visitFor(inst: Inst.For): Diagnostics {
-    const result = this.checkExpr(inst.collection);
+  public visitFor(stmt: Stmt.For): Diagnostics {
+    const result = this.checkExpr(stmt.collection);
     let errors: Diagnostics = [];
 
     const { type } = result;
@@ -634,7 +634,7 @@ export class TypeChecker
     if (type.kind !== TypeKind.basic || !hasSuffix(type, iterator)) {
       errors = errors.concat(
         createDiagnostic(
-          inst.collection,
+          stmt.collection,
           'May not be a valid enumerable type',
           DiagnosticSeverity.Hint,
         ),
@@ -642,7 +642,7 @@ export class TypeChecker
     }
 
     // TODO may be able to detect if type is really pure and not mixed
-    const { tracker } = inst.element;
+    const { tracker } = stmt.element;
 
     if (!empty(tracker)) {
       const collectionIterator = getSuffix(type, iterator);
@@ -651,50 +651,50 @@ export class TypeChecker
         const value = getSuffix(collectionIterator.returns, 'value');
 
         tracker.setType(
-          inst.element,
+          stmt.element,
           value && value.returns || structureType,
         );
       } else {
-        tracker.setType(inst.element, structureType);
+        tracker.setType(stmt.element, structureType);
       }
     }
-    return errors.concat(this.checkInst(inst.inst));
+    return errors.concat(this.checkStmt(stmt.body));
   }
 
   // visit on
-  public visitOn(inst: Inst.On): Diagnostics {
-    const result = this.checkExpr(inst.suffix);
+  public visitOn(stmt: Stmt.On): Diagnostics {
+    const result = this.checkExpr(stmt.suffix);
     let errors: Diagnostics = [];
 
     if (coerce(result.type, booleanType)) {
       errors = errors.concat(
         createDiagnostic(
-          inst.suffix,
+          stmt.suffix,
           'Condition may not able to be coerced into boolean type',
           DiagnosticSeverity.Hint,
         ),
       );
     }
 
-    return errors.concat(this.checkInst(inst.inst));
+    return errors.concat(this.checkStmt(stmt.body));
   }
 
   // visit toggle
-  public visitToggle(inst: Inst.Toggle): Diagnostics {
-    const result = this.checkExpr(inst.suffix);
+  public visitToggle(stmt: Stmt.Toggle): Diagnostics {
+    const result = this.checkExpr(stmt.suffix);
     return result.errors;
   }
 
   // visit wait
-  public visitWait(inst: Inst.Wait): Diagnostics {
-    const result = this.checkExpr(inst.expr);
+  public visitWait(stmt: Stmt.Wait): Diagnostics {
+    const result = this.checkExpr(stmt.expr);
     let errors: Diagnostics = result.errors;
 
-    if (empty(inst.until)) {
+    if (empty(stmt.until)) {
       if (!coerce(result.type, scalarType)) {
         errors = errors.concat(
           createDiagnostic(
-            inst.expr,
+            stmt.expr,
             'Wait requires a scalar type. ' +
               'This may not able to be coerced into scalar type',
             DiagnosticSeverity.Hint,
@@ -705,7 +705,7 @@ export class TypeChecker
       if (!coerce(result.type, booleanType)) {
         errors = errors.concat(
           createDiagnostic(
-            inst.expr,
+            stmt.expr,
             'Wait requires a boolean type. ' +
               'This may not able to be coerced into boolean type',
             DiagnosticSeverity.Hint,
@@ -718,15 +718,15 @@ export class TypeChecker
   }
 
   // visit log
-  public visitLog(inst: Inst.Log): Diagnostics {
-    const exprResult = this.checkExpr(inst.expr);
-    const logResult = this.checkExpr(inst.target);
+  public visitLog(stmt: Stmt.Log): Diagnostics {
+    const exprResult = this.checkExpr(stmt.expr);
+    const logResult = this.checkExpr(stmt.target);
     const errors: Diagnostics = exprResult.errors.concat(logResult.errors);
 
     if (!coerce(exprResult.type, stringType)) {
       errors.push(
         createDiagnostic(
-          inst.expr,
+          stmt.expr,
           'Can only log a string type. ' +
             'This may not able to be coerced into string type',
           DiagnosticSeverity.Hint,
@@ -737,7 +737,7 @@ export class TypeChecker
     if (!coerce(exprResult.type, stringType)) {
       errors.push(
         createDiagnostic(
-          inst.expr,
+          stmt.expr,
           'Can only log to a path. ',
           DiagnosticSeverity.Hint,
         ),
@@ -748,15 +748,15 @@ export class TypeChecker
   }
 
   // visit copy
-  public visitCopy(inst: Inst.Copy): Diagnostics {
-    const sourceResult = this.checkExpr(inst.target);
-    const targetResult = this.checkExpr(inst.destination);
+  public visitCopy(stmt: Stmt.Copy): Diagnostics {
+    const sourceResult = this.checkExpr(stmt.target);
+    const targetResult = this.checkExpr(stmt.destination);
     const errors: Diagnostics = sourceResult.errors.concat(targetResult.errors);
 
     if (!coerce(sourceResult.type, stringType)) {
       errors.push(
         createDiagnostic(
-          inst.target,
+          stmt.target,
           'Can only copy from a string or bare path. ' +
             'This may not able to be coerced into string type',
           DiagnosticSeverity.Hint,
@@ -767,7 +767,7 @@ export class TypeChecker
     if (!coerce(sourceResult.type, stringType)) {
       errors.push(
         createDiagnostic(
-          inst.destination,
+          stmt.destination,
           'Can only copy to a string or bare path. ' +
             'This may not able to be coerced into string type',
           DiagnosticSeverity.Hint,
@@ -779,9 +779,9 @@ export class TypeChecker
   }
 
   // visit rename
-  public visitRename(inst: Inst.Rename): Diagnostics {
-    const targetResult = this.checkExpr(inst.target);
-    const alternativeResult = this.checkExpr(inst.alternative);
+  public visitRename(stmt: Stmt.Rename): Diagnostics {
+    const targetResult = this.checkExpr(stmt.target);
+    const alternativeResult = this.checkExpr(stmt.alternative);
     const errors: Diagnostics = targetResult.errors.concat(
       alternativeResult.errors,
     );
@@ -789,7 +789,7 @@ export class TypeChecker
     if (!coerce(targetResult.type, stringType)) {
       errors.push(
         createDiagnostic(
-          inst.target,
+          stmt.target,
           'Can only rename from a string or bare path. ' +
             'This may not able to be coerced into string type',
           DiagnosticSeverity.Hint,
@@ -800,7 +800,7 @@ export class TypeChecker
     if (!coerce(targetResult.type, stringType)) {
       errors.push(
         createDiagnostic(
-          inst.alternative,
+          stmt.alternative,
           'Can only rename to a string or bare path. ' +
             'This may not able to be coerced into string type',
           DiagnosticSeverity.Hint,
@@ -810,14 +810,14 @@ export class TypeChecker
 
     return errors;
   }
-  public visitDelete(inst: Inst.Delete): Diagnostics {
-    const targetResult = this.checkExpr(inst.target);
+  public visitDelete(stmt: Stmt.Delete): Diagnostics {
+    const targetResult = this.checkExpr(stmt.target);
     const errors: Diagnostics = targetResult.errors;
 
     if (!coerce(targetResult.type, stringType)) {
       errors.push(
         createDiagnostic(
-          inst.target,
+          stmt.target,
           'Can only delete from a string or bare path. ' +
             'This may not able to be coerced into string type',
           DiagnosticSeverity.Hint,
@@ -825,18 +825,18 @@ export class TypeChecker
       );
     }
 
-    if (empty(inst.volume)) {
+    if (empty(stmt.volume)) {
       return errors;
     }
 
-    const volumeResult = this.checkExpr(inst.volume);
+    const volumeResult = this.checkExpr(stmt.volume);
     if (
       !coerce(targetResult.type, stringType) &&
       !coerce(targetResult.type, pathType)
     ) {
       errors.push(
         createDiagnostic(
-          inst.volume,
+          stmt.volume,
           'Can only rename to a string or bare path. ' +
             'This may not able to be coerced into string type',
           DiagnosticSeverity.Hint,
@@ -846,29 +846,23 @@ export class TypeChecker
 
     return errors.concat(volumeResult.errors);
   }
-  public visitRun(inst: Inst.Run): Diagnostics {
-    if (inst) {
-    }
+  public visitRun(_: Stmt.Run): Diagnostics {
     return [];
   }
-  public visitRunPath(inst: Inst.RunPath): Diagnostics {
-    if (inst) {
-    }
+  public visitRunPath(_: Stmt.RunPath): Diagnostics {
     return [];
   }
-  public visitRunPathOnce(inst: Inst.RunPathOnce): Diagnostics {
-    if (inst) {
-    }
+  public visitRunPathOnce(_: Stmt.RunPathOnce): Diagnostics {
     return [];
   }
-  public visitCompile(inst: Inst.Compile): Diagnostics {
-    const targetResult = this.checkExpr(inst.target);
+  public visitCompile(stmt: Stmt.Compile): Diagnostics {
+    const targetResult = this.checkExpr(stmt.target);
     const errors: Diagnostics = targetResult.errors;
 
     if (!coerce(targetResult.type, stringType)) {
       errors.push(
         createDiagnostic(
-          inst.target,
+          stmt.target,
           'Can only compile from a string or bare path. ' +
             'This may not able to be coerced into string type',
           DiagnosticSeverity.Hint,
@@ -876,15 +870,15 @@ export class TypeChecker
       );
     }
 
-    if (empty(inst.destination)) {
+    if (empty(stmt.destination)) {
       return errors;
     }
 
-    const destinationResult = this.checkExpr(inst.destination);
+    const destinationResult = this.checkExpr(stmt.destination);
     if (!coerce(destinationResult.type, stringType)) {
       errors.push(
         createDiagnostic(
-          inst.destination,
+          stmt.destination,
           'Can only compile to a string or bare path. ' +
             'This may not able to be coerced into string type',
           DiagnosticSeverity.Hint,
@@ -894,8 +888,8 @@ export class TypeChecker
 
     return errors.concat(destinationResult.errors);
   }
-  public visitList(inst: Inst.List): Diagnostics {
-    const { target, collection } = inst;
+  public visitList(stmt: Stmt.List): Diagnostics {
+    const { target, collection } = stmt;
     if (empty(target) || empty(collection)) {
       return [];
     }
@@ -949,20 +943,20 @@ export class TypeChecker
     return errors;
   }
 
-  // visit empty instruction
-  public visitEmpty(_: Inst.Empty): Diagnostics {
+  // visit empty statement
+  public visitEmpty(_: Stmt.Empty): Diagnostics {
     return [];
   }
 
-  // vist print instruction
-  public visitPrint(inst: Inst.Print): Diagnostics {
-    const result = this.checkExpr(inst.expr);
+  // vist print statement
+  public visitPrint(stmt: Stmt.Print): Diagnostics {
+    const result = this.checkExpr(stmt.expr);
     const errors = result.errors;
 
     if (!coerce(result.type, structureType)) {
       errors.push(
         createDiagnostic(
-          inst.expr,
+          stmt.expr,
           'Cannot print a function, can only print structures',
           DiagnosticSeverity.Hint,
         ),

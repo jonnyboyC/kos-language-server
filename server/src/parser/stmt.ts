@@ -1,9 +1,9 @@
 import {
-  IInst,
+  IStmt,
   IExpr,
-  IInstVisitor,
+  IStmtVisitor,
   SyntaxKind,
-  IInstPasser,
+  IStmtPasser,
   NodeDataBuilder,
   PartialNode,
 } from './types';
@@ -17,32 +17,32 @@ import { flatten } from '../utilities/arrayUtils';
 import { rangeOrder, rangeContains } from '../utilities/positionUtils';
 
 /**
- * Instruction base class
+ * Statement base class
  */
-export abstract class Inst extends NodeBase implements IInst {
+export abstract class Stmt extends NodeBase implements IStmt {
   /**
-   * Return the tree node type of instruction
+   * Return the tree node type of statement
    */
-  get tag(): SyntaxKind.inst {
-    return SyntaxKind.inst;
+  get tag(): SyntaxKind.stmt {
+    return SyntaxKind.stmt;
   }
 
   /**
-   * All instruction implement the pass method
+   * All statement implement the pass method
    * Called when the node should be passed through
    * @param visitor visitor object
    */
-  public abstract pass<T>(visitor: IInstPasser<T>): T;
+  public abstract pass<T>(visitor: IStmtPasser<T>): T;
 
   /**
-   * All instruction implement the accept method
+   * All statement implement the accept method
    * Called whent he node should execute the visitors methods
    * @param visitor visitor object
    */
-  public abstract accept<T>(visitor: IInstVisitor<T>): T;
+  public abstract accept<T>(visitor: IStmtVisitor<T>): T;
 }
 
-export class Invalid extends Inst {
+export class Invalid extends Stmt {
   constructor(
     public readonly pos: Position,
     public readonly tokens: IToken[],
@@ -100,30 +100,30 @@ export class Invalid extends Inst {
     return segments;
   }
 
-  public pass<T>(visitor: IInstPasser<T>): T {
-    return visitor.passInstInvalid(this);
+  public pass<T>(visitor: IStmtPasser<T>): T {
+    return visitor.passStmtInvalid(this);
   }
 
-  public accept<T>(visitor: IInstVisitor<T>): T {
-    return visitor.visitInstInvalid(this);
+  public accept<T>(visitor: IStmtVisitor<T>): T {
+    return visitor.visitStmtInvalid(this);
   }
 }
 
-export class Block extends Inst {
+export class Block extends Stmt {
   public readonly open: IToken;
-  public readonly insts: Inst[];
+  public readonly stmts: Stmt[];
   public readonly close: IToken;
 
   constructor(builder: NodeDataBuilder<Block>) {
     super();
 
     this.open = unWrap(builder.open);
-    this.insts = unWrap(builder.insts);
+    this.stmts = unWrap(builder.stmts);
     this.close = unWrap(builder.close);
   }
 
   public toLines(): string[] {
-    const lines = flatten(this.insts.map(inst => inst.toLines()));
+    const lines = flatten(this.stmts.map(stmt => stmt.toLines()));
 
     if (lines.length === 0) {
       return [`${this.open.lexeme} ${this.close.lexeme}`];
@@ -148,19 +148,19 @@ export class Block extends Inst {
   }
 
   public get ranges(): Range[] {
-    return [this.open, ...this.insts, this.close];
+    return [this.open, ...this.stmts, this.close];
   }
 
-  public pass<T>(visitor: IInstPasser<T>): T {
+  public pass<T>(visitor: IStmtPasser<T>): T {
     return visitor.passBlock(this);
   }
 
-  public accept<T>(visitor: IInstVisitor<T>): T {
+  public accept<T>(visitor: IStmtVisitor<T>): T {
     return visitor.visitBlock(this);
   }
 }
 
-export class ExprInst extends Inst {
+export class ExprStmt extends Stmt {
   constructor(public readonly suffix: Expr.Suffix) {
     super();
   }
@@ -186,16 +186,16 @@ export class ExprInst extends Inst {
     return [this.suffix];
   }
 
-  public pass<T>(visitor: IInstPasser<T>): T {
+  public pass<T>(visitor: IStmtPasser<T>): T {
     return visitor.passExpr(this);
   }
 
-  public accept<T>(visitor: IInstVisitor<T>): T {
+  public accept<T>(visitor: IStmtVisitor<T>): T {
     return visitor.visitExpr(this);
   }
 }
 
-export class OnOff extends Inst {
+export class OnOff extends Stmt {
   public readonly suffix: Expr.Suffix;
   public readonly onOff: IToken;
 
@@ -226,15 +226,15 @@ export class OnOff extends Inst {
     return [this.suffix, this.onOff];
   }
 
-  public pass<T>(visitor: IInstPasser<T>): T {
+  public pass<T>(visitor: IStmtPasser<T>): T {
     return visitor.passOnOff(this);
   }
 
-  public accept<T>(visitor: IInstVisitor<T>): T {
+  public accept<T>(visitor: IStmtVisitor<T>): T {
     return visitor.visitOnOff(this);
   }
 }
-export class Command extends Inst {
+export class Command extends Stmt {
   constructor(public readonly command: IToken) {
     super();
   }
@@ -255,15 +255,15 @@ export class Command extends Inst {
     return [this.command];
   }
 
-  public pass<T>(visitor: IInstPasser<T>): T {
+  public pass<T>(visitor: IStmtPasser<T>): T {
     return visitor.passCommand(this);
   }
 
-  public accept<T>(visitor: IInstVisitor<T>): T {
+  public accept<T>(visitor: IStmtVisitor<T>): T {
     return visitor.visitCommand(this);
   }
 }
-export class CommandExpr extends Inst {
+export class CommandExpr extends Stmt {
   public readonly command: IToken;
   public readonly expr: IExpr;
 
@@ -294,16 +294,16 @@ export class CommandExpr extends Inst {
     return [this.command, this.expr];
   }
 
-  public pass<T>(visitor: IInstPasser<T>): T {
+  public pass<T>(visitor: IStmtPasser<T>): T {
     return visitor.passCommandExpr(this);
   }
 
-  public accept<T>(visitor: IInstVisitor<T>): T {
+  public accept<T>(visitor: IStmtVisitor<T>): T {
     return visitor.visitCommandExpr(this);
   }
 }
 
-export class Unset extends Inst {
+export class Unset extends Stmt {
   public readonly unset: IToken;
   public readonly identifier: IToken;
 
@@ -330,16 +330,16 @@ export class Unset extends Inst {
     return [this.unset, this.identifier];
   }
 
-  public pass<T>(visitor: IInstPasser<T>): T {
+  public pass<T>(visitor: IStmtPasser<T>): T {
     return visitor.passUnset(this);
   }
 
-  public accept<T>(visitor: IInstVisitor<T>): T {
+  public accept<T>(visitor: IStmtVisitor<T>): T {
     return visitor.visitUnset(this);
   }
 }
 
-export class Unlock extends Inst {
+export class Unlock extends Stmt {
   public readonly unlock: IToken;
   public readonly identifier: IToken;
 
@@ -366,16 +366,16 @@ export class Unlock extends Inst {
     return [this.unlock, this.identifier];
   }
 
-  public pass<T>(visitor: IInstPasser<T>): T {
+  public pass<T>(visitor: IStmtPasser<T>): T {
     return visitor.passUnlock(this);
   }
 
-  public accept<T>(visitor: IInstVisitor<T>): T {
+  public accept<T>(visitor: IStmtVisitor<T>): T {
     return visitor.visitUnlock(this);
   }
 }
 
-export class Set extends Inst {
+export class Set extends Stmt {
   public readonly set: IToken;
   public readonly suffix: Expr.Suffix;
   public readonly to: IToken;
@@ -411,16 +411,16 @@ export class Set extends Inst {
     return [this.set, this.suffix, this.to, this.value];
   }
 
-  public pass<T>(visitor: IInstPasser<T>): T {
+  public pass<T>(visitor: IStmtPasser<T>): T {
     return visitor.passSet(this);
   }
 
-  public accept<T>(visitor: IInstVisitor<T>): T {
+  public accept<T>(visitor: IStmtVisitor<T>): T {
     return visitor.visitSet(this);
   }
 }
 
-export class LazyGlobal extends Inst {
+export class LazyGlobal extends Stmt {
   public readonly atSign: IToken;
   public readonly lazyGlobal: IToken;
   public readonly onOff: IToken;
@@ -451,38 +451,38 @@ export class LazyGlobal extends Inst {
     return [this.atSign, this.lazyGlobal, this.onOff];
   }
 
-  public pass<T>(visitor: IInstPasser<T>): T {
+  public pass<T>(visitor: IStmtPasser<T>): T {
     return visitor.passLazyGlobal(this);
   }
 
-  public accept<T>(visitor: IInstVisitor<T>): T {
+  public accept<T>(visitor: IStmtVisitor<T>): T {
     return visitor.visitLazyGlobal(this);
   }
 }
 
-export class If extends Inst {
+export class If extends Stmt {
   public readonly ifToken: IToken;
   public readonly condition: IExpr;
-  public readonly ifInst: IInst;
-  public readonly elseInst?: Else;
+  public readonly body: IStmt;
+  public readonly elseStmt?: Else;
 
   constructor(builder: NodeDataBuilder<If>) {
     super();
     this.ifToken = unWrap(builder.ifToken);
     this.condition = unWrap(builder.condition);
-    this.ifInst = unWrap(builder.ifInst);
-    this.elseInst = builder.elseInst;
+    this.body = unWrap(builder.body);
+    this.elseStmt = builder.elseStmt;
   }
 
   public toLines(): string[] {
     const conditionLines = this.condition.toLines();
-    const instLines = this.ifInst.toLines();
+    const stmtLines = this.body.toLines();
 
     conditionLines[0] = `${this.ifToken.lexeme} ${conditionLines[0]}`;
-    const lines = joinLines(' ', conditionLines, instLines);
+    const lines = joinLines(' ', conditionLines, stmtLines);
 
-    if (!empty(this.elseInst)) {
-      const elseLines = this.elseInst.toLines();
+    if (!empty(this.elseStmt)) {
+      const elseLines = this.elseStmt.toLines();
       return joinLines(' ', lines, elseLines);
     }
 
@@ -494,40 +494,40 @@ export class If extends Inst {
   }
 
   public get end(): Position {
-    return empty(this.elseInst) ? this.ifInst.end : this.elseInst.end;
+    return empty(this.elseStmt) ? this.body.end : this.elseStmt.end;
   }
 
   public get ranges(): Range[] {
-    const ranges = [this.ifToken, this.condition, this.ifInst];
-    if (!empty(this.elseInst)) {
-      ranges.push(this.elseInst);
+    const ranges = [this.ifToken, this.condition, this.body];
+    if (!empty(this.elseStmt)) {
+      ranges.push(this.elseStmt);
     }
 
     return ranges;
   }
 
-  public pass<T>(visitor: IInstPasser<T>): T {
+  public pass<T>(visitor: IStmtPasser<T>): T {
     return visitor.passIf(this);
   }
 
-  public accept<T>(visitor: IInstVisitor<T>): T {
+  public accept<T>(visitor: IStmtVisitor<T>): T {
     return visitor.visitIf(this);
   }
 }
 
-export class Else extends Inst {
+export class Else extends Stmt {
   public readonly elseToken: IToken;
-  public readonly inst: IInst;
+  public readonly body: IStmt;
 
   constructor(builder: NodeDataBuilder<Else>) {
     super();
 
     this.elseToken = unWrap(builder.elseToken);
-    this.inst = unWrap(builder.inst);
+    this.body = unWrap(builder.body);
   }
 
   public toLines(): string[] {
-    const lines = this.inst.toLines();
+    const lines = this.body.toLines();
     lines[0] = `${this.elseToken.lexeme} ${lines[0]}`;
     return lines;
   }
@@ -537,41 +537,41 @@ export class Else extends Inst {
   }
 
   public get end(): Position {
-    return this.inst.end;
+    return this.body.end;
   }
 
   public get ranges(): Range[] {
-    return [this.elseToken, this.inst];
+    return [this.elseToken, this.body];
   }
 
-  public pass<T>(visitor: IInstPasser<T>): T {
+  public pass<T>(visitor: IStmtPasser<T>): T {
     return visitor.passElse(this);
   }
 
-  public accept<T>(visitor: IInstVisitor<T>): T {
+  public accept<T>(visitor: IStmtVisitor<T>): T {
     return visitor.visitElse(this);
   }
 }
 
-export class Until extends Inst {
+export class Until extends Stmt {
   public readonly until: IToken;
   public readonly condition: IExpr;
-  public readonly inst: IInst;
+  public readonly body: IStmt;
 
   constructor(builder: NodeDataBuilder<Until>) {
     super();
 
     this.until = unWrap(builder.until);
     this.condition = unWrap(builder.condition);
-    this.inst = unWrap(builder.inst);
+    this.body = unWrap(builder.body);
   }
 
   public toLines(): string[] {
     const conditionLines = this.condition.toLines();
-    const instLines = this.inst.toLines();
+    const bodyLines = this.body.toLines();
 
     conditionLines[0] = `${this.until.lexeme} ${conditionLines[0]}`;
-    return joinLines(' ', conditionLines, instLines);
+    return joinLines(' ', conditionLines, bodyLines);
   }
 
   public get start(): Position {
@@ -579,23 +579,23 @@ export class Until extends Inst {
   }
 
   public get end(): Position {
-    return this.inst.end;
+    return this.body.end;
   }
 
   public get ranges(): Range[] {
-    return [this.until, this.condition, this.inst];
+    return [this.until, this.condition, this.body];
   }
 
-  public pass<T>(visitor: IInstPasser<T>): T {
+  public pass<T>(visitor: IStmtPasser<T>): T {
     return visitor.passUntil(this);
   }
 
-  public accept<T>(visitor: IInstVisitor<T>): T {
+  public accept<T>(visitor: IStmtVisitor<T>): T {
     return visitor.visitUntil(this);
   }
 }
 
-export class From extends Inst {
+export class From extends Stmt {
   public readonly from: IToken;
   public readonly initializer: Block;
   public readonly until: IToken;
@@ -603,7 +603,7 @@ export class From extends Inst {
   public readonly step: IToken;
   public readonly increment: Block;
   public readonly doToken: IToken;
-  public readonly inst: IInst;
+  public readonly body: IStmt;
   constructor(builder: NodeDataBuilder<From>) {
     super();
 
@@ -614,26 +614,26 @@ export class From extends Inst {
     this.step = unWrap(builder.step);
     this.increment = unWrap(builder.increment);
     this.doToken = unWrap(builder.doToken);
-    this.inst = unWrap(builder.inst);
+    this.body = unWrap(builder.body);
   }
 
   public toLines(): string[] {
     const initializerLines = this.initializer.toLines();
     const conditionLines = this.condition.toLines();
     const incrementLines = this.increment.toLines();
-    const instLines = this.inst.toLines();
+    const bodyLines = this.body.toLines();
 
     initializerLines[0] = `${this.from.lexeme} ${initializerLines[0]}`;
     conditionLines[0] = `${this.until.lexeme} ${conditionLines[0]}`;
     incrementLines[0] = `${this.step.lexeme} ${incrementLines[0]}`;
-    instLines[0] = `${this.doToken.lexeme} ${instLines[0]}`;
+    bodyLines[0] = `${this.doToken.lexeme} ${bodyLines[0]}`;
 
     return joinLines(
       ' ',
       initializerLines,
       conditionLines,
       incrementLines,
-      instLines,
+      bodyLines,
     );
   }
 
@@ -642,7 +642,7 @@ export class From extends Inst {
   }
 
   public get end(): Position {
-    return this.inst.end;
+    return this.body.end;
   }
 
   public get ranges(): Range[] {
@@ -654,41 +654,41 @@ export class From extends Inst {
       this.step,
       this.increment,
       this.doToken,
-      this.inst,
+      this.body,
     ];
   }
 
-  public pass<T>(visitor: IInstPasser<T>): T {
+  public pass<T>(visitor: IStmtPasser<T>): T {
     return visitor.passFrom(this);
   }
 
-  public accept<T>(visitor: IInstVisitor<T>): T {
+  public accept<T>(visitor: IStmtVisitor<T>): T {
     return visitor.visitFrom(this);
   }
 }
 
-export class When extends Inst {
+export class When extends Stmt {
   public readonly when: IToken;
   public readonly condition: IExpr;
   public readonly then: IToken;
-  public readonly inst: IInst;
+  public readonly body: IStmt;
 
   constructor(builder: NodeDataBuilder<When>) {
     super();
     this.when = unWrap(builder.when);
     this.condition = unWrap(builder.condition);
     this.then = unWrap(builder.then);
-    this.inst = unWrap(builder.inst);
+    this.body = unWrap(builder.body);
   }
 
   public toLines(): string[] {
     const conditionLines = this.condition.toLines();
-    const instLines = this.inst.toLines();
+    const bodyLines = this.body.toLines();
 
     conditionLines[0] = `${this.when.lexeme} ${conditionLines[0]}`;
-    instLines[0] = `${this.then.lexeme} ${instLines[0]}`;
+    bodyLines[0] = `${this.then.lexeme} ${bodyLines[0]}`;
 
-    return joinLines(' ', conditionLines, instLines);
+    return joinLines(' ', conditionLines, bodyLines);
   }
 
   public get start(): Position {
@@ -696,23 +696,23 @@ export class When extends Inst {
   }
 
   public get end(): Position {
-    return this.inst.end;
+    return this.body.end;
   }
 
   public get ranges(): Range[] {
-    return [this.when, this.condition, this.then, this.inst];
+    return [this.when, this.condition, this.then, this.body];
   }
 
-  public pass<T>(visitor: IInstPasser<T>): T {
+  public pass<T>(visitor: IStmtPasser<T>): T {
     return visitor.passWhen(this);
   }
 
-  public accept<T>(visitor: IInstVisitor<T>): T {
+  public accept<T>(visitor: IStmtVisitor<T>): T {
     return visitor.visitWhen(this);
   }
 }
 
-export class Return extends Inst {
+export class Return extends Stmt {
   public readonly returnToken: IToken;
   public readonly value?: IExpr;
 
@@ -752,16 +752,16 @@ export class Return extends Inst {
     return ranges;
   }
 
-  public pass<T>(visitor: IInstPasser<T>): T {
+  public pass<T>(visitor: IStmtPasser<T>): T {
     return visitor.passReturn(this);
   }
 
-  public accept<T>(visitor: IInstVisitor<T>): T {
+  public accept<T>(visitor: IStmtVisitor<T>): T {
     return visitor.visitReturn(this);
   }
 }
 
-export class Break extends Inst {
+export class Break extends Stmt {
   constructor(public readonly breakToken: IToken) {
     super();
   }
@@ -782,16 +782,16 @@ export class Break extends Inst {
     return [this.breakToken];
   }
 
-  public pass<T>(visitor: IInstPasser<T>): T {
+  public pass<T>(visitor: IStmtPasser<T>): T {
     return visitor.passBreak(this);
   }
 
-  public accept<T>(visitor: IInstVisitor<T>): T {
+  public accept<T>(visitor: IStmtVisitor<T>): T {
     return visitor.visitBreak(this);
   }
 }
 
-export class Switch extends Inst {
+export class Switch extends Stmt {
   public readonly switchToken: IToken;
   public readonly to: IToken;
   public readonly target: IExpr;
@@ -829,21 +829,21 @@ export class Switch extends Inst {
     return [this.switchToken, this.to, this.target];
   }
 
-  public pass<T>(visitor: IInstPasser<T>): T {
+  public pass<T>(visitor: IStmtPasser<T>): T {
     return visitor.passSwitch(this);
   }
 
-  public accept<T>(visitor: IInstVisitor<T>): T {
+  public accept<T>(visitor: IStmtVisitor<T>): T {
     return visitor.visitSwitch(this);
   }
 }
 
-export class For extends Inst {
+export class For extends Stmt {
   public readonly forToken: IToken;
   public readonly element: IToken;
   public readonly inToken: IToken;
   public readonly collection: Expr.Suffix;
-  public readonly inst: IInst;
+  public readonly body: IStmt;
 
   constructor(builder: NodeDataBuilder<For>) {
     super();
@@ -851,18 +851,18 @@ export class For extends Inst {
     this.element = unWrap(builder.element);
     this.inToken = unWrap(builder.inToken);
     this.collection = unWrap(builder.collection);
-    this.inst = unWrap(builder.inst);
+    this.body = unWrap(builder.body);
   }
 
   public toLines(): string[] {
     const suffixLines = this.collection.toLines();
-    const instLines = this.inst.toLines();
+    const bodyLines = this.body.toLines();
 
     suffixLines[0] =
       `${this.forToken.lexeme} ${this.element.lexeme} ` +
       `${this.inToken.lexeme} ${suffixLines[0]}`;
 
-    return joinLines(' ', suffixLines, instLines);
+    return joinLines(' ', suffixLines, bodyLines);
   }
 
   public get start(): Position {
@@ -870,7 +870,7 @@ export class For extends Inst {
   }
 
   public get end(): Position {
-    return this.inst.end;
+    return this.body.end;
   }
 
   public get ranges(): Range[] {
@@ -879,38 +879,38 @@ export class For extends Inst {
       this.element,
       this.inToken,
       this.collection,
-      this.inst,
+      this.body,
     ];
   }
 
-  public pass<T>(visitor: IInstPasser<T>): T {
+  public pass<T>(visitor: IStmtPasser<T>): T {
     return visitor.passFor(this);
   }
 
-  public accept<T>(visitor: IInstVisitor<T>): T {
+  public accept<T>(visitor: IStmtVisitor<T>): T {
     return visitor.visitFor(this);
   }
 }
 
-export class On extends Inst {
+export class On extends Stmt {
   public readonly on: IToken;
   public readonly suffix: Expr.Suffix;
-  public readonly inst: IInst;
+  public readonly body: IStmt;
 
   constructor(builder: NodeDataBuilder<On>) {
     super();
 
     this.on = unWrap(builder.on);
     this.suffix = unWrap(builder.suffix);
-    this.inst = unWrap(builder.inst);
+    this.body = unWrap(builder.body);
   }
 
   public toLines(): string[] {
     const suffixLines = this.suffix.toLines();
-    const instLInes = this.inst.toLines();
+    const bodyLines = this.body.toLines();
 
     suffixLines[0] = `${this.on.lexeme} ${suffixLines[0]}`;
-    return joinLines(' ', suffixLines, instLInes);
+    return joinLines(' ', suffixLines, bodyLines);
   }
 
   public get start(): Position {
@@ -918,23 +918,23 @@ export class On extends Inst {
   }
 
   public get end(): Position {
-    return this.inst.end;
+    return this.body.end;
   }
 
   public get ranges(): Range[] {
-    return [this.on, this.suffix, this.inst];
+    return [this.on, this.suffix, this.body];
   }
 
-  public pass<T>(visitor: IInstPasser<T>): T {
+  public pass<T>(visitor: IStmtPasser<T>): T {
     return visitor.passOn(this);
   }
 
-  public accept<T>(visitor: IInstVisitor<T>): T {
+  public accept<T>(visitor: IStmtVisitor<T>): T {
     return visitor.visitOn(this);
   }
 }
 
-export class Toggle extends Inst {
+export class Toggle extends Stmt {
   public readonly toggle: IToken;
   public readonly suffix: Expr.Suffix;
 
@@ -967,16 +967,16 @@ export class Toggle extends Inst {
     return [this.toggle, this.suffix];
   }
 
-  public pass<T>(visitor: IInstPasser<T>): T {
+  public pass<T>(visitor: IStmtPasser<T>): T {
     return visitor.passToggle(this);
   }
 
-  public accept<T>(visitor: IInstVisitor<T>): T {
+  public accept<T>(visitor: IStmtVisitor<T>): T {
     return visitor.visitToggle(this);
   }
 }
 
-export class Wait extends Inst {
+export class Wait extends Stmt {
   public readonly wait: IToken;
   public readonly until?: IToken;
   public readonly expr: IExpr;
@@ -1015,16 +1015,16 @@ export class Wait extends Inst {
     return [this.wait, this.until, this.expr];
   }
 
-  public pass<T>(visitor: IInstPasser<T>): T {
+  public pass<T>(visitor: IStmtPasser<T>): T {
     return visitor.passWait(this);
   }
 
-  public accept<T>(visitor: IInstVisitor<T>): T {
+  public accept<T>(visitor: IStmtVisitor<T>): T {
     return visitor.visitWait(this);
   }
 }
 
-export class Log extends Inst {
+export class Log extends Stmt {
   public readonly log: IToken;
   public readonly expr: IExpr;
   public readonly to: IToken;
@@ -1064,16 +1064,16 @@ export class Log extends Inst {
     return [this.log, this.expr, this.to, this.target];
   }
 
-  public pass<T>(visitor: IInstPasser<T>): T {
+  public pass<T>(visitor: IStmtPasser<T>): T {
     return visitor.passLog(this);
   }
 
-  public accept<T>(visitor: IInstVisitor<T>): T {
+  public accept<T>(visitor: IStmtVisitor<T>): T {
     return visitor.visitLog(this);
   }
 }
 
-export class Copy extends Inst {
+export class Copy extends Stmt {
   public readonly copy: IToken;
   public readonly target: IExpr;
   public readonly toFrom: IToken;
@@ -1110,16 +1110,16 @@ export class Copy extends Inst {
     return [this.copy, this.target, this.toFrom, this.destination];
   }
 
-  public pass<T>(visitor: IInstPasser<T>): T {
+  public pass<T>(visitor: IStmtPasser<T>): T {
     return visitor.passCopy(this);
   }
 
-  public accept<T>(visitor: IInstVisitor<T>): T {
+  public accept<T>(visitor: IStmtVisitor<T>): T {
     return visitor.visitCopy(this);
   }
 }
 
-export class Rename extends Inst {
+export class Rename extends Stmt {
   public readonly rename: IToken;
   public readonly fileVolume: IToken;
   public readonly identifier: IToken;
@@ -1168,16 +1168,16 @@ export class Rename extends Inst {
     ];
   }
 
-  public pass<T>(visitor: IInstPasser<T>): T {
+  public pass<T>(visitor: IStmtPasser<T>): T {
     return visitor.passRename(this);
   }
 
-  public accept<T>(visitor: IInstVisitor<T>): T {
+  public accept<T>(visitor: IStmtVisitor<T>): T {
     return visitor.visitRename(this);
   }
 }
 
-export class Delete extends Inst {
+export class Delete extends Stmt {
   public readonly deleteToken: IToken;
   public readonly target: IExpr;
   public readonly from?: IToken;
@@ -1230,16 +1230,16 @@ export class Delete extends Inst {
     return ranges;
   }
 
-  public pass<T>(visitor: IInstPasser<T>): T {
+  public pass<T>(visitor: IStmtPasser<T>): T {
     return visitor.passDelete(this);
   }
 
-  public accept<T>(visitor: IInstVisitor<T>): T {
+  public accept<T>(visitor: IStmtVisitor<T>): T {
     return visitor.visitDelete(this);
   }
 }
 
-export class Run extends Inst {
+export class Run extends Stmt {
   public readonly run: IToken;
   public readonly identifier: IToken;
   public readonly once?: IToken;
@@ -1323,16 +1323,16 @@ export class Run extends Inst {
     return ranges;
   }
 
-  public pass<T>(visitor: IInstPasser<T>): T {
+  public pass<T>(visitor: IStmtPasser<T>): T {
     return visitor.passRun(this);
   }
 
-  public accept<T>(visitor: IInstVisitor<T>): T {
+  public accept<T>(visitor: IStmtVisitor<T>): T {
     return visitor.visitRun(this);
   }
 }
 
-export class RunPath extends Inst {
+export class RunPath extends Stmt {
   public readonly runPath: IToken;
   public readonly open: IToken;
   public readonly expr: IExpr;
@@ -1381,16 +1381,16 @@ export class RunPath extends Inst {
     return ranges;
   }
 
-  public pass<T>(visitor: IInstPasser<T>): T {
+  public pass<T>(visitor: IStmtPasser<T>): T {
     return visitor.passRunPath(this);
   }
 
-  public accept<T>(visitor: IInstVisitor<T>): T {
+  public accept<T>(visitor: IStmtVisitor<T>): T {
     return visitor.visitRunPath(this);
   }
 }
 
-export class RunPathOnce extends Inst {
+export class RunPathOnce extends Stmt {
   public readonly runPath: IToken;
   public readonly open: IToken;
   public readonly expr: IExpr;
@@ -1439,16 +1439,16 @@ export class RunPathOnce extends Inst {
     return ranges;
   }
 
-  public pass<T>(visitor: IInstPasser<T>): T {
+  public pass<T>(visitor: IStmtPasser<T>): T {
     return visitor.passRunPathOnce(this);
   }
 
-  public accept<T>(visitor: IInstVisitor<T>): T {
+  public accept<T>(visitor: IStmtVisitor<T>): T {
     return visitor.visitRunPathOnce(this);
   }
 }
 
-export class Compile extends Inst {
+export class Compile extends Stmt {
   public readonly compile: IToken;
   public readonly target: IExpr;
   public readonly to?: IToken;
@@ -1493,16 +1493,16 @@ export class Compile extends Inst {
     return ranges;
   }
 
-  public pass<T>(visitor: IInstPasser<T>): T {
+  public pass<T>(visitor: IStmtPasser<T>): T {
     return visitor.passCompile(this);
   }
 
-  public accept<T>(visitor: IInstVisitor<T>): T {
+  public accept<T>(visitor: IStmtVisitor<T>): T {
     return visitor.visitCompile(this);
   }
 }
 
-export class List extends Inst {
+export class List extends Stmt {
   public readonly list: IToken;
   public readonly collection?: IToken;
   public readonly inToken?: IToken;
@@ -1563,16 +1563,16 @@ export class List extends Inst {
     return ranges;
   }
 
-  public pass<T>(visitor: IInstPasser<T>): T {
+  public pass<T>(visitor: IStmtPasser<T>): T {
     return visitor.passList(this);
   }
 
-  public accept<T>(visitor: IInstVisitor<T>): T {
+  public accept<T>(visitor: IStmtVisitor<T>): T {
     return visitor.visitList(this);
   }
 }
 
-export class Empty extends Inst {
+export class Empty extends Stmt {
   constructor(public readonly empty: IToken) {
     super();
   }
@@ -1593,16 +1593,16 @@ export class Empty extends Inst {
     return [this.empty];
   }
 
-  public pass<T>(visitor: IInstPasser<T>): T {
+  public pass<T>(visitor: IStmtPasser<T>): T {
     return visitor.passEmpty(this);
   }
 
-  public accept<T>(visitor: IInstVisitor<T>): T {
+  public accept<T>(visitor: IStmtVisitor<T>): T {
     return visitor.visitEmpty(this);
   }
 }
 
-export class Print extends Inst {
+export class Print extends Stmt {
   public readonly print: IToken;
   public readonly expr: IExpr;
   public readonly at?: IToken;
@@ -1677,11 +1677,11 @@ export class Print extends Inst {
     return ranges;
   }
 
-  public pass<T>(visitor: IInstPasser<T>): T {
+  public pass<T>(visitor: IStmtPasser<T>): T {
     return visitor.passPrint(this);
   }
 
-  public accept<T>(visitor: IInstVisitor<T>): T {
+  public accept<T>(visitor: IStmtVisitor<T>): T {
     return visitor.visitPrint(this);
   }
 }

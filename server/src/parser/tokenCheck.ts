@@ -1,6 +1,6 @@
 import { TreeNode } from './types';
 import * as Decl from './declare';
-import * as Inst from './inst';
+import * as Stmt from './stmt';
 import * as Expr from './expr';
 import * as SuffixTerm from './suffixTerm';
 import { Token } from '../entities/token';
@@ -45,8 +45,8 @@ export class TokenCheck extends TreeExecute<IToken[]> {
         tokens.push(this.suffixTermAction(childNode));
       } else if (childNode instanceof Expr.Expr) {
         tokens.push(this.exprAction(childNode));
-      } else if (childNode instanceof Inst.Inst) {
-        tokens.push(this.instAction(childNode));
+      } else if (childNode instanceof Stmt.Stmt) {
+        tokens.push(this.stmtAction(childNode));
       } else if (childNode instanceof Decl.Param) {
         const params = [];
         for (const param of childNode.requiredParameters) {

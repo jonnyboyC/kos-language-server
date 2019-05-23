@@ -1,15 +1,15 @@
-import * as Inst from '../parser/inst';
+import * as Stmt from '../parser/stmt';
 import * as SuffixTerm from '../parser/suffixTerm';
 import * as Expr from '../parser/expr';
 import { relative, join, sep, dirname } from 'path';
-import { RunInstType } from '../parser/types';
+import { RunStmtType } from '../parser/types';
 import { empty } from './typeGuards';
 import { TokenType } from '../entities/tokentypes';
 import { ILoadData } from '../types';
 import { Location } from 'vscode-languageserver';
 
 /**
- * Class to resolve run instructions or calls to file paths
+ * Class to resolve run statements or calls to file paths
  */
 export class PathResolver {
   private replacer: RegExp;
@@ -32,7 +32,7 @@ export class PathResolver {
   /**
    * Resolve uri to load data
    * @param caller location of caller
-   * @param path provided path in run instruction or class
+   * @param path provided path in run statement or class
    */
   public resolveUri(caller: Location, path?: string): Maybe<ILoadData> {
     if (empty(path) || empty(this.volume0Path) || empty(this.volume0Uri)) {
@@ -105,12 +105,12 @@ export class PathResolver {
 
 /**
  * Get io path, currently only supports string literals
- * @param inst io instructions
+ * @param stmt io statements
  */
 export const ioPath = (
-  inst: Inst.Rename | Inst.Copy | Inst.Delete | Inst.Log,
+  stmt: Stmt.Rename | Stmt.Copy | Stmt.Delete | Stmt.Log,
 ): Maybe<string> => {
-  const { target } = inst;
+  const { target } = stmt;
   if (target instanceof SuffixTerm.Literal) {
     return literalPath(target);
   }
@@ -120,11 +120,11 @@ export const ioPath = (
 
 /**
  * based on run type determine how to get file path
- * @param inst run instruction
+ * @param stmt run statement
  */
-export const runPath = (inst: RunInstType): Maybe<string> => {
-  if (inst instanceof Inst.Run) {
-    const { identifier } = inst;
+export const runPath = (stmt: RunStmtType): Maybe<string> => {
+  if (stmt instanceof Stmt.Run) {
+    const { identifier } = stmt;
 
     switch (identifier.type) {
       case TokenType.string:
@@ -138,7 +138,7 @@ export const runPath = (inst: RunInstType): Maybe<string> => {
   }
 
   // for run path varients check for literal
-  const { expr } = inst;
+  const { expr } = stmt;
   if (expr instanceof Expr.Suffix) {
     if (expr.suffixTerm.atom instanceof SuffixTerm.Literal) {
       return literalPath(expr.suffixTerm.atom);

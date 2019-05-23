@@ -5,7 +5,7 @@ import { IToken } from '../entities/types';
 import { KsParameter } from '../entities/parameters';
 import { Range, Location } from 'vscode-languageserver';
 import { IArgumentType, IFunctionType } from '../typeChecker/types/types';
-import { IExpr, IInst, ScopeKind } from '../parser/types';
+import { IExpr, IStmt, ScopeKind } from '../parser/types';
 
 export const enum SymbolState {
   declared,
@@ -145,7 +145,7 @@ export interface IDeferred {
   /**
    * Node to be executed later
    */
-  node: IInst | IExpr;
+  node: IStmt | IExpr;
 }
 
 // tslint:disable-next-line:prefer-array-literal

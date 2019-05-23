@@ -2,12 +2,12 @@ import { IFunctionScanResult } from './types';
 import { ScriptNode } from '../parser/types';
 import * as Decl from '../parser/declare';
 import * as Expr from '../parser/expr';
-import * as Inst from '../parser/inst';
+import * as Stmt from '../parser/stmt';
 import { TreeTraverse } from '../parser/treeTraverse';
 import * as SuffixTerm from '../parser/suffixTerm';
 
 /**
- * Class to help identify parameters and return instructions in
+ * Class to help identify parameters and return statements in
  * a kerboscript function
  */
 export class FunctionScan extends TreeTraverse {
@@ -29,7 +29,7 @@ export class FunctionScan extends TreeTraverse {
   }
 
   /**
-   * Scan the function node for parameters and return instructions
+   * Scan the function node for parameters and return statements
    * @param node function body
    */
   public scan(node: ScriptNode): IFunctionScanResult {
@@ -41,8 +41,8 @@ export class FunctionScan extends TreeTraverse {
 
     if (node instanceof Expr.Expr) {
       this.exprAction(node);
-    } else if (node instanceof Inst.Inst) {
-      this.instAction(node);
+    } else if (node instanceof Stmt.Stmt) {
+      this.stmtAction(node);
     } else if (node instanceof SuffixTerm.SuffixTerm) {
       this.suffixTermAction(node);
     }
@@ -60,15 +60,15 @@ export class FunctionScan extends TreeTraverse {
       return true;
     }
 
-    // traverse instructions
-    if (node instanceof Inst.Inst) {
+    // traverse statements
+    if (node instanceof Stmt.Stmt) {
       // stop if we find another function
       if (node instanceof Decl.Func) {
         return false;
       }
 
-      // indicate return instruction exists
-      if (node instanceof Inst.Return) {
+      // indicate return statement exists
+      if (node instanceof Stmt.Return) {
         this.result.return = true;
       }
 

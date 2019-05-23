@@ -533,7 +533,7 @@ const lockDeclareTest = (
   };
 };
 
-describe('Parse instruction', () => {
+describe('Parse statement', () => {
   test('valid variable declarations', () => {
     const validDeclarations = [
       varDeclareTest(
@@ -560,17 +560,17 @@ describe('Parse instruction', () => {
       const { script, parseErrors } = parse(declaration.source);
 
       expect(parseErrors.length).toBe(0);
-      expect(script.insts.length).toBe(1);
-      expect(script.runInsts.length).toBe(0);
+      expect(script.stmts.length).toBe(1);
+      expect(script.runStmts.length).toBe(0);
 
-      const [inst] = script.insts;
+      const [stmt] = script.stmts;
 
-      expect(inst instanceof Decl.Var).toBe(true);
+      expect(stmt instanceof Decl.Var).toBe(true);
 
-      if (inst instanceof Decl.Var) {
-        expect(inst.identifier.lexeme).toBe(declaration.identifier);
-        expect(inst.scope.type).toBe(declaration.scope);
-        expect(inst.value instanceof declaration.value).toBe(true);
+      if (stmt instanceof Decl.Var) {
+        expect(stmt.identifier.lexeme).toBe(declaration.identifier);
+        expect(stmt.scope.type).toBe(declaration.scope);
+        expect(stmt.value instanceof declaration.value).toBe(true);
       }
     }
   });
@@ -601,26 +601,26 @@ describe('Parse instruction', () => {
       const { script, parseErrors } = parse(declaration.source);
 
       expect(parseErrors.length).toBe(0);
-      expect(script.insts.length).toBe(1);
-      expect(script.runInsts.length).toBe(0);
+      expect(script.stmts.length).toBe(1);
+      expect(script.runStmts.length).toBe(0);
 
-      const [inst] = script.insts;
+      const [stmt] = script.stmts;
 
-      expect(inst instanceof Decl.Lock).toBe(true);
+      expect(stmt instanceof Decl.Lock).toBe(true);
 
-      if (inst instanceof Decl.Lock) {
-        expect(inst.identifier.lexeme).toBe(declaration.identifier);
+      if (stmt instanceof Decl.Lock) {
+        expect(stmt.identifier.lexeme).toBe(declaration.identifier);
         if (empty(declaration.scope)) {
-          expect(inst.scope).toBeUndefined();
+          expect(stmt.scope).toBeUndefined();
         } else {
-          if (empty(inst.scope)) {
+          if (empty(stmt.scope)) {
             fail();
           } else {
-            expect(inst.scope.type).toBe(declaration.scope);
+            expect(stmt.scope.type).toBe(declaration.scope);
           }
         }
 
-        expect(inst.value instanceof declaration.value).toBe(true);
+        expect(stmt.value instanceof declaration.value).toBe(true);
       }
     }
   });
