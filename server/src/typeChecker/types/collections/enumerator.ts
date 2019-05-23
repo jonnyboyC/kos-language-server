@@ -1,11 +1,18 @@
-import { IArgumentType } from '../types';
-import { createStructureType, createArgSuffixType } from '../ksType';
+import { IGenericBasicType } from '../types';
+import {
+  createArgSuffixType,
+  createGenericStructureType,
+  tType,
+  createGenericArgSuffixType,
+} from '../ksType';
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { structureType } from '../primitives/structure';
 import { booleanType } from '../primitives/boolean';
 import { scalarType } from '../primitives/scalar';
 
-export const enumeratorType: IArgumentType = createStructureType('enumerator');
+export const enumeratorType: IGenericBasicType = createGenericStructureType(
+  'enumerator',
+);
 addPrototype(enumeratorType, structureType);
 
 addSuffixes(
@@ -13,5 +20,5 @@ addSuffixes(
   createArgSuffixType('next', booleanType),
   createArgSuffixType('atend', booleanType),
   createArgSuffixType('index', scalarType),
-  createArgSuffixType('value', structureType),
+  createGenericArgSuffixType('value', tType),
 );

@@ -143,6 +143,24 @@ export const rangeAfter = (range: Range, pos: Position): boolean => {
 };
 
 /**
+ * This is used to sort a set of ranges in to order
+ * @param range1 first range
+ * @param range2 second range
+ */
+export const rangeOrder = (range1: Range, range2: Range): number => {
+  // check line number first
+  if (range1.end.line < range2.start.line) return -1;
+  if (range1.start.line > range2.end.line) return 1;
+
+  // must have equal lines so check characters
+  if (range1.end.character < range2.start.character) return -1;
+  if (range1.start.character > range2.end.character) return 1;
+
+  // ranges must have overlap TODO for now treat as equal
+  return 0;
+};
+
+/**
  * Does this range intersect the next
  * @param range1 the target range
  * @param range2 the other range

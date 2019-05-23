@@ -214,7 +214,7 @@ export class SymbolTableBuilder {
    * Indicate if the current scope if file scope
    */
   public isFileScope(): boolean {
-    return this.scopeDepth() === 2;
+    return this.scopeDepth() === 1;
   }
 
   /**

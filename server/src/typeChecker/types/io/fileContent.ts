@@ -16,5 +16,5 @@ addSuffixes(
   createSuffixType('empty', booleanType),
   createSuffixType('type', stringType),
   createSuffixType('string', stringType),
-  createSuffixType('iterator', enumeratorType),
+  createSuffixType('iterator', enumeratorType.toConcreteType(stringType)),
 );

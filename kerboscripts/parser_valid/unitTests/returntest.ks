@@ -7,4 +7,10 @@ function correct {
     return nested().
 }
 
-return.
+local a is {
+    return.
+}.
+
+if a {
+    return.
+}

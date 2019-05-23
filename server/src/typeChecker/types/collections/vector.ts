@@ -7,7 +7,6 @@ import { scalarType } from '../primitives/scalar';
 import { serializableStructureType } from '../primitives/serializeableStructure';
 
 export const vectorType: IArgumentType = createStructureType('vector');
-
 addPrototype(vectorType, serializableStructureType);
 
 addSuffixes(

@@ -1,6 +1,6 @@
 import { IFindResult, TreeNode } from './types';
 import * as Decl from './declare';
-import * as Inst from './inst';
+import * as Stmt from './stmt';
 import * as Expr from './expr';
 import * as SuffixTerm from './suffixTerm';
 import { Position } from 'vscode-languageserver';
@@ -10,7 +10,7 @@ import { Token } from '../entities/token';
 import { TreeExecute } from './treeExecute';
 
 type Contexts = Constructor<Expr.Expr>
-  | Constructor<Inst.Inst>
+  | Constructor<Stmt.Stmt>
   | Constructor<SuffixTerm.SuffixTermBase>
   | Constructor<Decl.Parameter>;
 
@@ -70,9 +70,9 @@ export class ScriptFind extends TreeExecute<Maybe<IFindResult>> {
       return findResult;
     }
 
-    // search instruction if instruction
-    if (searchResult instanceof Inst.Inst) {
-      const findResult = this.instAction(searchResult);
+    // search statement if statement
+    if (searchResult instanceof Stmt.Stmt) {
+      const findResult = this.stmtAction(searchResult);
 
       // add context if not set yet
       if (!empty(findResult) && this.addContext(findResult, node)) {

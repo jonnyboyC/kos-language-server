@@ -3,12 +3,20 @@ import { join } from 'path';
 import { Diagnostic } from 'vscode-languageserver';
 import { IScanResult } from '../scanner/types';
 import { Scanner } from '../scanner/scanner';
-import { INodeResult, IExpr, Atom, SuffixTermTrailer } from '../parser/types';
+import {
+  INodeResult,
+  IExpr,
+  Atom,
+  SuffixTermTrailer,
+  ScopeKind,
+  IParseResult,
+} from '../parser/types';
 import { Parser } from '../parser/parser';
 import { TokenCheck } from '../parser/tokenCheck';
 import { zip } from '../utilities/arrayUtils';
 import { TokenType } from '../entities/tokentypes';
 import * as Expr from '../parser/expr';
+import * as Decl from '../parser/declare';
 import { empty } from '../utilities/typeGuards';
 import * as SuffixTerm from '../parser/suffixTerm';
 
@@ -18,13 +26,22 @@ const scan = (source: string): IScanResult => {
   return scanner.scanTokens();
 };
 
-// parse source
+// parse source expression
 const parseExpression = (
   source: string,
 ): [INodeResult<IExpr>, Diagnostic[]] => {
   const { tokens, scanErrors } = scan(source);
   const parser = new Parser('', tokens);
   return [parser.parseExpression(), scanErrors];
+};
+
+// parse source expression
+const parse = (source: string): IParseResult => {
+  const { tokens, scanErrors } = scan(source);
+  expect(scanErrors.length).toBe(0);
+
+  const parser = new Parser('', tokens);
+  return parser.parse();
 };
 
 const testDir = join(__dirname, '../../../kerboscripts/parser_valid/');
@@ -357,30 +374,15 @@ describe('Parse expressions', () => {
 
   test('valid unary', () => {
     const validExpressions = [
-      unaryTest(
-        '+ 5',
-        TokenType.plus,
-        SuffixTerm.Literal,
-        5,
-      ),
+      unaryTest('+ 5', TokenType.plus, SuffixTerm.Literal, 5),
       unaryTest(
         'defined other',
         TokenType.defined,
         SuffixTerm.Identifier,
         undefined,
       ),
-      unaryTest(
-        'not false',
-        TokenType.not,
-        SuffixTerm.Literal,
-        false,
-      ),
-      unaryTest(
-        '-suffix:call(10, 5)',
-        TokenType.minus,
-        Expr.Suffix,
-        undefined,
-      ),
+      unaryTest('not false', TokenType.not, SuffixTerm.Literal, false),
+      unaryTest('-suffix:call(10, 5)', TokenType.minus, Expr.Suffix, undefined),
     ];
 
     for (const expression of validExpressions) {
@@ -484,6 +486,141 @@ describe('Parse expressions', () => {
         } else {
           expect(value.right instanceof expression.rightArm.expr).toBe(true);
         }
+      }
+    }
+  });
+});
+
+interface IVarDeclareTest {
+  source: string;
+  identifier: string;
+  scope: ScopeKind;
+  value: Constructor<Expr.Expr>;
+}
+
+const varDeclareTest = (
+  source: string,
+  identifier: string,
+  scope: ScopeKind,
+  value: Constructor<Expr.Expr>,
+): IVarDeclareTest => {
+  return {
+    source,
+    identifier,
+    scope,
+    value,
+  };
+};
+
+interface ILockDeclareTest {
+  source: string;
+  identifier: string;
+  scope?: ScopeKind;
+  value: Constructor<Expr.Expr>;
+}
+
+const lockDeclareTest = (
+  source: string,
+  identifier: string,
+  value: Constructor<Expr.Expr>,
+  scope?: ScopeKind,
+): ILockDeclareTest => {
+  return {
+    source,
+    identifier,
+    scope,
+    value,
+  };
+};
+
+describe('Parse statement', () => {
+  test('valid variable declarations', () => {
+    const validDeclarations = [
+      varDeclareTest(
+        'local a is { return 10. }.',
+        'a',
+        ScopeKind.local,
+        Expr.Lambda,
+      ),
+      varDeclareTest(
+        'declare other to "example" + "another".',
+        'other',
+        ScopeKind.local,
+        Expr.Binary,
+      ),
+      varDeclareTest(
+        'declare global another is thing:withSuffix[10].',
+        'another',
+        ScopeKind.global,
+        Expr.Suffix,
+      ),
+    ];
+
+    for (const declaration of validDeclarations) {
+      const { script, parseErrors } = parse(declaration.source);
+
+      expect(parseErrors.length).toBe(0);
+      expect(script.stmts.length).toBe(1);
+      expect(script.runStmts.length).toBe(0);
+
+      const [stmt] = script.stmts;
+
+      expect(stmt instanceof Decl.Var).toBe(true);
+
+      if (stmt instanceof Decl.Var) {
+        expect(stmt.identifier.lexeme).toBe(declaration.identifier);
+        expect(stmt.scope.type).toBe(declaration.scope);
+        expect(stmt.value instanceof declaration.value).toBe(true);
+      }
+    }
+  });
+
+  test('valid lock declarations', () => {
+    const validDeclarations = [
+      lockDeclareTest(
+        'lock a to { return 10. }.',
+        'a',
+        Expr.Lambda,
+        undefined,
+      ),
+      lockDeclareTest(
+        'local lock other to "example" + "another".',
+        'other',
+        Expr.Binary,
+        ScopeKind.local,
+      ),
+      lockDeclareTest(
+        'declare global lock another to thing:withSuffix[10].',
+        'another',
+        Expr.Suffix,
+        ScopeKind.global,
+      ),
+    ];
+
+    for (const declaration of validDeclarations) {
+      const { script, parseErrors } = parse(declaration.source);
+
+      expect(parseErrors.length).toBe(0);
+      expect(script.stmts.length).toBe(1);
+      expect(script.runStmts.length).toBe(0);
+
+      const [stmt] = script.stmts;
+
+      expect(stmt instanceof Decl.Lock).toBe(true);
+
+      if (stmt instanceof Decl.Lock) {
+        expect(stmt.identifier.lexeme).toBe(declaration.identifier);
+        if (empty(declaration.scope)) {
+          expect(stmt.scope).toBeUndefined();
+        } else {
+          if (empty(stmt.scope)) {
+            fail();
+          } else {
+            expect(stmt.scope.type).toBe(declaration.scope);
+          }
+        }
+
+        expect(stmt.value instanceof declaration.value).toBe(true);
       }
     }
   });

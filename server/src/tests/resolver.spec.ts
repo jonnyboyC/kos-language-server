@@ -19,7 +19,7 @@ import { FunctionScan } from '../analysis/functionScan';
 import * as Decl from '../parser/declare';
 import { standardLibraryBuilder } from '../analysis/standardLibrary';
 import { LocalResolver } from '../analysis/localResolver';
-import * as Inst from '../parser/inst';
+import * as Stmt from '../parser/stmt';
 import { SetResolver } from '../analysis/setResolver';
 
 const fakeUri = 'C:\\fake.ks';
@@ -523,7 +523,7 @@ describe('Resolver errors', () => {
   );
 
   const returnLocations: Range[] = [
-    { start: new Marker(9, 0), end: new Marker(9, 6) },
+    { start: new Marker(14, 4), end: new Marker(14, 10) },
   ];
 
   // invalid return locations
@@ -590,15 +590,15 @@ describe('Function Scan', () => {
     noParseErrors(parseResult);
 
     const { script } = parseResult.parse;
-    expect(script.insts.length).toBe(1);
+    expect(script.stmts.length).toBe(1);
 
-    const [funcInst] = script.insts;
-    expect(funcInst).toBeInstanceOf(Decl.Func);
+    const [funcStmt] = script.stmts;
+    expect(funcStmt).toBeInstanceOf(Decl.Func);
 
     const funcScanner = new FunctionScan();
 
-    if (funcInst instanceof Decl.Func) {
-      const scanResult = funcScanner.scan(funcInst.block);
+    if (funcStmt instanceof Decl.Func) {
+      const scanResult = funcScanner.scan(funcStmt.block);
       expect(scanResult).not.toBeUndefined();
 
       if (!empty(scanResult)) {
@@ -614,15 +614,15 @@ describe('Function Scan', () => {
     noParseErrors(parseResult);
 
     const { script } = parseResult.parse;
-    expect(script.insts.length).toBe(1);
+    expect(script.stmts.length).toBe(1);
 
-    const [funcInst] = script.insts;
-    expect(funcInst).toBeInstanceOf(Decl.Func);
+    const [funcStmt] = script.stmts;
+    expect(funcStmt).toBeInstanceOf(Decl.Func);
 
     const funcScanner = new FunctionScan();
 
-    if (funcInst instanceof Decl.Func) {
-      const scanResult = funcScanner.scan(funcInst.block);
+    if (funcStmt instanceof Decl.Func) {
+      const scanResult = funcScanner.scan(funcStmt.block);
       expect(scanResult).not.toBeUndefined();
 
       if (!empty(scanResult)) {
@@ -638,15 +638,15 @@ describe('Function Scan', () => {
     noParseErrors(parseResult);
 
     const { script } = parseResult.parse;
-    expect(script.insts.length).toBe(1);
+    expect(script.stmts.length).toBe(1);
 
-    const [funcInst] = script.insts;
-    expect(funcInst).toBeInstanceOf(Decl.Func);
+    const [funcStmt] = script.stmts;
+    expect(funcStmt).toBeInstanceOf(Decl.Func);
 
     const funcScanner = new FunctionScan();
 
-    if (funcInst instanceof Decl.Func) {
-      const scanResult = funcScanner.scan(funcInst.block);
+    if (funcStmt instanceof Decl.Func) {
+      const scanResult = funcScanner.scan(funcStmt.block);
       expect(scanResult).not.toBeUndefined();
 
       if (!empty(scanResult)) {
@@ -665,11 +665,11 @@ describe('Local Resolver', () => {
     noParseErrors(result);
 
     const { script } = result.parse;
-    const inst = script.insts[0];
+    const stmt = script.stmts[0];
 
     const resolver = new LocalResolver();
-    if (inst instanceof Inst.Set) {
-      const resolverResult = resolver.resolveExpr(inst.value);
+    if (stmt instanceof Stmt.Set) {
+      const resolverResult = resolver.resolveExpr(stmt.value);
       expect(resolverResult.length).toBe(4);
       const [thing, used1, used2, used3] = resolverResult;
 
@@ -689,11 +689,11 @@ describe('Local Resolver', () => {
     noParseErrors(result);
 
     const { script } = result.parse;
-    const inst = script.insts[0];
+    const stmt = script.stmts[0];
 
     const resolver = new LocalResolver();
-    if (inst instanceof Inst.Set) {
-      const resolverResult = resolver.resolveExpr(inst.value);
+    if (stmt instanceof Stmt.Set) {
+      const resolverResult = resolver.resolveExpr(stmt.value);
       expect(resolverResult.length).toBe(5);
       const [first, nest, array, exponent, example] = resolverResult;
 
@@ -716,12 +716,12 @@ describe('Set Resolver', () => {
     noParseErrors(result);
 
     const { script } = result.parse;
-    const inst = script.insts[0];
+    const stmt = script.stmts[0];
 
     const local = new LocalResolver();
     const resolver = new SetResolver(local);
-    if (inst instanceof Inst.Set) {
-      const { used, set } = resolver.resolveExpr(inst.suffix);
+    if (stmt instanceof Stmt.Set) {
+      const { used, set } = resolver.resolveExpr(stmt.suffix);
       expect(set).not.toBeUndefined();
       if (!empty(set)) {
         expect(set.lexeme).toBe('Thing');

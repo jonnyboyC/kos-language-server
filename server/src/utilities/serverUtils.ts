@@ -107,7 +107,7 @@ export const updateServer = (server: IServer): void => {
 
   server.keywords = keywordCompletions(caseKind);
   server.analyzer.logger.level = logLevel;
-  server.analyzer.setCase(caseKind)
+  server.analyzer.setCase(caseKind);
 };
 
 export const entityCompletionItems = (

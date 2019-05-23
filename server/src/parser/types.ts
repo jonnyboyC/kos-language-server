@@ -1,10 +1,11 @@
 import * as Expr from './expr';
-import * as Inst from './inst';
+import * as Stmt from './stmt';
 import * as SuffixTerm from './suffixTerm';
 import { Var, Lock, Func, Param } from './declare';
 import { IToken } from '../entities/types';
 import { Range, Location, Diagnostic } from 'vscode-languageserver';
 import { TokenType } from '../entities/tokentypes';
+import { NodeBase } from './base';
 
 export interface IRangeSequence extends Range {
   ranges: Range[];
@@ -17,6 +18,10 @@ export interface IDeclScope extends IRangeSequence {
   toString(): string;
 }
 
+export type NodeDataBuilder<T> = Partial<Writeable<NodeData<T>>>;
+
+export type NodeData<T> = Properties<T, IToken | NodeBase | NodeBase[] | undefined>;
+
 export type SuffixTermTrailer = SuffixTerm.Call
   | SuffixTerm.ArrayBracket
   | SuffixTerm.ArrayIndex
@@ -24,7 +29,8 @@ export type SuffixTermTrailer = SuffixTerm.Call
 
 export type Atom = SuffixTerm.Literal
   | SuffixTerm.Identifier
-  | SuffixTerm.Grouping;
+  | SuffixTerm.Grouping
+  | SuffixTerm.Invalid;
 
 export interface IParameter extends IRangeSequence {
   identifier: IToken;
@@ -33,15 +39,15 @@ export interface IParameter extends IRangeSequence {
 
 export enum SyntaxKind {
   script,
-  inst,
+  stmt,
   expr,
   suffixTerm,
 }
 
 export interface IScript extends IRangeSequence {
   lazyGlobal: boolean;
-  insts: IInst[];
-  runInsts: RunInstType[];
+  stmts: IStmt[];
+  runStmts: RunStmtType[];
   uri: string;
   toLocation(): Location;
   toLines(): string[];
@@ -49,14 +55,14 @@ export interface IScript extends IRangeSequence {
   tag: SyntaxKind.script;
 }
 
-export interface IInst extends
-  IInstVisitable,
-  IInstPassable,
+export interface IStmt extends
+  IStmtVisitable,
+  IStmtPassable,
   IRangeSequence {
   toLocation(uri: string): Location;
   toLines(): string[];
   toString(): string;
-  tag: SyntaxKind.inst;
+  tag: SyntaxKind.stmt;
 }
 
 export interface IExpr extends
@@ -79,8 +85,8 @@ export interface ISuffixTerm extends
   tag: SyntaxKind.suffixTerm;
 }
 
-export interface IInstClass extends
-  Constructor<Inst.Inst>,
+export interface IStmtClass extends
+  Constructor<Stmt.Stmt>,
   IExprVisitableClass {
   grammar: GrammarNode[];
 }
@@ -144,7 +150,6 @@ export interface IConstantDistribution {
 export interface IParseError extends Range {
   tag: 'parseError';
   token: IToken;
-  otherInfo: string[];
   message: string;
   inner: IParseError[];
 }
@@ -173,13 +178,17 @@ export enum ScopeKind {
   global,
 }
 
+export type PartialNode = {
+  [key: string]: IToken | TreeNode | undefined;
+};
+
 export type GrammarNode = IExprClass
-  | IInstClass | ISuffixTermClass | TokenType
+  | IStmtClass | ISuffixTermClass | TokenType
   | IGrammarOptional | IGrammarRepeat | IGrammarUnion;
 
-export type RunInstType = Inst.Run | Inst.RunPath | Inst.RunPathOnce;
-export type ScriptNode = IInst | IExpr | ISuffixTerm;
-export type TreeNode = IScript | IInst | IExpr | ISuffixTerm | IParameter | IDeclScope;
+export type RunStmtType = Stmt.Run | Stmt.RunPath | Stmt.RunPathOnce;
+export type ScriptNode = IStmt | IExpr | ISuffixTerm;
+export type TreeNode = IScript | IStmt | IExpr | ISuffixTerm | IParameter | IDeclScope;
 
 export interface IExprVisitable {
   accept<T>(visitor: IExprVisitor<T>): T;
@@ -290,92 +299,92 @@ export interface ISuffixTermClassVisitor<T> {
   visitGrouping(termClass: Constructor<SuffixTerm.Grouping>): T;
 }
 
-export interface IInstVisitable {
-  accept<T>(visitor: IInstVisitor<T>): T;
+export interface IStmtVisitable {
+  accept<T>(visitor: IStmtVisitor<T>): T;
 }
 
-export interface IInstVisitor<T> {
+export interface IStmtVisitor<T> {
   visitDeclVariable(decl: Var): T;
   visitDeclLock(decl: Lock): T;
   visitDeclFunction(decl: Func): T;
   visitDeclParameter(decl: Param): T;
 
-  visitInstInvalid(inst: Inst.Invalid): T;
-  visitBlock(inst: Inst.Block): T;
-  visitExpr(inst: Inst.ExprInst): T;
-  visitOnOff(inst: Inst.OnOff): T;
-  visitCommand(inst: Inst.Command): T;
-  visitCommandExpr(inst: Inst.CommandExpr): T;
-  visitUnset(inst: Inst.Unset): T;
-  visitUnlock(inst: Inst.Unlock): T;
-  visitSet(inst: Inst.Set): T;
-  visitLazyGlobal(inst: Inst.LazyGlobal): T;
-  visitIf(inst: Inst.If): T;
-  visitElse(inst: Inst.Else): T;
-  visitUntil(inst: Inst.Until): T;
-  visitFrom(inst: Inst.From): T;
-  visitWhen(inst: Inst.When): T;
-  visitReturn(inst: Inst.Return): T;
-  visitBreak(inst: Inst.Break): T;
-  visitSwitch(inst: Inst.Switch): T;
-  visitFor(inst: Inst.For): T;
-  visitOn(inst: Inst.On): T;
-  visitToggle(inst: Inst.Toggle): T;
-  visitWait(inst: Inst.Wait): T;
-  visitLog(inst: Inst.Log): T;
-  visitCopy(inst: Inst.Copy): T;
-  visitRename(inst: Inst.Rename): T;
-  visitDelete(inst: Inst.Delete): T;
-  visitRun(inst: Inst.Run): T;
-  visitRunPath(inst: Inst.RunPath): T;
-  visitRunPathOnce(inst: Inst.RunPathOnce): T;
-  visitCompile(inst: Inst.Compile): T;
-  visitList(inst: Inst.List): T;
-  visitEmpty(inst: Inst.Empty): T;
-  visitPrint(inst: Inst.Print): T;
+  visitStmtInvalid(stmt: Stmt.Invalid): T;
+  visitBlock(stmt: Stmt.Block): T;
+  visitExpr(stmt: Stmt.ExprStmt): T;
+  visitOnOff(stmt: Stmt.OnOff): T;
+  visitCommand(stmt: Stmt.Command): T;
+  visitCommandExpr(stmt: Stmt.CommandExpr): T;
+  visitUnset(stmt: Stmt.Unset): T;
+  visitUnlock(stmt: Stmt.Unlock): T;
+  visitSet(stmt: Stmt.Set): T;
+  visitLazyGlobal(stmt: Stmt.LazyGlobal): T;
+  visitIf(stmt: Stmt.If): T;
+  visitElse(stmt: Stmt.Else): T;
+  visitUntil(stmt: Stmt.Until): T;
+  visitFrom(stmt: Stmt.From): T;
+  visitWhen(stmt: Stmt.When): T;
+  visitReturn(stmt: Stmt.Return): T;
+  visitBreak(stmt: Stmt.Break): T;
+  visitSwitch(stmt: Stmt.Switch): T;
+  visitFor(stmt: Stmt.For): T;
+  visitOn(stmt: Stmt.On): T;
+  visitToggle(stmt: Stmt.Toggle): T;
+  visitWait(stmt: Stmt.Wait): T;
+  visitLog(stmt: Stmt.Log): T;
+  visitCopy(stmt: Stmt.Copy): T;
+  visitRename(stmt: Stmt.Rename): T;
+  visitDelete(stmt: Stmt.Delete): T;
+  visitRun(stmt: Stmt.Run): T;
+  visitRunPath(stmt: Stmt.RunPath): T;
+  visitRunPathOnce(stmt: Stmt.RunPathOnce): T;
+  visitCompile(stmt: Stmt.Compile): T;
+  visitList(stmt: Stmt.List): T;
+  visitEmpty(stmt: Stmt.Empty): T;
+  visitPrint(stmt: Stmt.Print): T;
 }
 
-export interface IInstPassable {
-  pass<T>(visitor: IInstPasser<T>): T;
+export interface IStmtPassable {
+  pass<T>(visitor: IStmtPasser<T>): T;
 }
 
-export interface IInstPasser<T> {
+export interface IStmtPasser<T> {
   passDeclVariable(decl: Var): T;
   passDeclLock(decl: Lock): T;
   passDeclFunction(decl: Func): T;
   passDeclParameter(decl: Param): T;
 
-  passInstInvalid(inst: Inst.Invalid): T;
-  passBlock(inst: Inst.Block): T;
-  passExpr(inst: Inst.ExprInst): T;
-  passOnOff(inst: Inst.OnOff): T;
-  passCommand(inst: Inst.Command): T;
-  passCommandExpr(inst: Inst.CommandExpr): T;
-  passUnset(inst: Inst.Unset): T;
-  passUnlock(inst: Inst.Unlock): T;
-  passSet(inst: Inst.Set): T;
-  passLazyGlobal(inst: Inst.LazyGlobal): T;
-  passIf(inst: Inst.If): T;
-  passElse(inst: Inst.Else): T;
-  passUntil(inst: Inst.Until): T;
-  passFrom(inst: Inst.From): T;
-  passWhen(inst: Inst.When): T;
-  passReturn(inst: Inst.Return): T;
-  passBreak(inst: Inst.Break): T;
-  passSwitch(inst: Inst.Switch): T;
-  passFor(inst: Inst.For): T;
-  passOn(inst: Inst.On): T;
-  passToggle(inst: Inst.Toggle): T;
-  passWait(inst: Inst.Wait): T;
-  passLog(inst: Inst.Log): T;
-  passCopy(inst: Inst.Copy): T;
-  passRename(inst: Inst.Rename): T;
-  passDelete(inst: Inst.Delete): T;
-  passRun(inst: Inst.Run): T;
-  passRunPath(inst: Inst.RunPath): T;
-  passRunPathOnce(inst: Inst.RunPathOnce): T;
-  passCompile(inst: Inst.Compile): T;
-  passList(inst: Inst.List): T;
-  passEmpty(inst: Inst.Empty): T;
-  passPrint(inst: Inst.Print): T;
+  passStmtInvalid(stmt: Stmt.Invalid): T;
+  passBlock(stmt: Stmt.Block): T;
+  passExpr(stmt: Stmt.ExprStmt): T;
+  passOnOff(stmt: Stmt.OnOff): T;
+  passCommand(stmt: Stmt.Command): T;
+  passCommandExpr(stmt: Stmt.CommandExpr): T;
+  passUnset(stmt: Stmt.Unset): T;
+  passUnlock(stmt: Stmt.Unlock): T;
+  passSet(stmt: Stmt.Set): T;
+  passLazyGlobal(stmt: Stmt.LazyGlobal): T;
+  passIf(stmt: Stmt.If): T;
+  passElse(stmt: Stmt.Else): T;
+  passUntil(stmt: Stmt.Until): T;
+  passFrom(stmt: Stmt.From): T;
+  passWhen(stmt: Stmt.When): T;
+  passReturn(stmt: Stmt.Return): T;
+  passBreak(stmt: Stmt.Break): T;
+  passSwitch(stmt: Stmt.Switch): T;
+  passFor(stmt: Stmt.For): T;
+  passOn(stmt: Stmt.On): T;
+  passToggle(stmt: Stmt.Toggle): T;
+  passWait(stmt: Stmt.Wait): T;
+  passLog(stmt: Stmt.Log): T;
+  passCopy(stmt: Stmt.Copy): T;
+  passRename(stmt: Stmt.Rename): T;
+  passDelete(stmt: Stmt.Delete): T;
+  passRun(stmt: Stmt.Run): T;
+  passRunPath(stmt: Stmt.RunPath): T;
+  passRunPathOnce(stmt: Stmt.RunPathOnce): T;
+  passCompile(stmt: Stmt.Compile): T;
+  passList(stmt: Stmt.List): T;
+  passEmpty(stmt: Stmt.Empty): T;
+  passPrint(stmt: Stmt.Print): T;
 }

@@ -67,24 +67,24 @@ export class Invalid extends SuffixTermBase {
    * Invalid suffix term constructor
    * @param tokens tokens in the invalid range
    */
-  constructor(public readonly tokens: IToken[]) {
+  constructor(public readonly position: Position) {
     super();
   }
 
   public get start(): Position {
-    return this.tokens[0].start;
+    return this.position;
   }
 
   public get end(): Position {
-    return this.tokens[this.tokens.length - 1].end;
+    return this.position;
   }
 
   public get ranges(): Range[] {
-    return [...this.tokens];
+    return [];
   }
 
   public toLines(): string[] {
-    return [this.tokens.join(', ')];
+    return [''];
   }
 
   public acceptParam<TP, TR>(

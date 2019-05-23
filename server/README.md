@@ -3,7 +3,7 @@
 kos-language-server is a language server for the Kerboscript language, part of Kerbal Operating System mod.
 
 ## Features
-Currently the kos-language-server 0.5.0 implements the follow features
+Currently the kos-language-server 0.5.1 implements the follow features
 - Code completion for KSP global scope suffixs and keywords. Additional suggests local variables that are in scope of the cursor.
 - Document Symbols for quick navigation to properties in the document.
 - Diagnostics (Validation) are pushed for all open documents

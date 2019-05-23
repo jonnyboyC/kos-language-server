@@ -45,7 +45,7 @@ export const isCorrectCallType = (
  * @param targetType target type
  */
 export const isSubType = (queryType: IType, targetType: IType): boolean => {
-  if (queryType.tag === TypeKind.basic && targetType.tag === TypeKind.basic) {
+  if (queryType.kind === TypeKind.basic && targetType.kind === TypeKind.basic) {
     return moveDownPrototype(queryType, false, currentType => {
       if (currentType === targetType) {
         return true;
@@ -67,7 +67,7 @@ export const hasOperator = (
   type: IType,
   operator: Operator,
 ): Maybe<IArgumentType> => {
-  if (type.tag === TypeKind.basic) {
+  if (type.kind === TypeKind.basic) {
     return moveDownPrototype(type, undefined, currentType => {
       if (!empty(currentType.operators.has(operator))) {
         return type;
@@ -86,7 +86,7 @@ export const hasOperator = (
  * @param suffix suffix string
  */
 export const hasSuffix = (type: IType, suffix: string): boolean => {
-  if (type.tag === TypeKind.basic) {
+  if (type.kind === TypeKind.basic) {
     return moveDownPrototype(type, false, currentType => {
       if (currentType.suffixes.has(suffix)) {
         return true;
@@ -105,7 +105,7 @@ export const hasSuffix = (type: IType, suffix: string): boolean => {
  * @param suffix suffix string
  */
 export const getSuffix = (type: IType, suffix: string): Maybe<ISuffixType> => {
-  if (type.tag === TypeKind.basic) {
+  if (type.kind === TypeKind.basic) {
     return moveDownPrototype(type, undefined, currentType => {
       return currentType.suffixes.get(suffix);
     });
@@ -119,7 +119,7 @@ export const getSuffix = (type: IType, suffix: string): Maybe<ISuffixType> => {
  * @param type type
  */
 export const allSuffixes = (type: IType): ISuffixType[] => {
-  if (type.tag === TypeKind.basic) {
+  if (type.kind === TypeKind.basic) {
     const suffixes: Map<string, ISuffixType> = new Map();
 
     moveDownPrototype(type, false, currentType => {

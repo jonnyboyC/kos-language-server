@@ -1,0 +1,143 @@
+{
+    "if": {
+        "prefix": "if",
+        "body": [
+            "if ${1:condition} {",
+            "\t${2:body}",
+            "}"
+        ],
+        "description": "If branch"
+    },
+    "if else": {
+        "prefix": "if/else",
+        "body": [
+            "if ${1:condition} {",
+            "\t${2:body}",
+            "} else {",
+            "\t${3:body}",
+            "}"
+        ],
+        "description": "If and Else branches"
+    },
+    "else": {
+        "prefix": "else",
+        "body": [
+            "else {",
+            "\t${1:body}",
+            "}"
+        ],
+        "description": "Else branches"
+    },
+    "set": {
+        "prefix": "set",
+        "body": [
+            "set ${1:suffix} to ${2:value}."
+        ],
+        "description": "Set statement"
+    },
+    "until": {
+        "prefix": "until",
+        "body": [
+            "until ${1:condition} {",
+            "\t${2:body}",
+            "}"
+        ],
+        "description": "Until loop"
+    },
+    "from": {
+        "prefix": "from",
+        "body": [
+            "from {${1:initializer}} until ${2:condition} step {${3:increment}} do {",
+            "\t${4:body}",
+            "}"
+        ],
+        "description": "Until loop"
+    },
+    "when": {
+        "prefix": "when",
+        "body": [
+            "when ${1:condition} then {",
+            "\t${2:body}",
+            "}"
+        ],
+        "description": "When trigger"
+    },
+    "on": {
+        "prefix": "on",
+        "body": [
+            "on ${1:condition} {",
+            "\t${2:body}",
+            "}"
+        ],
+        "description": "On trigger"
+    },
+    "for": {
+        "prefix": "for",
+        "body": [
+            "for ${2:element} in ${1:collection} {",
+            "\t${3:body}",
+            "}"
+        ],
+        "description": "For loop"
+    },
+    "log": {
+        "prefix": "log",
+        "body": [
+            "log ${1:value} to ${2:file}."
+        ],
+        "description": "Log to file"
+    },
+    "list": {
+        "prefix": "list",
+        "body": [
+            "list(${1:items})"
+        ],
+        "description": "Create list"
+    },
+    "lex": {
+        "prefix": "lex",
+        "body": [
+            "lexicon(${1:items})"
+        ],
+        "description": "Create lexicon"
+    },
+    "print": {
+        "prefix": "print",
+        "body": [
+            "print(${1:value})."
+        ],
+        "description": "Print value"
+    },
+    "function": {
+        "prefix": "func",
+        "body": [
+            "function ${1:name} {",
+            "\t${2:body}",
+            "}"
+        ],
+        "description": "Function declaration"
+    },
+    "function scope": {
+        "prefix": "funcScope",
+        "body": [
+            "${1|local,global|} function ${2:name} {",
+            "\t${3:body}",
+            "}"
+        ],
+        "description": "Function declaration with scope"
+    },
+    "variable": {
+        "prefix": "var",
+        "body": [
+            "${1|local,global|} ${2:name} is ${3:value}."
+        ],
+        "description": "Variable declaration"
+    },
+    "lock": {
+        "prefix": "lock",
+        "body": [
+            "lock ${1:name} to ${2:expression}."
+        ],
+        "description": "Variable declaration"
+    }
+}
