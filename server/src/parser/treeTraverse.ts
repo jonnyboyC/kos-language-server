@@ -217,7 +217,7 @@ export abstract class TreeTraverse implements
       }
     }
   }
-  public visitRunPathOnce(stmt: Stmt.RunPathOnce): void {
+  public visitRunPathOnce(stmt: Stmt.RunOncePath): void {
     if (this.nodeAction(stmt)) {
       this.exprAction(stmt.expr);
       if (!empty(stmt.args)) {

@@ -706,6 +706,21 @@ export class Grouping extends SuffixTermBase {
   }
 }
 
+/**
+ * All valid suffix terms
+ */
+export const validSuffixTerms: Constructor<SuffixTermBase>[] = [
+  SuffixTrailer,
+  SuffixTerm,
+  Call,
+  ArrayIndex,
+  ArrayBracket,
+  Delegate,
+  Literal,
+  Identifier,
+  Grouping,
+];
+
 const atomTypes: [ISuffixTermClass, Distribution][] = [
   [Literal, createConstant(0.8)],
   [Identifier, createConstant(1)],

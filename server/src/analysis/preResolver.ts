@@ -354,7 +354,7 @@ export class PreResolver
     );
   }
 
-  public visitRunPathOnce(stmt: Stmt.RunPathOnce): Diagnostics {
+  public visitRunPathOnce(stmt: Stmt.RunOncePath): Diagnostics {
     if (empty(stmt.args)) {
       return this.resolveExpr(stmt.expr);
     }

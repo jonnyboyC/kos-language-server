@@ -852,7 +852,7 @@ export class TypeChecker
   public visitRunPath(_: Stmt.RunPath): Diagnostics {
     return [];
   }
-  public visitRunPathOnce(_: Stmt.RunPathOnce): Diagnostics {
+  public visitRunPathOnce(_: Stmt.RunOncePath): Diagnostics {
     return [];
   }
   public visitCompile(stmt: Stmt.Compile): Diagnostics {

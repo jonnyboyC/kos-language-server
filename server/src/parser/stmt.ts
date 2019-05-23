@@ -1390,14 +1390,14 @@ export class RunPath extends Stmt {
   }
 }
 
-export class RunPathOnce extends Stmt {
+export class RunOncePath extends Stmt {
   public readonly runPath: IToken;
   public readonly open: IToken;
   public readonly expr: IExpr;
   public readonly close: IToken;
   public readonly args?: IExpr[];
 
-  constructor(builder: NodeDataBuilder<RunPathOnce>) {
+  constructor(builder: NodeDataBuilder<RunOncePath>) {
     super();
 
     this.runPath = unWrap(builder.runPath);
@@ -1685,3 +1685,38 @@ export class Print extends Stmt {
     return visitor.visitPrint(this);
   }
 }
+
+export const validStatements: Constructor<Stmt>[] = [
+  Block,
+  ExprStmt,
+  OnOff,
+  Command,
+  CommandExpr,
+  Unset,
+  Unlock,
+  Set,
+  LazyGlobal,
+  If,
+  Else,
+  Until,
+  From,
+  When,
+  Return,
+  Break,
+  Switch,
+  For,
+  On,
+  Toggle,
+  Wait,
+  Log,
+  Copy,
+  Rename,
+  Delete,
+  Run,
+  RunPath,
+  RunOncePath,
+  Compile,
+  List,
+  Empty,
+  Print,
+];

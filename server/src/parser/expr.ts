@@ -416,6 +416,17 @@ export class Suffix extends Expr {
   }
 }
 
+/**
+ * All valid expressions
+ */
+export const validExpressions: Constructor<Expr>[] = [
+  Binary,
+  Unary,
+  Factor,
+  Suffix,
+  Lambda,
+];
+
 export const validExprTypes: [IExprClass, Distribution][] = [
   [Binary, createConstant(1.0)],
   [Unary, createConstant(0.5)],

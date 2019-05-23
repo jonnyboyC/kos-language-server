@@ -483,7 +483,7 @@ export class Parser {
         return this.runPath();
       case TokenType.runOncePath:
         this.advance();
-        return this.runPathOnce();
+        return this.runOncePath();
       case TokenType.compile:
         this.advance();
         return this.compile();
@@ -1246,8 +1246,8 @@ export class Parser {
   /**
    * Parse run path once statement
    */
-  private runPathOnce(): INodeResult<Stmt.RunPathOnce> {
-    const builder: NodeDataBuilder<Stmt.RunPathOnce> = {
+  private runOncePath(): INodeResult<Stmt.RunOncePath> {
+    const builder: NodeDataBuilder<Stmt.RunOncePath> = {
       runPath: this.previous(),
       open: undefined,
       expr: undefined,
@@ -1258,10 +1258,10 @@ export class Parser {
 
     builder.open = this.consumeTokenThrow(
       'Expected "(" after keyword "runPathOnce".',
-      Stmt.RunPathOnce,
+      Stmt.RunOncePath,
       TokenType.bracketOpen,
     );
-    const exprResult = this.expression(Stmt.RunPathOnce);
+    const exprResult = this.expression(Stmt.RunOncePath);
     builder.expr = exprResult.value;
 
     const args = this.matchToken(TokenType.comma)
@@ -1270,10 +1270,10 @@ export class Parser {
 
     builder.close = this.consumeTokenThrow(
       'Expected ")" after runPathOnce arugments.',
-      Stmt.RunPathOnce,
+      Stmt.RunOncePath,
       TokenType.bracketClose,
     );
-    this.terminal(Stmt.RunPathOnce);
+    this.terminal(Stmt.RunOncePath);
 
     if (!empty(args)) {
       builder.args = args.value;
@@ -1281,7 +1281,7 @@ export class Parser {
     }
 
     return this.addRunStmts(
-      new Stmt.RunPathOnce(builder),
+      new Stmt.RunOncePath(builder),
       flatten([exprResult.errors, errors]),
     );
   }

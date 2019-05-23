@@ -791,7 +791,7 @@ export class Resolver
    * Visit the RunPathOnce Stmt syntax node
    * @param stmt the syntax node
    */
-  public visitRunPathOnce(stmt: Stmt.RunPathOnce): Diagnostics {
+  public visitRunPathOnce(stmt: Stmt.RunOncePath): Diagnostics {
     if (empty(stmt.args)) {
       return this.useExprLocals(stmt.expr).concat(this.resolveExpr(stmt.expr));
     }

@@ -186,7 +186,7 @@ export type GrammarNode = IExprClass
   | IStmtClass | ISuffixTermClass | TokenType
   | IGrammarOptional | IGrammarRepeat | IGrammarUnion;
 
-export type RunStmtType = Stmt.Run | Stmt.RunPath | Stmt.RunPathOnce;
+export type RunStmtType = Stmt.Run | Stmt.RunPath | Stmt.RunOncePath;
 export type ScriptNode = IStmt | IExpr | ISuffixTerm;
 export type TreeNode = IScript | IStmt | IExpr | ISuffixTerm | IParameter | IDeclScope;
 
@@ -337,7 +337,7 @@ export interface IStmtVisitor<T> {
   visitDelete(stmt: Stmt.Delete): T;
   visitRun(stmt: Stmt.Run): T;
   visitRunPath(stmt: Stmt.RunPath): T;
-  visitRunPathOnce(stmt: Stmt.RunPathOnce): T;
+  visitRunPathOnce(stmt: Stmt.RunOncePath): T;
   visitCompile(stmt: Stmt.Compile): T;
   visitList(stmt: Stmt.List): T;
   visitEmpty(stmt: Stmt.Empty): T;
@@ -382,7 +382,7 @@ export interface IStmtPasser<T> {
   passDelete(stmt: Stmt.Delete): T;
   passRun(stmt: Stmt.Run): T;
   passRunPath(stmt: Stmt.RunPath): T;
-  passRunPathOnce(stmt: Stmt.RunPathOnce): T;
+  passRunPathOnce(stmt: Stmt.RunOncePath): T;
   passCompile(stmt: Stmt.Compile): T;
   passList(stmt: Stmt.List): T;
   passEmpty(stmt: Stmt.Empty): T;
