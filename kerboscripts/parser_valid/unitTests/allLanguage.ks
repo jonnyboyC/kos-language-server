@@ -13,7 +13,7 @@ when 10 <> 5 then {
     compile body to 10.
 }
 
-toggle ship.panels.
+toggle ship:panels.
 
 // function
 local function func {
@@ -47,11 +47,11 @@ local function func {
     }
 
     until a <> true {
-        local lambda is { return func.bind(10, b, c). }.
+        local lambda is { return func:bind(10, b, c). }.
         lambda().
     }
 
-    wait until body.mu > 10.
+    wait until body:mu > 10.
 
     return 20.
 }

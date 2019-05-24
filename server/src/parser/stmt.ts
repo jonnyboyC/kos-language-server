@@ -1093,7 +1093,7 @@ export class Copy extends Stmt {
     const destinationLines = this.target.toLines();
 
     targetLines[0] = `${this.copy.lexeme} ${targetLines[0]}`;
-    destinationLines[0] = `${this.toFrom.lexeme} ${destinationLines[0]}`;
+    destinationLines[0] = `${this.toFrom.lexeme} ${destinationLines[0]}.`;
 
     return joinLines(' ', targetLines, destinationLines);
   }
@@ -1143,9 +1143,9 @@ export class Rename extends Stmt {
     const alternativeLines = this.alternative.toLines();
 
     targetLines[0] =
-      `${this.rename.lexeme} ${this.fileVolume.lexeme}` +
+      `${this.rename.lexeme} ${this.fileVolume.lexeme} ` +
       `${this.identifier.lexeme} ${targetLines[0]}`;
-    alternativeLines[0] = `${this.to.lexeme} ${alternativeLines[0]}`;
+    alternativeLines[0] = `${this.to.lexeme} ${alternativeLines[0]}.`;
 
     return joinLines(' ', targetLines, alternativeLines);
   }
@@ -1188,7 +1188,7 @@ export class Delete extends Stmt {
 
     this.deleteToken = unWrap(builder.deleteToken);
     this.target = unWrap(builder.target);
-    this.from = builder.deleteToken;
+    this.from = builder.from;
     this.volume = builder.volume;
   }
 

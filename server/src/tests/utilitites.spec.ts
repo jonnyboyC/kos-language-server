@@ -305,7 +305,7 @@ describe('logger', () => {
     expect(mockBase.lastLevel).toBe(LogLevel.warn);
     expect(mockBase.lastMessage).toBe('warn');
 
-    // TODO this is a temporary thing until we get the 
+    // TODO this is a temporary thing until we get the
     // errors in the type checker under control
     logger.error('error');
     expect(mockBase.lastLevel).toBe(LogLevel.warn);
@@ -330,3 +330,20 @@ describe('logger', () => {
     expect(mockBase.lastMessage).toBe('error');
   });
 });
+
+// describe('tree traverse', () => {
+//   test('token check', () => {
+//     const source = readFileSync('../../kerboscripts/unitTests/allLanguage.ks', 'utf-8');
+//     const scanner = new Scanner(source, 'file://fake.ks');
+//     const { tokens } = scanner.scanTokens();
+
+//     const parser = new Parser('file:://fake.ks', tokens);
+//     const { script } = parser.parse();
+
+//     const tokenCheck = new TokenCheck();
+//     tokenCheck.orderedTokens(script);
+
+//     for (const statement of validStatements) {
+//     }
+//   });
+// });
