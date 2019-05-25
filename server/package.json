@@ -4,7 +4,9 @@
     "version": "0.5.1",
     "main": "out/server.js",
     "types": "out/server.d.ts",
-    "files": [ "out/**/*" ],
+    "files": [
+        "out/**/*"
+    ],
     "author": "John Chabot",
     "license": "MIT",
     "engines": {
