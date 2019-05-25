@@ -55,7 +55,9 @@ export class LocalResolver
    * @param expr binary expression
    */
   public visitBinary(expr: Expr.Binary): IToken[] {
-    return this.resolveExpr(expr.left).concat(this.resolveExpr(expr.right));
+    const tokens = this.resolveExpr(expr.left);
+    tokens.push(...this.resolveExpr(expr.right));
+    return tokens;
   }
 
   /**
@@ -71,9 +73,9 @@ export class LocalResolver
    * @param expr factor expression
    */
   public visitFactor(expr: Expr.Factor): IToken[] {
-    return this.resolveExpr(expr.suffix).concat(
-      this.resolveExpr(expr.exponent),
-    );
+    const tokens = this.resolveExpr(expr.suffix)
+    tokens.push(...this.resolveExpr(expr.exponent));
+    return tokens;
   }
 
   /**
@@ -81,12 +83,12 @@ export class LocalResolver
    * @param expr suffix expression
    */
   public visitSuffix(expr: Expr.Suffix): IToken[] {
-    const atom = this.resolveSuffixTerm(expr.suffixTerm);
-    if (empty(expr.trailer)) {
-      return atom;
+    const tokens = this.resolveSuffixTerm(expr.suffixTerm);
+    if (!empty(expr.trailer)) {
+      tokens.push(...this.resolveSuffixTerm(expr.trailer));
     }
 
-    return atom.concat(this.resolveSuffixTerm(expr.trailer));
+    return tokens;
   }
 
   /**
@@ -112,11 +114,13 @@ export class LocalResolver
   public visitSuffixTrailer(suffixTerm: SuffixTerm.SuffixTrailer): IToken[] {
     // indicate we're currently in a trailer
     return this.executeAs(true, () => {
-      const atom = this.resolveSuffixTerm(suffixTerm.suffixTerm);
+      const tokens = this.resolveSuffixTerm(suffixTerm.suffixTerm);
 
-      return empty(suffixTerm.trailer)
-        ? atom
-        : atom.concat(this.resolveSuffixTerm(suffixTerm.trailer));
+      if (!empty(suffixTerm.trailer)) {
+        tokens.push(...this.resolveSuffixTerm(suffixTerm.trailer));
+      }
+
+      return tokens;
     });
   }
 
@@ -125,17 +129,13 @@ export class LocalResolver
    * @param suffixTerm suffix term
    */
   public visitSuffixTerm(suffixTerm: SuffixTerm.SuffixTerm): IToken[] {
-    const atom = this.resolveSuffixTerm(suffixTerm.atom);
-    if (suffixTerm.trailers.length === 0) {
-      return atom;
+    const tokens = this.resolveSuffixTerm(suffixTerm.atom);
+
+    for (const trailer of suffixTerm.trailers) {
+      tokens.push(...this.resolveSuffixTerm(trailer));
     }
 
-    return atom.concat(
-      suffixTerm.trailers.reduce(
-        (acc, curr) => acc.concat(this.resolveSuffixTerm(curr)),
-        [] as IToken[],
-      ),
-    );
+    return tokens;
   }
 
   /**
@@ -146,12 +146,15 @@ export class LocalResolver
     if (suffixTerm.args.length === 0) return [];
 
     // indicate args are not in a trailer
-    return this.executeAs(false, () =>
-      suffixTerm.args.reduce(
-        (acc, curr) => acc.concat(this.resolveExpr(curr)),
-        [] as IToken[],
-      ),
-    );
+    return this.executeAs(false, () => {
+      const tokens: IToken[] = [];
+
+      for (const arg of suffixTerm.args) {
+        tokens.push(...this.resolveExpr(arg));
+      }
+
+      return tokens;
+    });
   }
 
   /**

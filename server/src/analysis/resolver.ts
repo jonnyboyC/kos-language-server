@@ -246,9 +246,15 @@ export class Resolver
    * @param tokens local results to use
    */
   private useTokens(tokens: IToken[]): Diagnostics {
-    return tokens
-      .map(token => this.tableBuilder.useSymbol(token))
-      .filter(this.filterError);
+    const errors: Diagnostics = [];
+    for (const token of tokens) {
+      const error = this.tableBuilder.useSymbol(token);
+      if (!empty(error)) {
+        errors.push(error);
+      }
+    }
+
+    return errors;
   }
 
   /**
@@ -392,10 +398,28 @@ export class Resolver
 
   /**
    * Visit the Invalid Stmt syntax node
-   * @param _ the syntax node
+   * @param stmt the syntax node
    */
-  public visitStmtInvalid(_: Stmt.Invalid): Diagnostics {
-    return [];
+  public visitStmtInvalid(stmt: Stmt.Invalid): Diagnostics {
+    if (empty(stmt.partial)) {
+      return [];
+    }
+
+    const errors: Diagnostics = [];
+
+    // check parsed partial nodes
+    for (const node of Object.values(stmt.partial)) {
+      if (node instanceof Stmt.Stmt) {
+        errors.push(...this.resolveStmt(node));
+      }
+
+      if (node instanceof Expr.Expr) {
+        errors.push(...this.useExprLocalsBind(node));
+        errors.push(...this.resolveExpr(node));
+      }
+    }
+
+    return errors;
   }
 
   /**
@@ -518,7 +542,7 @@ export class Resolver
    * @param stmt the syntax node
    */
   public visitIf(stmt: Stmt.If): Diagnostics {
-    const errors = this.useExprLocals(stmt.condition)
+    const errors = this.useExprLocals(stmt.condition);
     errors.push(
       ...this.resolveExpr(stmt.condition),
       ...this.resolveStmt(stmt.body),
@@ -558,7 +582,7 @@ export class Resolver
     // begin hidden loop scope
     this.tableBuilder.beginScope(stmt);
 
-    const errors = this.resolveStmts(stmt.initializer.stmts)
+    const errors = this.resolveStmts(stmt.initializer.stmts);
     errors.push(
       ...this.resolveExpr(stmt.condition),
       ...this.useExprLocalsBind(stmt.condition),
@@ -581,7 +605,7 @@ export class Resolver
       return this.deferNode(stmt, stmt.body);
     }
 
-    const errors = this.useExprLocals(stmt.condition)
+    const errors = this.useExprLocalsBind(stmt.condition);
     errors.push(
       ...this.resolveExpr(stmt.condition),
       ...this.resolveStmt(stmt.body),
@@ -599,7 +623,7 @@ export class Resolver
 
     if (stmt.value) {
       errors.push(
-        ...this.useExprLocals(stmt.value),
+        ...this.useExprLocalsBind(stmt.value),
         ...this.resolveExpr(stmt.value),
       );
     }
@@ -636,7 +660,7 @@ export class Resolver
    * @param stmt the syntax node
    */
   public visitSwitch(stmt: Stmt.Switch): Diagnostics {
-    return this.useExprLocals(stmt.target).concat(
+    return this.useExprLocalsBind(stmt.target).concat(
       this.resolveExpr(stmt.target),
     );
   }
@@ -659,7 +683,7 @@ export class Resolver
       }
 
       errors.push(
-        ...this.useExprLocals(stmt.collection),
+        ...this.useExprLocalsBind(stmt.collection),
         ...this.resolveExpr(stmt.collection),
         ...this.resolveStmt(stmt.body),
       );
@@ -683,7 +707,7 @@ export class Resolver
       return this.deferNode(stmt, stmt.body);
     }
 
-    return this.useExprLocals(stmt.suffix).concat(
+    return this.useExprLocalsBind(stmt.suffix).concat(
       this.resolveExpr(stmt.suffix),
       this.resolveStmt(stmt.body),
     );
@@ -694,7 +718,7 @@ export class Resolver
    * @param stmt the syntax node
    */
   public visitToggle(stmt: Stmt.Toggle): Diagnostics {
-    return this.useExprLocals(stmt.suffix).concat(
+    return this.useExprLocalsBind(stmt.suffix).concat(
       this.resolveExpr(stmt.suffix),
     );
   }
@@ -704,7 +728,7 @@ export class Resolver
    * @param stmt the syntax node
    */
   public visitWait(stmt: Stmt.Wait): Diagnostics {
-    return this.useExprLocals(stmt.expr).concat(this.resolveExpr(stmt.expr));
+    return this.useExprLocalsBind(stmt.expr).concat(this.resolveExpr(stmt.expr));
   }
 
   /**
@@ -712,7 +736,7 @@ export class Resolver
    * @param stmt the syntax node
    */
   public visitLog(stmt: Stmt.Log): Diagnostics {
-    return this.useExprLocals(stmt.expr).concat(
+    return this.useExprLocalsBind(stmt.expr).concat(
       this.resolveExpr(stmt.expr),
       this.resolveExpr(stmt.target),
     );
@@ -723,7 +747,7 @@ export class Resolver
    * @param stmt the syntax node
    */
   public visitCopy(stmt: Stmt.Copy): Diagnostics {
-    return this.useExprLocals(stmt.target).concat(
+    return this.useExprLocalsBind(stmt.target).concat(
       createDiagnostic(
         stmt,
         'Copy is deprecated as of 1.0.0',
@@ -739,13 +763,13 @@ export class Resolver
    * @param stmt the syntax node
    */
   public visitRename(stmt: Stmt.Rename): Diagnostics {
-    return this.useExprLocals(stmt.target).concat(
+    return this.useExprLocalsBind(stmt.target).concat(
       createDiagnostic(
         stmt,
         'Rename is deprecated as of 1.0.0',
         DiagnosticSeverity.Warning,
       ),
-      this.useExprLocals(stmt.alternative),
+      this.useExprLocalsBind(stmt.alternative),
       this.resolveExpr(stmt.target),
       this.resolveExpr(stmt.alternative),
     );
@@ -763,15 +787,15 @@ export class Resolver
     );
 
     if (empty(stmt.volume)) {
-      return this.useExprLocals(stmt.target).concat(
+      return this.useExprLocalsBind(stmt.target).concat(
         deprecated,
         this.resolveExpr(stmt.target),
       );
     }
 
-    return this.useExprLocals(stmt.target).concat(
+    return this.useExprLocalsBind(stmt.target).concat(
       deprecated,
-      this.useExprLocals(stmt.volume),
+      this.useExprLocalsBind(stmt.volume),
       this.resolveExpr(stmt.target),
       this.resolveExpr(stmt.volume),
     );
@@ -796,7 +820,7 @@ export class Resolver
       return argError;
     }
 
-    return this.useExprLocals(stmt.expr).concat(
+    return this.useExprLocalsBind(stmt.expr).concat(
       this.resolveExpr(stmt.expr),
       argError,
     );
@@ -808,10 +832,10 @@ export class Resolver
    */
   public visitRunPath(stmt: Stmt.RunPath): Diagnostics {
     if (empty(stmt.args)) {
-      return this.useExprLocals(stmt.expr).concat(this.resolveExpr(stmt.expr));
+      return this.useExprLocalsBind(stmt.expr).concat(this.resolveExpr(stmt.expr));
     }
 
-    return this.useExprLocals(stmt.expr).concat(
+    return this.useExprLocalsBind(stmt.expr).concat(
       this.resolveExpr(stmt.expr),
       accumulateErrors(stmt.args, this.useExprLocalsBind),
       accumulateErrors(stmt.args, this.resolveExprBind),
@@ -824,10 +848,10 @@ export class Resolver
    */
   public visitRunPathOnce(stmt: Stmt.RunOncePath): Diagnostics {
     if (empty(stmt.args)) {
-      return this.useExprLocals(stmt.expr).concat(this.resolveExpr(stmt.expr));
+      return this.useExprLocalsBind(stmt.expr).concat(this.resolveExpr(stmt.expr));
     }
 
-    return this.useExprLocals(stmt.expr).concat(
+    return this.useExprLocalsBind(stmt.expr).concat(
       this.resolveExpr(stmt.expr),
       accumulateErrors(stmt.args, this.useExprLocalsBind),
       accumulateErrors(stmt.args, this.resolveExprBind),
@@ -840,13 +864,13 @@ export class Resolver
    */
   public visitCompile(stmt: Stmt.Compile): Diagnostics {
     if (empty(stmt.destination)) {
-      return this.useExprLocals(stmt.target).concat(
+      return this.useExprLocalsBind(stmt.target).concat(
         this.resolveExpr(stmt.target),
       );
     }
 
-    return this.useExprLocals(stmt.target).concat(
-      this.useExprLocals(stmt.destination),
+    return this.useExprLocalsBind(stmt.target).concat(
+      this.useExprLocalsBind(stmt.destination),
       this.resolveExpr(stmt.target),
       this.resolveExpr(stmt.destination),
     );
@@ -878,7 +902,7 @@ export class Resolver
    * @param stmt the syntax node
    */
   public visitPrint(stmt: Stmt.Print): Diagnostics {
-    return this.useExprLocals(stmt.expr).concat(this.resolveExpr(stmt.expr));
+    return this.useExprLocalsBind(stmt.expr).concat(this.resolveExpr(stmt.expr));
   }
 
   /**
@@ -935,7 +959,7 @@ export class Resolver
   }
 
   public visitFactor(expr: Expr.Factor): Diagnostics {
-    const errors = this.resolveExpr(expr.suffix)
+    const errors = this.resolveExpr(expr.suffix);
     errors.push(...this.resolveExpr(expr.exponent));
     return errors;
   }

@@ -2000,8 +2000,11 @@ const accumulateErrors = <T>(
   items: T[],
   checker: (item: T) => Diagnostics,
 ): Diagnostics => {
-  return items.reduce(
-    (accumulator, item) => accumulator.concat(checker(item)),
-    [] as Diagnostics,
-  );
+  const errors: Diagnostics = [];
+
+  for (const item of items) {
+    errors.push(...checker(item));
+  }
+
+  return errors;
 };
