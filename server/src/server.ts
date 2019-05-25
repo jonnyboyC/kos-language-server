@@ -28,7 +28,7 @@ import { empty } from './utilities/typeGuards';
 import { Analyzer } from './analyzer';
 import { KsSymbolKind } from './analysis/types';
 import {
-  entityCompletionItems,
+  symbolCompletionItems,
   suffixCompletionItems,
   documentSymbols,
   getConnectionPrimitives,
@@ -333,7 +333,7 @@ connection.onCompletion(
         empty(context) ||
         context.triggerKind !== CompletionTriggerKind.TriggerCharacter
       ) {
-        return entityCompletionItems(
+        return symbolCompletionItems(
           server.analyzer,
           completionParams,
           server.keywords,

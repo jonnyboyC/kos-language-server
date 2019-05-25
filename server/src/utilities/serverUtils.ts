@@ -110,7 +110,13 @@ export const updateServer = (server: IServer): void => {
   server.analyzer.setCase(caseKind);
 };
 
-export const entityCompletionItems = (
+/**
+ * Get a list of all symbols currently in scope at the given line
+ * @param analyzer analyzer instance
+ * @param documentPosition the current position in the document
+ * @param keywordCompletions a list of keywords to always concat
+ */
+export const symbolCompletionItems = (
   analyzer: Analyzer,
   documentPosition: TextDocumentPositionParams,
   keywordCompletions: CompletionItem[],
@@ -149,6 +155,11 @@ export const entityCompletionItems = (
     .map(completion => cleanCompletion(completion));
 };
 
+/**
+ * Get a list of all known suffixes give a suffix completion trigger
+ * @param analyzer analyzer instance
+ * @param documentPosition the current position in the document
+ */
 export const suffixCompletionItems = (
   analyzer: Analyzer,
   documentPosition: TextDocumentPositionParams,

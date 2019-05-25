@@ -75,12 +75,12 @@ export class Parser {
       );
 
       const statements: Stmt.Stmt[] = [];
-      let parseErrors: IParseError[] = [];
+      const parseErrors: IParseError[] = [];
 
       while (!this.isAtEnd()) {
         const { value, errors } = this.declaration();
         statements.push(value);
-        parseErrors = parseErrors.concat(errors);
+        parseErrors.push(...errors);
       }
 
       this.logger.info(
@@ -516,13 +516,13 @@ export class Parser {
     builder.open = this.previous();
     const declarations: Stmt.Stmt[] = [];
 
-    let parseErrors: IParseError[] = [];
+    const parseErrors: IParseError[] = [];
 
     // while not at end and until closing curly keep parsing statements
     while (!this.check(TokenType.curlyClose) && !this.isAtEnd()) {
       const { value, errors } = this.declaration();
       declarations.push(value);
-      parseErrors = parseErrors.concat(errors);
+      parseErrors.push(...errors);
     }
     builder.stmts = declarations;
 
@@ -1547,14 +1547,14 @@ export class Parser {
   private suffix(): INodeResult<Expr.Suffix> {
     const suffixTerm = this.suffixTerm(false);
     const suffix = new Expr.Suffix(suffixTerm.value);
-    let errors: IParseError[] = suffixTerm.errors;
+    const errors: IParseError[] = suffixTerm.errors;
 
     // check to see if expr is really a suffix
     if (this.matchToken(TokenType.colon)) {
       // parse first suffix term
       let colon = this.previous();
       let suffixTerm = this.suffixTerm(true);
-      errors = errors.concat(suffixTerm.errors);
+      errors.push(...suffixTerm.errors);
 
       // patch suffix with new trailer
       const suffixTrailer = new SuffixTerm.SuffixTrailer(suffixTerm.value);
@@ -1572,7 +1572,7 @@ export class Parser {
         current.colon = colon;
         current.trailer = suffixTrailer;
         current = suffixTrailer;
-        errors = errors.concat(suffixTerm.errors);
+        errors.push(...suffixTerm.errors);
       }
     }
 
@@ -1584,7 +1584,7 @@ export class Parser {
     // parse atom
     const atom = this.atom(isTrailer);
     const trailers: SuffixTermTrailer[] = [];
-    let parseErrors: IParseError[] = atom.errors;
+    const parseErrors: IParseError[] = atom.errors;
 
     const isValid = !(atom.value instanceof SuffixTerm.Invalid);
     // parse any trailers that exist
@@ -1592,15 +1592,15 @@ export class Parser {
       if (this.matchToken(TokenType.arrayIndex)) {
         const index = this.arrayIndex();
         trailers.push(index.value);
-        parseErrors = parseErrors.concat(index.errors);
+        parseErrors.push(...index.errors);
       } else if (this.matchToken(TokenType.squareOpen)) {
         const bracket = this.arrayBracket();
         trailers.push(bracket.value);
-        parseErrors = parseErrors.concat(bracket.errors);
+        parseErrors.push(...bracket.errors);
       } else if (this.matchToken(TokenType.bracketOpen)) {
         const trailer = this.functionTrailer();
         trailers.push(trailer.value);
-        parseErrors = parseErrors.concat(trailer.errors);
+        parseErrors.push(...trailer.errors);
       } else if (this.matchToken(TokenType.atSign)) {
         trailers.push(new SuffixTerm.Delegate(this.previous()));
         break;

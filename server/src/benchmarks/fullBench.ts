@@ -25,9 +25,17 @@ interface IBenchResult {
   rate: number;
   filePath: string;
 }
+
+const standardLibrary = standardLibraryBuilder(CaseKind.lowercase);
+
+const scriptSources: { kosFile: string, filePath: string, size: number}[] = [];
+
 // jit warm up
 walkDir(testDir, (filePath) => {
+  const size = statSync(filePath).size;
+
   const kosFile = readFileSync(filePath, 'utf8');
+  scriptSources.push({ size, kosFile, filePath });
   const scanner = new Scanner(kosFile);
   const { tokens } = scanner.scanTokens();
 
@@ -35,7 +43,7 @@ walkDir(testDir, (filePath) => {
   const { script } = parser.parse();
 
   const symbolTableBuilder = new SymbolTableBuilder('');
-  symbolTableBuilder.linkTable(standardLibraryBuilder(CaseKind.lowercase));
+  symbolTableBuilder.linkTable(standardLibrary);
 
   const preResolver = new PreResolver(script, symbolTableBuilder);
   const resolver = new Resolver(script, symbolTableBuilder);
@@ -53,11 +61,7 @@ let resolverResults: IBenchResult[] = [];
 let typeCheckerResults: IBenchResult[] = [];
 
 for (let i = 0; i < 10; i += 1) {
-  walkDir(testDir, (filePath) => {
-    const size = statSync(filePath).size;
-
-    const kosFile = readFileSync(filePath, 'utf8');
-
+  for (const { kosFile, size, filePath } of scriptSources) {
     const scannerStart = performance.now();
     const scanner = new Scanner(kosFile);
     const { tokens } = scanner.scanTokens();
@@ -70,7 +74,7 @@ for (let i = 0; i < 10; i += 1) {
 
     const resolverStart = performance.now();
     const symbolTableBuilder = new SymbolTableBuilder('');
-    symbolTableBuilder.linkTable(standardLibraryBuilder(CaseKind.lowercase));
+    symbolTableBuilder.linkTable(standardLibrary);
 
     const preResolver = new PreResolver(script, symbolTableBuilder);
     const resolver = new Resolver(script, symbolTableBuilder);
@@ -119,7 +123,7 @@ for (let i = 0; i < 10; i += 1) {
       time: typeCheckerEnd - scannerStart,
       rate: size / ((typeCheckerEnd - scannerStart) / 1000 * 1024),
     });
-  });
+  }
 }
 
 scanResults = scanResults.sort((x, y) => (y.rate - x.rate));

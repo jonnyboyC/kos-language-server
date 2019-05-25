@@ -331,10 +331,28 @@ export class TypeChecker
 
   /**
    * Vist an invalid statement
-   * @param _ invalid statement
+   * @param stmt invalid statement
    */
-  public visitStmtInvalid(_: Stmt.Invalid): Diagnostics {
-    return [];
+  public visitStmtInvalid(stmt: Stmt.Invalid): Diagnostics {
+    if (empty(stmt.partial)) {
+      return [];
+    }
+
+    const errors = [];
+
+    // check parsed partial nodes
+    for (const node of Object.values(stmt.partial)) {
+      if (node instanceof Stmt.Stmt) {
+        errors.push(...this.checkStmt(node));
+      }
+
+      if (node instanceof Expr.Expr) {
+        const result = this.checkExpr(node);
+        errors.push(...result.errors);
+      }
+    }
+
+    return errors;
   }
 
   /**
