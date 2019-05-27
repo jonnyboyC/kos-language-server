@@ -9,11 +9,10 @@ import { IScanResult } from '../scanner/types';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { zip } from '../utilities/arrayUtils';
-import { Marker } from '../entities/token';
 import { SymbolTable } from '../analysis/symbolTable';
 import { SymbolTableBuilder } from '../analysis/symbolTableBuilder';
 import { PreResolver } from '../analysis/preResolver';
-import { KsSymbol, KsSymbolKind, IKsSymbolTracker } from '../analysis/types';
+import { KsSymbol, KsSymbolKind, SymbolTrackerBase } from '../analysis/types';
 import { Resolver } from '../analysis/resolver';
 import { FunctionScan } from '../analysis/functionScan';
 import * as Decl from '../parser/declare';
@@ -21,6 +20,7 @@ import { standardLibraryBuilder } from '../analysis/standardLibrary';
 import { LocalResolver } from '../analysis/localResolver';
 import * as Stmt from '../parser/stmt';
 import { SetResolver } from '../analysis/setResolver';
+import { Marker } from '../entities/marker';
 
 const fakeUri = 'C:\\fake.ks';
 
@@ -246,7 +246,7 @@ describe('Resolver tracking', () => {
     const results = resolveSource(symbolKindSource, true);
     noErrors(results);
 
-    let outOfScope: Maybe<IKsSymbolTracker>;
+    let outOfScope: Maybe<SymbolTrackerBase>;
     let range: Range;
 
     const { table } = results;

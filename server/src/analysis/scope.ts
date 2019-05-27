@@ -1,9 +1,10 @@
-import { IKsSymbolTracker, IScope, KsSymbol } from './types';
+import { KsSymbol } from './types';
+import { BasicTracker } from './tracker';
 
 /**
  * A scope class that contains symbols in the current scope
  */
-export class Scope extends Map<string, IKsSymbolTracker> implements IScope {
+export class Environment extends Map<string, BasicTracker> {
   constructor() {
     super();
   }

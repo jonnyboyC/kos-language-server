@@ -23,10 +23,10 @@ import { SymbolTableBuilder } from './symbolTableBuilder';
 import { IDeferred } from './types';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
 import { createDiagnostic } from '../utilities/diagnosticsUtils';
-import { IToken } from '../entities/types';
 // tslint:disable-next-line: import-name
 import Denque from 'denque';
 import { flatten } from '../utilities/arrayUtils';
+import { Token } from '../entities/token';
 
 type Diagnostics = Diagnostic[];
 
@@ -245,7 +245,7 @@ export class Resolver
    * attempt to use ever token in the collection
    * @param tokens local results to use
    */
-  private useTokens(tokens: IToken[]): Diagnostics {
+  private useTokens(tokens: Token[]): Diagnostics {
     const errors: Diagnostics = [];
     for (const token of tokens) {
       const error = this.tableBuilder.useSymbol(token);
@@ -909,7 +909,7 @@ export class Resolver
    * Logic for settings a variable. used by set stmt and list command
    * @param set token to set
    */
-  private setBinding(set: IToken): Diagnostics {
+  private setBinding(set: Token): Diagnostics {
     // if variable isn't defined either report error or define
     let defineError: Maybe<Diagnostic> = undefined;
 

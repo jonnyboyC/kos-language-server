@@ -53,7 +53,7 @@ import {
 } from './types/typeHelpers';
 import { delegateType } from './types/primitives/delegate';
 import { TypeNode } from './typeNode';
-import { KsSymbolKind } from '../analysis/types';
+import { KsSymbolKind, TrackerKind, SymbolTracker } from '../analysis/types';
 import { rangeToString } from '../utilities/positionUtils';
 import { listType } from './types/collections/list';
 import { bodyTargetType } from './types/orbital/bodyTarget';
@@ -66,6 +66,7 @@ import { pathType } from './types/io/path';
 import { NodeBase } from '../parser/base';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
 import { createDiagnostic } from '../utilities/diagnosticsUtils';
+import { BasicTracker } from '../analysis/tracker';
 
 type Diagnostics = Diagnostic[];
 type SuffixTermType = ISuffixType | IArgumentType;
@@ -238,7 +239,7 @@ export class TypeChecker
     const result = this.checkExpr(decl.value);
     const { tracker } = decl.identifier;
 
-    if (!empty(tracker)) {
+    if (this.isBasicTracker(tracker)) {
       tracker.declareType(result.type);
     }
 
@@ -253,7 +254,7 @@ export class TypeChecker
     const result = this.checkExpr(decl.value);
     const { tracker } = decl.identifier;
 
-    if (!empty(tracker)) {
+    if (this.isBasicTracker(tracker)) {
       tracker.declareType(result.type);
     }
 
@@ -268,7 +269,7 @@ export class TypeChecker
     const errors = this.checkStmt(decl.block);
     const { tracker } = decl.identifier;
 
-    if (!empty(tracker)) {
+    if (!empty(tracker) && tracker.kind === TrackerKind.basic) {
       const { symbol } = tracker.declared;
       if (symbol.tag === KsSymbolKind.function) {
         const paramsTypes: IArgumentType[] = [];
@@ -307,7 +308,7 @@ export class TypeChecker
     for (const required of decl.requiredParameters) {
       const { tracker } = required.identifier;
 
-      if (!empty(tracker)) {
+      if (this.isBasicTracker(tracker)) {
         tracker.declareType(structureType);
       }
     }
@@ -317,7 +318,7 @@ export class TypeChecker
       const valueResult = this.checkExpr(optional.value);
       const { tracker } = optional.identifier;
 
-      if (!empty(tracker)) {
+      if (this.isBasicTracker(tracker)) {
         tracker.declareType(valueResult.type);
       }
 
@@ -495,7 +496,7 @@ export class TypeChecker
     if (atom instanceof SuffixTerm.Identifier) {
       const { tracker } = atom.token;
 
-      if (!empty(tracker)) {
+      if (this.isBasicTracker(tracker)) {
         // update declare or set type
         if (tracker.declared.symbol.name === atom.token) {
           tracker.declareType(exprResult.type);
@@ -662,7 +663,7 @@ export class TypeChecker
     // TODO may be able to detect if type is really pure and not mixed
     const { tracker } = stmt.element;
 
-    if (!empty(tracker)) {
+    if (this.isBasicTracker(tracker)) {
       const collectionIterator = getSuffix(type, iterator);
 
       if (!empty(collectionIterator)) {
@@ -954,7 +955,7 @@ export class TypeChecker
     }
 
     const { tracker } = target;
-    if (!empty(tracker)) {
+    if (this.isBasicTracker(tracker)) {
       tracker.setType(target, listType.toConcreteType(finalType));
     }
 
@@ -1250,18 +1251,23 @@ export class TypeChecker
     identifer: SuffixTerm.Identifier,
   ): ITypeResultSuffix<IArgumentType | IFunctionType, ITypeResolved> {
     const { tracker } = identifer.token;
-    const type = tracker && tracker.getType(identifer.token);
 
-    return empty(type) || empty(tracker)
-      ? this.errorsAtom(
-          identifer,
-          createDiagnostic(
-            identifer,
-            'Unable to lookup identifier type',
-            DiagnosticSeverity.Hint,
-          ),
-        )
-      : this.resultAtom(type, identifer, tracker.declared.symbol.tag);
+    if (this.isBasicTracker(tracker)) {
+      const type = tracker.getType(identifer.token);
+
+      if (!empty(type)) {
+        return this.resultAtom(type, identifer, tracker.declared.symbol.tag);
+      }
+    }
+
+    return this.errorsAtom(
+      identifer,
+      createDiagnostic(
+        identifer,
+        'Unable to lookup identifier type',
+        DiagnosticSeverity.Hint,
+      ),
+    );
   }
 
   private resolveGrouping(
@@ -1548,27 +1554,30 @@ export class TypeChecker
       // If index is identify check that it holds a integarType
       case TokenType.identifier:
         const { tracker } = suffixTerm.indexer;
-        const type = tracker && tracker.getType(suffixTerm.indexer);
 
-        if (empty(type) || !coerce(type, integarType)) {
-          return this.errorsSuffixTermTrailer(
-            suffixTerm,
-            resolved,
-            errors,
-            createDiagnostic(
-              suffixTerm.indexer,
-              `${suffixTerm.indexer.lexeme} is not a scalar type. ` +
-                'Can only use scalar to index with #',
-              DiagnosticSeverity.Hint,
-            ),
-          );
+        if (this.isBasicTracker(tracker)) {
+          const type = tracker.getType(suffixTerm.indexer);
+
+          if (!empty(type) && coerce(type, integarType)) {
+            return this.resultSuffixTermTrailer(
+              arrayIndexer,
+              suffixTerm,
+              resolved,
+              errors,
+            );
+          }
         }
 
-        return this.resultSuffixTermTrailer(
-          arrayIndexer,
+        return this.errorsSuffixTermTrailer(
           suffixTerm,
           resolved,
           errors,
+          createDiagnostic(
+            suffixTerm.indexer,
+            `${suffixTerm.indexer.lexeme} is not a scalar type. ` +
+              'Can only use scalar to index with #',
+            DiagnosticSeverity.Hint,
+          ),
         );
 
       // All other cases are unallowed
@@ -1744,6 +1753,10 @@ export class TypeChecker
   }
 
   // ----------------------------- Helpers -----------------------------------------
+
+  private isBasicTracker(tracker: Maybe<SymbolTracker>): tracker is BasicTracker {
+    return !empty(tracker) && tracker.kind === TrackerKind.basic;
+  }
 
   /**
    * Check if the current operator is valid and it's resulting type

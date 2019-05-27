@@ -23,12 +23,12 @@ import * as SuffixTerm from './suffixTerm';
 import * as Stmt from './stmt';
 import * as Decl from './declare';
 import { empty } from '../utilities/typeGuards';
-import { IToken } from '../entities/types';
 import { Script } from '../entities/script';
 import { nodeResult } from './parseResult';
-import { Token, Marker } from '../entities/token';
+import { Token } from '../entities/token';
 import { mockLogger, mockTracer } from '../utilities/logger';
 import { flatten } from '../utilities/arrayUtils';
+import { Marker } from '../entities/marker';
 
 type NodeConstructor =
   | Constructor<Expr.Expr>
@@ -37,7 +37,7 @@ type NodeConstructor =
 
 export class Parser {
   private uri: string;
-  private tokens: IToken[];
+  private tokens: Token[];
   private current: number;
   private runStmts: RunStmtType[];
 
@@ -52,7 +52,7 @@ export class Parser {
 
   constructor(
     uri: string,
-    tokens: IToken[],
+    tokens: Token[],
     logger: ILogger = mockLogger,
     tracer: ITracer = mockTracer,
   ) {
@@ -133,7 +133,7 @@ export class Parser {
   }
 
   // generate a placholder token as a fake end of file
-  private eof(tokens: IToken[]): IToken {
+  private eof(tokens: Token[]): Token {
     if (tokens.length === 0) {
       return new Token(
         TokenType.eof,
@@ -1761,7 +1761,7 @@ export class Parser {
    * @param failed failed constructor context
    * @param partialNode partially constructed node
    */
-  private terminal(failed: NodeConstructor, partialNode?: PartialNode): IToken {
+  private terminal(failed: NodeConstructor, partialNode?: PartialNode): Token {
     return this.consumeTokenThrow(
       'Expected ".".',
       failed,
@@ -1781,7 +1781,7 @@ export class Parser {
     message: string,
     failed: NodeConstructor,
     partialNode?: PartialNode,
-  ): IToken {
+  ): Token {
     if (this.matchIdentifier()) return this.previous();
     throw this.error(this.previous(), failed, message, undefined, partialNode);
   }
@@ -1799,7 +1799,7 @@ export class Parser {
     failed: NodeConstructor,
     tokenType: TokenType,
     partialNode?: PartialNode,
-  ): IToken {
+  ): Token {
     if (this.matchToken(tokenType)) return this.previous();
     throw this.error(this.previous(), failed, message, undefined, partialNode);
   }
@@ -1817,7 +1817,7 @@ export class Parser {
     failed: NodeConstructor,
     tokenTypes: TokenType[],
     partialNode?: PartialNode,
-  ): IToken {
+  ): Token {
     if (this.matchTokens(tokenTypes)) return this.previous();
     throw this.error(this.previous(), failed, message, undefined, partialNode);
   }
@@ -1835,7 +1835,7 @@ export class Parser {
     failed: NodeConstructor,
     tokenType: TokenType[],
     partialNode?: PartialNode,
-  ): IToken | IParseError {
+  ): Token | IParseError {
     if (this.matchTokens(tokenType)) return this.previous();
     return this.error(this.previous(), failed, message, undefined, partialNode);
   }
@@ -1889,7 +1889,7 @@ export class Parser {
   }
 
   // return current token and advance
-  private advance(): IToken {
+  private advance(): Token {
     if (!this.isAtEnd()) {
       this.current += 1;
     }
@@ -1898,7 +1898,7 @@ export class Parser {
 
   // TODO REMOVE ME
   // return current token and backup
-  private backup(): IToken {
+  private backup(): Token {
     const current = this.peek();
     if (this.current !== 0) {
       this.current -= 1;
@@ -1912,12 +1912,12 @@ export class Parser {
   }
 
   // peek current token
-  private peek(): IToken {
+  private peek(): Token {
     return this.tokens[this.current];
   }
 
   // peek next token
-  private peekNext(): Maybe<IToken> {
+  private peekNext(): Maybe<Token> {
     const nextToken = this.tokens[this.current + 1];
     if (empty(nextToken) || nextToken.type === TokenType.eof) return undefined;
 
@@ -1925,13 +1925,13 @@ export class Parser {
   }
 
   // retrieve previous token
-  private previous(): IToken {
+  private previous(): Token {
     return this.tokens[this.current - 1];
   }
 
   // report parse error
   private error(
-    token: IToken,
+    token: Token,
     failed: Maybe<NodeConstructor>,
     message: string,
     moreInfo?: string,

@@ -11,3 +11,5 @@ export const delegateCreation =
   createArgSuffixType('delegateCreation', delegateType, integarType); // TODO union
 export const suffixError =
   createSuffixType('suffix Error', structureType);
+
+export const defaultSuffix = (name: string) => createSuffixType(name, structureType);

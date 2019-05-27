@@ -2,25 +2,25 @@ import * as Expr from './expr';
 import * as Stmt from './stmt';
 import * as SuffixTerm from './suffixTerm';
 import { Var, Lock, Func, Param } from './declare';
-import { IToken } from '../entities/types';
 import { Range, Location, Diagnostic } from 'vscode-languageserver';
 import { TokenType } from '../entities/tokentypes';
 import { NodeBase } from './base';
+import { Token } from '../entities/token';
 
 export interface IRangeSequence extends Range {
   ranges: Range[];
 }
 
 export interface IDeclScope extends IRangeSequence {
-  declare?: IToken;
-  scope?: IToken;
+  declare?: Token;
+  scope?: Token;
   type: ScopeKind;
   toString(): string;
 }
 
 export type NodeDataBuilder<T> = Partial<Writeable<NodeData<T>>>;
 
-export type NodeData<T> = Properties<T, IToken | NodeBase | NodeBase[] | undefined>;
+export type NodeData<T> = Properties<T, Token | NodeBase | NodeBase[] | undefined>;
 
 export type SuffixTermTrailer = SuffixTerm.Call
   | SuffixTerm.ArrayBracket
@@ -33,7 +33,7 @@ export type Atom = SuffixTerm.Literal
   | SuffixTerm.Invalid;
 
 export interface IParameter extends IRangeSequence {
-  identifier: IToken;
+  identifier: Token;
   toLines(): string[];
 }
 
@@ -149,7 +149,7 @@ export interface IConstantDistribution {
 
 export interface IParseError extends Range {
   tag: 'parseError';
-  token: IToken;
+  token: Token;
   message: string;
   inner: IParseError[];
 }
@@ -165,7 +165,7 @@ export interface ScriptResult extends IParseResult {
 
 export interface IFindResult {
   node?: TreeNode;
-  token: IToken;
+  token: Token;
 }
 
 export interface INodeResult<T> {
@@ -179,7 +179,7 @@ export enum ScopeKind {
 }
 
 export type PartialNode = {
-  [key: string]: IToken | TreeNode | undefined;
+  [key: string]: Token | TreeNode | undefined;
 };
 
 export type GrammarNode = IExprClass

@@ -1,5 +1,5 @@
 import { ScopeKind } from '../parser/types';
-import { Token, Marker } from '../entities/token';
+import { Token } from '../entities/token';
 import { TokenType } from '../entities/tokentypes';
 import { queueType } from '../typeChecker/types/collections/queue';
 import { structureType } from '../typeChecker/types/primitives/structure';
@@ -72,6 +72,7 @@ import { bodyTargetType } from '../typeChecker/types/orbital/bodyTarget';
 import { vesselTargetType } from '../typeChecker/types/orbital/vesselTarget';
 import { SymbolTable } from './symbolTable';
 import { toCase } from '../utilities/stringUtils';
+import { Marker } from '../entities/marker';
 
 const functionTypes: [string[], IFunctionType][] = [
   [['abs'], createFunctionType('abs', scalarType, scalarType)],

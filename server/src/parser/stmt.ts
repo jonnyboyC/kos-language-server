@@ -8,13 +8,13 @@ import {
   PartialNode,
 } from './types';
 import * as Expr from './expr';
-import { IToken } from '../entities/types';
 import { Range, Position } from 'vscode-languageserver';
 import { empty, unWrap, notEmpty } from '../utilities/typeGuards';
 import { NodeBase } from './base';
 import { joinLines } from './toStringUtils';
 import { flatten } from '../utilities/arrayUtils';
 import { rangeOrder, rangeContains } from '../utilities/positionUtils';
+import { Token } from '../entities/token';
 
 /**
  * Statement base class
@@ -45,7 +45,7 @@ export abstract class Stmt extends NodeBase implements IStmt {
 export class Invalid extends Stmt {
   constructor(
     public readonly pos: Position,
-    public readonly tokens: IToken[],
+    public readonly tokens: Token[],
     public readonly partial?: PartialNode,
   ) {
     super();
@@ -110,9 +110,9 @@ export class Invalid extends Stmt {
 }
 
 export class Block extends Stmt {
-  public readonly open: IToken;
+  public readonly open: Token;
   public readonly stmts: Stmt[];
-  public readonly close: IToken;
+  public readonly close: Token;
 
   constructor(builder: NodeDataBuilder<Block>) {
     super();
@@ -197,7 +197,7 @@ export class ExprStmt extends Stmt {
 
 export class OnOff extends Stmt {
   public readonly suffix: Expr.Suffix;
-  public readonly onOff: IToken;
+  public readonly onOff: Token;
 
   constructor(builder: NodeDataBuilder<OnOff>) {
     super();
@@ -235,7 +235,7 @@ export class OnOff extends Stmt {
   }
 }
 export class Command extends Stmt {
-  constructor(public readonly command: IToken) {
+  constructor(public readonly command: Token) {
     super();
   }
 
@@ -264,7 +264,7 @@ export class Command extends Stmt {
   }
 }
 export class CommandExpr extends Stmt {
-  public readonly command: IToken;
+  public readonly command: Token;
   public readonly expr: IExpr;
 
   constructor(builder: NodeDataBuilder<CommandExpr>) {
@@ -304,8 +304,8 @@ export class CommandExpr extends Stmt {
 }
 
 export class Unset extends Stmt {
-  public readonly unset: IToken;
-  public readonly identifier: IToken;
+  public readonly unset: Token;
+  public readonly identifier: Token;
 
   constructor(builder: NodeDataBuilder<Unset>) {
     super();
@@ -340,8 +340,8 @@ export class Unset extends Stmt {
 }
 
 export class Unlock extends Stmt {
-  public readonly unlock: IToken;
-  public readonly identifier: IToken;
+  public readonly unlock: Token;
+  public readonly identifier: Token;
 
   constructor(builder: NodeDataBuilder<Unlock>) {
     super();
@@ -376,9 +376,9 @@ export class Unlock extends Stmt {
 }
 
 export class Set extends Stmt {
-  public readonly set: IToken;
+  public readonly set: Token;
   public readonly suffix: Expr.Suffix;
-  public readonly to: IToken;
+  public readonly to: Token;
   public readonly value: IExpr;
 
   constructor(builder: NodeDataBuilder<Set>) {
@@ -421,9 +421,9 @@ export class Set extends Stmt {
 }
 
 export class LazyGlobal extends Stmt {
-  public readonly atSign: IToken;
-  public readonly lazyGlobal: IToken;
-  public readonly onOff: IToken;
+  public readonly atSign: Token;
+  public readonly lazyGlobal: Token;
+  public readonly onOff: Token;
 
   constructor(builder: NodeDataBuilder<LazyGlobal>) {
     super();
@@ -461,7 +461,7 @@ export class LazyGlobal extends Stmt {
 }
 
 export class If extends Stmt {
-  public readonly ifToken: IToken;
+  public readonly ifToken: Token;
   public readonly condition: IExpr;
   public readonly body: IStmt;
   public readonly elseStmt?: Else;
@@ -516,7 +516,7 @@ export class If extends Stmt {
 }
 
 export class Else extends Stmt {
-  public readonly elseToken: IToken;
+  public readonly elseToken: Token;
   public readonly body: IStmt;
 
   constructor(builder: NodeDataBuilder<Else>) {
@@ -554,7 +554,7 @@ export class Else extends Stmt {
 }
 
 export class Until extends Stmt {
-  public readonly until: IToken;
+  public readonly until: Token;
   public readonly condition: IExpr;
   public readonly body: IStmt;
 
@@ -596,13 +596,13 @@ export class Until extends Stmt {
 }
 
 export class From extends Stmt {
-  public readonly from: IToken;
+  public readonly from: Token;
   public readonly initializer: Block;
-  public readonly until: IToken;
+  public readonly until: Token;
   public readonly condition: IExpr;
-  public readonly step: IToken;
+  public readonly step: Token;
   public readonly increment: Block;
-  public readonly doToken: IToken;
+  public readonly doToken: Token;
   public readonly body: IStmt;
   constructor(builder: NodeDataBuilder<From>) {
     super();
@@ -668,9 +668,9 @@ export class From extends Stmt {
 }
 
 export class When extends Stmt {
-  public readonly when: IToken;
+  public readonly when: Token;
   public readonly condition: IExpr;
-  public readonly then: IToken;
+  public readonly then: Token;
   public readonly body: IStmt;
 
   constructor(builder: NodeDataBuilder<When>) {
@@ -713,7 +713,7 @@ export class When extends Stmt {
 }
 
 export class Return extends Stmt {
-  public readonly returnToken: IToken;
+  public readonly returnToken: Token;
   public readonly value?: IExpr;
 
   constructor(builder: NodeDataBuilder<Return>) {
@@ -762,7 +762,7 @@ export class Return extends Stmt {
 }
 
 export class Break extends Stmt {
-  constructor(public readonly breakToken: IToken) {
+  constructor(public readonly breakToken: Token) {
     super();
   }
 
@@ -792,8 +792,8 @@ export class Break extends Stmt {
 }
 
 export class Switch extends Stmt {
-  public readonly switchToken: IToken;
-  public readonly to: IToken;
+  public readonly switchToken: Token;
+  public readonly to: Token;
   public readonly target: IExpr;
 
   constructor(builder: NodeDataBuilder<Switch>) {
@@ -839,9 +839,9 @@ export class Switch extends Stmt {
 }
 
 export class For extends Stmt {
-  public readonly forToken: IToken;
-  public readonly element: IToken;
-  public readonly inToken: IToken;
+  public readonly forToken: Token;
+  public readonly element: Token;
+  public readonly inToken: Token;
   public readonly collection: Expr.Suffix;
   public readonly body: IStmt;
 
@@ -893,7 +893,7 @@ export class For extends Stmt {
 }
 
 export class On extends Stmt {
-  public readonly on: IToken;
+  public readonly on: Token;
   public readonly suffix: Expr.Suffix;
   public readonly body: IStmt;
 
@@ -935,7 +935,7 @@ export class On extends Stmt {
 }
 
 export class Toggle extends Stmt {
-  public readonly toggle: IToken;
+  public readonly toggle: Token;
   public readonly suffix: Expr.Suffix;
 
   constructor(builder: NodeDataBuilder<Toggle>) {
@@ -977,8 +977,8 @@ export class Toggle extends Stmt {
 }
 
 export class Wait extends Stmt {
-  public readonly wait: IToken;
-  public readonly until?: IToken;
+  public readonly wait: Token;
+  public readonly until?: Token;
   public readonly expr: IExpr;
 
   constructor(builder: NodeDataBuilder<Wait>) {
@@ -1025,9 +1025,9 @@ export class Wait extends Stmt {
 }
 
 export class Log extends Stmt {
-  public readonly log: IToken;
+  public readonly log: Token;
   public readonly expr: IExpr;
-  public readonly to: IToken;
+  public readonly to: Token;
   public readonly target: IExpr;
 
   constructor(builder: NodeDataBuilder<Log>) {
@@ -1074,9 +1074,9 @@ export class Log extends Stmt {
 }
 
 export class Copy extends Stmt {
-  public readonly copy: IToken;
+  public readonly copy: Token;
   public readonly target: IExpr;
-  public readonly toFrom: IToken;
+  public readonly toFrom: Token;
   public readonly destination: IExpr;
 
   constructor(builder: NodeDataBuilder<Copy>) {
@@ -1120,11 +1120,11 @@ export class Copy extends Stmt {
 }
 
 export class Rename extends Stmt {
-  public readonly rename: IToken;
-  public readonly fileVolume: IToken;
-  public readonly identifier: IToken;
+  public readonly rename: Token;
+  public readonly fileVolume: Token;
+  public readonly identifier: Token;
   public readonly target: IExpr;
-  public readonly to: IToken;
+  public readonly to: Token;
   public readonly alternative: IExpr;
 
   constructor(builder: NodeDataBuilder<Rename>) {
@@ -1178,9 +1178,9 @@ export class Rename extends Stmt {
 }
 
 export class Delete extends Stmt {
-  public readonly deleteToken: IToken;
+  public readonly deleteToken: Token;
   public readonly target: IExpr;
-  public readonly from?: IToken;
+  public readonly from?: Token;
   public readonly volume?: IExpr;
 
   constructor(builder: NodeDataBuilder<Delete>) {
@@ -1240,13 +1240,13 @@ export class Delete extends Stmt {
 }
 
 export class Run extends Stmt {
-  public readonly run: IToken;
-  public readonly identifier: IToken;
-  public readonly once?: IToken;
-  public readonly open?: IToken;
+  public readonly run: Token;
+  public readonly identifier: Token;
+  public readonly once?: Token;
+  public readonly open?: Token;
   public readonly args?: IExpr[];
-  public readonly close?: IToken;
-  public readonly on?: IToken;
+  public readonly close?: Token;
+  public readonly on?: Token;
   public readonly expr?: IExpr;
 
   constructor(builder: NodeDataBuilder<Run>) {
@@ -1333,10 +1333,10 @@ export class Run extends Stmt {
 }
 
 export class RunPath extends Stmt {
-  public readonly runPath: IToken;
-  public readonly open: IToken;
+  public readonly runPath: Token;
+  public readonly open: Token;
   public readonly expr: IExpr;
-  public readonly close: IToken;
+  public readonly close: Token;
   public readonly args?: IExpr[];
 
   constructor(builder: NodeDataBuilder<RunPath>) {
@@ -1391,10 +1391,10 @@ export class RunPath extends Stmt {
 }
 
 export class RunOncePath extends Stmt {
-  public readonly runPath: IToken;
-  public readonly open: IToken;
+  public readonly runPath: Token;
+  public readonly open: Token;
   public readonly expr: IExpr;
-  public readonly close: IToken;
+  public readonly close: Token;
   public readonly args?: IExpr[];
 
   constructor(builder: NodeDataBuilder<RunOncePath>) {
@@ -1449,9 +1449,9 @@ export class RunOncePath extends Stmt {
 }
 
 export class Compile extends Stmt {
-  public readonly compile: IToken;
+  public readonly compile: Token;
   public readonly target: IExpr;
-  public readonly to?: IToken;
+  public readonly to?: Token;
   public readonly destination?: IExpr;
 
   constructor(builder: NodeDataBuilder<Compile>) {
@@ -1503,10 +1503,10 @@ export class Compile extends Stmt {
 }
 
 export class List extends Stmt {
-  public readonly list: IToken;
-  public readonly collection?: IToken;
-  public readonly inToken?: IToken;
-  public readonly target?: IToken;
+  public readonly list: Token;
+  public readonly collection?: Token;
+  public readonly inToken?: Token;
+  public readonly target?: Token;
 
   constructor(builder: NodeDataBuilder<List>) {
     super();
@@ -1573,7 +1573,7 @@ export class List extends Stmt {
 }
 
 export class Empty extends Stmt {
-  constructor(public readonly empty: IToken) {
+  constructor(public readonly empty: Token) {
     super();
   }
 
@@ -1603,13 +1603,13 @@ export class Empty extends Stmt {
 }
 
 export class Print extends Stmt {
-  public readonly print: IToken;
+  public readonly print: Token;
   public readonly expr: IExpr;
-  public readonly at?: IToken;
-  public readonly open?: IToken;
+  public readonly at?: Token;
+  public readonly open?: Token;
   public readonly x?: IExpr;
   public readonly y?: IExpr;
-  public readonly close?: IToken;
+  public readonly close?: Token;
 
   constructor(builder: NodeDataBuilder<Print>) {
     super();

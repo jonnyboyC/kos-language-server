@@ -40,9 +40,9 @@ import { SymbolTableBuilder } from './analysis/symbolTableBuilder';
 import { SymbolTable } from './analysis/symbolTable';
 import { TypeChecker } from './typeChecker/typeChecker';
 import { ITypeResolvedSuffix, ITypeNode } from './typeChecker/types';
-import { IToken } from './entities/types';
 import { IType } from './typeChecker/types/types';
 import { binarySearch, rangeContainsPos } from './utilities/positionUtils';
+import { Token } from './entities/token';
 
 export class Analyzer {
   public workspaceFolder?: string;
@@ -375,7 +375,7 @@ export class Analyzer {
    * @param pos position in the text document
    * @param uri uri of the text document
    */
-  public getToken(pos: Position, uri: string): Maybe<IToken> {
+  public getToken(pos: Position, uri: string): Maybe<Token> {
     const documentInfo = this.documentInfos.get(uri);
     if (empty(documentInfo)) {
       return undefined;

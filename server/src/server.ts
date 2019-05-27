@@ -43,8 +43,8 @@ import {
   cleanPosition,
   cleanRange,
 } from './utilities/clean';
-import { IToken } from './entities/types';
 import { keywordCompletions, serverName } from './utilities/constants';
+import { Token } from './entities/token';
 
 export interface IClientConfiguration {
   completionCase: 'lowercase' | 'uppercase' | 'camelcase' | 'pascalcase';
@@ -467,7 +467,7 @@ connection.onDefinition(
 connection.onCompletionResolve(
   (item: CompletionItem): CompletionItem => {
     try {
-      const token = item.data as Maybe<IToken>;
+      const token = item.data as Maybe<Token>;
 
       if (!empty(token) && !empty(token.tracker)) {
         const type = token.tracker.getType({ uri: token.uri, range: token.range });

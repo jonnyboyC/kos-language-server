@@ -1,4 +1,10 @@
-import { isCorrectCallType, isSubType, addPrototype, addSuffixes, hasSuffix } from '../typeChecker/typeUitlities';
+import {
+  isCorrectCallType,
+  isSubType,
+  addPrototype,
+  addSuffixes,
+  hasSuffix,
+} from '../typeChecker/typeUitlities';
 import { CallType } from '../typeChecker/types/types';
 import { stringType } from '../typeChecker/types/primitives/string';
 import { booleanType } from '../typeChecker/types/primitives/boolean';
@@ -7,7 +13,11 @@ import { partType } from '../typeChecker/types/parts/part';
 import { dockingPortType } from '../typeChecker/types/parts/dockingPort';
 import { primitiveInitializer } from '../typeChecker/types/primitives/initialize';
 import { oribitalInitializer } from '../typeChecker/types/orbital/initialize';
-import { createStructureType, createSuffixType, createArgSuffixType } from '../typeChecker/types/ksType';
+import {
+  createStructureType,
+  createSuffixType,
+  createArgSuffixType,
+} from '../typeChecker/types/ksType';
 
 primitiveInitializer();
 oribitalInitializer();
@@ -32,11 +42,12 @@ describe('Type Utilities', () => {
     expect(isCorrectCallType(CallType.optionalCall, CallType.call)).toBe(true);
     expect(isCorrectCallType(CallType.optionalCall, CallType.get)).toBe(true);
     expect(isCorrectCallType(CallType.optionalCall, CallType.set)).toBe(false);
-    expect(isCorrectCallType(CallType.optionalCall, CallType.optionalCall)).toBe(true);
+    expect(
+      isCorrectCallType(CallType.optionalCall, CallType.optionalCall),
+    ).toBe(true);
   });
 
   test('Is Subtype 1', () => {
-
     expect(isSubType(stringType, stringType)).toBe(true);
     expect(isSubType(stringType, booleanType)).toBe(false);
     expect(isSubType(stringType, structureType)).toBe(true);
@@ -92,24 +103,17 @@ describe('Type Utilities', () => {
     const cType = createStructureType('c');
     const dType = createStructureType('d');
 
-
-
     addSuffixes(
       aType,
       createSuffixType('example1', cType),
-      createSuffixType('example2', cType), 
+      createSuffixType('example2', cType),
     );
 
-    addSuffixes(
-      bType,
-      createSuffixType('example3', cType),
-    );
+    addSuffixes(bType, createSuffixType('example3', cType));
 
     addPrototype(bType, aType);
 
-    addSuffixes(
-      cType,
-      createArgSuffixType('example', dType, dType));
+    addSuffixes(cType, createArgSuffixType('example', dType, dType));
 
     expect(hasSuffix(aType, 'example1')).toBe(true);
     expect(hasSuffix(aType, 'example2')).toBe(true);
@@ -126,4 +130,3 @@ describe('Type Utilities', () => {
     expect(hasSuffix(dType, 'any')).toBe(false);
   });
 });
-

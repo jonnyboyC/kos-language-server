@@ -1,11 +1,11 @@
-import { IToken } from '../entities/types';
 import { Position } from 'vscode-languageserver';
 import { TokenType } from '../entities/tokentypes';
 import { empty } from './typeGuards';
 import { binarySearchIndex } from './positionUtils';
 import { Parser } from '../parser/parser';
+import { Token } from '../entities/token';
 
-export const signitureHelper = (tokens: IToken[], pos: Position): Maybe<IdentifierIndex> => {
+export const signitureHelper = (tokens: Token[], pos: Position): Maybe<IdentifierIndex> => {
   const result = partialArgs(tokens, pos);
   if (empty(result)) {
     return result;
@@ -20,9 +20,9 @@ export const signitureHelper = (tokens: IToken[], pos: Position): Maybe<Identifi
   };
 };
 
-const partialArgs = (tokens: IToken[], pos: Position): Maybe<[IToken, IToken[]]> => {
+const partialArgs = (tokens: Token[], pos: Position): Maybe<[Token, Token[]]> => {
   let depth = 0;
-  let identifier: Maybe<IToken> = undefined;
+  let identifier: Maybe<Token> = undefined;
   const posIdx = binarySearchIndex(tokens, pos);
 
   if (Array.isArray(posIdx)) {
@@ -59,7 +59,7 @@ const partialArgs = (tokens: IToken[], pos: Position): Maybe<[IToken, IToken[]]>
   return [identifier, argsToken];
 };
 
-const argPosition = (partialArgs: IToken[]): number => {
+const argPosition = (partialArgs: Token[]): number => {
   const parser = new Parser('', partialArgs);
   const args = parser.parseArgCount();
   return args.value;

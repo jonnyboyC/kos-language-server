@@ -8,10 +8,10 @@ import {
 } from './types';
 import { TokenType } from '../entities/tokentypes';
 import { empty, unWrap } from '../utilities/typeGuards';
-import { IToken } from '../entities/types';
 import { Range, Position } from 'vscode-languageserver';
 import { joinLines } from './toStringUtils';
 import { NodeBase } from './base';
+import { Token } from '../entities/token';
 
 export abstract class Decl extends Stmt {
   constructor() {
@@ -21,8 +21,8 @@ export abstract class Decl extends Stmt {
 
 export class Scope extends NodeBase {
   constructor(
-    public readonly scope?: IToken,
-    public readonly declare?: IToken,
+    public readonly scope?: Token,
+    public readonly declare?: Token,
   ) {
     super();
   }
@@ -108,8 +108,8 @@ export class Scope extends NodeBase {
 }
 
 export class Var extends Decl {
-  public readonly identifier: IToken;
-  public readonly toIs: IToken;
+  public readonly identifier: Token;
+  public readonly toIs: Token;
   public readonly value: IExpr;
   public readonly scope: Scope;
 
@@ -153,9 +153,9 @@ export class Var extends Decl {
 }
 
 export class Lock extends Decl {
-  public readonly lock: IToken;
-  public readonly identifier: IToken;
-  public readonly to: IToken;
+  public readonly lock: Token;
+  public readonly identifier: Token;
+  public readonly to: Token;
   public readonly value: IExpr;
   public readonly scope?: Scope;
 
@@ -212,8 +212,8 @@ export class Lock extends Decl {
 }
 
 export class Func extends Decl {
-  public readonly functionToken: IToken;
-  public readonly identifier: IToken;
+  public readonly functionToken: Token;
+  public readonly identifier: Token;
   public readonly block: Block;
   public readonly scope?: Scope;
 
@@ -262,7 +262,7 @@ export class Func extends Decl {
 }
 
 export class Param extends Decl {
-  public readonly parameterToken: IToken;
+  public readonly parameterToken: Token;
   public readonly requiredParameters: Parameter[];
   public readonly optionalParameters: DefaultParam[];
   public readonly scope?: Scope;
@@ -343,7 +343,7 @@ export class Param extends Decl {
 }
 
 export class Parameter extends NodeBase {
-  constructor(public readonly identifier: IToken) {
+  constructor(public readonly identifier: Token) {
     super();
   }
 
@@ -370,8 +370,8 @@ export class Parameter extends NodeBase {
 
 export class DefaultParam extends Parameter {
   constructor(
-    identifier: IToken,
-    public readonly toIs: IToken,
+    identifier: Token,
+    public readonly toIs: Token,
     public readonly value: IExpr,
   ) {
     super(identifier);

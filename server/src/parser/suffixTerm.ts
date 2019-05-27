@@ -13,7 +13,6 @@ import {
   SyntaxKind,
 } from './types';
 import { Range, Position } from 'vscode-languageserver';
-import { IToken } from '../entities/types';
 import { TokenType } from '../entities/tokentypes';
 import {
   createGrammarOptional,
@@ -28,6 +27,7 @@ import { expr } from './expr';
 import { NodeBase } from './base';
 import { empty } from '../utilities/typeGuards';
 import { joinLines } from './toStringUtils';
+import { Token } from '../entities/token';
 
 /**
  * Base class for all suffix terms
@@ -124,7 +124,7 @@ export class SuffixTrailer extends SuffixTermBase {
    */
   constructor(
     public readonly suffixTerm: SuffixTerm,
-    public colon?: IToken,
+    public colon?: Token,
     public trailer?: SuffixTrailer,
   ) {
     super();
@@ -302,9 +302,9 @@ export class Call extends SuffixTermBase {
    * @param close close paren of the call
    */
   constructor(
-    public readonly open: IToken,
+    public readonly open: Token,
     public readonly args: IExpr[],
-    public readonly close: IToken,
+    public readonly close: Token,
   ) {
     super();
   }
@@ -370,7 +370,7 @@ export class ArrayIndex extends SuffixTermBase {
    * @param indexer "#" token indicating a index
    * @param index index to be used
    */
-  constructor(public readonly indexer: IToken, public readonly index: IToken) {
+  constructor(public readonly indexer: Token, public readonly index: Token) {
     super();
   }
 
@@ -426,9 +426,9 @@ export class ArrayBracket extends SuffixTermBase {
    * @param close close bracket
    */
   constructor(
-    public readonly open: IToken,
+    public readonly open: Token,
     public readonly index: IExpr,
-    public readonly close: IToken,
+    public readonly close: Token,
   ) {
     super();
   }
@@ -486,7 +486,7 @@ export class Delegate extends SuffixTermBase {
    * Constructor for the function delegate
    * @param atSign at sign indicating that function should create a delgate
    */
-  constructor(public readonly atSign: IToken) {
+  constructor(public readonly atSign: Token) {
     super();
   }
 
@@ -539,7 +539,7 @@ export class Literal extends SuffixTermBase {
    * Constructor for literal suffix term
    * @param token token for the literal
    */
-  constructor(public readonly token: IToken) {
+  constructor(public readonly token: Token) {
     super();
   }
 
@@ -592,7 +592,7 @@ export class Identifier extends SuffixTermBase {
    * Constructor for suffix term identifiers
    * @param token identifier token
    */
-  constructor(public readonly token: IToken) {
+  constructor(public readonly token: Token) {
     super();
   }
 
@@ -655,9 +655,9 @@ export class Grouping extends SuffixTermBase {
    * @param close close paren token
    */
   constructor(
-    public readonly open: IToken,
+    public readonly open: Token,
     public readonly expr: IExpr,
-    public readonly close: IToken,
+    public readonly close: Token,
   ) {
     super();
   }

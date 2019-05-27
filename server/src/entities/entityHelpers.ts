@@ -1,6 +1,6 @@
 import { KsSymbol, KsSymbolKind } from '../analysis/types';
 import { KsVariable } from './variable';
-import { KsParameter } from './parameters';
+import { KsParameter } from './parameter';
 import { KsFunction } from './function';
 
 export const isKsVariable = (entity: KsSymbol): entity is KsVariable => {

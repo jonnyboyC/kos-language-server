@@ -11,7 +11,6 @@ import {
 import * as SuffixTerm from './suffixTerm';
 import * as Stmt from './stmt';
 import { TokenType } from '../entities/tokentypes';
-import { IToken } from '../entities/types';
 import { Range, Position } from 'vscode-languageserver';
 import {
   createGrammarUnion,
@@ -23,6 +22,7 @@ import {
 import { empty } from '../utilities/typeGuards';
 import { NodeBase } from './base';
 import { joinLines } from './toStringUtils';
+import { Token } from '../entities/token';
 
 /**
  * Expression base class
@@ -58,7 +58,7 @@ export class Invalid extends Expr {
    * Invalid expression constructor
    * @param tokens all tokens in the invalid range
    */
-  constructor(public readonly tokens: IToken[]) {
+  constructor(public readonly tokens: Token[]) {
     super();
   }
 
@@ -108,7 +108,7 @@ export class Binary extends Expr {
    */
   constructor(
     public readonly left: IExpr,
-    public readonly operator: IToken,
+    public readonly operator: Token,
     public readonly right: IExpr,
   ) {
     super();
@@ -166,7 +166,7 @@ export class Unary extends Expr {
    * @param operator unary operator
    * @param factor factor
    */
-  constructor(public readonly operator: IToken, public readonly factor: IExpr) {
+  constructor(public readonly operator: Token, public readonly factor: IExpr) {
     super();
   }
 
@@ -230,7 +230,7 @@ export class Factor extends Expr {
    */
   constructor(
     public readonly suffix: IExpr,
-    public readonly power: IToken,
+    public readonly power: Token,
     public readonly exponent: IExpr,
   ) {
     super();
@@ -334,7 +334,7 @@ export class Suffix extends Expr {
    */
   constructor(
     public readonly suffixTerm: SuffixTerm.SuffixTerm,
-    public colon?: IToken,
+    public colon?: Token,
     public trailer?: SuffixTerm.SuffixTrailer,
   ) {
     super();
