@@ -15,8 +15,8 @@ import { KsParameter } from '../entities/parameter';
 import {
   isKsFunction,
   isKsLock,
-  isKsVariable,
-  isKsParameter,
+  isVariable,
+  isParameter,
 } from '../entities/entityHelpers';
 import { ScopeKind } from '../parser/types';
 import { BasicTracker } from './tracker';
@@ -203,7 +203,7 @@ export class SymbolTable implements GraphNode<SymbolTable> {
     name: string,
   ): Maybe<SymbolTrackerBase<KsVariable>> {
     const tracker = this.scopedNamedTracker(pos, name, trackers =>
-      isKsVariable(trackers.declared.symbol),
+      isVariable(trackers.declared.symbol),
     );
 
     if (!empty(tracker)) {
@@ -223,7 +223,7 @@ export class SymbolTable implements GraphNode<SymbolTable> {
     name: string,
   ): Maybe<SymbolTrackerBase<KsParameter>> {
     const tracker = this.scopedNamedTracker(pos, name, tracker =>
-      isKsParameter(tracker.declared.symbol),
+      isParameter(tracker.declared.symbol),
     );
 
     if (!empty(tracker)) {

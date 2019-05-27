@@ -39,10 +39,11 @@ import { builtIn } from './utilities/constants';
 import { SymbolTableBuilder } from './analysis/symbolTableBuilder';
 import { SymbolTable } from './analysis/symbolTable';
 import { TypeChecker } from './typeChecker/typeChecker';
-import { ITypeResolvedSuffix, ITypeNode } from './typeChecker/types';
-import { IType } from './typeChecker/types/types';
+import { ITypeResolvedSuffix } from './typeChecker/types';
+import { Type } from './typeChecker/types/types';
 import { binarySearch, rangeContainsPos } from './utilities/positionUtils';
 import { Token } from './entities/token';
+import { TypeNode } from './typeChecker/typeNode';
 
 export class Analyzer {
   public workspaceFolder?: string;
@@ -302,7 +303,7 @@ export class Analyzer {
   public getSuffixType(
     pos: Position,
     uri: string,
-  ): Maybe<[IType, KsSymbolKind]> {
+  ): Maybe<[Type, KsSymbolKind]> {
     const documentInfo = this.documentInfos.get(uri);
     if (empty(documentInfo)) {
       return undefined;
@@ -363,7 +364,7 @@ export class Analyzer {
    * Gets an array of nodes corresponding to a suffix type checking. This
    * method will be removed when the type checker is updated
    */
-  private resolvedNodes(resolved: ITypeResolvedSuffix<IType>): ITypeNode[] {
+  private resolvedNodes(resolved: ITypeResolvedSuffix<Type>): TypeNode[] {
     const nodes = [resolved.atom, ...resolved.termTrailers];
     return empty(resolved.suffixTrailer)
       ? nodes

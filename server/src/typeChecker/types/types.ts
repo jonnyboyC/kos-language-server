@@ -104,4 +104,4 @@ export interface IFunctionType extends ITypeMeta<IFunctionType> {
   kind: TypeKind.function;
 }
 
-export type IType = IArgumentType | IFunctionType | ISuffixType;
+export type Type = IArgumentType | IFunctionType | ISuffixType;

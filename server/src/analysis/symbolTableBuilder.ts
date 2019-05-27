@@ -23,8 +23,8 @@ import { BasicTracker, createSymbolSet } from './tracker';
 import { IArgumentType, IFunctionType } from '../typeChecker/types/types';
 import { SymbolTable } from './symbolTable';
 import {
-  isKsVariable,
-  isKsParameter,
+  isVariable,
+  isParameter,
   isKsLock,
 } from '../entities/entityHelpers';
 import {
@@ -660,7 +660,7 @@ export class SymbolTableBuilder {
   ): Maybe<BasicTracker<KsVariable>> {
     const tracker = this.lookup(token.lookup, scopeKind);
 
-    return !empty(tracker) && isKsVariable(tracker.declared.symbol)
+    return !empty(tracker) && isVariable(tracker.declared.symbol)
       ? (tracker as BasicTracker<KsVariable>)
       : undefined;
   }
@@ -676,7 +676,7 @@ export class SymbolTableBuilder {
   ): Maybe<BasicTracker<KsFunction>> {
     const tracker = this.lookup(token.lookup, scopeKind);
 
-    return !empty(tracker) && isKsVariable(tracker.declared.symbol)
+    return !empty(tracker) && isVariable(tracker.declared.symbol)
       ? (tracker as BasicTracker<KsFunction>)
       : undefined;
   }
@@ -708,7 +708,7 @@ export class SymbolTableBuilder {
   ): Maybe<BasicTracker<KsParameter>> {
     const tracker = this.lookup(token.lookup, scopeKind);
 
-    return !empty(tracker) && isKsParameter(tracker.declared.symbol)
+    return !empty(tracker) && isParameter(tracker.declared.symbol)
       ? (tracker as BasicTracker<KsParameter>)
       : undefined;
   }
@@ -725,8 +725,8 @@ export class SymbolTableBuilder {
     const tracker = this.lookup(token.lookup, scopeKind);
 
     return !empty(tracker) &&
-      (isKsParameter(tracker.declared.symbol) ||
-        isKsVariable(tracker.declared.symbol))
+      (isParameter(tracker.declared.symbol) ||
+        isVariable(tracker.declared.symbol))
       ? (tracker as SymbolTrackerBase<KsParameter | KsVariable>)
       : undefined;
   }

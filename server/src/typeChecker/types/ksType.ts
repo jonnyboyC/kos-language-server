@@ -19,7 +19,7 @@ import { memoize } from '../../utilities/memoize';
 /**
  * This represents a generic type, typically the containers of kos
  */
-export class GenericType implements IGenericBasicType {
+export class GenericBasicType implements IGenericBasicType {
 
   /**
    * A memoized mapping of this genertic type to concrete types
@@ -73,7 +73,7 @@ export class GenericType implements IGenericBasicType {
       return cache;
     }
 
-    const newType = new Type(this.name);
+    const newType = new BasicType(this.name);
     this.concreteTypes.set(type, newType);
 
     const newInherentsFrom = !empty(this.inherentsFrom)
@@ -205,7 +205,7 @@ export class GenericSuffixType implements IGenericSuffixType {
 /**
  * This represents a type
  */
-export class Type implements IBasicType {
+export class BasicType implements IBasicType {
 
   /**
    * Suffixes attach to this type
@@ -319,7 +319,7 @@ export class SuffixType implements ISuffixType {
 /**
  * Represents a constant type, or a type with a fixed value
  */
-export class ConstantType<T> extends Type implements IConstantType<T> {
+export class ConstantType<T> extends BasicType implements IConstantType<T> {
 
   /**
    * Construct a constant type
@@ -431,7 +431,7 @@ const parameterTypeString = (params: IGenericArgumentType[] | IGenericVariadicTy
 
 export const createGenericStructureType = (name: string):
   IGenericArgumentType => {
-  return new GenericType(name);
+  return new GenericBasicType(name);
 };
 
 export const getTypeParameter = memoize((name: string): IGenericBasicType => {
@@ -441,7 +441,7 @@ export const getTypeParameter = memoize((name: string): IGenericBasicType => {
 export const tType = getTypeParameter('T');
 
 export const createStructureType = (name: string): IBasicType => {
-  return new Type(name);
+  return new BasicType(name);
 };
 
 export const createGenericArgSuffixType = (

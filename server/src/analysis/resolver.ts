@@ -921,7 +921,7 @@ export class Resolver
     } else if (!this.lazyGlobal) {
       defineError = createDiagnostic(
         set,
-        `Attempted to set ${set.lexeme} which has not be declared. ` +
+        `Attempted to set ${set.lexeme} which has not been declared. ` +
           `Either remove lazy global directive or declare ${set.lexeme}`,
         DiagnosticSeverity.Error,
       );

@@ -1,37 +1,22 @@
-import { IType } from './types/types';
-import { Range, Diagnostic } from 'vscode-languageserver';
-import * as SuffixTerm from '../parser/suffixTerm';
+import { Type } from './types/types';
+import { Diagnostic } from 'vscode-languageserver';
 import { KsSymbolKind } from '../analysis/types';
-
-/**
- * Storage type for suffixterm type resolution
- */
-export interface ITypeNode<T extends IType = IType> extends Range {
-  /**
-   * Type at a given suffix node
-   */
-  type: T;
-
-  /**
-   * Suffix node type is attached to
-   */
-  node: SuffixTerm.SuffixTermBase;
-}
+import { TypeNode } from './typeNode';
 
 /**
  * Cumulative suffix type information indicating the type of each
  * segment of the suffix
  */
-export interface ITypeResolvedSuffix<T extends IType = IType> {
+export interface ITypeResolvedSuffix<T extends Type = Type> {
   /**
    * Atom of the given suffix term
    */
-  atom: ITypeNode<T>;
+  atom: TypeNode<T>;
 
   /**
    * Suffix term trailers attached to the atom
    */
-  termTrailers: ITypeNode[];
+  termTrailers: TypeNode[];
 
   /**
    * Optional suffix term trailer potentially following this suffix term
@@ -43,7 +28,7 @@ export interface ITypeResolvedSuffix<T extends IType = IType> {
  * Cumulative suffix type information indicating the type of each
  * segment of the suffix for the root of the suffix
  */
-export interface ITypeResolved<T extends IType = IType>
+export interface ITypeResolved<T extends Type = Type>
   extends ITypeResolvedSuffix<T> {
   /**
    * Indicates the entity type of the root atom
@@ -54,7 +39,7 @@ export interface ITypeResolved<T extends IType = IType>
 /**
  * type result for a kerboscript expression
  */
-export interface ITypeResultExpr<T extends IType> {
+export interface ITypeResultExpr<T extends Type> {
   /**
    * result type
    */
@@ -70,7 +55,7 @@ export interface ITypeResultExpr<T extends IType> {
  * type result for a kerboscript suffix
  */
 export interface ITypeResultSuffix<
-  T extends IType,
+  T extends Type,
   R extends ITypeResolvedSuffix = ITypeResolvedSuffix
 > {
   /**

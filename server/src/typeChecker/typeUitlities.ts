@@ -9,7 +9,7 @@ import {
   IVariadicType,
   IGenericBasicType,
   Operator,
-  IType,
+  Type,
   IBasicType,
   CallType,
   TypeKind,
@@ -44,7 +44,7 @@ export const isCorrectCallType = (
  * @param queryType query type
  * @param targetType target type
  */
-export const isSubType = (queryType: IType, targetType: IType): boolean => {
+export const isSubType = (queryType: Type, targetType: Type): boolean => {
   if (queryType.kind === TypeKind.basic && targetType.kind === TypeKind.basic) {
     return moveDownPrototype(queryType, false, currentType => {
       if (currentType === targetType) {
@@ -64,7 +64,7 @@ export const isSubType = (queryType: IType, targetType: IType): boolean => {
  * @param operator operator
  */
 export const hasOperator = (
-  type: IType,
+  type: Type,
   operator: Operator,
 ): Maybe<IArgumentType> => {
   if (type.kind === TypeKind.basic) {
@@ -85,7 +85,7 @@ export const hasOperator = (
  * @param type type
  * @param suffix suffix string
  */
-export const hasSuffix = (type: IType, suffix: string): boolean => {
+export const hasSuffix = (type: Type, suffix: string): boolean => {
   if (type.kind === TypeKind.basic) {
     return moveDownPrototype(type, false, currentType => {
       if (currentType.suffixes.has(suffix)) {
@@ -104,7 +104,7 @@ export const hasSuffix = (type: IType, suffix: string): boolean => {
  * @param type type
  * @param suffix suffix string
  */
-export const getSuffix = (type: IType, suffix: string): Maybe<ISuffixType> => {
+export const getSuffix = (type: Type, suffix: string): Maybe<ISuffixType> => {
   if (type.kind === TypeKind.basic) {
     return moveDownPrototype(type, undefined, currentType => {
       return currentType.suffixes.get(suffix);
@@ -118,7 +118,7 @@ export const getSuffix = (type: IType, suffix: string): Maybe<ISuffixType> => {
  * Retreive all suffixes from the given type
  * @param type type
  */
-export const allSuffixes = (type: IType): ISuffixType[] => {
+export const allSuffixes = (type: Type): ISuffixType[] => {
   if (type.kind === TypeKind.basic) {
     const suffixes: Map<string, ISuffixType> = new Map();
 

@@ -3,7 +3,7 @@ import { KsFunction } from '../entities/function';
 import { KsLock } from '../entities/lock';
 import { KsParameter } from '../entities/parameter';
 import { Range, Location } from 'vscode-languageserver';
-import { IArgumentType, IType } from '../typeChecker/types/types';
+import { IArgumentType, Type } from '../typeChecker/types/types';
 import { IExpr, IStmt, ScopeKind } from '../parser/types';
 import { BasicTracker } from './tracker';
 import { Token } from '../entities/token';
@@ -81,7 +81,7 @@ export interface KsSet extends Location {
  */
 export interface IKsDeclared<
   TSymbol extends KsSymbol = KsSymbol,
-  TType extends IType = IType
+  TType extends Type = Type
 > extends Location {
   symbol: TSymbol;
   type: TType;
