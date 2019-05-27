@@ -1,22 +1,21 @@
 import { SymbolTrackerBase, IKsDeclared, TrackerKind } from './types';
 import { KsSuffix } from '../entities/suffix';
-import { SuffixType } from '../typeChecker/types/ksType';
-import { defaultSuffix } from '../typeChecker/types/typeHelpers';
-import { Location } from 'vscode-languageserver';
+import { Location, Range, Position } from 'vscode-languageserver';
+import { builtIn } from '../utilities/constants';
+import { ISuffixType } from '../typeChecker/types/types';
 
 export class SuffixTracker implements SymbolTrackerBase<KsSuffix> {
-  public declared: IKsDeclared<KsSuffix, SuffixType>;
+  public declared: IKsDeclared<KsSuffix, ISuffixType>;
 
   constructor(
     symbol: KsSuffix,
-    public uri: string,
-    public type: SuffixType = defaultSuffix(symbol.name.lexeme),
+    public type: ISuffixType,
   ) {
     this.declared = {
       symbol,
       type,
-      uri: symbol.name.uri,
-      range: symbol.name.range,
+      uri: builtIn,
+      range: Range.create(Position.create(0, 0), Position.create(0, 0)),
     };
   }
 
@@ -24,7 +23,7 @@ export class SuffixTracker implements SymbolTrackerBase<KsSuffix> {
    * Get the the type of the suffix type
    * @param _ location is irrelvant since suffix types cannot be changed
    */
-  public getType(_: Location): SuffixType {
+  public getType(_: Location): ISuffixType {
     return this.declared.type;
   }
   /**

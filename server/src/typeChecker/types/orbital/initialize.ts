@@ -1,7 +1,7 @@
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { orbitableType } from './orbitable';
 import { serializableStructureType } from '../primitives/serializeableStructure';
-import { createSuffixType, createArgSuffixType } from '../ksType';
+import { createSuffixType, createArgSuffixType } from "../../typeCreators";
 import { stringType } from '../primitives/string';
 import { scalarType } from '../primitives/scalar';
 import { booleanType } from '../primitives/boolean';

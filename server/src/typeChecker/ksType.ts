@@ -1,7 +1,7 @@
-import { empty } from '../../utilities/typeGuards';
+import { empty } from '../utilities/typeGuards';
 import {
   IGenericArgumentType,
-  IArgumentType,
+  ArgumentType,
   IGenericSuffixType,
   IGenericVariadicType,
   CallType,
@@ -13,8 +13,10 @@ import {
   IFunctionType,
   Operator,
   TypeKind,
-} from './types';
-import { memoize } from '../../utilities/memoize';
+} from './types/types';
+import { SuffixTracker } from '../analysis/suffixTracker';
+import { KsSuffix } from '../entities/suffix';
+import { tType } from './typeCreators';
 
 /**
  * This represents a generic type, typically the containers of kos
@@ -24,7 +26,7 @@ export class GenericBasicType implements IGenericBasicType {
   /**
    * A memoized mapping of this genertic type to concrete types
    */
-  private concreteTypes: Map<IArgumentType, IBasicType>;
+  private concreteTypes: Map<ArgumentType, IBasicType>;
 
   /**
    * Operators that are applicable for this type
@@ -62,7 +64,7 @@ export class GenericBasicType implements IGenericBasicType {
    * Convert this type into it's concrete representation
    * @param type type parameter
    */
-  public toConcreteType(type: IArgumentType): IArgumentType {
+  public toConcreteType(type: ArgumentType): ArgumentType {
     if (this === tType) {
       return type;
     }
@@ -113,7 +115,7 @@ export class GenericSuffixType implements IGenericSuffixType {
   /**
    * A memoized mapping of this genertic type to concrete types
    */
-  private concreteTypes: Map<IArgumentType, ISuffixType>;
+  private concreteTypes: Map<ArgumentType, ISuffixType>;
 
   /**
    * Construct a generic suffix type
@@ -148,7 +150,7 @@ export class GenericSuffixType implements IGenericSuffixType {
    * Convert this type into it's concrete representation
    * @param type type parameter
    */
-  public toConcreteType(type: IArgumentType): ISuffixType {
+  public toConcreteType(type: ArgumentType): ISuffixType {
     // check cache
     const cache = this.concreteTypes.get(type);
     if (!empty(cache)) {
@@ -185,15 +187,15 @@ export class GenericSuffixType implements IGenericSuffixType {
    * @param params parameters to convert to concrete types
    * @param type type parameter
    */
-  private newParameters(params: IGenericArgumentType[] | IGenericVariadicType, type: IArgumentType):
-    IArgumentType[] | IVariadicType {
+  private newParameters(params: IGenericArgumentType[] | IGenericVariadicType, type: ArgumentType):
+    ArgumentType[] | IVariadicType {
 
     // check if variadic type
     if (!Array.isArray(params)) {
       return params.toConcreteType(type);
     }
 
-    const newParams: IArgumentType[] = [];
+    const newParams: ArgumentType[] = [];
     for (const param of params) {
       newParams.push(param.toConcreteType(type));
     }
@@ -206,7 +208,6 @@ export class GenericSuffixType implements IGenericSuffixType {
  * This represents a type
  */
 export class BasicType implements IBasicType {
-
   /**
    * Suffixes attach to this type
    */
@@ -215,7 +216,7 @@ export class BasicType implements IBasicType {
   /**
    * Does this type inherent from another type
    */
-  public inherentsFrom?: IArgumentType;
+  public inherentsFrom?: ArgumentType;
 
   /**
    * Operators that are applicable for this type
@@ -235,7 +236,7 @@ export class BasicType implements IBasicType {
    * Convert this type into it's concrete representation
    * @param _ type parameter
    */
-  public toConcreteType(_: IArgumentType): IArgumentType {
+  public toConcreteType(_: ArgumentType): ArgumentType {
     return this;
   }
 
@@ -259,12 +260,18 @@ export class BasicType implements IBasicType {
   public get kind(): TypeKind.basic {
     return TypeKind.basic;
   }
+
 }
 
 /**
  * This represents a suffix type
  */
 export class SuffixType implements ISuffixType {
+
+  /**
+   * The suffix tracker for this type
+   */
+  private tracker: SuffixTracker;
 
   /**
    * Construct a suffix type
@@ -276,8 +283,10 @@ export class SuffixType implements ISuffixType {
   constructor(
     public readonly name: string,
     public readonly callType: CallType,
-    public readonly params: IArgumentType[] | IVariadicType,
-    public readonly returns: IArgumentType) {
+    public readonly params: ArgumentType[] | IVariadicType,
+    public readonly returns: ArgumentType) {
+
+    this.tracker = new SuffixTracker(new KsSuffix(name), this);
   }
 
   /**
@@ -297,7 +306,7 @@ export class SuffixType implements ISuffixType {
    * Convert this type into it's concrete representation
    * @param _ type parameter
    */
-  public toConcreteType(_: IArgumentType): ISuffixType {
+  public toConcreteType(_: ArgumentType): ISuffixType {
     return this;
   }
 
@@ -313,6 +322,10 @@ export class SuffixType implements ISuffixType {
    */
   public get kind(): TypeKind.suffix {
     return TypeKind.suffix;
+  }
+
+  getTracker(): SuffixTracker {
+    return this.tracker;
   }
 }
 
@@ -338,15 +351,35 @@ export class ConstantType<T> extends BasicType implements IConstantType<T> {
   }
 }
 
+/**
+ * Represents a generic variadic type, typically for functions that take an
+ * unspecified number of the same parameters
+ */
 export class GenericVariadicType implements IGenericVariadicType {
-  private concreteTypes: Map<IArgumentType, IVariadicType>;
+  /**
+   * A memoized mapping of this genertic type to concrete types
+   */
+  private concreteTypes: Map<ArgumentType, IVariadicType>;
 
+  /**
+   * Construct a generic variadic type
+   * @param type type parameter
+   */
   constructor(public readonly type: IGenericBasicType) {
     this.concreteTypes = new Map();
   }
+
+  /**
+   * Convert this type to a type string
+   */
   public toTypeString(): string {
     return `...${this.type.toTypeString()}[]`;
   }
+
+  /**
+   * Convert this type into it's concrete representation
+   * @param type type parameter
+   */
   public toConcreteType(type: IBasicType): IVariadicType {
     // check cache
     const cache = this.concreteTypes.get(type);
@@ -358,6 +391,10 @@ export class GenericVariadicType implements IGenericVariadicType {
     this.concreteTypes.set(type, newType);
     return newType;
   }
+
+  /**
+   * What is the kind of this type
+   */
   public get kind(): TypeKind.variadic {
     return TypeKind.variadic;
   }
@@ -382,8 +419,8 @@ export class FunctionType implements IFunctionType {
   constructor(
     public readonly name: string,
     public readonly callType: CallType.call | CallType.optionalCall,
-    public readonly params: IArgumentType[] | IVariadicType,
-    public readonly returns: IArgumentType)
+    public readonly params: ArgumentType[] | IVariadicType,
+    public readonly returns: ArgumentType)
   { }
 
   public toTypeString(): string {
@@ -429,76 +466,3 @@ const parameterTypeString = (params: IGenericArgumentType[] | IGenericVariadicTy
     .join(', ');
 };
 
-export const createGenericStructureType = (name: string):
-  IGenericArgumentType => {
-  return new GenericBasicType(name);
-};
-
-export const getTypeParameter = memoize((name: string): IGenericBasicType => {
-  return createGenericStructureType(name);
-});
-
-export const tType = getTypeParameter('T');
-
-export const createStructureType = (name: string): IBasicType => {
-  return new BasicType(name);
-};
-
-export const createGenericArgSuffixType = (
-  name: string,
-  returns: IGenericArgumentType,
-  ...params: IGenericArgumentType[]): IGenericSuffixType => {
-  const callType = params.length > 0
-    ? CallType.call
-    : CallType.optionalCall;
-
-  return new GenericSuffixType(
-    name.toLowerCase(), callType,
-    params, returns);
-};
-
-export const createArgSuffixType = (
-  name: string,
-  returns: IArgumentType,
-  ...params: IArgumentType[]): ISuffixType => {
-  const callType = params.length > 0
-    ? CallType.call
-    : CallType.optionalCall;
-
-  return new SuffixType(
-    name.toLowerCase(), callType,
-    params, returns);
-};
-
-export const createSuffixType = (name: string, returns: IArgumentType): ISuffixType => {
-  return new SuffixType(name.toLowerCase(), CallType.get, [], returns);
-};
-
-export const createSetSuffixType = (name: string, returns: IArgumentType): ISuffixType => {
-  return new SuffixType(name.toLowerCase(), CallType.set, [], returns);
-};
-
-export const createVarSuffixType = (
-  name: string,
-  returns: IArgumentType,
-  params: IVariadicType): ISuffixType => {
-  return new SuffixType(name.toLowerCase(), CallType.optionalCall, params, returns);
-};
-
-export const createFunctionType = (
-  name: string,
-  returns: IArgumentType,
-  ...params: IArgumentType[]): IFunctionType => {
-  const callType = params.length > 0
-    ? CallType.call
-    : CallType.optionalCall;
-
-  return new FunctionType(name.toLowerCase(), callType, params, returns);
-};
-
-export const createVarFunctionType = (
-  name: string,
-  returns: IArgumentType,
-  params: IVariadicType): IFunctionType => {
-  return new FunctionType(name.toLowerCase(), CallType.optionalCall, params, returns);
-};

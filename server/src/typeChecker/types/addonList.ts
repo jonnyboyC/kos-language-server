@@ -1,10 +1,10 @@
-import { IArgumentType } from './types';
-import { createStructureType, createSuffixType } from './ksType';
+import { ArgumentType } from './types';
+import { createStructureType, createSuffixType } from "../typeCreators";
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { structureType } from './primitives/structure';
 import { booleanType } from './primitives/boolean';
 
-export const addonListType: IArgumentType = createStructureType('addonList');
+export const addonListType: ArgumentType = createStructureType('addonList');
 addPrototype(addonListType, structureType);
 
 addSuffixes(

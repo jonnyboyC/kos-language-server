@@ -4,7 +4,6 @@ import {
   IStmt,
   IExpr,
   ISuffixTerm,
-  Atom,
   ISuffixTermParamVisitor,
 } from '../parser/types';
 import * as SuffixTerm from '../parser/suffixTerm';
@@ -13,21 +12,15 @@ import * as Stmt from '../parser/stmt';
 import * as Decl from '../parser/declare';
 import {
   ITypeResultExpr,
-  ITypeResolved,
-  ITypeResultSuffix,
-  ITypeResolvedSuffix,
 } from './types';
 import { mockLogger, mockTracer } from '../utilities/logger';
 import { Script } from '../entities/script';
 import { empty } from '../utilities/typeGuards';
 import {
-  IArgumentType,
+  ArgumentType,
   Type,
   IVariadicType,
   Operator,
-  ISuffixType,
-  IFunctionType,
-  CallType,
   TypeKind,
 } from './types/types';
 import { structureType } from './types/primitives/structure';
@@ -35,7 +28,7 @@ import { coerce } from './coerce';
 import { iterator } from '../utilities/constants';
 import { TokenType } from '../entities/tokentypes';
 import { nodeType } from './types/node';
-import { createFunctionType } from './types/ksType';
+import { createFunctionType } from './typeCreators';
 import { lexiconType } from './types/collections/lexicon';
 import { zip } from '../utilities/arrayUtils';
 import { isSubType, hasOperator, getSuffix, hasSuffix } from './typeUitlities';
@@ -46,10 +39,10 @@ import { stringType } from './types/primitives/string';
 import { scalarType, integarType, doubleType } from './types/primitives/scalar';
 import {
   suffixError,
-  delegateCreation,
-  arrayBracketIndexer,
-  arrayIndexer,
-} from './types/typeHelpers';
+  // delegateCreation,
+  // arrayBracketIndexer,
+  // arrayIndexer,
+} from './typeHelpers';
 import { delegateType } from './types/primitives/delegate';
 import { TypeNode } from './typeNode';
 import { KsSymbolKind, TrackerKind, SymbolTracker } from '../analysis/types';
@@ -66,9 +59,9 @@ import { NodeBase } from '../parser/base';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
 import { createDiagnostic } from '../utilities/diagnosticsUtils';
 import { BasicTracker } from '../analysis/tracker';
+import { SuffixTypeBuilder } from './suffixTypeNode';
 
 type Diagnostics = Diagnostic[];
-type SuffixTermType = ISuffixType | IArgumentType;
 
 /**
  * The type checker attempts to identify places where the rules of the type
@@ -77,12 +70,8 @@ type SuffixTermType = ISuffixType | IArgumentType;
 export class TypeChecker
   implements
     IStmtVisitor<Diagnostics>,
-    IExprVisitor<ITypeResultExpr<IArgumentType>>,
-    ISuffixTermParamVisitor<
-      ITypeResultSuffix<Type>,
-      ITypeResultSuffix<SuffixTermType>
-    > {
-
+    IExprVisitor<ITypeResultExpr<ArgumentType>>,
+    ISuffixTermParamVisitor<SuffixTypeBuilder, Diagnostics> {
   /**
    * the logger to logging information
    */
@@ -141,73 +130,6 @@ export class TypeChecker
   }
 
   /**
-   * Check a suffix for it's type
-   * @param suffix suffix to check
-   */
-  public checkSuffix(
-    suffix: Expr.Suffix,
-  ): ITypeResultSuffix<Type, ITypeResolved> {
-    try {
-      const { suffixTerm, trailer } = suffix;
-      const [firstTrailer, ...remainingTrailers] = suffixTerm.trailers;
-
-      const atom = this.resolveAtom(suffixTerm.atom);
-      let current: ITypeResultSuffix<Type> = atom;
-
-      if (!empty(firstTrailer)) {
-        // handle case were suffix is actually a function call
-        if (firstTrailer instanceof SuffixTerm.Call) {
-          current = this.resolveFunctionCall(firstTrailer, atom);
-        } else {
-          current = this.checkSuffixTerm(firstTrailer, atom);
-        }
-
-        for (const trailer of remainingTrailers) {
-          current = this.checkSuffixTerm(trailer, current);
-        }
-      }
-
-      const { type, resolved, errors } = current;
-      if (type.kind === TypeKind.suffix || type.kind === TypeKind.function) {
-        // const node = this.lastSuffixTermNode(suffixTerm);
-        return this.errorsSuffixTerm(
-          resolved,
-          errors,
-          createDiagnostic(suffixTerm.atom, 'TODO', DiagnosticSeverity.Hint),
-        ) as ITypeResultSuffix<Type, ITypeResolved>;
-      }
-
-      if (empty(trailer)) {
-        return current as ITypeResultSuffix<Type, ITypeResolved>;
-      }
-
-      const suffixTrailer = this.checkSuffixTerm(
-        trailer,
-        this.suffixTrailerResult(type, suffixTerm),
-      );
-
-      return this.resultSuffixTerm(
-        suffixTrailer.type,
-        { ...current.resolved, suffixTrailer: suffixTrailer.resolved },
-        current.errors,
-        suffixTrailer.errors,
-      ) as ITypeResultSuffix<Type, ITypeResolved>;
-    } catch (err) {
-      this.logger.error(`Error occured in resolver ${err}`);
-      this.tracer.log(err);
-      return {
-        type: structureType,
-        resolved: {
-          atomType: KsSymbolKind.variable,
-          atom: new TypeNode(structureType, suffix.suffixTerm),
-          termTrailers: [],
-        },
-        errors: [] as Diagnostics,
-      };
-    }
-  }
-
-  /**
    * check a collection of statements
    * @param stmts statements to check
    */
@@ -227,20 +149,20 @@ export class TypeChecker
    * Check an expression for errors
    * @param expr expression to check
    */
-  private checkExpr(expr: IExpr): ITypeResultExpr<IArgumentType> {
+  private checkExpr(expr: IExpr): ITypeResultExpr<ArgumentType> {
     return expr.accept(this);
   }
 
   /**
    * Check a suffix term for errors
    * @param suffixTerm suffix term to check
-   * @param current type resolved so far
+   * @param builder type resolved so far
    */
   private checkSuffixTerm(
     suffixTerm: ISuffixTerm,
-    current: ITypeResultSuffix<Type>,
-  ): ITypeResultSuffix<SuffixTermType> {
-    return suffixTerm.acceptParam(this, current);
+    builder: SuffixTypeBuilder,
+  ): Diagnostics {
+    return suffixTerm.acceptParam(this, builder);
   }
 
   // ----------------------------- Declaration -----------------------------------------
@@ -286,7 +208,7 @@ export class TypeChecker
     if (!empty(tracker) && tracker.kind === TrackerKind.basic) {
       const { symbol } = tracker.declared;
       if (symbol.tag === KsSymbolKind.function) {
-        const paramsTypes: IArgumentType[] = [];
+        const paramsTypes: ArgumentType[] = [];
 
         // TODO eventually we should tag ks parameter to the function type
         for (let i = 0; i < symbol.requiredParameters; i += 1) {
@@ -553,10 +475,7 @@ export class TypeChecker
 
     return empty(stmt.elseStmt)
       ? errors.concat(this.checkStmt(stmt.body))
-      : errors.concat(
-          this.checkStmt(stmt.body),
-          this.checkStmt(stmt.elseStmt),
-        );
+      : errors.concat(this.checkStmt(stmt.body), this.checkStmt(stmt.elseStmt));
   }
 
   // visit else statement
@@ -685,7 +604,7 @@ export class TypeChecker
 
         tracker.setType(
           stmt.element,
-          value && value.returns || structureType,
+          (value && value.returns) || structureType,
         );
       } else {
         tracker.setType(stmt.element, structureType);
@@ -724,14 +643,15 @@ export class TypeChecker
     const errors: Diagnostics = result.errors;
 
     if (!coerce(result.type, booleanType)) {
-
       // can only toggle boolean values
-      errors.push(createDiagnostic(
-        stmt.suffix,
-        'Toggle requires a boolean type. ' +
-          'This may not able to be coerced into boolean type',
-        DiagnosticSeverity.Hint,
-      ));
+      errors.push(
+        createDiagnostic(
+          stmt.suffix,
+          'Toggle requires a boolean type. ' +
+            'This may not able to be coerced into boolean type',
+          DiagnosticSeverity.Hint,
+        ),
+      );
     }
 
     return result.errors;
@@ -746,7 +666,6 @@ export class TypeChecker
     const errors: Diagnostics = result.errors;
 
     if (empty(stmt.until)) {
-
       // no until wait a set amount of time
       if (!coerce(result.type, scalarType)) {
         errors.push(
@@ -759,7 +678,6 @@ export class TypeChecker
         );
       }
     } else {
-
       // wait until condition
       if (!coerce(result.type, booleanType)) {
         errors.push(
@@ -961,7 +879,7 @@ export class TypeChecker
       return [];
     }
 
-    let finalType: IArgumentType;
+    let finalType: ArgumentType;
 
     const errors: Diagnostics = [];
 
@@ -1036,13 +954,13 @@ export class TypeChecker
   }
 
   // visit invalid expression
-  public visitExprInvalid(_: Expr.Invalid): ITypeResultExpr<IArgumentType> {
+  public visitExprInvalid(_: Expr.Invalid): ITypeResultExpr<ArgumentType> {
     return { type: structureType, errors: [] };
   }
 
   // ----------------------------- Expressions -----------------------------------------
 
-  public visitBinary(expr: Expr.Binary): ITypeResultExpr<IArgumentType> {
+  public visitBinary(expr: Expr.Binary): ITypeResultExpr<ArgumentType> {
     const rightResult = this.checkExpr(expr.right);
     const leftResult = this.checkExpr(expr.left);
 
@@ -1137,10 +1055,10 @@ export class TypeChecker
     );
   }
 
-  public visitUnary(expr: Expr.Unary): ITypeResultExpr<IArgumentType> {
+  public visitUnary(expr: Expr.Unary): ITypeResultExpr<ArgumentType> {
     const result = this.checkExpr(expr.factor);
     const errors: Diagnostics = result.errors;
-    let finalType: Maybe<IArgumentType> = undefined;
+    let finalType: Maybe<ArgumentType> = undefined;
 
     switch (expr.operator.type) {
       case TokenType.plus:
@@ -1182,7 +1100,7 @@ export class TypeChecker
 
     return { errors, type: finalType };
   }
-  public visitFactor(expr: Expr.Factor): ITypeResultExpr<IArgumentType> {
+  public visitFactor(expr: Expr.Factor): ITypeResultExpr<ArgumentType> {
     const suffixResult = this.checkExpr(expr.suffix);
     const exponentResult = this.checkExpr(expr.exponent);
     const errors = suffixResult.errors.concat(exponentResult.errors);
@@ -1212,218 +1130,64 @@ export class TypeChecker
     return { errors, type: scalarType };
   }
 
-  public visitSuffix(expr: Expr.Suffix): ITypeResultExpr<IArgumentType> {
+  /**
+   * Visit a suffix
+   * @param expr suffix expression
+   */
+  public visitSuffix(expr: Expr.Suffix): ITypeResultExpr<ArgumentType> {
     const { suffixTerm, trailer } = expr;
     const [firstTrailer, ...remainingTrailers] = suffixTerm.trailers;
 
-    const atom = this.resolveAtom(suffixTerm.atom);
-    let current: ITypeResultSuffix<Type> = atom;
+    const builder = new SuffixTypeBuilder();
+    const errors = this.checkSuffixTerm(suffixTerm.atom, builder);
 
     if (!empty(firstTrailer)) {
       // handle case were suffix is actually a function call
       if (firstTrailer instanceof SuffixTerm.Call) {
-        current = this.resolveFunctionCall(firstTrailer, atom);
+        errors.push(...this.visitFunctionCall(firstTrailer, builder));
       } else {
-        current = this.checkSuffixTerm(firstTrailer, atom);
+        errors.push(...this.checkSuffixTerm(firstTrailer, builder));
       }
 
+      // handle remaining suffix term trailers
       for (const trailer of remainingTrailers) {
-        current = this.checkSuffixTerm(trailer, current);
+        errors.push(...this.checkSuffixTerm(trailer, builder));
       }
     }
 
-    const { type, errors } = current;
-    if (type.kind === TypeKind.suffix || type.kind === TypeKind.function) {
-      throw new Error('Type shouldn');
+    // if we have a trailer check that as well
+    if (!empty(trailer)) {
+      errors.push(...this.checkSuffixTerm(trailer, builder));
     }
 
-    if (empty(trailer)) {
-      return this.resultExpr(type, errors);
-    }
-
-    current = this.checkSuffixTerm(trailer, current);
-
-    if (current.type.kind === TypeKind.basic) {
-      return this.resultExpr(current.type, current.errors);
-    }
-
-    return this.errorsExpr(
-      errors,
-      current.errors,
-      createDiagnostic(trailer, 'TODO', DiagnosticSeverity.Hint),
-    );
+    return this.resultExpr(this.builderResult(builder), errors);
   }
 
-  public visitLambda(_: Expr.Lambda): ITypeResultExpr<IArgumentType> {
+  public visitLambda(_: Expr.Lambda): ITypeResultExpr<ArgumentType> {
     return this.resultExpr(delegateType);
   }
 
   // ----------------------------- Suffix -----------------------------------------
 
-  private resolveAtom(
-    atom: Atom,
-  ): ITypeResultSuffix<IArgumentType | IFunctionType, ITypeResolved> {
-    if (atom instanceof SuffixTerm.Literal) {
-      return this.resolveLiteral(atom);
-    }
-
-    if (atom instanceof SuffixTerm.Identifier) {
-      return this.resolveIdentifier(atom);
-    }
-
-    if (atom instanceof SuffixTerm.Grouping) {
-      return this.resolveGrouping(atom);
-    }
-
-    throw new Error('Unknown atom type');
-  }
-
-  private resolveLiteral(
-    literal: SuffixTerm.Literal,
-  ): ITypeResultSuffix<IArgumentType, ITypeResolved> {
-    switch (literal.token.type) {
-      case TokenType.true:
-      case TokenType.false:
-        return this.resultAtom(booleanType, literal, KsSymbolKind.variable);
-      case TokenType.integer:
-        return this.resultAtom(integarType, literal, KsSymbolKind.variable);
-      case TokenType.double:
-        return this.resultAtom(doubleType, literal, KsSymbolKind.variable);
-      case TokenType.string:
-      case TokenType.fileIdentifier:
-        return this.resultAtom(stringType, literal, KsSymbolKind.variable);
-      default:
-        throw new Error('Unknown literal type');
-    }
-  }
-
-  private resolveIdentifier(
-    identifer: SuffixTerm.Identifier,
-  ): ITypeResultSuffix<IArgumentType | IFunctionType, ITypeResolved> {
-    const { tracker } = identifer.token;
-
-    if (this.isBasicTracker(tracker)) {
-      const type = tracker.getType(identifer.token);
-
-      if (!empty(type)) {
-        return this.resultAtom(type, identifer, tracker.declared.symbol.tag);
-      }
-    }
-
-    return this.errorsAtom(
-      identifer,
-      createDiagnostic(
-        identifer,
-        'Unable to lookup identifier type',
-        DiagnosticSeverity.Hint,
-      ),
-    );
-  }
-
-  private resolveGrouping(
-    grouping: SuffixTerm.Grouping,
-  ): ITypeResultSuffix<IArgumentType, ITypeResolved> {
-    const result = this.checkExpr(grouping.expr);
-    return this.resultAtom(
-      result.type,
-      grouping,
-      KsSymbolKind.variable,
-      result.errors,
-    );
-  }
-
-  private resolveFunctionCall(
-    call: SuffixTerm.Call,
-    current: ITypeResultSuffix<Type, ITypeResolved>,
-  ): ITypeResultSuffix<IArgumentType, ITypeResolved> {
-    const { type, resolved, errors } = current;
-    if (type.kind !== TypeKind.function) {
-      return this.errorsAtom(
-        call,
-        createDiagnostic(
-          call,
-          `Type ${type.name} does not have a call signiture`,
-          DiagnosticSeverity.Hint,
-        ),
-      );
-    }
-
-    if (!Array.isArray(type.params)) {
-      const callResult = this.resolveVaradicCall(
-        type.params,
-        { type, resolved, errors },
-        call,
-      );
-      return {
-        ...callResult,
-        resolved: {
-          ...callResult.resolved,
-          atomType: KsSymbolKind.function,
-        },
-      };
-    }
-
-    // handle normal functions
-    const callResult = this.resolveNormalCall(
-      type.params,
-      { type, resolved, errors },
-      call,
-    );
-    return {
-      ...callResult,
-      resolved: {
-        ...callResult.resolved,
-        atomType: KsSymbolKind.function,
-      },
-    };
-  }
-
   public visitSuffixTrailer(
     suffixTerm: SuffixTerm.SuffixTrailer,
-    current: ITypeResultSuffix<Type>,
-  ): ITypeResultSuffix<SuffixTermType> {
+    builder: SuffixTypeBuilder,
+  ): Diagnostics {
     // check suffix term and trailers
-    const result = this.checkSuffixTerm(suffixTerm.suffixTerm, current);
-    const { type, resolved, errors } = result;
+    const errors = this.checkSuffixTerm(suffixTerm.suffixTerm, builder);
 
     // if no trailer exist attempt to return
-    if (empty(suffixTerm.trailer)) {
-      if (type.kind === TypeKind.basic) {
-        return { type, resolved, errors };
-      }
-
-      return this.errorsSuffixTermTrailer(
-        suffixTerm,
-        resolved,
-        errors,
-        createDiagnostic(
-          suffixTerm.suffixTerm,
-          `suffix ${result.type.name} ` +
-            `of type ${result.type.toTypeString()} ` +
-            'does not have a call signiture',
-          DiagnosticSeverity.Hint,
-        ),
-      );
+    if (!empty(suffixTerm.trailer)) {
+      errors.push(...this.checkSuffixTerm(suffixTerm.trailer, builder));
     }
 
-    const trailer = this.checkSuffixTerm(
-      suffixTerm.trailer,
-      this.suffixTrailerResult(type, suffixTerm),
-    );
-    // const node = this.lastSuffixNode(suffixTerm);
-
-    return this.resultSuffixTerm(
-      trailer.type,
-      { ...result.resolved, suffixTrailer: trailer.resolved },
-      result.errors,
-      trailer.errors,
-    );
+    return errors;
   }
 
   public visitSuffixTermInvalid(
     suffixTerm: SuffixTerm.Invalid,
-    param: ITypeResultSuffix<Type>,
-  ): ITypeResultSuffix<IArgumentType> {
+    param: SuffixTypeBuilder,
+  ): Diagnostics {
     if (suffixTerm && param) {
       console.log('TODO');
     }
@@ -1433,94 +1197,101 @@ export class TypeChecker
 
   public visitSuffixTerm(
     suffixTerm: SuffixTerm.SuffixTerm,
-    current: ITypeResultSuffix<Type>,
-  ): ITypeResultSuffix<IArgumentType> {
-    const atom = this.checkSuffixTerm(suffixTerm.atom, current);
-    let result = atom;
+    builder: SuffixTypeBuilder,
+  ): Diagnostics {
+    // check the atom
+    const errors = this.checkSuffixTerm(suffixTerm.atom, builder);
 
+    // add any errors from trailers
     for (const trailer of suffixTerm.trailers) {
-      result = this.checkSuffixTerm(trailer, result);
+      errors.push(...this.checkSuffixTerm(trailer, builder));
     }
 
-    const { type, resolved, errors } = result;
-
-    // if we only have some basic type return it
-    if (type.kind === TypeKind.basic) {
-      return { type, resolved, errors };
-    }
-
-    // if we end with a suffix type that doesn't require a call return it.
-    if (type.callType !== CallType.call) {
-      return { resolved, errors, type: type.returns };
-    }
-
-    // if we end with a suffix type which requires a call that's an error.
-    return this.errorsSuffixTermTrailer(
-      this.lastSuffixTermNode(suffixTerm),
-      resolved,
-      errors,
-    );
+    return errors;
   }
 
   /**
    * Visit a call expression and check for type errors
    * @param call the current call expresion
-   * @param current current resolved suffix expression
+   * @param builder current resolved suffix expression
    */
   public visitCall(
     call: SuffixTerm.Call,
-    current: ITypeResultSuffix<Type>,
-  ): ITypeResultSuffix<IArgumentType> {
-    const { type, resolved, errors } = current;
-
-    if (type.kind !== TypeKind.suffix) {
-      // TEST we can apparently call a suffix with no argument fine.
-      if (type.kind === TypeKind.basic && call.args.length === 0) {
-        return this.resultSuffixTermTrailer(type, call, resolved);
-      }
-
-      return this.errorsSuffixTermTrailer(
-        call,
-        resolved,
-        createDiagnostic(
-          call,
-          `type ${type.name} does not have call signiture`,
-          DiagnosticSeverity.Hint,
-        ),
-      );
+    builder: SuffixTypeBuilder,
+  ): Diagnostics {
+    if (!builder.isTrailer()) {
+      throw new Error("TODO shouldn't be able to get here visitCall");
     }
 
+    const type = builder.current();
+
+    // if the current type isn't a suffix
+    if (type.kind !== TypeKind.suffix) {
+      return [
+        createDiagnostic(
+          call,
+          `${type.name} has no call signiture`,
+          DiagnosticSeverity.Hint,
+        ),
+      ];
+    }
+
+    // handle variadic
     if (!Array.isArray(type.params)) {
-      return this.resolveVaradicCall(
-        type.params,
-        { type, resolved, errors },
-        call,
-      );
+      return this.visitVaradicCall(type.params, call);
     }
 
     // handle normal functions
-    return this.resolveNormalCall(
-      type.params,
-      { type, resolved, errors },
-      call,
-    );
+    return this.visitNormalCall(type.params, call);
+  }
+
+  private visitFunctionCall(
+    call: SuffixTerm.Call,
+    builder: SuffixTypeBuilder,
+  ): Diagnostics {
+    const type = builder.current();
+    const errors: Diagnostics = [];
+
+    // check if previous identifier resolves to a function
+    if (type.kind !== TypeKind.function) {
+      errors.push(
+        createDiagnostic(
+          call,
+          `Type ${type.name} does not have a call signiture`,
+          DiagnosticSeverity.Hint,
+        ),
+      );
+
+      return errors;
+    }
+
+    // handle nomral or varadic calls
+    if (!Array.isArray(type.params)) {
+      errors.push(...this.visitVaradicCall(type.params, call));
+    } else {
+      errors.push(...this.visitNormalCall(type.params, call));
+    }
+
+    return errors;
   }
 
   /**
    * Resolve variadic call for type errors
    * @param params parameter types
-   * @param current current resolved suffix expression
    * @param call current call expression
    */
-  private resolveVaradicCall(
+  private visitVaradicCall(
     params: IVariadicType,
-    current: ITypeResultSuffix<ISuffixType | IFunctionType>,
     call: SuffixTerm.Call,
-  ): ITypeResultSuffix<IArgumentType> {
-    const { type, resolved, errors } = current;
+  ): Diagnostics {
+    const errors: Diagnostics = [];
 
     for (const arg of call.args) {
+      // determine type of each argument
       const result = this.checkExpr(arg);
+      errors.push(...result.errors);
+
+      // add diagnostic if argument cannot be matched to parameter type
       if (!coerce(result.type, params.type)) {
         errors.push(
           createDiagnostic(
@@ -1532,24 +1303,23 @@ export class TypeChecker
       }
     }
 
-    return this.resultSuffixTermTrailer(type, call, resolved, errors);
+    return errors;
   }
 
   /**
    * Check a normal call signiture for type errors
    * @param params the parameter types
-   * @param current the current resolved suffix
    * @param call the call expression
    */
-  private resolveNormalCall(
-    params: Type[],
-    current: ITypeResultSuffix<ISuffixType | IFunctionType>,
-    call: SuffixTerm.Call,
-  ): ITypeResultSuffix<IArgumentType> {
-    const { type, resolved, errors } = current;
+  private visitNormalCall(params: Type[], call: SuffixTerm.Call): Diagnostics {
+    const errors: Diagnostics = [];
 
     for (const [arg, param] of zip(call.args, params)) {
+      // determine type of each argument
       const result = this.checkExpr(arg);
+      errors.push(...result.errors);
+
+      // add diagnostic if argument cannot be matched to parameter type
       if (!coerce(result.type, param)) {
         errors.push(
           createDiagnostic(
@@ -1561,45 +1331,56 @@ export class TypeChecker
       }
     }
 
-    // TODO length difference
-    return this.resultSuffixTermTrailer(type, call, resolved, errors);
+    // check argument length
+    if (call.args.length !== params.length) {
+      errors.push(
+        createDiagnostic(
+          call.close,
+          `Function expected ${params.length} parameters but was called with ${
+            call.args
+          } arguments`,
+          DiagnosticSeverity.Hint,
+        ),
+      );
+    }
+
+    return errors;
   }
 
   /**
    * visit an array index suffix expression.
    * @param suffixTerm the current array index
-   * @param current the current type
+   * @param builder the current type
    */
   public visitArrayIndex(
     suffixTerm: SuffixTerm.ArrayIndex,
-    current: ITypeResultSuffix<Type>,
-  ): ITypeResultSuffix<IArgumentType> {
-    const { type, errors, resolved } = current;
+    builder: SuffixTypeBuilder,
+  ): Diagnostics {
+    if (!builder.isTrailer()) {
+      throw new Error("TODO shouldn't be able to get here visitArrayIndex");
+    }
+
+    const type = builder.current();
+    const errors: Diagnostics = [];
 
     // TODO confirm indexable types
     // Only lists are indexable with '#'
     if (!coerce(type, userListType)) {
-      return this.errorsSuffixTermTrailer(
-        suffixTerm,
-        resolved,
-        errors,
+      errors.push(
         createDiagnostic(
           suffixTerm,
           'indexing with # requires a list',
           DiagnosticSeverity.Hint,
         ),
       );
+
+      return errors;
     }
 
     switch (suffixTerm.indexer.type) {
       // If index is integer we're already in good shape
       case TokenType.integer:
-        return this.resultSuffixTermTrailer(
-          arrayIndexer,
-          suffixTerm,
-          resolved,
-          errors,
-        );
+        return errors;
 
       // If index is identify check that it holds a integarType
       case TokenType.identifier:
@@ -1609,19 +1390,11 @@ export class TypeChecker
           const type = tracker.getType(suffixTerm.indexer);
 
           if (!empty(type) && coerce(type, integarType)) {
-            return this.resultSuffixTermTrailer(
-              arrayIndexer,
-              suffixTerm,
-              resolved,
-              errors,
-            );
+            return errors;
           }
         }
 
-        return this.errorsSuffixTermTrailer(
-          suffixTerm,
-          resolved,
-          errors,
+        errors.push(
           createDiagnostic(
             suffixTerm.indexer,
             `${suffixTerm.indexer.lexeme} is not a scalar type. ` +
@@ -1630,40 +1403,42 @@ export class TypeChecker
           ),
         );
 
+        return errors;
+
       // All other cases are unallowed
       default:
-        return this.errorsSuffixTermTrailer(
-          suffixTerm,
-          resolved,
-          errors,
+        errors.push(
           createDiagnostic(
             suffixTerm.indexer,
-            'Cannot index array with # other than with scalars or variables',
+            'Can only index an array with # scalars or variables',
             DiagnosticSeverity.Hint,
           ),
         );
+
+        return errors;
     }
   }
 
   /**
    * visit an array bracket suffix expression.
    * @param suffixTerm the current array bracket expression
-   * @param current the current ytpe
+   * @param builder the suffix type builder
    */
   public visitArrayBracket(
     suffixTerm: SuffixTerm.ArrayBracket,
-    current: ITypeResultSuffix<Type>,
-  ): ITypeResultSuffix<IArgumentType> {
-    const { type, resolved, errors } = current;
+    builder: SuffixTypeBuilder,
+  ): Diagnostics {
+    if (!builder.isTrailer()) {
+      throw new Error("TODO shouldn't be able to get here visitArrayBracket");
+    }
+
     const indexResult = this.checkExpr(suffixTerm.index);
+    const errors = indexResult.errors;
+    const type = builder.current();
 
     // if we know the collection type is a list we need a scalar indexer
     if (coerce(type, userListType) && !coerce(indexResult.type, scalarType)) {
-      return this.errorsSuffixTermTrailer(
-        suffixTerm,
-        resolved,
-        errors,
-        indexResult.errors,
+      errors.push(
         createDiagnostic(
           suffixTerm.index,
           'Can only use scalars as list index' +
@@ -1675,14 +1450,10 @@ export class TypeChecker
 
     // if we know the collection type is a lexicon we need a string indexer
     if (coerce(type, lexiconType) && !coerce(indexResult.type, stringType)) {
-      return this.errorsSuffixTermTrailer(
-        suffixTerm,
-        resolved,
-        errors,
-        indexResult.errors,
+      errors.push(
         createDiagnostic(
           suffixTerm.index,
-          'Can only use string as lexicon index' +
+          'Can only use a string as a lexicon index.' +
             'This may not able to be coerced into string type',
           DiagnosticSeverity.Hint,
         ),
@@ -1691,43 +1462,37 @@ export class TypeChecker
 
     // if we know the collection type is a string we need a scalar indexer
     if (!coerce(type, stringType) && !coerce(indexResult.type, scalarType)) {
-      return this.errorsSuffixTermTrailer(
-        suffixTerm,
-        resolved,
-        errors,
-        indexResult.errors,
+      errors.push(
         createDiagnostic(
           suffixTerm.index,
-          'Can only use string or scalar as index' +
-            'This may not able to be coerced into string or scalar type',
+          'Can only use a scalar as a string index.' +
+            'This may not able to be coerced into scalar type',
           DiagnosticSeverity.Hint,
         ),
       );
     }
 
-    return this.resultSuffixTermTrailer(
-      arrayBracketIndexer,
-      suffixTerm,
-      resolved,
-      errors,
-    );
+    return errors;
   }
 
   /**
    * visit the suffix term for delgates. This will return a new delgate type
    * @param suffixTerm the current delgate node
-   * @param current the currently resolved type
+   * @param builder the suffix type builder
    */
   public visitDelegate(
     suffixTerm: SuffixTerm.Delegate,
-    current: ITypeResultSuffix<Type>,
-  ): ITypeResultSuffix<IArgumentType> {
-    const { type, resolved, errors } = current;
+    builder: SuffixTypeBuilder,
+  ): Diagnostics {
+    if (!builder.isTrailer()) {
+      throw new Error("TODO shouldn't be able to get here visitDelegate");
+    }
+
+    const type = builder.current();
+    const errors: Diagnostics = [];
+
     if (type.kind !== TypeKind.function) {
-      return this.errorsSuffixTermTrailer(
-        suffixTerm,
-        resolved,
-        errors,
+      errors.push(
         createDiagnostic(
           suffixTerm,
           'Can only create delegate of functions',
@@ -1736,75 +1501,130 @@ export class TypeChecker
       );
     }
 
-    return this.resultSuffixTermTrailer(
-      delegateCreation,
-      suffixTerm,
-      resolved,
-      errors,
-    );
+    return errors;
   }
 
   /**
-   * visit the suffix term for literals. This should not occur
-   * @param _ literal syntax node
-   * @param __ current type
+   * visit the suffix term for literals.
+   * @param suffixTerm literal syntax node
+   * @param builder the suffix type builder
    */
   public visitLiteral(
-    _: SuffixTerm.Literal,
-    __: ITypeResultSuffix<Type>,
-  ): ITypeResultSuffix<IArgumentType> {
-    throw new Error('Literal should not appear outside of suffix atom');
+    suffixTerm: SuffixTerm.Literal,
+    builder: SuffixTypeBuilder,
+  ): Diagnostics {
+    if (builder.isTrailer()) {
+      throw new Error("TODO shouldn't be able to get here visitLiteral");
+    }
+
+    // if we're at the base push the new type node onto the builder
+    switch (suffixTerm.token.type) {
+      case TokenType.true:
+      case TokenType.false:
+        builder.nodes.push(new TypeNode(booleanType, suffixTerm));
+        return [];
+      case TokenType.integer:
+        builder.nodes.push(new TypeNode(integarType, suffixTerm));
+        return [];
+      case TokenType.double:
+        builder.nodes.push(new TypeNode(doubleType, suffixTerm));
+        return [];
+      case TokenType.string:
+      case TokenType.fileIdentifier:
+        builder.nodes.push(new TypeNode(doubleType, suffixTerm));
+        return [];
+      default:
+        throw new Error('TODO invalid literal token found visitLiteral');
+    }
   }
 
   /**
    * visit the suffix term for identifier.
    * @param suffixTerm identifier syntax node
-   * @param current current type
+   * @param builder the suffix type builder
    */
   public visitIdentifier(
     suffixTerm: SuffixTerm.Identifier,
-    current: ITypeResultSuffix<Type>,
-  ): ITypeResultSuffix<SuffixTermType> {
-    const { type, resolved, errors } = current;
-    const suffix = getSuffix(type, suffixTerm.token.lookup);
+    builder: SuffixTypeBuilder,
+  ): Diagnostics {
 
-    // may need to pass sommething in about if we're in get set context
-    if (empty(suffix)) {
-      return this.errorsSuffixTerm(
-        { ...resolved, node: new TypeNode(suffixError, suffixTerm) },
-        errors,
-        createDiagnostic(
-          suffixTerm,
-          `Could not find suffix ${suffixTerm.token.lookup} for type ${
-            type.name
-          }`,
-          DiagnosticSeverity.Hint,
-        ),
-      );
+    // if we're a trailer check for suffixes
+    if (builder.isTrailer()) {
+      const type = builder.current();
+      const suffix = getSuffix(this.builderResult(builder), suffixTerm.token.lookup);
+
+      // may need to pass sommething in about if we're in get set context
+      if (!empty(suffix)) {
+
+        // assign type tracker
+        suffixTerm.token.tracker = suffix.getTracker();
+
+        // push new node onto builder
+        builder.nodes.push(new TypeNode(suffix, suffixTerm));
+        return [];
+      }
+
+      // add suffix error to builder
+      builder.nodes.push(new TypeNode(suffixError, suffixTerm));
+
+      // indicate suffix not found
+      return [createDiagnostic(
+        suffixTerm,
+        `Unable to find suffix ${suffixTerm.token.lookup} on type ${type.toTypeString()}`,
+        DiagnosticSeverity.Hint,
+      )];
     }
 
-    return this.resultSuffixTerm(
-      suffix,
-      { ...resolved, node: new TypeNode(suffix, suffixTerm) },
-      errors,
-    );
+    const { tracker } = suffixTerm.token;
+
+    // make sure we have a basic tracker
+    if (this.isBasicTracker(tracker)) {
+      const type = tracker.getType(suffixTerm.toLocation(this.script.uri));
+
+      // if type is found at this location add it to builder
+      if (!empty(type)) {
+        builder.nodes.push(new TypeNode(type, suffixTerm));
+        return [];
+      }
+
+      // if we can't find the type here default to structure
+      builder.nodes.push(new TypeNode(structureType, suffixTerm));
+      return [createDiagnostic(
+        suffixTerm,
+        `Cannot determine type for ${suffixTerm.token.lexeme}.`,
+        DiagnosticSeverity.Hint,
+      )];
+    }
+
+    // in theory we should never get here
+    throw Error('TODO identifier should only have basic tracker');
   }
 
   /**
-   * visit the suffix term for grouping. grouping is invalid in this context
-   * @param _ grouping syntax node
-   * @param __ current type
+   * visit the suffix term for grouping.
+   * @param suffixTerm grouping syntax node
+   * @param builder the suffix type builder
    */
   public visitGrouping(
-    _: SuffixTerm.Grouping,
-    __: ITypeResultSuffix<Type>,
-  ): ITypeResultSuffix<IArgumentType> {
-    throw new Error('Grouping should not appear outside of suffix atom');
+    suffixTerm: SuffixTerm.Grouping,
+    builder: SuffixTypeBuilder,
+  ): Diagnostics {
+    if (builder.isTrailer()) {
+      throw new Error("TODO shouldn't be able to get here visitGrouping");
+    }
+
+    const { type, errors } = this.checkExpr(suffixTerm.expr);
+
+    // push result of grouping onto builder
+    builder.nodes.push(new TypeNode(type, suffixTerm));
+    return errors;
   }
 
   // ----------------------------- Helpers -----------------------------------------
 
-  private isBasicTracker(tracker: Maybe<SymbolTracker>): tracker is BasicTracker {
+  private isBasicTracker(
+    tracker: Maybe<SymbolTracker>,
+  ): tracker is BasicTracker {
     return !empty(tracker) && tracker.kind === TrackerKind.basic;
   }
 
@@ -1820,11 +1640,11 @@ export class TypeChecker
     leftResult: ITypeResultExpr<Type>,
     rightResult: ITypeResultExpr<Type>,
     operator: Operator,
-  ): ITypeResultExpr<IArgumentType> {
+  ): ITypeResultExpr<ArgumentType> {
     const leftType = leftResult.type;
     const rightType = rightResult.type;
     const errors = leftResult.errors.concat(rightResult.errors);
-    let calcType: Maybe<IArgumentType> = undefined;
+    let calcType: Maybe<ArgumentType> = undefined;
 
     // TODO could be more efficient
     if (isSubType(leftType, scalarType) && isSubType(rightType, scalarType)) {
@@ -1884,16 +1704,6 @@ export class TypeChecker
   }
 
   /**
-   * Accumulate all type errors defaults to structure type
-   * @param errors type errors
-   */
-  private errorsExpr(
-    ...errors: (Diagnostic | Diagnostic[])[]
-  ): ITypeResultExpr<IArgumentType> {
-    return this.resultExpr(structureType, ...errors);
-  }
-
-  /**
    * Return the resultant type with any errors
    * @param type current type
    * @param errors accumulated errors
@@ -1909,145 +1719,19 @@ export class TypeChecker
   }
 
   /**
-   * an error for a suffixterm trailer
-   * @param resolved the current resolved type
-   * @param errors the accumulated errors
+   * Get the current result of the suffix type builder
+   * @param builder suffix type builder
    */
-  private errorsSuffixTermTrailer(
-    node: SuffixTerm.SuffixTermBase,
-    resolved: ITypeResolvedSuffix,
-    ...errors: (Diagnostic | Diagnostic[])[]
-  ): ITypeResultSuffix<IArgumentType, ITypeResolvedSuffix> {
-    return this.resultSuffixTermTrailer(suffixError, node, resolved, ...errors);
-  }
+  private builderResult(builder: SuffixTypeBuilder): ArgumentType {
+    const current = builder.current();
 
-  /**
-   * result of a suffix term trailer
-   * @param type the current type
-   * @param resolved the type resolve so far
-   * @param errors the accumlated type errors
-   */
-  private resultSuffixTermTrailer(
-    type: Type,
-    node: SuffixTerm.SuffixTermBase,
-    resolved: ITypeResolvedSuffix,
-    ...errors: (Diagnostic | Diagnostic[])[]
-  ): ITypeResultSuffix<IArgumentType, ITypeResolvedSuffix> {
-    const { atom: current, termTrailers, suffixTrailer } = resolved;
-    let returns = structureType;
-    if (type.kind === TypeKind.function || type.kind === TypeKind.suffix) {
-      returns = type.returns;
-    } else {
-      returns = type;
+    switch (current.kind) {
+      case TypeKind.basic:
+        return current;
+      case TypeKind.function:
+      case TypeKind.suffix:
+        return current.returns;
     }
-
-    return this.resultSuffixTerm(
-      returns,
-      {
-        suffixTrailer,
-        atom: current,
-        termTrailers: [...termTrailers, new TypeNode(type, node)],
-      },
-      ...errors,
-    );
-  }
-
-  /**
-   * Return the suffix error type
-   * @param resolved the currently resolved type
-   * @param errors all accumulated errors
-   */
-  private errorsSuffixTerm<R extends ITypeResolvedSuffix>(
-    resolved: R,
-    ...errors: (Diagnostic | Diagnostic[])[]
-  ): ITypeResultSuffix<ISuffixType, R> {
-    return this.resultSuffixTerm(suffixError, resolved, ...errors);
-  }
-
-  /**
-   * Return the type result of the suffix term
-   * @param type resultant type
-   * @param resolved resolved cummulative suffix type
-   * @param errors errors encounted while type checking
-   */
-  private resultSuffixTerm<T extends Type, R extends ITypeResolvedSuffix>(
-    type: T,
-    resolved: R,
-    ...errors: (Diagnostic | Diagnostic[])[]
-  ): ITypeResultSuffix<T, R> {
-    return {
-      type,
-      resolved,
-      errors: ([] as Diagnostic[]).concat(...errors),
-    };
-  }
-
-  /**
-   * Return the atom error type
-   * @param node suffix term node the error occured
-   * @param errors errors encountered while checking this atom
-   */
-  private errorsAtom(
-    node: SuffixTerm.SuffixTermBase,
-    ...errors: (Diagnostic | Diagnostic[])[]
-  ): ITypeResultSuffix<IArgumentType, ITypeResolved> {
-    return this.resultAtom(
-      structureType,
-      node,
-      KsSymbolKind.variable,
-      ...errors,
-    );
-  }
-
-  /**
-   * Returns the result of an atom typecheck
-   * @param type the current type of the atom
-   * @param node node checked for this checking
-   * @param atomType the symbol type of the atom
-   * @param errors errors encountered during the checking
-   */
-  private resultAtom<T extends Type>(
-    type: T,
-    node: SuffixTerm.SuffixTermBase,
-    atomType: KsSymbolKind,
-    ...errors: (Diagnostic | Diagnostic[])[]
-  ): ITypeResultSuffix<T, ITypeResolved> {
-    return {
-      type,
-      errors: ([] as Diagnostic[]).concat(...errors),
-      resolved: {
-        atomType,
-        atom: new TypeNode(type, node),
-        termTrailers: [],
-      },
-    };
-  }
-
-  /**
-   * New result for a new suffix trailer to fill in
-   * @param type the type of the suffix expression so far
-   * @param node the node the type was derived from
-   */
-  private suffixTrailerResult<T extends Type>(
-    type: T,
-    node: SuffixTerm.SuffixTermBase,
-  ): ITypeResultSuffix<T, ITypeResolvedSuffix> {
-    return {
-      type,
-      resolved: {
-        atom: new TypeNode(type, node),
-        termTrailers: [] as TypeNode<Type>[],
-      },
-      errors: [],
-    };
-  }
-
-  private lastSuffixTermNode(
-    suffixTerm: SuffixTerm.SuffixTerm,
-  ): SuffixTerm.SuffixTermBase {
-    return suffixTerm.trailers.length > 0
-      ? suffixTerm.trailers[suffixTerm.trailers.length - 1]
-      : suffixTerm.atom;
   }
 
   /**

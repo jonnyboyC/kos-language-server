@@ -1,7 +1,7 @@
 import { TypeNode } from './typeNode';
 import { Type } from './types/types';
 
-export class SuffixTypeNode {
+export class SuffixTypeBuilder {
   public nodes: TypeNode[];
 
   constructor() {
@@ -12,11 +12,11 @@ export class SuffixTypeNode {
     return this.nodes.length > 0;
   }
 
-  public current(): Maybe<Type> {
-    if (this.nodes.length === 0) {
-      return undefined;
+  public current(): Type {
+    if (this.nodes.length > 0) {
+      return this.nodes[this.nodes.length - 1].type;
     }
 
-    return this.nodes[this.nodes.length - 1].type;
+    throw new Error('Must have at least one node before current can be called');
   }
 }

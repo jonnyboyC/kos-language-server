@@ -3,10 +3,10 @@ import { ScopeKind } from '../parser/types';
 import { KsVariable } from '../entities/variable';
 import {
   EnvironmentNode,
-  KsSymbol,
   SymbolTrackerBase,
   KsSymbolKind,
   EnvironmentPath,
+  KsBaseSymbol,
 } from './types';
 import { KsFunction } from '../entities/function';
 import { KsLock } from '../entities/lock';
@@ -20,7 +20,7 @@ import { ScopePosition } from './scopePosition';
 import { mockLogger } from '../utilities/logger';
 import { Environment } from './scope';
 import { BasicTracker, createSymbolSet } from './tracker';
-import { IArgumentType, IFunctionType } from '../typeChecker/types/types';
+import { ArgumentType, IFunctionType } from '../typeChecker/types/types';
 import { SymbolTable } from './symbolTable';
 import {
   isVariable,
@@ -331,7 +331,7 @@ export class SymbolTableBuilder {
   public declareVariable(
     scopeType: ScopeKind,
     token: Token,
-    type?: IArgumentType,
+    type?: ArgumentType,
   ): Maybe<Diagnostic> {
     const conflictTracker = this.lookup(token.lookup, scopeType);
 
@@ -449,7 +449,7 @@ export class SymbolTableBuilder {
   public declareLock(
     scopeType: ScopeKind,
     token: Token,
-    type?: IArgumentType,
+    type?: ArgumentType,
   ): Maybe<Diagnostic> {
     const conflictTracker = this.lookup(token.lookup, scopeType);
 
@@ -868,7 +868,7 @@ export class SymbolTableBuilder {
   private shadowSymbolHint(
     name: Token,
     kind: KsSymbolKind,
-    symbol: KsSymbol,
+    symbol: KsBaseSymbol,
   ): Diagnostic {
     return createDiagnostic(
       name,
@@ -893,7 +893,7 @@ export class SymbolTableBuilder {
    * @param name token for the requested symbol
    * @param symbol collided symbol
    */
-  private localConflictError(name: Token, symbol: KsSymbol): Diagnostic {
+  private localConflictError(name: Token, symbol: KsBaseSymbol): Diagnostic {
     return createDiagnostic(
       name,
       `${toCase(CaseKind.pascalcase, KsSymbolKind[symbol.tag])} ${

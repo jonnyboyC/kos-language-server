@@ -1,13 +1,13 @@
 import { SymbolTrackerBase, KsSet, IKsDeclared, TrackerKind, KsBaseSymbol } from './types';
 import { structureType } from '../typeChecker/types/primitives/structure';
 import { Location } from 'vscode-languageserver';
-import { IArgumentType, IFunctionType } from '../typeChecker/types/types';
+import { ArgumentType, IFunctionType } from '../typeChecker/types/types';
 import { binaryRightKey, locationEqual } from '../utilities/positionUtils';
 import { builtIn } from '../utilities/constants';
-import { FunctionType } from '../typeChecker/types/ksType';
+import { FunctionType } from '../typeChecker/ksType';
 
 export class BasicTracker<T extends KsBaseSymbol = KsBaseSymbol> implements SymbolTrackerBase {
-  public readonly declared: IKsDeclared<T, IArgumentType | IFunctionType>;
+  public readonly declared: IKsDeclared<T, ArgumentType | IFunctionType>;
 
   /**
    * Infromation about locations where the this symbol was set
@@ -22,7 +22,7 @@ export class BasicTracker<T extends KsBaseSymbol = KsBaseSymbol> implements Symb
   constructor(
     symbol: T,
     public uri: string,
-    public type: IArgumentType | IFunctionType = structureType,
+    public type: ArgumentType | IFunctionType = structureType,
   ) {
     this.declared = {
       symbol,
@@ -45,7 +45,7 @@ export class BasicTracker<T extends KsBaseSymbol = KsBaseSymbol> implements Symb
    * Set the declared type of this symbol
    * @param type type to declare this symbol
    */
-  public declareType(type: IArgumentType | FunctionType): void {
+  public declareType(type: ArgumentType | FunctionType): void {
     this.declared.type = type;
   }
 
@@ -53,7 +53,7 @@ export class BasicTracker<T extends KsBaseSymbol = KsBaseSymbol> implements Symb
    * Get the type at a provided location
    * @param loc location to check
    */
-  private getLocation(loc: Location): KsSet | IKsDeclared<T, IArgumentType | IFunctionType> {
+  private getLocation(loc: Location): KsSet | IKsDeclared<T, ArgumentType | IFunctionType> {
     // if builtin type can't change so just return declared type
     if (this.declared.uri === builtIn) {
       return this.declared;
@@ -73,7 +73,7 @@ export class BasicTracker<T extends KsBaseSymbol = KsBaseSymbol> implements Symb
    * Get the type at a location
    * @param loc query location
    */
-  public getType(loc: Location): Maybe<IArgumentType | IFunctionType> {
+  public getType(loc: Location): Maybe<ArgumentType | IFunctionType> {
     return this.getLocation(loc).type;
   }
 
@@ -82,7 +82,7 @@ export class BasicTracker<T extends KsBaseSymbol = KsBaseSymbol> implements Symb
    * @param loc location to set
    * @param type type to set
    */
-  public setType(loc: Location, type: IArgumentType | FunctionType): void {
+  public setType(loc: Location, type: ArgumentType | FunctionType): void {
     const nearestSet = this.getLocation(loc);
     if (locationEqual(nearestSet, loc)) {
       nearestSet.type = type;
@@ -97,5 +97,5 @@ export class BasicTracker<T extends KsBaseSymbol = KsBaseSymbol> implements Symb
  */
 export const createSymbolSet = (
   loc: Location,
-  type: IArgumentType = structureType,
+  type: ArgumentType = structureType,
 ): KsSet => ({ type, uri: loc.uri, range: loc.range });

@@ -1,8 +1,5 @@
-import { IArgumentType } from './types';
-import {
-  createStructureType, createArgSuffixType,
-  createSetSuffixType, createSuffixType,
-} from './ksType';
+import { ArgumentType } from './types';
+import { createStructureType, createArgSuffixType, createSetSuffixType, createSuffixType } from "../typeCreators";
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { structureType } from './primitives/structure';
 import { pidLoopType } from './pidLoop';
@@ -11,7 +8,7 @@ import { voidType } from './primitives/void';
 import { booleanType } from './primitives/boolean';
 import { scalarType } from './primitives/scalar';
 
-export const steeringManagerType: IArgumentType = createStructureType('steeringManager');
+export const steeringManagerType: ArgumentType = createStructureType('steeringManager');
 addPrototype(steeringManagerType, structureType);
 
 addSuffixes(

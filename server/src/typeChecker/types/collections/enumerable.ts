@@ -1,8 +1,5 @@
 import { IGenericArgumentType } from '../types';
-import {
-  createArgSuffixType, createGenericStructureType,
-  tType, createGenericArgSuffixType,
-} from '../ksType';
+import { createArgSuffixType, createGenericBasicType, tType, createGenericArgSuffixType } from "../../typeCreators";
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { enumeratorType } from './enumerator';
 import { iterator } from '../../../utilities/constants';
@@ -12,7 +9,7 @@ import { stringType } from '../primitives/string';
 import { voidType } from '../primitives/void';
 import { serializableStructureType } from '../primitives/serializeableStructure';
 
-export const enumerableType: IGenericArgumentType = createGenericStructureType('enumerable');
+export const enumerableType: IGenericArgumentType = createGenericBasicType('enumerable');
 addPrototype(enumerableType, serializableStructureType);
 
 addSuffixes(
@@ -25,7 +22,7 @@ addSuffixes(
   createArgSuffixType('dump', stringType),
 );
 
-export const collectionType: IGenericArgumentType = createGenericStructureType('collection');
+export const collectionType: IGenericArgumentType = createGenericBasicType('collection');
 addPrototype(collectionType, enumerableType);
 
 addSuffixes(

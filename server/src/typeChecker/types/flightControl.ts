@@ -1,12 +1,12 @@
-import { IArgumentType } from './types';
-import { createStructureType, createSuffixType, createSetSuffixType } from './ksType';
+import { ArgumentType } from './types';
+import { createStructureType, createSuffixType, createSetSuffixType } from "../typeCreators";
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { structureType } from './primitives/structure';
 import { vectorType } from './collections/vector';
 import { scalarType } from './primitives/scalar';
 import { booleanType } from './primitives/boolean';
 
-export const flightControlType: IArgumentType = createStructureType('flightControl');
+export const flightControlType: ArgumentType = createStructureType('flightControl');
 addPrototype(flightControlType, structureType);
 
 addSuffixes(

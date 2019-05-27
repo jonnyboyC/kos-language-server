@@ -1,9 +1,12 @@
-import { IArgumentType } from '../types';
+import { ArgumentType } from '../types';
 import {
-  createStructureType, createSuffixType,
-  createArgSuffixType, createVarSuffixType,
-} from '../ksType';
-import { addPrototype, addSuffixes, createVarType } from '../../typeUitlities';
+  createStructureType,
+  createSuffixType,
+  createArgSuffixType,
+  createVarSuffixType,
+  createVarType,
+} from '../../typeCreators';
+import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { structureType } from '../primitives/structure';
 import { volumeType } from './volume';
 import { userListType } from '../collections/userList';
@@ -12,7 +15,7 @@ import { stringType } from '../primitives/string';
 import { booleanType } from '../primitives/boolean';
 import { serializableStructureType } from '../primitives/serializeableStructure';
 
-export const pathType: IArgumentType = createStructureType('path');
+export const pathType: ArgumentType = createStructureType('path');
 addPrototype(pathType, serializableStructureType);
 
 addSuffixes(

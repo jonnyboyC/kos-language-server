@@ -1,11 +1,11 @@
-import { IArgumentType } from './types';
-import { createStructureType, createSetSuffixType } from './ksType';
+import { ArgumentType } from './types';
+import { createStructureType, createSetSuffixType } from "../typeCreators";
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { structureType } from './primitives/structure';
 import { scalarType } from './primitives/scalar';
 import { booleanType } from './primitives/boolean';
 
-export const configType: IArgumentType = createStructureType('config');
+export const configType: ArgumentType = createStructureType('config');
 addPrototype(configType, structureType);
 
 addSuffixes(

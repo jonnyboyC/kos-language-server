@@ -1,5 +1,4 @@
 import { KsSymbolKind } from '../analysis/types';
-import { Token } from './token';
 
 /**
  * A class containing the information of a suffix
@@ -10,7 +9,7 @@ export class KsSuffix {
    * @param name the name of this suffix
    */
   constructor(
-    public readonly name: Token,
+    public readonly name: string,
   )
   { }
 

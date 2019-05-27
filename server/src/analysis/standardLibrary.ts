@@ -3,7 +3,6 @@ import { Token } from '../entities/token';
 import { TokenType } from '../entities/tokentypes';
 import { queueType } from '../typeChecker/types/collections/queue';
 import { structureType } from '../typeChecker/types/primitives/structure';
-import { createVarType } from '../typeChecker/typeUitlities';
 import { listType } from '../typeChecker/types/collections/list';
 import { stackType } from '../typeChecker/types/collections/stack';
 import { uniqueSetType } from '../typeChecker/types/collections/uniqueset';
@@ -38,11 +37,8 @@ import { volumeFileType } from '../typeChecker/types/io/volumneFile';
 import { pidLoopType } from '../typeChecker/types/pidLoop';
 import { volumeItemType } from '../typeChecker/types/io/volumeItem';
 import { volumeDirectoryType } from '../typeChecker/types/io/volumeDirectory';
-import {
-  createFunctionType,
-  createVarFunctionType,
-} from '../typeChecker/types/ksType';
-import { IArgumentType, IFunctionType } from '../typeChecker/types/types';
+import { createFunctionType, createVarFunctionType, createVarType } from '../typeChecker/typeCreators';
+import { ArgumentType, IFunctionType } from '../typeChecker/types/types';
 import { delegateType } from '../typeChecker/types/primitives/delegate';
 import { kUniverseType } from '../typeChecker/types/kUniverse';
 import { homeConnectionType } from '../typeChecker/types/communication/homeConnection';
@@ -504,7 +500,7 @@ const functionTypes: [string[], IFunctionType][] = [
 // createFunctionType('delete_deprecated', /* TODO */ scalarType),
 // createFunctionType('run', /* TODO */ scalarType),
 
-const locks: [string[], IArgumentType][] = [
+const locks: [string[], ArgumentType][] = [
   [['throttle'], scalarType],
   [['steering'], directionType],
   [['wheel', 'throttle'], scalarType],
@@ -513,7 +509,7 @@ const locks: [string[], IArgumentType][] = [
   [['nav', 'mode'], stringType],
 ];
 
-const variables: [string[], IArgumentType][] = [
+const variables: [string[], ArgumentType][] = [
   [['abort'], booleanType], // TODO
   [['active', 'ship'], vesselTargetType],
   [['addons'], addonListType],
@@ -616,7 +612,7 @@ const variables: [string[], IArgumentType][] = [
   [['yellow'], rgbaType],
 ];
 
-const bodies: [string, IArgumentType][] = [
+const bodies: [string, ArgumentType][] = [
   ['kerbol', bodyTargetType],
   ['moho', bodyTargetType],
   ['eve', bodyTargetType],

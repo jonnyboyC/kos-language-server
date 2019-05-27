@@ -1,7 +1,6 @@
 import { empty } from '../utilities/typeGuards';
-import { memoize } from '../utilities/memoize';
 import {
-  IArgumentType,
+  ArgumentType,
   IGenericArgumentType,
   IGenericVariadicType,
   IGenericSuffixType,
@@ -14,7 +13,6 @@ import {
   CallType,
   TypeKind,
 } from './types/types';
-import { VariadicType } from './types/ksType';
 
 /**
  * check if the target call type is compatable with real call type
@@ -66,7 +64,7 @@ export const isSubType = (queryType: Type, targetType: Type): boolean => {
 export const hasOperator = (
   type: Type,
   operator: Operator,
-): Maybe<IArgumentType> => {
+): Maybe<ArgumentType> => {
   if (type.kind === TypeKind.basic) {
     return moveDownPrototype(type, undefined, currentType => {
       if (!empty(currentType.operators.has(operator))) {
@@ -154,18 +152,9 @@ export const isFullVarType = (
  */
 export const isFullType = (
   type: IGenericArgumentType,
-): type is IArgumentType => {
+): type is ArgumentType => {
   return type.fullType;
 };
-
-/**
- * Create variadic type
- */
-export const createVarType = memoize(
-  (type: IArgumentType): IVariadicType => {
-    return new VariadicType(type);
-  },
-);
 
 /**
  * Add type to prototype chain
@@ -225,9 +214,9 @@ export const addSuffixes = <
  * @param func query function
  */
 const moveDownPrototype = <T>(
-  type: IArgumentType,
+  type: ArgumentType,
   nullValue: T,
-  func: (currentType: IArgumentType) => Maybe<T>,
+  func: (currentType: ArgumentType) => Maybe<T>,
 ): T => {
   let currentType = type;
   while (true) {

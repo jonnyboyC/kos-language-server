@@ -1,8 +1,5 @@
-import { IArgumentType } from '../types';
-import {
-  createStructureType, createArgSuffixType,
-  createSuffixType, createSetSuffixType,
-} from '../ksType';
+import { ArgumentType } from '../types';
+import { createStructureType, createArgSuffixType, createSuffixType, createSetSuffixType } from "../../typeCreators";
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { structureType } from '../primitives/structure';
 import { directionType } from '../direction';
@@ -16,7 +13,7 @@ import { booleanType } from '../primitives/boolean';
 import { partModuleFieldsType } from './partModuleFields';
 import { vesselTargetType } from '../orbital/vesselTarget';
 
-export const partType: IArgumentType = createStructureType('part');
+export const partType: ArgumentType = createStructureType('part');
 addPrototype(partType, structureType);
 
 addSuffixes(

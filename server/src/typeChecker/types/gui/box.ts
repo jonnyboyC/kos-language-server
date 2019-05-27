@@ -1,8 +1,5 @@
-import { IArgumentType } from '../types';
-import {
-  createSetSuffixType, createSuffixType,
-  createArgSuffixType, createStructureType,
-} from '../ksType';
+import { ArgumentType } from '../types';
+import { createSetSuffixType, createSuffixType, createArgSuffixType, createStructureType } from "../../typeCreators";
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { widgetType } from './widget';
 import { userDelegateType } from '../userDelegate';
@@ -19,7 +16,7 @@ import { stringType } from '../primitives/string';
 import { booleanType } from '../primitives/boolean';
 import { doubleType, integarType } from '../primitives/scalar';
 
-export const boxType: IArgumentType = createStructureType('box');
+export const boxType: ArgumentType = createStructureType('box');
 addPrototype(boxType, widgetType);
 
 addSuffixes(

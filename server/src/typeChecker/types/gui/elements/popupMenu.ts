@@ -1,5 +1,5 @@
-import { createStructureType, createSetSuffixType, createArgSuffixType } from '../../ksType';
-import { IArgumentType } from '../../types';
+import { createStructureType, createSetSuffixType, createArgSuffixType } from "../../../typeCreators";
+import { ArgumentType } from '../../types';
 import { addPrototype, addSuffixes } from '../../../typeUitlities';
 import { userDelegateType } from '../../userDelegate';
 import { buttonType } from './button';
@@ -10,7 +10,7 @@ import { integarType } from '../../primitives/scalar';
 import { booleanType } from '../../primitives/boolean';
 import { stringType } from '../../primitives/string';
 
-export const popupMenuType: IArgumentType = createStructureType('popupMenu');
+export const popupMenuType: ArgumentType = createStructureType('popupMenu');
 addPrototype(popupMenuType, buttonType);
 
 addSuffixes(

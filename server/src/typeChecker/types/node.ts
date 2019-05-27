@@ -1,12 +1,12 @@
-import { IArgumentType } from './types';
-import { createStructureType, createSuffixType, createSetSuffixType } from './ksType';
+import { ArgumentType } from './types';
+import { createStructureType, createSuffixType, createSetSuffixType } from "../typeCreators";
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { structureType } from './primitives/structure';
 import { vectorType } from './collections/vector';
 import { orbitInfoType } from './orbitInfo';
 import { scalarType } from './primitives/scalar';
 
-export const nodeType: IArgumentType = createStructureType('node');
+export const nodeType: ArgumentType = createStructureType('node');
 addPrototype(nodeType, structureType);
 
 addSuffixes(

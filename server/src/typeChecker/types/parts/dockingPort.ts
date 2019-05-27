@@ -1,5 +1,5 @@
-import { createStructureType, createSuffixType, createArgSuffixType } from '../ksType';
-import { IArgumentType } from '../types';
+import { createStructureType, createSuffixType, createArgSuffixType } from "../../typeCreators";
+import { ArgumentType } from '../types';
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { decouplerType } from './decoupler';
 import { scalarType } from '../primitives/scalar';
@@ -11,7 +11,7 @@ import { vectorType } from '../collections/vector';
 import { uniqueSetType } from '../collections/uniqueset';
 import { userDelegateType } from '../userDelegate';
 
-export const dockingPortType: IArgumentType = createStructureType('dockingPort');
+export const dockingPortType: ArgumentType = createStructureType('dockingPort');
 addPrototype(dockingPortType, decouplerType);
 
 addSuffixes(

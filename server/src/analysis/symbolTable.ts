@@ -3,6 +3,7 @@ import {
   KsSymbol,
   GraphNode,
   SymbolTrackerBase,
+  KsBaseSymbol,
 } from './types';
 import { Position } from 'vscode-languageserver';
 import { rangeContainsPos } from '../utilities/positionUtils';
@@ -137,7 +138,7 @@ export class SymbolTable implements GraphNode<SymbolTable> {
   /**
    * get every symbol in the file
    */
-  public fileSymbols(): KsSymbol[] {
+  public fileSymbols(): KsBaseSymbol[] {
     return Array.from(this.rootScope.environment.symbols()).concat(
       this.fileSymbolsDepth(this.rootScope.children),
     );
@@ -269,14 +270,16 @@ export class SymbolTable implements GraphNode<SymbolTable> {
    * recursively move up the scope to get every file symbol
    * @param nodes nodes to retrive symbols from
    */
-  private fileSymbolsDepth(nodes: EnvironmentNode[]): KsSymbol[] {
-    return ([] as KsSymbol[]).concat(
-      ...nodes.map(node =>
-        Array.from(node.environment.symbols()).concat(
-          this.fileSymbolsDepth(node.children),
-        ),
-      ),
-    );
+  private fileSymbolsDepth(nodes: EnvironmentNode[]): KsBaseSymbol[] {
+    const symbols: KsBaseSymbol[] = [];
+    for (const node of nodes) {
+      symbols.push(
+        ...node.environment.symbols(),
+        ...this.fileSymbolsDepth(node.children),
+      );
+    }
+
+    return symbols;
   }
 
   /**

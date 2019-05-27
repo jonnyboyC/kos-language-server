@@ -12,7 +12,7 @@ import { zip } from '../utilities/arrayUtils';
 import { SymbolTable } from '../analysis/symbolTable';
 import { SymbolTableBuilder } from '../analysis/symbolTableBuilder';
 import { PreResolver } from '../analysis/preResolver';
-import { KsSymbol, KsSymbolKind, SymbolTrackerBase } from '../analysis/types';
+import { KsSymbolKind, SymbolTrackerBase, KsBaseSymbol } from '../analysis/types';
 import { Resolver } from '../analysis/resolver';
 import { FunctionScan } from '../analysis/functionScan';
 import * as Decl from '../parser/declare';
@@ -120,7 +120,7 @@ describe('Resolver tracking', () => {
 
     const { table } = results;
     const symbols = table.fileSymbols();
-    const names = new Map(symbols.map((s): [string, KsSymbol] => [s.name.lexeme, s]));
+    const names = new Map(symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]));
 
     expect(names.has('x')).toBe(true);
     expect(names.has('y')).toBe(true);
@@ -214,7 +214,7 @@ describe('Resolver tracking', () => {
 
     const { table } = results;
     const symbols = table.fileSymbols();
-    const names = new Map(symbols.map((s): [string, KsSymbol] => [s.name.lexeme, s]));
+    const names = new Map(symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]));
 
     expect(names.has('x')).toBe(true);
     expect(names.has('y')).toBe(true);

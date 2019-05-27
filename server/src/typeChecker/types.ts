@@ -2,6 +2,7 @@ import { Type } from './types/types';
 import { Diagnostic } from 'vscode-languageserver';
 import { KsSymbolKind } from '../analysis/types';
 import { TypeNode } from './typeNode';
+import { SuffixTypeBuilder } from './suffixTypeNode';
 
 /**
  * Cumulative suffix type information indicating the type of each
@@ -54,19 +55,11 @@ export interface ITypeResultExpr<T extends Type> {
 /**
  * type result for a kerboscript suffix
  */
-export interface ITypeResultSuffix<
-  T extends Type,
-  R extends ITypeResolvedSuffix = ITypeResolvedSuffix
-> {
-  /**
-   * result type
-   */
-  type: T;
-
+export interface ITypeResultSuffix<T extends SuffixTypeBuilder = SuffixTypeBuilder> {
   /**
    * resolved cummulative suffix types
    */
-  resolved: R;
+  builder: T;
 
   /**
    * errors encounted during this suffix type check

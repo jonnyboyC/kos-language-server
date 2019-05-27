@@ -1,4 +1,4 @@
-import { KsSymbol } from './types';
+import { KsBaseSymbol } from './types';
 import { BasicTracker } from './tracker';
 
 /**
@@ -12,8 +12,8 @@ export class Environment extends Map<string, BasicTracker> {
   /**
    * All the symbols in this scope
    */
-  public symbols(): KsSymbol[] {
-    const symbols: KsSymbol[] = [];
+  public symbols(): KsBaseSymbol[] {
+    const symbols: KsBaseSymbol[] = [];
 
     for (const trackers of this.values()) {
       symbols.push(trackers.declared.symbol);

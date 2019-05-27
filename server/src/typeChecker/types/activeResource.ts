@@ -1,7 +1,7 @@
-import { IArgumentType } from './types';
-import { createStructureType } from './ksType';
+import { ArgumentType } from './types';
+import { createStructureType } from "../typeCreators";
 import { addPrototype } from '../typeUitlities';
 import { aggregateResourceType } from './aggregateResource';
 
-export const activeResourceType: IArgumentType = createStructureType('activeResource');
+export const activeResourceType: ArgumentType = createStructureType('activeResource');
 addPrototype(activeResourceType, aggregateResourceType);

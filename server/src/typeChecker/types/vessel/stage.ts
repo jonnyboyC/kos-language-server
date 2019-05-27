@@ -1,5 +1,5 @@
-import { IArgumentType } from '../types';
-import { createStructureType, createSuffixType } from '../ksType';
+import { ArgumentType } from '../types';
+import { createStructureType, createSuffixType } from "../../typeCreators";
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { structureType } from '../primitives/structure';
 import { listType } from '../collections/list';
@@ -7,7 +7,7 @@ import { lexiconType } from '../collections/lexicon';
 import { activeResourceType } from '../activeResource';
 import { scalarType } from '../primitives/scalar';
 
-export const stageType: IArgumentType = createStructureType('stage');
+export const stageType: ArgumentType = createStructureType('stage');
 addPrototype(stageType, structureType);
 
 addSuffixes(

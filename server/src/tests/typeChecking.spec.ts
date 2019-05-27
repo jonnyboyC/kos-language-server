@@ -17,7 +17,7 @@ import {
   createStructureType,
   createSuffixType,
   createArgSuffixType,
-} from '../typeChecker/types/ksType';
+} from '../typeChecker/typeCreators';
 
 primitiveInitializer();
 oribitalInitializer();
