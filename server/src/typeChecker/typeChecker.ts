@@ -82,10 +82,25 @@ export class TypeChecker
       ITypeResultSuffix<Type>,
       ITypeResultSuffix<SuffixTermType>
     > {
+
+  /**
+   * the logger to logging information
+   */
   private readonly logger: ILogger;
+
+  /**
+   * The tracer for logging the current stack tracer
+   */
   private readonly tracer: ITracer;
+
+  /**
+   * The script that is being type checked
+   */
   private readonly script: Script;
 
+  /**
+   * The cached bound check statement
+   */
   private readonly checkStmtBind = this.checkStmt.bind(this);
 
   constructor(
@@ -679,13 +694,16 @@ export class TypeChecker
     return errors.concat(this.checkStmt(stmt.body));
   }
 
-  // visit on
+  /**
+   * Visit on statment
+   * @param stmt on statement
+   */
   public visitOn(stmt: Stmt.On): Diagnostics {
     const result = this.checkExpr(stmt.suffix);
-    let errors: Diagnostics = [];
+    const errors: Diagnostics = [];
 
-    if (coerce(result.type, booleanType)) {
-      errors = errors.concat(
+    if (!coerce(result.type, booleanType)) {
+      errors.push(
         createDiagnostic(
           stmt.suffix,
           'Condition may not able to be coerced into boolean type',
@@ -697,20 +715,41 @@ export class TypeChecker
     return errors.concat(this.checkStmt(stmt.body));
   }
 
-  // visit toggle
+  /**
+   * Visit toggle statement
+   * @param stmt toggle statement
+   */
   public visitToggle(stmt: Stmt.Toggle): Diagnostics {
     const result = this.checkExpr(stmt.suffix);
+    const errors: Diagnostics = result.errors;
+
+    if (!coerce(result.type, booleanType)) {
+
+      // can only toggle boolean values
+      errors.push(createDiagnostic(
+        stmt.suffix,
+        'Toggle requires a boolean type. ' +
+          'This may not able to be coerced into boolean type',
+        DiagnosticSeverity.Hint,
+      ));
+    }
+
     return result.errors;
   }
 
-  // visit wait
+  /**
+   * Visit wait statement
+   * @param stmt wait statement
+   */
   public visitWait(stmt: Stmt.Wait): Diagnostics {
     const result = this.checkExpr(stmt.expr);
-    let errors: Diagnostics = result.errors;
+    const errors: Diagnostics = result.errors;
 
     if (empty(stmt.until)) {
+
+      // no until wait a set amount of time
       if (!coerce(result.type, scalarType)) {
-        errors = errors.concat(
+        errors.push(
           createDiagnostic(
             stmt.expr,
             'Wait requires a scalar type. ' +
@@ -720,8 +759,10 @@ export class TypeChecker
         );
       }
     } else {
+
+      // wait until condition
       if (!coerce(result.type, booleanType)) {
-        errors = errors.concat(
+        errors.push(
           createDiagnostic(
             stmt.expr,
             'Wait requires a boolean type. ' +
@@ -735,7 +776,10 @@ export class TypeChecker
     return errors;
   }
 
-  // visit log
+  /**
+   * Visit log statement
+   * @param stmt log statement
+   */
   public visitLog(stmt: Stmt.Log): Diagnostics {
     const exprResult = this.checkExpr(stmt.expr);
     const logResult = this.checkExpr(stmt.target);
@@ -906,6 +950,11 @@ export class TypeChecker
 
     return errors.concat(destinationResult.errors);
   }
+
+  /**
+   * Visit list statement
+   * @param stmt list statement
+   */
   public visitList(stmt: Stmt.List): Diagnostics {
     const { target, collection } = stmt;
     if (empty(target) || empty(collection)) {
@@ -915,6 +964,8 @@ export class TypeChecker
     let finalType: IArgumentType;
 
     const errors: Diagnostics = [];
+
+    // determine the type that list returns
     switch (collection.lookup) {
       case 'bodies':
         finalType = bodyTargetType;

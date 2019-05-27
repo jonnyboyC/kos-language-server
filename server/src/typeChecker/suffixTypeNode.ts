@@ -8,6 +8,10 @@ export class SuffixTypeNode {
     this.nodes = [];
   }
 
+  public isTrailer(): boolean {
+    return this.nodes.length > 0;
+  }
+
   public current(): Maybe<Type> {
     if (this.nodes.length === 0) {
       return undefined;
