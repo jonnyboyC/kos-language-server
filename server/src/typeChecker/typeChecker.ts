@@ -20,6 +20,7 @@ import {
   IVariadicType,
   Operator,
   TypeKind,
+  IBasicType,
 } from './types/types';
 import { structureType } from './types/primitives/structure';
 import { coerce } from './coerce';
@@ -397,27 +398,26 @@ export class TypeChecker
   public visitSet(stmt: Stmt.Set): Diagnostics {
     const exprResult = this.checkExpr(stmt.value);
     const errors = exprResult.errors;
+    const suffixResult = this.checkExpr(stmt.suffix);
+    errors.push(...suffixResult.errors);
 
     // check if suffix is settable
     if (!stmt.suffix.isSettable()) {
-      return errors.concat(
-        createDiagnostic(
-          stmt.suffix,
-          `Cannot set ${this.nodeError(stmt.suffix)} as it is a call`,
-          DiagnosticSeverity.Hint,
-        ),
-      );
+      errors.push(createDiagnostic(
+        stmt.suffix,
+        `Cannot set ${this.nodeError(stmt.suffix)} as it is a call`,
+        DiagnosticSeverity.Hint,
+      ));
+
+      return errors;
     }
 
     const { atom, trailers } = stmt.suffix.suffixTerm;
 
     // if a suffix trailer exists we are a full suffix
     if (!empty(stmt.suffix.trailer) || trailers.length > 0) {
-      const suffixResult = this.checkExpr(stmt.suffix);
-      const setErrors: Diagnostics = [];
-
       if (!coerce(exprResult.type, suffixResult.type)) {
-        setErrors.push(
+        errors.push(
           createDiagnostic(
             stmt.suffix,
             `Cannot set suffix ${this.nodeError(stmt.suffix)}` +
@@ -427,7 +427,7 @@ export class TypeChecker
         );
       }
 
-      return errors.concat(suffixResult.errors, setErrors);
+      return errors;
     }
 
     if (atom instanceof SuffixTerm.Identifier) {
@@ -1442,7 +1442,7 @@ export class TypeChecker
     // if we know the collection type is a list we need a scalar indexer
     if (coerce(type, userListType) && !coerce(indexResult.type, scalarType)) {
       builder.nodes.push(
-        new TypeNode(arrayBracketIndexer(userListType, scalarType), suffixTerm),
+        new TypeNode(arrayBracketIndexer(type as IBasicType, scalarType), suffixTerm),
       );
 
       errors.push(
@@ -1458,7 +1458,7 @@ export class TypeChecker
     // if we know the collection type is a lexicon we need a string indexer
     if (coerce(type, lexiconType) && !coerce(indexResult.type, stringType)) {
       builder.nodes.push(
-        new TypeNode(arrayBracketIndexer(lexiconType, stringType), suffixTerm),
+        new TypeNode(arrayBracketIndexer(type as IBasicType, stringType), suffixTerm),
       );
 
       errors.push(
@@ -1474,7 +1474,7 @@ export class TypeChecker
     // if we know the collection type is a string we need a scalar indexer
     if (!coerce(type, stringType) && !coerce(indexResult.type, scalarType)) {
       builder.nodes.push(
-        new TypeNode(arrayBracketIndexer(stringType, scalarType), suffixTerm),
+        new TypeNode(arrayBracketIndexer(type as IBasicType, scalarType), suffixTerm),
       );
 
       errors.push(
@@ -1547,7 +1547,7 @@ export class TypeChecker
         return [];
       case TokenType.string:
       case TokenType.fileIdentifier:
-        builder.nodes.push(new TypeNode(doubleType, suffixTerm));
+        builder.nodes.push(new TypeNode(stringType, suffixTerm));
         return [];
       default:
         throw new Error('TODO invalid literal token found visitLiteral');

@@ -385,7 +385,7 @@ export class Suffix extends Expr {
     }
 
     // check nested trailers
-    if (this.trailer instanceof Suffix) {
+    if (this.trailer instanceof SuffixTerm.SuffixTrailer) {
       return this.trailer.isSettable();
     }
 

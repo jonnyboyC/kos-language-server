@@ -1,7 +1,7 @@
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { orbitableType } from './orbitable';
 import { serializableStructureType } from '../primitives/serializeableStructure';
-import { createSuffixType, createArgSuffixType } from "../../typeCreators";
+import { createSuffixType, createArgSuffixType } from '../../typeCreators';
 import { stringType } from '../primitives/string';
 import { scalarType } from '../primitives/scalar';
 import { booleanType } from '../primitives/boolean';
@@ -11,7 +11,6 @@ import { vectorType } from '../collections/vector';
 import { orbitableVelocityType } from '../orbitalVelocity';
 import { geoCoordinatesType } from '../geoCoordinates';
 import { userListType } from '../collections/userList';
-import { structureType } from '../primitives/structure';
 import { bodyAtmosphereType } from '../bodyatmosphere';
 import { listType } from '../collections/list';
 import { partType } from '../parts/part';
@@ -29,6 +28,7 @@ import { bodyTargetType } from './bodyTarget';
 import { vesselTargetType } from './vesselTarget';
 import { partModuleType } from '../parts/partModule';
 import { crewType } from '../crew';
+import { vesselSensorsType } from '../vessel/vesselSensors';
 
 export const oribitalInitializer = () => {
 
@@ -64,7 +64,7 @@ export const oribitalInitializer = () => {
   addPrototype(bodyTargetType, orbitableType);
   addSuffixes(
     bodyTargetType,
-    createSuffixType('name', structureType),
+    createSuffixType('name', stringType),
     createSuffixType('description', stringType),
     createSuffixType('mass', scalarType),
     createSuffixType('hasOcean', booleanType),
@@ -120,7 +120,7 @@ export const oribitalInitializer = () => {
     createSuffixType('shipName', stringType),
     createSuffixType('name', stringType),
     createSuffixType('type', stringType),
-    createSuffixType('sensors', vesselTargetType),
+    createSuffixType('sensors', vesselSensorsType),
     createSuffixType('termVelocity', scalarType),
     createSuffixType('dynamicPressure', scalarType),
     createSuffixType('q', scalarType),

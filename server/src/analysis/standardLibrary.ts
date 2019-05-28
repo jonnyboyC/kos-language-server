@@ -510,19 +510,19 @@ const locks: [string[], ArgumentType][] = [
 ];
 
 const variables: [string[], ArgumentType][] = [
-  [['abort'], booleanType], // TODO
+  [['abort'], booleanType],
   [['active', 'ship'], vesselTargetType],
   [['addons'], addonListType],
-  [['ag1'], booleanType], // TODO
-  [['ag10'], booleanType], // TODO
-  [['ag2'], booleanType], // TODO
-  [['ag3'], booleanType], // TODO
-  [['ag4'], booleanType], // TODO
-  [['ag5'], booleanType], // TODO
-  [['ag6'], booleanType], // TODO
-  [['ag7'], booleanType], // TODO
-  [['ag8'], booleanType], // TODO
-  [['ag9'], booleanType], // TODO
+  [['ag1'], booleanType],
+  [['ag10'], booleanType],
+  [['ag2'], booleanType],
+  [['ag3'], booleanType],
+  [['ag4'], booleanType],
+  [['ag5'], booleanType],
+  [['ag6'], booleanType],
+  [['ag7'], booleanType],
+  [['ag8'], booleanType],
+  [['ag9'], booleanType],
   [['airspeed'], scalarType],
   [['all', 'nodes'], listType.toConcreteType(nodeType)],
   [['alt'], vesselAltType],
@@ -533,11 +533,11 @@ const variables: [string[], ArgumentType][] = [
   [['apoapsis'], scalarType],
   [['archive'], volumeType],
   [['available', 'thrust'], scalarType],
-  [['bays'], booleanType], // TODO
+  [['bays'], booleanType],
   [['black'], rgbaType],
   [['blue'], rgbaType],
   [['body'], bodyTargetType],
-  [['brakes'], booleanType], // TODO
+  [['brakes'], booleanType],
   [['chutes'], booleanType],
   [['chutes', 'safe'], booleanType],
   [['config'], configType], // TODO
@@ -552,7 +552,7 @@ const variables: [string[], ArgumentType][] = [
   [['eta'], vesselEtaType],
   [['facing'], directionType],
   [['fuel', 'cells'], booleanType],
-  [['gear'], booleanType], // TODO
+  [['gear'], booleanType],
   [['geo', 'position'], geoCoordinatesType],
   [['gray'], rgbaType],
   [['green'], rgbaType],
@@ -567,7 +567,7 @@ const variables: [string[], ArgumentType][] = [
   [['ladders'], booleanType],
   [['latitude'], scalarType],
   [['legs'], booleanType],
-  [['lights'], booleanType], // TODO
+  [['lights'], booleanType],
   [['longitude'], scalarType],
   [['magenta'], rgbaType],
   [['map', 'view'], booleanType], // TODO
@@ -583,10 +583,10 @@ const variables: [string[], ArgumentType][] = [
   [['prograde'], directionType],
   [['purple'], rgbaType],
   [['radiators'], booleanType],
-  [['rcs'], booleanType], // TODO
+  [['rcs'], booleanType],
   [['red'], rgbaType],
   [['retrograde'], directionType],
-  [['sas'], booleanType], // TODO
+  [['sas'], booleanType],
   [['sensor'], vesselSensorsType],
   [['session', 'time'], doubleType],
   [['ship'], vesselTargetType],
@@ -598,7 +598,7 @@ const variables: [string[], ArgumentType][] = [
   [['status'], stringType],
   [['steering', 'manager'], steeringManagerType],
   [['surface', 'speed'], scalarType],
-  [['target'], structureType], // TODO Union
+  [['target'], orbitableType], // TODO Union
   [['terminal'], terminalStructType],
   [['time'], timeSpanType],
   [['up'], directionType],
