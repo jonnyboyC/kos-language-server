@@ -1,8 +1,9 @@
 import { ArgumentType } from './types';
-import { createStructureType, createSuffixType } from "../typeCreators";
+import { createStructureType, createArgSuffixType } from '../typeCreators';
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { structureType } from './primitives/structure';
 import { booleanType } from './primitives/boolean';
+import { stringType } from './primitives/string';
 
 export const addonListType: ArgumentType = createStructureType('addonList');
 addPrototype(addonListType, structureType);
@@ -10,6 +11,6 @@ addPrototype(addonListType, structureType);
 addSuffixes(
   addonListType,
   /* TODO this type can have runtime addons with string -> addon maps */
-  createSuffixType('available', booleanType),
-  createSuffixType('hasAddon', booleanType),
+  createArgSuffixType('available', booleanType, stringType),
+  createArgSuffixType('hasAddon', booleanType, stringType),
 );

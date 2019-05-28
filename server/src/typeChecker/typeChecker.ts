@@ -10,9 +10,7 @@ import * as SuffixTerm from '../parser/suffixTerm';
 import * as Expr from '../parser/expr';
 import * as Stmt from '../parser/stmt';
 import * as Decl from '../parser/declare';
-import {
-  ITypeResultExpr,
-} from './types';
+import { ITypeResultExpr } from './types';
 import { mockLogger, mockTracer } from '../utilities/logger';
 import { Script } from '../entities/script';
 import { empty } from '../utilities/typeGuards';
@@ -39,6 +37,9 @@ import { stringType } from './types/primitives/string';
 import { scalarType, integarType, doubleType } from './types/primitives/scalar';
 import {
   suffixError,
+  delegateCreation,
+  arrayBracketIndexer,
+  arrayIndexer,
   // delegateCreation,
   // arrayBracketIndexer,
   // arrayIndexer,
@@ -52,7 +53,7 @@ import { bodyTargetType } from './types/orbital/bodyTarget';
 import { vesselTargetType } from './types/orbital/vesselTarget';
 import { volumeType } from './types/io/volume';
 import { volumeItemType } from './types/io/volumeItem';
-import { partModuleFieldsType } from './types/parts/partModuleFields';
+import { partModuleType } from './types/parts/partModule';
 import { partType } from './types/parts/part';
 import { pathType } from './types/io/path';
 import { NodeBase } from '../parser/base';
@@ -909,7 +910,7 @@ export class TypeChecker
         finalType = volumeType;
         break;
       case 'processors':
-        finalType = partModuleFieldsType;
+        finalType = partModuleType;
         break;
       default:
         finalType = structureType;
@@ -1363,6 +1364,8 @@ export class TypeChecker
     const type = builder.current();
     const errors: Diagnostics = [];
 
+    builder.nodes.push(new TypeNode(arrayIndexer, suffixTerm));
+
     // TODO confirm indexable types
     // Only lists are indexable with '#'
     if (!coerce(type, userListType)) {
@@ -1438,6 +1441,10 @@ export class TypeChecker
 
     // if we know the collection type is a list we need a scalar indexer
     if (coerce(type, userListType) && !coerce(indexResult.type, scalarType)) {
+      builder.nodes.push(
+        new TypeNode(arrayBracketIndexer(userListType, scalarType), suffixTerm),
+      );
+
       errors.push(
         createDiagnostic(
           suffixTerm.index,
@@ -1450,6 +1457,10 @@ export class TypeChecker
 
     // if we know the collection type is a lexicon we need a string indexer
     if (coerce(type, lexiconType) && !coerce(indexResult.type, stringType)) {
+      builder.nodes.push(
+        new TypeNode(arrayBracketIndexer(lexiconType, stringType), suffixTerm),
+      );
+
       errors.push(
         createDiagnostic(
           suffixTerm.index,
@@ -1462,6 +1473,10 @@ export class TypeChecker
 
     // if we know the collection type is a string we need a scalar indexer
     if (!coerce(type, stringType) && !coerce(indexResult.type, scalarType)) {
+      builder.nodes.push(
+        new TypeNode(arrayBracketIndexer(stringType, scalarType), suffixTerm),
+      );
+
       errors.push(
         createDiagnostic(
           suffixTerm.index,
@@ -1501,6 +1516,7 @@ export class TypeChecker
       );
     }
 
+    builder.nodes.push(new TypeNode(delegateCreation, suffixTerm));
     return errors;
   }
 
@@ -1547,15 +1563,16 @@ export class TypeChecker
     suffixTerm: SuffixTerm.Identifier,
     builder: SuffixTypeBuilder,
   ): Diagnostics {
-
     // if we're a trailer check for suffixes
     if (builder.isTrailer()) {
       const type = builder.current();
-      const suffix = getSuffix(this.builderResult(builder), suffixTerm.token.lookup);
+      const suffix = getSuffix(
+        this.builderResult(builder),
+        suffixTerm.token.lookup,
+      );
 
       // may need to pass sommething in about if we're in get set context
       if (!empty(suffix)) {
-
         // assign type tracker
         suffixTerm.token.tracker = suffix.getTracker();
 
@@ -1564,15 +1581,22 @@ export class TypeChecker
         return [];
       }
 
+      // assign error suffix type
+      suffixTerm.token.tracker = suffixError.getTracker();
+
       // add suffix error to builder
       builder.nodes.push(new TypeNode(suffixError, suffixTerm));
 
       // indicate suffix not found
-      return [createDiagnostic(
-        suffixTerm,
-        `Unable to find suffix ${suffixTerm.token.lookup} on type ${type.toTypeString()}`,
-        DiagnosticSeverity.Hint,
-      )];
+      return [
+        createDiagnostic(
+          suffixTerm,
+          `Unable to find suffix ${
+            suffixTerm.token.lookup
+          } on type ${type.toTypeString()}`,
+          DiagnosticSeverity.Hint,
+        ),
+      ];
     }
 
     const { tracker } = suffixTerm.token;
@@ -1589,11 +1613,13 @@ export class TypeChecker
 
       // if we can't find the type here default to structure
       builder.nodes.push(new TypeNode(structureType, suffixTerm));
-      return [createDiagnostic(
-        suffixTerm,
-        `Cannot determine type for ${suffixTerm.token.lexeme}.`,
-        DiagnosticSeverity.Hint,
-      )];
+      return [
+        createDiagnostic(
+          suffixTerm,
+          `Cannot determine type for ${suffixTerm.token.lexeme}.`,
+          DiagnosticSeverity.Hint,
+        ),
+      ];
     }
 
     // in theory we should never get here

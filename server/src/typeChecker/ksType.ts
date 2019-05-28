@@ -22,7 +22,6 @@ import { tType } from './typeCreators';
  * This represents a generic type, typically the containers of kos
  */
 export class GenericBasicType implements IGenericBasicType {
-
   /**
    * A memoized mapping of this genertic type to concrete types
    */
@@ -75,7 +74,7 @@ export class GenericBasicType implements IGenericBasicType {
       return cache;
     }
 
-    const newType = new BasicType(this.name);
+    const newType = new BasicType(`${this.name}<${type.toTypeString()}>`);
     this.concreteTypes.set(type, newType);
 
     const newInherentsFrom = !empty(this.inherentsFrom)
@@ -111,7 +110,6 @@ export class GenericBasicType implements IGenericBasicType {
  * This represents a generic suffix type, typically suffixes of containers in kos
  */
 export class GenericSuffixType implements IGenericSuffixType {
-
   /**
    * A memoized mapping of this genertic type to concrete types
    */
@@ -138,7 +136,10 @@ export class GenericSuffixType implements IGenericSuffixType {
    */
   public toTypeString(): string {
     const returnString = returnTypeString(this.returns);
-    if (this.callType !== CallType.call && this.callType !== CallType.optionalCall) {
+    if (
+      this.callType !== CallType.call &&
+      this.callType !== CallType.optionalCall
+    ) {
       return returnString;
     }
 
@@ -162,7 +163,12 @@ export class GenericSuffixType implements IGenericSuffixType {
 
     // generate concrete return
     const newReturns = this.returns.toConcreteType(type);
-    const newType = new SuffixType(this.name, this.callType, newParams, newReturns);
+    const newType = new SuffixType(
+      `${this.name}<${type.toTypeString()}>`,
+      this.callType,
+      newParams,
+      newReturns,
+    );
 
     this.concreteTypes.set(type, newType);
     return newType;
@@ -187,9 +193,10 @@ export class GenericSuffixType implements IGenericSuffixType {
    * @param params parameters to convert to concrete types
    * @param type type parameter
    */
-  private newParameters(params: IGenericArgumentType[] | IGenericVariadicType, type: ArgumentType):
-    ArgumentType[] | IVariadicType {
-
+  private newParameters(
+    params: IGenericArgumentType[] | IGenericVariadicType,
+    type: ArgumentType,
+  ): ArgumentType[] | IVariadicType {
     // check if variadic type
     if (!Array.isArray(params)) {
       return params.toConcreteType(type);
@@ -260,14 +267,12 @@ export class BasicType implements IBasicType {
   public get kind(): TypeKind.basic {
     return TypeKind.basic;
   }
-
 }
 
 /**
  * This represents a suffix type
  */
 export class SuffixType implements ISuffixType {
-
   /**
    * The suffix tracker for this type
    */
@@ -284,8 +289,8 @@ export class SuffixType implements ISuffixType {
     public readonly name: string,
     public readonly callType: CallType,
     public readonly params: ArgumentType[] | IVariadicType,
-    public readonly returns: ArgumentType) {
-
+    public readonly returns: ArgumentType,
+  ) {
     this.tracker = new SuffixTracker(new KsSuffix(name), this);
   }
 
@@ -294,7 +299,10 @@ export class SuffixType implements ISuffixType {
    */
   public toTypeString(): string {
     const returnString = returnTypeString(this.returns);
-    if (this.callType !== CallType.call && this.callType !== CallType.optionalCall) {
+    if (
+      this.callType !== CallType.call &&
+      this.callType !== CallType.optionalCall
+    ) {
       return returnString;
     }
 
@@ -333,7 +341,6 @@ export class SuffixType implements ISuffixType {
  * Represents a constant type, or a type with a fixed value
  */
 export class ConstantType<T> extends BasicType implements IConstantType<T> {
-
   /**
    * Construct a constant type
    * @param name name of this constant type
@@ -420,8 +427,8 @@ export class FunctionType implements IFunctionType {
     public readonly name: string,
     public readonly callType: CallType.call | CallType.optionalCall,
     public readonly params: ArgumentType[] | IVariadicType,
-    public readonly returns: ArgumentType)
-  { }
+    public readonly returns: ArgumentType,
+  ) {}
 
   public toTypeString(): string {
     const returnString = returnTypeString(this.returns);
@@ -444,12 +451,12 @@ export class FunctionType implements IFunctionType {
 }
 
 const returnTypeString = (returns?: IGenericArgumentType) => {
-  return empty(returns)
-    ? 'void'
-    : returns.toTypeString();
+  return empty(returns) ? 'void' : returns.toTypeString();
 };
 
-const parameterTypeString = (params: IGenericArgumentType[] | IGenericVariadicType) => {
+const parameterTypeString = (
+  params: IGenericArgumentType[] | IGenericVariadicType,
+) => {
   // empty string for no params
   if (empty(params)) {
     return '';
@@ -461,8 +468,5 @@ const parameterTypeString = (params: IGenericArgumentType[] | IGenericVariadicTy
   }
 
   // string separated i
-  return params
-    .map(param => param.toTypeString())
-    .join(', ');
+  return params.map(param => param.toTypeString()).join(', ');
 };
-

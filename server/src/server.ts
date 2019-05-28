@@ -375,18 +375,29 @@ connection.onHover(
     const { uri } = positionParams.textDocument;
 
     const token = server.analyzer.getToken(position, uri);
-    const typeInfo = server.analyzer.getSuffixType(position, uri);
-    if (empty(token) || empty(typeInfo)) {
+
+    if (empty(token)) {
       return undefined;
     }
-    const [type, entityType] = typeInfo;
+
+    const { tracker } = token;
+    if (empty(tracker)) {
+      return undefined;
+    }
+
+    const type = tracker.getType({ uri, range: token });
+    const symbolKind = tracker.declared.symbol.tag;
+
+    if (empty(type)) {
+      return undefined;
+    }
 
     return {
       contents: {
         // Note doesn't does do much other than format it as code
         // may look into adding type def syntax highlighting
         language: 'kos',
-        value: `(${KsSymbolKind[entityType]}) ${
+        value: `(${KsSymbolKind[symbolKind]}) ${
           token.lexeme
         }: ${type.toTypeString()} `,
       },

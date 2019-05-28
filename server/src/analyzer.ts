@@ -17,7 +17,7 @@ import { PreResolver } from './analysis/preResolver';
 import { Scanner } from './scanner/scanner';
 import { Resolver } from './analysis/resolver';
 import { IParseError, ScriptResult, RunStmtType } from './parser/types';
-import { KsSymbol, KsSymbolKind } from './analysis/types';
+import { KsSymbol } from './analysis/types';
 import { mockLogger, mockTracer } from './utilities/logger';
 import { empty, notEmpty } from './utilities/typeGuards';
 import { ScriptFind } from './parser/scriptFind';
@@ -26,7 +26,6 @@ import * as Stmt from './parser/stmt';
 import { signitureHelper } from './utilities/signitureUtils';
 import * as Expr from './parser/expr';
 import * as SuffixTerm from './parser/suffixTerm';
-import * as Decl from './parser/declare';
 import { PathResolver, runPath } from './utilities/pathResolver';
 import { existsSync } from 'fs';
 import { extname } from 'path';
@@ -39,7 +38,6 @@ import { builtIn } from './utilities/constants';
 import { SymbolTableBuilder } from './analysis/symbolTableBuilder';
 import { SymbolTable } from './analysis/symbolTable';
 import { TypeChecker } from './typeChecker/typeChecker';
-import { Type } from './typeChecker/types/types';
 import { Token } from './entities/token';
 
 export class Analyzer {
@@ -290,51 +288,6 @@ export class Analyzer {
   private activeBodyLibrary(): SymbolTable {
     /** TODO actually load other bodies */
     return this.bodyLibrary;
-  }
-
-  /**
-   * Get the type of a suffix at a particular location in a script
-   * @param pos position to inspect
-   * @param uri uri of the document
-   */
-  public getSuffixType(
-    pos: Position,
-    uri: string,
-  ): Maybe<[Type, KsSymbolKind]> {
-    const documentInfo = this.documentInfos.get(uri);
-    if (empty(documentInfo)) {
-      return undefined;
-    }
-
-    // try to find an symbol at the position
-    const { script } = documentInfo;
-    const finder = new ScriptFind();
-    const result = finder.find(
-      script,
-      pos,
-      Stmt.Invalid,
-      Expr.Suffix,
-      Decl.Var,
-      Decl.Lock,
-      Decl.Func,
-      Decl.Parameter,
-    );
-
-    if (empty(result)) {
-      return undefined;
-    }
-
-    const { node, token } = result;
-    if (empty(node)) {
-      return undefined;
-    }
-
-    const { tracker } = token;
-    if (!empty(tracker)) {
-      return [tracker.declared.type, tracker.declared.symbol.tag];
-    }
-
-    return undefined;
   }
 
   /**

@@ -1,15 +1,44 @@
-import { createSuffixType, createArgSuffixType } from "./typeCreators";
+import { createSuffixType, createArgSuffixType } from './typeCreators';
 import { structureType } from './types/primitives/structure';
 import { integarType } from './types/primitives/scalar';
 import { delegateType } from './types/primitives/delegate';
+import { ISuffixType, IBasicType } from './types/types';
+import { empty } from '../utilities/typeGuards';
 
-export const arrayIndexer =
-  createArgSuffixType('array#Indexer', structureType, integarType);
-export const arrayBracketIndexer =
-  createArgSuffixType('array[Indexer]', structureType, integarType); // TODO union
-export const delegateCreation =
-  createArgSuffixType('delegateCreation', delegateType, integarType); // TODO union
-export const suffixError =
-  createSuffixType('Invalid suffix', structureType);
+const arrayBracketCache: Map<string, ISuffixType> = new Map();
 
-export const defaultSuffix = (name: string) => createSuffixType(name, structureType);
+export const arrayIndexer = createArgSuffixType(
+  'list#Indexer',
+  structureType,
+  integarType,
+);
+
+export const arrayBracketIndexer = (
+  collectionType: IBasicType,
+  indexType: IBasicType,
+) => {
+  const typeString = `${collectionType.toTypeString()}[${indexType.toTypeString()}]`;
+
+  const hit = arrayBracketCache.get(typeString);
+  if (!empty(hit)) {
+    return hit;
+  }
+
+  const type = createArgSuffixType(
+    typeString,
+    structureType,
+    indexType,
+  );
+
+  arrayBracketCache.set(typeString, type);
+  return type;
+};
+
+export const delegateCreation = createArgSuffixType(
+  'delegate creation',
+  delegateType,
+);
+export const suffixError = createSuffixType('Invalid suffix', structureType);
+
+export const defaultSuffix = (name: string) =>
+  createSuffixType(name, structureType);

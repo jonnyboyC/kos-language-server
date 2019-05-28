@@ -168,11 +168,22 @@ export const suffixCompletionItems = (
   const { uri } = documentPosition.textDocument;
 
   const token = analyzer.getToken(position, uri);
-  const typeInfo = analyzer.getSuffixType(position, uri);
-  if (empty(token) || empty(typeInfo)) {
+
+  if (empty(token)) {
     return [];
   }
-  const [type] = typeInfo;
+
+  const { tracker } = token;
+  if (empty(tracker)) {
+    return [];
+  }
+
+  const type = tracker.getType({ uri, range: token });
+
+  if (empty(type)) {
+    return [];
+  }
+
   const suffixes = allSuffixes(type);
 
   return suffixes.map(suffix => {

@@ -27,6 +27,8 @@ import { uniqueSetType } from '../collections/uniqueset';
 import { userDelegateType } from '../userDelegate';
 import { bodyTargetType } from './bodyTarget';
 import { vesselTargetType } from './vesselTarget';
+import { partModuleType } from '../parts/partModule';
+import { crewType } from '../crew';
 
 export const oribitalInitializer = () => {
 
@@ -84,17 +86,17 @@ export const oribitalInitializer = () => {
   addPrototype(vesselTargetType, orbitableType);
   addSuffixes(
     vesselTargetType,
-    createArgSuffixType('partsNamed', userListType, stringType),
-    createArgSuffixType('partsNamedPattern', userListType, stringType),
-    createArgSuffixType('partsTitled', userListType, stringType),
-    createArgSuffixType('partsTitledPattern', userListType, stringType),
-    createArgSuffixType('partsDubbed', userListType, stringType),
-    createArgSuffixType('partsDubbedPattern', userListType, stringType),
-    createArgSuffixType('modulesNamed', userListType, stringType),
-    createArgSuffixType('partsInGroup', userListType, stringType),
-    createArgSuffixType('modulesInGroup', userListType, stringType),
-    createArgSuffixType('partStagged', userListType, stringType),
-    createArgSuffixType('partStaggedPattern', userListType, stringType),
+    createArgSuffixType('partsNamed', listType.toConcreteType(partType), stringType),
+    createArgSuffixType('partsNamedPattern', listType.toConcreteType(partType), stringType),
+    createArgSuffixType('partsTitled', listType.toConcreteType(partType), stringType),
+    createArgSuffixType('partsTitledPattern', listType.toConcreteType(partType), stringType),
+    createArgSuffixType('partsDubbed', listType.toConcreteType(partType), stringType),
+    createArgSuffixType('partsDubbedPattern', listType.toConcreteType(partType), stringType),
+    createArgSuffixType('modulesNamed', listType.toConcreteType(partModuleType), stringType),
+    createArgSuffixType('partsInGroup', listType.toConcreteType(partType), stringType),
+    createArgSuffixType('modulesInGroup', listType.toConcreteType(partModuleType), stringType),
+    createArgSuffixType('partStagged', listType.toConcreteType(partType), stringType),
+    createArgSuffixType('partStaggedPattern', listType.toConcreteType(partType), stringType),
     createArgSuffixType('allTaggedParts', userListType),
     createArgSuffixType('parts', listType.toConcreteType(partType)),
     createArgSuffixType('dockingPorts', listType.toConcreteType(dockingPortType)),
@@ -135,7 +137,7 @@ export const oribitalInitializer = () => {
     createSuffixType('latitude', scalarType),
     createSuffixType('longitude', scalarType),
     createSuffixType('altitude', scalarType),
-    createSuffixType('crew', userListType),
+    createSuffixType('crew', listType.toConcreteType(crewType)),
     createSuffixType('crewCapacity', scalarType),
     createSuffixType('connection', vesselConnectionType),
     createSuffixType('messages', messageQueueType),
