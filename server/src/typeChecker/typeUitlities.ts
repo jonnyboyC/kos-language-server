@@ -117,23 +117,48 @@ export const getSuffix = (type: Type, suffix: string): Maybe<ISuffixType> => {
  * @param type type
  */
 export const allSuffixes = (type: Type): ISuffixType[] => {
-  if (type.kind === TypeKind.basic) {
-    const suffixes: Map<string, ISuffixType> = new Map();
+  const suffixes: Map<string, ISuffixType> = new Map();
 
-    moveDownPrototype(type, false, currentType => {
-      for (const [name, suffix] of currentType.suffixes) {
-        if (!suffixes.has(name)) {
-          suffixes.set(name, suffix);
+  switch (type.kind)
+  {
+    // if basic type get all suffixes on type
+    case TypeKind.basic:
+      moveDownPrototype(type, false, currentType => {
+        for (const [name, suffix] of currentType.suffixes) {
+          if (!suffixes.has(name)) {
+            suffixes.set(name, suffix);
+          }
         }
+
+        return undefined;
+      });
+      break;
+
+    // TODO may move logic outside of this function if
+    // a gettable suffix get all suffixes on return type
+    case TypeKind.suffix:
+      switch (type.callType) {
+        case CallType.get:
+        case CallType.set:
+        case CallType.optionalCall:
+          moveDownPrototype(type.returns, false, currentType => {
+            for (const [name, suffix] of currentType.suffixes) {
+              if (!suffixes.has(name)) {
+                suffixes.set(name, suffix);
+              }
+            }
+
+            return undefined;
+          });
+          break;
+        default:
+          break;
       }
-
-      return undefined;
-    });
-
-    return Array.from(suffixes.values());
+      break;
+    default:
   }
 
-  return [];
+  return Array.from(suffixes.values());
 };
 
 /**

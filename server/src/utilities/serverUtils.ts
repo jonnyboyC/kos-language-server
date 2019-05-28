@@ -145,9 +145,20 @@ export const symbolCompletionItems = (
           throw new Error('Unknown entity type');
       }
 
+      let typeString = 'structure';
+      const { tracker } = entity.name;
+      if (!empty(tracker)) {
+        const type = tracker.getType({ uri, range: entity.name });
+
+        if (!empty(type)) {
+          typeString = type.toTypeString();
+        }
+      }
+
       return {
         kind,
         label: entity.name.lexeme,
+        detail: `${entity.name.lexeme}: ${typeString}`,
         data: cleanToken(entity.name),
       } as CompletionItem;
     })
@@ -167,7 +178,10 @@ export const suffixCompletionItems = (
   const { position } = documentPosition;
   const { uri } = documentPosition.textDocument;
 
-  const token = analyzer.getToken(position, uri);
+  const token = analyzer.getToken(
+    { line: position.line, character: position.character - 2 },
+    uri,
+  );
 
   if (empty(token)) {
     return [];
@@ -193,14 +207,14 @@ export const suffixCompletionItems = (
         return {
           kind: CompletionItemKind.Method,
           label: suffix.name,
-          details: suffix.toTypeString(),
+          detail: `${suffix.name}: ${suffix.toTypeString()}`,
         } as CompletionItem;
       case CallType.get:
       case CallType.set:
         return {
           kind: CompletionItemKind.Property,
           label: suffix.name,
-          details: suffix.toTypeString(),
+          detail: `${suffix.name}: ${suffix.toTypeString()}`,
         } as CompletionItem;
       default:
         throw new Error('Unanticipated call type found');

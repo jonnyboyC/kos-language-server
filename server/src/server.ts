@@ -480,11 +480,7 @@ connection.onCompletionResolve(
     try {
       const token = item.data as Maybe<Token>;
 
-      if (!empty(token) && !empty(token.tracker)) {
-        const type = token.tracker.getType({ uri: token.uri, range: token.range });
-        if (!empty(type)) {
-          item.detail = `${item.label}: ${type.toTypeString()}`;
-        }
+      if (!empty(token)) {
       }
 
       return item;

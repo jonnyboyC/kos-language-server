@@ -1187,13 +1187,14 @@ export class TypeChecker
 
   public visitSuffixTermInvalid(
     suffixTerm: SuffixTerm.Invalid,
-    param: SuffixTypeBuilder,
+    builder: SuffixTypeBuilder,
   ): Diagnostics {
-    if (suffixTerm && param) {
-      console.log('TODO');
-    }
+    builder.nodes.push(new TypeNode(
+      suffixError,
+      suffixTerm,
+    ));
 
-    throw new Error('Method not implemented.');
+    return [];
   }
 
   public visitSuffixTerm(
@@ -1623,7 +1624,10 @@ export class TypeChecker
     }
 
     // in theory we should never get here
-    throw Error('TODO identifier should only have basic tracker');
+    builder.nodes.push(new TypeNode(structureType, suffixTerm));
+
+    // no error as this is likely a resolver error
+    return [];
   }
 
   /**
