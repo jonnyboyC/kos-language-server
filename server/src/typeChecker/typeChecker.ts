@@ -41,9 +41,6 @@ import {
   delegateCreation,
   arrayBracketIndexer,
   arrayIndexer,
-  // delegateCreation,
-  // arrayBracketIndexer,
-  // arrayIndexer,
 } from './typeHelpers';
 import { delegateType } from './types/primitives/delegate';
 import { TypeNode } from './typeNode';
@@ -1473,7 +1470,7 @@ export class TypeChecker
     }
 
     // if we know the collection type is a string we need a scalar indexer
-    if (!coerce(type, stringType) && !coerce(indexResult.type, scalarType)) {
+    if (coerce(type, stringType) && !coerce(indexResult.type, scalarType)) {
       builder.nodes.push(
         new TypeNode(arrayBracketIndexer(type as IBasicType, scalarType), suffixTerm),
       );

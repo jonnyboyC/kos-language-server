@@ -28,6 +28,7 @@ import { NodeBase } from './base';
 import { empty } from '../utilities/typeGuards';
 import { joinLines } from './toStringUtils';
 import { Token } from '../entities/token';
+import { SymbolTracker } from '../analysis/types';
 
 /**
  * Base class for all suffix terms
@@ -147,7 +148,7 @@ export class SuffixTrailer extends SuffixTermBase {
   }
 
   /**
-   * Method indicating if the suffix ends with a function or suffix call
+   * Method indicating if the suffix ends with a settable trailer
    */
   public isSettable(): boolean {
     // if no trailer check suffix term
@@ -182,6 +183,49 @@ export class SuffixTrailer extends SuffixTermBase {
     }
 
     return false;
+  }
+
+  /**
+   * Get the most resolved type on this suffix
+   */
+  public mostResolveTracker(): Maybe<SymbolTracker> {
+    // if no trailer check suffix term
+    if (empty(this.trailer)) {
+      const { atom, trailers } = this.suffixTerm;
+
+      // check for suffix term trailers
+      if (trailers.length > 0) {
+        const lastTrailer = trailers[trailers.length - 1];
+
+        if (lastTrailer instanceof ArrayBracket) {
+          return undefined;
+        }
+
+        if (lastTrailer instanceof ArrayIndex) {
+          return undefined;
+        }
+
+        if (lastTrailer instanceof Call) {
+          return undefined;
+        }
+
+        return undefined;
+      }
+
+      // check nested trailers
+      if (atom instanceof Identifier) {
+        return atom.token.tracker;
+      }
+
+      return undefined;
+    }
+
+    // check nested trailers
+    if (!empty(this.trailer)) {
+      return this.trailer.mostResolveTracker();
+    }
+
+    return undefined;
   }
 
   public toLines(): string[] {

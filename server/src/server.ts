@@ -15,7 +15,6 @@ import {
   DocumentSymbolParams,
   SymbolInformation,
   CompletionParams,
-  CompletionTriggerKind,
   ReferenceParams,
   Hover,
   Diagnostic,
@@ -23,6 +22,9 @@ import {
   MessageWriter,
   DidChangeConfigurationNotification,
   DocumentHighlight,
+  SignatureHelp,
+  SignatureInformation,
+  ParameterInformation,
 } from 'vscode-languageserver';
 import { empty } from './utilities/typeGuards';
 import { Analyzer } from './analyzer';
@@ -45,6 +47,7 @@ import {
 } from './utilities/clean';
 import { keywordCompletions, serverName } from './utilities/constants';
 import { Token } from './entities/token';
+import { TypeKind } from './typeChecker/types/types';
 
 export interface IClientConfiguration {
   completionCase: 'lowercase' | 'uppercase' | 'camelcase' | 'pascalcase';
@@ -181,12 +184,12 @@ connection.onInitialize((params: InitializeParams) => {
       // Tell the client that the server supports code completion
       completionProvider: {
         resolveProvider: true,
-        triggerCharacters: [':'],
+        triggerCharacters: [':', '(', ', '],
       },
 
-      // signatureHelpProvider: {
-      //   triggerCharacters: ['(', ','],
-      // },
+      signatureHelpProvider: {
+        triggerCharacters: ['(', ', '],
+      },
 
       documentHighlightProvider: true,
       hoverProvider: true,
@@ -329,18 +332,24 @@ connection.onCompletion(
     const { context } = completionParams;
 
     try {
-      if (
-        empty(context) ||
-        context.triggerKind !== CompletionTriggerKind.TriggerCharacter
-      ) {
-        return symbolCompletionItems(
-          server.analyzer,
-          completionParams,
-          server.keywords,
-        );
+
+      // check if suffix completion
+      if (!empty(context) && !empty(context.triggerCharacter)) {
+        const { triggerCharacter } = context;
+
+        if (triggerCharacter === ':') {
+          return suffixCompletionItems(server.analyzer, completionParams);
+        }
       }
 
-      return suffixCompletionItems(server.analyzer, completionParams);
+      // complete base symbols
+      return symbolCompletionItems(
+        server.analyzer,
+        completionParams,
+        server.keywords,
+      );
+
+      // catch any errors
     } catch (err) {
       if (err instanceof Error) {
         connection.console.warn(`${err.message} ${err.stack}`);
@@ -423,31 +432,49 @@ connection.onReferences(
 );
 
 // This handler provides signature help
-// connection.onSignatureHelp(
-//   (documentPosition: TextDocumentPositionParams): SignatureHelp => {
-//     const { position } = documentPosition;
-//     const { uri } = documentPosition.textDocument;
+connection.onSignatureHelp(
+  (documentPosition: TextDocumentPositionParams): SignatureHelp => {
+    const { position } = documentPosition;
+    const { uri } = documentPosition.textDocument;
 
-//     const result = analyzer.getFunctionAtPosition(position, uri);
-//     if (empty(result)) return defaultSigniture();
+    const result = server.analyzer.getFunctionAtPosition(position, uri);
+    if (empty(result)) return defaultSigniture();
+    const { index, tracker } = result;
 
-//     const { func, index } = result;
-//     const { parameters } = func;
-//     return {
-//       signatures: [
-//         SignatureInformation.create(
-//           func.name.lexeme,
-//           undefined,
-//           ...parameters.map(param =>
-//             ParameterInformation.create(param.name.lexeme),
-//           ),
-//         ),
-//       ],
-//       activeParameter: index,
-//       activeSignature: 0,
-//     };
-//   },
-// );
+    const label = typeof(tracker.declared.symbol.name) === 'string'
+      ? tracker.declared.symbol.name
+      : tracker.declared.symbol.name.lexeme;
+
+    const type = tracker.getType({ uri, range: { start: position, end: position } });
+
+    if (empty(type)) {
+      return defaultSigniture();
+    }
+
+    switch (type.kind) {
+      case TypeKind.function:
+      case TypeKind.suffix:
+        const paramInfos: ParameterInformation[] = Array.isArray(type.params)
+          ? type.params.map(p => ParameterInformation.create(p.toTypeString()))
+          : [ParameterInformation.create(type.params.toTypeString())];
+
+        return {
+          signatures: [
+            SignatureInformation.create(
+              label,
+              undefined,
+              ...paramInfos,
+            ),
+          ],
+          activeParameter: index,
+          activeSignature: 0,
+        };
+      default:
+        return defaultSigniture();
+    }
+
+  },
+);
 
 /**
  * This handler provides document symbols capability
@@ -505,11 +532,11 @@ const getDocumentSettings = (): Thenable<IClientConfiguration> => {
   });
 };
 
-// const defaultSigniture = (): SignatureHelp => ({
-//   signatures: [],
-//   activeParameter: null,
-//   activeSignature: null,
-// });
+const defaultSigniture = (): SignatureHelp => ({
+  signatures: [],
+  activeParameter: null,
+  activeSignature: null,
+});
 
 // Make the text document manager listen on the connection
 // for open, change and close text document events

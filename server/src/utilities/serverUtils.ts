@@ -124,7 +124,10 @@ export const symbolCompletionItems = (
   const { position } = documentPosition;
   const { uri } = documentPosition.textDocument;
 
+  // get all symbols currently in scope
   const entities = analyzer.getScopedSymbols(position, uri);
+
+  // generate completions
   return entities
     .map(entity => {
       let kind: Maybe<CompletionItemKind> = undefined;
@@ -136,7 +139,7 @@ export const symbolCompletionItems = (
           kind = CompletionItemKind.Variable;
           break;
         case KsSymbolKind.lock:
-          kind = CompletionItemKind.Variable;
+          kind = CompletionItemKind.Reference;
           break;
         case KsSymbolKind.variable:
           kind = CompletionItemKind.Variable;
@@ -178,6 +181,7 @@ export const suffixCompletionItems = (
   const { position } = documentPosition;
   const { uri } = documentPosition.textDocument;
 
+  // TODO more robust method
   const token = analyzer.getToken(
     { line: position.line, character: position.character - 2 },
     uri,
@@ -198,8 +202,10 @@ export const suffixCompletionItems = (
     return [];
   }
 
+  // get all suffixes on the predicted type
   const suffixes = allSuffixes(type);
 
+  // generate completions
   return suffixes.map(suffix => {
     switch (suffix.callType) {
       case CallType.call:
@@ -222,6 +228,11 @@ export const suffixCompletionItems = (
   });
 };
 
+/**
+ * Get all symbols in the current document
+ * @param analyzer analyzer instance
+ * @param documentSymbol document identifier
+ */
 export const documentSymbols = (
   analyzer: Analyzer,
   documentSymbol: DocumentSymbolParams,

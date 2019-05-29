@@ -17,15 +17,11 @@ import { PreResolver } from './analysis/preResolver';
 import { Scanner } from './scanner/scanner';
 import { Resolver } from './analysis/resolver';
 import { IParseError, ScriptResult, RunStmtType } from './parser/types';
-import { KsSymbol } from './analysis/types';
+import { KsSymbol, KsSymbolKind, SymbolTracker } from './analysis/types';
 import { mockLogger, mockTracer } from './utilities/logger';
 import { empty, notEmpty } from './utilities/typeGuards';
 import { ScriptFind } from './parser/scriptFind';
-import { KsFunction } from './entities/function';
-import * as Stmt from './parser/stmt';
-import { signitureHelper } from './utilities/signitureUtils';
 import * as Expr from './parser/expr';
-import * as SuffixTerm from './parser/suffixTerm';
 import { PathResolver, runPath } from './utilities/pathResolver';
 import { existsSync } from 'fs';
 import { extname } from 'path';
@@ -430,7 +426,7 @@ export class Analyzer {
   public getFunctionAtPosition(
     pos: Position,
     uri: string,
-  ): Maybe<{ func: KsFunction; index: number }> {
+  ): Maybe<{ tracker: SymbolTracker; index: number }> {
     // we need the document info to lookup a signiture
     const documentInfo = this.documentInfos.get(uri);
     if (empty(documentInfo)) return undefined;
@@ -442,9 +438,7 @@ export class Analyzer {
     const result = finder.find(
       script,
       pos,
-      Stmt.Invalid,
-      Expr.Invalid,
-      SuffixTerm.Call,
+      Expr.Suffix,
     );
 
     // currently we only support invalid statements for signiture completion
@@ -456,33 +450,23 @@ export class Analyzer {
     // determine the identifier of the invalid statement and parameter index
     const { node } = result;
 
-    if (node instanceof Stmt.Invalid) {
-      const identifierIndex = signitureHelper(node.tokens, pos);
-      if (empty(identifierIndex)) return undefined;
+    if (node instanceof Expr.Suffix) {
+      const tracker = node.mostResolveTracker();
 
-      const { identifier, index } = identifierIndex;
-
-      // resolve the token to make sure it's actually a function
-      const ksFunction = documentInfo.symbolsTable.scopedFunctionTracker(
-        pos,
-        identifier,
-      );
-      if (empty(ksFunction)) {
+      if (empty(tracker)) {
         return undefined;
       }
 
-      return {
-        index,
-        func: ksFunction.declared.symbol,
-      };
-    }
-
-    if (node instanceof SuffixTerm.Call) {
-      // TODO figure out this case
-    }
-
-    if (node instanceof Expr.Invalid) {
-      // TODO figure out this case
+      switch (tracker.declared.symbol.tag) {
+        case KsSymbolKind.function:
+        case KsSymbolKind.suffix:
+          return {
+            tracker,
+            index: 0,
+          };
+        default:
+          return undefined;
+      }
     }
 
     return undefined;
