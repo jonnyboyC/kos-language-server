@@ -1,5 +1,5 @@
 import { ArgumentType } from './types';
-import { createStructureType, createArgSuffixType } from "../typeCreators";
+import { createStructureType, createArgSuffixType } from '../typeCreators';
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { partModuleType } from './parts/partModule';
 import { volumeType } from './io/volume';

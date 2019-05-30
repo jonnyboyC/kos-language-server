@@ -1176,7 +1176,7 @@ export class Parser {
     if (this.matchToken(TokenType.bracketOpen)) {
       builder.open = this.previous();
 
-      const argsResult = this.arguments();
+      const argsResult = this.arguments(Stmt.Run);
       builder.args = argsResult.value;
       errors.push(...argsResult.errors);
 
@@ -1222,7 +1222,7 @@ export class Parser {
     builder.expr = exprResult.value;
 
     const args = this.matchToken(TokenType.comma)
-      ? this.arguments()
+      ? this.arguments(Stmt.RunPath)
       : undefined;
 
     builder.close = this.consumeTokenThrow(
@@ -1265,7 +1265,7 @@ export class Parser {
     builder.expr = exprResult.value;
 
     const args = this.matchToken(TokenType.comma)
-      ? this.arguments()
+      ? this.arguments(Stmt.RunOncePath)
       : undefined;
 
     builder.close = this.consumeTokenThrow(
@@ -1618,7 +1618,7 @@ export class Parser {
   // function call
   private functionTrailer(): INodeResult<SuffixTerm.Call> {
     const open = this.previous();
-    const args = this.arguments();
+    const args = this.arguments(SuffixTerm.Call);
     const close = this.consumeTokenThrow(
       'Expect ")" after arguments.',
       SuffixTerm.Call,
@@ -1647,12 +1647,23 @@ export class Parser {
   }
 
   // get an argument list
-  private arguments(): INodeResult<IExpr[]> {
+  private arguments(context: NodeConstructor): INodeResult<IExpr[]> {
     const args: IExpr[] = [];
     const errors: IParseError[][] = [];
 
     if (!this.isAtEnd() && !this.check(TokenType.bracketClose)) {
       do {
+        // if we are expecting an argument but find a closing
+        // braket we report an error and stop arguments
+        if (this.check(TokenType.bracketClose)) {
+          args.push(new Expr.Invalid([this.previous()]));
+          errors.push([this.error(
+            this.previous(),
+            context,
+            'Expected another argument.')]);
+          break;
+        }
+
         const arg = this.expression();
         args.push(arg.value);
         errors.push(arg.errors);

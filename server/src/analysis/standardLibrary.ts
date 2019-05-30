@@ -37,7 +37,11 @@ import { volumeFileType } from '../typeChecker/types/io/volumneFile';
 import { pidLoopType } from '../typeChecker/types/pidLoop';
 import { volumeItemType } from '../typeChecker/types/io/volumeItem';
 import { volumeDirectoryType } from '../typeChecker/types/io/volumeDirectory';
-import { createFunctionType, createVarFunctionType, createVarType } from '../typeChecker/typeCreators';
+import {
+  createFunctionType,
+  createVarFunctionType,
+  createVarType,
+} from '../typeChecker/typeCreators';
 import { ArgumentType, IFunctionType } from '../typeChecker/types/types';
 import { delegateType } from '../typeChecker/types/primitives/delegate';
 import { kUniverseType } from '../typeChecker/types/kUniverse';

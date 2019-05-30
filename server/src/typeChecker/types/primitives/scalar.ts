@@ -1,4 +1,4 @@
-import { createStructureType } from "../../typeCreators";
+import { createStructureType } from '../../typeCreators';
 
 export const scalarType = createStructureType('scalar');
 export const integarType = createStructureType('int');

@@ -28,7 +28,7 @@ import {
 } from 'vscode-languageserver';
 import { empty } from './utilities/typeGuards';
 import { Analyzer } from './analyzer';
-import { KsSymbolKind } from './analysis/types';
+import { KsSymbolKind, TrackerKind } from './analysis/types';
 import {
   symbolCompletionItems,
   suffixCompletionItems,
@@ -48,6 +48,7 @@ import {
 import { keywordCompletions, serverName } from './utilities/constants';
 import { Token } from './entities/token';
 import { TypeKind } from './typeChecker/types/types';
+import { tokenTrackedType } from './typeChecker/typeUitlities';
 
 export interface IClientConfiguration {
   completionCase: 'lowercase' | 'uppercase' | 'camelcase' | 'pascalcase';
@@ -188,7 +189,7 @@ connection.onInitialize((params: InitializeParams) => {
       },
 
       signatureHelpProvider: {
-        triggerCharacters: ['(', ', '],
+        triggerCharacters: ['(', ',', ', '],
       },
 
       documentHighlightProvider: true,
@@ -332,7 +333,6 @@ connection.onCompletion(
     const { context } = completionParams;
 
     try {
-
       // check if suffix completion
       if (!empty(context) && !empty(context.triggerCharacter)) {
         const { triggerCharacter } = context;
@@ -389,13 +389,23 @@ connection.onHover(
       return undefined;
     }
 
-    const { tracker } = token;
-    if (empty(tracker)) {
-      return undefined;
-    }
+    const type = tokenTrackedType(token);
 
-    const type = tracker.getType({ uri, range: token });
-    const symbolKind = tracker.declared.symbol.tag;
+    const { tracker } = token;
+    let label: string;
+    let symbolKind: string;
+
+    if (!empty(tracker)) {
+      symbolKind = KsSymbolKind[tracker.declared.symbol.tag];
+
+      label =
+        tracker.kind === TrackerKind.basic
+          ? tracker.declared.symbol.name.lexeme
+          : tracker.declared.symbol.name;
+    } else {
+      symbolKind = 'literal';
+      label = token.lexeme;
+    }
 
     if (empty(type)) {
       return undefined;
@@ -406,9 +416,7 @@ connection.onHover(
         // Note doesn't does do much other than format it as code
         // may look into adding type def syntax highlighting
         language: 'kos',
-        value: `(${KsSymbolKind[symbolKind]}) ${
-          token.lexeme
-        }: ${type.toTypeString()} `,
+        value: `(${symbolKind}) ${label}: ${type.toTypeString()} `,
       },
       range: {
         start: cleanPosition(token.start),
@@ -434,18 +442,22 @@ connection.onReferences(
 // This handler provides signature help
 connection.onSignatureHelp(
   (documentPosition: TextDocumentPositionParams): SignatureHelp => {
-    const { position } = documentPosition;
+    const { position } =  documentPosition;
     const { uri } = documentPosition.textDocument;
 
     const result = server.analyzer.getFunctionAtPosition(position, uri);
     if (empty(result)) return defaultSigniture();
-    const { index, tracker } = result;
+    const { tracker, index } = result;
 
-    const label = typeof(tracker.declared.symbol.name) === 'string'
-      ? tracker.declared.symbol.name
-      : tracker.declared.symbol.name.lexeme;
+    let label =
+      typeof tracker.declared.symbol.name === 'string'
+        ? tracker.declared.symbol.name
+        : tracker.declared.symbol.name.lexeme;
 
-    const type = tracker.getType({ uri, range: { start: position, end: position } });
+    const type = tracker.getType({
+      uri,
+      range: { start: position, end: position },
+    });
 
     if (empty(type)) {
       return defaultSigniture();
@@ -454,25 +466,55 @@ connection.onSignatureHelp(
     switch (type.kind) {
       case TypeKind.function:
       case TypeKind.suffix:
-        const paramInfos: ParameterInformation[] = Array.isArray(type.params)
-          ? type.params.map(p => ParameterInformation.create(p.toTypeString()))
-          : [ParameterInformation.create(type.params.toTypeString())];
+        let start = label.length + 1;
+        const { params } = type;
+        const paramInfos: ParameterInformation[] = [];
+
+        // check if normal or variadic type
+        if (Array.isArray(params)) {
+
+          // generate normal labels
+          if (params.length > 0) {
+            const labels: string[] = [];
+            for (let i = 0; i < params.length - 1; i += 1) {
+              const paramLabel = `${params[i].toTypeString()}, `;
+              paramInfos.push(
+                ParameterInformation.create([
+                  start,
+                  start + paramLabel.length - 2,
+                ]),
+              );
+              labels.push(paramLabel);
+              start = start + paramLabel.length;
+            }
+
+            const paramLabel = `${params[params.length - 1].toTypeString()}`;
+            paramInfos.push(
+              ParameterInformation.create([
+                start,
+                start + paramLabel.length,
+              ]),
+            );
+            labels.push(paramLabel);
+            label = `${label}(${labels.join('')})`;
+          }
+        } else {
+          // generate variadic labels
+          const variadicLabel = params.toTypeString();
+          paramInfos.push(ParameterInformation.create([start, start + variadicLabel.length]));
+          label = `${label}(${variadicLabel})`;
+        }
 
         return {
           signatures: [
-            SignatureInformation.create(
-              label,
-              undefined,
-              ...paramInfos,
-            ),
+            SignatureInformation.create(label, undefined, ...paramInfos),
           ],
           activeParameter: index,
-          activeSignature: 0,
+          activeSignature: null,
         };
       default:
         return defaultSigniture();
     }
-
   },
 );
 

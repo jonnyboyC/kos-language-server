@@ -22,6 +22,8 @@ import { mockLogger, mockTracer } from './utilities/logger';
 import { empty, notEmpty } from './utilities/typeGuards';
 import { ScriptFind } from './parser/scriptFind';
 import * as Expr from './parser/expr';
+import * as Stmt from './parser/stmt';
+import * as SuffixTerm from './parser/suffixTerm';
 import { PathResolver, runPath } from './utilities/pathResolver';
 import { existsSync } from 'fs';
 import { extname } from 'path';
@@ -35,6 +37,7 @@ import { SymbolTableBuilder } from './analysis/symbolTableBuilder';
 import { SymbolTable } from './analysis/symbolTable';
 import { TypeChecker } from './typeChecker/typeChecker';
 import { Token } from './entities/token';
+import { binarySearchIndex } from './utilities/positionUtils';
 
 export class Analyzer {
   public workspaceFolder?: string;
@@ -227,11 +230,7 @@ export class Analyzer {
     const symbolTable = symbolTableBuilder.build();
 
     // perform type checking
-    const typeChecker = new TypeChecker(
-      script,
-      this.logger,
-      this.tracer,
-    );
+    const typeChecker = new TypeChecker(script, this.logger, this.tracer);
 
     performance.mark('type-checking-start');
 
@@ -388,9 +387,7 @@ export class Analyzer {
       return locations;
     }
 
-    return locations
-      .filter(loc => loc.uri === uri)
-      .map(loc => loc.range);
+    return locations.filter(loc => loc.uri === uri).map(loc => loc.range);
   }
 
   /**
@@ -435,21 +432,30 @@ export class Analyzer {
     const finder = new ScriptFind();
 
     // attempt to find a token here get surround invalid inst context
-    const result = finder.find(
-      script,
-      pos,
-      Expr.Suffix,
-    );
+    const outerResult = finder.find(script, pos, Expr.Suffix, Stmt.Invalid);
+    const innerResult = finder.find(script, pos, SuffixTerm.Call);
+
+    let index = 0;
+    if (
+      !empty(innerResult) &&
+      !empty(innerResult.node) &&
+      innerResult.node instanceof SuffixTerm.Call
+    ) {
+      index = innerResult.node.args.length > 0
+        ? innerResult.node.args.length - 1
+        : 0;
+    }
 
     // currently we only support invalid statements for signiture completion
     // we could possible support call expressions as well
-    if (empty(result) || empty(result.node)) {
+    if (empty(outerResult) || empty(outerResult.node)) {
       return undefined;
     }
 
     // determine the identifier of the invalid statement and parameter index
-    const { node } = result;
+    const { node } = outerResult;
 
+    // check if suffix
     if (node instanceof Expr.Suffix) {
       const tracker = node.mostResolveTracker();
 
@@ -461,11 +467,39 @@ export class Analyzer {
         case KsSymbolKind.function:
         case KsSymbolKind.suffix:
           return {
+            index,
             tracker,
-            index: 0,
           };
         default:
           return undefined;
+      }
+    }
+
+    // check if invalid statment
+    if (node instanceof Stmt.Invalid) {
+      const { ranges } = node;
+      const indices = binarySearchIndex(ranges, pos);
+      const start = Array.isArray(indices) ? indices[0] : indices;
+
+      for (let i = start; i >= 0; i -= 1) {
+        const element = ranges[i];
+
+        if (element instanceof Expr.Suffix) {
+          const tracker = element.mostResolveTracker();
+
+          if (!empty(tracker)) {
+            switch (tracker.declared.symbol.tag) {
+              case KsSymbolKind.function:
+              case KsSymbolKind.suffix:
+                return {
+                  index,
+                  tracker,
+                };
+              default:
+                return undefined;
+            }
+          }
+        }
       }
     }
 

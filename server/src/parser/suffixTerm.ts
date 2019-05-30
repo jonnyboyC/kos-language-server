@@ -198,7 +198,7 @@ export class SuffixTrailer extends SuffixTermBase {
         const lastTrailer = trailers[trailers.length - 1];
 
         if (lastTrailer instanceof ArrayBracket) {
-          return undefined;
+          return lastTrailer.open.tracker;
         }
 
         if (lastTrailer instanceof ArrayIndex) {
@@ -206,7 +206,7 @@ export class SuffixTrailer extends SuffixTermBase {
         }
 
         if (lastTrailer instanceof Call) {
-          return undefined;
+          return lastTrailer.open.tracker;
         }
 
         return undefined;

@@ -13,6 +13,39 @@ import {
   CallType,
   TypeKind,
 } from './types/types';
+import { Token } from '../entities/token';
+import { TokenType } from '../entities/tokentypes';
+import { booleanType } from './types/primitives/boolean';
+import { integarType, doubleType } from './types/primitives/scalar';
+import { stringType } from './types/primitives/string';
+
+/**
+ * Retrieve the type of the follow token
+ * @param token token to retreive
+ */
+export const tokenTrackedType = (token: Token): Maybe<Type> => {
+  // check literals and other tokens
+  switch (token.type) {
+    case TokenType.true:
+    case TokenType.false:
+      return booleanType;
+    case TokenType.integer:
+      return integarType;
+    case TokenType.double:
+      return doubleType;
+    case TokenType.string:
+    case TokenType.fileIdentifier:
+      return stringType;
+    default:
+      // if not a literally we need to lookup tracker
+      const { tracker } = token;
+      if (empty(tracker)) {
+        return undefined;
+      }
+
+      return tracker.getType({ uri: token.uri, range: token });
+  }
+};
 
 /**
  * check if the target call type is compatable with real call type

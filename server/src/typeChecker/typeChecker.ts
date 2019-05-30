@@ -5,6 +5,7 @@ import {
   IExpr,
   ISuffixTerm,
   ISuffixTermParamVisitor,
+  Atom,
 } from '../parser/types';
 import * as SuffixTerm from '../parser/suffixTerm';
 import * as Expr from '../parser/expr';
@@ -21,6 +22,7 @@ import {
   Operator,
   TypeKind,
   IBasicType,
+  ISuffixType,
 } from './types/types';
 import { structureType } from './types/primitives/structure';
 import { coerce } from './coerce';
@@ -41,6 +43,7 @@ import {
   delegateCreation,
   arrayBracketIndexer,
   arrayIndexer,
+  functionError,
 } from './typeHelpers';
 import { delegateType } from './types/primitives/delegate';
 import { TypeNode } from './typeNode';
@@ -400,11 +403,13 @@ export class TypeChecker
 
     // check if suffix is settable
     if (!stmt.suffix.isSettable()) {
-      errors.push(createDiagnostic(
-        stmt.suffix,
-        `Cannot set ${this.nodeError(stmt.suffix)} as it is a call`,
-        DiagnosticSeverity.Hint,
-      ));
+      errors.push(
+        createDiagnostic(
+          stmt.suffix,
+          `Cannot set ${this.nodeError(stmt.suffix)} as it is a call`,
+          DiagnosticSeverity.Hint,
+        ),
+      );
 
       return errors;
     }
@@ -437,8 +442,15 @@ export class TypeChecker
         } else {
           tracker.setType(atom.token, exprResult.type);
         }
+      } else {
+        errors.push(createDiagnostic(
+          stmt.value,
+          'TODO visit set, this should not occur',
+          DiagnosticSeverity.Hint,
+        ));
       }
     } else {
+      // was not found to be a valid target of setting
       errors.push(
         createDiagnostic(
           stmt.suffix,
@@ -1142,7 +1154,8 @@ export class TypeChecker
     if (!empty(firstTrailer)) {
       // handle case were suffix is actually a function call
       if (firstTrailer instanceof SuffixTerm.Call) {
-        errors.push(...this.visitFunctionCall(firstTrailer, builder));
+        const tracker = this.atomTracker(suffixTerm.atom);
+        errors.push(...this.visitFunctionCall(firstTrailer, tracker, builder));
       } else {
         errors.push(...this.checkSuffixTerm(firstTrailer, builder));
       }
@@ -1161,8 +1174,9 @@ export class TypeChecker
     return this.resultExpr(this.builderResult(builder), errors);
   }
 
-  public visitLambda(_: Expr.Lambda): ITypeResultExpr<ArgumentType> {
-    return this.resultExpr(delegateType);
+  public visitLambda(expr: Expr.Lambda): ITypeResultExpr<ArgumentType> {
+    const errors = this.checkStmt(expr.block);
+    return this.resultExpr(delegateType, errors);
   }
 
   // ----------------------------- Suffix -----------------------------------------
@@ -1186,10 +1200,7 @@ export class TypeChecker
     suffixTerm: SuffixTerm.Invalid,
     builder: SuffixTypeBuilder,
   ): Diagnostics {
-    builder.nodes.push(new TypeNode(
-      suffixError,
-      suffixTerm,
-    ));
+    builder.nodes.push(new TypeNode(suffixError, suffixTerm));
 
     return [];
   }
@@ -1223,16 +1234,28 @@ export class TypeChecker
     }
 
     const type = builder.current();
+    const errors: Diagnostics = [];
 
     // if the current type isn't a suffix
-    if (type.kind !== TypeKind.suffix) {
-      return [
+    if (type.kind === TypeKind.suffix) {
+      builder.nodes.push(new TypeNode(type, call));
+      call.open.tracker = type.getTracker();
+      call.close.tracker = type.getTracker();
+
+    } else {
+      builder.nodes.push(new TypeNode(suffixError, call));
+      call.open.tracker = suffixError.getTracker();
+      call.close.tracker = suffixError.getTracker();
+
+      errors.push(
         createDiagnostic(
           call,
           `${type.name} has no call signiture`,
           DiagnosticSeverity.Hint,
         ),
-      ];
+      );
+
+      return errors;
     }
 
     // handle variadic
@@ -1244,15 +1267,28 @@ export class TypeChecker
     return this.visitNormalCall(type.params, call);
   }
 
+  /**
+   * Visit a function call site
+   * @param call call suffix term expression
+   * @param builder suffix type builder
+   */
   private visitFunctionCall(
     call: SuffixTerm.Call,
+    tracker: Maybe<SymbolTracker>,
     builder: SuffixTypeBuilder,
   ): Diagnostics {
     const type = builder.current();
     const errors: Diagnostics = [];
 
     // check if previous identifier resolves to a function
-    if (type.kind !== TypeKind.function) {
+    // TODO figure out function trackers
+    if (type.kind === TypeKind.function) {
+      builder.nodes.push(new TypeNode(type, call));
+      call.open.tracker = tracker;
+      call.close.tracker = tracker;
+    } else {
+      builder.nodes.push(new TypeNode(functionError, call));
+
       errors.push(
         createDiagnostic(
           call,
@@ -1437,52 +1473,77 @@ export class TypeChecker
     const errors = indexResult.errors;
     const type = builder.current();
 
-    // if we know the collection type is a list we need a scalar indexer
-    if (coerce(type, userListType) && !coerce(indexResult.type, scalarType)) {
-      builder.nodes.push(
-        new TypeNode(arrayBracketIndexer(type as IBasicType, scalarType), suffixTerm),
-      );
+    let indexer: Maybe<ISuffixType> = undefined;
 
-      errors.push(
-        createDiagnostic(
-          suffixTerm.index,
-          'Can only use scalars as list index' +
-            'This may not able to be coerced into scalar type',
-          DiagnosticSeverity.Hint,
-        ),
-      );
+    // if we know the collection type is a list we need a scalar indexer
+    if (coerce(type, userListType)) {
+      indexer = arrayBracketIndexer(type as IBasicType, scalarType, structureType);
+      builder.nodes.push(new TypeNode(indexer, suffixTerm));
+
+      if (!coerce(indexResult.type, scalarType)) {
+        errors.push(
+          createDiagnostic(
+            suffixTerm.index,
+            'Can only use scalars as list index' +
+              'This may not able to be coerced into scalar type',
+            DiagnosticSeverity.Hint,
+          ),
+        );
+      }
     }
 
     // if we know the collection type is a lexicon we need a string indexer
-    if (coerce(type, lexiconType) && !coerce(indexResult.type, stringType)) {
-      builder.nodes.push(
-        new TypeNode(arrayBracketIndexer(type as IBasicType, stringType), suffixTerm),
-      );
+    if (coerce(type, lexiconType)) {
+      indexer = arrayBracketIndexer(type as IBasicType, stringType, structureType);
+      builder.nodes.push(new TypeNode(indexer, suffixTerm));
 
-      errors.push(
-        createDiagnostic(
-          suffixTerm.index,
-          'Can only use a string as a lexicon index.' +
-            'This may not able to be coerced into string type',
-          DiagnosticSeverity.Hint,
-        ),
-      );
+      if (!coerce(indexResult.type, stringType)) {
+        errors.push(
+          createDiagnostic(
+            suffixTerm.index,
+            'Can only use a string as a lexicon index.' +
+              'This may not able to be coerced into string type',
+            DiagnosticSeverity.Hint,
+          ),
+        );
+      }
     }
 
     // if we know the collection type is a string we need a scalar indexer
-    if (coerce(type, stringType) && !coerce(indexResult.type, scalarType)) {
-      builder.nodes.push(
-        new TypeNode(arrayBracketIndexer(type as IBasicType, scalarType), suffixTerm),
-      );
+    if (coerce(type, stringType)) {
+      indexer = arrayBracketIndexer(type as IBasicType, scalarType, stringType);
+      builder.nodes.push(new TypeNode(indexer, suffixTerm));
+
+      if (!coerce(indexResult.type, scalarType)) {
+        errors.push(
+          createDiagnostic(
+            suffixTerm.index,
+            'Can only use a scalar as a string index.' +
+              'This may not able to be coerced into scalar type',
+            DiagnosticSeverity.Hint,
+          ),
+        );
+      }
+    }
+
+    // if couldn't coerce into one of our collection types
+    // insert error node
+    if (empty(indexer)) {
+      builder.nodes.push(new TypeNode(suffixError, suffixTerm));
 
       errors.push(
         createDiagnostic(
-          suffixTerm.index,
-          'Can only use a scalar as a string index.' +
-            'This may not able to be coerced into scalar type',
+          suffixTerm,
+          'Can only index a list, lexicon or string',
           DiagnosticSeverity.Hint,
         ),
       );
+
+      suffixTerm.open.tracker = suffixError.getTracker();
+      suffixTerm.close.tracker = suffixError.getTracker();
+    } else {
+      suffixTerm.open.tracker = indexer.getTracker();
+      suffixTerm.close.tracker = indexer.getTracker();
     }
 
     return errors;
@@ -1515,6 +1576,8 @@ export class TypeChecker
     }
 
     builder.nodes.push(new TypeNode(delegateCreation, suffixTerm));
+    suffixTerm.atSign.tracker = delegateCreation.getTracker();
+
     return errors;
   }
 
@@ -1649,6 +1712,22 @@ export class TypeChecker
 
   // ----------------------------- Helpers -----------------------------------------
 
+  /**
+   * Get the tracker from an atom
+   * @param atom atom
+   */
+  private atomTracker(atom: Atom): Maybe<SymbolTracker> {
+    if (atom instanceof SuffixTerm.Identifier) {
+      return atom.token.tracker;
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Is this tracker a basic tracker
+   * @param tracker tracker to inspect
+   */
   private isBasicTracker(
     tracker: Maybe<SymbolTracker>,
   ): tracker is BasicTracker {

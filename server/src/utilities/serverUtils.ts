@@ -14,7 +14,7 @@ import {
   MessageWriter,
 } from 'vscode-languageserver';
 import { empty } from './typeGuards';
-import { allSuffixes } from '../typeChecker/typeUitlities';
+import { allSuffixes, tokenTrackedType } from '../typeChecker/typeUitlities';
 import { CallType } from '../typeChecker/types/types';
 import { KsSymbolKind } from '../analysis/types';
 import { cleanLocation, cleanToken, cleanCompletion } from './clean';
@@ -191,13 +191,9 @@ export const suffixCompletionItems = (
     return [];
   }
 
-  const { tracker } = token;
-  if (empty(tracker)) {
-    return [];
-  }
+  const type = tokenTrackedType(token);
 
-  const type = tracker.getType({ uri, range: token });
-
+  // if type not found exit
   if (empty(type)) {
     return [];
   }

@@ -1,4 +1,4 @@
-import { createSuffixType, createArgSuffixType } from './typeCreators';
+import { createSuffixType, createArgSuffixType, createFunctionType } from './typeCreators';
 import { structureType } from './types/primitives/structure';
 import { integarType } from './types/primitives/scalar';
 import { delegateType } from './types/primitives/delegate';
@@ -16,6 +16,7 @@ export const arrayIndexer = createArgSuffixType(
 export const arrayBracketIndexer = (
   collectionType: IBasicType,
   indexType: IBasicType,
+  returnType: IBasicType,
 ) => {
   const typeString = `${collectionType.toTypeString()}[${indexType.toTypeString()}]`;
 
@@ -24,10 +25,9 @@ export const arrayBracketIndexer = (
     return hit;
   }
 
-  const type = createArgSuffixType(
+  const type = createSuffixType(
     typeString,
-    structureType,
-    indexType,
+    returnType,
   );
 
   arrayBracketCache.set(typeString, type);
@@ -38,7 +38,9 @@ export const delegateCreation = createArgSuffixType(
   'delegate creation',
   delegateType,
 );
-export const suffixError = createSuffixType('Invalid suffix', structureType);
+export const suffixError = createSuffixType('Unknown suffix', structureType);
+
+export const functionError = createFunctionType('Unknown function', structureType);
 
 export const defaultSuffix = (name: string) =>
   createSuffixType(name, structureType);
