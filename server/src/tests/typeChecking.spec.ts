@@ -1,132 +1,152 @@
-import {
-  isCorrectCallType,
-  isSubType,
-  addPrototype,
-  addSuffixes,
-  hasSuffix,
-} from '../typeChecker/typeUitlities';
-import { CallType } from '../typeChecker/types/types';
-import { stringType } from '../typeChecker/types/primitives/string';
+import { IScanResult } from '../scanner/types';
+import { IParseResult } from '../parser/types';
+import { SymbolTable } from '../analysis/symbolTable';
+import { Diagnostic } from 'vscode-languageserver';
+import { Scanner } from '../scanner/scanner';
+import { Parser } from '../parser/parser';
+import { SymbolTableBuilder } from '../analysis/symbolTableBuilder';
+import { standardLibraryBuilder } from '../analysis/standardLibrary';
+import { PreResolver } from '../analysis/preResolver';
+import { Resolver } from '../analysis/resolver';
+import { TypeChecker } from '../typeChecker/typeChecker';
+import { KsBaseSymbol, KsSymbolKind } from '../analysis/types';
+import { unWrap } from '../utilities/typeGuards';
 import { booleanType } from '../typeChecker/types/primitives/boolean';
-import { structureType } from '../typeChecker/types/primitives/structure';
-import { partType } from '../typeChecker/types/parts/part';
-import { dockingPortType } from '../typeChecker/types/parts/dockingPort';
 import { primitiveInitializer } from '../typeChecker/types/primitives/initialize';
 import { oribitalInitializer } from '../typeChecker/types/orbital/initialize';
-import {
-  createStructureType,
-  createSuffixType,
-  createArgSuffixType,
-} from '../typeChecker/typeCreators';
+import { Type } from '../typeChecker/types/types';
+import { doubleType, integarType } from '../typeChecker/types/primitives/scalar';
+import { stringType } from '../typeChecker/types/primitives/string';
+
+const fakeUri = 'C:\\fake.ks';
 
 primitiveInitializer();
 oribitalInitializer();
 
-describe('Type Utilities', () => {
-  test('Call type', () => {
-    expect(isCorrectCallType(CallType.call, CallType.call)).toBe(true);
-    expect(isCorrectCallType(CallType.call, CallType.get)).toBe(false);
-    expect(isCorrectCallType(CallType.call, CallType.set)).toBe(false);
-    expect(isCorrectCallType(CallType.call, CallType.optionalCall)).toBe(false);
+interface ITypeCheckResults {
+  scan: IScanResult;
+  parse: IParseResult;
+  table: SymbolTable;
+  resolveDiagnostics: Diagnostic[];
+  typeCheckDiagnostics: Diagnostic[];
+}
 
-    expect(isCorrectCallType(CallType.get, CallType.call)).toBe(false);
-    expect(isCorrectCallType(CallType.get, CallType.get)).toBe(true);
-    expect(isCorrectCallType(CallType.get, CallType.set)).toBe(false);
-    expect(isCorrectCallType(CallType.get, CallType.optionalCall)).toBe(false);
+// parse source
+const parseSource = (
+  source: string,
+): Pick<ITypeCheckResults, 'scan' | 'parse'> => {
+  const scanner = new Scanner(source, fakeUri);
+  const scan = scanner.scanTokens();
 
-    expect(isCorrectCallType(CallType.set, CallType.call)).toBe(false);
-    expect(isCorrectCallType(CallType.set, CallType.get)).toBe(false);
-    expect(isCorrectCallType(CallType.set, CallType.set)).toBe(true);
-    expect(isCorrectCallType(CallType.set, CallType.optionalCall)).toBe(false);
+  const parser = new Parser(fakeUri, scan.tokens);
+  const parse = parser.parse();
 
-    expect(isCorrectCallType(CallType.optionalCall, CallType.call)).toBe(true);
-    expect(isCorrectCallType(CallType.optionalCall, CallType.get)).toBe(true);
-    expect(isCorrectCallType(CallType.optionalCall, CallType.set)).toBe(false);
-    expect(
-      isCorrectCallType(CallType.optionalCall, CallType.optionalCall),
-    ).toBe(true);
-  });
+  return { scan, parse };
+};
 
-  test('Is Subtype 1', () => {
-    expect(isSubType(stringType, stringType)).toBe(true);
-    expect(isSubType(stringType, booleanType)).toBe(false);
-    expect(isSubType(stringType, structureType)).toBe(true);
-    expect(isSubType(stringType, partType)).toBe(false);
-    expect(isSubType(stringType, dockingPortType)).toBe(false);
+const checkSource = (
+  source: string,
+  standardLib = false,
+): ITypeCheckResults => {
+  const result = parseSource(source);
 
-    expect(isSubType(booleanType, stringType)).toBe(false);
-    expect(isSubType(booleanType, booleanType)).toBe(true);
-    expect(isSubType(booleanType, structureType)).toBe(true);
-    expect(isSubType(booleanType, partType)).toBe(false);
-    expect(isSubType(booleanType, dockingPortType)).toBe(false);
+  const symbolTableBuilder = new SymbolTableBuilder(fakeUri);
 
-    expect(isSubType(structureType, booleanType)).toBe(false);
-    expect(isSubType(structureType, booleanType)).toBe(false);
-    expect(isSubType(structureType, structureType)).toBe(true);
-    expect(isSubType(structureType, partType)).toBe(false);
-    expect(isSubType(structureType, dockingPortType)).toBe(false);
+  if (standardLib) {
+    symbolTableBuilder.linkTable(standardLibraryBuilder(CaseKind.lowercase));
+  }
 
-    expect(isSubType(partType, stringType)).toBe(false);
-    expect(isSubType(partType, booleanType)).toBe(false);
-    expect(isSubType(partType, structureType)).toBe(true);
-    expect(isSubType(partType, partType)).toBe(true);
-    expect(isSubType(partType, dockingPortType)).toBe(false);
+  const functionResolver = new PreResolver(
+    result.parse.script,
+    symbolTableBuilder,
+  );
+  const resolver = new Resolver(result.parse.script, symbolTableBuilder);
 
-    expect(isSubType(dockingPortType, stringType)).toBe(false);
-    expect(isSubType(dockingPortType, booleanType)).toBe(false);
-    expect(isSubType(dockingPortType, structureType)).toBe(true);
-    expect(isSubType(dockingPortType, partType)).toBe(true);
-    expect(isSubType(dockingPortType, dockingPortType)).toBe(true);
-  });
+  const preResolverError = functionResolver.resolve();
+  const resolverErrors = resolver.resolve();
+  const ususedErrors = symbolTableBuilder.findUnused();
 
-  test('Is Subtype 2', () => {
-    const aType = createStructureType('a');
-    const bType = createStructureType('b');
-    const cType = createStructureType('c');
+  const checker = new TypeChecker(result.parse.script);
+  const typeCheckError = checker.check();
 
-    addPrototype(bType, aType);
-    addPrototype(cType, aType);
+  return {
+    ...result,
+    resolveDiagnostics: preResolverError.concat(resolverErrors, ususedErrors),
+    typeCheckDiagnostics: typeCheckError,
+    table: symbolTableBuilder.build(),
+  };
+};
 
-    expect(isSubType(bType, aType)).toBe(true);
-    expect(isSubType(cType, aType)).toBe(true);
+const noErrors = (result: ITypeCheckResults): void => {
+  expect(result.scan.scanErrors.length).toBe(0);
+  expect(result.parse.parseErrors.length).toBe(0);
+  expect(result.resolveDiagnostics.length).toBe(0);
+  console.log(result.typeCheckDiagnostics);
+  expect(result.typeCheckDiagnostics.length).toBe(0);
+};
 
-    expect(isSubType(aType, bType)).toBe(false);
-    expect(isSubType(cType, bType)).toBe(false);
+const literalSource = `
+local b1 is true.
+local b2 is false.
 
-    expect(isSubType(bType, cType)).toBe(false);
-    expect(isSubType(aType, cType)).toBe(false);
-  });
+local d1 is 10.0.
+local d2 is 4e6.
 
-  test('Has Suffix', () => {
-    const aType = createStructureType('a');
-    const bType = createStructureType('b');
-    const cType = createStructureType('c');
-    const dType = createStructureType('d');
+local i is 5.
 
-    addSuffixes(
-      aType,
-      createSuffixType('example1', cType),
-      createSuffixType('example2', cType),
+local fi is file.ks.
+local s is "example".
+
+print fi.
+print b1.
+print i.
+print b2.
+print d1.
+print d2.
+print s.
+`;
+
+const symbolTests = (
+  symbols: Map<string, KsBaseSymbol>,
+  name: string,
+  symbolKind: KsSymbolKind,
+  targetType: Type,
+) => {
+  expect(symbols.has(name)).toBe(true);
+  const nameWrap = symbols.get(name);
+
+  expect(nameWrap).not.toBeUndefined();
+  const nameUnWrap = unWrap(nameWrap);
+
+  expect(nameUnWrap.name.lexeme).toBe(name);
+  expect(nameUnWrap.tag).toBe(symbolKind);
+
+  expect(nameUnWrap.name.tracker).not.toBeUndefined();
+
+  const nameTrack = unWrap(nameUnWrap.name.tracker);
+  expect(nameTrack.declared.type).toBe(targetType);
+};
+
+describe('Basic inferring', () => {
+  test('Literal inferring', () => {
+    const results = checkSource(literalSource);
+    noErrors(results);
+
+    const { table } = results;
+    const symbols = table.fileSymbols();
+    const names = new Map(
+      symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
     );
 
-    addSuffixes(bType, createSuffixType('example3', cType));
+    symbolTests(names, 'b1', KsSymbolKind.variable, booleanType);
+    symbolTests(names, 'b2', KsSymbolKind.variable, booleanType);
 
-    addPrototype(bType, aType);
+    symbolTests(names, 'd1', KsSymbolKind.variable, doubleType);
+    symbolTests(names, 'd2', KsSymbolKind.variable, doubleType);
 
-    addSuffixes(cType, createArgSuffixType('example', dType, dType));
+    symbolTests(names, 'i', KsSymbolKind.variable, integarType);
 
-    expect(hasSuffix(aType, 'example1')).toBe(true);
-    expect(hasSuffix(aType, 'example2')).toBe(true);
-    expect(hasSuffix(aType, 'example3')).toBe(false);
-
-    expect(hasSuffix(bType, 'example1')).toBe(true);
-    expect(hasSuffix(bType, 'example2')).toBe(true);
-    expect(hasSuffix(bType, 'example3')).toBe(true);
-    expect(hasSuffix(bType, 'other')).toBe(false);
-
-    expect(hasSuffix(cType, 'example')).toBe(true);
-    expect(hasSuffix(cType, 'other')).toBe(false);
-
-    expect(hasSuffix(dType, 'any')).toBe(false);
+    symbolTests(names, 's', KsSymbolKind.variable, stringType);
+    symbolTests(names, 'fi', KsSymbolKind.variable, stringType);
   });
 });

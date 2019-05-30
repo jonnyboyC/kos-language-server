@@ -11,7 +11,13 @@ import { scalarType, integarType, doubleType } from './scalar';
 import { listType } from '../collections/list';
 import { delegateType } from './delegate';
 
+let set = false;
+
 export const primitiveInitializer = () => {
+  if (set) {
+    return;
+  }
+  set = true;
 
   // ------------------ structure ---------------------------
   addSuffixes(

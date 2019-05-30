@@ -30,7 +30,13 @@ import { partModuleType } from '../parts/partModule';
 import { crewType } from '../crew';
 import { vesselSensorsType } from '../vessel/vesselSensors';
 
+let set = false;
+
 export const oribitalInitializer = () => {
+  if (set) {
+    return;
+  }
+  set = true;
 
   addPrototype(orbitableType, serializableStructureType);
   addSuffixes(
