@@ -1,13 +1,10 @@
 import { IGenericArgumentType } from '../types';
-import {
-  createGenericStructureType,
-  tType, createGenericArgSuffixType,
-} from '../ksType';
+import { createGenericBasicType, tType, createGenericArgSuffixType } from "../../typeCreators";
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { enumerableType } from './enumerable';
 import { voidType } from '../primitives/void';
 
-export const queueType: IGenericArgumentType = createGenericStructureType('queue');
+export const queueType: IGenericArgumentType = createGenericBasicType('queue');
 
 addPrototype(queueType, enumerableType);
 

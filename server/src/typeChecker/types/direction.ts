@@ -1,11 +1,11 @@
-import { IArgumentType } from './types';
-import { createStructureType, createSuffixType } from './ksType';
+import { ArgumentType } from './types';
+import { createStructureType, createSuffixType } from "../typeCreators";
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { vectorType } from './collections/vector';
 import { scalarType } from './primitives/scalar';
 import { serializableStructureType } from './primitives/serializeableStructure';
 
-export const directionType: IArgumentType = createStructureType('direction');
+export const directionType: ArgumentType = createStructureType('direction');
 addPrototype(directionType, serializableStructureType);
 
 addSuffixes(

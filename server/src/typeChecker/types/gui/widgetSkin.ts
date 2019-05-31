@@ -1,7 +1,5 @@
-import { IArgumentType } from '../types';
-import {
-  createSetSuffixType, createStructureType, createArgSuffixType,
-} from '../ksType';
+import { ArgumentType } from '../types';
+import { createSetSuffixType, createStructureType, createArgSuffixType } from "../../typeCreators";
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { structureType } from '../primitives/structure';
 import { rgbaType } from '../rgba';
@@ -9,7 +7,7 @@ import { widgetStyleType } from './widgetStyle';
 import { stringType } from '../primitives/string';
 import { booleanType } from '../primitives/boolean';
 
-export const widgetSkinType: IArgumentType = createStructureType('skin');
+export const widgetSkinType: ArgumentType = createStructureType('skin');
 addPrototype(widgetSkinType, structureType);
 
 const builtIns = [

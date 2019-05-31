@@ -1,23 +1,30 @@
 import { TokenType } from './tokentypes';
-import { Position, Range } from 'vscode-languageserver';
-import { IToken } from './types';
-import { IKsSymbolTracker } from '../analysis/types';
+import { Range, Position } from 'vscode-languageserver';
+import { TokenBase } from './types';
+import { SymbolTracker } from '../analysis/types';
 
-export class Token implements IToken {
+/**
+ * Represents  an atomic unit of the kerboscript language
+ */
+export class Token implements TokenBase {
   public readonly type: TokenType;
   public readonly lexeme: string;
   public readonly literal: any;
-  public readonly start: Marker;
-  public readonly end: Marker;
+  public readonly start: Position;
+  public readonly end: Position;
   public readonly uri: string;
-  public tracker: Maybe<IKsSymbolTracker>;
+
+  /**
+   * What symbol tracker is this token tied too
+   */
+  public tracker: Maybe<SymbolTracker>;
 
   constructor(
     type: TokenType,
     lexeme: string,
     literal: any,
-    start: Marker,
-    end: Marker,
+    start: Position,
+    end: Position,
     uri: string) {
     this.type = type;
     this.lexeme = lexeme;
@@ -28,6 +35,9 @@ export class Token implements IToken {
     this.tracker = undefined;
   }
 
+  /**
+   * A lowercase version of the lexeme for case insenstive comparisions
+   */
   public get lookup(): string {
     return this.lexeme.toLowerCase();
   }
@@ -47,34 +57,13 @@ export class Token implements IToken {
     };
   }
 
+  /**
+   * Convert the token to a human readable string
+   */
   public toString(): string {
     if (this.literal) {
       return `${this.typeString} ${this.lexeme} ${this.literal}`;
     }
     return `${this.typeString} ${this.lexeme}`;
-  }
-}
-
-export class Marker implements Position {
-  public readonly line: number;
-  public readonly character: number;
-
-  constructor(line: number, character: number) {
-    this.line = line;
-    this.character = character;
-  }
-}
-
-export class MutableMarker implements Position {
-  public line: number;
-  public character: number;
-
-  constructor(line: number, character: number) {
-    this.line = line;
-    this.character = character;
-  }
-
-  public toImmutable(): Marker {
-    return new Marker(this.line, this.character);
   }
 }

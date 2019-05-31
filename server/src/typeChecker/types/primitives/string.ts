@@ -1,3 +1,3 @@
-import { createStructureType } from '../ksType';
+import { createStructureType } from '../../typeCreators';
 
 export const stringType = createStructureType('string');

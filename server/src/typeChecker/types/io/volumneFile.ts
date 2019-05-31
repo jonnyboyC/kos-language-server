@@ -1,5 +1,5 @@
-import { IArgumentType } from '../types';
-import { createStructureType, createArgSuffixType, createSuffixType } from '../ksType';
+import { ArgumentType } from '../types';
+import { createStructureType, createArgSuffixType, createSuffixType } from "../../typeCreators";
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { structureType } from '../primitives/structure';
 import { volumeItemType } from './volumeItem';
@@ -8,7 +8,7 @@ import { voidType } from '../primitives/void';
 import { booleanType } from '../primitives/boolean';
 import { stringType } from '../primitives/string';
 
-export const volumeFileType: IArgumentType = createStructureType('volumefile');
+export const volumeFileType: ArgumentType = createStructureType('volumefile');
 addPrototype(volumeFileType, volumeItemType);
 
 addSuffixes(

@@ -1,8 +1,5 @@
-import { IArgumentType } from './types';
-import {
-  createStructureType, createArgSuffixType,
-  createSuffixType, createSetSuffixType,
-} from './ksType';
+import { ArgumentType } from './types';
+import { createStructureType, createArgSuffixType, createSuffixType, createSetSuffixType } from "../typeCreators";
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { structureType } from './primitives/structure';
 import { uniqueSetType } from './collections/uniqueset';
@@ -17,7 +14,7 @@ import { stringType } from './primitives/string';
 import { scalarType } from './primitives/scalar';
 import { vesselTargetType } from './orbital/vesselTarget';
 
-export const kUniverseType: IArgumentType = createStructureType('kuniverse');
+export const kUniverseType: ArgumentType = createStructureType('kuniverse');
 addPrototype(kUniverseType, structureType);
 
 addSuffixes(

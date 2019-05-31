@@ -1,12 +1,10 @@
-import { IArgumentType } from '../types';
-import {
-  createSetSuffixType, createStructureType,
-} from '../ksType';
+import { ArgumentType } from '../types';
+import { createSetSuffixType, createStructureType } from "../../typeCreators";
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { widgetType } from './widget';
 import { scalarType } from '../primitives/scalar';
 
-export const spacingType: IArgumentType = createStructureType('spacing');
+export const spacingType: ArgumentType = createStructureType('spacing');
 addPrototype(spacingType, widgetType);
 
 addSuffixes(

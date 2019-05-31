@@ -1,10 +1,10 @@
-import { IArgumentType } from '../types';
-import { createArgSuffixType, createStructureType } from '../ksType';
+import { ArgumentType } from '../types';
+import { createArgSuffixType, createStructureType } from "../../typeCreators";
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { enumerableType } from './enumerable';
 import { scalarType } from '../primitives/scalar';
 
-export const rangeType: IArgumentType = createStructureType('range');
+export const rangeType: ArgumentType = createStructureType('range');
 addPrototype(rangeType, enumerableType.toConcreteType(scalarType));
 
 addSuffixes(

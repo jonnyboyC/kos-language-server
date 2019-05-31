@@ -80,20 +80,20 @@ describe('Parse all test files', () => {
       const scanner1 = new Scanner(kosFile, filePath);
       const scanResults1 = scanner1.scanTokens();
 
-      expect(scanResults1.scanErrors.length === 0).toBe(true);
+      expect(scanResults1.scanErrors.length).toBe(0);
       const parser1 = new Parser('', scanResults1.tokens);
       const parseResults1 = parser1.parse();
-      expect(parseResults1.parseErrors.length === 0).toBe(true);
+      expect(parseResults1.parseErrors.length).toBe(0);
 
       const prettyKosFile = parseResults1.script.toString();
       const scanner2 = new Scanner(prettyKosFile, filePath);
       const scanResults2 = scanner2.scanTokens();
 
-      expect(scanResults1.scanErrors.length === 0).toBe(true);
+      expect(scanResults1.scanErrors.length).toBe(0);
       const parser2 = new Parser('', scanResults2.tokens);
       const parseResults2 = parser2.parse();
 
-      expect(parseResults2.parseErrors.length === 0).toBe(true);
+      expect(parseResults2.parseErrors.length).toBe(0);
 
       const zipped = zip(
         tokenCheck.orderedTokens(parseResults1.script),
@@ -512,7 +512,28 @@ const varDeclareTest = (
   };
 };
 
-describe('Parse instruction', () => {
+interface ILockDeclareTest {
+  source: string;
+  identifier: string;
+  scope?: ScopeKind;
+  value: Constructor<Expr.Expr>;
+}
+
+const lockDeclareTest = (
+  source: string,
+  identifier: string,
+  value: Constructor<Expr.Expr>,
+  scope?: ScopeKind,
+): ILockDeclareTest => {
+  return {
+    source,
+    identifier,
+    scope,
+    value,
+  };
+};
+
+describe('Parse statement', () => {
   test('valid variable declarations', () => {
     const validDeclarations = [
       varDeclareTest(
@@ -539,17 +560,67 @@ describe('Parse instruction', () => {
       const { script, parseErrors } = parse(declaration.source);
 
       expect(parseErrors.length).toBe(0);
-      expect(script.insts.length).toBe(1);
-      expect(script.runInsts.length).toBe(0);
+      expect(script.stmts.length).toBe(1);
+      expect(script.runStmts.length).toBe(0);
 
-      const [inst] = script.insts;
+      const [stmt] = script.stmts;
 
-      expect(inst instanceof Decl.Var).toBe(true);
+      expect(stmt instanceof Decl.Var).toBe(true);
 
-      if (inst instanceof Decl.Var) {
-        expect(inst.identifier.lexeme).toBe(declaration.identifier);
-        expect(inst.scope.type).toBe(declaration.scope);
-        expect(inst.value instanceof declaration.value).toBe(true);
+      if (stmt instanceof Decl.Var) {
+        expect(stmt.identifier.lexeme).toBe(declaration.identifier);
+        expect(stmt.scope.type).toBe(declaration.scope);
+        expect(stmt.value instanceof declaration.value).toBe(true);
+      }
+    }
+  });
+
+  test('valid lock declarations', () => {
+    const validDeclarations = [
+      lockDeclareTest(
+        'lock a to { return 10. }.',
+        'a',
+        Expr.Lambda,
+        undefined,
+      ),
+      lockDeclareTest(
+        'local lock other to "example" + "another".',
+        'other',
+        Expr.Binary,
+        ScopeKind.local,
+      ),
+      lockDeclareTest(
+        'declare global lock another to thing:withSuffix[10].',
+        'another',
+        Expr.Suffix,
+        ScopeKind.global,
+      ),
+    ];
+
+    for (const declaration of validDeclarations) {
+      const { script, parseErrors } = parse(declaration.source);
+
+      expect(parseErrors.length).toBe(0);
+      expect(script.stmts.length).toBe(1);
+      expect(script.runStmts.length).toBe(0);
+
+      const [stmt] = script.stmts;
+
+      expect(stmt instanceof Decl.Lock).toBe(true);
+
+      if (stmt instanceof Decl.Lock) {
+        expect(stmt.identifier.lexeme).toBe(declaration.identifier);
+        if (empty(declaration.scope)) {
+          expect(stmt.scope).toBeUndefined();
+        } else {
+          if (empty(stmt.scope)) {
+            fail();
+          } else {
+            expect(stmt.scope.type).toBe(declaration.scope);
+          }
+        }
+
+        expect(stmt.value instanceof declaration.value).toBe(true);
       }
     }
   });

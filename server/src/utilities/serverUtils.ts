@@ -14,7 +14,7 @@ import {
   MessageWriter,
 } from 'vscode-languageserver';
 import { empty } from './typeGuards';
-import { allSuffixes } from '../typeChecker/typeUitlities';
+import { allSuffixes, tokenTrackedType } from '../typeChecker/typeUitlities';
 import { CallType } from '../typeChecker/types/types';
 import { KsSymbolKind } from '../analysis/types';
 import { cleanLocation, cleanToken, cleanCompletion } from './clean';
@@ -107,10 +107,16 @@ export const updateServer = (server: IServer): void => {
 
   server.keywords = keywordCompletions(caseKind);
   server.analyzer.logger.level = logLevel;
-  server.analyzer.setCase(caseKind)
+  server.analyzer.setCase(caseKind);
 };
 
-export const entityCompletionItems = (
+/**
+ * Get a list of all symbols currently in scope at the given line
+ * @param analyzer analyzer instance
+ * @param documentPosition the current position in the document
+ * @param keywordCompletions a list of keywords to always concat
+ */
+export const symbolCompletionItems = (
   analyzer: Analyzer,
   documentPosition: TextDocumentPositionParams,
   keywordCompletions: CompletionItem[],
@@ -118,7 +124,10 @@ export const entityCompletionItems = (
   const { position } = documentPosition;
   const { uri } = documentPosition.textDocument;
 
+  // get all symbols currently in scope
   const entities = analyzer.getScopedSymbols(position, uri);
+
+  // generate completions
   return entities
     .map(entity => {
       let kind: Maybe<CompletionItemKind> = undefined;
@@ -130,7 +139,7 @@ export const entityCompletionItems = (
           kind = CompletionItemKind.Variable;
           break;
         case KsSymbolKind.lock:
-          kind = CompletionItemKind.Variable;
+          kind = CompletionItemKind.Reference;
           break;
         case KsSymbolKind.variable:
           kind = CompletionItemKind.Variable;
@@ -139,9 +148,20 @@ export const entityCompletionItems = (
           throw new Error('Unknown entity type');
       }
 
+      let typeString = 'structure';
+      const { tracker } = entity.name;
+      if (!empty(tracker)) {
+        const type = tracker.getType({ uri, range: entity.name });
+
+        if (!empty(type)) {
+          typeString = type.toTypeString();
+        }
+      }
+
       return {
         kind,
         label: entity.name.lexeme,
+        detail: `${entity.name.lexeme}: ${typeString}`,
         data: cleanToken(entity.name),
       } as CompletionItem;
     })
@@ -149,6 +169,11 @@ export const entityCompletionItems = (
     .map(completion => cleanCompletion(completion));
 };
 
+/**
+ * Get a list of all known suffixes give a suffix completion trigger
+ * @param analyzer analyzer instance
+ * @param documentPosition the current position in the document
+ */
 export const suffixCompletionItems = (
   analyzer: Analyzer,
   documentPosition: TextDocumentPositionParams,
@@ -156,14 +181,27 @@ export const suffixCompletionItems = (
   const { position } = documentPosition;
   const { uri } = documentPosition.textDocument;
 
-  const token = analyzer.getToken(position, uri);
-  const typeInfo = analyzer.getSuffixType(position, uri);
-  if (empty(token) || empty(typeInfo)) {
+  // TODO more robust method
+  const token = analyzer.getToken(
+    { line: position.line, character: position.character - 2 },
+    uri,
+  );
+
+  if (empty(token)) {
     return [];
   }
-  const [type] = typeInfo;
+
+  const type = tokenTrackedType(token);
+
+  // if type not found exit
+  if (empty(type)) {
+    return [];
+  }
+
+  // get all suffixes on the predicted type
   const suffixes = allSuffixes(type);
 
+  // generate completions
   return suffixes.map(suffix => {
     switch (suffix.callType) {
       case CallType.call:
@@ -171,14 +209,14 @@ export const suffixCompletionItems = (
         return {
           kind: CompletionItemKind.Method,
           label: suffix.name,
-          details: suffix.toTypeString(),
+          detail: `${suffix.name}: ${suffix.toTypeString()}`,
         } as CompletionItem;
       case CallType.get:
       case CallType.set:
         return {
           kind: CompletionItemKind.Property,
           label: suffix.name,
-          details: suffix.toTypeString(),
+          detail: `${suffix.name}: ${suffix.toTypeString()}`,
         } as CompletionItem;
       default:
         throw new Error('Unanticipated call type found');
@@ -186,6 +224,11 @@ export const suffixCompletionItems = (
   });
 };
 
+/**
+ * Get all symbols in the current document
+ * @param analyzer analyzer instance
+ * @param documentSymbol document identifier
+ */
 export const documentSymbols = (
   analyzer: Analyzer,
   documentSymbol: DocumentSymbolParams,
@@ -203,7 +246,7 @@ export const documentSymbols = (
         kind = SymbolKind.Variable;
         break;
       case KsSymbolKind.lock:
-        kind = SymbolKind.Variable;
+        kind = SymbolKind.Object;
         break;
       case KsSymbolKind.variable:
         kind = SymbolKind.Variable;

@@ -13,7 +13,6 @@ import {
   SyntaxKind,
 } from './types';
 import { Range, Position } from 'vscode-languageserver';
-import { IToken } from '../entities/types';
 import { TokenType } from '../entities/tokentypes';
 import {
   createGrammarOptional,
@@ -28,6 +27,8 @@ import { expr } from './expr';
 import { NodeBase } from './base';
 import { empty } from '../utilities/typeGuards';
 import { joinLines } from './toStringUtils';
+import { Token } from '../entities/token';
+import { SymbolTracker } from '../analysis/types';
 
 /**
  * Base class for all suffix terms
@@ -67,24 +68,24 @@ export class Invalid extends SuffixTermBase {
    * Invalid suffix term constructor
    * @param tokens tokens in the invalid range
    */
-  constructor(public readonly tokens: IToken[]) {
+  constructor(public readonly position: Position) {
     super();
   }
 
   public get start(): Position {
-    return this.tokens[0].start;
+    return this.position;
   }
 
   public get end(): Position {
-    return this.tokens[this.tokens.length - 1].end;
+    return this.position;
   }
 
   public get ranges(): Range[] {
-    return [...this.tokens];
+    return [];
   }
 
   public toLines(): string[] {
-    return [this.tokens.join(', ')];
+    return [''];
   }
 
   public acceptParam<TP, TR>(
@@ -124,7 +125,7 @@ export class SuffixTrailer extends SuffixTermBase {
    */
   constructor(
     public readonly suffixTerm: SuffixTerm,
-    public colon?: IToken,
+    public colon?: Token,
     public trailer?: SuffixTrailer,
   ) {
     super();
@@ -147,7 +148,7 @@ export class SuffixTrailer extends SuffixTermBase {
   }
 
   /**
-   * Method indicating if the suffix ends with a function or suffix call
+   * Method indicating if the suffix ends with a settable trailer
    */
   public isSettable(): boolean {
     // if no trailer check suffix term
@@ -182,6 +183,49 @@ export class SuffixTrailer extends SuffixTermBase {
     }
 
     return false;
+  }
+
+  /**
+   * Get the most resolved type on this suffix
+   */
+  public mostResolveTracker(): Maybe<SymbolTracker> {
+    // if no trailer check suffix term
+    if (empty(this.trailer)) {
+      const { atom, trailers } = this.suffixTerm;
+
+      // check for suffix term trailers
+      if (trailers.length > 0) {
+        const lastTrailer = trailers[trailers.length - 1];
+
+        if (lastTrailer instanceof ArrayBracket) {
+          return lastTrailer.open.tracker;
+        }
+
+        if (lastTrailer instanceof ArrayIndex) {
+          return undefined;
+        }
+
+        if (lastTrailer instanceof Call) {
+          return lastTrailer.open.tracker;
+        }
+
+        return undefined;
+      }
+
+      // check nested trailers
+      if (atom instanceof Identifier) {
+        return atom.token.tracker;
+      }
+
+      return undefined;
+    }
+
+    // check nested trailers
+    if (!empty(this.trailer)) {
+      return this.trailer.mostResolveTracker();
+    }
+
+    return undefined;
   }
 
   public toLines(): string[] {
@@ -302,9 +346,9 @@ export class Call extends SuffixTermBase {
    * @param close close paren of the call
    */
   constructor(
-    public readonly open: IToken,
+    public readonly open: Token,
     public readonly args: IExpr[],
-    public readonly close: IToken,
+    public readonly close: Token,
   ) {
     super();
   }
@@ -370,7 +414,7 @@ export class ArrayIndex extends SuffixTermBase {
    * @param indexer "#" token indicating a index
    * @param index index to be used
    */
-  constructor(public readonly indexer: IToken, public readonly index: IToken) {
+  constructor(public readonly indexer: Token, public readonly index: Token) {
     super();
   }
 
@@ -426,9 +470,9 @@ export class ArrayBracket extends SuffixTermBase {
    * @param close close bracket
    */
   constructor(
-    public readonly open: IToken,
+    public readonly open: Token,
     public readonly index: IExpr,
-    public readonly close: IToken,
+    public readonly close: Token,
   ) {
     super();
   }
@@ -486,7 +530,7 @@ export class Delegate extends SuffixTermBase {
    * Constructor for the function delegate
    * @param atSign at sign indicating that function should create a delgate
    */
-  constructor(public readonly atSign: IToken) {
+  constructor(public readonly atSign: Token) {
     super();
   }
 
@@ -539,7 +583,7 @@ export class Literal extends SuffixTermBase {
    * Constructor for literal suffix term
    * @param token token for the literal
    */
-  constructor(public readonly token: IToken) {
+  constructor(public readonly token: Token) {
     super();
   }
 
@@ -592,7 +636,7 @@ export class Identifier extends SuffixTermBase {
    * Constructor for suffix term identifiers
    * @param token identifier token
    */
-  constructor(public readonly token: IToken) {
+  constructor(public readonly token: Token) {
     super();
   }
 
@@ -655,9 +699,9 @@ export class Grouping extends SuffixTermBase {
    * @param close close paren token
    */
   constructor(
-    public readonly open: IToken,
+    public readonly open: Token,
     public readonly expr: IExpr,
-    public readonly close: IToken,
+    public readonly close: Token,
   ) {
     super();
   }
@@ -705,6 +749,21 @@ export class Grouping extends SuffixTermBase {
     return visitor.visitGrouping(this);
   }
 }
+
+/**
+ * All valid suffix terms
+ */
+export const validSuffixTerms: Constructor<SuffixTermBase>[] = [
+  SuffixTrailer,
+  SuffixTerm,
+  Call,
+  ArrayIndex,
+  ArrayBracket,
+  Delegate,
+  Literal,
+  Identifier,
+  Grouping,
+];
 
 const atomTypes: [ISuffixTermClass, Distribution][] = [
   [Literal, createConstant(0.8)],

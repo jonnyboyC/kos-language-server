@@ -1,8 +1,5 @@
-import { IArgumentType } from '../types';
-import {
-  createStructureType, createArgSuffixType,
-  createSuffixType,
-} from '../ksType';
+import { ArgumentType } from '../types';
+import { createStructureType, createArgSuffixType, createSuffixType } from '../../typeCreators';
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { structureType } from '../primitives/structure';
 import { partType } from './part';
@@ -11,11 +8,11 @@ import { userListType } from '../collections/userList';
 import { stringType } from '../primitives/string';
 import { booleanType } from '../primitives/boolean';
 
-export const partModuleFieldsType: IArgumentType = createStructureType('partModuleFields');
-addPrototype(partModuleFieldsType, structureType);
+export const partModuleType: ArgumentType = createStructureType('partModule');
+addPrototype(partModuleType, structureType);
 
 addSuffixes(
-  partModuleFieldsType,
+  partModuleType,
   createSuffixType('name', stringType),
   createSuffixType('part', partType),
   createSuffixType('allFields', userListType),

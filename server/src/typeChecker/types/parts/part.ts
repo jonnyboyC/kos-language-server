@@ -1,8 +1,10 @@
-import { IArgumentType } from '../types';
+import { ArgumentType } from '../types';
 import {
-  createStructureType, createArgSuffixType,
-  createSuffixType, createSetSuffixType,
-} from '../ksType';
+  createStructureType,
+  createArgSuffixType,
+  createSuffixType,
+  createSetSuffixType,
+} from '../../typeCreators';
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { structureType } from '../primitives/structure';
 import { directionType } from '../direction';
@@ -13,10 +15,10 @@ import { userListType } from '../collections/userList';
 import { stringType } from '../primitives/string';
 import { scalarType } from '../primitives/scalar';
 import { booleanType } from '../primitives/boolean';
-import { partModuleFieldsType } from './partModuleFields';
+import { partModuleType } from './partModule';
 import { vesselTargetType } from '../orbital/vesselTarget';
 
-export const partType: IArgumentType = createStructureType('part');
+export const partType: ArgumentType = createStructureType('part');
 addPrototype(partType, structureType);
 
 addSuffixes(
@@ -35,8 +37,8 @@ addSuffixes(
   createSuffixType('targetable', booleanType),
   createSuffixType('ship', vesselTargetType),
   createArgSuffixType('hasModule', booleanType, stringType),
-  createArgSuffixType('getModule', partModuleFieldsType, stringType),
-  createArgSuffixType('getModulesByIndex', partModuleFieldsType, scalarType),
+  createArgSuffixType('getModule', partModuleType, stringType),
+  createArgSuffixType('getModulesByIndex', partModuleType, scalarType),
   createSuffixType('modules', userListType),
   createSuffixType('allModules', userListType),
   createSuffixType('parent', structureType),

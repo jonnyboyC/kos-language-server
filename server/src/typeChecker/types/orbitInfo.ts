@@ -1,5 +1,5 @@
-import { IArgumentType } from './types';
-import { createStructureType, createSuffixType } from './ksType';
+import { ArgumentType } from './types';
+import { createStructureType, createSuffixType } from "../typeCreators";
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { structureType } from './primitives/structure';
 import { vectorType } from './collections/vector';
@@ -8,7 +8,7 @@ import { scalarType } from './primitives/scalar';
 import { booleanType } from './primitives/boolean';
 import { bodyTargetType } from './orbital/bodyTarget';
 
-export const orbitInfoType: IArgumentType = createStructureType('orbitInfo');
+export const orbitInfoType: ArgumentType = createStructureType('orbitInfo');
 addPrototype(orbitInfoType, structureType);
 
 addSuffixes(

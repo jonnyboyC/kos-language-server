@@ -1,5 +1,6 @@
-import { IArgumentType } from './types';
-import { ConstantType, createStructureType, createSuffixType } from './ksType';
+import { ArgumentType } from './types';
+import { ConstantType } from '../ksType';
+import { createStructureType, createSuffixType } from "../typeCreators";
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { structureType } from './primitives/structure';
 import { doubleType } from './primitives/scalar';
@@ -28,7 +29,7 @@ addPrototype(degToRadType, doubleType);
 export const radToDegType = new ConstantType('radtodeg', 57.295779513082320876798154814105);
 addPrototype(radToDegType, doubleType);
 
-export const constantType: IArgumentType = createStructureType('constant');
+export const constantType: ArgumentType = createStructureType('constant');
 addPrototype(constantType, structureType);
 
 addSuffixes(

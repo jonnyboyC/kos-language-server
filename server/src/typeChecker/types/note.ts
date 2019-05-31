@@ -1,10 +1,10 @@
-import { IArgumentType } from './types';
-import { createStructureType, createSuffixType } from './ksType';
+import { ArgumentType } from './types';
+import { createStructureType, createSuffixType } from "../typeCreators";
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { doubleType } from './primitives/scalar';
 import { serializableStructureType } from './primitives/serializeableStructure';
 
-export const noteType: IArgumentType = createStructureType('note');
+export const noteType: ArgumentType = createStructureType('note');
 addPrototype(noteType, serializableStructureType);
 
 addSuffixes(

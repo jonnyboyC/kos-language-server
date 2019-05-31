@@ -1,13 +1,11 @@
-import { IArgumentType } from '../types';
+import { ArgumentType } from '../types';
 import { structureType } from '../primitives/structure';
-import {
-  createSetSuffixType, createStructureType,
-} from '../ksType';
+import { createSetSuffixType, createStructureType } from "../../typeCreators";
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { rgbaType } from '../rgba';
 import { stringType } from '../primitives/string';
 
-export const widgetStyleStateType: IArgumentType = createStructureType('styleState');
+export const widgetStyleStateType: ArgumentType = createStructureType('styleState');
 addPrototype(widgetStyleStateType, structureType);
 
 addSuffixes(

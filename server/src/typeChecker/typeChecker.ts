@@ -1,42 +1,35 @@
 import {
   IExprVisitor,
-  IInstVisitor,
-  IInst,
+  IStmtVisitor,
+  IStmt,
   IExpr,
   ISuffixTerm,
-  Atom,
   ISuffixTermParamVisitor,
+  Atom,
 } from '../parser/types';
 import * as SuffixTerm from '../parser/suffixTerm';
 import * as Expr from '../parser/expr';
-import * as Inst from '../parser/inst';
+import * as Stmt from '../parser/stmt';
 import * as Decl from '../parser/declare';
-import {
-  ITypeResultExpr,
-  ITypeResolved,
-  ITypeResultSuffix,
-  ITypeResolvedSuffix,
-  ITypeNode,
-} from './types';
+import { ITypeResultExpr } from './types';
 import { mockLogger, mockTracer } from '../utilities/logger';
 import { Script } from '../entities/script';
 import { empty } from '../utilities/typeGuards';
 import {
-  IArgumentType,
-  IType,
+  ArgumentType,
+  Type,
   IVariadicType,
   Operator,
-  ISuffixType,
-  IFunctionType,
-  CallType,
   TypeKind,
+  IBasicType,
+  ISuffixType,
 } from './types/types';
 import { structureType } from './types/primitives/structure';
 import { coerce } from './coerce';
 import { iterator } from '../utilities/constants';
 import { TokenType } from '../entities/tokentypes';
 import { nodeType } from './types/node';
-import { createFunctionType } from './types/ksType';
+import { createFunctionType } from './typeCreators';
 import { lexiconType } from './types/collections/lexicon';
 import { zip } from '../utilities/arrayUtils';
 import { isSubType, hasOperator, getSuffix, hasSuffix } from './typeUitlities';
@@ -50,25 +43,27 @@ import {
   delegateCreation,
   arrayBracketIndexer,
   arrayIndexer,
-} from './types/typeHelpers';
+  functionError,
+} from './typeHelpers';
 import { delegateType } from './types/primitives/delegate';
 import { TypeNode } from './typeNode';
-import { KsSymbolKind } from '../analysis/types';
+import { KsSymbolKind, TrackerKind, SymbolTracker } from '../analysis/types';
 import { rangeToString } from '../utilities/positionUtils';
 import { listType } from './types/collections/list';
 import { bodyTargetType } from './types/orbital/bodyTarget';
 import { vesselTargetType } from './types/orbital/vesselTarget';
 import { volumeType } from './types/io/volume';
 import { volumeItemType } from './types/io/volumeItem';
-import { partModuleFieldsType } from './types/parts/partModuleFields';
+import { partModuleType } from './types/parts/partModule';
 import { partType } from './types/parts/part';
 import { pathType } from './types/io/path';
 import { NodeBase } from '../parser/base';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
 import { createDiagnostic } from '../utilities/diagnosticsUtils';
+import { BasicTracker } from '../analysis/tracker';
+import { SuffixTypeBuilder } from './suffixTypeNode';
 
 type Diagnostics = Diagnostic[];
-type SuffixTermType = ISuffixType | IArgumentType;
 
 /**
  * The type checker attempts to identify places where the rules of the type
@@ -76,17 +71,28 @@ type SuffixTermType = ISuffixType | IArgumentType;
  */
 export class TypeChecker
   implements
-    IInstVisitor<Diagnostics>,
-    IExprVisitor<ITypeResultExpr<IArgumentType>>,
-    ISuffixTermParamVisitor<
-      ITypeResultSuffix<IType>,
-      ITypeResultSuffix<SuffixTermType>
-    > {
+    IStmtVisitor<Diagnostics>,
+    IExprVisitor<ITypeResultExpr<ArgumentType>>,
+    ISuffixTermParamVisitor<SuffixTypeBuilder, Diagnostics> {
+  /**
+   * the logger to logging information
+   */
   private readonly logger: ILogger;
+
+  /**
+   * The tracer for logging the current stack tracer
+   */
   private readonly tracer: ITracer;
+
+  /**
+   * The script that is being type checked
+   */
   private readonly script: Script;
 
-  private readonly checkInstBind = this.checkInst.bind(this);
+  /**
+   * The cached bound check statement
+   */
+  private readonly checkStmtBind = this.checkStmt.bind(this);
 
   constructor(
     script: Script,
@@ -102,14 +108,14 @@ export class TypeChecker
    * Check the source file for type errors
    */
   public check(): Diagnostics {
-    // resolve the sequence of instructions
+    // resolve the sequence of statements
     try {
       const splits = this.script.uri.split('/');
       const file = splits[splits.length - 1];
 
       this.logger.info(`Type Checking started for ${file}.`);
 
-      const typeErrors = this.checkInsts(this.script.insts);
+      const typeErrors = this.checkStmts(this.script.stmts);
 
       this.logger.info(`Type Checking finished for ${file}`);
 
@@ -126,106 +132,39 @@ export class TypeChecker
   }
 
   /**
-   * Check a suffix for it's type
-   * @param suffix suffix to check
+   * check a collection of statements
+   * @param stmts statements to check
    */
-  public checkSuffix(
-    suffix: Expr.Suffix,
-  ): ITypeResultSuffix<IType, ITypeResolved> {
-    try {
-      const { suffixTerm, trailer } = suffix;
-      const [firstTrailer, ...remainingTrailers] = suffixTerm.trailers;
-
-      const atom = this.resolveAtom(suffixTerm.atom);
-      let current: ITypeResultSuffix<IType> = atom;
-
-      if (!empty(firstTrailer)) {
-        // handle case were suffix is actually a function call
-        if (firstTrailer instanceof SuffixTerm.Call) {
-          current = this.resolveFunctionCall(firstTrailer, atom);
-        } else {
-          current = this.checkSuffixTerm(firstTrailer, atom);
-        }
-
-        for (const trailer of remainingTrailers) {
-          current = this.checkSuffixTerm(trailer, current);
-        }
-      }
-
-      const { type, resolved, errors } = current;
-      if (type.tag === TypeKind.suffix || type.tag === TypeKind.function) {
-        // const node = this.lastSuffixTermNode(suffixTerm);
-        return this.errorsSuffixTerm(
-          resolved,
-          errors,
-          createDiagnostic(suffixTerm.atom, 'TODO', DiagnosticSeverity.Hint),
-        ) as ITypeResultSuffix<IType, ITypeResolved>;
-      }
-
-      if (empty(trailer)) {
-        return current as ITypeResultSuffix<IType, ITypeResolved>;
-      }
-
-      const suffixTrailer = this.checkSuffixTerm(
-        trailer,
-        this.suffixTrailerResult(type, suffixTerm),
-      );
-
-      return this.resultSuffixTerm(
-        suffixTrailer.type,
-        { ...current.resolved, suffixTrailer: suffixTrailer.resolved },
-        current.errors,
-        suffixTrailer.errors,
-      ) as ITypeResultSuffix<IType, ITypeResolved>;
-    } catch (err) {
-      this.logger.error(`Error occured in resolver ${err}`);
-      this.tracer.log(err);
-      return {
-        type: structureType,
-        resolved: {
-          atomType: KsSymbolKind.variable,
-          atom: new TypeNode(structureType, suffix.suffixTerm),
-          termTrailers: [],
-        },
-        errors: [] as Diagnostics,
-      };
-    }
+  private checkStmts(stmts: IStmt[]): Diagnostics {
+    return accumulateErrors(stmts, this.checkStmtBind);
   }
 
   /**
-   * check a collection of instructions
-   * @param insts instruction sto check
+   * Check an statement for errors
+   * @param stmt statement to check
    */
-  private checkInsts(insts: IInst[]): Diagnostics {
-    return accumulateErrors(insts, this.checkInstBind);
-  }
-
-  /**
-   * Check an instruction for errors
-   * @param inst instruction to check
-   */
-  private checkInst(inst: IInst): Diagnostics {
-    return inst.accept(this);
+  private checkStmt(stmt: IStmt): Diagnostics {
+    return stmt.accept(this);
   }
 
   /**
    * Check an expression for errors
    * @param expr expression to check
    */
-  private checkExpr(expr: IExpr): ITypeResultExpr<IArgumentType> {
+  private checkExpr(expr: IExpr): ITypeResultExpr<ArgumentType> {
     return expr.accept(this);
   }
 
   /**
    * Check a suffix term for errors
    * @param suffixTerm suffix term to check
-   * @param current type resolved so far
+   * @param builder type resolved so far
    */
   private checkSuffixTerm(
     suffixTerm: ISuffixTerm,
-    current: ITypeResultSuffix<IType>,
-  ): ITypeResultSuffix<SuffixTermType> {
-    return suffixTerm.acceptParam(this, current);
+    builder: SuffixTypeBuilder,
+  ): Diagnostics {
+    return suffixTerm.acceptParam(this, builder);
   }
 
   // ----------------------------- Declaration -----------------------------------------
@@ -238,7 +177,7 @@ export class TypeChecker
     const result = this.checkExpr(decl.value);
     const { tracker } = decl.identifier;
 
-    if (!empty(tracker)) {
+    if (this.isBasicTracker(tracker)) {
       tracker.declareType(result.type);
     }
 
@@ -253,7 +192,7 @@ export class TypeChecker
     const result = this.checkExpr(decl.value);
     const { tracker } = decl.identifier;
 
-    if (!empty(tracker)) {
+    if (this.isBasicTracker(tracker)) {
       tracker.declareType(result.type);
     }
 
@@ -265,13 +204,13 @@ export class TypeChecker
    * @param decl function declaration
    */
   visitDeclFunction(decl: Decl.Func): Diagnostics {
-    const errors = this.checkInst(decl.block);
+    const errors = this.checkStmt(decl.block);
     const { tracker } = decl.identifier;
 
-    if (!empty(tracker)) {
+    if (!empty(tracker) && tracker.kind === TrackerKind.basic) {
       const { symbol } = tracker.declared;
       if (symbol.tag === KsSymbolKind.function) {
-        const paramsTypes: IArgumentType[] = [];
+        const paramsTypes: ArgumentType[] = [];
 
         // TODO eventually we should tag ks parameter to the function type
         for (let i = 0; i < symbol.requiredParameters; i += 1) {
@@ -307,7 +246,7 @@ export class TypeChecker
     for (const required of decl.requiredParameters) {
       const { tracker } = required.identifier;
 
-      if (!empty(tracker)) {
+      if (this.isBasicTracker(tracker)) {
         tracker.declareType(structureType);
       }
     }
@@ -317,7 +256,7 @@ export class TypeChecker
       const valueResult = this.checkExpr(optional.value);
       const { tracker } = optional.identifier;
 
-      if (!empty(tracker)) {
+      if (this.isBasicTracker(tracker)) {
         tracker.declareType(valueResult.type);
       }
 
@@ -327,70 +266,88 @@ export class TypeChecker
     return errors;
   }
 
-  // ----------------------------- Instructions -----------------------------------------
+  // ----------------------------- Statements -----------------------------------------
 
   /**
-   * Vist an invalid instruction
-   * @param _ invalid instruction
+   * Vist an invalid statement
+   * @param stmt invalid statement
    */
-  public visitInstInvalid(_: Inst.Invalid): Diagnostics {
-    return [];
+  public visitStmtInvalid(stmt: Stmt.Invalid): Diagnostics {
+    if (empty(stmt.partial)) {
+      return [];
+    }
+
+    const errors = [];
+
+    // check parsed partial nodes
+    for (const node of Object.values(stmt.partial)) {
+      if (node instanceof Stmt.Stmt) {
+        errors.push(...this.checkStmt(node));
+      }
+
+      if (node instanceof Expr.Expr) {
+        const result = this.checkExpr(node);
+        errors.push(...result.errors);
+      }
+    }
+
+    return errors;
   }
 
   /**
-   * Vist a block instruction
-   * @param inst instruction block
+   * Vist a block statement
+   * @param stmt statement block
    */
-  public visitBlock(inst: Inst.Block): Diagnostics {
-    return accumulateErrors(inst.insts, this.checkInstBind);
+  public visitBlock(stmt: Stmt.Block): Diagnostics {
+    return accumulateErrors(stmt.stmts, this.checkStmtBind);
   }
 
   /**
-   * Visit an instruction expression
-   * @param inst instruction expression
+   * Visit an statement expression
+   * @param stmt statement expression
    */
-  public visitExpr(inst: Inst.ExprInst): Diagnostics {
-    const result = this.checkExpr(inst.suffix);
+  public visitExpr(stmt: Stmt.ExprStmt): Diagnostics {
+    const result = this.checkExpr(stmt.suffix);
     return result.errors;
   }
 
   /**
-   * Visit an on off instruction
-   * @param inst on / off instruction
+   * Visit an on off statement
+   * @param stmt on / off statement
    */
-  public visitOnOff(inst: Inst.OnOff): Diagnostics {
-    const result = this.checkExpr(inst.suffix);
+  public visitOnOff(stmt: Stmt.OnOff): Diagnostics {
+    const result = this.checkExpr(stmt.suffix);
     return result.errors;
   }
 
   /**
-   * Visit a command instruction
-   * @param _ command instruction
+   * Visit a command statement
+   * @param _ command statement
    */
-  public visitCommand(_: Inst.Command): Diagnostics {
+  public visitCommand(_: Stmt.Command): Diagnostics {
     return [];
   }
 
   /**
-   * Visit a command expression instruction
-   * @param inst command expression instruction
+   * Visit a command expression statement
+   * @param stmt command expression statement
    */
-  public visitCommandExpr(inst: Inst.CommandExpr): Diagnostics {
-    const result = this.checkExpr(inst.expr);
+  public visitCommandExpr(stmt: Stmt.CommandExpr): Diagnostics {
+    const result = this.checkExpr(stmt.expr);
     const errors: Diagnostics = result.errors;
 
-    switch (inst.command.type) {
+    switch (stmt.command.type) {
       // commands for adding and removing nodes
       case TokenType.add:
       case TokenType.remove:
         // expression must be a node type for node commands
         if (!coerce(result.type, nodeType)) {
           const command =
-            inst.command.type === TokenType.add ? 'add' : 'remove';
+            stmt.command.type === TokenType.add ? 'add' : 'remove';
 
           errors.push(
             createDiagnostic(
-              inst.expr,
+              stmt.expr,
               `${command} expected a node.` +
                 ' Node may not able to be  be coerced into node type',
               DiagnosticSeverity.Hint,
@@ -403,7 +360,7 @@ export class TypeChecker
         if (!coerce(result.type, nodeType)) {
           errors.push(
             createDiagnostic(
-              inst.expr,
+              stmt.expr,
               'Path may not be coerced into string type',
               DiagnosticSeverity.Hint,
             ),
@@ -418,78 +375,86 @@ export class TypeChecker
   }
 
   /**
-   * Visit an unset instruction
-   * @param _ unset instruction
+   * Visit an unset statement
+   * @param _ unset statement
    */
-  public visitUnset(_: Inst.Unset): Diagnostics {
+  public visitUnset(_: Stmt.Unset): Diagnostics {
     return [];
   }
 
   /**
-   * Visit an unlock instruction
-   * @param _ unlock instruction
+   * Visit an unlock statement
+   * @param _ unlock statement
    */
-  public visitUnlock(_: Inst.Unlock): Diagnostics {
+  public visitUnlock(_: Stmt.Unlock): Diagnostics {
     return [];
   }
 
   // visit set
   /**
-   * Visit set instruction
-   * @param inst set instruction
+   * Visit set statement
+   * @param stmt set statement
    */
-  public visitSet(inst: Inst.Set): Diagnostics {
-    const exprResult = this.checkExpr(inst.value);
+  public visitSet(stmt: Stmt.Set): Diagnostics {
+    const exprResult = this.checkExpr(stmt.value);
     const errors = exprResult.errors;
+    const suffixResult = this.checkExpr(stmt.suffix);
+    errors.push(...suffixResult.errors);
 
     // check if suffix is settable
-    if (!inst.suffix.isSettable()) {
-      return errors.concat(
+    if (!stmt.suffix.isSettable()) {
+      errors.push(
         createDiagnostic(
-          inst.suffix,
-          `Cannot set ${this.nodeError(inst.suffix)} as it is a call`,
+          stmt.suffix,
+          `Cannot set ${this.nodeError(stmt.suffix)} as it is a call`,
           DiagnosticSeverity.Hint,
         ),
       );
+
+      return errors;
     }
 
-    const { atom, trailers } = inst.suffix.suffixTerm;
+    const { atom, trailers } = stmt.suffix.suffixTerm;
 
     // if a suffix trailer exists we are a full suffix
-    if (!empty(inst.suffix.trailer) || trailers.length > 0) {
-      const suffixResult = this.checkExpr(inst.suffix);
-      const setErrors: Diagnostics = [];
-
+    if (!empty(stmt.suffix.trailer) || trailers.length > 0) {
       if (!coerce(exprResult.type, suffixResult.type)) {
-        setErrors.push(
+        errors.push(
           createDiagnostic(
-            inst.suffix,
-            `Cannot set suffix ${this.nodeError(inst.suffix)}` +
+            stmt.suffix,
+            `Cannot set suffix ${this.nodeError(stmt.suffix)}` +
               `of type ${suffixResult.type.name} to ${exprResult.type.name}`,
             DiagnosticSeverity.Hint,
           ),
         );
       }
 
-      return errors.concat(suffixResult.errors, setErrors);
+      return errors;
     }
 
     if (atom instanceof SuffixTerm.Identifier) {
       const { tracker } = atom.token;
 
-      if (!empty(tracker)) {
+      if (this.isBasicTracker(tracker)) {
         // update declare or set type
         if (tracker.declared.symbol.name === atom.token) {
           tracker.declareType(exprResult.type);
         } else {
           tracker.setType(atom.token, exprResult.type);
         }
+      } else {
+        errors.push(createDiagnostic(
+          stmt.value,
+          'TODO visit set, this should not occur',
+          DiagnosticSeverity.Hint,
+        ));
       }
     } else {
+      // was not found to be a valid target of setting
       errors.push(
         createDiagnostic(
-          inst.suffix,
-          `Cannot set ${inst.suffix.toString()}, must be identifier, or suffix`,
+          stmt.suffix,
+          `Cannot set ${stmt.suffix.toString()}, must be identifier, or suffix`,
           DiagnosticSeverity.Hint,
         ),
       );
@@ -499,99 +464,96 @@ export class TypeChecker
   }
 
   // visit lazy global directive
-  public visitLazyGlobal(_: Inst.LazyGlobal): Diagnostics {
+  public visitLazyGlobal(_: Stmt.LazyGlobal): Diagnostics {
     return [];
   }
 
-  // visit if instruction
-  public visitIf(inst: Inst.If): Diagnostics {
-    const conditionResult = this.checkExpr(inst.condition);
+  // visit if statement
+  public visitIf(stmt: Stmt.If): Diagnostics {
+    const conditionResult = this.checkExpr(stmt.condition);
     const errors: Diagnostics = conditionResult.errors;
 
     if (!coerce(conditionResult.type, booleanType)) {
       errors.push(
         createDiagnostic(
-          inst.condition,
+          stmt.condition,
           'Condition may not able to be  be coerced into boolean type',
           DiagnosticSeverity.Hint,
         ),
       );
     }
 
-    return empty(inst.elseInst)
-      ? errors.concat(this.checkInst(inst.ifInst))
-      : errors.concat(
-          this.checkInst(inst.ifInst),
-          this.checkInst(inst.elseInst),
-        );
+    return empty(stmt.elseStmt)
+      ? errors.concat(this.checkStmt(stmt.body))
+      : errors.concat(this.checkStmt(stmt.body), this.checkStmt(stmt.elseStmt));
   }
 
-  // visit else instruction
-  public visitElse(inst: Inst.Else): Diagnostics {
-    return this.checkInst(inst.inst);
+  // visit else statement
+  public visitElse(stmt: Stmt.Else): Diagnostics {
+    return this.checkStmt(stmt.body);
   }
 
-  // visit until instruction
-  public visitUntil(inst: Inst.Until): Diagnostics {
-    const conditionResult = this.checkExpr(inst.condition);
+  // visit until statement
+  public visitUntil(stmt: Stmt.Until): Diagnostics {
+    const conditionResult = this.checkExpr(stmt.condition);
     const errors = conditionResult.errors;
 
     if (!coerce(conditionResult.type, booleanType)) {
       errors.push(
         createDiagnostic(
-          inst.condition,
+          stmt.condition,
           'Condition may not able to be coerced into boolean type',
           DiagnosticSeverity.Hint,
         ),
       );
     }
 
-    return errors.concat(this.checkInst(inst.inst));
+    return errors.concat(this.checkStmt(stmt.body));
   }
 
   // visit from loop
-  public visitFrom(inst: Inst.From): Diagnostics {
-    let errors: Diagnostics = this.checkInst(inst.initializer);
-    const conditionResult = this.checkExpr(inst.condition);
+  public visitFrom(stmt: Stmt.From): Diagnostics {
+    let errors: Diagnostics = this.checkStmt(stmt.initializer);
+    const conditionResult = this.checkExpr(stmt.condition);
     errors = errors.concat(conditionResult.errors);
 
     if (!coerce(conditionResult.type, booleanType)) {
       errors.push(
         createDiagnostic(
-          inst.condition,
+          stmt.condition,
           'Condition may not able to be coerced into boolean type',
           DiagnosticSeverity.Hint,
         ),
       );
     }
     return errors.concat(
-      this.checkInst(inst.increment),
-      this.checkInst(inst.inst),
+      this.checkStmt(stmt.increment),
+      this.checkStmt(stmt.body),
     );
   }
 
   // vist when statment
-  public visitWhen(inst: Inst.When): Diagnostics {
-    const conditionResult = this.checkExpr(inst.condition);
+  public visitWhen(stmt: Stmt.When): Diagnostics {
+    const conditionResult = this.checkExpr(stmt.condition);
     const errors = conditionResult.errors;
 
     if (!coerce(conditionResult.type, booleanType)) {
       errors.push(
         createDiagnostic(
-          inst.condition,
+          stmt.condition,
           'Condition may not able to be coerced into boolean type',
           DiagnosticSeverity.Hint,
         ),
       );
     }
 
-    return errors.concat(this.checkInst(inst.inst));
+    return errors.concat(this.checkStmt(stmt.body));
   }
 
   // visit return
-  public visitReturn(inst: Inst.Return): Diagnostics {
+  public visitReturn(stmt: Stmt.Return): Diagnostics {
     const errors: Diagnostics = [];
-    if (!empty(inst.expr)) {
+    if (!empty(stmt.value)) {
       // TODO maybe update function type?
     }
 
@@ -599,19 +561,19 @@ export class TypeChecker
   }
 
   // visit break
-  public visitBreak(_: Inst.Break): Diagnostics {
+  public visitBreak(_: Stmt.Break): Diagnostics {
     return [];
   }
 
   // visit switch
-  public visitSwitch(inst: Inst.Switch): Diagnostics {
-    const result = this.checkExpr(inst.target);
+  public visitSwitch(stmt: Stmt.Switch): Diagnostics {
+    const result = this.checkExpr(stmt.target);
     let errors = result.errors;
 
     if (coerce(result.type, stringType)) {
       errors = errors.concat(
         createDiagnostic(
-          inst.target,
+          stmt.target,
           'May not be a string identifer for volume',
           DiagnosticSeverity.Hint,
         ),
@@ -623,18 +585,18 @@ export class TypeChecker
 
   /**
    * Visit a for loop
-   * @param inst for loop instruction
+   * @param stmt for loop statement
    */
-  public visitFor(inst: Inst.For): Diagnostics {
-    const result = this.checkExpr(inst.suffix);
+  public visitFor(stmt: Stmt.For): Diagnostics {
+    const result = this.checkExpr(stmt.collection);
     let errors: Diagnostics = [];
 
     const { type } = result;
 
-    if (type.tag !== TypeKind.basic || !hasSuffix(type, iterator)) {
+    if (type.kind !== TypeKind.basic || !hasSuffix(type, iterator)) {
       errors = errors.concat(
         createDiagnostic(
-          inst.suffix,
+          stmt.collection,
           'May not be a valid enumerable type',
           DiagnosticSeverity.Hint,
         ),
@@ -642,59 +604,83 @@ export class TypeChecker
     }
 
     // TODO may be able to detect if type is really pure and not mixed
-    const { tracker } = inst.identifier;
+    const { tracker } = stmt.element;
 
-    if (!empty(tracker)) {
+    if (this.isBasicTracker(tracker)) {
       const collectionIterator = getSuffix(type, iterator);
 
       if (!empty(collectionIterator)) {
         const value = getSuffix(collectionIterator.returns, 'value');
 
         tracker.setType(
-          inst.identifier,
-          value && value.returns || structureType,
+          stmt.element,
+          (value && value.returns) || structureType,
         );
       } else {
-        tracker.setType(inst.identifier, structureType);
+        tracker.setType(stmt.element, structureType);
       }
     }
-    return errors.concat(this.checkInst(inst.inst));
+    return errors.concat(this.checkStmt(stmt.body));
   }
 
-  // visit on
-  public visitOn(inst: Inst.On): Diagnostics {
-    const result = this.checkExpr(inst.suffix);
-    let errors: Diagnostics = [];
+  /**
+   * Visit on statment
+   * @param stmt on statement
+   */
+  public visitOn(stmt: Stmt.On): Diagnostics {
+    const result = this.checkExpr(stmt.suffix);
+    const errors: Diagnostics = [];
 
-    if (coerce(result.type, booleanType)) {
-      errors = errors.concat(
+    if (!coerce(result.type, booleanType)) {
+      errors.push(
         createDiagnostic(
-          inst.suffix,
+          stmt.suffix,
           'Condition may not able to be coerced into boolean type',
           DiagnosticSeverity.Hint,
         ),
       );
     }
 
-    return errors.concat(this.checkInst(inst.inst));
+    return errors.concat(this.checkStmt(stmt.body));
   }
 
-  // visit toggle
-  public visitToggle(inst: Inst.Toggle): Diagnostics {
-    const result = this.checkExpr(inst.suffix);
+  /**
+   * Visit toggle statement
+   * @param stmt toggle statement
+   */
+  public visitToggle(stmt: Stmt.Toggle): Diagnostics {
+    const result = this.checkExpr(stmt.suffix);
+    const errors: Diagnostics = result.errors;
+
+    if (!coerce(result.type, booleanType)) {
+      // can only toggle boolean values
+      errors.push(
+        createDiagnostic(
+          stmt.suffix,
+          'Toggle requires a boolean type. ' +
+            'This may not able to be coerced into boolean type',
+          DiagnosticSeverity.Hint,
+        ),
+      );
+    }
+
     return result.errors;
   }
 
-  // visit wait
-  public visitWait(inst: Inst.Wait): Diagnostics {
-    const result = this.checkExpr(inst.expr);
-    let errors: Diagnostics = result.errors;
+  /**
+   * Visit wait statement
+   * @param stmt wait statement
+   */
+  public visitWait(stmt: Stmt.Wait): Diagnostics {
+    const result = this.checkExpr(stmt.expr);
+    const errors: Diagnostics = result.errors;
 
-    if (empty(inst.until)) {
+    if (empty(stmt.until)) {
+      // no until wait a set amount of time
       if (!coerce(result.type, scalarType)) {
-        errors = errors.concat(
+        errors.push(
           createDiagnostic(
-            inst.expr,
+            stmt.expr,
             'Wait requires a scalar type. ' +
               'This may not able to be coerced into scalar type',
             DiagnosticSeverity.Hint,
@@ -702,10 +688,11 @@ export class TypeChecker
         );
       }
     } else {
+      // wait until condition
       if (!coerce(result.type, booleanType)) {
-        errors = errors.concat(
+        errors.push(
           createDiagnostic(
-            inst.expr,
+            stmt.expr,
             'Wait requires a boolean type. ' +
               'This may not able to be coerced into boolean type',
             DiagnosticSeverity.Hint,
@@ -717,16 +704,19 @@ export class TypeChecker
     return errors;
   }
 
-  // visit log
-  public visitLog(inst: Inst.Log): Diagnostics {
-    const exprResult = this.checkExpr(inst.expr);
-    const logResult = this.checkExpr(inst.target);
+  /**
+   * Visit log statement
+   * @param stmt log statement
+   */
+  public visitLog(stmt: Stmt.Log): Diagnostics {
+    const exprResult = this.checkExpr(stmt.expr);
+    const logResult = this.checkExpr(stmt.target);
     const errors: Diagnostics = exprResult.errors.concat(logResult.errors);
 
     if (!coerce(exprResult.type, stringType)) {
       errors.push(
         createDiagnostic(
-          inst.expr,
+          stmt.expr,
           'Can only log a string type. ' +
             'This may not able to be coerced into string type',
           DiagnosticSeverity.Hint,
@@ -737,7 +727,7 @@ export class TypeChecker
     if (!coerce(exprResult.type, stringType)) {
       errors.push(
         createDiagnostic(
-          inst.expr,
+          stmt.expr,
           'Can only log to a path. ',
           DiagnosticSeverity.Hint,
         ),
@@ -748,15 +738,15 @@ export class TypeChecker
   }
 
   // visit copy
-  public visitCopy(inst: Inst.Copy): Diagnostics {
-    const sourceResult = this.checkExpr(inst.target);
-    const targetResult = this.checkExpr(inst.destination);
+  public visitCopy(stmt: Stmt.Copy): Diagnostics {
+    const sourceResult = this.checkExpr(stmt.target);
+    const targetResult = this.checkExpr(stmt.destination);
     const errors: Diagnostics = sourceResult.errors.concat(targetResult.errors);
 
     if (!coerce(sourceResult.type, stringType)) {
       errors.push(
         createDiagnostic(
-          inst.target,
+          stmt.target,
           'Can only copy from a string or bare path. ' +
             'This may not able to be coerced into string type',
           DiagnosticSeverity.Hint,
@@ -767,7 +757,7 @@ export class TypeChecker
     if (!coerce(sourceResult.type, stringType)) {
       errors.push(
         createDiagnostic(
-          inst.destination,
+          stmt.destination,
           'Can only copy to a string or bare path. ' +
             'This may not able to be coerced into string type',
           DiagnosticSeverity.Hint,
@@ -779,9 +769,9 @@ export class TypeChecker
   }
 
   // visit rename
-  public visitRename(inst: Inst.Rename): Diagnostics {
-    const targetResult = this.checkExpr(inst.target);
-    const alternativeResult = this.checkExpr(inst.alternative);
+  public visitRename(stmt: Stmt.Rename): Diagnostics {
+    const targetResult = this.checkExpr(stmt.target);
+    const alternativeResult = this.checkExpr(stmt.alternative);
     const errors: Diagnostics = targetResult.errors.concat(
       alternativeResult.errors,
     );
@@ -789,7 +779,7 @@ export class TypeChecker
     if (!coerce(targetResult.type, stringType)) {
       errors.push(
         createDiagnostic(
-          inst.target,
+          stmt.target,
           'Can only rename from a string or bare path. ' +
             'This may not able to be coerced into string type',
           DiagnosticSeverity.Hint,
@@ -800,7 +790,7 @@ export class TypeChecker
     if (!coerce(targetResult.type, stringType)) {
       errors.push(
         createDiagnostic(
-          inst.alternative,
+          stmt.alternative,
           'Can only rename to a string or bare path. ' +
             'This may not able to be coerced into string type',
           DiagnosticSeverity.Hint,
@@ -810,14 +800,14 @@ export class TypeChecker
 
     return errors;
   }
-  public visitDelete(inst: Inst.Delete): Diagnostics {
-    const targetResult = this.checkExpr(inst.target);
+  public visitDelete(stmt: Stmt.Delete): Diagnostics {
+    const targetResult = this.checkExpr(stmt.target);
     const errors: Diagnostics = targetResult.errors;
 
     if (!coerce(targetResult.type, stringType)) {
       errors.push(
         createDiagnostic(
-          inst.target,
+          stmt.target,
           'Can only delete from a string or bare path. ' +
             'This may not able to be coerced into string type',
           DiagnosticSeverity.Hint,
@@ -825,18 +815,18 @@ export class TypeChecker
       );
     }
 
-    if (empty(inst.volume)) {
+    if (empty(stmt.volume)) {
       return errors;
     }
 
-    const volumeResult = this.checkExpr(inst.volume);
+    const volumeResult = this.checkExpr(stmt.volume);
     if (
       !coerce(targetResult.type, stringType) &&
       !coerce(targetResult.type, pathType)
     ) {
       errors.push(
         createDiagnostic(
-          inst.volume,
+          stmt.volume,
           'Can only rename to a string or bare path. ' +
             'This may not able to be coerced into string type',
           DiagnosticSeverity.Hint,
@@ -846,29 +836,23 @@ export class TypeChecker
 
     return errors.concat(volumeResult.errors);
   }
-  public visitRun(inst: Inst.Run): Diagnostics {
-    if (inst) {
-    }
+  public visitRun(_: Stmt.Run): Diagnostics {
     return [];
   }
-  public visitRunPath(inst: Inst.RunPath): Diagnostics {
-    if (inst) {
-    }
+  public visitRunPath(_: Stmt.RunPath): Diagnostics {
     return [];
   }
-  public visitRunPathOnce(inst: Inst.RunPathOnce): Diagnostics {
-    if (inst) {
-    }
+  public visitRunPathOnce(_: Stmt.RunOncePath): Diagnostics {
     return [];
   }
-  public visitCompile(inst: Inst.Compile): Diagnostics {
-    const targetResult = this.checkExpr(inst.target);
+  public visitCompile(stmt: Stmt.Compile): Diagnostics {
+    const targetResult = this.checkExpr(stmt.target);
     const errors: Diagnostics = targetResult.errors;
 
     if (!coerce(targetResult.type, stringType)) {
       errors.push(
         createDiagnostic(
-          inst.target,
+          stmt.target,
           'Can only compile from a string or bare path. ' +
             'This may not able to be coerced into string type',
           DiagnosticSeverity.Hint,
@@ -876,15 +860,15 @@ export class TypeChecker
       );
     }
 
-    if (empty(inst.destination)) {
+    if (empty(stmt.destination)) {
       return errors;
     }
 
-    const destinationResult = this.checkExpr(inst.destination);
+    const destinationResult = this.checkExpr(stmt.destination);
     if (!coerce(destinationResult.type, stringType)) {
       errors.push(
         createDiagnostic(
-          inst.destination,
+          stmt.destination,
           'Can only compile to a string or bare path. ' +
             'This may not able to be coerced into string type',
           DiagnosticSeverity.Hint,
@@ -894,15 +878,22 @@ export class TypeChecker
 
     return errors.concat(destinationResult.errors);
   }
-  public visitList(inst: Inst.List): Diagnostics {
-    const { target, collection } = inst;
+
+  /**
+   * Visit list statement
+   * @param stmt list statement
+   */
+  public visitList(stmt: Stmt.List): Diagnostics {
+    const { target, collection } = stmt;
     if (empty(target) || empty(collection)) {
       return [];
     }
 
-    let finalType: IArgumentType;
+    let finalType: ArgumentType;
 
     const errors: Diagnostics = [];
+
+    // determine the type that list returns
     switch (collection.lookup) {
       case 'bodies':
         finalType = bodyTargetType;
@@ -928,7 +919,7 @@ export class TypeChecker
         finalType = volumeType;
         break;
       case 'processors':
-        finalType = partModuleFieldsType;
+        finalType = partModuleType;
         break;
       default:
         finalType = structureType;
@@ -942,27 +933,27 @@ export class TypeChecker
     }
 
     const { tracker } = target;
-    if (!empty(tracker)) {
+    if (this.isBasicTracker(tracker)) {
       tracker.setType(target, listType.toConcreteType(finalType));
     }
 
     return errors;
   }
 
-  // visit empty instruction
-  public visitEmpty(_: Inst.Empty): Diagnostics {
+  // visit empty statement
+  public visitEmpty(_: Stmt.Empty): Diagnostics {
     return [];
   }
 
-  // vist print instruction
-  public visitPrint(inst: Inst.Print): Diagnostics {
-    const result = this.checkExpr(inst.expr);
+  // vist print statement
+  public visitPrint(stmt: Stmt.Print): Diagnostics {
+    const result = this.checkExpr(stmt.expr);
     const errors = result.errors;
 
     if (!coerce(result.type, structureType)) {
       errors.push(
         createDiagnostic(
-          inst.expr,
+          stmt.expr,
           'Cannot print a function, can only print structures',
           DiagnosticSeverity.Hint,
         ),
@@ -973,13 +964,13 @@ export class TypeChecker
   }
 
   // visit invalid expression
-  public visitExprInvalid(_: Expr.Invalid): ITypeResultExpr<IArgumentType> {
+  public visitExprInvalid(_: Expr.Invalid): ITypeResultExpr<ArgumentType> {
     return { type: structureType, errors: [] };
   }
 
   // ----------------------------- Expressions -----------------------------------------
 
-  public visitBinary(expr: Expr.Binary): ITypeResultExpr<IArgumentType> {
+  public visitBinary(expr: Expr.Binary): ITypeResultExpr<ArgumentType> {
     const rightResult = this.checkExpr(expr.right);
     const leftResult = this.checkExpr(expr.left);
 
@@ -1074,10 +1065,10 @@ export class TypeChecker
     );
   }
 
-  public visitUnary(expr: Expr.Unary): ITypeResultExpr<IArgumentType> {
+  public visitUnary(expr: Expr.Unary): ITypeResultExpr<ArgumentType> {
     const result = this.checkExpr(expr.factor);
     const errors: Diagnostics = result.errors;
-    let finalType: Maybe<IArgumentType> = undefined;
+    let finalType: Maybe<ArgumentType> = undefined;
 
     switch (expr.operator.type) {
       case TokenType.plus:
@@ -1119,7 +1110,7 @@ export class TypeChecker
 
     return { errors, type: finalType };
   }
-  public visitFactor(expr: Expr.Factor): ITypeResultExpr<IArgumentType> {
+  public visitFactor(expr: Expr.Factor): ITypeResultExpr<ArgumentType> {
     const suffixResult = this.checkExpr(expr.suffix);
     const exponentResult = this.checkExpr(expr.exponent);
     const errors = suffixResult.errors.concat(exponentResult.errors);
@@ -1149,310 +1140,193 @@ export class TypeChecker
     return { errors, type: scalarType };
   }
 
-  public visitSuffix(expr: Expr.Suffix): ITypeResultExpr<IArgumentType> {
+  /**
+   * Visit a suffix
+   * @param expr suffix expression
+   */
+  public visitSuffix(expr: Expr.Suffix): ITypeResultExpr<ArgumentType> {
     const { suffixTerm, trailer } = expr;
     const [firstTrailer, ...remainingTrailers] = suffixTerm.trailers;
 
-    const atom = this.resolveAtom(suffixTerm.atom);
-    let current: ITypeResultSuffix<IType> = atom;
+    const builder = new SuffixTypeBuilder();
+    const errors = this.checkSuffixTerm(suffixTerm.atom, builder);
 
     if (!empty(firstTrailer)) {
       // handle case were suffix is actually a function call
       if (firstTrailer instanceof SuffixTerm.Call) {
-        current = this.resolveFunctionCall(firstTrailer, atom);
+        const tracker = this.atomTracker(suffixTerm.atom);
+        errors.push(...this.visitFunctionCall(firstTrailer, tracker, builder));
       } else {
-        current = this.checkSuffixTerm(firstTrailer, atom);
+        errors.push(...this.checkSuffixTerm(firstTrailer, builder));
       }
 
+      // handle remaining suffix term trailers
       for (const trailer of remainingTrailers) {
-        current = this.checkSuffixTerm(trailer, current);
+        errors.push(...this.checkSuffixTerm(trailer, builder));
       }
     }
 
-    const { type, errors } = current;
-    if (type.tag === TypeKind.suffix || type.tag === TypeKind.function) {
-      throw new Error('Type shouldn');
+    // if we have a trailer check that as well
+    if (!empty(trailer)) {
+      errors.push(...this.checkSuffixTerm(trailer, builder));
     }
 
-    if (empty(trailer)) {
-      return this.resultExpr(type, errors);
-    }
-
-    current = this.checkSuffixTerm(trailer, current);
-
-    if (current.type.tag === TypeKind.basic) {
-      return this.resultExpr(current.type, current.errors);
-    }
-
-    return this.errorsExpr(
-      errors,
-      current.errors,
-      createDiagnostic(trailer, 'TODO', DiagnosticSeverity.Hint),
-    );
+    return this.resultExpr(this.builderResult(builder), errors);
   }
 
-  public visitLambda(_: Expr.Lambda): ITypeResultExpr<IArgumentType> {
-    return this.resultExpr(delegateType);
+  public visitLambda(expr: Expr.Lambda): ITypeResultExpr<ArgumentType> {
+    const errors = this.checkStmt(expr.block);
+    return this.resultExpr(delegateType, errors);
   }
 
   // ----------------------------- Suffix -----------------------------------------
 
-  private resolveAtom(
-    atom: Atom,
-  ): ITypeResultSuffix<IArgumentType | IFunctionType, ITypeResolved> {
-    if (atom instanceof SuffixTerm.Literal) {
-      return this.resolveLiteral(atom);
-    }
-
-    if (atom instanceof SuffixTerm.Identifier) {
-      return this.resolveIdentifier(atom);
-    }
-
-    if (atom instanceof SuffixTerm.Grouping) {
-      return this.resolveGrouping(atom);
-    }
-
-    throw new Error('Unknown atom type');
-  }
-
-  private resolveLiteral(
-    literal: SuffixTerm.Literal,
-  ): ITypeResultSuffix<IArgumentType, ITypeResolved> {
-    switch (literal.token.type) {
-      case TokenType.true:
-      case TokenType.false:
-        return this.resultAtom(booleanType, literal, KsSymbolKind.variable);
-      case TokenType.integer:
-        return this.resultAtom(integarType, literal, KsSymbolKind.variable);
-      case TokenType.double:
-        return this.resultAtom(doubleType, literal, KsSymbolKind.variable);
-      case TokenType.string:
-      case TokenType.fileIdentifier:
-        return this.resultAtom(stringType, literal, KsSymbolKind.variable);
-      default:
-        throw new Error('Unknown literal type');
-    }
-  }
-
-  private resolveIdentifier(
-    identifer: SuffixTerm.Identifier,
-  ): ITypeResultSuffix<IArgumentType | IFunctionType, ITypeResolved> {
-    const { tracker } = identifer.token;
-    const type = tracker && tracker.getType(identifer.token);
-
-    return empty(type) || empty(tracker)
-      ? this.errorsAtom(
-          identifer,
-          createDiagnostic(
-            identifer,
-            'Unable to lookup identifier type',
-            DiagnosticSeverity.Hint,
-          ),
-        )
-      : this.resultAtom(type, identifer, tracker.declared.symbol.tag);
-  }
-
-  private resolveGrouping(
-    grouping: SuffixTerm.Grouping,
-  ): ITypeResultSuffix<IArgumentType, ITypeResolved> {
-    const result = this.checkExpr(grouping.expr);
-    return this.resultAtom(
-      result.type,
-      grouping,
-      KsSymbolKind.variable,
-      result.errors,
-    );
-  }
-
-  private resolveFunctionCall(
-    call: SuffixTerm.Call,
-    current: ITypeResultSuffix<IType, ITypeResolved>,
-  ): ITypeResultSuffix<IArgumentType, ITypeResolved> {
-    const { type, resolved, errors } = current;
-    if (type.tag !== TypeKind.function) {
-      return this.errorsAtom(
-        call,
-        createDiagnostic(
-          call,
-          `Type ${type.name} does not have a call signiture`,
-          DiagnosticSeverity.Hint,
-        ),
-      );
-    }
-
-    if (!Array.isArray(type.params)) {
-      const callResult = this.resolveVaradicCall(
-        type.params,
-        { type, resolved, errors },
-        call,
-      );
-      return {
-        ...callResult,
-        resolved: {
-          ...callResult.resolved,
-          atomType: KsSymbolKind.function,
-        },
-      };
-    }
-
-    // handle normal functions
-    const callResult = this.resolveNormalCall(
-      type.params,
-      { type, resolved, errors },
-      call,
-    );
-    return {
-      ...callResult,
-      resolved: {
-        ...callResult.resolved,
-        atomType: KsSymbolKind.function,
-      },
-    };
-  }
-
   public visitSuffixTrailer(
     suffixTerm: SuffixTerm.SuffixTrailer,
-    current: ITypeResultSuffix<IType>,
-  ): ITypeResultSuffix<SuffixTermType> {
+    builder: SuffixTypeBuilder,
+  ): Diagnostics {
     // check suffix term and trailers
-    const result = this.checkSuffixTerm(suffixTerm.suffixTerm, current);
-    const { type, resolved, errors } = result;
+    const errors = this.checkSuffixTerm(suffixTerm.suffixTerm, builder);
 
     // if no trailer exist attempt to return
-    if (empty(suffixTerm.trailer)) {
-      if (type.tag === TypeKind.basic) {
-        return { type, resolved, errors };
-      }
-
-      return this.errorsSuffixTermTrailer(
-        suffixTerm,
-        resolved,
-        errors,
-        createDiagnostic(
-          suffixTerm.suffixTerm,
-          `suffix ${result.type.name} ` +
-            `of type ${result.type.toTypeString()} ` +
-            'does not have a call signiture',
-          DiagnosticSeverity.Hint,
-        ),
-      );
+    if (!empty(suffixTerm.trailer)) {
+      errors.push(...this.checkSuffixTerm(suffixTerm.trailer, builder));
     }
 
-    const trailer = this.checkSuffixTerm(
-      suffixTerm.trailer,
-      this.suffixTrailerResult(type, suffixTerm),
-    );
-    // const node = this.lastSuffixNode(suffixTerm);
-
-    return this.resultSuffixTerm(
-      trailer.type,
-      { ...result.resolved, suffixTrailer: trailer.resolved },
-      result.errors,
-      trailer.errors,
-    );
+    return errors;
   }
 
   public visitSuffixTermInvalid(
     suffixTerm: SuffixTerm.Invalid,
-    param: ITypeResultSuffix<IType>,
-  ): ITypeResultSuffix<IArgumentType> {
-    if (suffixTerm && param) {
-      console.log('TODO');
-    }
+    builder: SuffixTypeBuilder,
+  ): Diagnostics {
+    builder.nodes.push(new TypeNode(suffixError, suffixTerm));
 
-    throw new Error('Method not implemented.');
+    return [];
   }
 
   public visitSuffixTerm(
     suffixTerm: SuffixTerm.SuffixTerm,
-    current: ITypeResultSuffix<IType>,
-  ): ITypeResultSuffix<IArgumentType> {
-    const atom = this.checkSuffixTerm(suffixTerm.atom, current);
-    let result = atom;
+    builder: SuffixTypeBuilder,
+  ): Diagnostics {
+    // check the atom
+    const errors = this.checkSuffixTerm(suffixTerm.atom, builder);
 
+    // add any errors from trailers
     for (const trailer of suffixTerm.trailers) {
-      result = this.checkSuffixTerm(trailer, result);
+      errors.push(...this.checkSuffixTerm(trailer, builder));
     }
 
-    const { type, resolved, errors } = result;
-
-    // if we only have some basic type return it
-    if (type.tag === TypeKind.basic) {
-      return { type, resolved, errors };
-    }
-
-    // if we end with a suffix type that doesn't require a call return it.
-    if (type.callType !== CallType.call) {
-      return { resolved, errors, type: type.returns };
-    }
-
-    // if we end with a suffix type which requires a call that's an error.
-    return this.errorsSuffixTermTrailer(
-      this.lastSuffixTermNode(suffixTerm),
-      resolved,
-      errors,
-    );
+    return errors;
   }
 
   /**
    * Visit a call expression and check for type errors
    * @param call the current call expresion
-   * @param current current resolved suffix expression
+   * @param builder current resolved suffix expression
    */
   public visitCall(
     call: SuffixTerm.Call,
-    current: ITypeResultSuffix<IType>,
-  ): ITypeResultSuffix<IArgumentType> {
-    const { type, resolved, errors } = current;
+    builder: SuffixTypeBuilder,
+  ): Diagnostics {
+    if (!builder.isTrailer()) {
+      throw new Error("TODO shouldn't be able to get here visitCall");
+    }
 
-    if (type.tag !== TypeKind.suffix) {
-      // TEST we can apparently call a suffix with no argument fine.
-      if (type.tag === TypeKind.basic && call.args.length === 0) {
-        return this.resultSuffixTermTrailer(type, call, resolved);
-      }
+    const type = builder.current();
+    const errors: Diagnostics = [];
 
-      return this.errorsSuffixTermTrailer(
-        call,
-        resolved,
+    // if the current type isn't a suffix
+    if (type.kind === TypeKind.suffix) {
+      builder.nodes.push(new TypeNode(type, call));
+      call.open.tracker = type.getTracker();
+      call.close.tracker = type.getTracker();
+
+    } else {
+      builder.nodes.push(new TypeNode(suffixError, call));
+      call.open.tracker = suffixError.getTracker();
+      call.close.tracker = suffixError.getTracker();
+
+      errors.push(
         createDiagnostic(
           call,
-          `type ${type.name} does not have call signiture`,
+          `${type.name} has no call signature`,
           DiagnosticSeverity.Hint,
         ),
       );
+
+      return errors;
     }
 
+    // handle variadic
     if (!Array.isArray(type.params)) {
-      return this.resolveVaradicCall(
-        type.params,
-        { type, resolved, errors },
-        call,
-      );
+      return this.visitVaradicCall(type.params, call);
     }
 
     // handle normal functions
-    return this.resolveNormalCall(
-      type.params,
-      { type, resolved, errors },
-      call,
-    );
+    return this.visitNormalCall(type.params, call);
+  }
+
+  /**
+   * Visit a function call site
+   * @param call call suffix term expression
+   * @param builder suffix type builder
+   */
+  private visitFunctionCall(
+    call: SuffixTerm.Call,
+    tracker: Maybe<SymbolTracker>,
+    builder: SuffixTypeBuilder,
+  ): Diagnostics {
+    const type = builder.current();
+    const errors: Diagnostics = [];
+
+    // check if previous identifier resolves to a function
+    // TODO figure out function trackers
+    if (type.kind === TypeKind.function) {
+      builder.nodes.push(new TypeNode(type, call));
+      call.open.tracker = tracker;
+      call.close.tracker = tracker;
+    } else {
+      builder.nodes.push(new TypeNode(functionError, call));
+
+      errors.push(
+        createDiagnostic(
+          call,
+          `Type ${type.name} does not have a call signature`,
+          DiagnosticSeverity.Hint,
+        ),
+      );
+
+      return errors;
+    }
+
+    // handle nomral or varadic calls
+    if (!Array.isArray(type.params)) {
+      errors.push(...this.visitVaradicCall(type.params, call));
+    } else {
+      errors.push(...this.visitNormalCall(type.params, call));
+    }
+
+    return errors;
   }
 
   /**
    * Resolve variadic call for type errors
    * @param params parameter types
-   * @param current current resolved suffix expression
    * @param call current call expression
    */
-  private resolveVaradicCall(
+  private visitVaradicCall(
     params: IVariadicType,
-    current: ITypeResultSuffix<ISuffixType | IFunctionType>,
     call: SuffixTerm.Call,
-  ): ITypeResultSuffix<IArgumentType> {
-    const { type, resolved, errors } = current;
+  ): Diagnostics {
+    const errors: Diagnostics = [];
 
     for (const arg of call.args) {
+      // determine type of each argument
       const result = this.checkExpr(arg);
+      errors.push(...result.errors);
+
+      // add diagnostic if argument cannot be matched to parameter type
       if (!coerce(result.type, params.type)) {
         errors.push(
           createDiagnostic(
@@ -1464,24 +1338,23 @@ export class TypeChecker
       }
     }
 
-    return this.resultSuffixTermTrailer(type, call, resolved, errors);
+    return errors;
   }
 
   /**
-   * Check a normal call signiture for type errors
+   * Check a normal call signature for type errors
    * @param params the parameter types
-   * @param current the current resolved suffix
    * @param call the call expression
    */
-  private resolveNormalCall(
-    params: IType[],
-    current: ITypeResultSuffix<ISuffixType | IFunctionType>,
-    call: SuffixTerm.Call,
-  ): ITypeResultSuffix<IArgumentType> {
-    const { type, resolved, errors } = current;
+  private visitNormalCall(params: Type[], call: SuffixTerm.Call): Diagnostics {
+    const errors: Diagnostics = [];
 
     for (const [arg, param] of zip(call.args, params)) {
+      // determine type of each argument
       const result = this.checkExpr(arg);
+      errors.push(...result.errors);
+
+      // add diagnostic if argument cannot be matched to parameter type
       if (!coerce(result.type, param)) {
         errors.push(
           createDiagnostic(
@@ -1493,170 +1366,207 @@ export class TypeChecker
       }
     }
 
-    // TODO length difference
-    return this.resultSuffixTermTrailer(type, call, resolved, errors);
+    // check argument length
+    if (call.args.length !== params.length) {
+      errors.push(
+        createDiagnostic(
+          call.close,
+          `Function expected ${params.length} parameters but was called with ${
+            call.args
+          } arguments`,
+          DiagnosticSeverity.Hint,
+        ),
+      );
+    }
+
+    return errors;
   }
 
   /**
    * visit an array index suffix expression.
    * @param suffixTerm the current array index
-   * @param current the current type
+   * @param builder the current type
    */
   public visitArrayIndex(
     suffixTerm: SuffixTerm.ArrayIndex,
-    current: ITypeResultSuffix<IType>,
-  ): ITypeResultSuffix<IArgumentType> {
-    const { type, errors, resolved } = current;
+    builder: SuffixTypeBuilder,
+  ): Diagnostics {
+    if (!builder.isTrailer()) {
+      throw new Error("TODO shouldn't be able to get here visitArrayIndex");
+    }
+
+    const type = builder.current();
+    const errors: Diagnostics = [];
+
+    builder.nodes.push(new TypeNode(arrayIndexer, suffixTerm));
 
     // TODO confirm indexable types
     // Only lists are indexable with '#'
     if (!coerce(type, userListType)) {
-      return this.errorsSuffixTermTrailer(
-        suffixTerm,
-        resolved,
-        errors,
+      errors.push(
         createDiagnostic(
           suffixTerm,
           'indexing with # requires a list',
           DiagnosticSeverity.Hint,
         ),
       );
+
+      return errors;
     }
 
     switch (suffixTerm.indexer.type) {
       // If index is integer we're already in good shape
       case TokenType.integer:
-        return this.resultSuffixTermTrailer(
-          arrayIndexer,
-          suffixTerm,
-          resolved,
-          errors,
-        );
+        return errors;
 
       // If index is identify check that it holds a integarType
       case TokenType.identifier:
         const { tracker } = suffixTerm.indexer;
-        const type = tracker && tracker.getType(suffixTerm.indexer);
 
-        if (empty(type) || !coerce(type, integarType)) {
-          return this.errorsSuffixTermTrailer(
-            suffixTerm,
-            resolved,
-            errors,
-            createDiagnostic(
-              suffixTerm.indexer,
-              `${suffixTerm.indexer.lexeme} is not a scalar type. ` +
-                'Can only use scalar to index with #',
-              DiagnosticSeverity.Hint,
-            ),
-          );
+        if (this.isBasicTracker(tracker)) {
+          const type = tracker.getType(suffixTerm.indexer);
+
+          if (!empty(type) && coerce(type, integarType)) {
+            return errors;
+          }
         }
 
-        return this.resultSuffixTermTrailer(
-          arrayIndexer,
-          suffixTerm,
-          resolved,
-          errors,
-        );
-
-      // All other cases are unallowed
-      default:
-        return this.errorsSuffixTermTrailer(
-          suffixTerm,
-          resolved,
-          errors,
+        errors.push(
           createDiagnostic(
             suffixTerm.indexer,
-            'Cannot index array with # other than with scalars or variables',
+            `${suffixTerm.indexer.lexeme} is not a scalar type. ` +
+              'Can only use scalar to index with #',
             DiagnosticSeverity.Hint,
           ),
         );
+
+        return errors;
+
+      // All other cases are unallowed
+      default:
+        errors.push(
+          createDiagnostic(
+            suffixTerm.indexer,
+            'Can only index an array with # scalars or variables',
+            DiagnosticSeverity.Hint,
+          ),
+        );
+
+        return errors;
     }
   }
 
   /**
    * visit an array bracket suffix expression.
    * @param suffixTerm the current array bracket expression
-   * @param current the current ytpe
+   * @param builder the suffix type builder
    */
   public visitArrayBracket(
     suffixTerm: SuffixTerm.ArrayBracket,
-    current: ITypeResultSuffix<IType>,
-  ): ITypeResultSuffix<IArgumentType> {
-    const { type, resolved, errors } = current;
+    builder: SuffixTypeBuilder,
+  ): Diagnostics {
+    if (!builder.isTrailer()) {
+      throw new Error("TODO shouldn't be able to get here visitArrayBracket");
+    }
+
     const indexResult = this.checkExpr(suffixTerm.index);
+    const errors = indexResult.errors;
+    const type = builder.current();
+
+    let indexer: Maybe<ISuffixType> = undefined;
 
     // if we know the collection type is a list we need a scalar indexer
-    if (coerce(type, userListType) && !coerce(indexResult.type, scalarType)) {
-      return this.errorsSuffixTermTrailer(
-        suffixTerm,
-        resolved,
-        errors,
-        indexResult.errors,
-        createDiagnostic(
-          suffixTerm.index,
-          'Can only use scalars as list index' +
-            'This may not able to be coerced into scalar type',
-          DiagnosticSeverity.Hint,
-        ),
-      );
+    if (coerce(type, userListType)) {
+      indexer = arrayBracketIndexer(type as IBasicType, scalarType, structureType);
+      builder.nodes.push(new TypeNode(indexer, suffixTerm));
+
+      if (!coerce(indexResult.type, scalarType)) {
+        errors.push(
+          createDiagnostic(
+            suffixTerm.index,
+            'Can only use scalars as list index' +
+              'This may not able to be coerced into scalar type',
+            DiagnosticSeverity.Hint,
+          ),
+        );
+      }
     }
 
     // if we know the collection type is a lexicon we need a string indexer
-    if (coerce(type, lexiconType) && !coerce(indexResult.type, stringType)) {
-      return this.errorsSuffixTermTrailer(
-        suffixTerm,
-        resolved,
-        errors,
-        indexResult.errors,
-        createDiagnostic(
-          suffixTerm.index,
-          'Can only use string as lexicon index' +
-            'This may not able to be coerced into string type',
-          DiagnosticSeverity.Hint,
-        ),
-      );
+    if (coerce(type, lexiconType)) {
+      indexer = arrayBracketIndexer(type as IBasicType, stringType, structureType);
+      builder.nodes.push(new TypeNode(indexer, suffixTerm));
+
+      if (!coerce(indexResult.type, stringType)) {
+        errors.push(
+          createDiagnostic(
+            suffixTerm.index,
+            'Can only use a string as a lexicon index.' +
+              'This may not able to be coerced into string type',
+            DiagnosticSeverity.Hint,
+          ),
+        );
+      }
     }
 
     // if we know the collection type is a string we need a scalar indexer
-    if (!coerce(type, stringType) && !coerce(indexResult.type, scalarType)) {
-      return this.errorsSuffixTermTrailer(
-        suffixTerm,
-        resolved,
-        errors,
-        indexResult.errors,
+    if (coerce(type, stringType)) {
+      indexer = arrayBracketIndexer(type as IBasicType, scalarType, stringType);
+      builder.nodes.push(new TypeNode(indexer, suffixTerm));
+
+      if (!coerce(indexResult.type, scalarType)) {
+        errors.push(
+          createDiagnostic(
+            suffixTerm.index,
+            'Can only use a scalar as a string index.' +
+              'This may not able to be coerced into scalar type',
+            DiagnosticSeverity.Hint,
+          ),
+        );
+      }
+    }
+
+    // if couldn't coerce into one of our collection types
+    // insert error node
+    if (empty(indexer)) {
+      builder.nodes.push(new TypeNode(suffixError, suffixTerm));
+
+      errors.push(
         createDiagnostic(
-          suffixTerm.index,
-          'Can only use string or scalar as index' +
-            'This may not able to be coerced into string or scalar type',
+          suffixTerm,
+          'Can only index a list, lexicon or string',
           DiagnosticSeverity.Hint,
         ),
       );
+
+      suffixTerm.open.tracker = suffixError.getTracker();
+      suffixTerm.close.tracker = suffixError.getTracker();
+    } else {
+      suffixTerm.open.tracker = indexer.getTracker();
+      suffixTerm.close.tracker = indexer.getTracker();
     }
 
-    return this.resultSuffixTermTrailer(
-      arrayBracketIndexer,
-      suffixTerm,
-      resolved,
-      errors,
-    );
+    return errors;
   }
 
   /**
    * visit the suffix term for delgates. This will return a new delgate type
    * @param suffixTerm the current delgate node
-   * @param current the currently resolved type
+   * @param builder the suffix type builder
    */
   public visitDelegate(
     suffixTerm: SuffixTerm.Delegate,
-    current: ITypeResultSuffix<IType>,
-  ): ITypeResultSuffix<IArgumentType> {
-    const { type, resolved, errors } = current;
-    if (type.tag !== TypeKind.function) {
-      return this.errorsSuffixTermTrailer(
-        suffixTerm,
-        resolved,
-        errors,
+    builder: SuffixTypeBuilder,
+  ): Diagnostics {
+    if (!builder.isTrailer()) {
+      throw new Error("TODO shouldn't be able to get here visitDelegate");
+    }
+
+    const type = builder.current();
+    const errors: Diagnostics = [];
+
+    if (type.kind !== TypeKind.function) {
+      errors.push(
         createDiagnostic(
           suffixTerm,
           'Can only create delegate of functions',
@@ -1665,73 +1575,164 @@ export class TypeChecker
       );
     }
 
-    return this.resultSuffixTermTrailer(
-      delegateCreation,
-      suffixTerm,
-      resolved,
-      errors,
-    );
+    builder.nodes.push(new TypeNode(delegateCreation, suffixTerm));
+    suffixTerm.atSign.tracker = delegateCreation.getTracker();
+
+    return errors;
   }
 
   /**
-   * visit the suffix term for literals. This should not occur
-   * @param _ literal syntax node
-   * @param __ current type
+   * visit the suffix term for literals.
+   * @param suffixTerm literal syntax node
+   * @param builder the suffix type builder
    */
   public visitLiteral(
-    _: SuffixTerm.Literal,
-    __: ITypeResultSuffix<IType>,
-  ): ITypeResultSuffix<IArgumentType> {
-    throw new Error('Literal should not appear outside of suffix atom');
+    suffixTerm: SuffixTerm.Literal,
+    builder: SuffixTypeBuilder,
+  ): Diagnostics {
+    if (builder.isTrailer()) {
+      throw new Error("TODO shouldn't be able to get here visitLiteral");
+    }
+
+    // if we're at the base push the new type node onto the builder
+    switch (suffixTerm.token.type) {
+      case TokenType.true:
+      case TokenType.false:
+        builder.nodes.push(new TypeNode(booleanType, suffixTerm));
+        return [];
+      case TokenType.integer:
+        builder.nodes.push(new TypeNode(integarType, suffixTerm));
+        return [];
+      case TokenType.double:
+        builder.nodes.push(new TypeNode(doubleType, suffixTerm));
+        return [];
+      case TokenType.string:
+      case TokenType.fileIdentifier:
+        builder.nodes.push(new TypeNode(stringType, suffixTerm));
+        return [];
+      default:
+        throw new Error('TODO invalid literal token found visitLiteral');
+    }
   }
 
   /**
    * visit the suffix term for identifier.
    * @param suffixTerm identifier syntax node
-   * @param current current type
+   * @param builder the suffix type builder
    */
   public visitIdentifier(
     suffixTerm: SuffixTerm.Identifier,
-    current: ITypeResultSuffix<IType>,
-  ): ITypeResultSuffix<SuffixTermType> {
-    const { type, resolved, errors } = current;
-    const suffix = getSuffix(type, suffixTerm.token.lookup);
+    builder: SuffixTypeBuilder,
+  ): Diagnostics {
+    // if we're a trailer check for suffixes
+    if (builder.isTrailer()) {
+      const type = builder.current();
+      const suffix = getSuffix(
+        this.builderResult(builder),
+        suffixTerm.token.lookup,
+      );
 
-    // may need to pass sommething in about if we're in get set context
-    if (empty(suffix)) {
-      return this.errorsSuffixTerm(
-        { ...resolved, node: new TypeNode(suffixError, suffixTerm) },
-        errors,
+      // may need to pass sommething in about if we're in get set context
+      if (!empty(suffix)) {
+        // assign type tracker
+        suffixTerm.token.tracker = suffix.getTracker();
+
+        // push new node onto builder
+        builder.nodes.push(new TypeNode(suffix, suffixTerm));
+        return [];
+      }
+
+      // assign error suffix type
+      suffixTerm.token.tracker = suffixError.getTracker();
+
+      // add suffix error to builder
+      builder.nodes.push(new TypeNode(suffixError, suffixTerm));
+
+      // indicate suffix not found
+      return [
         createDiagnostic(
           suffixTerm,
-          `Could not find suffix ${suffixTerm.token.lookup} for type ${
-            type.name
-          }`,
+          `Unable to find suffix ${
+            suffixTerm.token.lookup
+          } on type ${type.toTypeString()}`,
           DiagnosticSeverity.Hint,
         ),
-      );
+      ];
     }
 
-    return this.resultSuffixTerm(
-      suffix,
-      { ...resolved, node: new TypeNode(suffix, suffixTerm) },
-      errors,
-    );
+    const { tracker } = suffixTerm.token;
+
+    // make sure we have a basic tracker
+    if (this.isBasicTracker(tracker)) {
+      const type = tracker.getType(suffixTerm.toLocation(this.script.uri));
+
+      // if type is found at this location add it to builder
+      if (!empty(type)) {
+        builder.nodes.push(new TypeNode(type, suffixTerm));
+        return [];
+      }
+
+      // if we can't find the type here default to structure
+      builder.nodes.push(new TypeNode(structureType, suffixTerm));
+      return [
+        createDiagnostic(
+          suffixTerm,
+          `Cannot determine type for ${suffixTerm.token.lexeme}.`,
+          DiagnosticSeverity.Hint,
+        ),
+      ];
+    }
+
+    // in theory we should never get here
+    builder.nodes.push(new TypeNode(structureType, suffixTerm));
+
+    // no error as this is likely a resolver error
+    return [];
   }
 
   /**
-   * visit the suffix term for grouping. grouping is invalid in this context
-   * @param _ grouping syntax node
-   * @param __ current type
+   * visit the suffix term for grouping.
+   * @param suffixTerm grouping syntax node
+   * @param builder the suffix type builder
    */
   public visitGrouping(
-    _: SuffixTerm.Grouping,
-    __: ITypeResultSuffix<IType>,
-  ): ITypeResultSuffix<IArgumentType> {
-    throw new Error('Grouping should not appear outside of suffix atom');
+    suffixTerm: SuffixTerm.Grouping,
+    builder: SuffixTypeBuilder,
+  ): Diagnostics {
+    if (builder.isTrailer()) {
+      throw new Error("TODO shouldn't be able to get here visitGrouping");
+    }
+
+    const { type, errors } = this.checkExpr(suffixTerm.expr);
+
+    // push result of grouping onto builder
+    builder.nodes.push(new TypeNode(type, suffixTerm));
+    return errors;
   }
 
   // ----------------------------- Helpers -----------------------------------------
+
+  /**
+   * Get the tracker from an atom
+   * @param atom atom
+   */
+  private atomTracker(atom: Atom): Maybe<SymbolTracker> {
+    if (atom instanceof SuffixTerm.Identifier) {
+      return atom.token.tracker;
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Is this tracker a basic tracker
+   * @param tracker tracker to inspect
+   */
+  private isBasicTracker(
+    tracker: Maybe<SymbolTracker>,
+  ): tracker is BasicTracker {
+    return !empty(tracker) && tracker.kind === TrackerKind.basic;
+  }
 
   /**
    * Check if the current operator is valid and it's resulting type
@@ -1742,14 +1743,14 @@ export class TypeChecker
    */
   private checkOperator(
     expr: IExpr,
-    leftResult: ITypeResultExpr<IType>,
-    rightResult: ITypeResultExpr<IType>,
+    leftResult: ITypeResultExpr<Type>,
+    rightResult: ITypeResultExpr<Type>,
     operator: Operator,
-  ): ITypeResultExpr<IArgumentType> {
+  ): ITypeResultExpr<ArgumentType> {
     const leftType = leftResult.type;
     const rightType = rightResult.type;
     const errors = leftResult.errors.concat(rightResult.errors);
-    let calcType: Maybe<IArgumentType> = undefined;
+    let calcType: Maybe<ArgumentType> = undefined;
 
     // TODO could be more efficient
     if (isSubType(leftType, scalarType) && isSubType(rightType, scalarType)) {
@@ -1809,21 +1810,11 @@ export class TypeChecker
   }
 
   /**
-   * Accumulate all type errors defaults to structure type
-   * @param errors type errors
-   */
-  private errorsExpr(
-    ...errors: (Diagnostic | Diagnostic[])[]
-  ): ITypeResultExpr<IArgumentType> {
-    return this.resultExpr(structureType, ...errors);
-  }
-
-  /**
    * Return the resultant type with any errors
    * @param type current type
    * @param errors accumulated errors
    */
-  private resultExpr<T extends IType>(
+  private resultExpr<T extends Type>(
     type: T,
     ...errors: (Diagnostic | Diagnostic[])[]
   ): ITypeResultExpr<T> {
@@ -1834,145 +1825,19 @@ export class TypeChecker
   }
 
   /**
-   * an error for a suffixterm trailer
-   * @param resolved the current resolved type
-   * @param errors the accumulated errors
+   * Get the current result of the suffix type builder
+   * @param builder suffix type builder
    */
-  private errorsSuffixTermTrailer(
-    node: SuffixTerm.SuffixTermBase,
-    resolved: ITypeResolvedSuffix,
-    ...errors: (Diagnostic | Diagnostic[])[]
-  ): ITypeResultSuffix<IArgumentType, ITypeResolvedSuffix> {
-    return this.resultSuffixTermTrailer(suffixError, node, resolved, ...errors);
-  }
+  private builderResult(builder: SuffixTypeBuilder): ArgumentType {
+    const current = builder.current();
 
-  /**
-   * result of a suffix term trailer
-   * @param type the current type
-   * @param resolved the type resolve so far
-   * @param errors the accumlated type errors
-   */
-  private resultSuffixTermTrailer(
-    type: IType,
-    node: SuffixTerm.SuffixTermBase,
-    resolved: ITypeResolvedSuffix,
-    ...errors: (Diagnostic | Diagnostic[])[]
-  ): ITypeResultSuffix<IArgumentType, ITypeResolvedSuffix> {
-    const { atom: current, termTrailers, suffixTrailer } = resolved;
-    let returns = structureType;
-    if (type.tag === TypeKind.function || type.tag === TypeKind.suffix) {
-      returns = type.returns;
-    } else {
-      returns = type;
+    switch (current.kind) {
+      case TypeKind.basic:
+        return current;
+      case TypeKind.function:
+      case TypeKind.suffix:
+        return current.returns;
     }
-
-    return this.resultSuffixTerm(
-      returns,
-      {
-        suffixTrailer,
-        atom: current,
-        termTrailers: [...termTrailers, new TypeNode(type, node)],
-      },
-      ...errors,
-    );
-  }
-
-  /**
-   * Return the suffix error type
-   * @param resolved the currently resolved type
-   * @param errors all accumulated errors
-   */
-  private errorsSuffixTerm<R extends ITypeResolvedSuffix>(
-    resolved: R,
-    ...errors: (Diagnostic | Diagnostic[])[]
-  ): ITypeResultSuffix<ISuffixType, R> {
-    return this.resultSuffixTerm(suffixError, resolved, ...errors);
-  }
-
-  /**
-   * Return the type result of the suffix term
-   * @param type resultant type
-   * @param resolved resolved cummulative suffix type
-   * @param errors errors encounted while type checking
-   */
-  private resultSuffixTerm<T extends IType, R extends ITypeResolvedSuffix>(
-    type: T,
-    resolved: R,
-    ...errors: (Diagnostic | Diagnostic[])[]
-  ): ITypeResultSuffix<T, R> {
-    return {
-      type,
-      resolved,
-      errors: ([] as Diagnostic[]).concat(...errors),
-    };
-  }
-
-  /**
-   * Return the atom error type
-   * @param node suffix term node the error occured
-   * @param errors errors encountered while checking this atom
-   */
-  private errorsAtom(
-    node: SuffixTerm.SuffixTermBase,
-    ...errors: (Diagnostic | Diagnostic[])[]
-  ): ITypeResultSuffix<IArgumentType, ITypeResolved> {
-    return this.resultAtom(
-      structureType,
-      node,
-      KsSymbolKind.variable,
-      ...errors,
-    );
-  }
-
-  /**
-   * Returns the result of an atom typecheck
-   * @param type the current type of the atom
-   * @param node node checked for this checking
-   * @param atomType the symbol type of the atom
-   * @param errors errors encountered during the checking
-   */
-  private resultAtom<T extends IType>(
-    type: T,
-    node: SuffixTerm.SuffixTermBase,
-    atomType: KsSymbolKind,
-    ...errors: (Diagnostic | Diagnostic[])[]
-  ): ITypeResultSuffix<T, ITypeResolved> {
-    return {
-      type,
-      errors: ([] as Diagnostic[]).concat(...errors),
-      resolved: {
-        atomType,
-        atom: new TypeNode(type, node),
-        termTrailers: [],
-      },
-    };
-  }
-
-  /**
-   * New result for a new suffix trailer to fill in
-   * @param type the type of the suffix expression so far
-   * @param node the node the type was derived from
-   */
-  private suffixTrailerResult<T extends IType>(
-    type: T,
-    node: SuffixTerm.SuffixTermBase,
-  ): ITypeResultSuffix<T, ITypeResolvedSuffix> {
-    return {
-      type,
-      resolved: {
-        atom: new TypeNode(type, node),
-        termTrailers: [] as ITypeNode<IType>[],
-      },
-      errors: [],
-    };
-  }
-
-  private lastSuffixTermNode(
-    suffixTerm: SuffixTerm.SuffixTerm,
-  ): SuffixTerm.SuffixTermBase {
-    return suffixTerm.trailers.length > 0
-      ? suffixTerm.trailers[suffixTerm.trailers.length - 1]
-      : suffixTerm.atom;
   }
 
   /**
@@ -1988,8 +1853,11 @@ const accumulateErrors = <T>(
   items: T[],
   checker: (item: T) => Diagnostics,
 ): Diagnostics => {
-  return items.reduce(
-    (accumulator, item) => accumulator.concat(checker(item)),
-    [] as Diagnostics,
-  );
+  const errors: Diagnostics = [];
+
+  for (const item of items) {
+    errors.push(...checker(item));
+  }
+
+  return errors;
 };

@@ -1,31 +1,28 @@
-import { KsSymbol, IKsSymbolTracker, IKsSet, IKsDeclared } from './types';
+import { SymbolTrackerBase, KsSet, IKsDeclared, TrackerKind, KsBaseSymbol } from './types';
 import { structureType } from '../typeChecker/types/primitives/structure';
 import { Location } from 'vscode-languageserver';
-import { IArgumentType, IFunctionType } from '../typeChecker/types/types';
+import { ArgumentType, IFunctionType } from '../typeChecker/types/types';
 import { binaryRightKey, locationEqual } from '../utilities/positionUtils';
 import { builtIn } from '../utilities/constants';
+import { FunctionType } from '../typeChecker/ksType';
 
-// class KsTrackerScope {
-//   public readonly sets: IKsSet[];
-//   public readonly scopePosition: IScopePosition;
-//   public readonly children: KsTrackerScope[];
+export class BasicTracker<T extends KsBaseSymbol = KsBaseSymbol> implements SymbolTrackerBase {
+  public readonly declared: IKsDeclared<T, ArgumentType | IFunctionType>;
 
-//   constructor(scopePosition: IScopePosition) {
-//     this.scopePosition = scopePosition;
-//     this.sets = [];
-//     this.children = [];
-//   }
-// }
+  /**
+   * Infromation about locations where the this symbol was set
+   */
+  public readonly sets: KsSet[];
 
-export class KsSymbolTracker<T extends KsSymbol> implements IKsSymbolTracker {
-  public readonly declared: IKsDeclared<T>;
-  public readonly sets: IKsSet[];
+  /**
+   * Locations where this symbol was used
+   */
   public readonly usages: Location[];
 
   constructor(
     symbol: T,
     public uri: string,
-    public type: IArgumentType | IFunctionType = structureType,
+    public type: ArgumentType | IFunctionType = structureType,
   ) {
     this.declared = {
       symbol,
@@ -37,15 +34,26 @@ export class KsSymbolTracker<T extends KsSymbol> implements IKsSymbolTracker {
     this.usages = [];
   }
 
-  public declareType(type: IArgumentType): void {
+  /**
+   * What kind of tracker is this type
+   */
+  public get kind(): TrackerKind.basic {
+    return TrackerKind.basic;
+  }
+
+  /**
+   * Set the declared type of this symbol
+   * @param type type to declare this symbol
+   */
+  public declareType(type: ArgumentType | FunctionType): void {
     this.declared.type = type;
   }
 
-  public getType(loc: Location): Maybe<IArgumentType | IFunctionType> {
-    return this.getLocation(loc).type;
-  }
-
-  public getLocation(loc: Location): IKsSet | IKsDeclared<T> {
+  /**
+   * Get the type at a provided location
+   * @param loc location to check
+   */
+  private getLocation(loc: Location): KsSet | IKsDeclared<T, ArgumentType | IFunctionType> {
     // if builtin type can't change so just return declared type
     if (this.declared.uri === builtIn) {
       return this.declared;
@@ -61,7 +69,20 @@ export class KsSymbolTracker<T extends KsSymbol> implements IKsSymbolTracker {
     return found || this.declared;
   }
 
-  public setType(loc: Location, type: IArgumentType): void {
+  /**
+   * Get the type at a location
+   * @param loc query location
+   */
+  public getType(loc: Location): Maybe<ArgumentType | IFunctionType> {
+    return this.getLocation(loc).type;
+  }
+
+  /**
+   * Set the type at a location
+   * @param loc location to set
+   * @param type type to set
+   */
+  public setType(loc: Location, type: ArgumentType | FunctionType): void {
     const nearestSet = this.getLocation(loc);
     if (locationEqual(nearestSet, loc)) {
       nearestSet.type = type;
@@ -69,7 +90,12 @@ export class KsSymbolTracker<T extends KsSymbol> implements IKsSymbolTracker {
   }
 }
 
+/**
+ * Create a set symbol
+ * @param loc location to create the set
+ * @param type type of this set
+ */
 export const createSymbolSet = (
   loc: Location,
-  type: IArgumentType = structureType,
-): IKsSet => ({ type, uri: loc.uri, range: loc.range });
+  type: ArgumentType = structureType,
+): KsSet => ({ type, uri: loc.uri, range: loc.range });

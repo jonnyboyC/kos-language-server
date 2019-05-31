@@ -1,10 +1,10 @@
 import { ISetResolverResult } from './types';
-import { IToken } from '../entities/types';
 import { flatten } from '../utilities/arrayUtils';
+import { Token } from '../entities/token';
 
 export const setResult = (
-  set: Maybe<IToken> = undefined,
-  ...used: IToken[][]
+  set: Maybe<Token> = undefined,
+  ...used: Token[][]
 ): ISetResolverResult => {
   return {
     set,

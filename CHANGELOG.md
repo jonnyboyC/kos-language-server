@@ -1,3 +1,15 @@
+# [0.6.0] (2019-5-30)
+
+## Features
+- **Suffix Completion** In addition to completion suggestions for variables, locks, and function, suffixes are suggested when the type is known. This should almost always be the case for common globals such as `ship` and `body`.
+- **Signature Help** When the function can be determined signature help can now be provided. Currently the signature displays the types for each parameter but not the parameter name. In a feature release parameter name will be added.
+
+## Bug Fixes
+- **Type Hover** Previously, on hover would not work past the first suffix trailer. This version rewrites a large part of the type checker to better resolve types for suffixes. On hover now reports types for all depths of suffix. 
+
+## Other
+- **Instruction to Statement** changed all references of instruction to statement to better align with the terminology of Kos
+
 # [0.5.1] (2019-5-16)
 
 ## Features
@@ -88,10 +100,10 @@
 
 ## Features
 - **default KSP planets** Added kerbin, eve, etc. to auto completes. Will eventually allow for customization
-- **deprecated warning** Initial set of deprecated warning for deprecated io. i.e. copy, rename, delete instructions.
+- **deprecated warning** Initial set of deprecated warning for deprecated io. i.e. copy, rename, delete statements.
 
 ## Bug Fixes
-- **run instruction resolution** fixed a bug the run instruction and functions where `runPath("0:example.ks").` did not resolve the sample as 
+- **run statement resolution** fixed a bug the run statement and functions where `runPath("0:example.ks").` did not resolve the sample as 
 `runPath("0:\runpath.ks").` or `runPath("runpath.ks")`
 
 
@@ -102,10 +114,10 @@
 - **better auto complete** completions now include type inferred type information where available
 
 ## Bug Fixes
-- **rename instruction grammer** Fixed an issue with the grammar for the rename instruction
+- **rename statement grammer** Fixed an issue with the grammar for the rename statement
 - **update performance diagnostics** Between the release of 0.2.0 and 0.3.0 vscode now ships with node 10. The performance hooks that were previously used have been remove. The new node performance hooks have been added in it's place
 - **report error when lazyglobal off set** The language server now reports and errors when `lazyGlobal off. ... set x to "example".`
-- **run instructions** Fixed a few issues related to the language server loading other file based on `runPath("example.ks").` and it's sibilings
+- **run statements** Fixed a few issues related to the language server loading other file based on `runPath("example.ks").` and it's sibilings
 
 # [0.2.0] (2019-1-5)
 
@@ -132,13 +144,13 @@
 # [0.1.2] (2018-09-17)
 
 ## Bug Fixes
-- **break instruction**: Forgot to actually implement break statement logic
+- **break statement**: Forgot to actually implement break statement logic
 - **parameter syntax**: Previously comments would not highlight correctly in the middle of a parameter declaration
 - **declare syntax**: Previously in `declare variable to thing.` the variable name was highlighted as a keyword.
-- **more synchronize** instruction*: More keywords were reset error reporting
+- **more synchronize** statement*: More keywords were reset error reporting
 
 # [0.1.1] (2018-09-12)
 
 ## Bug Fixes
-- **parse errors**: Previously there was a bug were parse errors were not correctly reported for instructions inside a block (for, until, function, etc.).
+- **parse errors**: Previously there was a bug were parse errors were not correctly reported for statements inside a block (for, until, function, etc.).
 

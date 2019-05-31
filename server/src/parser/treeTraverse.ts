@@ -1,27 +1,27 @@
 import {
-  IExprVisitor, IInstVisitor, IInst,
+  IExprVisitor, IStmtVisitor, IStmt,
   IExpr, ScriptNode,
   ISuffixTermVisitor,
   ISuffixTerm,
 } from './types';
 import * as Decl from './declare';
-import * as Inst from './inst';
+import * as Stmt from './stmt';
 import * as Expr from './expr';
 import * as SuffixTerm from './suffixTerm';
 import { empty } from '../utilities/typeGuards';
 
 export abstract class TreeTraverse implements
   IExprVisitor<void>,
-  IInstVisitor<void>,
+  IStmtVisitor<void>,
   ISuffixTermVisitor<void> {
 
   constructor() { }
 
   protected abstract nodeAction(node: ScriptNode): boolean;
 
-  // find an instruction
-  protected instAction(inst: IInst): void {
-    return inst.accept(this);
+  // find an statement
+  protected stmtAction(stmt: IStmt): void {
+    return stmt.accept(this);
   }
 
   // find an expression
@@ -46,210 +46,210 @@ export abstract class TreeTraverse implements
   }
   public visitDeclFunction(decl: Decl.Func): void {
     if (this.nodeAction(decl)) {
-      this.instAction(decl.block);
+      this.stmtAction(decl.block);
     }
   }
   public visitDeclParameter(decl: Decl.Param): void {
     this.nodeAction(decl);
   }
-  public visitInstInvalid(inst: Inst.Invalid): void {
-    this.nodeAction(inst);
+  public visitStmtInvalid(stmt: Stmt.Invalid): void {
+    this.nodeAction(stmt);
   }
-  public visitBlock(inst: Inst.Block): void {
-    if (this.nodeAction(inst)) {
-      for (const childInst of inst.insts) {
-        this.instAction(childInst);
+  public visitBlock(stmt: Stmt.Block): void {
+    if (this.nodeAction(stmt)) {
+      for (const childStmt of stmt.stmts) {
+        this.stmtAction(childStmt);
       }
     }
   }
-  public visitExpr(inst: Inst.ExprInst): void {
-    if (this.nodeAction(inst)) {
-      this.exprAction(inst.suffix);
+  public visitExpr(stmt: Stmt.ExprStmt): void {
+    if (this.nodeAction(stmt)) {
+      this.exprAction(stmt.suffix);
     }
   }
-  public visitOnOff(inst: Inst.OnOff): void {
-    if (this.nodeAction(inst)) {
-      this.exprAction(inst.suffix);
+  public visitOnOff(stmt: Stmt.OnOff): void {
+    if (this.nodeAction(stmt)) {
+      this.exprAction(stmt.suffix);
     }
   }
-  public visitCommand(inst: Inst.Command): void {
-    this.nodeAction(inst);
+  public visitCommand(stmt: Stmt.Command): void {
+    this.nodeAction(stmt);
   }
-  public visitCommandExpr(inst: Inst.CommandExpr): void {
-    if (this.nodeAction(inst)) {
-      this.exprAction(inst.expr);
+  public visitCommandExpr(stmt: Stmt.CommandExpr): void {
+    if (this.nodeAction(stmt)) {
+      this.exprAction(stmt.expr);
     }
   }
-  public visitUnset(inst: Inst.Unset): void {
-    this.nodeAction(inst);
+  public visitUnset(stmt: Stmt.Unset): void {
+    this.nodeAction(stmt);
   }
-  public visitUnlock(inst: Inst.Unlock): void {
-    this.nodeAction(inst);
+  public visitUnlock(stmt: Stmt.Unlock): void {
+    this.nodeAction(stmt);
   }
-  public visitSet(inst: Inst.Set): void {
-    if (this.nodeAction(inst)) {
-      this.exprAction(inst.suffix);
-      this.exprAction(inst.value);
+  public visitSet(stmt: Stmt.Set): void {
+    if (this.nodeAction(stmt)) {
+      this.exprAction(stmt.suffix);
+      this.exprAction(stmt.value);
     }
   }
-  public visitLazyGlobal(inst: Inst.LazyGlobal): void {
-    this.nodeAction(inst);
+  public visitLazyGlobal(stmt: Stmt.LazyGlobal): void {
+    this.nodeAction(stmt);
   }
-  public visitIf(inst: Inst.If): void {
-    if (this.nodeAction(inst)) {
-      this.exprAction(inst.condition);
-      this.instAction(inst.ifInst);
+  public visitIf(stmt: Stmt.If): void {
+    if (this.nodeAction(stmt)) {
+      this.exprAction(stmt.condition);
+      this.stmtAction(stmt.body);
 
-      if (!empty(inst.elseInst)) {
-        this.instAction(inst.elseInst);
+      if (!empty(stmt.elseStmt)) {
+        this.stmtAction(stmt.elseStmt);
       }
     }
   }
-  public visitElse(inst: Inst.Else): void {
-    if (this.nodeAction(inst)) {
-      this.instAction(inst.inst);
+  public visitElse(stmt: Stmt.Else): void {
+    if (this.nodeAction(stmt)) {
+      this.stmtAction(stmt.body);
     }
   }
-  public visitUntil(inst: Inst.Until): void {
-    if (this.nodeAction(inst)) {
-      this.exprAction(inst.condition);
-      this.instAction(inst.inst);
+  public visitUntil(stmt: Stmt.Until): void {
+    if (this.nodeAction(stmt)) {
+      this.exprAction(stmt.condition);
+      this.stmtAction(stmt.body);
     }
   }
-  public visitFrom(inst: Inst.From): void {
-    if (this.nodeAction(inst)) {
-      this.instAction(inst.initializer);
-      this.exprAction(inst.condition);
-      this.instAction(inst.increment);
-      this.instAction(inst.inst);
+  public visitFrom(stmt: Stmt.From): void {
+    if (this.nodeAction(stmt)) {
+      this.stmtAction(stmt.initializer);
+      this.exprAction(stmt.condition);
+      this.stmtAction(stmt.increment);
+      this.stmtAction(stmt.body);
     }
   }
-  public visitWhen(inst: Inst.When): void {
-    if (this.nodeAction(inst)) {
-      this.exprAction(inst.condition);
-      this.instAction(inst.inst);
+  public visitWhen(stmt: Stmt.When): void {
+    if (this.nodeAction(stmt)) {
+      this.exprAction(stmt.condition);
+      this.stmtAction(stmt.body);
     }
   }
-  public visitReturn(inst: Inst.Return): void {
-    if (this.nodeAction(inst)) {
-      if (!empty(inst.expr)) {
-        this.exprAction(inst.expr);
+  public visitReturn(stmt: Stmt.Return): void {
+    if (this.nodeAction(stmt)) {
+      if (!empty(stmt.value)) {
+        this.exprAction(stmt.value);
       }
     }
   }
-  public visitBreak(inst: Inst.Break): void {
-    this.nodeAction(inst);
+  public visitBreak(stmt: Stmt.Break): void {
+    this.nodeAction(stmt);
   }
-  public visitSwitch(inst: Inst.Switch): void {
-    if (this.nodeAction(inst)) {
-      this.exprAction(inst.target);
+  public visitSwitch(stmt: Stmt.Switch): void {
+    if (this.nodeAction(stmt)) {
+      this.exprAction(stmt.target);
     }
   }
-  public visitFor(inst: Inst.For): void {
-    if (this.nodeAction(inst)) {
-      this.exprAction(inst.suffix);
-      this.instAction(inst.inst);
+  public visitFor(stmt: Stmt.For): void {
+    if (this.nodeAction(stmt)) {
+      this.exprAction(stmt.collection);
+      this.stmtAction(stmt.body);
     }
   }
-  public visitOn(inst: Inst.On): void {
-    if (this.nodeAction(inst)) {
-      this.exprAction(inst.suffix);
-      this.instAction(inst.inst);
+  public visitOn(stmt: Stmt.On): void {
+    if (this.nodeAction(stmt)) {
+      this.exprAction(stmt.suffix);
+      this.stmtAction(stmt.body);
     }
   }
-  public visitToggle(inst: Inst.Toggle): void {
-    if (this.nodeAction(inst)) {
-      this.exprAction(inst.suffix);
+  public visitToggle(stmt: Stmt.Toggle): void {
+    if (this.nodeAction(stmt)) {
+      this.exprAction(stmt.suffix);
     }
   }
-  public visitWait(inst: Inst.Wait): void {
-    if (this.nodeAction(inst)) {
-      this.exprAction(inst.expr);
+  public visitWait(stmt: Stmt.Wait): void {
+    if (this.nodeAction(stmt)) {
+      this.exprAction(stmt.expr);
     }
   }
-  public visitLog(inst: Inst.Log): void {
-    if (this.nodeAction(inst)) {
-      this.exprAction(inst.expr);
-      this.exprAction(inst.target);
+  public visitLog(stmt: Stmt.Log): void {
+    if (this.nodeAction(stmt)) {
+      this.exprAction(stmt.expr);
+      this.exprAction(stmt.target);
     }
   }
-  public visitCopy(inst: Inst.Copy): void {
-    if (this.nodeAction(inst)) {
-      this.exprAction(inst.target);
-      this.exprAction(inst.destination);
+  public visitCopy(stmt: Stmt.Copy): void {
+    if (this.nodeAction(stmt)) {
+      this.exprAction(stmt.target);
+      this.exprAction(stmt.destination);
     }
   }
-  public visitRename(inst: Inst.Rename): void {
-    if (this.nodeAction(inst)) {
-      this.exprAction(inst.target);
-      this.exprAction(inst.alternative);
+  public visitRename(stmt: Stmt.Rename): void {
+    if (this.nodeAction(stmt)) {
+      this.exprAction(stmt.target);
+      this.exprAction(stmt.alternative);
     }
   }
-  public visitDelete(inst: Inst.Delete): void {
-    if (this.nodeAction(inst)) {
-      this.exprAction(inst.target);
+  public visitDelete(stmt: Stmt.Delete): void {
+    if (this.nodeAction(stmt)) {
+      this.exprAction(stmt.target);
 
-      if (!empty(inst.volume)) {
-        this.exprAction(inst.volume);
+      if (!empty(stmt.volume)) {
+        this.exprAction(stmt.volume);
       }
     }
   }
-  public visitRun(inst: Inst.Run): void {
-    if (this.nodeAction(inst)) {
-      if (!empty(inst.args)) {
-        for (const arg of inst.args) {
+  public visitRun(stmt: Stmt.Run): void {
+    if (this.nodeAction(stmt)) {
+      if (!empty(stmt.args)) {
+        for (const arg of stmt.args) {
           this.exprAction(arg);
         }
       }
 
-      if (!empty(inst.expr)) {
-        this.exprAction(inst.expr);
+      if (!empty(stmt.expr)) {
+        this.exprAction(stmt.expr);
       }
     }
   }
-  public visitRunPath(inst: Inst.RunPath): void {
-    if (this.nodeAction(inst)) {
-      this.exprAction(inst.expr);
-      if (!empty(inst.args)) {
-        for (const arg of inst.args) {
-          this.exprAction(arg);
-        }
-      }
-    }
-  }
-  public visitRunPathOnce(inst: Inst.RunPathOnce): void {
-    if (this.nodeAction(inst)) {
-      this.exprAction(inst.expr);
-      if (!empty(inst.args)) {
-        for (const arg of inst.args) {
+  public visitRunPath(stmt: Stmt.RunPath): void {
+    if (this.nodeAction(stmt)) {
+      this.exprAction(stmt.expr);
+      if (!empty(stmt.args)) {
+        for (const arg of stmt.args) {
           this.exprAction(arg);
         }
       }
     }
   }
-  public visitCompile(inst: Inst.Compile): void {
-    if (this.nodeAction(inst)) {
-      this.exprAction(inst.target);
-      if (!empty(inst.destination)) {
-        this.exprAction(inst.destination);
+  public visitRunPathOnce(stmt: Stmt.RunOncePath): void {
+    if (this.nodeAction(stmt)) {
+      this.exprAction(stmt.expr);
+      if (!empty(stmt.args)) {
+        for (const arg of stmt.args) {
+          this.exprAction(arg);
+        }
       }
     }
   }
-  public visitList(inst: Inst.List): void {
-    this.nodeAction(inst);
-  }
-  public visitEmpty(inst: Inst.Empty): void {
-    this.nodeAction(inst);
-  }
-  public visitPrint(inst: Inst.Print): void {
-    if (this.nodeAction(inst)) {
-      this.exprAction(inst.expr);
-
-      if (!empty(inst.x)) {
-        this.exprAction(inst.x);
+  public visitCompile(stmt: Stmt.Compile): void {
+    if (this.nodeAction(stmt)) {
+      this.exprAction(stmt.target);
+      if (!empty(stmt.destination)) {
+        this.exprAction(stmt.destination);
       }
-      if (!empty(inst.y)) {
-        this.exprAction(inst.y);
+    }
+  }
+  public visitList(stmt: Stmt.List): void {
+    this.nodeAction(stmt);
+  }
+  public visitEmpty(stmt: Stmt.Empty): void {
+    this.nodeAction(stmt);
+  }
+  public visitPrint(stmt: Stmt.Print): void {
+    if (this.nodeAction(stmt)) {
+      this.exprAction(stmt.expr);
+
+      if (!empty(stmt.x)) {
+        this.exprAction(stmt.x);
+      }
+      if (!empty(stmt.y)) {
+        this.exprAction(stmt.y);
       }
     }
   }
@@ -284,7 +284,7 @@ export abstract class TreeTraverse implements
   }
   public visitLambda(expr: Expr.Lambda): void {
     if (this.nodeAction(expr)) {
-      this.instAction(expr.block);
+      this.stmtAction(expr.block);
     }
   }
   public visitSuffixTermInvalid(suffixTerm: SuffixTerm.Invalid): void {

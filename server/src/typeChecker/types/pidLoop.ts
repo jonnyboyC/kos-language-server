@@ -1,14 +1,11 @@
-import { IArgumentType } from './types';
-import {
-  createStructureType, createArgSuffixType,
-  createSuffixType, createSetSuffixType,
-} from './ksType';
+import { ArgumentType } from './types';
+import { createStructureType, createArgSuffixType, createSuffixType, createSetSuffixType } from "../typeCreators";
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { structureType } from './primitives/structure';
 import { voidType } from './primitives/void';
 import { scalarType } from './primitives/scalar';
 
-export const pidLoopType: IArgumentType = createStructureType('pidLoop');
+export const pidLoopType: ArgumentType = createStructureType('pidLoop');
 addPrototype(pidLoopType, structureType);
 
 addSuffixes(

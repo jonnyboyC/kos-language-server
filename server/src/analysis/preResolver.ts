@@ -1,7 +1,7 @@
 import {
-  IInstVisitor,
+  IStmtVisitor,
   IExprVisitor,
-  IInst,
+  IStmt,
   ScopeKind,
   IExpr,
   ISuffixTerm,
@@ -10,7 +10,7 @@ import {
 } from '../parser/types';
 import * as SuffixTerm from '../parser/suffixTerm';
 import * as Expr from '../parser/expr';
-import * as Inst from '../parser/inst';
+import * as Stmt from '../parser/stmt';
 import { Var, Lock, Func, Param } from '../parser/declare';
 import { empty } from '../utilities/typeGuards';
 import { TokenType } from '../entities/tokentypes';
@@ -29,7 +29,7 @@ export type Diagnostics = Diagnostic[];
 export class PreResolver
   implements
     IExprVisitor<Diagnostics>,
-    IInstVisitor<Diagnostics>,
+    IStmtVisitor<Diagnostics>,
     ISuffixTermVisitor<Diagnostics> {
 
   /**
@@ -54,7 +54,7 @@ export class PreResolver
 
   /**
    * function scan to find parameters and return
-   * instructions
+   * statements
    */
   private readonly functionScan: FunctionScan;
 
@@ -79,7 +79,7 @@ export class PreResolver
   }
 
   /**
-   * Perform an initial resolver pass on the script instructions,
+   * Perform an initial resolver pass on the script statements,
    * for function declarations
    */
   public resolve(): Diagnostics {
@@ -92,7 +92,7 @@ export class PreResolver
       this.tableBuilder.rewind();
       this.tableBuilder.beginScope(this.script);
 
-      const resolveErrors = this.resolveInsts(this.script.insts);
+      const resolveErrors = this.resolveStmts(this.script.stmts);
       this.tableBuilder.endScope();
 
       this.logger.info(`Function Resolving finished for ${file}`);
@@ -112,14 +112,14 @@ export class PreResolver
     }
   }
 
-  // resolve the given set of instructions
-  public resolveInsts(insts: IInst[]): Diagnostics {
-    return accumulateErrors(insts, this.resolveInst.bind(this));
+  // resolve the given set of statements
+  public resolveStmts(stmts: IStmt[]): Diagnostics {
+    return accumulateErrors(stmts, this.resolveStmt.bind(this));
   }
 
-  // resolve for an instruction
-  private resolveInst(inst: IInst): Diagnostics {
-    return inst.accept(this);
+  // resolve for an statement
+  private resolveStmt(stmt: IStmt): Diagnostics {
+    return stmt.accept(this);
   }
 
   // resolve for an expression
@@ -186,11 +186,12 @@ export class PreResolver
       result.optionalParameters,
       result.return,
     );
-    const instErrors = this.resolveInst(decl.block);
+    const stmtErrors = this.resolveStmt(decl.block);
 
-    return empty(declareErrors)
-      ? instErrors
-      : instErrors.concat(declareErrors);
+    if (!empty(declareErrors)) {
+      stmtErrors.push(declareErrors);
+    }
+    return stmtErrors;
   }
 
   // check parameter declaration
@@ -200,190 +201,211 @@ export class PreResolver
 
   /* --------------------------------------------
 
-  Instructions
+  Statements
 
   ----------------------------------------------*/
 
-  public visitInstInvalid(_: Inst.Invalid): Diagnostics {
+  public visitStmtInvalid(_: Stmt.Invalid): Diagnostics {
     return [];
   }
 
-  public visitBlock(inst: Inst.Block): Diagnostics {
-    this.tableBuilder.beginScope(inst);
-    const errors = this.resolveInsts(inst.insts);
+  public visitBlock(stmt: Stmt.Block): Diagnostics {
+    this.tableBuilder.beginScope(stmt);
+    const errors = this.resolveStmts(stmt.stmts);
     this.tableBuilder.endScope();
 
     return errors;
   }
 
-  public visitExpr(inst: Inst.ExprInst): Diagnostics {
-    return this.resolveExpr(inst.suffix);
+  public visitExpr(stmt: Stmt.ExprStmt): Diagnostics {
+    return this.resolveExpr(stmt.suffix);
   }
 
-  public visitOnOff(inst: Inst.OnOff): Diagnostics {
-    return this.resolveExpr(inst.suffix);
+  public visitOnOff(stmt: Stmt.OnOff): Diagnostics {
+    return this.resolveExpr(stmt.suffix);
   }
 
-  public visitCommand(_: Inst.Command): Diagnostics {
+  public visitCommand(_: Stmt.Command): Diagnostics {
     return [];
   }
 
-  public visitCommandExpr(inst: Inst.CommandExpr): Diagnostics {
-    return this.resolveExpr(inst.expr);
+  public visitCommandExpr(stmt: Stmt.CommandExpr): Diagnostics {
+    return this.resolveExpr(stmt.expr);
   }
 
-  public visitUnset(_: Inst.Unset): Diagnostics {
+  public visitUnset(_: Stmt.Unset): Diagnostics {
     return [];
   }
 
-  public visitUnlock(_: Inst.Unlock): Diagnostics {
+  public visitUnlock(_: Stmt.Unlock): Diagnostics {
     return [];
   }
 
-  public visitSet(inst: Inst.Set): Diagnostics {
-    return this.resolveExpr(inst.value);
+  public visitSet(stmt: Stmt.Set): Diagnostics {
+    return this.resolveExpr(stmt.value);
   }
 
-  public visitLazyGlobal(_: Inst.LazyGlobal): Diagnostics {
+  public visitLazyGlobal(_: Stmt.LazyGlobal): Diagnostics {
     return [];
   }
 
-  public visitIf(inst: Inst.If): Diagnostics {
-    let resolveErrors = this.resolveExpr(inst.condition).concat(
-      this.resolveInst(inst.ifInst),
-    );
+  public visitIf(stmt: Stmt.If): Diagnostics {
+    const errors = this.resolveExpr(stmt.condition);
+    errors.push(...this.resolveStmt(stmt.body));
 
-    if (inst.elseInst) {
-      resolveErrors = resolveErrors.concat(this.resolveInst(inst.elseInst));
+    if (stmt.elseStmt) {
+      errors.push(...this.resolveStmt(stmt.elseStmt));
     }
 
-    return resolveErrors;
+    return errors;
   }
 
-  public visitElse(inst: Inst.Else): Diagnostics {
-    return this.resolveInst(inst.inst);
+  public visitElse(stmt: Stmt.Else): Diagnostics {
+    return this.resolveStmt(stmt.body);
   }
 
-  public visitUntil(inst: Inst.Until): Diagnostics {
-    return this.resolveExpr(inst.condition).concat(this.resolveInst(inst.inst));
+  public visitUntil(stmt: Stmt.Until): Diagnostics {
+    const errors = this.resolveExpr(stmt.condition);
+    errors.push(...this.resolveStmt(stmt.body));
+
+    return errors;
   }
 
-  public visitFrom(inst: Inst.From): Diagnostics {
-    return this.resolveInsts(inst.initializer.insts).concat(
-      this.resolveExpr(inst.condition),
-      this.resolveInsts(inst.increment.insts),
-      this.resolveInst(inst.inst),
+  public visitFrom(stmt: Stmt.From): Diagnostics {
+    const errors = this.resolveStmts(stmt.initializer.stmts);
+    errors.push(
+      ...this.resolveExpr(stmt.condition),
+      ...this.resolveStmts(stmt.increment.stmts),
+      ...this.resolveStmt(stmt.body),
     );
+
+    return errors;
   }
 
-  public visitWhen(inst: Inst.When): Diagnostics {
-    return this.resolveExpr(inst.condition).concat(this.resolveInst(inst.inst));
+  public visitWhen(stmt: Stmt.When): Diagnostics {
+    const errors = this.resolveExpr(stmt.condition);
+    errors.push(...this.resolveStmt(stmt.body));
+    return errors;
   }
 
-  public visitReturn(inst: Inst.Return): Diagnostics {
-    if (inst.expr) {
-      return this.resolveExpr(inst.expr);
+  public visitReturn(stmt: Stmt.Return): Diagnostics {
+    if (stmt.value) {
+      return this.resolveExpr(stmt.value);
     }
 
     return [];
   }
 
-  public visitBreak(_: Inst.Break): Diagnostics {
+  public visitBreak(_: Stmt.Break): Diagnostics {
     return [];
   }
 
-  public visitSwitch(inst: Inst.Switch): Diagnostics {
-    return this.resolveExpr(inst.target);
+  public visitSwitch(stmt: Stmt.Switch): Diagnostics {
+    return this.resolveExpr(stmt.target);
   }
 
-  public visitFor(inst: Inst.For): Diagnostics {
-    return this.resolveExpr(inst.suffix).concat(this.resolveInst(inst.inst));
+  public visitFor(stmt: Stmt.For): Diagnostics {
+    const errors = this.resolveExpr(stmt.collection);
+    errors.push(...this.resolveStmt(stmt.body));
+
+    return errors;
   }
 
-  public visitOn(inst: Inst.On): Diagnostics {
-    return this.resolveExpr(inst.suffix).concat(this.resolveInst(inst.inst));
+  public visitOn(stmt: Stmt.On): Diagnostics {
+    const errors = this.resolveExpr(stmt.suffix);
+    errors.push(...this.resolveStmt(stmt.body));
+
+    return errors;
   }
 
-  public visitToggle(inst: Inst.Toggle): Diagnostics {
-    return this.resolveExpr(inst.suffix);
+  public visitToggle(stmt: Stmt.Toggle): Diagnostics {
+    return this.resolveExpr(stmt.suffix);
   }
 
-  public visitWait(inst: Inst.Wait): Diagnostics {
-    return this.resolveExpr(inst.expr);
+  public visitWait(stmt: Stmt.Wait): Diagnostics {
+    return this.resolveExpr(stmt.expr);
   }
 
-  public visitLog(inst: Inst.Log): Diagnostics {
-    return this.resolveExpr(inst.expr).concat(this.resolveExpr(inst.target));
+  public visitLog(stmt: Stmt.Log): Diagnostics {
+    const errors = this.resolveExpr(stmt.expr);
+    errors.push(...this.resolveExpr(stmt.target));
+
+    return errors;
   }
 
-  public visitCopy(inst: Inst.Copy): Diagnostics {
-    return this.resolveExpr(inst.target).concat(
-      this.resolveExpr(inst.destination),
-    );
+  public visitCopy(stmt: Stmt.Copy): Diagnostics {
+    const errors = this.resolveExpr(stmt.target);
+    errors.push(...this.resolveExpr(stmt.destination));
+
+    return errors;
   }
 
-  public visitRename(inst: Inst.Rename): Diagnostics {
-    return this.resolveExpr(inst.target).concat(
-      this.resolveExpr(inst.alternative),
-    );
+  public visitRename(stmt: Stmt.Rename): Diagnostics {
+    const errors = this.resolveExpr(stmt.target);
+    errors.push(...this.resolveExpr(stmt.alternative));
+
+    return errors;
   }
 
-  public visitDelete(inst: Inst.Delete): Diagnostics {
-    if (empty(inst.volume)) {
-      return this.resolveExpr(inst.target);
+  public visitDelete(stmt: Stmt.Delete): Diagnostics {
+    const errors = this.resolveExpr(stmt.target);
+    if (empty(stmt.volume)) {
+      return errors;
     }
 
-    return this.resolveExpr(inst.target).concat(this.resolveExpr(inst.volume));
+    errors.push(...this.resolveExpr(stmt.volume));
+    return errors;
   }
 
-  public visitRun(inst: Inst.Run): Diagnostics {
-    if (empty(inst.args)) {
+  public visitRun(stmt: Stmt.Run): Diagnostics {
+    if (empty(stmt.args)) {
       return [];
     }
 
-    return accumulateErrors(inst.args, this.resolveExpr.bind(this));
+    return accumulateErrors(stmt.args, this.resolveExpr.bind(this));
   }
 
-  public visitRunPath(inst: Inst.RunPath): Diagnostics {
-    if (empty(inst.args)) {
-      return this.resolveExpr(inst.expr);
+  public visitRunPath(stmt: Stmt.RunPath): Diagnostics {
+    if (empty(stmt.args)) {
+      return this.resolveExpr(stmt.expr);
     }
 
-    return this.resolveExpr(inst.expr).concat(
-      accumulateErrors(inst.args, this.resolveExpr.bind(this)),
-    );
+    const errors = this.resolveExpr(stmt.expr);
+    errors.push(...accumulateErrors(stmt.args, this.resolveExpr.bind(this)));
+    return errors;
   }
 
-  public visitRunPathOnce(inst: Inst.RunPathOnce): Diagnostics {
-    if (empty(inst.args)) {
-      return this.resolveExpr(inst.expr);
+  public visitRunPathOnce(stmt: Stmt.RunOncePath): Diagnostics {
+    if (empty(stmt.args)) {
+      return this.resolveExpr(stmt.expr);
     }
 
-    return this.resolveExpr(inst.expr).concat(
-      accumulateErrors(inst.args, this.resolveExpr.bind(this)),
-    );
+    const errors = this.resolveExpr(stmt.expr);
+    errors.push(...accumulateErrors(stmt.args, this.resolveExpr.bind(this)));
+
+    return errors;
   }
 
-  public visitCompile(inst: Inst.Compile): Diagnostics {
-    if (empty(inst.destination)) {
-      return this.resolveExpr(inst.target);
+  public visitCompile(stmt: Stmt.Compile): Diagnostics {
+    if (empty(stmt.destination)) {
+      return this.resolveExpr(stmt.target);
     }
 
-    return this.resolveExpr(inst.target).concat(
-      this.resolveExpr(inst.destination),
-    );
+    const errors = this.resolveExpr(stmt.target);
+    errors.push(...this.resolveExpr(stmt.destination));
+    return errors;
   }
 
-  public visitList(_: Inst.List): Diagnostics {
+  public visitList(_: Stmt.List): Diagnostics {
     return [];
   }
 
-  public visitEmpty(_: Inst.Empty): Diagnostics {
+  public visitEmpty(_: Stmt.Empty): Diagnostics {
     return [];
   }
 
-  public visitPrint(inst: Inst.Print): Diagnostics {
-    return this.resolveExpr(inst.expr);
+  public visitPrint(stmt: Stmt.Print): Diagnostics {
+    return this.resolveExpr(stmt.expr);
   }
 
   /* --------------------------------------------
@@ -397,7 +419,10 @@ export class PreResolver
   }
 
   public visitBinary(expr: Expr.Binary): Diagnostics {
-    return this.resolveExpr(expr.left).concat(this.resolveExpr(expr.right));
+    const errors = this.resolveExpr(expr.left);
+    errors.push(...this.resolveExpr(expr.right));
+
+    return errors;
   }
 
   public visitUnary(expr: Expr.Unary): Diagnostics {
@@ -405,22 +430,23 @@ export class PreResolver
   }
 
   public visitFactor(expr: Expr.Factor): Diagnostics {
-    return this.resolveExpr(expr.suffix).concat(
-      this.resolveExpr(expr.exponent),
-    );
+    const errors = this.resolveExpr(expr.suffix);
+    errors.push(...this.resolveExpr(expr.exponent));
+
+    return errors;
   }
 
   public visitSuffix(expr: Expr.Suffix): Diagnostics {
-    const suffixTerm = this.resolveSuffixTerm(expr.suffixTerm);
-    if (empty(expr.trailer)) {
-      return suffixTerm;
+    const errors = this.resolveSuffixTerm(expr.suffixTerm);
+    if (!empty(expr.trailer)) {
+      errors.push(...this.resolveSuffixTerm(expr.trailer));
     }
 
-    return suffixTerm.concat(this.resolveSuffixTerm(expr.trailer));
+    return errors;
   }
 
   public visitLambda(expr: Expr.Lambda): Diagnostics {
-    return this.resolveInst(expr.block);
+    return this.resolveStmt(expr.block);
   }
 
   /* --------------------------------------------
@@ -434,18 +460,18 @@ export class PreResolver
   }
 
   public visitSuffixTrailer(expr: SuffixTerm.SuffixTrailer): Diagnostics {
-    const suffixTerm = this.resolveSuffixTerm(expr.suffixTerm);
-    if (empty(expr.trailer)) {
-      return suffixTerm;
+    const errors = this.resolveSuffixTerm(expr.suffixTerm);
+    if (!empty(expr.trailer)) {
+      errors.push(...this.resolveSuffixTerm(expr.trailer));
     }
 
-    return suffixTerm.concat(this.resolveSuffixTerm(expr.trailer));
+    return errors;
   }
 
   public visitSuffixTerm(expr: SuffixTerm.SuffixTerm): Diagnostics {
-    let errors = this.resolveSuffixTerm(expr.atom);
+    const errors = this.resolveSuffixTerm(expr.atom);
     for (const trailer of expr.trailers) {
-      errors = errors.concat(this.resolveSuffixTerm(trailer));
+      errors.push(...this.resolveSuffixTerm(trailer));
     }
 
     return errors;
@@ -484,8 +510,11 @@ const accumulateErrors = <T>(
   items: T[],
   checker: (item: T) => Diagnostics,
 ): Diagnostics => {
-  return items.reduce(
-    (accumulator, item) => accumulator.concat(checker(item)),
-    [] as Diagnostics,
-  );
+  const errors: Diagnostics = [];
+
+  for (const item of items) {
+    errors.push(...checker(item));
+  }
+
+  return errors;
 };

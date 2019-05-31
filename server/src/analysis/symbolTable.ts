@@ -1,5 +1,9 @@
-import { IScopeNode,
-  KsSymbol, GraphNode, IKsSymbolTracker,
+import {
+  EnvironmentNode,
+  KsSymbol,
+  GraphNode,
+  SymbolTrackerBase,
+  KsBaseSymbol,
 } from './types';
 import { Position } from 'vscode-languageserver';
 import { rangeContainsPos } from '../utilities/positionUtils';
@@ -8,19 +12,24 @@ import { empty } from '../utilities/typeGuards';
 import { KsFunction } from '../entities/function';
 import { KsLock } from '../entities/lock';
 import { KsVariable } from '../entities/variable';
-import { KsParameter } from '../entities/parameters';
-import { isKsFunction, isKsLock, isKsVariable, isKsParameter } from '../entities/entityHelpers';
+import { KsParameter } from '../entities/parameter';
+import {
+  isKsFunction,
+  isKsLock,
+  isVariable,
+  isParameter,
+} from '../entities/entityHelpers';
 import { ScopeKind } from '../parser/types';
+import { BasicTracker } from './tracker';
 
 /**
  * The Symbol table is used to update and retreive symbol type infromation
  */
 export class SymbolTable implements GraphNode<SymbolTable> {
-
   /**
    * The root scope of this files symbol table
    */
-  public readonly rootScope: IScopeNode;
+  public readonly rootScope: EnvironmentNode;
 
   /**
    * The parent symbol tables to this symbol table
@@ -50,11 +59,11 @@ export class SymbolTable implements GraphNode<SymbolTable> {
    * @param logger a logger for the symbol table
    */
   constructor(
-    rootScope: IScopeNode,
+    rootScope: EnvironmentNode,
     childSymbolTables: Set<SymbolTable>,
     uri: string,
-    logger: ILogger = mockLogger) {
-
+    logger: ILogger = mockLogger,
+  ) {
     this.rootScope = rootScope;
     this.childSymbolTables = childSymbolTables;
     this.uri = uri;
@@ -129,18 +138,20 @@ export class SymbolTable implements GraphNode<SymbolTable> {
   /**
    * get every symbol in the file
    */
-  public fileSymbols(): KsSymbol[] {
-    return Array.from(this.rootScope.scope.symbols()).concat(
-      this.fileSymbolsDepth(this.rootScope.children));
+  public fileSymbols(): KsBaseSymbol[] {
+    return Array.from(this.rootScope.environment.symbols()).concat(
+      this.fileSymbolsDepth(this.rootScope.children),
+    );
   }
 
   /**
    * Get global symbols that match the requested symbol name
    * @param name symbol name
    */
-  public globalTrackers(name: string): IKsSymbolTracker[] {
-    return Array.from(this.rootScope.scope.values())
-      .filter(tracker => tracker.declared.symbol.name.lookup === name);
+  public globalTrackers(name: string): SymbolTrackerBase[] {
+    return Array.from(this.rootScope.environment.values()).filter(
+      tracker => tracker.declared.symbol.name.lookup === name,
+    );
   }
 
   /**
@@ -148,12 +159,16 @@ export class SymbolTable implements GraphNode<SymbolTable> {
    * @param pos position of symbol
    * @param name name of the symbol
    */
-  public scopedFunctionTracker(pos: Position, name: string): Maybe<IKsSymbolTracker<KsFunction>> {
-    const tracker = this.scopedNamedTracker(
-      pos, name, tracker => isKsFunction(tracker.declared.symbol));
+  public scopedFunctionTracker(
+    pos: Position,
+    name: string,
+  ): Maybe<SymbolTrackerBase<KsFunction>> {
+    const tracker = this.scopedNamedTracker(pos, name, tracker =>
+      isKsFunction(tracker.declared.symbol),
+    );
 
     if (!empty(tracker)) {
-      return tracker as IKsSymbolTracker<KsFunction>;
+      return tracker as SymbolTrackerBase<KsFunction>;
     }
 
     return undefined;
@@ -164,12 +179,16 @@ export class SymbolTable implements GraphNode<SymbolTable> {
    * @param pos position of symbol
    * @param name name of the symbol
    */
-  public scopedLockTracker(pos: Position, name: string): Maybe<IKsSymbolTracker<KsLock>> {
-    const tracker = this.scopedNamedTracker(
-      pos, name, trackers => isKsLock(trackers.declared.symbol));
+  public scopedLockTracker(
+    pos: Position,
+    name: string,
+  ): Maybe<SymbolTrackerBase<KsLock>> {
+    const tracker = this.scopedNamedTracker(pos, name, trackers =>
+      isKsLock(trackers.declared.symbol),
+    );
 
     if (!empty(tracker)) {
-      return tracker as IKsSymbolTracker<KsLock>;
+      return tracker as SymbolTrackerBase<KsLock>;
     }
 
     return undefined;
@@ -180,12 +199,16 @@ export class SymbolTable implements GraphNode<SymbolTable> {
    * @param pos position of the symbol
    * @param name name of the symbol
    */
-  public scopedVariableTracker(pos: Position, name: string): Maybe<IKsSymbolTracker<KsVariable>> {
-    const tracker = this.scopedNamedTracker(
-      pos, name, trackers => isKsVariable(trackers.declared.symbol));
+  public scopedVariableTracker(
+    pos: Position,
+    name: string,
+  ): Maybe<SymbolTrackerBase<KsVariable>> {
+    const tracker = this.scopedNamedTracker(pos, name, trackers =>
+      isVariable(trackers.declared.symbol),
+    );
 
     if (!empty(tracker)) {
-      return tracker as IKsSymbolTracker<KsVariable>;
+      return tracker as SymbolTrackerBase<KsVariable>;
     }
 
     return undefined;
@@ -196,12 +219,16 @@ export class SymbolTable implements GraphNode<SymbolTable> {
    * @param pos position of the symbol
    * @param name name of the symbol
    */
-  public scopedParameterTracker(pos: Position, name: string): Maybe<IKsSymbolTracker<KsParameter>> {
-    const tracker = this.scopedNamedTracker(
-      pos, name, tracker => isKsParameter(tracker.declared.symbol));
+  public scopedParameterTracker(
+    pos: Position,
+    name: string,
+  ): Maybe<SymbolTrackerBase<KsParameter>> {
+    const tracker = this.scopedNamedTracker(pos, name, tracker =>
+      isParameter(tracker.declared.symbol),
+    );
 
     if (!empty(tracker)) {
-      return tracker as IKsSymbolTracker<KsParameter>;
+      return tracker as SymbolTrackerBase<KsParameter>;
     }
 
     return undefined;
@@ -212,8 +239,7 @@ export class SymbolTable implements GraphNode<SymbolTable> {
    * @param pos position to check
    */
   public scopedSymbols(pos: Position): KsSymbol[] {
-    return this.scopedTrackers(pos)
-      .map(tracker => tracker.declared.symbol);
+    return this.scopedTrackers(pos).map(tracker => tracker.declared.symbol);
   }
 
   /**
@@ -225,16 +251,17 @@ export class SymbolTable implements GraphNode<SymbolTable> {
   public scopedNamedTracker(
     pos: Position,
     name: string,
-    symbolFilter?: (x: IKsSymbolTracker) => boolean): Maybe<IKsSymbolTracker> {
-
+    symbolFilter?: (x: BasicTracker) => boolean,
+  ): Maybe<BasicTracker> {
     // our base filter is to match the symbol lexeme
-    const baseFilter = (trackers: IKsSymbolTracker) =>
+    const baseFilter = (trackers: BasicTracker) =>
       trackers.declared.symbol.name.lookup === name;
 
     // our compound filter checkes for any and the other requested filtering operations
     const compoundFilter = empty(symbolFilter)
       ? baseFilter
-      : (trackers: IKsSymbolTracker) => baseFilter(trackers) && symbolFilter(trackers);
+      : (trackers: BasicTracker) =>
+          baseFilter(trackers) && symbolFilter(trackers);
 
     return this.scopedTracker(pos, compoundFilter);
   }
@@ -243,24 +270,30 @@ export class SymbolTable implements GraphNode<SymbolTable> {
    * recursively move up the scope to get every file symbol
    * @param nodes nodes to retrive symbols from
    */
-  private fileSymbolsDepth(nodes: IScopeNode[]): KsSymbol[] {
-    return ([] as KsSymbol[]).concat(...nodes.map(node =>
-        Array.from(node.scope.symbols()).concat(this.fileSymbolsDepth(node.children))));
+  private fileSymbolsDepth(nodes: EnvironmentNode[]): KsBaseSymbol[] {
+    const symbols: KsBaseSymbol[] = [];
+    for (const node of nodes) {
+      symbols.push(
+        ...node.environment.symbols(),
+        ...this.fileSymbolsDepth(node.children),
+      );
+    }
+
+    return symbols;
   }
 
   /**
    * get all symbol trackers in scope at a positition
    * @param pos the position to retrive symbols from
    */
-  private scopedTrackers(pos: Position): IKsSymbolTracker[] {
+  private scopedTrackers(pos: Position): SymbolTrackerBase[] {
     const scoped = this.scopedTrackersDepth(pos, this.rootScope.children);
-    const fileGlobal = Array.from(this.rootScope.scope.values());
-    const importedGlobals = Array.from(this.childSymbolTables.values())
-      .map(scope => Array.from(scope.rootScope.scope.values()));
+    const fileGlobal = Array.from(this.rootScope.environment.values());
+    const importedGlobals = Array.from(this.childSymbolTables.values()).map(
+      scope => Array.from(scope.rootScope.environment.values()),
+    );
 
-    return scoped.concat(
-      fileGlobal,
-      ...importedGlobals);
+    return scoped.concat(fileGlobal, ...importedGlobals);
   }
 
   /**
@@ -270,19 +303,23 @@ export class SymbolTable implements GraphNode<SymbolTable> {
    */
   private scopedTracker(
     pos: Position,
-    trackerFilter: (x: IKsSymbolTracker) => boolean = _ => true): Maybe<IKsSymbolTracker> {
-
-    const scoped = this.scopedTrackerDepth(pos, this.rootScope.children, trackerFilter);
+    trackerFilter: (x: BasicTracker) => boolean = _ => true,
+  ): Maybe<BasicTracker> {
+    const scoped = this.scopedTrackerDepth(
+      pos,
+      this.rootScope.children,
+      trackerFilter,
+    );
     if (!empty(scoped)) {
       return scoped;
     }
 
-    const fileGlobal = Array.from(this.rootScope.scope.values());
-    const importedGlobals = Array.from(this.childSymbolTables.values())
-      .map(scope => Array.from(scope.rootScope.scope.values()));
+    const fileGlobal = Array.from(this.rootScope.environment.values());
+    const importedGlobals = Array.from(this.childSymbolTables.values()).map(
+      scope => Array.from(scope.rootScope.environment.values()),
+    );
 
-    const [match] = fileGlobal.concat(...importedGlobals)
-      .filter(trackerFilter);
+    const [match] = fileGlobal.concat(...importedGlobals).filter(trackerFilter);
 
     return match;
   }
@@ -294,20 +331,22 @@ export class SymbolTable implements GraphNode<SymbolTable> {
    */
   private scopedTrackersDepth(
     pos: Position,
-    nodes: IScopeNode[]) : IKsSymbolTracker[] {
-
+    nodes: EnvironmentNode[],
+  ): SymbolTrackerBase[] {
     for (const node of nodes) {
       const { position } = node;
       switch (position.kind) {
         // if global it is available
         case ScopeKind.global:
-          return this.scopedTrackersDepth(pos, node.children)
-            .concat(Array.from(node.scope.values()));
+          return this.scopedTrackersDepth(pos, node.children).concat(
+            Array.from(node.environment.values()),
+          );
         // if the scope has a real position check if we're in the bounds
         case ScopeKind.local:
           if (rangeContainsPos(position, pos)) {
-            return this.scopedTrackersDepth(pos, node.children)
-              .concat(Array.from(node.scope.values()));
+            return this.scopedTrackersDepth(pos, node.children).concat(
+              Array.from(node.environment.values()),
+            );
           }
           break;
       }
@@ -324,21 +363,28 @@ export class SymbolTable implements GraphNode<SymbolTable> {
    */
   private scopedTrackerDepth(
     pos: Position,
-    nodes: IScopeNode[],
-    trackerFilter: (x: IKsSymbolTracker) => boolean) : Maybe<IKsSymbolTracker> {
-    let childSymbol: Maybe<IKsSymbolTracker> = undefined;
+    nodes: EnvironmentNode[],
+    trackerFilter: (x: BasicTracker) => boolean,
+  ): Maybe<BasicTracker> {
+    let childSymbol: Maybe<BasicTracker> = undefined;
 
     for (const node of nodes) {
       const { position } = node;
       switch (position.kind) {
         // if global it is available
         case ScopeKind.global:
-          childSymbol = this.scopedTrackerDepth(pos, node.children, trackerFilter);
+          childSymbol = this.scopedTrackerDepth(
+            pos,
+            node.children,
+            trackerFilter,
+          );
           if (!empty(childSymbol)) {
             return childSymbol;
           }
 
-          const currentSymbols = Array.from(node.scope.values()).filter(trackerFilter);
+          const currentSymbols = Array.from(node.environment.values()).filter(
+            trackerFilter,
+          );
           if (currentSymbols.length === 1) {
             return currentSymbols[0];
           }
@@ -346,12 +392,18 @@ export class SymbolTable implements GraphNode<SymbolTable> {
         // if the scope has a real position check if we're in the bounds
         case ScopeKind.local:
           if (rangeContainsPos(position, pos)) {
-            childSymbol = this.scopedTrackerDepth(pos, node.children, trackerFilter);
+            childSymbol = this.scopedTrackerDepth(
+              pos,
+              node.children,
+              trackerFilter,
+            );
             if (!empty(childSymbol)) {
               return childSymbol;
             }
 
-            const currentSymbols = Array.from(node.scope.values()).filter(trackerFilter);
+            const currentSymbols = Array.from(node.environment.values()).filter(
+              trackerFilter,
+            );
             if (currentSymbols.length === 1) {
               return currentSymbols[0];
             }

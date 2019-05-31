@@ -1,10 +1,5 @@
-import { IArgumentType } from '../types';
-import {
-  createStructureType,
-  createArgSuffixType,
-  createSuffixType,
-  createSetSuffixType,
-} from '../ksType';
+import { ArgumentType } from '../types';
+import { createStructureType, createArgSuffixType, createSuffixType, createSetSuffixType } from "../../typeCreators";
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { structureType } from '../primitives/structure';
 import { volumeDirectoryType } from './volumeDirectory';
@@ -14,7 +9,7 @@ import { scalarType } from '../primitives/scalar';
 import { stringType } from '../primitives/string';
 import { booleanType } from '../primitives/boolean';
 
-export const volumeType: IArgumentType = createStructureType('volume');
+export const volumeType: ArgumentType = createStructureType('volume');
 addPrototype(volumeType, structureType);
 
 addSuffixes(
