@@ -246,7 +246,7 @@ export const documentSymbols = (
         kind = SymbolKind.Variable;
         break;
       case KsSymbolKind.lock:
-        kind = SymbolKind.Variable;
+        kind = SymbolKind.Object;
         break;
       case KsSymbolKind.variable:
         kind = SymbolKind.Variable;

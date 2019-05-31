@@ -106,7 +106,7 @@ print d2.
 print s.
 `;
 
-const IdentiferSource = `
+const identiferSource = `
 local b1 is true.
 local b2 is false.
 
@@ -183,7 +183,7 @@ describe('Basic inferring', () => {
   });
 
   test('Identifier inferring', () => {
-    const results = checkSource(IdentiferSource);
+    const results = checkSource(identiferSource);
     noErrors(results);
 
     const { table } = results;
