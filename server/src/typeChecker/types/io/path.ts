@@ -9,11 +9,11 @@ import {
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { structureType } from '../primitives/structure';
 import { volumeType } from './volume';
-import { userListType } from '../collections/userList';
 import { integarType } from '../primitives/scalar';
 import { stringType } from '../primitives/string';
 import { booleanType } from '../primitives/boolean';
 import { serializableStructureType } from '../primitives/serializeableStructure';
+import { listType } from '../collections/list';
 
 export const pathType: ArgumentType = createStructureType('path');
 addPrototype(pathType, serializableStructureType);
@@ -21,7 +21,7 @@ addPrototype(pathType, serializableStructureType);
 addSuffixes(
   pathType,
   createSuffixType('volume', volumeType),
-  createSuffixType('segments', userListType),
+  createSuffixType('segments', listType.toConcreteType(stringType)),
   createSuffixType('length', integarType),
   createSuffixType('name', stringType),
   createSuffixType('hasExtension', booleanType),

@@ -54,7 +54,6 @@ import { bodyTargetType } from './types/orbital/bodyTarget';
 import { vesselTargetType } from './types/orbital/vesselTarget';
 import { volumeType } from './types/io/volume';
 import { volumeItemType } from './types/io/volumeItem';
-import { partModuleType } from './types/parts/partModule';
 import { partType } from './types/parts/part';
 import { pathType } from './types/io/path';
 import { NodeBase } from '../parser/base';
@@ -62,6 +61,12 @@ import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
 import { createDiagnostic } from '../utilities/diagnosticsUtils';
 import { BasicTracker } from '../analysis/tracker';
 import { SuffixTypeBuilder } from './suffixTypeNode';
+import { engineType } from './types/parts/engine';
+import { dockingPortType } from './types/parts/dockingPort';
+import { vesselSensorsType } from './types/vessel/vesselSensors';
+import { kosProcessorFields } from './types/kosProcessorFields';
+import { elementType } from './types/parts/element';
+import { aggregateResourceType } from './types/parts/aggregateResource';
 
 type Diagnostics = Diagnostic[];
 
@@ -901,13 +906,23 @@ export class TypeChecker
       case 'targets':
         finalType = vesselTargetType;
         break;
-      case 'resources':
-      case 'parts':
-      case 'engines':
-      case 'sensors':
       case 'elements':
-      case 'dockingports':
+        finalType = elementType;
+        break;
+      case 'resources':
+        finalType = listType.toConcreteType(aggregateResourceType);
+        break;
+      case 'parts':
         finalType = partType;
+        break;
+      case 'sensors':
+        finalType = vesselSensorsType;
+        break;
+      case 'dockingports':
+        finalType = dockingPortType;
+        break;
+      case 'engines':
+        finalType = engineType;
         break;
       case 'files':
         finalType = volumeItemType;
@@ -919,7 +934,7 @@ export class TypeChecker
         finalType = volumeType;
         break;
       case 'processors':
-        finalType = partModuleType;
+        finalType = kosProcessorFields;
         break;
       default:
         finalType = structureType;

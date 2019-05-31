@@ -1,5 +1,10 @@
 import { IGenericArgumentType } from '../types';
-import { createArgSuffixType, createGenericBasicType, tType, createGenericArgSuffixType } from "../../typeCreators";
+import {
+  createArgSuffixType,
+  createGenericBasicType,
+  tType,
+  createGenericArgSuffixType,
+} from '../../typeCreators';
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { voidType } from '../primitives/void';
 import { scalarType } from '../primitives/scalar';
