@@ -129,7 +129,7 @@ export abstract class TreeExecute<T> implements
   public visitRunPath(stmt: Stmt.RunPath): T {
     return this.nodeAction(stmt);
   }
-  public visitRunPathOnce(stmt: Stmt.RunPathOnce): T {
+  public visitRunPathOnce(stmt: Stmt.RunOncePath): T {
     return this.nodeAction(stmt);
   }
   public visitCompile(stmt: Stmt.Compile): T {

@@ -5,7 +5,7 @@ import { LocalResolver } from './localResolver';
 import { ISetResolverResult } from './types';
 import { setResult } from './setResult';
 import { empty } from '../utilities/typeGuards';
-import { IToken } from '../entities/types';
+import { Token } from '../entities/token';
 
 /**
  * Identify all local sybmbols used and all used symbols
@@ -122,7 +122,7 @@ export class SetResolver implements
 
     return setResult(result.set, result.used, expr.trailers.reduce(
       (acc, curr) => acc.concat(this.localResolver.resolveSuffixTerm(curr)),
-      [] as IToken[]));
+      [] as Token[]));
   }
 
   /**

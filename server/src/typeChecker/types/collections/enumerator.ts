@@ -1,16 +1,11 @@
 import { IGenericBasicType } from '../types';
-import {
-  createArgSuffixType,
-  createGenericStructureType,
-  tType,
-  createGenericArgSuffixType,
-} from '../ksType';
+import { createArgSuffixType, createGenericBasicType, tType, createGenericArgSuffixType } from "../../typeCreators";
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { structureType } from '../primitives/structure';
 import { booleanType } from '../primitives/boolean';
 import { scalarType } from '../primitives/scalar';
 
-export const enumeratorType: IGenericBasicType = createGenericStructureType(
+export const enumeratorType: IGenericBasicType = createGenericBasicType(
   'enumerator',
 );
 addPrototype(enumeratorType, structureType);

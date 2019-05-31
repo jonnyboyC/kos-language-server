@@ -1,10 +1,12 @@
 {
     "name": "kos-language-server",
     "description": "A Language server for Kerbal Operating System. A mod for Kerbal Space Program.",
-    "version": "0.5.1",
+    "version": "0.6.0",
     "main": "out/server.js",
     "types": "out/server.d.ts",
-    "files": [ "out/**/*" ],
+    "files": [
+        "out/**/*"
+    ],
     "author": "John Chabot",
     "license": "MIT",
     "engines": {

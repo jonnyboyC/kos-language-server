@@ -1,11 +1,10 @@
 import { Position, Range, Location } from 'vscode-languageserver';
 import { TokenType } from './tokentypes';
-import { IKsSymbolTracker } from '../analysis/types';
 
 /**
  * Represents the core of an atomic unit of the kerboscript language
  */
-export interface ITokenBase extends Range, Location {
+export interface TokenBase extends Range, Location {
 
   /**
    * descriminated union tag
@@ -51,24 +50,4 @@ export interface ITokenBase extends Range, Location {
    * What range is this token defined for
    */
   readonly range: Range;
-}
-
-/**
- * Represents  an atomic unit of the kerboscript language
- */
-export interface IToken extends ITokenBase {
-  /**
-   * What symbol tracker is this token tied too
-   */
-  tracker: Maybe<IKsSymbolTracker>;
-
-  /**
-   * A lowercase version of the lexeme for case insenstive comparisions
-   */
-  readonly lookup: string;
-
-  /**
-   * Convert the token to a human readable string
-   */
-  toString: () => string;
 }

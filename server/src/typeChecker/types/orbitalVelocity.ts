@@ -1,10 +1,10 @@
-import { IArgumentType } from './types';
-import { createStructureType, createSuffixType } from './ksType';
+import { ArgumentType } from './types';
+import { createStructureType, createSuffixType } from "../typeCreators";
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { structureType } from './primitives/structure';
 import { vectorType } from './collections/vector';
 
-export const orbitableVelocityType: IArgumentType = createStructureType('orbitableVelocity');
+export const orbitableVelocityType: ArgumentType = createStructureType('orbitableVelocity');
 addPrototype(orbitableVelocityType, structureType);
 
 addSuffixes(

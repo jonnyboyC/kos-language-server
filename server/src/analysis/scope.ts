@@ -1,9 +1,10 @@
-import { IKsSymbolTracker, IScope, KsSymbol } from './types';
+import { KsBaseSymbol } from './types';
+import { BasicTracker } from './tracker';
 
 /**
  * A scope class that contains symbols in the current scope
  */
-export class Scope extends Map<string, IKsSymbolTracker> implements IScope {
+export class Environment extends Map<string, BasicTracker> {
   constructor() {
     super();
   }
@@ -11,8 +12,8 @@ export class Scope extends Map<string, IKsSymbolTracker> implements IScope {
   /**
    * All the symbols in this scope
    */
-  public symbols(): KsSymbol[] {
-    const symbols: KsSymbol[] = [];
+  public symbols(): KsBaseSymbol[] {
+    const symbols: KsBaseSymbol[] = [];
 
     for (const trackers of this.values()) {
       symbols.push(trackers.declared.symbol);

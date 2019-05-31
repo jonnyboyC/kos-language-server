@@ -1,13 +1,10 @@
 import { IGenericArgumentType } from '../types';
-import {
-  createGenericStructureType,
-  tType, createGenericArgSuffixType,
-} from '../ksType';
+import { createGenericBasicType, tType, createGenericArgSuffixType } from "../../typeCreators";
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { enumerableType } from './enumerable';
 import { voidType } from '../primitives/void';
 
-export const stackType: IGenericArgumentType = createGenericStructureType('stack');
+export const stackType: IGenericArgumentType = createGenericBasicType('stack');
 addPrototype(stackType, enumerableType);
 
 addSuffixes(

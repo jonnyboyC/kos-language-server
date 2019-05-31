@@ -17,16 +17,13 @@ import { PreResolver } from './analysis/preResolver';
 import { Scanner } from './scanner/scanner';
 import { Resolver } from './analysis/resolver';
 import { IParseError, ScriptResult, RunStmtType } from './parser/types';
-import { KsSymbol, KsSymbolKind } from './analysis/types';
+import { KsSymbol, KsSymbolKind, SymbolTracker } from './analysis/types';
 import { mockLogger, mockTracer } from './utilities/logger';
 import { empty, notEmpty } from './utilities/typeGuards';
 import { ScriptFind } from './parser/scriptFind';
-import { KsFunction } from './entities/function';
-import * as Stmt from './parser/stmt';
-import { signitureHelper } from './utilities/signitureUtils';
 import * as Expr from './parser/expr';
+import * as Stmt from './parser/stmt';
 import * as SuffixTerm from './parser/suffixTerm';
-import * as Decl from './parser/declare';
 import { PathResolver, runPath } from './utilities/pathResolver';
 import { existsSync } from 'fs';
 import { extname } from 'path';
@@ -39,10 +36,8 @@ import { builtIn } from './utilities/constants';
 import { SymbolTableBuilder } from './analysis/symbolTableBuilder';
 import { SymbolTable } from './analysis/symbolTable';
 import { TypeChecker } from './typeChecker/typeChecker';
-import { ITypeResolvedSuffix, ITypeNode } from './typeChecker/types';
-import { IToken } from './entities/types';
-import { IType } from './typeChecker/types/types';
-import { binarySearch, rangeContainsPos } from './utilities/positionUtils';
+import { Token } from './entities/token';
+import { binarySearchIndex } from './utilities/positionUtils';
 
 export class Analyzer {
   public workspaceFolder?: string;
@@ -235,11 +230,7 @@ export class Analyzer {
     const symbolTable = symbolTableBuilder.build();
 
     // perform type checking
-    const typeChecker = new TypeChecker(
-      script,
-      this.logger,
-      this.tracer,
-    );
+    const typeChecker = new TypeChecker(script, this.logger, this.tracer);
 
     performance.mark('type-checking-start');
 
@@ -295,87 +286,11 @@ export class Analyzer {
   }
 
   /**
-   * Get the type of a suffix at a particular location in a script
-   * @param pos position to inspect
-   * @param uri uri of the document
-   */
-  public getSuffixType(
-    pos: Position,
-    uri: string,
-  ): Maybe<[IType, KsSymbolKind]> {
-    const documentInfo = this.documentInfos.get(uri);
-    if (empty(documentInfo)) {
-      return undefined;
-    }
-
-    // try to find an symbol at the position
-    const { script } = documentInfo;
-    const finder = new ScriptFind();
-    const result = finder.find(
-      script,
-      pos,
-      Stmt.Invalid,
-      Expr.Suffix,
-      Decl.Var,
-      Decl.Lock,
-      Decl.Func,
-      Decl.Parameter,
-    );
-
-    if (empty(result)) {
-      return undefined;
-    }
-
-    const { node, token } = result;
-    if (empty(node)) {
-      return undefined;
-    }
-
-    if (node instanceof Expr.Suffix) {
-      const checker = new TypeChecker(script);
-      const result = checker.checkSuffix(node);
-
-      if (rangeContainsPos(result.resolved.atom, pos)) {
-        return [result.resolved.atom.type, result.resolved.atomType];
-      }
-
-      const suffixNodes = this.resolvedNodes(result.resolved);
-      const suffixNode = binarySearch(suffixNodes, pos);
-
-      if (suffixNode) {
-        return [suffixNode.type, KsSymbolKind.suffix];
-      }
-    }
-
-    if (node instanceof Stmt.Invalid) {
-      console.log();
-    }
-
-    const { tracker } = token;
-    if (!empty(tracker)) {
-      return [tracker.declared.type, tracker.declared.symbol.tag];
-    }
-
-    return undefined;
-  }
-
-  /**
-   * Gets an array of nodes corresponding to a suffix type checking. This
-   * method will be removed when the type checker is updated
-   */
-  private resolvedNodes(resolved: ITypeResolvedSuffix<IType>): ITypeNode[] {
-    const nodes = [resolved.atom, ...resolved.termTrailers];
-    return empty(resolved.suffixTrailer)
-      ? nodes
-      : nodes.concat(this.resolvedNodes(resolved.suffixTrailer));
-  }
-
-  /**
    * Get the token at the provided position in the text document
    * @param pos position in the text document
    * @param uri uri of the text document
    */
-  public getToken(pos: Position, uri: string): Maybe<IToken> {
+  public getToken(pos: Position, uri: string): Maybe<Token> {
     const documentInfo = this.documentInfos.get(uri);
     if (empty(documentInfo)) {
       return undefined;
@@ -472,9 +387,7 @@ export class Analyzer {
       return locations;
     }
 
-    return locations
-      .filter(loc => loc.uri === uri)
-      .map(loc => loc.range);
+    return locations.filter(loc => loc.uri === uri).map(loc => loc.range);
   }
 
   /**
@@ -510,8 +423,8 @@ export class Analyzer {
   public getFunctionAtPosition(
     pos: Position,
     uri: string,
-  ): Maybe<{ func: KsFunction; index: number }> {
-    // we need the document info to lookup a signiture
+  ): Maybe<{ tracker: SymbolTracker; index: number }> {
+    // we need the document info to lookup a signature
     const documentInfo = this.documentInfos.get(uri);
     if (empty(documentInfo)) return undefined;
 
@@ -519,50 +432,75 @@ export class Analyzer {
     const finder = new ScriptFind();
 
     // attempt to find a token here get surround invalid inst context
-    const result = finder.find(
-      script,
-      pos,
-      Stmt.Invalid,
-      Expr.Invalid,
-      SuffixTerm.Call,
-    );
+    const outerResult = finder.find(script, pos, Expr.Suffix, Stmt.Invalid);
+    const innerResult = finder.find(script, pos, SuffixTerm.Call);
 
-    // currently we only support invalid statements for signiture completion
+    let index = 0;
+    if (
+      !empty(innerResult) &&
+      !empty(innerResult.node) &&
+      innerResult.node instanceof SuffixTerm.Call
+    ) {
+      index = innerResult.node.args.length > 0
+        ? innerResult.node.args.length - 1
+        : 0;
+    }
+
+    // currently we only support invalid statements for signature completion
     // we could possible support call expressions as well
-    if (empty(result) || empty(result.node)) {
+    if (empty(outerResult) || empty(outerResult.node)) {
       return undefined;
     }
 
     // determine the identifier of the invalid statement and parameter index
-    const { node } = result;
+    const { node } = outerResult;
 
-    if (node instanceof Stmt.Invalid) {
-      const identifierIndex = signitureHelper(node.tokens, pos);
-      if (empty(identifierIndex)) return undefined;
+    // check if suffix
+    if (node instanceof Expr.Suffix) {
+      const tracker = node.mostResolveTracker();
 
-      const { identifier, index } = identifierIndex;
-
-      // resolve the token to make sure it's actually a function
-      const ksFunction = documentInfo.symbolsTable.scopedFunctionTracker(
-        pos,
-        identifier,
-      );
-      if (empty(ksFunction)) {
+      if (empty(tracker)) {
         return undefined;
       }
 
-      return {
-        index,
-        func: ksFunction.declared.symbol,
-      };
+      switch (tracker.declared.symbol.tag) {
+        case KsSymbolKind.function:
+        case KsSymbolKind.suffix:
+          return {
+            index,
+            tracker,
+          };
+        default:
+          return undefined;
+      }
     }
 
-    if (node instanceof SuffixTerm.Call) {
-      // TODO figure out this case
-    }
+    // check if invalid statment
+    if (node instanceof Stmt.Invalid) {
+      const { ranges } = node;
+      const indices = binarySearchIndex(ranges, pos);
+      const start = Array.isArray(indices) ? indices[0] : indices;
 
-    if (node instanceof Expr.Invalid) {
-      // TODO figure out this case
+      for (let i = start; i >= 0; i -= 1) {
+        const element = ranges[i];
+
+        if (element instanceof Expr.Suffix) {
+          const tracker = element.mostResolveTracker();
+
+          if (!empty(tracker)) {
+            switch (tracker.declared.symbol.tag) {
+              case KsSymbolKind.function:
+              case KsSymbolKind.suffix:
+                return {
+                  index,
+                  tracker,
+                };
+              default:
+                return undefined;
+            }
+          }
+        }
+      }
     }
 
     return undefined;

@@ -1,12 +1,11 @@
-import { ITypeNode } from './types';
-import { IType } from './types/types';
+import { Type } from './types/types';
 import { SuffixTermBase } from '../parser/suffixTerm';
-import { Position } from 'vscode-languageserver';
+import { Position, Range } from 'vscode-languageserver';
 
 /**
  * Storage type for suffix terms in the type checker
  */
-export class TypeNode<T extends IType = IType> implements ITypeNode<T> {
+export class TypeNode<T extends Type = Type> implements Range {
   /**
    * TypeNode constructor
    * @param type type at a suffix term node

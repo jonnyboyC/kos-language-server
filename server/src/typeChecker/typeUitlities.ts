@@ -1,7 +1,6 @@
 import { empty } from '../utilities/typeGuards';
-import { memoize } from '../utilities/memoize';
 import {
-  IArgumentType,
+  ArgumentType,
   IGenericArgumentType,
   IGenericVariadicType,
   IGenericSuffixType,
@@ -9,12 +8,44 @@ import {
   IVariadicType,
   IGenericBasicType,
   Operator,
-  IType,
+  Type,
   IBasicType,
   CallType,
   TypeKind,
 } from './types/types';
-import { VariadicType } from './types/ksType';
+import { Token } from '../entities/token';
+import { TokenType } from '../entities/tokentypes';
+import { booleanType } from './types/primitives/boolean';
+import { integarType, doubleType } from './types/primitives/scalar';
+import { stringType } from './types/primitives/string';
+
+/**
+ * Retrieve the type of the follow token
+ * @param token token to retreive
+ */
+export const tokenTrackedType = (token: Token): Maybe<Type> => {
+  // check literals and other tokens
+  switch (token.type) {
+    case TokenType.true:
+    case TokenType.false:
+      return booleanType;
+    case TokenType.integer:
+      return integarType;
+    case TokenType.double:
+      return doubleType;
+    case TokenType.string:
+    case TokenType.fileIdentifier:
+      return stringType;
+    default:
+      // if not a literally we need to lookup tracker
+      const { tracker } = token;
+      if (empty(tracker)) {
+        return undefined;
+      }
+
+      return tracker.getType({ uri: token.uri, range: token });
+  }
+};
 
 /**
  * check if the target call type is compatable with real call type
@@ -44,7 +75,7 @@ export const isCorrectCallType = (
  * @param queryType query type
  * @param targetType target type
  */
-export const isSubType = (queryType: IType, targetType: IType): boolean => {
+export const isSubType = (queryType: Type, targetType: Type): boolean => {
   if (queryType.kind === TypeKind.basic && targetType.kind === TypeKind.basic) {
     return moveDownPrototype(queryType, false, currentType => {
       if (currentType === targetType) {
@@ -64,9 +95,9 @@ export const isSubType = (queryType: IType, targetType: IType): boolean => {
  * @param operator operator
  */
 export const hasOperator = (
-  type: IType,
+  type: Type,
   operator: Operator,
-): Maybe<IArgumentType> => {
+): Maybe<ArgumentType> => {
   if (type.kind === TypeKind.basic) {
     return moveDownPrototype(type, undefined, currentType => {
       if (!empty(currentType.operators.has(operator))) {
@@ -85,7 +116,7 @@ export const hasOperator = (
  * @param type type
  * @param suffix suffix string
  */
-export const hasSuffix = (type: IType, suffix: string): boolean => {
+export const hasSuffix = (type: Type, suffix: string): boolean => {
   if (type.kind === TypeKind.basic) {
     return moveDownPrototype(type, false, currentType => {
       if (currentType.suffixes.has(suffix)) {
@@ -104,7 +135,7 @@ export const hasSuffix = (type: IType, suffix: string): boolean => {
  * @param type type
  * @param suffix suffix string
  */
-export const getSuffix = (type: IType, suffix: string): Maybe<ISuffixType> => {
+export const getSuffix = (type: Type, suffix: string): Maybe<ISuffixType> => {
   if (type.kind === TypeKind.basic) {
     return moveDownPrototype(type, undefined, currentType => {
       return currentType.suffixes.get(suffix);
@@ -118,24 +149,49 @@ export const getSuffix = (type: IType, suffix: string): Maybe<ISuffixType> => {
  * Retreive all suffixes from the given type
  * @param type type
  */
-export const allSuffixes = (type: IType): ISuffixType[] => {
-  if (type.kind === TypeKind.basic) {
-    const suffixes: Map<string, ISuffixType> = new Map();
+export const allSuffixes = (type: Type): ISuffixType[] => {
+  const suffixes: Map<string, ISuffixType> = new Map();
 
-    moveDownPrototype(type, false, currentType => {
-      for (const [name, suffix] of currentType.suffixes) {
-        if (!suffixes.has(name)) {
-          suffixes.set(name, suffix);
+  switch (type.kind)
+  {
+    // if basic type get all suffixes on type
+    case TypeKind.basic:
+      moveDownPrototype(type, false, currentType => {
+        for (const [name, suffix] of currentType.suffixes) {
+          if (!suffixes.has(name)) {
+            suffixes.set(name, suffix);
+          }
         }
+
+        return undefined;
+      });
+      break;
+
+    // TODO may move logic outside of this function if
+    // a gettable suffix get all suffixes on return type
+    case TypeKind.suffix:
+      switch (type.callType) {
+        case CallType.get:
+        case CallType.set:
+        case CallType.optionalCall:
+          moveDownPrototype(type.returns, false, currentType => {
+            for (const [name, suffix] of currentType.suffixes) {
+              if (!suffixes.has(name)) {
+                suffixes.set(name, suffix);
+              }
+            }
+
+            return undefined;
+          });
+          break;
+        default:
+          break;
       }
-
-      return undefined;
-    });
-
-    return Array.from(suffixes.values());
+      break;
+    default:
   }
 
-  return [];
+  return Array.from(suffixes.values());
 };
 
 /**
@@ -154,18 +210,9 @@ export const isFullVarType = (
  */
 export const isFullType = (
   type: IGenericArgumentType,
-): type is IArgumentType => {
+): type is ArgumentType => {
   return type.fullType;
 };
-
-/**
- * Create variadic type
- */
-export const createVarType = memoize(
-  (type: IArgumentType): IVariadicType => {
-    return new VariadicType(type);
-  },
-);
 
 /**
  * Add type to prototype chain
@@ -225,9 +272,9 @@ export const addSuffixes = <
  * @param func query function
  */
 const moveDownPrototype = <T>(
-  type: IArgumentType,
+  type: ArgumentType,
   nullValue: T,
-  func: (currentType: IArgumentType) => Maybe<T>,
+  func: (currentType: ArgumentType) => Maybe<T>,
 ): T => {
   let currentType = type;
   while (true) {

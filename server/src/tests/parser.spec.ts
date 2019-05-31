@@ -80,20 +80,20 @@ describe('Parse all test files', () => {
       const scanner1 = new Scanner(kosFile, filePath);
       const scanResults1 = scanner1.scanTokens();
 
-      expect(scanResults1.scanErrors.length === 0).toBe(true);
+      expect(scanResults1.scanErrors.length).toBe(0);
       const parser1 = new Parser('', scanResults1.tokens);
       const parseResults1 = parser1.parse();
-      expect(parseResults1.parseErrors.length === 0).toBe(true);
+      expect(parseResults1.parseErrors.length).toBe(0);
 
       const prettyKosFile = parseResults1.script.toString();
       const scanner2 = new Scanner(prettyKosFile, filePath);
       const scanResults2 = scanner2.scanTokens();
 
-      expect(scanResults1.scanErrors.length === 0).toBe(true);
+      expect(scanResults1.scanErrors.length).toBe(0);
       const parser2 = new Parser('', scanResults2.tokens);
       const parseResults2 = parser2.parse();
 
-      expect(parseResults2.parseErrors.length === 0).toBe(true);
+      expect(parseResults2.parseErrors.length).toBe(0);
 
       const zipped = zip(
         tokenCheck.orderedTokens(parseResults1.script),

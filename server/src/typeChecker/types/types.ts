@@ -1,7 +1,8 @@
+import { SuffixTracker } from '../../analysis/suffixTracker';
 
 interface ITypeMeta<T> {
   toTypeString(): string;
-  toConcreteType(type: IArgumentType): T;
+  toConcreteType(type: ArgumentType): T;
 }
 
 export const enum TypeKind {
@@ -53,7 +54,7 @@ export interface ITemplateSuffixType<TBasicType, TVariadicType, TConcreteType>
 }
 
 export interface IGenericBasicType
-  extends ITemplateBasicType<IGenericSuffixType, IArgumentType> {
+  extends ITemplateBasicType<IGenericSuffixType, ArgumentType> {
   kind: TypeKind.basic;
 }
 
@@ -70,17 +71,18 @@ export interface IGenericVariadicType extends ITypeMeta<IVariadicType> {
 export type IGenericArgumentType = IGenericBasicType;
 
 export interface IBasicType extends IGenericBasicType {
-  inherentsFrom?: IArgumentType;
+  inherentsFrom?: ArgumentType;
   suffixes: Map<string, ISuffixType>;
   fullType: true;
   kind: TypeKind.basic;
 }
 
 export interface ISuffixType extends IGenericSuffixType {
-  params: IArgumentType[] | IVariadicType;
-  returns: IArgumentType;
+  params: ArgumentType[] | IVariadicType;
+  returns: ArgumentType;
   fullType: true;
   kind: TypeKind.suffix;
+  getTracker(): SuffixTracker;
 }
 
 export interface IVariadicType extends IGenericVariadicType {
@@ -89,7 +91,7 @@ export interface IVariadicType extends IGenericVariadicType {
   kind: TypeKind.variadic;
 }
 
-export type IArgumentType = IBasicType;
+export type ArgumentType = IBasicType;
 
 export interface IConstantType<T> extends IBasicType {
   value: T;
@@ -98,10 +100,10 @@ export interface IConstantType<T> extends IBasicType {
 export interface IFunctionType extends ITypeMeta<IFunctionType> {
   name: string;
   callType: CallType.call | CallType.optionalCall;
-  params: IArgumentType[] | IVariadicType;
-  returns: IArgumentType;
+  params: ArgumentType[] | IVariadicType;
+  returns: ArgumentType;
   fullType: true;
   kind: TypeKind.function;
 }
 
-export type IType = IArgumentType | IFunctionType | ISuffixType;
+export type Type = ArgumentType | IFunctionType | ISuffixType;

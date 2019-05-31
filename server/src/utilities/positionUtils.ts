@@ -236,7 +236,7 @@ export const binaryLeft = <T extends Range>(
   ranges: T[],
   pos: Position,
 ): Maybe<T> => {
-  if (ranges.length === 0 || rangeBefore(ranges[rangeAfter.length - 1], pos)) {
+  if (ranges.length === 0 || rangeBefore(ranges[ranges.length - 1], pos)) {
     return undefined;
   }
   const index = binarySearchIndex(ranges, pos);
@@ -261,6 +261,25 @@ export const binaryRightKey = <T>(
   const index = binarySearchKeyIndex(ranges, pos, key);
 
   return Array.isArray(index) ? ranges[index[1]] : ranges[index];
+};
+
+/**
+ * Binary search left with provided function to generate a range
+ * @param ranges sorted collection of items that can generate a range
+ * @param pos query position
+ * @param key key function to generate a range
+ */
+export const binaryLeftKey = <T>(
+  ranges: T[],
+  pos: Position,
+  key: (range: T) => Range,
+): Maybe<T> => {
+  if (ranges.length === 0 || rangeBefore(key(ranges[ranges.length - 1]), pos)) {
+    return undefined;
+  }
+  const index = binarySearchKeyIndex(ranges, pos, key);
+
+  return Array.isArray(index) ? ranges[index[0]] : ranges[index];
 };
 
 /**
@@ -289,7 +308,9 @@ export const binarySearchIndex = <T extends Range>(
     }
   }
 
-  return [left, right];
+  return left < right
+    ? [left, right]
+    : [right, left];
 };
 
 /**
@@ -318,7 +339,9 @@ export const binarySearchKeyIndex = <T>(
     }
   }
 
-  return [left, right];
+  return left < right
+    ? [left, right]
+    : [right, left];
 };
 
 /**

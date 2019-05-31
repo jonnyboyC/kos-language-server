@@ -23,12 +23,12 @@ import * as SuffixTerm from './suffixTerm';
 import * as Stmt from './stmt';
 import * as Decl from './declare';
 import { empty } from '../utilities/typeGuards';
-import { IToken } from '../entities/types';
 import { Script } from '../entities/script';
 import { nodeResult } from './parseResult';
-import { Token, Marker } from '../entities/token';
+import { Token } from '../entities/token';
 import { mockLogger, mockTracer } from '../utilities/logger';
 import { flatten } from '../utilities/arrayUtils';
+import { Marker } from '../entities/marker';
 
 type NodeConstructor =
   | Constructor<Expr.Expr>
@@ -37,7 +37,7 @@ type NodeConstructor =
 
 export class Parser {
   private uri: string;
-  private tokens: IToken[];
+  private tokens: Token[];
   private current: number;
   private runStmts: RunStmtType[];
 
@@ -52,7 +52,7 @@ export class Parser {
 
   constructor(
     uri: string,
-    tokens: IToken[],
+    tokens: Token[],
     logger: ILogger = mockLogger,
     tracer: ITracer = mockTracer,
   ) {
@@ -75,12 +75,12 @@ export class Parser {
       );
 
       const statements: Stmt.Stmt[] = [];
-      let parseErrors: IParseError[] = [];
+      const parseErrors: IParseError[] = [];
 
       while (!this.isAtEnd()) {
         const { value, errors } = this.declaration();
         statements.push(value);
-        parseErrors = parseErrors.concat(errors);
+        parseErrors.push(...errors);
       }
 
       this.logger.info(
@@ -133,7 +133,7 @@ export class Parser {
   }
 
   // generate a placholder token as a fake end of file
-  private eof(tokens: IToken[]): IToken {
+  private eof(tokens: Token[]): Token {
     if (tokens.length === 0) {
       return new Token(
         TokenType.eof,
@@ -483,7 +483,7 @@ export class Parser {
         return this.runPath();
       case TokenType.runOncePath:
         this.advance();
-        return this.runPathOnce();
+        return this.runOncePath();
       case TokenType.compile:
         this.advance();
         return this.compile();
@@ -516,13 +516,13 @@ export class Parser {
     builder.open = this.previous();
     const declarations: Stmt.Stmt[] = [];
 
-    let parseErrors: IParseError[] = [];
+    const parseErrors: IParseError[] = [];
 
     // while not at end and until closing curly keep parsing statements
     while (!this.check(TokenType.curlyClose) && !this.isAtEnd()) {
       const { value, errors } = this.declaration();
       declarations.push(value);
-      parseErrors = parseErrors.concat(errors);
+      parseErrors.push(...errors);
     }
     builder.stmts = declarations;
 
@@ -1176,7 +1176,7 @@ export class Parser {
     if (this.matchToken(TokenType.bracketOpen)) {
       builder.open = this.previous();
 
-      const argsResult = this.arguments();
+      const argsResult = this.arguments(Stmt.Run);
       builder.args = argsResult.value;
       errors.push(...argsResult.errors);
 
@@ -1222,7 +1222,7 @@ export class Parser {
     builder.expr = exprResult.value;
 
     const args = this.matchToken(TokenType.comma)
-      ? this.arguments()
+      ? this.arguments(Stmt.RunPath)
       : undefined;
 
     builder.close = this.consumeTokenThrow(
@@ -1246,8 +1246,8 @@ export class Parser {
   /**
    * Parse run path once statement
    */
-  private runPathOnce(): INodeResult<Stmt.RunPathOnce> {
-    const builder: NodeDataBuilder<Stmt.RunPathOnce> = {
+  private runOncePath(): INodeResult<Stmt.RunOncePath> {
+    const builder: NodeDataBuilder<Stmt.RunOncePath> = {
       runPath: this.previous(),
       open: undefined,
       expr: undefined,
@@ -1258,22 +1258,22 @@ export class Parser {
 
     builder.open = this.consumeTokenThrow(
       'Expected "(" after keyword "runPathOnce".',
-      Stmt.RunPathOnce,
+      Stmt.RunOncePath,
       TokenType.bracketOpen,
     );
-    const exprResult = this.expression(Stmt.RunPathOnce);
+    const exprResult = this.expression(Stmt.RunOncePath);
     builder.expr = exprResult.value;
 
     const args = this.matchToken(TokenType.comma)
-      ? this.arguments()
+      ? this.arguments(Stmt.RunOncePath)
       : undefined;
 
     builder.close = this.consumeTokenThrow(
       'Expected ")" after runPathOnce arugments.',
-      Stmt.RunPathOnce,
+      Stmt.RunOncePath,
       TokenType.bracketClose,
     );
-    this.terminal(Stmt.RunPathOnce);
+    this.terminal(Stmt.RunOncePath);
 
     if (!empty(args)) {
       builder.args = args.value;
@@ -1281,7 +1281,7 @@ export class Parser {
     }
 
     return this.addRunStmts(
-      new Stmt.RunPathOnce(builder),
+      new Stmt.RunOncePath(builder),
       flatten([exprResult.errors, errors]),
     );
   }
@@ -1547,14 +1547,14 @@ export class Parser {
   private suffix(): INodeResult<Expr.Suffix> {
     const suffixTerm = this.suffixTerm(false);
     const suffix = new Expr.Suffix(suffixTerm.value);
-    let errors: IParseError[] = suffixTerm.errors;
+    const errors: IParseError[] = suffixTerm.errors;
 
     // check to see if expr is really a suffix
     if (this.matchToken(TokenType.colon)) {
       // parse first suffix term
       let colon = this.previous();
       let suffixTerm = this.suffixTerm(true);
-      errors = errors.concat(suffixTerm.errors);
+      errors.push(...suffixTerm.errors);
 
       // patch suffix with new trailer
       const suffixTrailer = new SuffixTerm.SuffixTrailer(suffixTerm.value);
@@ -1572,7 +1572,7 @@ export class Parser {
         current.colon = colon;
         current.trailer = suffixTrailer;
         current = suffixTrailer;
-        errors = errors.concat(suffixTerm.errors);
+        errors.push(...suffixTerm.errors);
       }
     }
 
@@ -1584,7 +1584,7 @@ export class Parser {
     // parse atom
     const atom = this.atom(isTrailer);
     const trailers: SuffixTermTrailer[] = [];
-    let parseErrors: IParseError[] = atom.errors;
+    const parseErrors: IParseError[] = atom.errors;
 
     const isValid = !(atom.value instanceof SuffixTerm.Invalid);
     // parse any trailers that exist
@@ -1592,15 +1592,15 @@ export class Parser {
       if (this.matchToken(TokenType.arrayIndex)) {
         const index = this.arrayIndex();
         trailers.push(index.value);
-        parseErrors = parseErrors.concat(index.errors);
+        parseErrors.push(...index.errors);
       } else if (this.matchToken(TokenType.squareOpen)) {
         const bracket = this.arrayBracket();
         trailers.push(bracket.value);
-        parseErrors = parseErrors.concat(bracket.errors);
+        parseErrors.push(...bracket.errors);
       } else if (this.matchToken(TokenType.bracketOpen)) {
         const trailer = this.functionTrailer();
         trailers.push(trailer.value);
-        parseErrors = parseErrors.concat(trailer.errors);
+        parseErrors.push(...trailer.errors);
       } else if (this.matchToken(TokenType.atSign)) {
         trailers.push(new SuffixTerm.Delegate(this.previous()));
         break;
@@ -1618,7 +1618,7 @@ export class Parser {
   // function call
   private functionTrailer(): INodeResult<SuffixTerm.Call> {
     const open = this.previous();
-    const args = this.arguments();
+    const args = this.arguments(SuffixTerm.Call);
     const close = this.consumeTokenThrow(
       'Expect ")" after arguments.',
       SuffixTerm.Call,
@@ -1647,12 +1647,23 @@ export class Parser {
   }
 
   // get an argument list
-  private arguments(): INodeResult<IExpr[]> {
+  private arguments(context: NodeConstructor): INodeResult<IExpr[]> {
     const args: IExpr[] = [];
     const errors: IParseError[][] = [];
 
     if (!this.isAtEnd() && !this.check(TokenType.bracketClose)) {
       do {
+        // if we are expecting an argument but find a closing
+        // braket we report an error and stop arguments
+        if (this.check(TokenType.bracketClose)) {
+          args.push(new Expr.Invalid([this.previous()]));
+          errors.push([this.error(
+            this.previous(),
+            context,
+            'Expected another argument.')]);
+          break;
+        }
+
         const arg = this.expression();
         args.push(arg.value);
         errors.push(arg.errors);
@@ -1761,7 +1772,7 @@ export class Parser {
    * @param failed failed constructor context
    * @param partialNode partially constructed node
    */
-  private terminal(failed: NodeConstructor, partialNode?: PartialNode): IToken {
+  private terminal(failed: NodeConstructor, partialNode?: PartialNode): Token {
     return this.consumeTokenThrow(
       'Expected ".".',
       failed,
@@ -1781,7 +1792,7 @@ export class Parser {
     message: string,
     failed: NodeConstructor,
     partialNode?: PartialNode,
-  ): IToken {
+  ): Token {
     if (this.matchIdentifier()) return this.previous();
     throw this.error(this.previous(), failed, message, undefined, partialNode);
   }
@@ -1799,7 +1810,7 @@ export class Parser {
     failed: NodeConstructor,
     tokenType: TokenType,
     partialNode?: PartialNode,
-  ): IToken {
+  ): Token {
     if (this.matchToken(tokenType)) return this.previous();
     throw this.error(this.previous(), failed, message, undefined, partialNode);
   }
@@ -1817,7 +1828,7 @@ export class Parser {
     failed: NodeConstructor,
     tokenTypes: TokenType[],
     partialNode?: PartialNode,
-  ): IToken {
+  ): Token {
     if (this.matchTokens(tokenTypes)) return this.previous();
     throw this.error(this.previous(), failed, message, undefined, partialNode);
   }
@@ -1835,7 +1846,7 @@ export class Parser {
     failed: NodeConstructor,
     tokenType: TokenType[],
     partialNode?: PartialNode,
-  ): IToken | IParseError {
+  ): Token | IParseError {
     if (this.matchTokens(tokenType)) return this.previous();
     return this.error(this.previous(), failed, message, undefined, partialNode);
   }
@@ -1889,7 +1900,7 @@ export class Parser {
   }
 
   // return current token and advance
-  private advance(): IToken {
+  private advance(): Token {
     if (!this.isAtEnd()) {
       this.current += 1;
     }
@@ -1898,7 +1909,7 @@ export class Parser {
 
   // TODO REMOVE ME
   // return current token and backup
-  private backup(): IToken {
+  private backup(): Token {
     const current = this.peek();
     if (this.current !== 0) {
       this.current -= 1;
@@ -1912,12 +1923,12 @@ export class Parser {
   }
 
   // peek current token
-  private peek(): IToken {
+  private peek(): Token {
     return this.tokens[this.current];
   }
 
   // peek next token
-  private peekNext(): Maybe<IToken> {
+  private peekNext(): Maybe<Token> {
     const nextToken = this.tokens[this.current + 1];
     if (empty(nextToken) || nextToken.type === TokenType.eof) return undefined;
 
@@ -1925,13 +1936,13 @@ export class Parser {
   }
 
   // retrieve previous token
-  private previous(): IToken {
+  private previous(): Token {
     return this.tokens[this.current - 1];
   }
 
   // report parse error
   private error(
-    token: IToken,
+    token: Token,
     failed: Maybe<NodeConstructor>,
     message: string,
     moreInfo?: string,

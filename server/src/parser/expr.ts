@@ -11,7 +11,6 @@ import {
 import * as SuffixTerm from './suffixTerm';
 import * as Stmt from './stmt';
 import { TokenType } from '../entities/tokentypes';
-import { IToken } from '../entities/types';
 import { Range, Position } from 'vscode-languageserver';
 import {
   createGrammarUnion,
@@ -23,6 +22,8 @@ import {
 import { empty } from '../utilities/typeGuards';
 import { NodeBase } from './base';
 import { joinLines } from './toStringUtils';
+import { Token } from '../entities/token';
+import { SymbolTracker } from '../analysis/types';
 
 /**
  * Expression base class
@@ -58,7 +59,7 @@ export class Invalid extends Expr {
    * Invalid expression constructor
    * @param tokens all tokens in the invalid range
    */
-  constructor(public readonly tokens: IToken[]) {
+  constructor(public readonly tokens: Token[]) {
     super();
   }
 
@@ -108,7 +109,7 @@ export class Binary extends Expr {
    */
   constructor(
     public readonly left: IExpr,
-    public readonly operator: IToken,
+    public readonly operator: Token,
     public readonly right: IExpr,
   ) {
     super();
@@ -166,7 +167,7 @@ export class Unary extends Expr {
    * @param operator unary operator
    * @param factor factor
    */
-  constructor(public readonly operator: IToken, public readonly factor: IExpr) {
+  constructor(public readonly operator: Token, public readonly factor: IExpr) {
     super();
   }
 
@@ -230,7 +231,7 @@ export class Factor extends Expr {
    */
   constructor(
     public readonly suffix: IExpr,
-    public readonly power: IToken,
+    public readonly power: Token,
     public readonly exponent: IExpr,
   ) {
     super();
@@ -334,7 +335,7 @@ export class Suffix extends Expr {
    */
   constructor(
     public readonly suffixTerm: SuffixTerm.SuffixTerm,
-    public colon?: IToken,
+    public colon?: Token,
     public trailer?: SuffixTerm.SuffixTrailer,
   ) {
     super();
@@ -356,6 +357,9 @@ export class Suffix extends Expr {
     return [this.suffixTerm];
   }
 
+  /**
+   * Method indicating if the suffix ends with a settable trailer
+   */
   public isSettable(): boolean {
     // if no trailer check suffix term
     if (empty(this.trailer)) {
@@ -385,11 +389,54 @@ export class Suffix extends Expr {
     }
 
     // check nested trailers
-    if (this.trailer instanceof Suffix) {
+    if (this.trailer instanceof SuffixTerm.SuffixTrailer) {
       return this.trailer.isSettable();
     }
 
     return false;
+  }
+
+  /**
+   * Get the most resolved type on this suffix
+   */
+  public mostResolveTracker(): Maybe<SymbolTracker> {
+    // if no trailer check suffix term
+    if (empty(this.trailer)) {
+      const { atom, trailers } = this.suffixTerm;
+
+      // check for suffix term trailers
+      if (trailers.length > 0) {
+        const lastTrailer = trailers[trailers.length - 1];
+
+        if (lastTrailer instanceof SuffixTerm.ArrayBracket) {
+          return lastTrailer.open.tracker;
+        }
+
+        if (lastTrailer instanceof SuffixTerm.ArrayIndex) {
+          return undefined;
+        }
+
+        if (lastTrailer instanceof SuffixTerm.Call) {
+          return lastTrailer.open.tracker;
+        }
+
+        return undefined;
+      }
+
+      // check nested trailers
+      if (atom instanceof SuffixTerm.Identifier) {
+        return atom.token.tracker;
+      }
+
+      return undefined;
+    }
+
+    // check nested trailers
+    if (!empty(this.trailer)) {
+      return this.trailer.mostResolveTracker();
+    }
+
+    return undefined;
   }
 
   public toLines(): string[] {
@@ -415,6 +462,17 @@ export class Suffix extends Expr {
     return visitor.visitSuffix(this);
   }
 }
+
+/**
+ * All valid expressions
+ */
+export const validExpressions: Constructor<Expr>[] = [
+  Binary,
+  Unary,
+  Factor,
+  Suffix,
+  Lambda,
+];
 
 export const validExprTypes: [IExprClass, Distribution][] = [
   [Binary, createConstant(1.0)],

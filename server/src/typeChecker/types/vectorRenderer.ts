@@ -1,5 +1,5 @@
-import { IArgumentType } from './types';
-import { createStructureType, createSetSuffixType } from './ksType';
+import { ArgumentType } from './types';
+import { createStructureType, createSetSuffixType } from "../typeCreators";
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { structureType } from './primitives/structure';
 import { vectorType } from './collections/vector';
@@ -9,7 +9,7 @@ import { booleanType } from './primitives/boolean';
 import { scalarType } from './primitives/scalar';
 import { stringType } from './primitives/string';
 
-export const vectorRendererType: IArgumentType = createStructureType('vecDraw');
+export const vectorRendererType: ArgumentType = createStructureType('vecDraw');
 addPrototype(vectorRendererType, structureType);
 
 addSuffixes(

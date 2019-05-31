@@ -7,13 +7,13 @@ import {
 import * as Expr from '../parser/expr';
 import * as SuffixTerm from '../parser/suffixTerm';
 import { empty } from '../utilities/typeGuards';
-import { IToken } from '../entities/types';
+import { Token } from '../entities/token';
 
 /**
  * Identify all local identifiers in a provided expression
  */
 export class LocalResolver
-  implements IExprVisitor<IToken[]>, ISuffixTermVisitor<IToken[]> {
+  implements IExprVisitor<Token[]>, ISuffixTermVisitor<Token[]> {
   /**
    * Are we currently looking at a suffix trailer
    */
@@ -30,7 +30,7 @@ export class LocalResolver
    * resolve local identifiers in expression
    * @param expr expression
    */
-  public resolveExpr(expr: IExpr): IToken[] {
+  public resolveExpr(expr: IExpr): Token[] {
     return expr.accept(this);
   }
 
@@ -38,7 +38,7 @@ export class LocalResolver
    * resolve a suffix term
    * @param suffixTerm suffix term
    */
-  public resolveSuffixTerm(suffixTerm: ISuffixTerm): IToken[] {
+  public resolveSuffixTerm(suffixTerm: ISuffixTerm): Token[] {
     return suffixTerm.accept(this);
   }
 
@@ -46,7 +46,7 @@ export class LocalResolver
    * Visit an invalid expression
    * @param _ invalid expression
    */
-  public visitExprInvalid(_: Expr.Invalid): IToken[] {
+  public visitExprInvalid(_: Expr.Invalid): Token[] {
     return [];
   }
 
@@ -54,15 +54,17 @@ export class LocalResolver
    * Visit a binary expression
    * @param expr binary expression
    */
-  public visitBinary(expr: Expr.Binary): IToken[] {
-    return this.resolveExpr(expr.left).concat(this.resolveExpr(expr.right));
+  public visitBinary(expr: Expr.Binary): Token[] {
+    const tokens = this.resolveExpr(expr.left);
+    tokens.push(...this.resolveExpr(expr.right));
+    return tokens;
   }
 
   /**
    * Visit a unary expression
    * @param expr unary expression
    */
-  public visitUnary(expr: Expr.Unary): IToken[] {
+  public visitUnary(expr: Expr.Unary): Token[] {
     return this.resolveExpr(expr.factor);
   }
 
@@ -70,30 +72,30 @@ export class LocalResolver
    * Vist a factor
    * @param expr factor expression
    */
-  public visitFactor(expr: Expr.Factor): IToken[] {
-    return this.resolveExpr(expr.suffix).concat(
-      this.resolveExpr(expr.exponent),
-    );
+  public visitFactor(expr: Expr.Factor): Token[] {
+    const tokens = this.resolveExpr(expr.suffix);
+    tokens.push(...this.resolveExpr(expr.exponent));
+    return tokens;
   }
 
   /**
    * Vist a suffix expression
    * @param expr suffix expression
    */
-  public visitSuffix(expr: Expr.Suffix): IToken[] {
-    const atom = this.resolveSuffixTerm(expr.suffixTerm);
-    if (empty(expr.trailer)) {
-      return atom;
+  public visitSuffix(expr: Expr.Suffix): Token[] {
+    const tokens = this.resolveSuffixTerm(expr.suffixTerm);
+    if (!empty(expr.trailer)) {
+      tokens.push(...this.resolveSuffixTerm(expr.trailer));
     }
 
-    return atom.concat(this.resolveSuffixTerm(expr.trailer));
+    return tokens;
   }
 
   /**
    * Visit a lambda
    * @param _ lambda expression
    */
-  public visitLambda(_: Expr.Lambda): IToken[] {
+  public visitLambda(_: Expr.Lambda): Token[] {
     return [];
   }
 
@@ -101,7 +103,7 @@ export class LocalResolver
    * Vist an invalid suffix term
    * @param _ invalid suffix term
    */
-  public visitSuffixTermInvalid(_: SuffixTerm.Invalid): IToken[] {
+  public visitSuffixTermInvalid(_: SuffixTerm.Invalid): Token[] {
     return [];
   }
 
@@ -109,14 +111,16 @@ export class LocalResolver
    * visit a suffix term trailer
    * @param suffixTerm suffix term trailer
    */
-  public visitSuffixTrailer(suffixTerm: SuffixTerm.SuffixTrailer): IToken[] {
+  public visitSuffixTrailer(suffixTerm: SuffixTerm.SuffixTrailer): Token[] {
     // indicate we're currently in a trailer
     return this.executeAs(true, () => {
-      const atom = this.resolveSuffixTerm(suffixTerm.suffixTerm);
+      const tokens = this.resolveSuffixTerm(suffixTerm.suffixTerm);
 
-      return empty(suffixTerm.trailer)
-        ? atom
-        : atom.concat(this.resolveSuffixTerm(suffixTerm.trailer));
+      if (!empty(suffixTerm.trailer)) {
+        tokens.push(...this.resolveSuffixTerm(suffixTerm.trailer));
+      }
+
+      return tokens;
     });
   }
 
@@ -124,41 +128,40 @@ export class LocalResolver
    * Visit a suffix term
    * @param suffixTerm suffix term
    */
-  public visitSuffixTerm(suffixTerm: SuffixTerm.SuffixTerm): IToken[] {
-    const atom = this.resolveSuffixTerm(suffixTerm.atom);
-    if (suffixTerm.trailers.length === 0) {
-      return atom;
+  public visitSuffixTerm(suffixTerm: SuffixTerm.SuffixTerm): Token[] {
+    const tokens = this.resolveSuffixTerm(suffixTerm.atom);
+
+    for (const trailer of suffixTerm.trailers) {
+      tokens.push(...this.resolveSuffixTerm(trailer));
     }
 
-    return atom.concat(
-      suffixTerm.trailers.reduce(
-        (acc, curr) => acc.concat(this.resolveSuffixTerm(curr)),
-        [] as IToken[],
-      ),
-    );
+    return tokens;
   }
 
   /**
    * Visit a call suffix term trailer
    * @param suffixTerm call trailer
    */
-  public visitCall(suffixTerm: SuffixTerm.Call): IToken[] {
+  public visitCall(suffixTerm: SuffixTerm.Call): Token[] {
     if (suffixTerm.args.length === 0) return [];
 
     // indicate args are not in a trailer
-    return this.executeAs(false, () =>
-      suffixTerm.args.reduce(
-        (acc, curr) => acc.concat(this.resolveExpr(curr)),
-        [] as IToken[],
-      ),
-    );
+    return this.executeAs(false, () => {
+      const tokens: Token[] = [];
+
+      for (const arg of suffixTerm.args) {
+        tokens.push(...this.resolveExpr(arg));
+      }
+
+      return tokens;
+    });
   }
 
   /**
    * Visit an array index
    * @param _ array index trailer
    */
-  public visitArrayIndex(_: SuffixTerm.ArrayIndex): IToken[] {
+  public visitArrayIndex(_: SuffixTerm.ArrayIndex): Token[] {
     return [];
   }
 
@@ -166,7 +169,7 @@ export class LocalResolver
    * Visit an array bracket
    * @param suffixTerm array bracket trailer
    */
-  public visitArrayBracket(suffixTerm: SuffixTerm.ArrayBracket): IToken[] {
+  public visitArrayBracket(suffixTerm: SuffixTerm.ArrayBracket): Token[] {
     return this.executeAs(false, () => this.resolveExpr(suffixTerm.index));
   }
 
@@ -174,7 +177,7 @@ export class LocalResolver
    * Visit a delegate
    * @param _ delgate trailer
    */
-  public visitDelegate(_: SuffixTerm.Delegate): IToken[] {
+  public visitDelegate(_: SuffixTerm.Delegate): Token[] {
     return [];
   }
 
@@ -182,7 +185,7 @@ export class LocalResolver
    * Visit a literal
    * @param _ literal suffix term
    */
-  public visitLiteral(_: SuffixTerm.Literal): IToken[] {
+  public visitLiteral(_: SuffixTerm.Literal): Token[] {
     return [];
   }
 
@@ -190,7 +193,7 @@ export class LocalResolver
    * Visit an identifier
    * @param suffixTerm suffix term identifier
    */
-  public visitIdentifier(suffixTerm: SuffixTerm.Identifier): IToken[] {
+  public visitIdentifier(suffixTerm: SuffixTerm.Identifier): Token[] {
     // if we're a trailer return nothing otherwise identifer
     return this.isTrailer ? [] : [suffixTerm.token];
   }
@@ -199,7 +202,7 @@ export class LocalResolver
    * Visit a suffix term grouping
    * @param suffixTerm suffix term grouping
    */
-  public visitGrouping(suffixTerm: SuffixTerm.Grouping): IToken[] {
+  public visitGrouping(suffixTerm: SuffixTerm.Grouping): Token[] {
     return this.resolveExpr(suffixTerm.expr);
   }
 
@@ -209,7 +212,7 @@ export class LocalResolver
    * @param isTrailer is the function a trailer
    * @param func function to execute
    */
-  private executeAs(isTrailer: boolean, func: () => IToken[]) {
+  private executeAs(isTrailer: boolean, func: () => Token[]) {
     const old = this.isTrailer;
     this.isTrailer = isTrailer;
 
