@@ -751,7 +751,7 @@ export class SymbolTableBuilder {
    * @param errors cumulative errors
    */
   private findScopeUnused(environment: Environment, errors: Diagnostic[]): void {
-    for (const tracker of environment.values()) {
+    for (const tracker of environment.trackers()) {
       switch (tracker.declared.symbol.tag) {
         case KsSymbolKind.function:
           break;
