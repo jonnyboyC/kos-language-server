@@ -21,4 +21,4 @@ Currently the kos-language-server 0.6.0 implements the follow features
     - potentially unused symbols
 - Go to definition for each symbol in the open documents. In some case can resolve functions in other scripts that have been run.
 - On hover with experimentail type inference support
-- Signiture help for functions that can be correctly resolved
+- Signature help for functions that can be correctly resolved

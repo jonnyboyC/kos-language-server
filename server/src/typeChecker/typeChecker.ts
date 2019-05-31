@@ -1250,7 +1250,7 @@ export class TypeChecker
       errors.push(
         createDiagnostic(
           call,
-          `${type.name} has no call signiture`,
+          `${type.name} has no call signature`,
           DiagnosticSeverity.Hint,
         ),
       );
@@ -1292,7 +1292,7 @@ export class TypeChecker
       errors.push(
         createDiagnostic(
           call,
-          `Type ${type.name} does not have a call signiture`,
+          `Type ${type.name} does not have a call signature`,
           DiagnosticSeverity.Hint,
         ),
       );
@@ -1342,7 +1342,7 @@ export class TypeChecker
   }
 
   /**
-   * Check a normal call signiture for type errors
+   * Check a normal call signature for type errors
    * @param params the parameter types
    * @param call the call expression
    */

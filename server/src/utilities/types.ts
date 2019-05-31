@@ -37,7 +37,7 @@ type Writeable<T> = {
 };
 
 /**
- * Currenlty used in signiture utilities
+ * Currenlty used in signature utilities
  */
 interface IdentifierIndex {
   identifier: string;

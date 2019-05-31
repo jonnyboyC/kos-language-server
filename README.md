@@ -19,7 +19,7 @@ Currently the vscode client 0.6.0 implements the follow features
 - go to definition
 - symbol auto complete
 - suffix auto complete
-- function signiture help
+- function signature help
 - file symbol lookup
 - identify symbols that don't exist
 - identify unused symbols

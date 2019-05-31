@@ -424,7 +424,7 @@ export class Analyzer {
     pos: Position,
     uri: string,
   ): Maybe<{ tracker: SymbolTracker; index: number }> {
-    // we need the document info to lookup a signiture
+    // we need the document info to lookup a signature
     const documentInfo = this.documentInfos.get(uri);
     if (empty(documentInfo)) return undefined;
 
@@ -446,7 +446,7 @@ export class Analyzer {
         : 0;
     }
 
-    // currently we only support invalid statements for signiture completion
+    // currently we only support invalid statements for signature completion
     // we could possible support call expressions as well
     if (empty(outerResult) || empty(outerResult.node)) {
       return undefined;

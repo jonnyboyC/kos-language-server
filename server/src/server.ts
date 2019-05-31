@@ -446,7 +446,7 @@ connection.onSignatureHelp(
     const { uri } = documentPosition.textDocument;
 
     const result = server.analyzer.getFunctionAtPosition(position, uri);
-    if (empty(result)) return defaultSigniture();
+    if (empty(result)) return defaultSignature();
     const { tracker, index } = result;
 
     let label =
@@ -460,7 +460,7 @@ connection.onSignatureHelp(
     });
 
     if (empty(type)) {
-      return defaultSigniture();
+      return defaultSignature();
     }
 
     switch (type.kind) {
@@ -513,7 +513,7 @@ connection.onSignatureHelp(
           activeSignature: null,
         };
       default:
-        return defaultSigniture();
+        return defaultSignature();
     }
   },
 );
@@ -574,7 +574,7 @@ const getDocumentSettings = (): Thenable<IClientConfiguration> => {
   });
 };
 
-const defaultSigniture = (): SignatureHelp => ({
+const defaultSignature = (): SignatureHelp => ({
   signatures: [],
   activeParameter: null,
   activeSignature: null,

@@ -2,7 +2,7 @@
 
 ## Features
 - **Suffix Completion** In addition to completion suggestions for variables, locks, and function, suffixes are suggested when the type is known. This should almost always be the case for common globals such as `ship` and `body`.
-- **Signiture Help** When the function can be determined signiture help can now be provided. Currently the signiture displays the types for each parameter but not the parameter name. In a feature release parameter name will be added.
+- **Signature Help** When the function can be determined signature help can now be provided. Currently the signature displays the types for each parameter but not the parameter name. In a feature release parameter name will be added.
 
 ## Bug Fixes
 - **Type Hover** Previously, on hover would not work past the first suffix trailer. This version rewrites a large part of the type checker to better resolve types for suffixes. On hover now reports types for all depths of suffix. 
