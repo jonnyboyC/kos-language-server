@@ -106,6 +106,38 @@ print d2.
 print s.
 `;
 
+const IdentiferSource = `
+local b1 is true.
+local b2 is false.
+
+local d1 is 10.0.
+local d2 is 4e6.
+
+local i1 is 5.
+
+local fi1 is file.ks.
+local s1 is "example".
+
+local b3 is b1.
+local b4 is b2.
+
+local d3 is d1.
+local d4 is d2.
+
+local i2 is i1.
+
+local fi2 is fi1.
+local s2 is s1.
+
+print fi2.
+print i2.
+print b3.
+print b4.
+print d3.
+print d4.
+print s2.
+`;
+
 const symbolTests = (
   symbols: Map<string, KsBaseSymbol>,
   name: string,
@@ -148,5 +180,27 @@ describe('Basic inferring', () => {
 
     symbolTests(names, 's', KsSymbolKind.variable, stringType);
     symbolTests(names, 'fi', KsSymbolKind.variable, stringType);
+  });
+
+  test('Identifier inferring', () => {
+    const results = checkSource(IdentiferSource);
+    noErrors(results);
+
+    const { table } = results;
+    const symbols = table.fileSymbols();
+    const names = new Map(
+      symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
+    );
+
+    symbolTests(names, 'b3', KsSymbolKind.variable, booleanType);
+    symbolTests(names, 'b4', KsSymbolKind.variable, booleanType);
+
+    symbolTests(names, 'd3', KsSymbolKind.variable, doubleType);
+    symbolTests(names, 'd4', KsSymbolKind.variable, doubleType);
+
+    symbolTests(names, 'i2', KsSymbolKind.variable, integarType);
+
+    symbolTests(names, 's2', KsSymbolKind.variable, stringType);
+    symbolTests(names, 'fi2', KsSymbolKind.variable, stringType);
   });
 });

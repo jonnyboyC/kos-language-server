@@ -15,6 +15,10 @@ import {
   rangeBefore,
   rangeAfter,
   rangeToString,
+  binaryLeft,
+  binaryRight,
+  binaryLeftKey,
+  binaryRightKey,
 } from '../utilities/positionUtils';
 import { toCase } from '../utilities/stringUtils';
 import { Logger } from '../utilities/logger';
@@ -107,6 +111,18 @@ describe('path resolver', () => {
     }
   });
 });
+
+const createRange = (
+  startLine: number,
+  startCharacter: number,
+  endLine: number,
+  endCharacter: number,
+): Range => {
+  return {
+    start: Position.create(startLine, startCharacter),
+    end: Position.create(endLine, endCharacter),
+  };
+};
 
 describe('position utils', () => {
   test('position utils', () => {
@@ -236,6 +252,49 @@ describe('position utils', () => {
     expect(rangeToString(rangeWithin)).toBe('line: 6 character: 5-17');
     expect(rangeToString(rangeIntersect)).toBe('line: 5 character: 2-15');
     expect(rangeToString(rangeOther)).toBe('line: 5 character: 2');
+  });
+
+  test('binary search utils', () => {
+    const ranges: Range[] = [
+      createRange(0, 0, 0, 5),
+      createRange(0, 6, 0, 10),
+      createRange(0, 11, 0, 15),
+      createRange(0, 21, 0, 25),
+      createRange(0, 26, 0, 30),
+      createRange(0, 31, 0, 35),
+    ];
+
+    const unity = <T>(x: T) => x;
+
+    const result11 = binaryLeft(ranges, Position.create(0, 1));
+    const result12 = binaryLeftKey(ranges, Position.create(0, 1), unity);
+    expect(result11).toBe(ranges[0]);
+    expect(result12).toBe(ranges[0]);
+
+    const result21 = binaryLeft(ranges, Position.create(0, 17));
+    const result22 = binaryLeftKey(ranges, Position.create(0, 17), unity);
+    expect(result21).toBe(ranges[2]);
+    expect(result22).toBe(ranges[2]);
+
+    const result31 = binaryLeft(ranges, Position.create(0, 26));
+    const result32 = binaryLeftKey(ranges, Position.create(0, 26), unity);
+    expect(result31).toBe(ranges[4]);
+    expect(result32).toBe(ranges[4]);
+
+    const result41 = binaryRight(ranges, Position.create(0, 1));
+    const result42 = binaryRightKey(ranges, Position.create(0, 1), unity);
+    expect(result41).toBe(ranges[0]);
+    expect(result42).toBe(ranges[0]);
+
+    const result51 = binaryRight(ranges, Position.create(0, 17));
+    const result52 = binaryRightKey(ranges, Position.create(0, 17), unity);
+    expect(result51).toBe(ranges[3]);
+    expect(result52).toBe(ranges[3]);
+
+    const result61 = binaryRight(ranges, Position.create(0, 26));
+    const result62 = binaryRightKey(ranges, Position.create(0, 26), unity);
+    expect(result61).toBe(ranges[4]);
+    expect(result62).toBe(ranges[4]);
   });
 });
 

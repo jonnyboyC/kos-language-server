@@ -308,7 +308,9 @@ export const binarySearchIndex = <T extends Range>(
     }
   }
 
-  return [left, right];
+  return left < right
+    ? [left, right]
+    : [right, left];
 };
 
 /**
@@ -337,7 +339,9 @@ export const binarySearchKeyIndex = <T>(
     }
   }
 
-  return [left, right];
+  return left < right
+    ? [left, right]
+    : [right, left];
 };
 
 /**
