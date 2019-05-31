@@ -1,4 +1,4 @@
-import { IInst, IScript, RunInstType, SyntaxKind } from '../parser/types';
+import { IStmt, IScript, RunStmtType, SyntaxKind } from '../parser/types';
 import { Range, Position, Location } from 'vscode-languageserver';
 import { NodeBase } from '../parser/base';
 import { flatten } from '../utilities/arrayUtils';
@@ -6,26 +6,26 @@ import { flatten } from '../utilities/arrayUtils';
 export class Script extends NodeBase implements IScript {
   constructor(
     public readonly uri: string,
-    public readonly insts: IInst[],
-    public readonly runInsts: RunInstType[],
+    public readonly stmts: IStmt[],
+    public readonly runStmts: RunStmtType[],
     public lazyGlobal = true) {
     super();
   }
 
   public toLines(): string[] {
-    return flatten(this.insts.map(inst => inst.toLines()));
+    return flatten(this.stmts.map(stmt => stmt.toLines()));
   }
 
   public get start(): Position {
-    return this.insts[0].start;
+    return this.stmts[0].start;
   }
 
   public get end(): Position {
-    return this.insts[this.insts.length - 1].end;
+    return this.stmts[this.stmts.length - 1].end;
   }
 
   public get ranges(): Range[] {
-    return [...this.insts];
+    return [...this.stmts];
   }
 
   toLocation(): Location {

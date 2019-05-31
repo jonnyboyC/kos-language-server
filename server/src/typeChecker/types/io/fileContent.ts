@@ -1,5 +1,5 @@
-import { IArgumentType } from '../types';
-import { createStructureType, createSuffixType } from '../ksType';
+import { ArgumentType } from '../types';
+import { createStructureType, createSuffixType } from "../../typeCreators";
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { enumeratorType } from '../collections/enumerator';
 import { scalarType } from '../primitives/scalar';
@@ -7,7 +7,7 @@ import { booleanType } from '../primitives/boolean';
 import { stringType } from '../primitives/string';
 import { serializableStructureType } from '../primitives/serializeableStructure';
 
-export const fileContentType: IArgumentType = createStructureType('fileContent');
+export const fileContentType: ArgumentType = createStructureType('fileContent');
 addPrototype(fileContentType, serializableStructureType);
 
 addSuffixes(

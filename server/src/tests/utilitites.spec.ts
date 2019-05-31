@@ -10,13 +10,18 @@ import {
   positionAfterEqual,
   positionBeforeEqual,
   positionToString,
-  rangeContains,
+  rangeContainsPos,
   rangeIntersection,
   rangeBefore,
   rangeAfter,
   rangeToString,
+  binaryLeft,
+  binaryRight,
+  binaryLeftKey,
+  binaryRightKey,
 } from '../utilities/positionUtils';
 import { toCase } from '../utilities/stringUtils';
+import { Logger } from '../utilities/logger';
 
 describe('path resolver', () => {
   test('path resolver', () => {
@@ -42,10 +47,10 @@ describe('path resolver', () => {
       uri: 'file://example/up/upFile.ks',
     };
 
-    const relative1 = join('relative', 'path', 'file.ks');
-    const relative2 = join('..', 'relative', 'path', 'file.ks');
-    const absolute = join('0:', 'relative', 'path', 'file.ks');
-    const weird = join('0:relative', 'path', 'file.ks');
+    const relative1 = ['relative', 'path', 'file.ks'].join('/');
+    const relative2 = ['..', 'relative', 'path', 'file.ks'].join('/');
+    const absolute = ['0:', 'relative', 'path', 'file.ks'].join('/');
+    const weird = ['0:relative', 'path', 'file.ks'].join('/');
 
     expect(
       pathResolver.resolveUri(otherFileLocation, relative1),
@@ -70,8 +75,8 @@ describe('path resolver', () => {
     );
     expect(undefined).not.toBe(relativeResolved1);
     if (!empty(relativeResolved1)) {
-      expect(resolvedPath).toBe(relativeResolved1.path);
-      expect(resolvedUri).toBe(relativeResolved1.uri);
+      expect(relativeResolved1.path).toBe(resolvedPath);
+      expect(relativeResolved1.uri).toBe(resolvedUri);
       expect(rangeEqual(range, relativeResolved1.caller)).toBe(true);
     }
 
@@ -81,8 +86,8 @@ describe('path resolver', () => {
     );
     expect(undefined).not.toBe(relativeResolved2);
     if (!empty(relativeResolved2)) {
-      expect(resolvedPath).toBe(relativeResolved2.path);
-      expect(resolvedUri).toBe(relativeResolved2.uri);
+      expect(relativeResolved2.path).toBe(resolvedPath);
+      expect(relativeResolved2.uri).toBe(resolvedUri);
       expect(rangeEqual(range, relativeResolved2.caller)).toBe(true);
     }
 
@@ -92,20 +97,32 @@ describe('path resolver', () => {
     );
     expect(undefined).not.toBe(absoluteResolved);
     if (!empty(absoluteResolved)) {
-      expect(resolvedPath).toBe(absoluteResolved.path);
-      expect(resolvedUri).toBe(absoluteResolved.uri);
+      expect(absoluteResolved.path).toBe(resolvedPath);
+      expect(absoluteResolved.uri).toBe(resolvedUri);
       expect(rangeEqual(range, absoluteResolved.caller)).toBe(true);
     }
 
     const weirdResolved = pathResolver.resolveUri(otherFileLocation, weird);
     expect(undefined).not.toBe(weirdResolved);
     if (!empty(weirdResolved)) {
-      expect(resolvedPath).toBe(weirdResolved.path);
-      expect(resolvedUri).toBe(weirdResolved.uri);
+      expect(weirdResolved.path).toBe(resolvedPath);
+      expect(weirdResolved.uri).toBe(resolvedUri);
       expect(rangeEqual(range, weirdResolved.caller)).toBe(true);
     }
   });
 });
+
+const createRange = (
+  startLine: number,
+  startCharacter: number,
+  endLine: number,
+  endCharacter: number,
+): Range => {
+  return {
+    start: Position.create(startLine, startCharacter),
+    end: Position.create(endLine, endCharacter),
+  };
+};
 
 describe('position utils', () => {
   test('position utils', () => {
@@ -217,8 +234,8 @@ describe('position utils', () => {
     expect(rangeEqual(rangeWithin, rangeWithin)).toBeTruthy();
     expect(rangeEqual(rangeIntersect, rangeIntersect)).toBeTruthy();
 
-    expect(rangeContains(range1, rangeWithin.start)).toBeTruthy();
-    expect(rangeContains(range1, rangeWithin.end)).toBeTruthy();
+    expect(rangeContainsPos(range1, rangeWithin.start)).toBeTruthy();
+    expect(rangeContainsPos(range1, rangeWithin.end)).toBeTruthy();
 
     expect(rangeIntersection(range1, rangeIntersect)).toBeTruthy();
     expect(rangeIntersection(rangeIntersect, range1)).toBeTruthy();
@@ -236,6 +253,49 @@ describe('position utils', () => {
     expect(rangeToString(rangeIntersect)).toBe('line: 5 character: 2-15');
     expect(rangeToString(rangeOther)).toBe('line: 5 character: 2');
   });
+
+  test('binary search utils', () => {
+    const ranges: Range[] = [
+      createRange(0, 0, 0, 5),
+      createRange(0, 6, 0, 10),
+      createRange(0, 11, 0, 15),
+      createRange(0, 21, 0, 25),
+      createRange(0, 26, 0, 30),
+      createRange(0, 31, 0, 35),
+    ];
+
+    const unity = <T>(x: T) => x;
+
+    const result11 = binaryLeft(ranges, Position.create(0, 1));
+    const result12 = binaryLeftKey(ranges, Position.create(0, 1), unity);
+    expect(result11).toBe(ranges[0]);
+    expect(result12).toBe(ranges[0]);
+
+    const result21 = binaryLeft(ranges, Position.create(0, 17));
+    const result22 = binaryLeftKey(ranges, Position.create(0, 17), unity);
+    expect(result21).toBe(ranges[2]);
+    expect(result22).toBe(ranges[2]);
+
+    const result31 = binaryLeft(ranges, Position.create(0, 26));
+    const result32 = binaryLeftKey(ranges, Position.create(0, 26), unity);
+    expect(result31).toBe(ranges[4]);
+    expect(result32).toBe(ranges[4]);
+
+    const result41 = binaryRight(ranges, Position.create(0, 1));
+    const result42 = binaryRightKey(ranges, Position.create(0, 1), unity);
+    expect(result41).toBe(ranges[0]);
+    expect(result42).toBe(ranges[0]);
+
+    const result51 = binaryRight(ranges, Position.create(0, 17));
+    const result52 = binaryRightKey(ranges, Position.create(0, 17), unity);
+    expect(result51).toBe(ranges[3]);
+    expect(result52).toBe(ranges[3]);
+
+    const result61 = binaryRight(ranges, Position.create(0, 26));
+    const result62 = binaryRightKey(ranges, Position.create(0, 26), unity);
+    expect(result61).toBe(ranges[4]);
+    expect(result62).toBe(ranges[4]);
+  });
 });
 
 describe('to case', () => {
@@ -250,9 +310,99 @@ describe('to case', () => {
     expect(toCase(CaseKind.pascalcase, 'EXAMPLE')).toBe('Example');
     expect(toCase(CaseKind.camelcase, 'EXAMPLE')).toBe('example');
 
-    expect(toCase(CaseKind.lowercase, 'EXAMPLE', 'example')).toBe('exampleexample');
-    expect(toCase(CaseKind.uppercase, 'EXAMPLE', 'example')).toBe('EXAMPLEEXAMPLE');
-    expect(toCase(CaseKind.pascalcase, 'EXAMPLE', 'example')).toBe('ExampleExample');
-    expect(toCase(CaseKind.camelcase, 'EXAMPLE', 'example')).toBe('exampleExample');
+    expect(toCase(CaseKind.lowercase, 'EXAMPLE', 'example')).toBe(
+      'exampleexample',
+    );
+    expect(toCase(CaseKind.uppercase, 'EXAMPLE', 'example')).toBe(
+      'EXAMPLEEXAMPLE',
+    );
+    expect(toCase(CaseKind.pascalcase, 'EXAMPLE', 'example')).toBe(
+      'ExampleExample',
+    );
+    expect(toCase(CaseKind.camelcase, 'EXAMPLE', 'example')).toBe(
+      'exampleExample',
+    );
   });
 });
+
+describe('logger', () => {
+  test('log level', () => {
+    const mockBase = {
+      lastLevel: LogLevel.verbose,
+      lastMessage: '',
+      log(message: string) {
+        mockBase.lastLevel = LogLevel.log;
+        mockBase.lastMessage = message;
+      },
+      info(message: string) {
+        mockBase.lastLevel = LogLevel.info;
+        mockBase.lastMessage = message;
+      },
+      warn(message: string) {
+        mockBase.lastLevel = LogLevel.warn;
+        mockBase.lastMessage = message;
+      },
+      error(message: string) {
+        mockBase.lastLevel = LogLevel.error;
+        mockBase.lastMessage = message;
+      },
+    };
+
+    const logger = new Logger(mockBase, LogLevel.info);
+
+    expect(logger.level).toBe(LogLevel.info);
+
+    logger.info('info');
+    expect(mockBase.lastLevel).toBe(LogLevel.info);
+    expect(mockBase.lastMessage).toBe('info');
+
+    logger.log('log');
+    expect(mockBase.lastLevel).toBe(LogLevel.log);
+    expect(mockBase.lastMessage).toBe('log');
+
+    logger.warn('warn');
+    expect(mockBase.lastLevel).toBe(LogLevel.warn);
+    expect(mockBase.lastMessage).toBe('warn');
+
+    // TODO this is a temporary thing until we get the
+    // errors in the type checker under control
+    logger.error('error');
+    expect(mockBase.lastLevel).toBe(LogLevel.warn);
+    expect(mockBase.lastMessage).toBe('error');
+
+    // set logging off
+    logger.level = LogLevel.none;
+    logger.info('info');
+    expect(mockBase.lastLevel).toBe(LogLevel.warn);
+    expect(mockBase.lastMessage).toBe('error');
+
+    logger.log('log');
+    expect(mockBase.lastLevel).toBe(LogLevel.warn);
+    expect(mockBase.lastMessage).toBe('error');
+
+    logger.warn('warn');
+    expect(mockBase.lastLevel).toBe(LogLevel.warn);
+    expect(mockBase.lastMessage).toBe('error');
+
+    logger.error('error');
+    expect(mockBase.lastLevel).toBe(LogLevel.warn);
+    expect(mockBase.lastMessage).toBe('error');
+  });
+});
+
+// describe('tree traverse', () => {
+//   test('token check', () => {
+//     const source = readFileSync('../../kerboscripts/unitTests/allLanguage.ks', 'utf-8');
+//     const scanner = new Scanner(source, 'file://fake.ks');
+//     const { tokens } = scanner.scanTokens();
+
+//     const parser = new Parser('file:://fake.ks', tokens);
+//     const { script } = parser.parse();
+
+//     const tokenCheck = new TokenCheck();
+//     tokenCheck.orderedTokens(script);
+
+//     for (const statement of validStatements) {
+//     }
+//   });
+// });

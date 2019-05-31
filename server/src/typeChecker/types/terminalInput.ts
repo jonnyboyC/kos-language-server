@@ -1,12 +1,12 @@
-import { IArgumentType } from './types';
-import { createStructureType, createArgSuffixType, createSuffixType } from './ksType';
+import { ArgumentType } from './types';
+import { createStructureType, createArgSuffixType, createSuffixType } from "../typeCreators";
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { structureType } from './primitives/structure';
 import { voidType } from './primitives/void';
 import { stringType } from './primitives/string';
 import { booleanType } from './primitives/boolean';
 
-export const terminalInputType: IArgumentType = createStructureType('terminalInput');
+export const terminalInputType: ArgumentType = createStructureType('terminalInput');
 addPrototype(terminalInputType, structureType);
 
 addSuffixes(

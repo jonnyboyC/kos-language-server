@@ -1,16 +1,13 @@
-import { IArgumentType } from '../types';
+import { ArgumentType } from '../types';
 import { structureType } from '../primitives/structure';
-import {
-  createSetSuffixType, createSuffixType,
-  createArgSuffixType, createStructureType,
-} from '../ksType';
+import { createSetSuffixType, createSuffixType, createArgSuffixType, createStructureType } from "../../typeCreators";
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { widgetStyleType } from './widgetStyle';
 import { guiWidgetType } from './guiWidget';
 import { voidType } from '../primitives/void';
 import { booleanType } from '../primitives/boolean';
 
-export const widgetType: IArgumentType = createStructureType('widget');
+export const widgetType: ArgumentType = createStructureType('widget');
 addPrototype(widgetType, structureType);
 
 addSuffixes(

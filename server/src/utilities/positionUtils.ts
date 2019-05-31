@@ -79,11 +79,29 @@ export const rangeEqual = (range1: Range, range2: Range): boolean => {
 };
 
 /**
+ * Does this range contain another prange
+ * @param range1 the target range
+ * @param range2 the query range
+ */
+export const rangeContains = (range1: Range, range2: Range): boolean => {
+  if (range2.start.line < range1.start.line) return false;
+  if (range2.start.line === range1.start.line && range2.start.character < range1.start.character) {
+    return false;
+  }
+  if (range2.end.line > range1.end.line) return false;
+  if (range2.end.line === range1.end.line && range2.end.character > range1.end.character) {
+    return false;
+  }
+
+  return true;
+};
+
+/**
  * Does this range contain this position
  * @param range the target range
  * @param pos the query position
  */
-export const rangeContains = (range: Range, pos: Position): boolean => {
+export const rangeContainsPos = (range: Range, pos: Position): boolean => {
   if (pos.line < range.start.line) return false;
   if (pos.line === range.start.line && pos.character < range.start.character) {
     return false;
@@ -122,6 +140,24 @@ export const rangeAfter = (range: Range, pos: Position): boolean => {
   }
 
   return false;
+};
+
+/**
+ * This is used to sort a set of ranges in to order
+ * @param range1 first range
+ * @param range2 second range
+ */
+export const rangeOrder = (range1: Range, range2: Range): number => {
+  // check line number first
+  if (range1.end.line < range2.start.line) return -1;
+  if (range1.start.line > range2.end.line) return 1;
+
+  // must have equal lines so check characters
+  if (range1.end.character < range2.start.character) return -1;
+  if (range1.start.character > range2.end.character) return 1;
+
+  // ranges must have overlap TODO for now treat as equal
+  return 0;
 };
 
 /**
@@ -200,7 +236,7 @@ export const binaryLeft = <T extends Range>(
   ranges: T[],
   pos: Position,
 ): Maybe<T> => {
-  if (ranges.length === 0 || rangeBefore(ranges[rangeAfter.length - 1], pos)) {
+  if (ranges.length === 0 || rangeBefore(ranges[ranges.length - 1], pos)) {
     return undefined;
   }
   const index = binarySearchIndex(ranges, pos);
@@ -228,6 +264,25 @@ export const binaryRightKey = <T>(
 };
 
 /**
+ * Binary search left with provided function to generate a range
+ * @param ranges sorted collection of items that can generate a range
+ * @param pos query position
+ * @param key key function to generate a range
+ */
+export const binaryLeftKey = <T>(
+  ranges: T[],
+  pos: Position,
+  key: (range: T) => Range,
+): Maybe<T> => {
+  if (ranges.length === 0 || rangeBefore(key(ranges[ranges.length - 1]), pos)) {
+    return undefined;
+  }
+  const index = binarySearchKeyIndex(ranges, pos, key);
+
+  return Array.isArray(index) ? ranges[index[0]] : ranges[index];
+};
+
+/**
  * Binary search for index with provided function to generate a range.
  * Returns array if between ranges
  * @param ranges ordered collection of ranges
@@ -246,14 +301,16 @@ export const binarySearchIndex = <T extends Range>(
       left = mid + 1;
     } else if (rangeAfter(ranges[mid], pos)) {
       right = mid - 1;
-    } else if (rangeContains(ranges[mid], pos)) {
+    } else if (rangeContainsPos(ranges[mid], pos)) {
       return mid;
     } else {
       return [left, right];
     }
   }
 
-  return [left, right];
+  return left < right
+    ? [left, right]
+    : [right, left];
 };
 
 /**
@@ -275,14 +332,16 @@ export const binarySearchKeyIndex = <T>(
       left = mid + 1;
     } else if (rangeAfter(key(ranges[mid]), pos)) {
       right = mid - 1;
-    } else if (rangeContains(key(ranges[mid]), pos)) {
+    } else if (rangeContainsPos(key(ranges[mid]), pos)) {
       return mid;
     } else {
       return [left, right];
     }
   }
 
-  return [left, right];
+  return left < right
+    ? [left, right]
+    : [right, left];
 };
 
 /**
@@ -293,4 +352,14 @@ export const binarySearchKeyIndex = <T>(
 export const locationEqual = (loc1: Location, loc2: Location): boolean => {
   if (loc1.uri !== loc2.uri) return false;
   return rangeEqual(loc1.range, loc2.range);
+};
+
+/**
+ * Does location 1 contain location 2
+ * @param loc1 target location
+ * @param loc2 query location
+ */
+export const locationContains = (loc1: Location, loc2: Location): boolean => {
+  if (loc1.uri !== loc2.uri) return false;
+  return rangeContains(loc1.range, loc2.range);
 };

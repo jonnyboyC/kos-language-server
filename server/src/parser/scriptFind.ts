@@ -1,16 +1,16 @@
 import { IFindResult, TreeNode } from './types';
 import * as Decl from './declare';
-import * as Inst from './inst';
+import * as Stmt from './stmt';
 import * as Expr from './expr';
 import * as SuffixTerm from './suffixTerm';
 import { Position } from 'vscode-languageserver';
-import { binarySearch, rangeContains } from '../utilities/positionUtils';
+import { binarySearch, rangeContainsPos } from '../utilities/positionUtils';
 import { empty } from '../utilities/typeGuards';
 import { Token } from '../entities/token';
 import { TreeExecute } from './treeExecute';
 
 type Contexts = Constructor<Expr.Expr>
-  | Constructor<Inst.Inst>
+  | Constructor<Stmt.Stmt>
   | Constructor<SuffixTerm.SuffixTermBase>
   | Constructor<Decl.Parameter>;
 
@@ -70,9 +70,9 @@ export class ScriptFind extends TreeExecute<Maybe<IFindResult>> {
       return findResult;
     }
 
-    // search instruction if instruction
-    if (searchResult instanceof Inst.Inst) {
-      const findResult = this.instAction(searchResult);
+    // search statement if statement
+    if (searchResult instanceof Stmt.Stmt) {
+      const findResult = this.stmtAction(searchResult);
 
       // add context if not set yet
       if (!empty(findResult) && this.addContext(findResult, node)) {
@@ -84,7 +84,7 @@ export class ScriptFind extends TreeExecute<Maybe<IFindResult>> {
 
     // search an optional parameter
     if (searchResult instanceof Decl.DefaultParam) {
-      if (rangeContains(searchResult.identifier, this.pos)) {
+      if (rangeContainsPos(searchResult.identifier, this.pos)) {
         return {
           token: searchResult.identifier,
           node: this.isContext(node)
@@ -94,7 +94,7 @@ export class ScriptFind extends TreeExecute<Maybe<IFindResult>> {
               : undefined,
         };
       }
-      if (rangeContains(searchResult.value, this.pos)) {
+      if (rangeContainsPos(searchResult.value, this.pos)) {
         return this.exprAction(searchResult.value);
       }
 
@@ -125,14 +125,14 @@ export class ScriptFind extends TreeExecute<Maybe<IFindResult>> {
 
     // return result if token found
     if (searchResult instanceof Decl.Scope) {
-      if (!empty(searchResult.scope) && rangeContains(searchResult.scope, this.pos)) {
+      if (!empty(searchResult.scope) && rangeContainsPos(searchResult.scope, this.pos)) {
         return {
           node: undefined,
           token: searchResult.scope,
         };
       }
 
-      if (!empty(searchResult.declare) && rangeContains(searchResult.declare, this.pos)) {
+      if (!empty(searchResult.declare) && rangeContainsPos(searchResult.declare, this.pos)) {
         return {
           node: undefined,
           token: searchResult.declare,

@@ -1,5 +1,5 @@
-import { IArgumentType } from './types';
-import { createStructureType, createArgSuffixType, createSetSuffixType } from './ksType';
+import { ArgumentType } from './types';
+import { createStructureType, createArgSuffixType, createSetSuffixType } from "../typeCreators";
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { structureType } from './primitives/structure';
 import { voidType } from './primitives/void';
@@ -7,7 +7,7 @@ import { scalarType } from './primitives/scalar';
 import { stringType } from './primitives/string';
 import { booleanType } from './primitives/boolean';
 
-export const voiceType: IArgumentType = createStructureType('voice');
+export const voiceType: ArgumentType = createStructureType('voice');
 addPrototype(voiceType, structureType);
 
 addSuffixes(

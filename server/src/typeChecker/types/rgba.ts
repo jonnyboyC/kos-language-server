@@ -1,10 +1,10 @@
-import { IArgumentType } from './types';
-import { createStructureType, createArgSuffixType, createSetSuffixType } from './ksType';
+import { ArgumentType } from './types';
+import { createStructureType, createArgSuffixType, createSetSuffixType } from "../typeCreators";
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { scalarType } from './primitives/scalar';
 import { serializableStructureType } from './primitives/serializeableStructure';
 
-export const rgbaType: IArgumentType = createStructureType('rgba');
+export const rgbaType: ArgumentType = createStructureType('rgba');
 addPrototype(rgbaType, serializableStructureType);
 
 addSuffixes(

@@ -1,12 +1,12 @@
 // import * as Decl from '../parser/declare';
 import * as Expr from '../parser/expr';
-import * as Inst from '../parser/inst';
+import * as Stmt from '../parser/stmt';
 import * as SuffixTerm from '../parser/suffixTerm';
 import { getRandomInt } from '../utilities/randomUtils';
 import { mockLogger, mockTracer } from '../utilities/logger';
 import {
   IExprClass, IExprClassVisitor,
-  IGrammarUnion, GrammarNode, IInstClass,
+  IGrammarUnion, GrammarNode, IStmtClass,
   IGrammarOptional, IGrammarRepeat, Distribution, ISuffixTermClass,
 } from '../parser/types';
 import { TokenType } from '../entities/tokentypes';
@@ -139,7 +139,7 @@ export class Generator implements IExprClassVisitor<string> {
           return this.genExpr(node as IExprClass);
         }
 
-        if (node.prototype instanceof Inst.Inst) {
+        if (node.prototype instanceof Stmt.Stmt) {
           throw new Error();
         }
 
@@ -417,7 +417,7 @@ export class Generator implements IExprClassVisitor<string> {
 }
 
 const isNode = (node: GrammarNode)
-  : node is TokenType | IExprClass | IInstClass | ISuffixTermClass => {
+  : node is TokenType | IExprClass | IStmtClass | ISuffixTermClass => {
   if (node.hasOwnProperty('tag')) {
     return false;
   }

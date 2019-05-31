@@ -1,5 +1,5 @@
-import { IArgumentType } from '../types';
-import { createStructureType, createArgSuffixType } from '../ksType';
+import { ArgumentType } from '../types';
+import { createStructureType, createArgSuffixType } from "../../typeCreators";
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { structureType } from '../primitives/structure';
 
@@ -8,7 +8,7 @@ import { voidType } from '../primitives/void';
 import { booleanType } from '../primitives/boolean';
 import { scalarType } from '../primitives/scalar';
 
-export const messageQueueType: IArgumentType = createStructureType('messageQueue');
+export const messageQueueType: ArgumentType = createStructureType('messageQueue');
 addPrototype(messageQueueType, structureType);
 
 addSuffixes(

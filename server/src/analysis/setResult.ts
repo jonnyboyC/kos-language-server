@@ -1,10 +1,13 @@
-import { ISetResolverResult, ILocalResult } from './types';
-import { IToken } from '../entities/types';
+import { ISetResolverResult } from './types';
+import { flatten } from '../utilities/arrayUtils';
+import { Token } from '../entities/token';
 
-export const setResult = (set: Maybe<IToken> = undefined, ...used: ILocalResult[][]):
-  ISetResolverResult => {
+export const setResult = (
+  set: Maybe<Token> = undefined,
+  ...used: Token[][]
+): ISetResolverResult => {
   return {
     set,
-    used: used.reduce((acc, curr) => acc.concat(curr), []),
+    used: flatten(used),
   };
 };

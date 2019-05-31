@@ -20,7 +20,24 @@ type PartialRequire<T, K extends keyof T> = Required<Pick<T, K>> & Omit<T, K>;
 type Constructor<T = {}> = new (...args: any[]) => T;
 
 /**
- * Currenlty used in signiture utilities
+ * This type helper gets all property names of type T that extend type U
+ */
+type PropertyNames<T, U> = { [K in keyof T]: T[K] extends U ? K : never }[keyof T];
+
+/**
+ * This type helper get all properties of type T that extend type U
+ */
+type Properties<T, U> = Pick<T, PropertyNames<T, U>>;
+
+/**
+ * Create a writable version of a readonly mapped type
+ */
+type Writeable<T> = {
+  -readonly [P in keyof T]-?: T[P]
+};
+
+/**
+ * Currenlty used in signature utilities
  */
 interface IdentifierIndex {
   identifier: string;

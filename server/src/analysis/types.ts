@@ -1,90 +1,121 @@
 import { KsVariable } from '../entities/variable';
 import { KsFunction } from '../entities/function';
 import { KsLock } from '../entities/lock';
-import { IToken } from '../entities/types';
-import { KsParameter } from '../entities/parameters';
+import { KsParameter } from '../entities/parameter';
 import { Range, Location } from 'vscode-languageserver';
-import { IArgumentType, IFunctionType } from '../typeChecker/types/types';
-import { IExpr, ISuffixTerm } from '../parser/types';
+import { ArgumentType, Type } from '../typeChecker/types/types';
+import { IExpr, IStmt, ScopeKind } from '../parser/types';
+import { BasicTracker } from './tracker';
+import { Token } from '../entities/token';
+import { KsSuffix } from '../entities/suffix';
+import { Environment } from './scope';
+import { SuffixTracker } from './suffixTracker';
 
-export const enum SymbolState {
-  declared,
-  used,
-}
-
-export const enum LockState {
-  locked,
-  used,
-  unlocked,
-}
-
+/**
+ * The result of a function scan
+ */
 export interface IFunctionScanResult {
+  /**
+   * The number of optionals parameters
+   */
   optionalParameters: number;
+
+  /**
+   * The number of required parameters
+   */
   requiredParameters: number;
+
+  /**
+   * Does the function return a value
+   */
   return: boolean;
 }
 
-export interface ILocalResult {
-  token: IToken;
-  expr: IExpr | ISuffixTerm;
+export const enum TrackerKind {
+  basic,
+  suffix,
 }
 
-export interface IScope extends Map<string, IKsSymbolTracker> {
-  symbols(): KsSymbol[];
-}
+/**
+ * A union of basic and suffix trackers that a token may be attached too
+ */
+export type SymbolTracker = BasicTracker | SuffixTracker;
 
-export interface IKsSymbolTracker<T extends KsSymbol = KsSymbol> {
+/**
+ * Interface for tracking symbols throughout a kerboscript
+ */
+export interface SymbolTrackerBase<T extends KsSymbol = KsSymbol> {
+  /**
+   * Information about the original declaration of the symbol
+   */
   declared: IKsDeclared<T>;
-  sets: IKsChange[];
-  usages: IKsChange[];
-
-  declareType(type: IArgumentType | IFunctionType): void;
-  getType(loc: Location): Maybe<IArgumentType | IFunctionType>;
-  setType(loc: Location, type: IArgumentType | IFunctionType): void;
 }
 
-export interface IScopePath {
+/**
+ * The path to an environment
+ */
+export interface EnvironmentPath {
+  /**
+   * the activated path
+   */
   active: IStack<number>;
+
+  /**
+   * The back track path
+   */
   backTrack: IStack<number>;
 }
 
-export interface IKsChange extends Location {
-  type: IArgumentType;
-  expr?: IExpr | ISuffixTerm;
+/**
+ * A setting of a symbol
+ */
+export interface KsSet extends Location {
+  /**
+   * What is the type of the set
+   */
+  type: ArgumentType;
 }
 
-export interface IKsDeclared<T extends KsSymbol> extends Location {
-  symbol: T;
-  type: IArgumentType | IFunctionType;
+/**
+ * The declared type of a symbol
+ */
+export interface IKsDeclared<
+  TSymbol extends KsSymbol = KsSymbol,
+  TType extends Type = Type
+> extends Location {
+  symbol: TSymbol;
+  type: TType;
 }
 
 export interface IRealScopePosition extends Range {
-  tag: 'real';
+  kind: ScopeKind.local;
 }
 
 export interface IGlobalScopePosition {
-  tag: 'global';
+  kind: ScopeKind.global;
 }
 
-type IScopePosition = IRealScopePosition | IGlobalScopePosition;
+export type EnvironmentPosition = IRealScopePosition | IGlobalScopePosition;
 
 export interface GraphNode<T> {
   value: T;
   adjacentNodes: GraphNode<T>[];
 }
 
-export interface IScopeNode {
-  readonly position: IScopePosition;
-  readonly scope: IScope;
-  readonly children: IScopeNode[];
+export interface EnvironmentNode {
+  readonly parent: Maybe<EnvironmentNode>;
+  readonly position: EnvironmentPosition;
+  readonly environment: Environment;
+  readonly children: EnvironmentNode[];
 }
 
 export interface ISetResolverResult {
-  readonly set: Maybe<IToken>;
-  readonly used: ILocalResult[];
+  readonly set: Maybe<Token>;
+  readonly used: Token[];
 }
 
-export type KsSymbol = KsVariable | KsFunction | KsLock | KsParameter;
+export type KsSymbol = KsBaseSymbol | KsSuffix;
+export type KsBaseSymbol = KsVariable | KsFunction | KsLock | KsParameter;
 
 export enum KsSymbolKind {
   variable,
@@ -94,8 +125,47 @@ export enum KsSymbolKind {
   suffix,
 }
 
-// tslint:disable-next-line:prefer-array-literal
-export interface IStack<T> extends Pick<Array<T>, 'pop' | 'push' | 'length'> {
+/**
+ * This representing a syntax nod that will be executed later
+ */
+export interface IDeferred {
+  /**
+   * Path to scope
+   */
+  path: EnvironmentPath;
+
+  /**
+   * Path to scope
+   */
+  activeScope: EnvironmentNode;
+
+  /**
+   * How many loops deep is the current location
+   */
+  loopDepth: number;
+
+  /**
+   * How many functions deep is the current location
+   */
+  functionDepth: number;
+
+  /**
+   * Node to be executed later
+   */
+  node: IStmt | IExpr;
+}
+
+/**
+ * A more restrictive interface on an array to only allow stack methods
+ */
+export interface IStack<T> extends Pick<T[], 'pop' | 'push' | 'length'> {
+  /**
+   * array indexer
+   */
   [index: number]: T;
+
+  /**
+   * array iterator symbol
+   */
   [Symbol.iterator](): IterableIterator<T>;
 }

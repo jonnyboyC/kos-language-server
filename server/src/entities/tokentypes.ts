@@ -1,5 +1,7 @@
 export enum TokenType {
+    // whitespace
     whiteSpace, commentLine,
+
     plus, minus, multi, div, power,
     not, and, or, true, false,
     equal, notEqual, greaterEqual, greater, lessEqual, less,
@@ -95,7 +97,6 @@ export const isValidIdentifier = (type: TokenType): boolean => {
     case TokenType.reboot:
     case TokenType.shutdown:
     case TokenType.identifier:
-    // case TokenType.FileIdentifier:
     case TokenType.lazyGlobal:
       return true;
     default:

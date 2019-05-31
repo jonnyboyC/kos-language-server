@@ -1,13 +1,10 @@
-import { IArgumentType } from '../types';
-import {
-  createSetSuffixType, createSuffixType, createStructureType,
-} from '../ksType';
+import { ArgumentType } from '../types';
+import { createSetSuffixType, createSuffixType, createStructureType } from "../../typeCreators";
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { scalarType } from '../primitives/scalar';
 import { serializableStructureType } from '../primitives/serializeableStructure';
 
-export const vectorType: IArgumentType = createStructureType('vector');
-
+export const vectorType: ArgumentType = createStructureType('vector');
 addPrototype(vectorType, serializableStructureType);
 
 addSuffixes(

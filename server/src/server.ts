@@ -15,19 +15,22 @@ import {
   DocumentSymbolParams,
   SymbolInformation,
   CompletionParams,
-  CompletionTriggerKind,
   ReferenceParams,
   Hover,
   Diagnostic,
   MessageReader,
   MessageWriter,
   DidChangeConfigurationNotification,
+  DocumentHighlight,
+  SignatureHelp,
+  SignatureInformation,
+  ParameterInformation,
 } from 'vscode-languageserver';
 import { empty } from './utilities/typeGuards';
 import { Analyzer } from './analyzer';
-import { KsSymbolKind } from './analysis/types';
+import { KsSymbolKind, TrackerKind } from './analysis/types';
 import {
-  entityCompletionItems,
+  symbolCompletionItems,
   suffixCompletionItems,
   documentSymbols,
   getConnectionPrimitives,
@@ -40,9 +43,12 @@ import {
   cleanDiagnostic,
   cleanLocation,
   cleanPosition,
+  cleanRange,
 } from './utilities/clean';
-import { IToken } from './entities/types';
 import { keywordCompletions, serverName } from './utilities/constants';
+import { Token } from './entities/token';
+import { TypeKind } from './typeChecker/types/types';
+import { tokenTrackedType } from './typeChecker/typeUitlities';
 
 export interface IClientConfiguration {
   completionCase: 'lowercase' | 'uppercase' | 'camelcase' | 'pascalcase';
@@ -179,13 +185,14 @@ connection.onInitialize((params: InitializeParams) => {
       // Tell the client that the server supports code completion
       completionProvider: {
         resolveProvider: true,
-        // triggerCharacters: [':'],
+        triggerCharacters: [':', '(', ', '],
       },
 
-      // signatureHelpProvider: {
-      //   triggerCharacters: ['(', ','],
-      // },
+      signatureHelpProvider: {
+        triggerCharacters: ['(', ',', ', '],
+      },
 
+      documentHighlightProvider: true,
       hoverProvider: true,
       referencesProvider: true,
       documentSymbolProvider: true,
@@ -275,6 +282,7 @@ documents.onDidChangeContent(async change => {
     let total = 0;
     const diagnosticMap: Map<string, Diagnostic[]> = new Map();
 
+    // retrieve diagnostics from analyzer
     for await (const diagnostics of diagnosticResults) {
       total += diagnostics.length;
 
@@ -288,6 +296,7 @@ documents.onDidChangeContent(async change => {
       }
     }
 
+    // send diagnostics to each document reported
     for (const [uri, diagnostics] of diagnosticMap.entries()) {
       connection.sendDiagnostics({
         uri,
@@ -316,43 +325,99 @@ documents.onDidChangeContent(async change => {
   }
 });
 
-// This handler provides the initial list of the completion items.
+/**
+ * This handler provide completition items capability
+ */
 connection.onCompletion(
   (completionParams: CompletionParams): CompletionItem[] => {
     const { context } = completionParams;
 
-    if (
-      empty(context) ||
-      context.triggerKind !== CompletionTriggerKind.TriggerCharacter
-    ) {
-      return entityCompletionItems(
+    try {
+      // check if suffix completion
+      if (!empty(context) && !empty(context.triggerCharacter)) {
+        const { triggerCharacter } = context;
+
+        if (triggerCharacter === ':') {
+          return suffixCompletionItems(server.analyzer, completionParams);
+        }
+      }
+
+      // complete base symbols
+      return symbolCompletionItems(
         server.analyzer,
         completionParams,
         server.keywords,
       );
-    }
 
-    return suffixCompletionItems(server.analyzer, completionParams);
+      // catch any errors
+    } catch (err) {
+      if (err instanceof Error) {
+        connection.console.warn(`${err.message} ${err.stack}`);
+      }
+
+      return [];
+    }
   },
 );
 
-// This handler provides on hover capabilities
+/**
+ * This handler provides document highlighting capability
+ */
+connection.onDocumentHighlight(
+  (positionParams: TextDocumentPositionParams): DocumentHighlight[] => {
+    const { position } = positionParams;
+    const { uri } = positionParams.textDocument;
+
+    const locations = server.analyzer.getFileUsageRanges(position, uri);
+    return empty(locations)
+      ? []
+      : locations.map(range => ({ range: cleanRange(range) }));
+  },
+);
+
+/**
+ * This handlers provides on hover capability
+ */
 connection.onHover(
-  (positionParmas: TextDocumentPositionParams): Maybe<Hover> => {
-    const { position } = positionParmas;
-    const { uri } = positionParmas.textDocument;
+  (positionParams: TextDocumentPositionParams): Maybe<Hover> => {
+    const { position } = positionParams;
+    const { uri } = positionParams.textDocument;
 
     const token = server.analyzer.getToken(position, uri);
-    const typeInfo = server.analyzer.getSuffixType(position, uri);
-    if (empty(token) || empty(typeInfo)) {
+
+    if (empty(token)) {
       return undefined;
     }
-    const [type, entityType] = typeInfo;
+
+    const type = tokenTrackedType(token);
+
+    const { tracker } = token;
+    let label: string;
+    let symbolKind: string;
+
+    if (!empty(tracker)) {
+      symbolKind = KsSymbolKind[tracker.declared.symbol.tag];
+
+      label =
+        tracker.kind === TrackerKind.basic
+          ? tracker.declared.symbol.name.lexeme
+          : tracker.declared.symbol.name;
+    } else {
+      symbolKind = 'literal';
+      label = token.lexeme;
+    }
+
+    if (empty(type)) {
+      return undefined;
+    }
 
     return {
-      contents: `(${KsSymbolKind[entityType]}) ${
-        token.lexeme
-      }: ${type.toTypeString()} `,
+      contents: {
+        // Note doesn't does do much other than format it as code
+        // may look into adding type def syntax highlighting
+        language: 'kos',
+        value: `(${symbolKind}) ${label}: ${type.toTypeString()} `,
+      },
       range: {
         start: cleanPosition(token.start),
         end: cleanPosition(token.end),
@@ -361,52 +426,110 @@ connection.onHover(
   },
 );
 
-// This handler providers find all references capabilities
+/**
+ * This handler provides the find all reference capability
+ */
 connection.onReferences(
   (referenceParams: ReferenceParams): Maybe<Location[]> => {
     const { position } = referenceParams;
     const { uri } = referenceParams.textDocument;
 
-    const locations = server.analyzer.getUsagesLocations(position, uri);
+    const locations = server.analyzer.getUsageLocations(position, uri);
     return locations && locations.map(loc => cleanLocation(loc));
   },
 );
 
 // This handler provides signature help
-// connection.onSignatureHelp(
-//   (documentPosition: TextDocumentPositionParams): SignatureHelp => {
-//     const { position } = documentPosition;
-//     const { uri } = documentPosition.textDocument;
+connection.onSignatureHelp(
+  (documentPosition: TextDocumentPositionParams): SignatureHelp => {
+    const { position } =  documentPosition;
+    const { uri } = documentPosition.textDocument;
 
-//     const result = analyzer.getFunctionAtPosition(position, uri);
-//     if (empty(result)) return defaultSigniture();
+    const result = server.analyzer.getFunctionAtPosition(position, uri);
+    if (empty(result)) return defaultSignature();
+    const { tracker, index } = result;
 
-//     const { func, index } = result;
-//     const { parameters } = func;
-//     return {
-//       signatures: [
-//         SignatureInformation.create(
-//           func.name.lexeme,
-//           undefined,
-//           ...parameters.map(param =>
-//             ParameterInformation.create(param.name.lexeme),
-//           ),
-//         ),
-//       ],
-//       activeParameter: index,
-//       activeSignature: 0,
-//     };
-//   },
-// );
+    let label =
+      typeof tracker.declared.symbol.name === 'string'
+        ? tracker.declared.symbol.name
+        : tracker.declared.symbol.name.lexeme;
 
-// This handler provider document symbols in file
+    const type = tracker.getType({
+      uri,
+      range: { start: position, end: position },
+    });
+
+    if (empty(type)) {
+      return defaultSignature();
+    }
+
+    switch (type.kind) {
+      case TypeKind.function:
+      case TypeKind.suffix:
+        let start = label.length + 1;
+        const { params } = type;
+        const paramInfos: ParameterInformation[] = [];
+
+        // check if normal or variadic type
+        if (Array.isArray(params)) {
+
+          // generate normal labels
+          if (params.length > 0) {
+            const labels: string[] = [];
+            for (let i = 0; i < params.length - 1; i += 1) {
+              const paramLabel = `${params[i].toTypeString()}, `;
+              paramInfos.push(
+                ParameterInformation.create([
+                  start,
+                  start + paramLabel.length - 2,
+                ]),
+              );
+              labels.push(paramLabel);
+              start = start + paramLabel.length;
+            }
+
+            const paramLabel = `${params[params.length - 1].toTypeString()}`;
+            paramInfos.push(
+              ParameterInformation.create([
+                start,
+                start + paramLabel.length,
+              ]),
+            );
+            labels.push(paramLabel);
+            label = `${label}(${labels.join('')})`;
+          }
+        } else {
+          // generate variadic labels
+          const variadicLabel = params.toTypeString();
+          paramInfos.push(ParameterInformation.create([start, start + variadicLabel.length]));
+          label = `${label}(${variadicLabel})`;
+        }
+
+        return {
+          signatures: [
+            SignatureInformation.create(label, undefined, ...paramInfos),
+          ],
+          activeParameter: index,
+          activeSignature: null,
+        };
+      default:
+        return defaultSignature();
+    }
+  },
+);
+
+/**
+ * This handler provides document symbols capability
+ */
 connection.onDocumentSymbol(
   (documentSymbol: DocumentSymbolParams): Maybe<SymbolInformation[]> => {
     return documentSymbols(server.analyzer, documentSymbol);
   },
 );
 
-// This handler provides definition help
+/**
+ * This handler provides defintition capability
+ */
 connection.onDefinition(
   (documentPosition: TextDocumentPositionParams): Maybe<Location> => {
     const { position } = documentPosition;
@@ -417,26 +540,26 @@ connection.onDefinition(
   },
 );
 
-// This handler resolve additional information for the item selected in
-// the completion list.
+/**
+ * This handler provider compleition item resolution capability. This provides
+ * additional information for the currently compeltion item selection
+ */
 connection.onCompletionResolve(
   (item: CompletionItem): CompletionItem => {
-    const token = item.data as IToken;
+    try {
+      const token = item.data as Maybe<Token>;
 
-    // this would be a possible spot to pull in doc string if present.
-    if (!empty(token)) {
-      const type = server.analyzer.getType(
-        token.start,
-        token.lexeme,
-        token.uri,
-      );
-
-      if (!empty(type)) {
-        item.detail = `${item.label}: ${type.toTypeString()}`;
+      if (!empty(token)) {
       }
-    }
 
-    return item;
+      return item;
+    } catch (err) {
+      if (err instanceof Error) {
+        connection.console.error(`${err.message} ${err.stack}`);
+      }
+
+      return item;
+    }
   },
 );
 
@@ -451,11 +574,11 @@ const getDocumentSettings = (): Thenable<IClientConfiguration> => {
   });
 };
 
-// const defaultSigniture = (): SignatureHelp => ({
-//   signatures: [],
-//   activeParameter: null,
-//   activeSignature: null,
-// });
+const defaultSignature = (): SignatureHelp => ({
+  signatures: [],
+  activeParameter: null,
+  activeSignature: null,
+});
 
 // Make the text document manager listen on the connection
 // for open, change and close text document events

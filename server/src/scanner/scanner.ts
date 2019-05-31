@@ -1,12 +1,11 @@
 import { TokenType } from '../entities/tokentypes';
 import { ITokenMap, IScanResult, ScanKind } from './types';
-import { Token, MutableMarker } from '../entities/token';
-import { IToken } from '../entities/types';
+import { Token } from '../entities/token';
 import { empty } from '../utilities/typeGuards';
 import { mockLogger, mockTracer } from '../utilities/logger';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
 import { createDiagnostic } from '../utilities/diagnosticsUtils';
-import { sep } from 'path';
+import { MutableMarker } from '../entities/marker';
 
 type Result<T, S extends ScanKind> = {
   result: T;
@@ -135,10 +134,10 @@ export class Scanner {
   public scanTokens(): IScanResult {
     try {
       // create arrays for valid tokens and encountered errors
-      const tokens: IToken[] = [];
+      const tokens: Token[] = [];
       const scanErrors: Diagnostic[] = [];
 
-      const splits = this.uri.split(sep);
+      const splits = this.uri.split('/');
       const file = splits[splits.length - 1];
 
       this.logger.info(

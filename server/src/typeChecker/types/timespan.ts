@@ -1,11 +1,11 @@
-import { IArgumentType } from './types';
-import { createStructureType, createSuffixType } from './ksType';
+import { ArgumentType } from './types';
+import { createStructureType, createSuffixType } from "../typeCreators";
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { scalarType } from './primitives/scalar';
 import { stringType } from './primitives/string';
 import { serializableStructureType } from './primitives/serializeableStructure';
 
-export const timeSpanType: IArgumentType = createStructureType('timeSpan');
+export const timeSpanType: ArgumentType = createStructureType('timeSpan');
 addPrototype(timeSpanType, serializableStructureType);
 
 addSuffixes(

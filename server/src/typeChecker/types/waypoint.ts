@@ -1,5 +1,5 @@
-import { IArgumentType } from './types';
-import { createStructureType, createArgSuffixType } from './ksType';
+import { ArgumentType } from './types';
+import { createStructureType, createArgSuffixType } from "../typeCreators";
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { structureType } from './primitives/structure';
 import { vectorType } from './collections/vector';
@@ -9,7 +9,7 @@ import { booleanType } from './primitives/boolean';
 import { geoCoordinatesType } from './geoCoordinates';
 import { bodyTargetType } from './orbital/bodyTarget';
 
-export const waypointType: IArgumentType = createStructureType('waypoint');
+export const waypointType: ArgumentType = createStructureType('waypoint');
 addPrototype(waypointType, structureType);
 
 addSuffixes(

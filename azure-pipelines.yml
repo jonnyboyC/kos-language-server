@@ -12,6 +12,8 @@ pool:
 
 # setup node
 steps:
+- checkout: self
+  submodules: 'true'
 - task: NodeTool@0
   inputs:
     versionSpec: '10.x'

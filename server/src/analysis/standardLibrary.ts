@@ -1,9 +1,8 @@
-import { ScopeType } from '../parser/types';
-import { Token, Marker } from '../entities/token';
+import { ScopeKind } from '../parser/types';
+import { Token } from '../entities/token';
 import { TokenType } from '../entities/tokentypes';
 import { queueType } from '../typeChecker/types/collections/queue';
 import { structureType } from '../typeChecker/types/primitives/structure';
-import { createVarType } from '../typeChecker/typeUitlities';
 import { listType } from '../typeChecker/types/collections/list';
 import { stackType } from '../typeChecker/types/collections/stack';
 import { uniqueSetType } from '../typeChecker/types/collections/uniqueset';
@@ -41,8 +40,9 @@ import { volumeDirectoryType } from '../typeChecker/types/io/volumeDirectory';
 import {
   createFunctionType,
   createVarFunctionType,
-} from '../typeChecker/types/ksType';
-import { IArgumentType, IFunctionType } from '../typeChecker/types/types';
+  createVarType,
+} from '../typeChecker/typeCreators';
+import { ArgumentType, IFunctionType } from '../typeChecker/types/types';
 import { delegateType } from '../typeChecker/types/primitives/delegate';
 import { kUniverseType } from '../typeChecker/types/kUniverse';
 import { homeConnectionType } from '../typeChecker/types/communication/homeConnection';
@@ -72,6 +72,7 @@ import { bodyTargetType } from '../typeChecker/types/orbital/bodyTarget';
 import { vesselTargetType } from '../typeChecker/types/orbital/vesselTarget';
 import { SymbolTable } from './symbolTable';
 import { toCase } from '../utilities/stringUtils';
+import { Marker } from '../entities/marker';
 
 const functionTypes: [string[], IFunctionType][] = [
   [['abs'], createFunctionType('abs', scalarType, scalarType)],
@@ -503,7 +504,7 @@ const functionTypes: [string[], IFunctionType][] = [
 // createFunctionType('delete_deprecated', /* TODO */ scalarType),
 // createFunctionType('run', /* TODO */ scalarType),
 
-const locks: [string[], IArgumentType][] = [
+const locks: [string[], ArgumentType][] = [
   [['throttle'], scalarType],
   [['steering'], directionType],
   [['wheel', 'throttle'], scalarType],
@@ -512,20 +513,20 @@ const locks: [string[], IArgumentType][] = [
   [['nav', 'mode'], stringType],
 ];
 
-const variables: [string[], IArgumentType][] = [
-  [['abort'], booleanType], // TODO
+const variables: [string[], ArgumentType][] = [
+  [['abort'], booleanType],
   [['active', 'ship'], vesselTargetType],
   [['addons'], addonListType],
-  [['ag1'], booleanType], // TODO
-  [['ag10'], booleanType], // TODO
-  [['ag2'], booleanType], // TODO
-  [['ag3'], booleanType], // TODO
-  [['ag4'], booleanType], // TODO
-  [['ag5'], booleanType], // TODO
-  [['ag6'], booleanType], // TODO
-  [['ag7'], booleanType], // TODO
-  [['ag8'], booleanType], // TODO
-  [['ag9'], booleanType], // TODO
+  [['ag1'], booleanType],
+  [['ag10'], booleanType],
+  [['ag2'], booleanType],
+  [['ag3'], booleanType],
+  [['ag4'], booleanType],
+  [['ag5'], booleanType],
+  [['ag6'], booleanType],
+  [['ag7'], booleanType],
+  [['ag8'], booleanType],
+  [['ag9'], booleanType],
   [['airspeed'], scalarType],
   [['all', 'nodes'], listType.toConcreteType(nodeType)],
   [['alt'], vesselAltType],
@@ -536,11 +537,11 @@ const variables: [string[], IArgumentType][] = [
   [['apoapsis'], scalarType],
   [['archive'], volumeType],
   [['available', 'thrust'], scalarType],
-  [['bays'], booleanType], // TODO
+  [['bays'], booleanType],
   [['black'], rgbaType],
   [['blue'], rgbaType],
   [['body'], bodyTargetType],
-  [['brakes'], booleanType], // TODO
+  [['brakes'], booleanType],
   [['chutes'], booleanType],
   [['chutes', 'safe'], booleanType],
   [['config'], configType], // TODO
@@ -555,7 +556,7 @@ const variables: [string[], IArgumentType][] = [
   [['eta'], vesselEtaType],
   [['facing'], directionType],
   [['fuel', 'cells'], booleanType],
-  [['gear'], booleanType], // TODO
+  [['gear'], booleanType],
   [['geo', 'position'], geoCoordinatesType],
   [['gray'], rgbaType],
   [['green'], rgbaType],
@@ -570,7 +571,7 @@ const variables: [string[], IArgumentType][] = [
   [['ladders'], booleanType],
   [['latitude'], scalarType],
   [['legs'], booleanType],
-  [['lights'], booleanType], // TODO
+  [['lights'], booleanType],
   [['longitude'], scalarType],
   [['magenta'], rgbaType],
   [['map', 'view'], booleanType], // TODO
@@ -586,10 +587,10 @@ const variables: [string[], IArgumentType][] = [
   [['prograde'], directionType],
   [['purple'], rgbaType],
   [['radiators'], booleanType],
-  [['rcs'], booleanType], // TODO
+  [['rcs'], booleanType],
   [['red'], rgbaType],
   [['retrograde'], directionType],
-  [['sas'], booleanType], // TODO
+  [['sas'], booleanType],
   [['sensor'], vesselSensorsType],
   [['session', 'time'], doubleType],
   [['ship'], vesselTargetType],
@@ -601,7 +602,7 @@ const variables: [string[], IArgumentType][] = [
   [['status'], stringType],
   [['steering', 'manager'], steeringManagerType],
   [['surface', 'speed'], scalarType],
-  [['target'], structureType], // TODO Union
+  [['target'], orbitableType], // TODO Union
   [['terminal'], terminalStructType],
   [['time'], timeSpanType],
   [['up'], directionType],
@@ -615,7 +616,7 @@ const variables: [string[], IArgumentType][] = [
   [['yellow'], rgbaType],
 ];
 
-const bodies: [string, IArgumentType][] = [
+const bodies: [string, ArgumentType][] = [
   ['kerbol', bodyTargetType],
   ['moho', bodyTargetType],
   ['eve', bodyTargetType],
@@ -643,7 +644,7 @@ export const standardLibraryBuilder = (caseKind: CaseKind): SymbolTable => {
 
   for (const [segements, functionType] of functionTypes) {
     libraryBuilder.declareFunction(
-      ScopeType.global,
+      ScopeKind.global,
       new Token(
         TokenType.identifier,
         toCase(caseKind, ...segements),
@@ -661,7 +662,7 @@ export const standardLibraryBuilder = (caseKind: CaseKind): SymbolTable => {
 
   for (const [segements, type] of variables) {
     libraryBuilder.declareVariable(
-      ScopeType.global,
+      ScopeKind.global,
       new Token(
         TokenType.identifier,
         toCase(caseKind, ...segements),
@@ -676,7 +677,7 @@ export const standardLibraryBuilder = (caseKind: CaseKind): SymbolTable => {
 
   for (const [segment, type] of locks) {
     libraryBuilder.declareLock(
-      ScopeType.global,
+      ScopeKind.global,
       new Token(
         TokenType.identifier,
         toCase(caseKind, ...segment),
@@ -697,7 +698,7 @@ export const bodyLibraryBuilder = (caseKind: CaseKind): SymbolTable => {
 
   for (const [identifier, type] of bodies) {
     bodyBuilder.declareVariable(
-      ScopeType.global,
+      ScopeKind.global,
       new Token(
         TokenType.identifier,
         toCase(caseKind, identifier),

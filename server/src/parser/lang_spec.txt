@@ -2,7 +2,7 @@
 program -> declaration*
 
 // declarations
-declaration -> ( instruction
+declaration -> ( statement
     | variableDeclaration
     | lockDeclaration
     | functionDeclaration
@@ -12,7 +12,7 @@ declaration -> ( instruction
 variableDeclaration -> scope idenitifer ( 'to' | 'is' ) expression '.'
 lockDeclaration -> scope? 'lock' idenitifer 'to' expression '.'
 parameterDeclaration -> scope? 'parameter' parameters '.'
-functionDeclaration -> scope? 'function' instructionBlock '.'?
+functionDeclaration -> scope? 'function' statementBlock '.'?
 
 // declaration components
 scope -> 'declare'? ('local' | 'global')?
@@ -25,11 +25,11 @@ defaultParameters -> defaultParameter (',' defaultParameters)?
 parameter -> ( idenitifer | defaultParameter )
 defaultParameter -> idenitifer ( 'to' | 'is' ) expression
 
-// instructions
-instruction -> ( instructionBlock
+// statements
+statement -> ( statementBlock
     | identifierInstruction
-    | commandinstruction
-    | commandExpressioninstruction
+    | commandstatement
+    | commandExpressionstatement
     | unset
     | unlock
     | set
@@ -62,17 +62,17 @@ instruction -> ( instructionBlock
 lazyGlobal -> '@' 'lazyglobal' onOff '.'
 
 // block
-instructionBlock -> '{' declarations* '}'
+statementBlock -> '{' declarations* '}'
 
 // control flow
-if -> 'if' expression instruction '.'? ('else' instruction '.'?)? 
-until -> 'until' expression instruction '.'?
-from -> 'from' instructionBlock 'until' expression 'step' instructionBlock 'do' instruction
-when -> 'when' expression 'then' instruction '.'?
+if -> 'if' expression statement '.'? ('else' statement '.'?)? 
+until -> 'until' expression statement '.'?
+from -> 'from' statementBlock 'until' expression 'step' statementBlock 'do' statement
+when -> 'when' expression 'then' statement '.'?
 break -> 'break' '.'
 return -> 'return' expression? '.'
-for -> 'for' idenitifer 'in' suffix instruction '.'?
-on -> 'on' suffix instruction
+for -> 'for' idenitifer 'in' suffix statement '.'?
+on -> 'on' suffix statement
 toggle -> 'toggle' suffix '.'
 wait -> 'wait' 'until'? expression '.'
 
@@ -97,15 +97,15 @@ print -> 'print' expression ('at' '(' expression ',' expression ')')? '.'
 empty -> '.'
 list -> 'list' (idenitifer ('in' idenitifer)?)? '.'
 
-// command instruction
-commandExpressioninstruction -> commandExpression expression '.'
-commandinstruction -> command '.'
+// command statement
+commandExpressionstatement -> commandExpression expression '.'
+commandstatement -> command '.'
 
-// identifier instructions
+// identifier statements
 identifierInstruction -> suffix ( 'on' | 'off' )? '.'
 
 // expressions
-expression -> or | instructionBlock
+expression -> or | statementBlock
 
 // binary expresions
 or -> and ('or' and)?

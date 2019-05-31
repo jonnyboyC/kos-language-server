@@ -1,3 +1,43 @@
+# [0.6.0] (2019-5-30)
+
+## Features
+- **Suffix Completion** In addition to completion suggestions for variables, locks, and function, suffixes are suggested when the type is known. This should almost always be the case for common globals such as `ship` and `body`.
+- **Signature Help** When the function can be determined signature help can now be provided. Currently the signature displays the types for each parameter but not the parameter name. In a feature release parameter name will be added.
+
+## Bug Fixes
+- **Type Hover** Previously, on hover would not work past the first suffix trailer. This version rewrites a large part of the type checker to better resolve types for suffixes. On hover now reports types for all depths of suffix. 
+
+## Other
+- **Instruction to Statement** changed all references of instruction to statement to better align with the terminology of Kos
+
+# [0.5.1] (2019-5-16)
+
+## Features
+- **Code snippets** Many code snippets have been added for control flow, and declarations. Feel free to suggest more on the github issue tracker.
+- **Minor List Hover improvement** In some limited cases we can identify the element of a list more specifically than structure. for example will identify that i is an int.
+
+      for i in range(10) {
+          print(i).
+      }
+
+## Bug Fixes
+- **Return In Anoymous Functions** Previously, Anoymous functions were not correctly counted as a valid scope for returns and would mark as an error. This has been fixed and will no longer provide a false positive
+- **Return Syntax Highlighting v2** syntax highlighting now **correctly** occurs correct for all forms of return. Previously `return.` used the wrong textmate form and would capture the remainder of the file. 
+- **Default function scope logic** A bug was introduced that caused function declared at the script level to not default to global scope. This would cause library scripts to be run to not place these functions in global scope.
+
+# [0.5.0] (2019-5-13)
+
+## Features
+- **Break and Return Diagnostics** The language server is now able to find breaks outside of loops and returns outside of functions. A diagnostics reports when these occure
+- **On Hover Improvements** Overall the on hover has been improved. The server now indicates the response is code can should be formatted as such. Additionally some symbols that previously wouldn't allow on hover now work as expected
+
+## Bug Fixes
+- **Return Syntax Highlighting** syntax highlighting now occurs correct for all forms of return. Previously only `return expression.` would highlight correctly but `return.` now highlights as well
+
+## Other
+- **Type Checker Performance** Some changes to how the type checker looks up symbols has results in a speed up for `5x - 10x`
+- **Atom Client and Grammar Submodules** The atom client and the textmat grammar have sucessfully been moved to thier own repos and included here as submodules
+
 # [0.4.0] (2019-5-4)
 
 ## Features
@@ -26,8 +66,6 @@
   this now indicates via a hint that `b` may not be defined during the script run. Usages and go to defintion should both now work in this situation.
 - **true / false syntax**: previously the syntax highlighting would only highlight `true` or `false` if all lowercase. Now highlighting works for any casing of `TRUE` or `FALSE`. 
 
-
-## Bug Fixes
 
 # [0.3.4] (2019-4-25)
 
@@ -62,10 +100,10 @@
 
 ## Features
 - **default KSP planets** Added kerbin, eve, etc. to auto completes. Will eventually allow for customization
-- **deprecated warning** Initial set of deprecated warning for deprecated io. i.e. copy, rename, delete instructions.
+- **deprecated warning** Initial set of deprecated warning for deprecated io. i.e. copy, rename, delete statements.
 
 ## Bug Fixes
-- **run instruction resolution** fixed a bug the run instruction and functions where `runPath("0:example.ks").` did not resolve the sample as 
+- **run statement resolution** fixed a bug the run statement and functions where `runPath("0:example.ks").` did not resolve the sample as 
 `runPath("0:\runpath.ks").` or `runPath("runpath.ks")`
 
 
@@ -76,10 +114,10 @@
 - **better auto complete** completions now include type inferred type information where available
 
 ## Bug Fixes
-- **rename instruction grammer** Fixed an issue with the grammar for the rename instruction
+- **rename statement grammer** Fixed an issue with the grammar for the rename statement
 - **update performance diagnostics** Between the release of 0.2.0 and 0.3.0 vscode now ships with node 10. The performance hooks that were previously used have been remove. The new node performance hooks have been added in it's place
 - **report error when lazyglobal off set** The language server now reports and errors when `lazyGlobal off. ... set x to "example".`
-- **run instructions** Fixed a few issues related to the language server loading other file based on `runPath("example.ks").` and it's sibilings
+- **run statements** Fixed a few issues related to the language server loading other file based on `runPath("example.ks").` and it's sibilings
 
 # [0.2.0] (2019-1-5)
 
@@ -106,13 +144,13 @@
 # [0.1.2] (2018-09-17)
 
 ## Bug Fixes
-- **break instruction**: Forgot to actually implement break statement logic
+- **break statement**: Forgot to actually implement break statement logic
 - **parameter syntax**: Previously comments would not highlight correctly in the middle of a parameter declaration
 - **declare syntax**: Previously in `declare variable to thing.` the variable name was highlighted as a keyword.
-- **more synchronize** instruction*: More keywords were reset error reporting
+- **more synchronize** statement*: More keywords were reset error reporting
 
 # [0.1.1] (2018-09-12)
 
 ## Bug Fixes
-- **parse errors**: Previously there was a bug were parse errors were not correctly reported for instructions inside a block (for, until, function, etc.).
+- **parse errors**: Previously there was a bug were parse errors were not correctly reported for statements inside a block (for, until, function, etc.).
 

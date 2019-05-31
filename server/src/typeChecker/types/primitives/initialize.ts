@@ -1,6 +1,6 @@
-import { addSuffixes, addPrototype, addOperators, createVarType } from '../../typeUitlities';
+import { addSuffixes, addPrototype, addOperators } from '../../typeUitlities';
 import { structureType } from './structure';
-import { createArgSuffixType, createVarSuffixType } from '../ksType';
+import { createArgSuffixType, createVarSuffixType, createVarType } from '../../typeCreators';
 import { stringType } from './string';
 import { booleanType } from './boolean';
 import { voidType } from './void';
@@ -11,7 +11,13 @@ import { scalarType, integarType, doubleType } from './scalar';
 import { listType } from '../collections/list';
 import { delegateType } from './delegate';
 
+let set = false;
+
 export const primitiveInitializer = () => {
+  if (set) {
+    return;
+  }
+  set = true;
 
   // ------------------ structure ---------------------------
   addSuffixes(
