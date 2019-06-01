@@ -14,8 +14,8 @@ import { KsLock } from '../entities/lock';
 import { KsVariable } from '../entities/variable';
 import { KsParameter } from '../entities/parameter';
 import {
-  isKsFunction,
-  isKsLock,
+  isFunction,
+  isLock,
   isVariable,
   isParameter,
 } from '../entities/entityHelpers';
@@ -164,7 +164,7 @@ export class SymbolTable implements GraphNode<SymbolTable> {
     name: string,
   ): Maybe<SymbolTrackerBase<KsFunction>> {
     const tracker = this.scopedNamedTracker(pos, name, tracker =>
-      isKsFunction(tracker.declared.symbol),
+      isFunction(tracker.declared.symbol),
     );
 
     if (!empty(tracker)) {
@@ -184,7 +184,7 @@ export class SymbolTable implements GraphNode<SymbolTable> {
     name: string,
   ): Maybe<SymbolTrackerBase<KsLock>> {
     const tracker = this.scopedNamedTracker(pos, name, trackers =>
-      isKsLock(trackers.declared.symbol),
+      isLock(trackers.declared.symbol),
     );
 
     if (!empty(tracker)) {
@@ -314,7 +314,7 @@ export class SymbolTable implements GraphNode<SymbolTable> {
       return scoped;
     }
 
-    const fileGlobal = Array.from(this.rootScope.environment.trackers());
+    const fileGlobal = this.rootScope.environment.trackers();
     const importedGlobals = Array.from(this.childSymbolTables.values()).map(
       scope => Array.from(scope.rootScope.environment.trackers()),
     );

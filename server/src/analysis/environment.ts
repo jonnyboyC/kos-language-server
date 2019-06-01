@@ -23,10 +23,19 @@ export class Environment {
   }
 
   /**
-   * Get a value from the environment
+   * Get a value from the environment, first functions then variables
    * @param key key lookup
    */
-  public get(key: string, kind: KsSymbolKind): Maybe<BasicTracker> {
+  public get(key: string): Maybe<BasicTracker> {
+    return this.funcTable.get(key) || this.varTable.get(key);
+  }
+
+  /**
+   * Get a value from the environment, functions or variables
+   * @param key key lookup
+   */
+  public getKind(key: string, kind: KsSymbolKind): Maybe<BasicTracker> {
+    // check functions then variables
     switch (kind) {
       case KsSymbolKind.variable:
       case KsSymbolKind.parameter:
@@ -35,15 +44,25 @@ export class Environment {
       case KsSymbolKind.lock:
         return this.funcTable.get(key);
       default:
-        throw new Error('Environment cannot hold suffixes');
+        throw new Error('Unexpected symbol kind');
     }
   }
 
   /**
-   * See if an environment has a value
+   * See if an environment has a value, first functions then variables
    * @param key key lookup
    */
-  public has(key: string, kind: KsSymbolKind): boolean {
+  public has(key: string): boolean {
+    // check functions then variables
+    return this.funcTable.has(key) || this.varTable.has(key);
+  }
+
+  /**
+   * See if an environment has a value, functions or variables
+   * @param key key lookup
+   */
+  public hasKind(key: string, kind: KsSymbolKind): boolean {
+    // check functions then variables
     switch (kind) {
       case KsSymbolKind.variable:
       case KsSymbolKind.parameter:
@@ -52,7 +71,7 @@ export class Environment {
       case KsSymbolKind.lock:
         return this.funcTable.has(key);
       default:
-        throw new Error('Environment cannot hold suffixes');
+        throw new Error('Unexpected symbol kind');
     }
   }
 
@@ -77,8 +96,20 @@ export class Environment {
   /**
    * Get all trackers in this environment
    */
-  public trackers(): IterableIterator<BasicTracker> {
-    return this.varTable.values();
+  public trackers(): BasicTracker[] {
+    const symbols: BasicTracker[] = [];
+
+    // get variable and parameter symbols
+    for (const trackers of this.varTable.values()) {
+      symbols.push(trackers);
+    }
+
+    // get function and lock symbols
+    for (const trackers of this.funcTable.values()) {
+      symbols.push(trackers);
+    }
+
+    return symbols;
   }
 
   /**

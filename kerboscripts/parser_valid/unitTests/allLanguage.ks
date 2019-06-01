@@ -59,6 +59,7 @@ local function func {
 declare global lock other to 10.
 
 if "something":someMethod((10:typestring + "cat")) or false {
+    print(other).
     unlock other.
 }
 

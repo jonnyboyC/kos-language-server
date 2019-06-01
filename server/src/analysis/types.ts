@@ -2,7 +2,7 @@ import { KsVariable } from '../entities/variable';
 import { KsFunction } from '../entities/function';
 import { KsLock } from '../entities/lock';
 import { KsParameter } from '../entities/parameter';
-import { Range, Location } from 'vscode-languageserver';
+import { Range, Location, Diagnostic } from 'vscode-languageserver';
 import { ArgumentType, Type } from '../typeChecker/types/types';
 import { IExpr, IStmt, ScopeKind } from '../parser/types';
 import { BasicTracker } from './tracker';
@@ -29,6 +29,21 @@ export interface IFunctionScanResult {
    * Does the function return a value
    */
   return: boolean;
+}
+
+/**
+ * This is the result of the symbol tables use symbol method
+ */
+export interface UseResult<T extends KsBaseSymbol = KsBaseSymbol> {
+  /**
+   * Was any error encounted while trying to use this symbol
+   */
+  error?: Diagnostic;
+
+  /**
+   * What was the tracker found for this lookup
+   */
+  tracker?: BasicTracker<T>;
 }
 
 export const enum TrackerKind {
@@ -83,19 +98,42 @@ export interface IKsDeclared<
   TSymbol extends KsSymbol = KsSymbol,
   TType extends Type = Type
 > extends Location {
+
+  /**
+   * The underlying symbol declared
+   */
   symbol: TSymbol;
+
+  /**
+   * The type of this declared symbol
+   */
   type: TType;
 }
 
-export interface IRealScopePosition extends Range {
+/**
+ * A real range for an environment
+ */
+export interface RealEnvironmentRange extends Range {
+  /**
+   * Discriminated union for range kind
+   */
   kind: ScopeKind.local;
 }
 
-export interface IGlobalScopePosition {
+/**
+ * A global range for an environment
+ */
+export interface GlobalEnvironmentRange {
+  /**
+   * Discriminated union for range kind
+   */
   kind: ScopeKind.global;
 }
 
-export type EnvironmentPosition = IRealScopePosition | IGlobalScopePosition;
+/**
+ * A type defining the range an environment is present in
+ */
+export type EnvironmentRange = RealEnvironmentRange | GlobalEnvironmentRange;
 
 export interface GraphNode<T> {
   value: T;
@@ -104,7 +142,7 @@ export interface GraphNode<T> {
 
 export interface EnvironmentNode {
   readonly parent: Maybe<EnvironmentNode>;
-  readonly position: EnvironmentPosition;
+  readonly position: EnvironmentRange;
   readonly environment: Environment;
   readonly children: EnvironmentNode[];
 }

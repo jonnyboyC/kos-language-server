@@ -81,7 +81,6 @@ const noErrors = (result: ITypeCheckResults): void => {
   expect(result.scan.scanErrors.length).toBe(0);
   expect(result.parse.parseErrors.length).toBe(0);
   expect(result.resolveDiagnostics.length).toBe(0);
-  console.log(result.typeCheckDiagnostics);
   expect(result.typeCheckDiagnostics.length).toBe(0);
 };
 

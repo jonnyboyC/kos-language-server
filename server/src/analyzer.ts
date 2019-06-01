@@ -316,7 +316,7 @@ export class Analyzer {
     }
 
     // try to find an symbol at the position
-    const { symbolsTable, script } = documentInfo;
+    const { script } = documentInfo;
     const finder = new ScriptFind();
     const result = finder.find(script, pos);
 
@@ -325,18 +325,21 @@ export class Analyzer {
     }
 
     // check if symbols exists
-    const { token } = result;
-    const symbol = symbolsTable.scopedNamedTracker(pos, token.lookup);
-    if (empty(symbol)) {
+    const { tracker } = result.token;
+    if (empty(tracker)) {
       return undefined;
     }
+
+    const { declared } = tracker;
 
     // exit if undefiend
-    if (symbol.declared.uri === builtIn) {
+    if (declared.uri === builtIn) {
       return undefined;
     }
 
-    return symbol.declared.symbol.name;
+    return typeof(declared.symbol.name) !== 'string'
+      ? declared.symbol.name
+      : undefined;
   }
 
   /**
