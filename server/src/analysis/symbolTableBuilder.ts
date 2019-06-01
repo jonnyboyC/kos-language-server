@@ -18,7 +18,7 @@ import {
 } from 'vscode-languageserver';
 import { ScopePosition } from './scopePosition';
 import { mockLogger } from '../utilities/logger';
-import { Environment } from './scope';
+import { Environment } from './environment';
 import { BasicTracker, createSymbolSet } from './tracker';
 import { ArgumentType, IFunctionType } from '../typeChecker/types/types';
 import { SymbolTable } from './symbolTable';
@@ -796,7 +796,7 @@ export class SymbolTableBuilder {
     }
   }
 
-    /**
+  /**
    * Determine if a symbol tracker is in the current path
    * @param lookup token lookup string
    * @param scopeKind scope kind for the lookup local or global

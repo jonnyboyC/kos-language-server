@@ -8,7 +8,7 @@ import { IExpr, IStmt, ScopeKind } from '../parser/types';
 import { BasicTracker } from './tracker';
 import { Token } from '../entities/token';
 import { KsSuffix } from '../entities/suffix';
-import { Environment } from './scope';
+import { Environment } from './environment';
 import { SuffixTracker } from './suffixTracker';
 
 /**
