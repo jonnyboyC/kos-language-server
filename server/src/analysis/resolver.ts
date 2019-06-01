@@ -629,11 +629,13 @@ export class Resolver
     }
 
     if (this.functionDepth < 1) {
-      errors.push(createDiagnostic(
-        stmt.returnToken,
-        'Return appeared outside of function body',
-        DiagnosticSeverity.Error,
-      ));
+      errors.push(
+        createDiagnostic(
+          stmt.returnToken,
+          'Return appeared outside of function body',
+          DiagnosticSeverity.Error,
+        ),
+      );
     }
 
     return errors;
@@ -728,7 +730,9 @@ export class Resolver
    * @param stmt the syntax node
    */
   public visitWait(stmt: Stmt.Wait): Diagnostics {
-    return this.useExprLocalsBind(stmt.expr).concat(this.resolveExpr(stmt.expr));
+    return this.useExprLocalsBind(stmt.expr).concat(
+      this.resolveExpr(stmt.expr),
+    );
   }
 
   /**
@@ -832,7 +836,9 @@ export class Resolver
    */
   public visitRunPath(stmt: Stmt.RunPath): Diagnostics {
     if (empty(stmt.args)) {
-      return this.useExprLocalsBind(stmt.expr).concat(this.resolveExpr(stmt.expr));
+      return this.useExprLocalsBind(stmt.expr).concat(
+        this.resolveExpr(stmt.expr),
+      );
     }
 
     return this.useExprLocalsBind(stmt.expr).concat(
@@ -848,7 +854,9 @@ export class Resolver
    */
   public visitRunPathOnce(stmt: Stmt.RunOncePath): Diagnostics {
     if (empty(stmt.args)) {
-      return this.useExprLocalsBind(stmt.expr).concat(this.resolveExpr(stmt.expr));
+      return this.useExprLocalsBind(stmt.expr).concat(
+        this.resolveExpr(stmt.expr),
+      );
     }
 
     return this.useExprLocalsBind(stmt.expr).concat(
@@ -902,7 +910,9 @@ export class Resolver
    * @param stmt the syntax node
    */
   public visitPrint(stmt: Stmt.Print): Diagnostics {
-    return this.useExprLocalsBind(stmt.expr).concat(this.resolveExpr(stmt.expr));
+    return this.useExprLocalsBind(stmt.expr).concat(
+      this.resolveExpr(stmt.expr),
+    );
   }
 
   /**
@@ -994,7 +1004,7 @@ export class Resolver
   public visitSuffixTrailer(suffixTerm: SuffixTerm.SuffixTrailer): Diagnostics {
     const errors = this.visitSuffixTerm(suffixTerm.suffixTerm);
     if (!empty(suffixTerm.trailer)) {
-      errors.push(...(this.resolveSuffixTerm(suffixTerm.trailer)));
+      errors.push(...this.resolveSuffixTerm(suffixTerm.trailer));
     }
 
     return errors;

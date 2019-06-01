@@ -448,11 +448,13 @@ export class TypeChecker
           tracker.setType(atom.token, exprResult.type);
         }
       } else {
-        errors.push(createDiagnostic(
-          stmt.value,
-          'TODO visit set, this should not occur',
-          DiagnosticSeverity.Hint,
-        ));
+        errors.push(
+          createDiagnostic(
+            stmt.value,
+            'TODO visit set, this should not occur',
+            DiagnosticSeverity.Hint,
+          ),
+        );
       }
     } else {
       // was not found to be a valid target of setting
@@ -1256,7 +1258,6 @@ export class TypeChecker
       builder.nodes.push(new TypeNode(type, call));
       call.open.tracker = type.getTracker();
       call.close.tracker = type.getTracker();
-
     } else {
       builder.nodes.push(new TypeNode(suffixError, call));
       call.open.tracker = suffixError.getTracker();
@@ -1492,7 +1493,11 @@ export class TypeChecker
 
     // if we know the collection type is a list we need a scalar indexer
     if (coerce(type, userListType)) {
-      indexer = arrayBracketIndexer(type as IBasicType, scalarType, structureType);
+      indexer = arrayBracketIndexer(
+        type as IBasicType,
+        scalarType,
+        structureType,
+      );
       builder.nodes.push(new TypeNode(indexer, suffixTerm));
 
       if (!coerce(indexResult.type, scalarType)) {
@@ -1509,7 +1514,11 @@ export class TypeChecker
 
     // if we know the collection type is a lexicon we need a string indexer
     if (coerce(type, lexiconType)) {
-      indexer = arrayBracketIndexer(type as IBasicType, stringType, structureType);
+      indexer = arrayBracketIndexer(
+        type as IBasicType,
+        stringType,
+        structureType,
+      );
       builder.nodes.push(new TypeNode(indexer, suffixTerm));
 
       if (!coerce(indexResult.type, stringType)) {
