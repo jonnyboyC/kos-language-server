@@ -304,15 +304,12 @@ export class Resolver
     // determine scope type
     const scopeType = !empty(decl.scope) ? decl.scope.type : ScopeKind.global;
 
-    const { tracker, error } = this.tableBuilder.lookupLockTracker(
+    const { tracker } = this.tableBuilder.lookupLockTracker(
       decl.identifier,
       ScopeKind.global,
     );
 
     const errors: Diagnostic[] = [];
-    if (!empty(error)) {
-      errors.push(error);
-    }
 
     if (empty(tracker)) {
       const declareError = this.tableBuilder.declareLock(scopeType, decl.identifier);

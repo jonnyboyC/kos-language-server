@@ -363,7 +363,7 @@ export class SymbolTableBuilder {
 
       // if local check for shadowing hints
     } else {
-      const shadowTracker = this.lookup(token.lookup, ScopeKind.global);
+      const shadowTracker = this.lookupKind(token.lookup, ScopeKind.global, KsSymbolKind.variable);
       diagnostic = empty(shadowTracker)
         ? undefined
         : this.shadowSymbolHint(
@@ -422,7 +422,7 @@ export class SymbolTableBuilder {
 
       // if local check for shadowing hints
     } else {
-      const shadowTracker = this.lookup(token.lookup, ScopeKind.global);
+      const shadowTracker = this.lookupKind(token.lookup, ScopeKind.global, KsSymbolKind.function);
       diagnostic = empty(shadowTracker)
         ? undefined
         : this.shadowSymbolHint(
@@ -468,7 +468,7 @@ export class SymbolTableBuilder {
   ): Maybe<Diagnostic> {
     const conflictTracker = this.lookupKind(token.lookup, scopeType, KsSymbolKind.lock);
 
-    // check if variable has already been defined
+    // check if lock has already been defined
     if (!empty(conflictTracker)) {
       return this.localConflictError(token, conflictTracker.declared.symbol);
     }
@@ -481,7 +481,7 @@ export class SymbolTableBuilder {
 
       // if local check for shadowing hints
     } else {
-      const shadowTracker = this.lookup(token.lookup, ScopeKind.global);
+      const shadowTracker = this.lookupKind(token.lookup, ScopeKind.global, KsSymbolKind.lock);
       diagnostic = empty(shadowTracker)
         ? undefined
         : this.shadowSymbolHint(
@@ -534,7 +534,7 @@ export class SymbolTableBuilder {
 
       // if local check for shadowing hints
     } else {
-      const shadowTracker = this.lookup(token.lookup, ScopeKind.global);
+      const shadowTracker = this.lookupKind(token.lookup, ScopeKind.global, KsSymbolKind.parameter);
       diagnostic = empty(shadowTracker)
         ? undefined
         : this.shadowSymbolHint(
