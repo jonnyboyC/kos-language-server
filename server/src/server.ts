@@ -25,6 +25,9 @@ import {
   SignatureHelp,
   SignatureInformation,
   ParameterInformation,
+  RenameParams,
+  WorkspaceEdit,
+  TextEdit,
 } from 'vscode-languageserver';
 import { empty } from './utilities/typeGuards';
 import { Analyzer } from './analyzer';
@@ -49,6 +52,8 @@ import { keywordCompletions, serverName } from './utilities/constants';
 import { Token } from './entities/token';
 import { TypeKind } from './typeChecker/types/types';
 import { tokenTrackedType } from './typeChecker/typeUitlities';
+import { Scanner } from './scanner/scanner';
+import { isValidIdentifier } from './entities/tokentypes';
 
 export interface IClientConfiguration {
   completionCase: 'lowercase' | 'uppercase' | 'camelcase' | 'pascalcase';
@@ -192,6 +197,7 @@ connection.onInitialize((params: InitializeParams) => {
         triggerCharacters: ['(', ',', ', '],
       },
 
+      renameProvider: true,
       documentHighlightProvider: true,
       hoverProvider: true,
       referencesProvider: true,
@@ -361,6 +367,64 @@ connection.onCompletion(
 );
 
 /**
+ * This handler provider compleition item resolution capability. This provides
+ * additional information for the currently compeltion item selection
+ */
+connection.onCompletionResolve(
+  (item: CompletionItem): CompletionItem => {
+    try {
+      const token = item.data as Maybe<Token>;
+
+      if (!empty(token)) {
+      }
+
+      return item;
+    } catch (err) {
+      if (err instanceof Error) {
+        connection.console.error(`${err.message} ${err.stack}`);
+      }
+
+      return item;
+    }
+  },
+);
+
+/**
+ * This handler provides document rename capabilites
+ */
+connection.onRenameRequest(
+  ({ newName, textDocument, position }: RenameParams): Maybe<WorkspaceEdit> => {
+    const scanner = new Scanner(newName);
+    const { tokens, scanErrors } = scanner.scanTokens();
+
+    // check if rename is valid
+    if (
+      scanErrors.length > 0 ||
+      tokens.length !== 1 ||
+      !isValidIdentifier(tokens[0].type)
+    ) {
+      return undefined;
+    }
+
+    const locations = server.analyzer.getUsageLocations(position, textDocument.uri);
+    if (empty(locations)) {
+      return undefined;
+    }
+    const changes: PropType<WorkspaceEdit, 'changes'> = {};
+
+    for (const location of locations) {
+      if (!changes.hasOwnProperty(location.uri)) {
+        changes[location.uri] = [];
+      }
+
+      changes[location.uri].push(TextEdit.replace(location.range, newName));
+    }
+
+    return { changes };
+  },
+);
+
+/**
  * This handler provides document highlighting capability
  */
 connection.onDocumentHighlight(
@@ -442,7 +506,7 @@ connection.onReferences(
 // This handler provides signature help
 connection.onSignatureHelp(
   (documentPosition: TextDocumentPositionParams): SignatureHelp => {
-    const { position } =  documentPosition;
+    const { position } = documentPosition;
     const { uri } = documentPosition.textDocument;
 
     const result = server.analyzer.getFunctionAtPosition(position, uri);
@@ -472,7 +536,6 @@ connection.onSignatureHelp(
 
         // check if normal or variadic type
         if (Array.isArray(params)) {
-
           // generate normal labels
           if (params.length > 0) {
             const labels: string[] = [];
@@ -490,10 +553,7 @@ connection.onSignatureHelp(
 
             const paramLabel = `${params[params.length - 1].toTypeString()}`;
             paramInfos.push(
-              ParameterInformation.create([
-                start,
-                start + paramLabel.length,
-              ]),
+              ParameterInformation.create([start, start + paramLabel.length]),
             );
             labels.push(paramLabel);
             label = `${label}(${labels.join('')})`;
@@ -501,7 +561,9 @@ connection.onSignatureHelp(
         } else {
           // generate variadic labels
           const variadicLabel = params.toTypeString();
-          paramInfos.push(ParameterInformation.create([start, start + variadicLabel.length]));
+          paramInfos.push(
+            ParameterInformation.create([start, start + variadicLabel.length]),
+          );
           label = `${label}(${variadicLabel})`;
         }
 
@@ -537,29 +599,6 @@ connection.onDefinition(
 
     const location = server.analyzer.getDeclarationLocation(position, uri);
     return location && cleanLocation(location);
-  },
-);
-
-/**
- * This handler provider compleition item resolution capability. This provides
- * additional information for the currently compeltion item selection
- */
-connection.onCompletionResolve(
-  (item: CompletionItem): CompletionItem => {
-    try {
-      const token = item.data as Maybe<Token>;
-
-      if (!empty(token)) {
-      }
-
-      return item;
-    } catch (err) {
-      if (err instanceof Error) {
-        connection.console.error(`${err.message} ${err.stack}`);
-      }
-
-      return item;
-    }
   },
 );
 
