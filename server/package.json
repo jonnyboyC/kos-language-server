@@ -32,6 +32,6 @@
         "prepublishOnly": "cd .. && npm run dev:server && npm run test"
     },
     "devDependencies": {
-        "@types/node": "^11.11.4"
+        "@types/node": "^12.0.4"
     }
 }

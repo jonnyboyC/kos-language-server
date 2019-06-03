@@ -22,13 +22,13 @@
         "postinstall": "vscode-install"
     },
     "dependencies": {
-        "semver": "^6.0.0",
-        "vscode": "^1.1.33",
+        "semver": "^6.1.1",
+        "vscode": "^1.1.34",
         "vscode-languageclient": "^5.2.1",
-        "ws": "^6.2.1"
+        "ws": "^7.0.0"
     },
     "devDependencies": {
-        "@types/node": "^11.13.6",
+        "@types/node": "^12.0.4",
         "@types/semver": "^6.0.0",
         "@types/ws": "^6.0.1"
     }
