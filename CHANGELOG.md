@@ -1,3 +1,14 @@
+## Features
+- **Rename Symbol** The language server name supports the rename handler. The server can now rename all instances of a symbol it is aware of.
+
+## Bug Fixes
+- **Suffix Type Names** Previously some suffixes would be completed as `example<anotherExample>`. This was an error in the internal type system. This should not longer occur
+- **Identifer Led Statments** Previously auto complete for suffixes would not trigger some anything like the following. This has now be fixed.
+
+      local l is list().
+      l: // <- previously this wouldn't trigger for list suffixes
+
+
 # [0.6.0] (2019-5-30)
 
 ## Features

@@ -77,7 +77,7 @@ export const isCorrectCallType = (
  */
 export const isSubType = (queryType: Type, targetType: Type): boolean => {
   if (queryType.kind === TypeKind.basic && targetType.kind === TypeKind.basic) {
-    return moveDownPrototype(queryType, false, currentType => {
+    return moveUpSuperTypes(queryType, false, currentType => {
       if (currentType === targetType) {
         return true;
       }
@@ -99,7 +99,7 @@ export const hasOperator = (
   operator: Operator,
 ): Maybe<ArgumentType> => {
   if (type.kind === TypeKind.basic) {
-    return moveDownPrototype(type, undefined, currentType => {
+    return moveUpSuperTypes(type, undefined, currentType => {
       if (!empty(currentType.operators.has(operator))) {
         return type;
       }
@@ -118,7 +118,7 @@ export const hasOperator = (
  */
 export const hasSuffix = (type: Type, suffix: string): boolean => {
   if (type.kind === TypeKind.basic) {
-    return moveDownPrototype(type, false, currentType => {
+    return moveUpSuperTypes(type, false, currentType => {
       if (currentType.suffixes.has(suffix)) {
         return true;
       }
@@ -137,7 +137,7 @@ export const hasSuffix = (type: Type, suffix: string): boolean => {
  */
 export const getSuffix = (type: Type, suffix: string): Maybe<ISuffixType> => {
   if (type.kind === TypeKind.basic) {
-    return moveDownPrototype(type, undefined, currentType => {
+    return moveUpSuperTypes(type, undefined, currentType => {
       return currentType.suffixes.get(suffix);
     });
   }
@@ -156,7 +156,7 @@ export const allSuffixes = (type: Type): ISuffixType[] => {
   {
     // if basic type get all suffixes on type
     case TypeKind.basic:
-      moveDownPrototype(type, false, currentType => {
+      moveUpSuperTypes(type, false, currentType => {
         for (const [name, suffix] of currentType.suffixes) {
           if (!suffixes.has(name)) {
             suffixes.set(name, suffix);
@@ -174,7 +174,7 @@ export const allSuffixes = (type: Type): ISuffixType[] => {
         case CallType.get:
         case CallType.set:
         case CallType.optionalCall:
-          moveDownPrototype(type.returns, false, currentType => {
+          moveUpSuperTypes(type.returns, false, currentType => {
             for (const [name, suffix] of currentType.suffixes) {
               if (!suffixes.has(name)) {
                 suffixes.set(name, suffix);
@@ -223,7 +223,7 @@ export const addPrototype = <T extends IGenericBasicType>(
   type: T,
   prototype: T,
 ): void => {
-  type.inherentsFrom = prototype;
+  type.superType = prototype;
 };
 
 /**
@@ -266,12 +266,12 @@ export const addSuffixes = <
 };
 
 /**
- * Helper function to move down prototype chain
+ * Helper function to move up super type chain
  * @param type type to query
  * @param nullValue null if function does not return
  * @param func query function
  */
-const moveDownPrototype = <T>(
+const moveUpSuperTypes = <T>(
   type: ArgumentType,
   nullValue: T,
   func: (currentType: ArgumentType) => Maybe<T>,
@@ -283,9 +283,9 @@ const moveDownPrototype = <T>(
       return result;
     }
 
-    if (empty(currentType.inherentsFrom)) {
+    if (empty(currentType.superType)) {
       return nullValue;
     }
-    currentType = currentType.inherentsFrom;
+    currentType = currentType.superType;
   }
 };

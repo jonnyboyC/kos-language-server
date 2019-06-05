@@ -545,13 +545,18 @@ export class Parser {
 
   // parse an statement lead with a identifier
   private identifierLedStatement(): INodeResult<IStmt> {
+    const builder: NodeDataBuilder<Stmt.ExprStmt> = {
+      suffix: undefined,
+    };
+
     const suffix = this.suffixCatch(Stmt.ExprStmt);
+    builder.suffix = suffix.value;
 
     if (this.matchTokens([TokenType.on, TokenType.off])) {
       const onOff = this.onOff(suffix.value);
       return nodeResult(onOff.value, flatten([suffix.errors, onOff.errors]));
     }
-    this.terminal(Stmt.ExprStmt);
+    this.terminal(Stmt.ExprStmt, builder);
 
     return nodeResult(new Stmt.ExprStmt(suffix.value), suffix.errors);
   }

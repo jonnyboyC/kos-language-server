@@ -49,7 +49,7 @@ export const tType = getTypeParameter('T');
  * @param name name of the new type
  */
 export const createStructureType = (name: string): IBasicType => {
-  return new BasicType(name);
+  return new BasicType(name, []);
 };
 
 /**
@@ -79,7 +79,7 @@ export const createArgSuffixType = (
   ...params: ArgumentType[]
 ): ISuffixType => {
   const callType = params.length > 0 ? CallType.call : CallType.optionalCall;
-  return new SuffixType(name.toLowerCase(), callType, params, returns);
+  return new SuffixType(name.toLowerCase(), callType, params, returns, []);
 };
 
 /**
@@ -91,7 +91,7 @@ export const createSuffixType = (
   name: string,
   returns: ArgumentType,
 ): ISuffixType => {
-  return new SuffixType(name.toLowerCase(), CallType.get, [], returns);
+  return new SuffixType(name.toLowerCase(), CallType.get, [], returns, []);
 };
 
 /**
@@ -103,7 +103,7 @@ export const createSetSuffixType = (
   name: string,
   returns: ArgumentType,
 ): ISuffixType => {
-  return new SuffixType(name.toLowerCase(), CallType.set, [], returns);
+  return new SuffixType(name.toLowerCase(), CallType.set, [], returns, []);
 };
 
 /**
@@ -122,6 +122,7 @@ export const createVarSuffixType = (
     CallType.optionalCall,
     params,
     returns,
+    [],
   );
 };
 
