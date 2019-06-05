@@ -4,8 +4,12 @@
     "version": "0.6.0",
     "main": "out/server.js",
     "types": "out/server.d.ts",
+    "bin": {
+        "kos": "out/server.js"
+    },
     "files": [
-        "out/**/*"
+        "out/**/*",
+        "bin"
     ],
     "author": "John Chabot",
     "license": "MIT",

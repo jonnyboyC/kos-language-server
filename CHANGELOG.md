@@ -1,3 +1,5 @@
+# [0.6.1] (2019-6-5)
+
 ## Features
 - **Rename Symbol** The language server name supports the rename handler. The server can now rename all instances of a symbol it is aware of.
 
