@@ -1,5 +1,9 @@
 import { ArgumentType } from '../types';
-import { createSetSuffixType, createStructureType, createArgSuffixType } from "../../typeCreators";
+import {
+  createSetSuffixType,
+  createStructureType,
+  createArgSuffixType,
+} from '../../typeCreators';
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { structureType } from '../primitives/structure';
 import { rgbaType } from '../rgba';
@@ -11,14 +15,26 @@ export const widgetSkinType: ArgumentType = createStructureType('skin');
 addPrototype(widgetSkinType, structureType);
 
 const builtIns = [
-  'box', 'button',
-  'horizontalScrollbar', 'horizontalScrollbarLeftButton',
-  'horizontalScrollbarRightButton', 'horizontalScrollbarThumb',
-  'horizontalSlider', 'horizontalSliderThumb',
-  'verticalScrollbar', 'verticalScrollbarLeftButton',
-  'verticalScrollbarRightButton', 'verticalScrollbarThumb',
-  'verticalSlider', 'verticalSliderThumb',
-  'label', 'scrollView', 'textArea', 'textField', 'toggle', 'window',
+  'box',
+  'button',
+  'horizontalScrollbar',
+  'horizontalScrollbarLeftButton',
+  'horizontalScrollbarRightButton',
+  'horizontalScrollbarThumb',
+  'horizontalSlider',
+  'horizontalSliderThumb',
+  'verticalScrollbar',
+  'verticalScrollbarLeftButton',
+  'verticalScrollbarRightButton',
+  'verticalScrollbarThumb',
+  'verticalSlider',
+  'verticalSliderThumb',
+  'label',
+  'scrollView',
+  'textArea',
+  'textField',
+  'toggle',
+  'window',
 ];
 
 addSuffixes(

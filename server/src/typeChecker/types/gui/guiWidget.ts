@@ -1,5 +1,5 @@
 import { ArgumentType } from '../types';
-import { createSetSuffixType, createStructureType } from "../../typeCreators";
+import { createSetSuffixType, createStructureType } from '../../typeCreators';
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { boxType } from './box';
 import { widgetSkinType } from './widgetSkin';

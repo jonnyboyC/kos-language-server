@@ -39,7 +39,7 @@ export interface ITemplateBasicType<TSuffixType, TConcreteType>
   name: string;
   suffixes: Map<string, TSuffixType>;
   operators: Map<Operator, TConcreteType>;
-  inherentsFrom?: ITemplateBasicType<TSuffixType, TConcreteType>;
+  superType?: ITemplateBasicType<TSuffixType, TConcreteType>;
   fullType: boolean;
 }
 
@@ -71,7 +71,7 @@ export interface IGenericVariadicType extends ITypeMeta<IVariadicType> {
 export type IGenericArgumentType = IGenericBasicType;
 
 export interface IBasicType extends IGenericBasicType {
-  inherentsFrom?: ArgumentType;
+  superType?: ArgumentType;
   suffixes: Map<string, ISuffixType>;
   fullType: true;
   kind: TypeKind.basic;
