@@ -4,19 +4,17 @@ import {
   ArgumentType,
   IGenericSuffixType,
   IGenericVariadicType,
-  CallType,
   IGenericBasicType,
   IConstantType,
   IBasicType,
   ISuffixType,
   IVariadicType,
   IFunctionType,
-  Operator,
-  TypeKind,
 } from './types/types';
 import { SuffixTracker } from '../analysis/suffixTracker';
 import { KsSuffix } from '../entities/suffix';
 import { tType } from './typeCreators';
+import { OperatorKind, TypeKind, CallKind } from './types';
 
 /**
  * This represents a generic type, typically the containers of kos
@@ -30,7 +28,7 @@ export class GenericBasicType implements IGenericBasicType {
   /**
    * Operators that are applicable for this type
    */
-  public operators: Map<Operator, IBasicType>;
+  public operators: Map<OperatorKind, IBasicType>;
 
   /**
    * Suffixes attach to this type
@@ -124,7 +122,7 @@ export class GenericSuffixType implements IGenericSuffixType {
    */
   constructor(
     public readonly name: string,
-    public readonly callType: CallType,
+    public readonly callType: CallKind,
     public readonly params: IGenericArgumentType[] | IGenericVariadicType,
     public readonly returns: IGenericArgumentType,
   ) {
@@ -137,8 +135,8 @@ export class GenericSuffixType implements IGenericSuffixType {
   public toTypeString(): string {
     const returnString = returnTypeString(this.returns);
     if (
-      this.callType !== CallType.call &&
-      this.callType !== CallType.optionalCall
+      this.callType !== CallKind.call &&
+      this.callType !== CallKind.optionalCall
     ) {
       return returnString;
     }
@@ -229,7 +227,7 @@ export class BasicType implements IBasicType {
   /**
    * Operators that are applicable for this type
    */
-  public operators: Map<Operator, IBasicType>;
+  public operators: Map<OperatorKind, IBasicType>;
 
   /**
    * Is this type a subtype of another type
@@ -307,7 +305,7 @@ export class SuffixType implements ISuffixType {
    */
   constructor(
     public readonly name: string,
-    public readonly callType: CallType,
+    public readonly callType: CallKind,
     public readonly params: ArgumentType[] | IVariadicType,
     public readonly returns: ArgumentType,
     public readonly typeParameters: ArgumentType[],
@@ -325,8 +323,8 @@ export class SuffixType implements ISuffixType {
 
     const returnString = returnTypeString(this.returns);
     if (
-      this.callType !== CallType.call &&
-      this.callType !== CallType.optionalCall
+      this.callType !== CallKind.call &&
+      this.callType !== CallKind.optionalCall
     ) {
       return `${typeParameterStr}${returnString}`;
     }
@@ -454,7 +452,7 @@ export class VariadicType extends GenericVariadicType implements IVariadicType {
 export class FunctionType implements IFunctionType {
   constructor(
     public readonly name: string,
-    public readonly callType: CallType.call | CallType.optionalCall,
+    public readonly callType: CallKind.call | CallKind.optionalCall,
     public readonly params: ArgumentType[] | IVariadicType,
     public readonly returns: ArgumentType,
   ) {}

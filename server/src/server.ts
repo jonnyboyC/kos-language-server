@@ -50,10 +50,10 @@ import {
 } from './utilities/clean';
 import { keywordCompletions, serverName } from './utilities/constants';
 import { Token } from './entities/token';
-import { TypeKind } from './typeChecker/types/types';
 import { tokenTrackedType } from './typeChecker/typeUitlities';
 import { Scanner } from './scanner/scanner';
 import { isValidIdentifier } from './entities/tokentypes';
+import { TypeKind } from './typeChecker/types';
 
 export interface IClientConfiguration {
   completionCase: 'lowercase' | 'uppercase' | 'camelcase' | 'pascalcase';

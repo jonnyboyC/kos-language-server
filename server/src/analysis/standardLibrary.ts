@@ -64,7 +64,7 @@ import { booleanType } from '../typeChecker/types/primitives/boolean';
 import { coreType } from '../typeChecker/types/core';
 import { versionInfoType } from '../typeChecker/types/versionInfo';
 import { configType } from '../typeChecker/types/config';
-import { builtInDelegateType } from '../typeChecker/types/builtInDelegate';
+import { builtInDelegateType } from '../typeChecker/types/primitives/builtInDelegate';
 import { addonListType } from '../typeChecker/types/addon/addonList';
 import { vesselSensorsType } from '../typeChecker/types/vessel/vesselSensors';
 import { serializableStructureType } from '../typeChecker/types/primitives/serializeableStructure';

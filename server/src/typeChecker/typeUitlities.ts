@@ -7,17 +7,33 @@ import {
   ISuffixType,
   IVariadicType,
   IGenericBasicType,
-  Operator,
   Type,
   IBasicType,
-  CallType,
-  TypeKind,
 } from './types/types';
 import { Token } from '../entities/token';
 import { TokenType } from '../entities/tokentypes';
 import { booleanType } from './types/primitives/boolean';
 import { integarType, doubleType } from './types/primitives/scalar';
 import { stringType } from './types/primitives/string';
+import { CallKind, TypeKind, OperatorKind } from './types';
+
+/**
+ * This map token types to operator kinds
+ */
+export const operatorMap: Map<TokenType, OperatorKind> = new Map([
+  [TokenType.minus, OperatorKind.subtract],
+  [TokenType.multi, OperatorKind.multiply],
+  [TokenType.div, OperatorKind.divide],
+  [TokenType.plus, OperatorKind.plus],
+  [TokenType.less, OperatorKind.lessThan],
+  [TokenType.lessEqual, OperatorKind.lessThanEqual],
+  [TokenType.greater, OperatorKind.greaterThan],
+  [TokenType.greaterEqual, OperatorKind.greaterThanEqual],
+  [TokenType.and, OperatorKind.boolean],
+  [TokenType.or, OperatorKind.boolean],
+  [TokenType.equal, OperatorKind.equal],
+  [TokenType.notEqual, OperatorKind.notEqual],
+]);
 
 /**
  * Retrieve the type of the follow token
@@ -53,19 +69,19 @@ export const tokenTrackedType = (token: Token): Maybe<Type> => {
  * @param targetCallType query call type
  */
 export const isCorrectCallType = (
-  queryCallType: CallType,
-  targetCallType: CallType,
+  queryCallType: CallKind,
+  targetCallType: CallKind,
 ): boolean => {
   switch (queryCallType) {
-    case CallType.optionalCall:
+    case CallKind.optionalCall:
       return (
-        targetCallType === CallType.get ||
-        targetCallType === CallType.call ||
-        targetCallType === CallType.optionalCall
+        targetCallType === CallKind.get ||
+        targetCallType === CallKind.call ||
+        targetCallType === CallKind.optionalCall
       );
-    case CallType.get:
-    case CallType.set:
-    case CallType.call:
+    case CallKind.get:
+    case CallKind.set:
+    case CallKind.call:
       return targetCallType === queryCallType;
   }
 };
@@ -96,7 +112,7 @@ export const isSubType = (queryType: Type, targetType: Type): boolean => {
  */
 export const hasOperator = (
   type: Type,
-  operator: Operator,
+  operator: OperatorKind,
 ): Maybe<ArgumentType> => {
   if (type.kind === TypeKind.basic) {
     return moveUpSuperTypes(type, undefined, currentType => {
@@ -171,9 +187,9 @@ export const allSuffixes = (type: Type): ISuffixType[] => {
     // a gettable suffix get all suffixes on return type
     case TypeKind.suffix:
       switch (type.callType) {
-        case CallType.get:
-        case CallType.set:
-        case CallType.optionalCall:
+        case CallKind.get:
+        case CallKind.set:
+        case CallKind.optionalCall:
           moveUpSuperTypes(type.returns, false, currentType => {
             for (const [name, suffix] of currentType.suffixes) {
               if (!suffixes.has(name)) {
@@ -233,7 +249,7 @@ export const addPrototype = <T extends IGenericBasicType>(
  */
 export const addOperators = <T extends IGenericBasicType>(
   type: T,
-  ...operators: [Operator, IBasicType][]
+  ...operators: [OperatorKind, IBasicType][]
 ): void => {
   for (const [operator, returnType] of operators) {
     if (type.operators.has(operator)) {

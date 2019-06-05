@@ -6,10 +6,10 @@ import { booleanType } from './boolean';
 import { voidType } from './void';
 import { serializableStructureType } from './serializeableStructure';
 import { primitiveType } from './primitives';
-import { Operator } from '../types';
 import { scalarType, integarType, doubleType } from './scalar';
 import { listType } from '../collections/list';
 import { delegateType } from './delegate';
+import { OperatorKind } from '../../types';
 
 let set = false;
 
@@ -40,13 +40,13 @@ export const primitiveInitializer = () => {
   // ------------------ string ---------------------------
   addOperators(
     stringType,
-    [Operator.plus, stringType],
-    [Operator.greaterThan, booleanType],
-    [Operator.lessThan, booleanType],
-    [Operator.greaterThanEqual, booleanType],
-    [Operator.lessThanEqual, booleanType],
-    [Operator.equal, booleanType],
-    [Operator.notEqual, booleanType],
+    [OperatorKind.plus, stringType],
+    [OperatorKind.greaterThan, booleanType],
+    [OperatorKind.lessThan, booleanType],
+    [OperatorKind.greaterThanEqual, booleanType],
+    [OperatorKind.lessThanEqual, booleanType],
+    [OperatorKind.equal, booleanType],
+    [OperatorKind.notEqual, booleanType],
   );
   addPrototype(stringType, primitiveType);
   addSuffixes(
@@ -78,17 +78,17 @@ export const primitiveInitializer = () => {
   // ------------------ scalar ---------------------------
   addOperators(
     scalarType,
-    [Operator.plus, scalarType],
-    [Operator.subtract, scalarType],
-    [Operator.multiply, scalarType],
-    [Operator.divide, scalarType],
-    [Operator.power, scalarType],
-    [Operator.greaterThan, booleanType],
-    [Operator.lessThan, booleanType],
-    [Operator.greaterThanEqual, booleanType],
-    [Operator.lessThanEqual, booleanType],
-    [Operator.notEqual, booleanType],
-    [Operator.equal, booleanType],
+    [OperatorKind.plus, scalarType],
+    [OperatorKind.subtract, scalarType],
+    [OperatorKind.multiply, scalarType],
+    [OperatorKind.divide, scalarType],
+    [OperatorKind.power, scalarType],
+    [OperatorKind.greaterThan, booleanType],
+    [OperatorKind.lessThan, booleanType],
+    [OperatorKind.greaterThanEqual, booleanType],
+    [OperatorKind.lessThanEqual, booleanType],
+    [OperatorKind.notEqual, booleanType],
+    [OperatorKind.equal, booleanType],
   );
   addPrototype(scalarType, primitiveType);
 
@@ -110,8 +110,8 @@ export const primitiveInitializer = () => {
   // ------------------ boolean ---------------------------
   addOperators(
     booleanType,
-    [Operator.notEqual, booleanType],
-    [Operator.equal, booleanType],
+    [OperatorKind.notEqual, booleanType],
+    [OperatorKind.equal, booleanType],
   );
   addPrototype(booleanType, primitiveType);
 };

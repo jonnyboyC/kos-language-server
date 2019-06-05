@@ -11,7 +11,7 @@ import * as SuffixTerm from '../parser/suffixTerm';
 import * as Expr from '../parser/expr';
 import * as Stmt from '../parser/stmt';
 import * as Decl from '../parser/declare';
-import { ITypeResultExpr } from './types';
+import { ITypeResultExpr, TypeKind, OperatorKind } from './types';
 import { mockLogger, mockTracer } from '../utilities/logger';
 import { Script } from '../entities/script';
 import { empty } from '../utilities/typeGuards';
@@ -19,8 +19,6 @@ import {
   ArgumentType,
   Type,
   IVariadicType,
-  Operator,
-  TypeKind,
   IBasicType,
   ISuffixType,
 } from './types/types';
@@ -32,7 +30,7 @@ import { nodeType } from './types/node';
 import { createFunctionType } from './typeCreators';
 import { lexiconType } from './types/collections/lexicon';
 import { zip } from '../utilities/arrayUtils';
-import { isSubType, hasOperator, getSuffix, hasSuffix } from './typeUitlities';
+import { isSubType, hasOperator, getSuffix, hasSuffix, operatorMap } from './typeUitlities';
 import { voidType } from './types/primitives/void';
 import { userListType } from './types/collections/userList';
 import { booleanType } from './types/primitives/boolean';
@@ -991,88 +989,14 @@ export class TypeChecker
     const rightResult = this.checkExpr(expr.right);
     const leftResult = this.checkExpr(expr.left);
 
-    switch (expr.operator.type) {
-      case TokenType.minus:
-        return this.checkOperator(
-          expr,
-          leftResult,
-          rightResult,
-          Operator.subtract,
-        );
-      case TokenType.multi:
-        return this.checkOperator(
-          expr,
-          leftResult,
-          rightResult,
-          Operator.multiply,
-        );
-      case TokenType.div:
-        return this.checkOperator(
-          expr,
-          leftResult,
-          rightResult,
-          Operator.divide,
-        );
-      case TokenType.plus:
-        return this.checkOperator(expr, leftResult, rightResult, Operator.plus);
-      case TokenType.less:
-        return this.checkOperator(
-          expr,
-          leftResult,
-          rightResult,
-          Operator.lessThan,
-        );
-      case TokenType.lessEqual:
-        return this.checkOperator(
-          expr,
-          leftResult,
-          rightResult,
-          Operator.lessThanEqual,
-        );
-      case TokenType.greater:
-        return this.checkOperator(
-          expr,
-          leftResult,
-          rightResult,
-          Operator.greaterThan,
-        );
-      case TokenType.greaterEqual:
-        return this.checkOperator(
-          expr,
-          leftResult,
-          rightResult,
-          Operator.greaterThanEqual,
-        );
-      case TokenType.and:
-      case TokenType.or:
-        const errors = leftResult.errors.concat(rightResult.errors);
-        if (
-          !isSubType(leftResult.type, booleanType) ||
-          !isSubType(leftResult.type, booleanType)
-        ) {
-          errors.push(
-            createDiagnostic(
-              expr,
-              '"and" and "or" require boolean types. May not be able to coerce one or other',
-              DiagnosticSeverity.Hint,
-            ),
-          );
-        }
-        return { errors, type: booleanType };
-      case TokenType.equal:
-        return this.checkOperator(
-          expr,
-          leftResult,
-          rightResult,
-          Operator.equal,
-        );
-      case TokenType.notEqual:
-        return this.checkOperator(
-          expr,
-          leftResult,
-          rightResult,
-          Operator.notEqual,
-        );
+    const operator = operatorMap.get(expr.operator.type);
+    if (!empty(operator)) {
+      return this.checkOperator(
+        expr,
+        leftResult,
+        rightResult,
+        operator,
+      );
     }
 
     throw new Error(
@@ -1769,12 +1693,30 @@ export class TypeChecker
     expr: IExpr,
     leftResult: ITypeResultExpr<Type>,
     rightResult: ITypeResultExpr<Type>,
-    operator: Operator,
+    operator: OperatorKind,
   ): ITypeResultExpr<ArgumentType> {
+
     const leftType = leftResult.type;
     const rightType = rightResult.type;
     const errors = leftResult.errors.concat(rightResult.errors);
     let calcType: Maybe<ArgumentType> = undefined;
+
+    if (operator === OperatorKind.boolean) {
+      if (
+        !isSubType(leftResult.type, booleanType) ||
+        !isSubType(leftResult.type, booleanType)
+      ) {
+        errors.push(
+          createDiagnostic(
+            expr,
+            '"and" and "or" require boolean types. May not be able to coerce one or other',
+            DiagnosticSeverity.Hint,
+          ),
+        );
+      }
+
+      return { errors, type: booleanType };
+    }
 
     // TODO could be more efficient
     if (isSubType(leftType, scalarType) && isSubType(rightType, scalarType)) {

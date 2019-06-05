@@ -15,11 +15,11 @@ import {
 } from 'vscode-languageserver';
 import { empty } from './typeGuards';
 import { allSuffixes, tokenTrackedType } from '../typeChecker/typeUitlities';
-import { CallType } from '../typeChecker/types/types';
 import { KsSymbolKind } from '../analysis/types';
 import { cleanLocation, cleanToken, cleanCompletion } from './clean';
 import { IServer } from '../server';
 import { keywordCompletions } from './constants';
+import { CallKind } from '../typeChecker/types';
 
 /**
  * Get the connection primitives based on the request connection type
@@ -204,15 +204,15 @@ export const suffixCompletionItems = (
   // generate completions
   return suffixes.map(suffix => {
     switch (suffix.callType) {
-      case CallType.call:
-      case CallType.optionalCall:
+      case CallKind.call:
+      case CallKind.optionalCall:
         return {
           kind: CompletionItemKind.Method,
           label: suffix.name,
           detail: `${suffix.name}: ${suffix.toTypeString()}`,
         } as CompletionItem;
-      case CallType.get:
-      case CallType.set:
+      case CallKind.get:
+      case CallKind.set:
         return {
           kind: CompletionItemKind.Property,
           label: suffix.name,
