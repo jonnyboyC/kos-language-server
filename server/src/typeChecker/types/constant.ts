@@ -1,4 +1,4 @@
-import { ArgumentType } from './types';
+import { ArgumentType, IBasicType } from './types';
 import { ConstantType } from '../ksType';
 import { createStructureType, createSuffixType } from "../typeCreators";
 import { addPrototype, addSuffixes } from '../typeUitlities';
@@ -6,31 +6,31 @@ import { structureType } from './primitives/structure';
 import { doubleType } from './primitives/scalar';
 
 export const gType = new ConstantType('g', 6.67384e-11);
-addPrototype(gType, doubleType);
+addPrototype<IBasicType>(gType, doubleType);
 
 export const eType = new ConstantType('e', Math.E);
-addPrototype(eType, doubleType);
+addPrototype<IBasicType>(eType, doubleType);
 
 export const piType = new ConstantType('pi', Math.PI);
-addPrototype(piType, doubleType);
+addPrototype<IBasicType>(piType, doubleType);
 
 export const cType = new ConstantType('c', 299792458.0);
-addPrototype(cType, doubleType);
+addPrototype<IBasicType>(cType, doubleType);
 
 export const atmToKpaType = new ConstantType('atmtokpa', 101.325);
-addPrototype(atmToKpaType, doubleType);
+addPrototype<IBasicType>(atmToKpaType, doubleType);
 
 export const kpaToAtmType = new ConstantType('kpatoatm', 0.00986923266716012830002467308167);
-addPrototype(kpaToAtmType, doubleType);
+addPrototype<IBasicType>(kpaToAtmType, doubleType);
 
 export const degToRadType = new ConstantType('degtorad', 0.01745329251994329576923690768489);
-addPrototype(degToRadType, doubleType);
+addPrototype<IBasicType>(degToRadType, doubleType);
 
 export const radToDegType = new ConstantType('radtodeg', 57.295779513082320876798154814105);
-addPrototype(radToDegType, doubleType);
+addPrototype<IBasicType>(radToDegType, doubleType);
 
 export const constantType: ArgumentType = createStructureType('constant');
-addPrototype(constantType, structureType);
+addPrototype<IBasicType>(constantType, structureType);
 
 addSuffixes(
   constantType,
