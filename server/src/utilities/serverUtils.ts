@@ -20,28 +20,25 @@ import { cleanLocation, cleanToken, cleanCompletion } from './clean';
 import { IServer } from '../server';
 import { keywordCompletions } from './constants';
 import { CallKind } from '../typeChecker/types';
+import { CommanderStatic } from 'commander';
 
 /**
  * Get the connection primitives based on the request connection type
  * @param connectionType connection type
  */
 export const getConnectionPrimitives = (
-  connectionType: string,
+  program: CommanderStatic,
 ): { writer: MessageWriter; reader: MessageReader } => {
+
   let reader: MessageReader;
   let writer: MessageWriter;
 
-  switch (connectionType) {
-    case '--node-ipc':
-      reader = new IPCMessageReader(process);
-      writer = new IPCMessageWriter(process);
-      break;
-    case '--stdio':
-      reader = new StreamMessageReader(process.stdin);
-      writer = new StreamMessageWriter(process.stdout);
-      break;
-    default:
-      throw new Error('');
+  if (program.nodeIpc) {
+    reader = new IPCMessageReader(process);
+    writer = new IPCMessageWriter(process);
+  } else {
+    reader = new StreamMessageReader(process.stdin);
+    writer = new StreamMessageWriter(process.stdout);
   }
 
   writer.onError(([error, message, code]) => {

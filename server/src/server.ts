@@ -1,5 +1,3 @@
-'use strict';
-
 import {
   createConnection,
   TextDocuments,
@@ -54,6 +52,17 @@ import { tokenTrackedType } from './typeChecker/typeUitlities';
 import { Scanner } from './scanner/scanner';
 import { isValidIdentifier } from './entities/tokentypes';
 import { TypeKind } from './typeChecker/types';
+// tslint:disable-next-line:import-name
+import program from 'commander';
+
+program
+  .version('0.6.1', '-v --version')
+  .option('--node-ipc', 'Connect with node inter process communication')
+  .option('--stdio', 'Connect with standard io')
+  .option('--clientProcessId', 'Id of the attached client process')
+  .parse(process.argv);
+
+console.log(program);
 
 export interface IClientConfiguration {
   completionCase: 'lowercase' | 'uppercase' | 'camelcase' | 'pascalcase';
@@ -87,7 +96,7 @@ export interface IServer {
 }
 
 // get connection primitives based on command argument
-const { reader, writer } = getConnectionPrimitives(process.argv[2]);
+const { reader, writer } = getConnectionPrimitives(program);
 
 // Create a connection for the server. The connection uses Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
