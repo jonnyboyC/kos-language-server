@@ -2,6 +2,24 @@
 
 kos-language-server is a language server for the Kerboscript language, part of Kerbal Operating System mod.
 
+## Installation
+This package should like be installed globally using 
+
+      npm install -g kos-language-server
+
+the server can then be started by
+
+      kls
+
+## Arguments
+
+- `-v` `--version`       output the version number
+- `--node-ipc`         Connect with node inter process communication
+- `--stdio`            Connect with standard io
+  --clientProcessId  Id of the attached client process
+  -h, --help         output usage information
+
+
 ## Features
 Currently the kos-language-server 0.6.1 implements the follow features
 - Code completion
