@@ -11,7 +11,7 @@ import { structureType } from '../typeChecker/types/primitives/structure';
 import { partType } from '../typeChecker/types/parts/part';
 import { dockingPortType } from '../typeChecker/types/parts/dockingPort';
 import { primitiveInitializer } from '../typeChecker/types/primitives/initialize';
-import { oribitalInitializer } from '../typeChecker/types/orbital/initialize';
+import { orbitalInitializer } from '../typeChecker/types/orbital/initialize';
 import {
   createStructureType,
   createSuffixType,
@@ -20,7 +20,7 @@ import {
 import { CallKind } from '../typeChecker/types';
 
 primitiveInitializer();
-oribitalInitializer();
+orbitalInitializer();
 
 describe('Type Utilities', () => {
   test('Call type', () => {

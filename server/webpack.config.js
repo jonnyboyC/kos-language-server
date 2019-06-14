@@ -3,7 +3,7 @@
 
 const path = require('path');
 
-/**@type {import('webpack').Configuration}*/
+/**@type {import('webpack').WebpackOptions}*/
 const config = {
   target: 'node', // vscode extensions run in a Node.js-context 📖 -> https://webpack.js.org/configuration/node/
   entry: path.join(__dirname, '/src/server.ts'), // the entry point of this extension, 📖 -> https://webpack.js.org/configuration/entry-context/

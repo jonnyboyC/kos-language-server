@@ -39,7 +39,7 @@ import {
 } from './utilities/serverUtils';
 import { Logger } from './utilities/logger';
 import { primitiveInitializer } from './typeChecker/types/primitives/initialize';
-import { oribitalInitializer } from './typeChecker/types/orbital/initialize';
+import { orbitalInitializer } from './typeChecker/types/orbital/initialize';
 import {
   cleanDiagnostic,
   cleanLocation,
@@ -109,7 +109,7 @@ export const connection = createConnection(
 // REMOVE ME TODO probably need to refactor the type modules as
 // structure and the primitives have a dependnecy loop
 primitiveInitializer();
-oribitalInitializer();
+orbitalInitializer();
 
 // default client configuration
 const defaultClientConfiguration: IClientConfiguration = {

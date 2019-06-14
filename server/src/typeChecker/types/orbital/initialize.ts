@@ -32,7 +32,7 @@ import { vesselSensorsType } from '../vessel/vesselSensors';
 
 let set = false;
 
-export const oribitalInitializer = () => {
+export const orbitalInitializer = () => {
   if (set) {
     return;
   }
