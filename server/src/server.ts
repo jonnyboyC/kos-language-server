@@ -62,8 +62,6 @@ program
   .option('--clientProcessId', 'Id of the attached client process')
   .parse(process.argv);
 
-console.log(program);
-
 export interface IClientConfiguration {
   completionCase: 'lowercase' | 'uppercase' | 'camelcase' | 'pascalcase';
   kerbalSpaceProgramPath?: string;
