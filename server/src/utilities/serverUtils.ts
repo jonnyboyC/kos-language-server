@@ -15,33 +15,30 @@ import {
 } from 'vscode-languageserver';
 import { empty } from './typeGuards';
 import { allSuffixes, tokenTrackedType } from '../typeChecker/typeUitlities';
-import { CallType } from '../typeChecker/types/types';
 import { KsSymbolKind } from '../analysis/types';
 import { cleanLocation, cleanToken, cleanCompletion } from './clean';
 import { IServer } from '../server';
 import { keywordCompletions } from './constants';
+import { CallKind } from '../typeChecker/types';
+import { CommanderStatic } from 'commander';
 
 /**
  * Get the connection primitives based on the request connection type
  * @param connectionType connection type
  */
 export const getConnectionPrimitives = (
-  connectionType: string,
+  program: CommanderStatic,
 ): { writer: MessageWriter; reader: MessageReader } => {
+
   let reader: MessageReader;
   let writer: MessageWriter;
 
-  switch (connectionType) {
-    case '--node-ipc':
-      reader = new IPCMessageReader(process);
-      writer = new IPCMessageWriter(process);
-      break;
-    case '--stdio':
-      reader = new StreamMessageReader(process.stdin);
-      writer = new StreamMessageWriter(process.stdout);
-      break;
-    default:
-      throw new Error('');
+  if (program.nodeIpc) {
+    reader = new IPCMessageReader(process);
+    writer = new IPCMessageWriter(process);
+  } else {
+    reader = new StreamMessageReader(process.stdin);
+    writer = new StreamMessageWriter(process.stdout);
   }
 
   writer.onError(([error, message, code]) => {
@@ -204,15 +201,15 @@ export const suffixCompletionItems = (
   // generate completions
   return suffixes.map(suffix => {
     switch (suffix.callType) {
-      case CallType.call:
-      case CallType.optionalCall:
+      case CallKind.call:
+      case CallKind.optionalCall:
         return {
           kind: CompletionItemKind.Method,
           label: suffix.name,
           detail: `${suffix.name}: ${suffix.toTypeString()}`,
         } as CompletionItem;
-      case CallType.get:
-      case CallType.set:
+      case CallKind.get:
+      case CallKind.set:
         return {
           kind: CompletionItemKind.Property,
           label: suffix.name,

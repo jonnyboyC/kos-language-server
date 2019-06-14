@@ -1,41 +1,6 @@
 import { Type } from './types/types';
 import { Diagnostic } from 'vscode-languageserver';
-import { KsSymbolKind } from '../analysis/types';
-import { TypeNode } from './typeNode';
 import { SuffixTypeBuilder } from './suffixTypeNode';
-
-/**
- * Cumulative suffix type information indicating the type of each
- * segment of the suffix
- */
-export interface ITypeResolvedSuffix<T extends Type = Type> {
-  /**
-   * Atom of the given suffix term
-   */
-  atom: TypeNode<T>;
-
-  /**
-   * Suffix term trailers attached to the atom
-   */
-  termTrailers: TypeNode[];
-
-  /**
-   * Optional suffix term trailer potentially following this suffix term
-   */
-  suffixTrailer?: ITypeResolvedSuffix;
-}
-
-/**
- * Cumulative suffix type information indicating the type of each
- * segment of the suffix for the root of the suffix
- */
-export interface ITypeResolved<T extends Type = Type>
-  extends ITypeResolvedSuffix<T> {
-  /**
-   * Indicates the entity type of the root atom
-   */
-  atomType: KsSymbolKind;
-}
 
 /**
  * type result for a kerboscript expression
@@ -65,4 +30,42 @@ export interface ITypeResultSuffix<T extends SuffixTypeBuilder = SuffixTypeBuild
    * errors encounted during this suffix type check
    */
   errors: Diagnostic[];
+}
+
+/**
+ * What is the kind of this type
+ */
+export const enum TypeKind {
+  basic,
+  variadic,
+  suffix,
+  function,
+}
+
+/**
+ * What is the kind of this call
+ */
+export const enum CallKind {
+  get,
+  set,
+  call,
+  optionalCall,
+}
+
+/**
+ * What operator kind is present
+ */
+export const enum OperatorKind {
+  plus,
+  subtract,
+  multiply,
+  divide,
+  power,
+  greaterThan,
+  lessThan,
+  greaterThanEqual,
+  lessThanEqual,
+  notEqual,
+  equal,
+  boolean,
 }

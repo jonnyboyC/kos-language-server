@@ -1,10 +1,12 @@
 import { ArgumentType } from './types';
-import { createStructureType, createSuffixType } from "../typeCreators";
+import { createStructureType, createSuffixType } from '../typeCreators';
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { structureType } from './primitives/structure';
 import { situationLoadDistanceType } from './situtationLoadDistance';
 
-export const loadDistanceType: ArgumentType = createStructureType('loadDistance');
+export const loadDistanceType: ArgumentType = createStructureType(
+  'loadDistance',
+);
 addPrototype(loadDistanceType, structureType);
 
 addSuffixes(

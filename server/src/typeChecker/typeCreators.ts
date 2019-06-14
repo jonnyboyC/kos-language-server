@@ -2,7 +2,6 @@ import {
   IGenericArgumentType,
   ArgumentType,
   IGenericSuffixType,
-  CallType,
   IGenericBasicType,
   IBasicType,
   ISuffixType,
@@ -18,6 +17,7 @@ import {
   FunctionType,
   VariadicType,
 } from './ksType';
+import { CallKind } from './types';
 
 /**
  * Generate a new basic generic type
@@ -49,7 +49,7 @@ export const tType = getTypeParameter('T');
  * @param name name of the new type
  */
 export const createStructureType = (name: string): IBasicType => {
-  return new BasicType(name);
+  return new BasicType(name, []);
 };
 
 /**
@@ -63,7 +63,7 @@ export const createGenericArgSuffixType = (
   returns: IGenericArgumentType,
   ...params: IGenericArgumentType[]
 ): IGenericSuffixType => {
-  const callType = params.length > 0 ? CallType.call : CallType.optionalCall;
+  const callType = params.length > 0 ? CallKind.call : CallKind.optionalCall;
   return new GenericSuffixType(name.toLowerCase(), callType, params, returns);
 };
 
@@ -78,8 +78,8 @@ export const createArgSuffixType = (
   returns: ArgumentType,
   ...params: ArgumentType[]
 ): ISuffixType => {
-  const callType = params.length > 0 ? CallType.call : CallType.optionalCall;
-  return new SuffixType(name.toLowerCase(), callType, params, returns);
+  const callType = params.length > 0 ? CallKind.call : CallKind.optionalCall;
+  return new SuffixType(name.toLowerCase(), callType, params, returns, []);
 };
 
 /**
@@ -91,7 +91,7 @@ export const createSuffixType = (
   name: string,
   returns: ArgumentType,
 ): ISuffixType => {
-  return new SuffixType(name.toLowerCase(), CallType.get, [], returns);
+  return new SuffixType(name.toLowerCase(), CallKind.get, [], returns, []);
 };
 
 /**
@@ -103,7 +103,7 @@ export const createSetSuffixType = (
   name: string,
   returns: ArgumentType,
 ): ISuffixType => {
-  return new SuffixType(name.toLowerCase(), CallType.set, [], returns);
+  return new SuffixType(name.toLowerCase(), CallKind.set, [], returns, []);
 };
 
 /**
@@ -119,9 +119,10 @@ export const createVarSuffixType = (
 ): ISuffixType => {
   return new SuffixType(
     name.toLowerCase(),
-    CallType.optionalCall,
+    CallKind.optionalCall,
     params,
     returns,
+    [],
   );
 };
 
@@ -145,7 +146,7 @@ export const createFunctionType = (
   returns: ArgumentType,
   ...params: ArgumentType[]
 ): IFunctionType => {
-  const callType = params.length > 0 ? CallType.call : CallType.optionalCall;
+  const callType = params.length > 0 ? CallKind.call : CallKind.optionalCall;
   return new FunctionType(name.toLowerCase(), callType, params, returns);
 };
 
@@ -162,7 +163,7 @@ export const createVarFunctionType = (
 ): IFunctionType => {
   return new FunctionType(
     name.toLowerCase(),
-    CallType.optionalCall,
+    CallKind.optionalCall,
     params,
     returns,
   );

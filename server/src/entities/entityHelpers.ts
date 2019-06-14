@@ -25,7 +25,7 @@ export const isParameter = (symbol: KsSymbol): symbol is KsParameter => {
  * Check if the symbol is a function
  * @param symbol symbol to check
  */
-export const isKsFunction = (symbol: KsSymbol): symbol is KsFunction => {
+export const isFunction = (symbol: KsSymbol): symbol is KsFunction => {
   return symbol.tag === KsSymbolKind.function;
 };
 
@@ -33,7 +33,7 @@ export const isKsFunction = (symbol: KsSymbol): symbol is KsFunction => {
  * Check if the symbol is a lock
  * @param symbol symbol to check
  */
-export const isKsLock = (symbol: KsSymbol): symbol is KsLock => {
+export const isLock = (symbol: KsSymbol): symbol is KsLock => {
   return symbol.tag === KsSymbolKind.lock;
 };
 

@@ -344,7 +344,7 @@ describe('Resolver tracking', () => {
       range =  makeRange(17, 5, 17, 6);
       expect(rangeEqual(name, range)).toBeTruthy();
       expect(tag).toBe(KsSymbolKind.lock);
-      expect(tTracker.usages.length).toBe(2);
+      expect(tTracker.usages.length).toBe(1);
       expect(tTracker.sets.length).toBe(0);
     }
   });
@@ -412,6 +412,19 @@ describe('Resolver tracking', () => {
       expect(tag).toBe(KsSymbolKind.function);
       expect(funcTracker.usages.length).toBe(1);
       expect(funcTracker.sets.length).toBe(0);
+    }
+
+    const otherTracker = table.scopedNamedTracker({ line: 0, character: 0 }, 'other');
+
+    // check test function
+    expect(otherTracker).not.toBeUndefined();
+    if (otherTracker !== undefined) {
+      const { name, tag } = otherTracker.declared.symbol;
+      expect(name.lexeme).toBe('other');
+
+      expect(tag).toBe(KsSymbolKind.lock);
+      expect(otherTracker.usages.length).toBe(1);
+      expect(otherTracker.sets.length).toBe(0);
     }
   });
 });
@@ -522,7 +535,7 @@ describe('Resolver errors', () => {
     expect(results.resolveDiagnostics.length > 0).toBe(true);
 
     for (const [error, location] of zip(results.resolveDiagnostics, shadowedLocations)) {
-      expect(DiagnosticSeverity.Warning).toBe(error.severity);
+      expect(DiagnosticSeverity.Hint).toBe(error.severity);
       expect(location.start).toEqual(error.range.start);
       expect(location.end).toEqual(error.range.end);
     }

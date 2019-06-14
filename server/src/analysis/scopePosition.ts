@@ -1,8 +1,8 @@
-import { IRealScopePosition } from './types';
+import { RealEnvironmentRange } from './types';
 import { Position } from 'vscode-languageserver';
 import { ScopeKind } from '../parser/types';
 
-export class ScopePosition implements IRealScopePosition {
+export class ScopePosition implements RealEnvironmentRange {
   constructor(
     public start: Position,
     public end: Position) {

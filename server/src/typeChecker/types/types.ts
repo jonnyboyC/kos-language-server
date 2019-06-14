@@ -1,36 +1,9 @@
 import { SuffixTracker } from '../../analysis/suffixTracker';
+import { CallKind, TypeKind, OperatorKind } from '../types';
 
 interface ITypeMeta<T> {
   toTypeString(): string;
   toConcreteType(type: ArgumentType): T;
-}
-
-export const enum TypeKind {
-  basic,
-  variadic,
-  suffix,
-  function,
-}
-
-export const enum CallType {
-  get,
-  set,
-  call,
-  optionalCall,
-}
-
-export const enum Operator {
-  plus,
-  subtract,
-  multiply,
-  divide,
-  power,
-  greaterThan,
-  lessThan,
-  greaterThanEqual,
-  lessThanEqual,
-  notEqual,
-  equal,
 }
 
 // Could possible delete but does provide a constraint
@@ -38,8 +11,8 @@ export interface ITemplateBasicType<TSuffixType, TConcreteType>
   extends ITypeMeta<TConcreteType> {
   name: string;
   suffixes: Map<string, TSuffixType>;
-  operators: Map<Operator, TConcreteType>;
-  inherentsFrom?: ITemplateBasicType<TSuffixType, TConcreteType>;
+  operators: Map<OperatorKind, TConcreteType>;
+  superType?: ITemplateBasicType<TSuffixType, TConcreteType>;
   fullType: boolean;
 }
 
@@ -47,7 +20,7 @@ export interface ITemplateBasicType<TSuffixType, TConcreteType>
 export interface ITemplateSuffixType<TBasicType, TVariadicType, TConcreteType>
   extends ITypeMeta<TConcreteType> {
   name: string;
-  callType: CallType;
+  callType: CallKind;
   params: TBasicType[] | TVariadicType;
   returns: TBasicType;
   fullType: boolean;
@@ -71,7 +44,7 @@ export interface IGenericVariadicType extends ITypeMeta<IVariadicType> {
 export type IGenericArgumentType = IGenericBasicType;
 
 export interface IBasicType extends IGenericBasicType {
-  inherentsFrom?: ArgumentType;
+  superType?: ArgumentType;
   suffixes: Map<string, ISuffixType>;
   fullType: true;
   kind: TypeKind.basic;
@@ -99,7 +72,7 @@ export interface IConstantType<T> extends IBasicType {
 
 export interface IFunctionType extends ITypeMeta<IFunctionType> {
   name: string;
-  callType: CallType.call | CallType.optionalCall;
+  callType: CallKind.call | CallKind.optionalCall;
   params: ArgumentType[] | IVariadicType;
   returns: ArgumentType;
   fullType: true;

@@ -31,7 +31,6 @@ export class PreResolver
     IExprVisitor<Diagnostics>,
     IStmtVisitor<Diagnostics>,
     ISuffixTermVisitor<Diagnostics> {
-
   /**
    * current script being processed
    */

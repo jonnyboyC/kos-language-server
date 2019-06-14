@@ -4,19 +4,17 @@ import {
   ArgumentType,
   IGenericSuffixType,
   IGenericVariadicType,
-  CallType,
   IGenericBasicType,
   IConstantType,
   IBasicType,
   ISuffixType,
   IVariadicType,
   IFunctionType,
-  Operator,
-  TypeKind,
 } from './types/types';
 import { SuffixTracker } from '../analysis/suffixTracker';
 import { KsSuffix } from '../entities/suffix';
 import { tType } from './typeCreators';
+import { OperatorKind, TypeKind, CallKind } from './types';
 
 /**
  * This represents a generic type, typically the containers of kos
@@ -30,7 +28,7 @@ export class GenericBasicType implements IGenericBasicType {
   /**
    * Operators that are applicable for this type
    */
-  public operators: Map<Operator, IBasicType>;
+  public operators: Map<OperatorKind, IBasicType>;
 
   /**
    * Suffixes attach to this type
@@ -38,9 +36,9 @@ export class GenericBasicType implements IGenericBasicType {
   public suffixes: Map<string, IGenericSuffixType>;
 
   /**
-   * Does this type inherent from another type
+   * Is this type a subtype of another type
    */
-  public inherentsFrom?: IGenericArgumentType;
+  public superType?: IGenericArgumentType;
 
   /**
    * Constructor a generic type
@@ -74,11 +72,11 @@ export class GenericBasicType implements IGenericBasicType {
       return cache;
     }
 
-    const newType = new BasicType(`${this.name}<${type.toTypeString()}>`);
+    const newType = new BasicType(this.name, [type]);
     this.concreteTypes.set(type, newType);
 
-    const newInherentsFrom = !empty(this.inherentsFrom)
-      ? this.inherentsFrom.toConcreteType(type)
+    const newInherentsFrom = !empty(this.superType)
+      ? this.superType.toConcreteType(type)
       : undefined;
 
     // add suffixes and prototype
@@ -86,7 +84,7 @@ export class GenericBasicType implements IGenericBasicType {
       newType.suffixes.set(name, suffixType.toConcreteType(type));
     }
     newType.operators = new Map(this.operators);
-    newType.inherentsFrom = newInherentsFrom;
+    newType.superType = newInherentsFrom;
 
     return newType;
   }
@@ -124,7 +122,7 @@ export class GenericSuffixType implements IGenericSuffixType {
    */
   constructor(
     public readonly name: string,
-    public readonly callType: CallType,
+    public readonly callType: CallKind,
     public readonly params: IGenericArgumentType[] | IGenericVariadicType,
     public readonly returns: IGenericArgumentType,
   ) {
@@ -137,8 +135,8 @@ export class GenericSuffixType implements IGenericSuffixType {
   public toTypeString(): string {
     const returnString = returnTypeString(this.returns);
     if (
-      this.callType !== CallType.call &&
-      this.callType !== CallType.optionalCall
+      this.callType !== CallKind.call &&
+      this.callType !== CallKind.optionalCall
     ) {
       return returnString;
     }
@@ -164,10 +162,11 @@ export class GenericSuffixType implements IGenericSuffixType {
     // generate concrete return
     const newReturns = this.returns.toConcreteType(type);
     const newType = new SuffixType(
-      `${this.name}<${type.toTypeString()}>`,
+      this.name,
       this.callType,
       newParams,
       newReturns,
+      [type],
     );
 
     this.concreteTypes.set(type, newType);
@@ -216,25 +215,38 @@ export class GenericSuffixType implements IGenericSuffixType {
  */
 export class BasicType implements IBasicType {
   /**
+   * Name of the type
+   */
+  public readonly name: string;
+
+  /**
    * Suffixes attach to this type
    */
   public suffixes: Map<string, ISuffixType>;
 
   /**
-   * Does this type inherent from another type
-   */
-  public inherentsFrom?: ArgumentType;
-
-  /**
    * Operators that are applicable for this type
    */
-  public operators: Map<Operator, IBasicType>;
+  public operators: Map<OperatorKind, IBasicType>;
+
+  /**
+   * Is this type a subtype of another type
+   */
+  public superType?: ArgumentType;
+
+  /**
+   * type paremters for this type
+   */
+  private typeParameters: ArgumentType[];
 
   /**
    * Type constructor
    * @param name name of the new type
+   * @param typeParameters type parameters of this type
    */
-  constructor(public readonly name: string) {
+  constructor(name: string, typeParameters: ArgumentType[]) {
+    this.name = name;
+    this.typeParameters = typeParameters;
     this.suffixes = new Map();
     this.operators = new Map();
   }
@@ -251,7 +263,12 @@ export class BasicType implements IBasicType {
    * Convert this type into a type string
    */
   public toTypeString(): string {
-    return this.name;
+    if (this.typeParameters.length === 0) {
+      return this.name;
+    }
+
+    const typeParameterStr = this.typeParameters.map(t => t.toTypeString()).join(', ');
+    return `${this.name}<${typeParameterStr}>`;
   }
 
   /**
@@ -284,12 +301,14 @@ export class SuffixType implements ISuffixType {
    * @param callType call type of this suffix
    * @param params parameters for this suffix
    * @param returns return type of this suffix
+   * @param typeParameters type parameters of this type
    */
   constructor(
     public readonly name: string,
-    public readonly callType: CallType,
+    public readonly callType: CallKind,
     public readonly params: ArgumentType[] | IVariadicType,
     public readonly returns: ArgumentType,
+    public readonly typeParameters: ArgumentType[],
   ) {
     this.tracker = new SuffixTracker(new KsSuffix(name), this);
   }
@@ -298,16 +317,20 @@ export class SuffixType implements ISuffixType {
    * Generate the type string for this suffix type
    */
   public toTypeString(): string {
+    const typeParameterStr = this.typeParameters.length > 0
+      ? `<${this.typeParameters.map(t => t.toTypeString()).join(', ')}>`
+      : '';
+
     const returnString = returnTypeString(this.returns);
     if (
-      this.callType !== CallType.call &&
-      this.callType !== CallType.optionalCall
+      this.callType !== CallKind.call &&
+      this.callType !== CallKind.optionalCall
     ) {
-      return returnString;
+      return `${typeParameterStr}${returnString}`;
     }
 
     const paramsString = parameterTypeString(this.params);
-    return `(${paramsString}) => ${returnString}`;
+    return `${typeParameterStr}(${paramsString}) => ${returnString}`;
   }
 
   /**
@@ -347,7 +370,7 @@ export class ConstantType<T> extends BasicType implements IConstantType<T> {
    * @param value value of this constant type
    */
   constructor(name: string, public readonly value: T) {
-    super(name);
+    super(name, []);
   }
 
   /**
@@ -360,7 +383,7 @@ export class ConstantType<T> extends BasicType implements IConstantType<T> {
 
 /**
  * Represents a generic variadic type, typically for functions that take an
- * unspecified number of the same parameters
+ * unspecified number of the same parameter.
  */
 export class GenericVariadicType implements IGenericVariadicType {
   /**
@@ -407,6 +430,10 @@ export class GenericVariadicType implements IGenericVariadicType {
   }
 }
 
+/**
+ * Represent a variadictype, typically for functions that take an
+ * unspecified number of the same parameter.
+ */
 export class VariadicType extends GenericVariadicType implements IVariadicType {
   constructor(public readonly type: IBasicType) {
     super(type);
@@ -425,7 +452,7 @@ export class VariadicType extends GenericVariadicType implements IVariadicType {
 export class FunctionType implements IFunctionType {
   constructor(
     public readonly name: string,
-    public readonly callType: CallType.call | CallType.optionalCall,
+    public readonly callType: CallKind.call | CallKind.optionalCall,
     public readonly params: ArgumentType[] | IVariadicType,
     public readonly returns: ArgumentType,
   ) {}

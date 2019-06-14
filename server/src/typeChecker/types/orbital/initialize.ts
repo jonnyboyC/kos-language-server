@@ -17,7 +17,7 @@ import { partType } from '../parts/part';
 import { dockingPortType } from '../parts/dockingPort';
 import { decouplerType } from '../parts/decoupler';
 import { flightControlType } from '../flightControl';
-import { aggregateResourceType } from '../aggregateResource';
+import { aggregateResourceType } from '../parts/aggregateResource';
 import { loadDistanceType } from '../loadDistance';
 import { vesselConnectionType } from '../communication/vesselConnection';
 import { messageQueueType } from '../communication/messageQueue';
@@ -32,7 +32,7 @@ import { vesselSensorsType } from '../vessel/vesselSensors';
 
 let set = false;
 
-export const oribitalInitializer = () => {
+export const orbitalInitializer = () => {
   if (set) {
     return;
   }
@@ -64,7 +64,7 @@ export const oribitalInitializer = () => {
     createSuffixType('longitude', scalarType),
     createSuffixType('altitude', scalarType),
     createSuffixType('geoPosition', geoCoordinatesType),
-    createSuffixType('patches', userListType),
+    createSuffixType('patches', listType.toConcreteType(orbitInfoType)),
   );
 
   addPrototype(bodyTargetType, orbitableType);
@@ -75,7 +75,7 @@ export const oribitalInitializer = () => {
     createSuffixType('mass', scalarType),
     createSuffixType('hasOcean', booleanType),
     createSuffixType('hasSolidSurface', booleanType),
-    createSuffixType('orbitingChildren', userListType),
+    createSuffixType('orbitingChildren', listType.toConcreteType(bodyTargetType)),
     createSuffixType('altitude', scalarType),
     createSuffixType('radius', scalarType),
     createSuffixType('mu', scalarType),
@@ -103,7 +103,7 @@ export const oribitalInitializer = () => {
     createArgSuffixType('modulesInGroup', listType.toConcreteType(partModuleType), stringType),
     createArgSuffixType('partStagged', listType.toConcreteType(partType), stringType),
     createArgSuffixType('partStaggedPattern', listType.toConcreteType(partType), stringType),
-    createArgSuffixType('allTaggedParts', userListType),
+    createArgSuffixType('allTaggedParts', listType.toConcreteType(partType)),
     createArgSuffixType('parts', listType.toConcreteType(partType)),
     createArgSuffixType('dockingPorts', listType.toConcreteType(dockingPortType)),
     createArgSuffixType('decouplers', listType.toConcreteType(decouplerType)),

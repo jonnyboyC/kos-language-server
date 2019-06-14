@@ -13,7 +13,7 @@ import { KsBaseSymbol, KsSymbolKind } from '../analysis/types';
 import { unWrap } from '../utilities/typeGuards';
 import { booleanType } from '../typeChecker/types/primitives/boolean';
 import { primitiveInitializer } from '../typeChecker/types/primitives/initialize';
-import { oribitalInitializer } from '../typeChecker/types/orbital/initialize';
+import { orbitalInitializer } from '../typeChecker/types/orbital/initialize';
 import { Type } from '../typeChecker/types/types';
 import { doubleType, integarType } from '../typeChecker/types/primitives/scalar';
 import { stringType } from '../typeChecker/types/primitives/string';
@@ -21,7 +21,7 @@ import { stringType } from '../typeChecker/types/primitives/string';
 const fakeUri = 'C:\\fake.ks';
 
 primitiveInitializer();
-oribitalInitializer();
+orbitalInitializer();
 
 interface ITypeCheckResults {
   scan: IScanResult;
@@ -81,7 +81,6 @@ const noErrors = (result: ITypeCheckResults): void => {
   expect(result.scan.scanErrors.length).toBe(0);
   expect(result.parse.parseErrors.length).toBe(0);
   expect(result.resolveDiagnostics.length).toBe(0);
-  console.log(result.typeCheckDiagnostics);
   expect(result.typeCheckDiagnostics.length).toBe(0);
 };
 

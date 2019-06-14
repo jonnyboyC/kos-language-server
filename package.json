@@ -4,7 +4,7 @@
     "description": "Syntax highlighting, auto-complete, and language diagnostics for KerboScript in Kerbal Operating System.",
     "author": "John Chabot",
     "license": "MIT",
-    "version": "0.6.0",
+    "version": "0.6.1",
     "galleryBanner": {
         "color": "#a3a3a3",
         "theme": "dark"
@@ -163,15 +163,16 @@
     },
     "scripts": {
         "vscode:prepublish": "cd clients/vscode && npm run update-vscode && cd ../.. && node build/clean.js && npm run prod && npm run test",
+        "prod": "run-p prod:vscode prod:atom prod:server",
+        "dev": "run-p dev:vscode dev:atom dev:server",
+        "test": "jest --config server/jest.config.js --verbose",
+        "watch": "run-p watch:vscode watch:atom watch:server",
         "prod:vscode": "webpack --config ./clients/vscode/webpack.config.js --mode production",
         "prod:atom": "tsc -p ./clients/atom/tsconfig.json",
         "prod:server": "webpack --config ./server/webpack.config.js --mode production",
-        "prod": "npm run prod:vscode && npm run prod:atom && npm run prod:server",
         "dev:vscode": "tsc -p ./clients/vscode/tsconfig.json",
         "dev:atom": "tsc -p ./clients/atom/tsconfig.json",
         "dev:server": "tsc -p ./server/tsconfig.json",
-        "dev": "npm run dev:vscode && npm run dev:atom && npm run dev:server",
-        "test": "jest --config server/jest.config.js --verbose",
         "watch:vscode": "tsc -w -p ./clients/vscode/tsconfig.json",
         "watch:atom": "tsc -w -p ./clients/atom/tsconfig.json",
         "watch:server": "tsc -w -p ./server/tsconfig.json",
@@ -192,17 +193,16 @@
     },
     "homepage": "https://github.com/jonnyboyC/kos-language-server#readme",
     "devDependencies": {
-        "@types/jest": "^24.0.11",
-        "ava": "^1.4.1",
-        "jest": "^24.7.1",
-        "jest-junit": "^6.3.0",
-        "tap-xunit": "^2.3.0",
+        "@types/jest": "^24.0.14",
+        "jest": "^24.8.0",
+        "jest-junit": "^6.4.0",
+        "npm-run-all": "^4.1.5",
         "ts-jest": "^24.0.2",
-        "ts-loader": "^5.3.3",
-        "tslint": "^5.16.0",
+        "ts-loader": "^6.0.2",
+        "tslint": "^5.17.0",
         "tslint-config-airbnb": "^5.11.1",
-        "typescript": "^3.4.3",
-        "webpack": "^4.30.0",
-        "webpack-cli": "^3.3.0"
+        "typescript": "^3.5.2",
+        "webpack": "^4.34.0",
+        "webpack-cli": "^3.3.4"
     }
 }

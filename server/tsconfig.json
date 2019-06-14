@@ -2,7 +2,7 @@
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
     "module": "commonjs",
-    "target": "esnext",
+    "target": "es6",
     "moduleResolution": "node",
     "outDir": "out",
     "rootDir": "src",
@@ -12,12 +12,13 @@
     "strict": true,
     "incremental": true,
     "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
+    "esModuleInterop": true
   },
   "include": [
     "src"
   ],
   "exclude": [
-    "node_modules", 
+    "node_modules",
+    "src/test"
   ],
 }

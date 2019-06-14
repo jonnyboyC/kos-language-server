@@ -1,6 +1,11 @@
 import { ArgumentType } from '../types';
 import { structureType } from '../primitives/structure';
-import { createSetSuffixType, createSuffixType, createArgSuffixType, createStructureType } from "../../typeCreators";
+import {
+  createSetSuffixType,
+  createSuffixType,
+  createArgSuffixType,
+  createStructureType,
+} from '../../typeCreators';
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { widgetStyleType } from './widgetStyle';
 import { guiWidgetType } from './guiWidget';

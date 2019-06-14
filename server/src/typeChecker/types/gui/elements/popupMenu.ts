@@ -1,4 +1,8 @@
-import { createStructureType, createSetSuffixType, createArgSuffixType } from "../../../typeCreators";
+import {
+  createStructureType,
+  createSetSuffixType,
+  createArgSuffixType,
+} from '../../../typeCreators';
 import { ArgumentType } from '../../types';
 import { addPrototype, addSuffixes } from '../../../typeUitlities';
 import { userDelegateType } from '../../userDelegate';

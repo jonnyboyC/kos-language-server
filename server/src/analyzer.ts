@@ -122,6 +122,286 @@ export class Analyzer {
   }
 
   /**
+   * Get the token at the provided position in the text document
+   * @param pos position in the text document
+   * @param uri uri of the text document
+   */
+  public getToken(pos: Position, uri: string): Maybe<Token> {
+    const documentInfo = this.documentInfos.get(uri);
+    if (empty(documentInfo)) {
+      return undefined;
+    }
+
+    // try to find an symbol at the position
+    const { script } = documentInfo;
+    const finder = new ScriptFind();
+    const result = finder.find(script, pos);
+
+    return result && result.token;
+  }
+
+  /**
+   * Get the declaration location for the token at the provided position
+   * @param pos position in the document
+   * @param uri uri of the document
+   */
+  public getDeclarationLocation(pos: Position, uri: string): Maybe<Location> {
+    const documentInfo = this.documentInfos.get(uri);
+    if (empty(documentInfo)) {
+      return undefined;
+    }
+
+    // try to find an symbol at the position
+    const { script } = documentInfo;
+    const finder = new ScriptFind();
+    const result = finder.find(script, pos);
+
+    if (empty(result)) {
+      return undefined;
+    }
+
+    // check if symbols exists
+    const { tracker } = result.token;
+    if (empty(tracker)) {
+      return undefined;
+    }
+
+    const { declared } = tracker;
+
+    // exit if undefiend
+    if (declared.uri === builtIn) {
+      return undefined;
+    }
+
+    return typeof(declared.symbol.name) !== 'string'
+      ? declared.symbol.name
+      : undefined;
+  }
+
+  /**
+   * Get all usage locations in all files
+   * @param pos position in document
+   * @param uri uri of document
+   */
+  public getUsageLocations(pos: Position, uri: string): Maybe<Location[]> {
+    const documentInfo = this.documentInfos.get(uri);
+    if (
+      empty(documentInfo) ||
+      empty(documentInfo.symbolsTable) ||
+      empty(documentInfo.script)
+    ) {
+      return undefined;
+    }
+
+    // try to find the symbol at the position
+    const { symbolsTable, script } = documentInfo;
+    const finder = new ScriptFind();
+    const result = finder.find(script, pos);
+
+    if (empty(result)) {
+      return undefined;
+    }
+
+    // try to find the tracker at a given position
+    const { token } = result;
+    const tracker = symbolsTable.scopedNamedTracker(pos, token.lookup);
+    if (empty(tracker)) {
+      return undefined;
+    }
+
+    return tracker.usages
+      .map(usage => usage as Location)
+      .concat(tracker.declared.symbol.name)
+      .filter(location => location.uri !== builtIn);
+  }
+
+  /**
+   * Get all usage ranges in a provide file
+   * @param pos position in document
+   * @param uri uri of document
+   */
+  public getFileUsageRanges(pos: Position, uri: string): Maybe<Range[]> {
+    const locations = this.getUsageLocations(pos, uri);
+    if (empty(locations)) {
+      return locations;
+    }
+
+    return locations.filter(loc => loc.uri === uri).map(loc => loc.range);
+  }
+
+  /**
+   * Get all symbols in scope at a particulare location in the file
+   * @param pos position in document
+   * @param uri document uri
+   */
+  public getScopedSymbols(pos: Position, uri: string): KsSymbol[] {
+    const documentInfo = this.documentInfos.get(uri);
+
+    if (!empty(documentInfo) && !empty(documentInfo.symbolsTable)) {
+      return documentInfo.symbolsTable.scopedSymbols(pos);
+    }
+
+    return [];
+  }
+
+  /**
+   * Get all symbols in a provided file
+   * @param uri document uri
+   */
+  public getAllFileSymbols(uri: string): KsSymbol[] {
+    const documentInfo = this.documentInfos.get(uri);
+
+    if (!empty(documentInfo) && !empty(documentInfo.symbolsTable)) {
+      return documentInfo.symbolsTable.fileSymbols();
+    }
+
+    return [];
+  }
+
+  /**
+   * Get a function located at the current location
+   * @param pos position in the document
+   * @param uri document uri
+   */
+  public getFunctionAtPosition(
+    pos: Position,
+    uri: string,
+  ): Maybe<{ tracker: SymbolTracker; index: number }> {
+    // we need the document info to lookup a signature
+    const documentInfo = this.documentInfos.get(uri);
+    if (empty(documentInfo)) return undefined;
+
+    const { script } = documentInfo;
+    const finder = new ScriptFind();
+
+    // attempt to find a token here get surround invalid Stmt context
+    const outerResult = finder.find(script, pos, Expr.Suffix, Stmt.Invalid);
+    const innerResult = finder.find(script, pos, SuffixTerm.Call);
+
+    let index = 0;
+    if (
+      !empty(innerResult) &&
+      !empty(innerResult.node) &&
+      innerResult.node instanceof SuffixTerm.Call
+    ) {
+      index = innerResult.node.args.length > 0
+        ? innerResult.node.args.length - 1
+        : 0;
+    }
+
+    // currently we only support invalid statements for signature completion
+    // we could possible support call expressions as well
+    if (empty(outerResult) || empty(outerResult.node)) {
+      return undefined;
+    }
+
+    // determine the identifier of the invalid statement and parameter index
+    const { node } = outerResult;
+
+    // check if suffix
+    if (node instanceof Expr.Suffix) {
+      const tracker = node.mostResolveTracker();
+
+      if (empty(tracker)) {
+        return undefined;
+      }
+
+      switch (tracker.declared.symbol.tag) {
+        case KsSymbolKind.function:
+        case KsSymbolKind.suffix:
+          return {
+            index,
+            tracker,
+          };
+        default:
+          return undefined;
+      }
+    }
+
+    // check if invalid statment
+    if (node instanceof Stmt.Invalid) {
+      const { ranges } = node;
+      const indices = binarySearchIndex(ranges, pos);
+      const start = Array.isArray(indices) ? indices[0] : indices;
+
+      for (let i = start; i >= 0; i -= 1) {
+        const element = ranges[i];
+
+        if (element instanceof Expr.Suffix) {
+          const tracker = element.mostResolveTracker();
+
+          if (!empty(tracker)) {
+            switch (tracker.declared.symbol.tag) {
+              case KsSymbolKind.function:
+              case KsSymbolKind.suffix:
+                return {
+                  index,
+                  tracker,
+                };
+              default:
+                return undefined;
+            }
+          }
+        }
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Load and validate a document. First by attempting a lookup on previously validated
+   * documents. if the document is not found it is read from disk and validated
+   * @param parentUri uri of the parent document
+   * @param loadDat information describing what should be loaded
+   * @param depth TODO remove: depeth of the current graph.
+   */
+  private async *loadAndValidateDocument(
+    parentUri: string,
+    { uri, caller, path }: ILoadData,
+    depth: number,
+  ): AsyncIterableIterator<ValidateResult> {
+    try {
+      // non ideal fix for depedency cycle
+      // TODO we need to actually check for cycles and do something else
+      if (depth > 10) {
+        return { diagnostics: [] };
+      }
+
+      // if cache not found attempt to find file from disk
+      const validated = this.tryFindDocument(path, uri);
+      if (empty(validated)) {
+        return {
+          diagnostics: [
+            {
+              uri: parentUri,
+              range: caller,
+              severity: DiagnosticSeverity.Error,
+              message: `Unable to find ${path}`,
+            },
+          ],
+        };
+      }
+
+      // attempt to read file from disk
+      const fileResult = await readFileAsync(validated.path, 'utf-8');
+      yield* this.validateDocument_(validated.uri, fileResult, depth + 1);
+    } catch (err) {
+      // if we already checked for the file exists but failed anyways??
+      return {
+        diagnostics: [
+          {
+            uri: parentUri,
+            range: caller,
+            severity: DiagnosticSeverity.Error,
+            message: `Unable to read ${path}`,
+          },
+        ],
+      };
+    }
+  }
+
+  /**
    * Main validation function for a document. Lexically and semantically understands a document.
    * Will additionally perform the same analysis on other run scripts found in this script
    * @param uri uri of the document
@@ -277,236 +557,6 @@ export class Analyzer {
   }
 
   /**
-   * Get the symbol table corresponding active set of celetrial bodies for the user.
-   * This allows for bodies other than that in stock ksp to be incorporated
-   */
-  private activeBodyLibrary(): SymbolTable {
-    /** TODO actually load other bodies */
-    return this.bodyLibrary;
-  }
-
-  /**
-   * Get the token at the provided position in the text document
-   * @param pos position in the text document
-   * @param uri uri of the text document
-   */
-  public getToken(pos: Position, uri: string): Maybe<Token> {
-    const documentInfo = this.documentInfos.get(uri);
-    if (empty(documentInfo)) {
-      return undefined;
-    }
-
-    // try to find an symbol at the position
-    const { script } = documentInfo;
-    const finder = new ScriptFind();
-    const result = finder.find(script, pos);
-
-    return result && result.token;
-  }
-
-  /**
-   * Get the declaration location for the token at the provided position
-   * @param pos position in the document
-   * @param uri uri of the document
-   */
-  public getDeclarationLocation(pos: Position, uri: string): Maybe<Location> {
-    const documentInfo = this.documentInfos.get(uri);
-    if (empty(documentInfo)) {
-      return undefined;
-    }
-
-    // try to find an symbol at the position
-    const { symbolsTable, script } = documentInfo;
-    const finder = new ScriptFind();
-    const result = finder.find(script, pos);
-
-    if (empty(result)) {
-      return undefined;
-    }
-
-    // check if symbols exists
-    const { token } = result;
-    const symbol = symbolsTable.scopedNamedTracker(pos, token.lookup);
-    if (empty(symbol)) {
-      return undefined;
-    }
-
-    // exit if undefiend
-    if (symbol.declared.uri === builtIn) {
-      return undefined;
-    }
-
-    return symbol.declared.symbol.name;
-  }
-
-  /**
-   * Get all usage locations in all files
-   * @param pos position in document
-   * @param uri uri of document
-   */
-  public getUsageLocations(pos: Position, uri: string): Maybe<Location[]> {
-    const documentInfo = this.documentInfos.get(uri);
-    if (
-      empty(documentInfo) ||
-      empty(documentInfo.symbolsTable) ||
-      empty(documentInfo.script)
-    ) {
-      return undefined;
-    }
-
-    // try to find the symbol at the position
-    const { symbolsTable, script } = documentInfo;
-    const finder = new ScriptFind();
-    const result = finder.find(script, pos);
-
-    if (empty(result)) {
-      return undefined;
-    }
-
-    // try to find the tracker at a given position
-    const { token } = result;
-    const tracker = symbolsTable.scopedNamedTracker(pos, token.lookup);
-    if (empty(tracker)) {
-      return undefined;
-    }
-
-    return tracker.usages
-      .map(usage => usage as Location)
-      .concat(tracker.declared.symbol.name)
-      .filter(location => location.uri !== builtIn);
-  }
-
-  /**
-   * Get all usage ranges in a provide file
-   * @param pos position in document
-   * @param uri uri of document
-   */
-  public getFileUsageRanges(pos: Position, uri: string): Maybe<Range[]> {
-    const locations = this.getUsageLocations(pos, uri);
-    if (empty(locations)) {
-      return locations;
-    }
-
-    return locations.filter(loc => loc.uri === uri).map(loc => loc.range);
-  }
-
-  /**
-   * Get all symbols in scope at a particulare location in the file
-   * @param pos position in document
-   * @param uri document uri
-   */
-  public getScopedSymbols(pos: Position, uri: string): KsSymbol[] {
-    const documentInfo = this.documentInfos.get(uri);
-
-    if (!empty(documentInfo) && !empty(documentInfo.symbolsTable)) {
-      return documentInfo.symbolsTable.scopedSymbols(pos);
-    }
-
-    return [];
-  }
-
-  /**
-   * Get all symbols in a provided file
-   * @param uri document uri
-   */
-  public getAllFileSymbols(uri: string): KsSymbol[] {
-    const documentInfo = this.documentInfos.get(uri);
-
-    if (!empty(documentInfo) && !empty(documentInfo.symbolsTable)) {
-      return documentInfo.symbolsTable.fileSymbols();
-    }
-
-    return [];
-  }
-
-  // get function at position
-  public getFunctionAtPosition(
-    pos: Position,
-    uri: string,
-  ): Maybe<{ tracker: SymbolTracker; index: number }> {
-    // we need the document info to lookup a signature
-    const documentInfo = this.documentInfos.get(uri);
-    if (empty(documentInfo)) return undefined;
-
-    const { script } = documentInfo;
-    const finder = new ScriptFind();
-
-    // attempt to find a token here get surround invalid inst context
-    const outerResult = finder.find(script, pos, Expr.Suffix, Stmt.Invalid);
-    const innerResult = finder.find(script, pos, SuffixTerm.Call);
-
-    let index = 0;
-    if (
-      !empty(innerResult) &&
-      !empty(innerResult.node) &&
-      innerResult.node instanceof SuffixTerm.Call
-    ) {
-      index = innerResult.node.args.length > 0
-        ? innerResult.node.args.length - 1
-        : 0;
-    }
-
-    // currently we only support invalid statements for signature completion
-    // we could possible support call expressions as well
-    if (empty(outerResult) || empty(outerResult.node)) {
-      return undefined;
-    }
-
-    // determine the identifier of the invalid statement and parameter index
-    const { node } = outerResult;
-
-    // check if suffix
-    if (node instanceof Expr.Suffix) {
-      const tracker = node.mostResolveTracker();
-
-      if (empty(tracker)) {
-        return undefined;
-      }
-
-      switch (tracker.declared.symbol.tag) {
-        case KsSymbolKind.function:
-        case KsSymbolKind.suffix:
-          return {
-            index,
-            tracker,
-          };
-        default:
-          return undefined;
-      }
-    }
-
-    // check if invalid statment
-    if (node instanceof Stmt.Invalid) {
-      const { ranges } = node;
-      const indices = binarySearchIndex(ranges, pos);
-      const start = Array.isArray(indices) ? indices[0] : indices;
-
-      for (let i = start; i >= 0; i -= 1) {
-        const element = ranges[i];
-
-        if (element instanceof Expr.Suffix) {
-          const tracker = element.mostResolveTracker();
-
-          if (!empty(tracker)) {
-            switch (tracker.declared.symbol.tag) {
-              case KsSymbolKind.function:
-              case KsSymbolKind.suffix:
-                return {
-                  index,
-                  tracker,
-                };
-              default:
-                return undefined;
-            }
-          }
-        }
-      }
-    }
-
-    return undefined;
-  }
-
-  /**
    * Generate a ast from the provided source text
    * @param uri uri to document
    * @param text source text of document
@@ -546,67 +596,24 @@ export class Analyzer {
     };
   }
 
-  // get usable file uri from run statements
+  /**
+   * Get all valid uris from the documents run statments
+   * @param uri uri of the calling document
+   * @param runStmts run statemtns in the document
+   */
   private getValidUri(uri: string, runStmts: RunStmtType[]): ILoadData[] {
     // generate uris then remove empty or preloaded documents
     return runStmts
-      .map(inst =>
+      .map(stmt =>
         this.pathResolver.resolveUri(
           {
             uri,
-            range: { start: inst.start, end: inst.end },
+            range: { start: stmt.start, end: stmt.end },
           },
-          runPath(inst),
+          runPath(stmt),
         ),
       )
       .filter(notEmpty);
-    // .filter(uriStmts => !this.documentInfos.has(uriStmts.uri));
-  }
-
-  // load an validate a file from disk
-  private async *loadAndValidateDocument(
-    parentUri: string,
-    { uri, caller, path }: ILoadData,
-    depth: number,
-  ): AsyncIterableIterator<ValidateResult> {
-    try {
-      // non ideal fix for depedency cycle
-      // TODO we need to actually check for cycles and do something else
-      if (depth > 10) {
-        return { diagnostics: [] };
-      }
-
-      // if cache not found attempt to find file from disk
-      const validated = this.tryFindDocument(path, uri);
-      if (empty(validated)) {
-        return {
-          diagnostics: [
-            {
-              uri: parentUri,
-              range: caller,
-              severity: DiagnosticSeverity.Error,
-              message: `Unable to find ${path}`,
-            },
-          ],
-        };
-      }
-
-      // attempt to read file from disk
-      const fileResult = await readFileAsync(validated.path, 'utf-8');
-      yield* this.validateDocument_(validated.uri, fileResult, depth + 1);
-    } catch (err) {
-      // if we already checked for the file exists but failed anyways??
-      return {
-        diagnostics: [
-          {
-            uri: parentUri,
-            range: caller,
-            severity: DiagnosticSeverity.Error,
-            message: `Unable to read ${path}`,
-          },
-        ],
-      };
-    }
   }
 
   /**
@@ -636,6 +643,15 @@ export class Analyzer {
       default:
         return undefined;
     }
+  }
+
+  /**
+   * Get the symbol table corresponding active set of celetrial bodies for the user.
+   * This allows for bodies other than that in stock ksp to be incorporated
+   */
+  private activeBodyLibrary(): SymbolTable {
+    /** TODO actually load other bodies */
+    return this.bodyLibrary;
   }
 }
 

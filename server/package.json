@@ -4,8 +4,12 @@
     "version": "0.6.0",
     "main": "out/server.js",
     "types": "out/server.d.ts",
+    "bin": {
+        "kls": "./bin/kos"
+    },
     "files": [
-        "out/**/*"
+        "out/**/*",
+        "bin"
     ],
     "author": "John Chabot",
     "license": "MIT",
@@ -17,6 +21,7 @@
         "url": "https://github.com/jonnyboyC/kos-language-server"
     },
     "dependencies": {
+        "commander": "^2.20.0",
         "denque": "^1.4.1",
         "jstat": "^1.7.1",
         "vscode-languageserver": "^5.2.1"
@@ -32,6 +37,6 @@
         "prepublishOnly": "cd .. && npm run dev:server && npm run test"
     },
     "devDependencies": {
-        "@types/node": "^11.11.4"
+        "@types/node": "^12.0.4"
     }
 }

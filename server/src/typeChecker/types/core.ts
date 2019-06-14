@@ -1,22 +1,21 @@
 import { ArgumentType } from './types';
-import { createStructureType, createArgSuffixType, createSetSuffixType } from "../typeCreators";
+import { createStructureType, createArgSuffixType, createSuffixType } from '../typeCreators';
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { kosProcessorFields } from './kosProcessorFields';
 import { volumeType } from './io/volume';
-import { processorConnectionType } from './communication/processorConnection';
-import { voidType } from './primitives/void';
-import { stringType } from './primitives/string';
+import { versionInfoType } from './versionInfo';
+import { vesselTargetType } from './orbital/vesselTarget';
+import { elementType } from './parts/element';
+import { messageQueueType } from './communication/messageQueue';
 
 export const coreType: ArgumentType = createStructureType('core');
 addPrototype(coreType, kosProcessorFields);
 
 addSuffixes(
   coreType,
-  createArgSuffixType('mode', stringType),
-  createArgSuffixType('activate', voidType),
-  createArgSuffixType('deactivate', voidType),
-  createArgSuffixType('volume', volumeType),
-  createSetSuffixType('tag', stringType),
-  createSetSuffixType('bootFilename', stringType),
-  createArgSuffixType('connection', processorConnectionType),
+  createSuffixType('version', versionInfoType),
+  createSuffixType('vessel', vesselTargetType),
+  createSuffixType('element', elementType),
+  createSuffixType('currentVolume', volumeType),
+  createArgSuffixType('messages', messageQueueType),
 );
