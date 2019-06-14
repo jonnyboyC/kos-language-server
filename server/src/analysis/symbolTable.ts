@@ -14,8 +14,8 @@ import { KsLock } from '../entities/lock';
 import { KsVariable } from '../entities/variable';
 import { KsParameter } from '../entities/parameter';
 import {
-  isKsFunction,
-  isKsLock,
+  isFunction,
+  isLock,
   isVariable,
   isParameter,
 } from '../entities/entityHelpers';
@@ -149,7 +149,7 @@ export class SymbolTable implements GraphNode<SymbolTable> {
    * @param name symbol name
    */
   public globalTrackers(name: string): SymbolTrackerBase[] {
-    return Array.from(this.rootScope.environment.values()).filter(
+    return Array.from(this.rootScope.environment.trackers()).filter(
       tracker => tracker.declared.symbol.name.lookup === name,
     );
   }
@@ -164,7 +164,7 @@ export class SymbolTable implements GraphNode<SymbolTable> {
     name: string,
   ): Maybe<SymbolTrackerBase<KsFunction>> {
     const tracker = this.scopedNamedTracker(pos, name, tracker =>
-      isKsFunction(tracker.declared.symbol),
+      isFunction(tracker.declared.symbol),
     );
 
     if (!empty(tracker)) {
@@ -184,7 +184,7 @@ export class SymbolTable implements GraphNode<SymbolTable> {
     name: string,
   ): Maybe<SymbolTrackerBase<KsLock>> {
     const tracker = this.scopedNamedTracker(pos, name, trackers =>
-      isKsLock(trackers.declared.symbol),
+      isLock(trackers.declared.symbol),
     );
 
     if (!empty(tracker)) {
@@ -288,9 +288,9 @@ export class SymbolTable implements GraphNode<SymbolTable> {
    */
   private scopedTrackers(pos: Position): SymbolTrackerBase[] {
     const scoped = this.scopedTrackersDepth(pos, this.rootScope.children);
-    const fileGlobal = Array.from(this.rootScope.environment.values());
+    const fileGlobal = Array.from(this.rootScope.environment.trackers());
     const importedGlobals = Array.from(this.childSymbolTables.values()).map(
-      scope => Array.from(scope.rootScope.environment.values()),
+      scope => Array.from(scope.rootScope.environment.trackers()),
     );
 
     return scoped.concat(fileGlobal, ...importedGlobals);
@@ -314,9 +314,9 @@ export class SymbolTable implements GraphNode<SymbolTable> {
       return scoped;
     }
 
-    const fileGlobal = Array.from(this.rootScope.environment.values());
+    const fileGlobal = this.rootScope.environment.trackers();
     const importedGlobals = Array.from(this.childSymbolTables.values()).map(
-      scope => Array.from(scope.rootScope.environment.values()),
+      scope => Array.from(scope.rootScope.environment.trackers()),
     );
 
     const [match] = fileGlobal.concat(...importedGlobals).filter(trackerFilter);
@@ -339,13 +339,13 @@ export class SymbolTable implements GraphNode<SymbolTable> {
         // if global it is available
         case ScopeKind.global:
           return this.scopedTrackersDepth(pos, node.children).concat(
-            Array.from(node.environment.values()),
+            Array.from(node.environment.trackers()),
           );
         // if the scope has a real position check if we're in the bounds
         case ScopeKind.local:
           if (rangeContainsPos(position, pos)) {
             return this.scopedTrackersDepth(pos, node.children).concat(
-              Array.from(node.environment.values()),
+              Array.from(node.environment.trackers()),
             );
           }
           break;
@@ -382,7 +382,7 @@ export class SymbolTable implements GraphNode<SymbolTable> {
             return childSymbol;
           }
 
-          const currentSymbols = Array.from(node.environment.values()).filter(
+          const currentSymbols = Array.from(node.environment.trackers()).filter(
             trackerFilter,
           );
           if (currentSymbols.length === 1) {
@@ -401,7 +401,7 @@ export class SymbolTable implements GraphNode<SymbolTable> {
               return childSymbol;
             }
 
-            const currentSymbols = Array.from(node.environment.values()).filter(
+            const currentSymbols = Array.from(node.environment.trackers()).filter(
               trackerFilter,
             );
             if (currentSymbols.length === 1) {

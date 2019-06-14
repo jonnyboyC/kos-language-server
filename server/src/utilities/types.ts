@@ -4,11 +4,6 @@
 type Maybe<T> = T | undefined;
 
 /**
- * Helper type the dual of pick
- */
-type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
-
-/**
  * Require certain fields to not be undefined or null
  */
 type PartialRequire<T, K extends keyof T> = Required<Pick<T, K>> & Omit<T, K>;
@@ -18,6 +13,11 @@ type PartialRequire<T, K extends keyof T> = Required<Pick<T, K>> & Omit<T, K>;
  * or classes
  */
 type Constructor<T = {}> = new (...args: any[]) => T;
+
+/**
+ * This type helper gets the property type of a parent type
+ */
+type PropType<T, K extends keyof T> = T[K];
 
 /**
  * This type helper gets all property names of type T that extend type U

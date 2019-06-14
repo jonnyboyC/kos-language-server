@@ -1,5 +1,3 @@
-'use strict';
-
 import {
   createConnection,
   TextDocuments,
@@ -25,6 +23,9 @@ import {
   SignatureHelp,
   SignatureInformation,
   ParameterInformation,
+  RenameParams,
+  WorkspaceEdit,
+  TextEdit,
 } from 'vscode-languageserver';
 import { empty } from './utilities/typeGuards';
 import { Analyzer } from './analyzer';
@@ -38,7 +39,7 @@ import {
 } from './utilities/serverUtils';
 import { Logger } from './utilities/logger';
 import { primitiveInitializer } from './typeChecker/types/primitives/initialize';
-import { oribitalInitializer } from './typeChecker/types/orbital/initialize';
+import { orbitalInitializer } from './typeChecker/types/orbital/initialize';
 import {
   cleanDiagnostic,
   cleanLocation,
@@ -47,8 +48,19 @@ import {
 } from './utilities/clean';
 import { keywordCompletions, serverName } from './utilities/constants';
 import { Token } from './entities/token';
-import { TypeKind } from './typeChecker/types/types';
 import { tokenTrackedType } from './typeChecker/typeUitlities';
+import { Scanner } from './scanner/scanner';
+import { isValidIdentifier } from './entities/tokentypes';
+import { TypeKind } from './typeChecker/types';
+// tslint:disable-next-line:import-name
+import program from 'commander';
+
+program
+  .version('0.6.1', '-v --version')
+  .option('--node-ipc', 'Connect with node inter process communication')
+  .option('--stdio', 'Connect with standard io')
+  .option('--clientProcessId', 'Id of the attached client process')
+  .parse(process.argv);
 
 export interface IClientConfiguration {
   completionCase: 'lowercase' | 'uppercase' | 'camelcase' | 'pascalcase';
@@ -82,7 +94,7 @@ export interface IServer {
 }
 
 // get connection primitives based on command argument
-const { reader, writer } = getConnectionPrimitives(process.argv[2]);
+const { reader, writer } = getConnectionPrimitives(program);
 
 // Create a connection for the server. The connection uses Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -95,7 +107,7 @@ export const connection = createConnection(
 // REMOVE ME TODO probably need to refactor the type modules as
 // structure and the primitives have a dependnecy loop
 primitiveInitializer();
-oribitalInitializer();
+orbitalInitializer();
 
 // default client configuration
 const defaultClientConfiguration: IClientConfiguration = {
@@ -192,6 +204,7 @@ connection.onInitialize((params: InitializeParams) => {
         triggerCharacters: ['(', ',', ', '],
       },
 
+      renameProvider: true,
       documentHighlightProvider: true,
       hoverProvider: true,
       referencesProvider: true,
@@ -361,6 +374,64 @@ connection.onCompletion(
 );
 
 /**
+ * This handler provider compleition item resolution capability. This provides
+ * additional information for the currently compeltion item selection
+ */
+connection.onCompletionResolve(
+  (item: CompletionItem): CompletionItem => {
+    try {
+      const token = item.data as Maybe<Token>;
+
+      if (!empty(token)) {
+      }
+
+      return item;
+    } catch (err) {
+      if (err instanceof Error) {
+        connection.console.error(`${err.message} ${err.stack}`);
+      }
+
+      return item;
+    }
+  },
+);
+
+/**
+ * This handler provides document rename capabilites
+ */
+connection.onRenameRequest(
+  ({ newName, textDocument, position }: RenameParams): Maybe<WorkspaceEdit> => {
+    const scanner = new Scanner(newName);
+    const { tokens, scanErrors } = scanner.scanTokens();
+
+    // check if rename is valid
+    if (
+      scanErrors.length > 0 ||
+      tokens.length !== 1 ||
+      !isValidIdentifier(tokens[0].type)
+    ) {
+      return undefined;
+    }
+
+    const locations = server.analyzer.getUsageLocations(position, textDocument.uri);
+    if (empty(locations)) {
+      return undefined;
+    }
+    const changes: PropType<WorkspaceEdit, 'changes'> = {};
+
+    for (const location of locations) {
+      if (!changes.hasOwnProperty(location.uri)) {
+        changes[location.uri] = [];
+      }
+
+      changes[location.uri].push(TextEdit.replace(location.range, newName));
+    }
+
+    return { changes };
+  },
+);
+
+/**
  * This handler provides document highlighting capability
  */
 connection.onDocumentHighlight(
@@ -442,7 +513,7 @@ connection.onReferences(
 // This handler provides signature help
 connection.onSignatureHelp(
   (documentPosition: TextDocumentPositionParams): SignatureHelp => {
-    const { position } =  documentPosition;
+    const { position } = documentPosition;
     const { uri } = documentPosition.textDocument;
 
     const result = server.analyzer.getFunctionAtPosition(position, uri);
@@ -472,7 +543,6 @@ connection.onSignatureHelp(
 
         // check if normal or variadic type
         if (Array.isArray(params)) {
-
           // generate normal labels
           if (params.length > 0) {
             const labels: string[] = [];
@@ -490,10 +560,7 @@ connection.onSignatureHelp(
 
             const paramLabel = `${params[params.length - 1].toTypeString()}`;
             paramInfos.push(
-              ParameterInformation.create([
-                start,
-                start + paramLabel.length,
-              ]),
+              ParameterInformation.create([start, start + paramLabel.length]),
             );
             labels.push(paramLabel);
             label = `${label}(${labels.join('')})`;
@@ -501,7 +568,9 @@ connection.onSignatureHelp(
         } else {
           // generate variadic labels
           const variadicLabel = params.toTypeString();
-          paramInfos.push(ParameterInformation.create([start, start + variadicLabel.length]));
+          paramInfos.push(
+            ParameterInformation.create([start, start + variadicLabel.length]),
+          );
           label = `${label}(${variadicLabel})`;
         }
 
@@ -537,29 +606,6 @@ connection.onDefinition(
 
     const location = server.analyzer.getDeclarationLocation(position, uri);
     return location && cleanLocation(location);
-  },
-);
-
-/**
- * This handler provider compleition item resolution capability. This provides
- * additional information for the currently compeltion item selection
- */
-connection.onCompletionResolve(
-  (item: CompletionItem): CompletionItem => {
-    try {
-      const token = item.data as Maybe<Token>;
-
-      if (!empty(token)) {
-      }
-
-      return item;
-    } catch (err) {
-      if (err instanceof Error) {
-        connection.console.error(`${err.message} ${err.stack}`);
-      }
-
-      return item;
-    }
   },
 );
 

@@ -1,5 +1,10 @@
 import { ArgumentType } from '../types';
-import { createSetSuffixType, createSuffixType, createArgSuffixType, createStructureType } from "../../typeCreators";
+import {
+  createSetSuffixType,
+  createSuffixType,
+  createArgSuffixType,
+  createStructureType,
+} from '../../typeCreators';
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { widgetType } from './widget';
 import { userDelegateType } from '../userDelegate';
@@ -11,10 +16,10 @@ import { buttonType } from './elements/button';
 import { popupMenuType } from './elements/popupMenu';
 import { sliderType } from './elements/slider';
 import { voidType } from '../primitives/void';
-import { userListType } from '../collections/userList';
 import { stringType } from '../primitives/string';
 import { booleanType } from '../primitives/boolean';
 import { doubleType, integarType } from '../primitives/scalar';
+import { listType } from '../collections/list';
 
 export const boxType: ArgumentType = createStructureType('box');
 addPrototype(boxType, widgetType);
@@ -27,8 +32,22 @@ addSuffixes(
   createArgSuffixType('addRadioButton', buttonType, stringType, booleanType),
   createArgSuffixType('addCheckBox', buttonType, stringType, booleanType),
   createArgSuffixType('addPopUpMenu', popupMenuType, stringType),
-  createArgSuffixType('addHSlider', sliderType, stringType, doubleType, doubleType, doubleType),
-  createArgSuffixType('addVSlider', sliderType, stringType, doubleType, doubleType, doubleType),
+  createArgSuffixType(
+    'addHSlider',
+    sliderType,
+    stringType,
+    doubleType,
+    doubleType,
+    doubleType,
+  ),
+  createArgSuffixType(
+    'addVSlider',
+    sliderType,
+    stringType,
+    doubleType,
+    doubleType,
+    doubleType,
+  ),
   createSuffixType('addHBox', boxType),
   createSuffixType('addVBox', boxType),
   createSuffixType('addHLayout', boxType),
@@ -36,7 +55,7 @@ addSuffixes(
   createSuffixType('addScrollBox', scrollBoxType),
   createSuffixType('addStack', scrollBoxType),
   createArgSuffixType('addSpacing', spacingType, integarType),
-  createSuffixType('widgets', userListType),
+  createSuffixType('widgets', listType.toConcreteType(widgetType)),
   createSuffixType('radioValue', stringType),
   createSetSuffixType('onRadioChange', userDelegateType),
   createArgSuffixType('showOnly', voidType, widgetType),

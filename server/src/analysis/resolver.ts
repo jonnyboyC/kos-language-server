@@ -21,7 +21,10 @@ import { Script } from '../entities/script';
 import { mockLogger, mockTracer } from '../utilities/logger';
 import { SymbolTableBuilder } from './symbolTableBuilder';
 import { IDeferred } from './types';
-import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
+import {
+  Diagnostic,
+  DiagnosticSeverity,
+} from 'vscode-languageserver';
 import { createDiagnostic } from '../utilities/diagnosticsUtils';
 // tslint:disable-next-line: import-name
 import Denque from 'denque';
@@ -248,7 +251,7 @@ export class Resolver
   private useTokens(tokens: Token[]): Diagnostics {
     const errors: Diagnostics = [];
     for (const token of tokens) {
-      const error = this.tableBuilder.useSymbol(token);
+      const { error } = this.tableBuilder.useSymbol(token);
       if (!empty(error)) {
         errors.push(error);
       }
@@ -301,22 +304,23 @@ export class Resolver
     // determine scope type
     const scopeType = !empty(decl.scope) ? decl.scope.type : ScopeKind.global;
 
-    const lookup = this.tableBuilder.lookupLock(
+    const { tracker } = this.tableBuilder.lookupLockTracker(
       decl.identifier,
       ScopeKind.global,
     );
-    let declareError: Maybe<Diagnostic> = undefined;
 
-    if (empty(lookup)) {
-      declareError = this.tableBuilder.declareLock(scopeType, decl.identifier);
+    const errors: Diagnostic[] = [];
+
+    if (empty(tracker)) {
+      const declareError = this.tableBuilder.declareLock(scopeType, decl.identifier);
+
+      if (!empty(declareError)) {
+        errors.push(declareError);
+      }
     }
 
-    const errors = this.useExprLocals(decl.value);
+    errors.push(...this.useExprLocals(decl.value));
     errors.push(...this.resolveExpr(decl.value));
-
-    if (!empty(declareError)) {
-      errors.push(declareError);
-    }
 
     return errors;
   }
@@ -475,7 +479,12 @@ export class Resolver
    * @param stmt the syntax node
    */
   public visitUnset(stmt: Stmt.Unset): Diagnostics {
-    const error = this.tableBuilder.useVariable(stmt.identifier);
+    const { error, tracker } = this.tableBuilder.lookupBindingTracker(
+      stmt.identifier,
+      ScopeKind.global,
+    );
+
+    stmt.identifier.tracker = tracker;
     return empty(error) ? [] : [error];
   }
 
@@ -484,7 +493,12 @@ export class Resolver
    * @param stmt the syntax node
    */
   public visitUnlock(stmt: Stmt.Unlock): Diagnostics {
-    const error = this.tableBuilder.useLock(stmt.identifier);
+    const { error, tracker } = this.tableBuilder.lookupLockTracker(
+      stmt.identifier,
+      ScopeKind.global,
+    );
+
+    stmt.identifier.tracker = tracker;
     return empty(error) ? [] : [error];
   }
 
@@ -629,11 +643,13 @@ export class Resolver
     }
 
     if (this.functionDepth < 1) {
-      errors.push(createDiagnostic(
-        stmt.returnToken,
-        'Return appeared outside of function body',
-        DiagnosticSeverity.Error,
-      ));
+      errors.push(
+        createDiagnostic(
+          stmt.returnToken,
+          'Return appeared outside of function body',
+          DiagnosticSeverity.Error,
+        ),
+      );
     }
 
     return errors;
@@ -728,7 +744,9 @@ export class Resolver
    * @param stmt the syntax node
    */
   public visitWait(stmt: Stmt.Wait): Diagnostics {
-    return this.useExprLocalsBind(stmt.expr).concat(this.resolveExpr(stmt.expr));
+    return this.useExprLocalsBind(stmt.expr).concat(
+      this.resolveExpr(stmt.expr),
+    );
   }
 
   /**
@@ -832,7 +850,9 @@ export class Resolver
    */
   public visitRunPath(stmt: Stmt.RunPath): Diagnostics {
     if (empty(stmt.args)) {
-      return this.useExprLocalsBind(stmt.expr).concat(this.resolveExpr(stmt.expr));
+      return this.useExprLocalsBind(stmt.expr).concat(
+        this.resolveExpr(stmt.expr),
+      );
     }
 
     return this.useExprLocalsBind(stmt.expr).concat(
@@ -848,7 +868,9 @@ export class Resolver
    */
   public visitRunPathOnce(stmt: Stmt.RunOncePath): Diagnostics {
     if (empty(stmt.args)) {
-      return this.useExprLocalsBind(stmt.expr).concat(this.resolveExpr(stmt.expr));
+      return this.useExprLocalsBind(stmt.expr).concat(
+        this.resolveExpr(stmt.expr),
+      );
     }
 
     return this.useExprLocalsBind(stmt.expr).concat(
@@ -902,7 +924,9 @@ export class Resolver
    * @param stmt the syntax node
    */
   public visitPrint(stmt: Stmt.Print): Diagnostics {
-    return this.useExprLocalsBind(stmt.expr).concat(this.resolveExpr(stmt.expr));
+    return this.useExprLocalsBind(stmt.expr).concat(
+      this.resolveExpr(stmt.expr),
+    );
   }
 
   /**
@@ -911,31 +935,48 @@ export class Resolver
    */
   private setBinding(set: Token): Diagnostics {
     // if variable isn't defined either report error or define
-    let defineError: Maybe<Diagnostic> = undefined;
+    const errors: Diagnostics = [];
+    const result = this.tableBuilder.lookupBindingTracker(
+      set,
+      ScopeKind.global,
+    );
+
+    if (!empty(result.error)) {
+      errors.push(result.error);
+    }
 
     // if we find the symbol just set it
-    if (!empty(this.tableBuilder.lookupBinding(set, ScopeKind.global))) {
-      defineError = this.tableBuilder.setBinding(set);
+    if (!empty(result.tracker)) {
+      const defineError = this.tableBuilder.setBinding(set);
+
+      if (!empty(defineError)) {
+        errors.push(defineError);
+      }
 
       // if we didn't find it and we're not lazy global add error
     } else if (!this.lazyGlobal) {
-      defineError = createDiagnostic(
-        set,
-        `Attempted to set ${set.lexeme} which has not been declared. ` +
-          `Either remove lazy global directive or declare ${set.lexeme}`,
-        DiagnosticSeverity.Error,
+      errors.push(
+        createDiagnostic(
+          set,
+          `Attempted to set ${set.lexeme} which has not been declared. ` +
+            `Either remove lazy global directive or declare ${set.lexeme}`,
+          DiagnosticSeverity.Error,
+        ),
       );
 
       // not found and lazy global so declare global
     } else {
-      defineError = this.tableBuilder.declareVariable(ScopeKind.global, set);
+      const defineError = this.tableBuilder.declareVariable(
+        ScopeKind.global,
+        set,
+      );
+
+      if (!empty(defineError)) {
+        errors.push(defineError);
+      }
     }
 
-    if (!empty(defineError)) {
-      return [defineError];
-    }
-
-    return [];
+    return errors;
   }
 
   /* --------------------------------------------
@@ -994,7 +1035,7 @@ export class Resolver
   public visitSuffixTrailer(suffixTerm: SuffixTerm.SuffixTrailer): Diagnostics {
     const errors = this.visitSuffixTerm(suffixTerm.suffixTerm);
     if (!empty(suffixTerm.trailer)) {
-      errors.push(...(this.resolveSuffixTerm(suffixTerm.trailer)));
+      errors.push(...this.resolveSuffixTerm(suffixTerm.trailer));
     }
 
     return errors;

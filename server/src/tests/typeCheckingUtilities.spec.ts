@@ -5,45 +5,45 @@ import {
   addSuffixes,
   hasSuffix,
 } from '../typeChecker/typeUitlities';
-import { CallType } from '../typeChecker/types/types';
 import { stringType } from '../typeChecker/types/primitives/string';
 import { booleanType } from '../typeChecker/types/primitives/boolean';
 import { structureType } from '../typeChecker/types/primitives/structure';
 import { partType } from '../typeChecker/types/parts/part';
 import { dockingPortType } from '../typeChecker/types/parts/dockingPort';
 import { primitiveInitializer } from '../typeChecker/types/primitives/initialize';
-import { oribitalInitializer } from '../typeChecker/types/orbital/initialize';
+import { orbitalInitializer } from '../typeChecker/types/orbital/initialize';
 import {
   createStructureType,
   createSuffixType,
   createArgSuffixType,
 } from '../typeChecker/typeCreators';
+import { CallKind } from '../typeChecker/types';
 
 primitiveInitializer();
-oribitalInitializer();
+orbitalInitializer();
 
 describe('Type Utilities', () => {
   test('Call type', () => {
-    expect(isCorrectCallType(CallType.call, CallType.call)).toBe(true);
-    expect(isCorrectCallType(CallType.call, CallType.get)).toBe(false);
-    expect(isCorrectCallType(CallType.call, CallType.set)).toBe(false);
-    expect(isCorrectCallType(CallType.call, CallType.optionalCall)).toBe(false);
+    expect(isCorrectCallType(CallKind.call, CallKind.call)).toBe(true);
+    expect(isCorrectCallType(CallKind.call, CallKind.get)).toBe(false);
+    expect(isCorrectCallType(CallKind.call, CallKind.set)).toBe(false);
+    expect(isCorrectCallType(CallKind.call, CallKind.optionalCall)).toBe(false);
 
-    expect(isCorrectCallType(CallType.get, CallType.call)).toBe(false);
-    expect(isCorrectCallType(CallType.get, CallType.get)).toBe(true);
-    expect(isCorrectCallType(CallType.get, CallType.set)).toBe(false);
-    expect(isCorrectCallType(CallType.get, CallType.optionalCall)).toBe(false);
+    expect(isCorrectCallType(CallKind.get, CallKind.call)).toBe(false);
+    expect(isCorrectCallType(CallKind.get, CallKind.get)).toBe(true);
+    expect(isCorrectCallType(CallKind.get, CallKind.set)).toBe(false);
+    expect(isCorrectCallType(CallKind.get, CallKind.optionalCall)).toBe(false);
 
-    expect(isCorrectCallType(CallType.set, CallType.call)).toBe(false);
-    expect(isCorrectCallType(CallType.set, CallType.get)).toBe(false);
-    expect(isCorrectCallType(CallType.set, CallType.set)).toBe(true);
-    expect(isCorrectCallType(CallType.set, CallType.optionalCall)).toBe(false);
+    expect(isCorrectCallType(CallKind.set, CallKind.call)).toBe(false);
+    expect(isCorrectCallType(CallKind.set, CallKind.get)).toBe(false);
+    expect(isCorrectCallType(CallKind.set, CallKind.set)).toBe(true);
+    expect(isCorrectCallType(CallKind.set, CallKind.optionalCall)).toBe(false);
 
-    expect(isCorrectCallType(CallType.optionalCall, CallType.call)).toBe(true);
-    expect(isCorrectCallType(CallType.optionalCall, CallType.get)).toBe(true);
-    expect(isCorrectCallType(CallType.optionalCall, CallType.set)).toBe(false);
+    expect(isCorrectCallType(CallKind.optionalCall, CallKind.call)).toBe(true);
+    expect(isCorrectCallType(CallKind.optionalCall, CallKind.get)).toBe(true);
+    expect(isCorrectCallType(CallKind.optionalCall, CallKind.set)).toBe(false);
     expect(
-      isCorrectCallType(CallType.optionalCall, CallType.optionalCall),
+      isCorrectCallType(CallKind.optionalCall, CallKind.optionalCall),
     ).toBe(true);
   });
 

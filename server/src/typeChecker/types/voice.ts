@@ -1,5 +1,9 @@
 import { ArgumentType } from './types';
-import { createStructureType, createArgSuffixType, createSetSuffixType } from "../typeCreators";
+import {
+  createStructureType,
+  createArgSuffixType,
+  createSetSuffixType,
+} from '../typeCreators';
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { structureType } from './primitives/structure';
 import { voidType } from './primitives/void';

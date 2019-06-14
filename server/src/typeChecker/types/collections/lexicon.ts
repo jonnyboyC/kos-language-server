@@ -1,5 +1,10 @@
 import { ArgumentType } from '../types';
-import { createStructureType, createArgSuffixType, createSuffixType, createSetSuffixType } from "../../typeCreators";
+import {
+  createStructureType,
+  createArgSuffixType,
+  createSuffixType,
+  createSetSuffixType,
+} from '../../typeCreators';
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { structureType } from '../primitives/structure';
 import { voidType } from '../primitives/void';
@@ -7,6 +12,8 @@ import { userListType } from './userList';
 import { booleanType } from '../primitives/boolean';
 import { scalarType } from '../primitives/scalar';
 import { serializableStructureType } from '../primitives/serializeableStructure';
+import { listType } from './list';
+import { stringType } from '../primitives/string';
 
 export const lexiconType: ArgumentType = createStructureType('lexicon');
 addPrototype(lexiconType, serializableStructureType);
@@ -14,7 +21,7 @@ addPrototype(lexiconType, serializableStructureType);
 addSuffixes(
   lexiconType,
   createArgSuffixType('clear', voidType),
-  createSuffixType('keys', userListType),
+  createSuffixType('keys', listType.toConcreteType(stringType)),
   createArgSuffixType('haskey', booleanType, structureType),
   createArgSuffixType('hasvalue', booleanType, structureType),
   createSuffixType('values', userListType),

@@ -1,5 +1,10 @@
 import { IGenericBasicType } from '../types';
-import { createArgSuffixType, createGenericBasicType, tType, createGenericArgSuffixType } from "../../typeCreators";
+import {
+  createArgSuffixType,
+  createGenericBasicType,
+  tType,
+  createGenericArgSuffixType,
+} from '../../typeCreators';
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { structureType } from '../primitives/structure';
 import { booleanType } from '../primitives/boolean';

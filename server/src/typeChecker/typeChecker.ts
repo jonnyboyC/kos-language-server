@@ -11,7 +11,7 @@ import * as SuffixTerm from '../parser/suffixTerm';
 import * as Expr from '../parser/expr';
 import * as Stmt from '../parser/stmt';
 import * as Decl from '../parser/declare';
-import { ITypeResultExpr } from './types';
+import { ITypeResultExpr, TypeKind, OperatorKind } from './types';
 import { mockLogger, mockTracer } from '../utilities/logger';
 import { Script } from '../entities/script';
 import { empty } from '../utilities/typeGuards';
@@ -19,8 +19,6 @@ import {
   ArgumentType,
   Type,
   IVariadicType,
-  Operator,
-  TypeKind,
   IBasicType,
   ISuffixType,
 } from './types/types';
@@ -32,7 +30,7 @@ import { nodeType } from './types/node';
 import { createFunctionType } from './typeCreators';
 import { lexiconType } from './types/collections/lexicon';
 import { zip } from '../utilities/arrayUtils';
-import { isSubType, hasOperator, getSuffix, hasSuffix } from './typeUitlities';
+import { isSubType, hasOperator, getSuffix, hasSuffix, operatorMap } from './typeUitlities';
 import { voidType } from './types/primitives/void';
 import { userListType } from './types/collections/userList';
 import { booleanType } from './types/primitives/boolean';
@@ -54,7 +52,6 @@ import { bodyTargetType } from './types/orbital/bodyTarget';
 import { vesselTargetType } from './types/orbital/vesselTarget';
 import { volumeType } from './types/io/volume';
 import { volumeItemType } from './types/io/volumeItem';
-import { partModuleType } from './types/parts/partModule';
 import { partType } from './types/parts/part';
 import { pathType } from './types/io/path';
 import { NodeBase } from '../parser/base';
@@ -62,6 +59,12 @@ import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
 import { createDiagnostic } from '../utilities/diagnosticsUtils';
 import { BasicTracker } from '../analysis/tracker';
 import { SuffixTypeBuilder } from './suffixTypeNode';
+import { engineType } from './types/parts/engine';
+import { dockingPortType } from './types/parts/dockingPort';
+import { vesselSensorsType } from './types/vessel/vesselSensors';
+import { kosProcessorFields } from './types/kosProcessorFields';
+import { elementType } from './types/parts/element';
+import { aggregateResourceType } from './types/parts/aggregateResource';
 
 type Diagnostics = Diagnostic[];
 
@@ -443,11 +446,13 @@ export class TypeChecker
           tracker.setType(atom.token, exprResult.type);
         }
       } else {
-        errors.push(createDiagnostic(
-          stmt.value,
-          'TODO visit set, this should not occur',
-          DiagnosticSeverity.Hint,
-        ));
+        errors.push(
+          createDiagnostic(
+            stmt.value,
+            'TODO visit set, this should not occur',
+            DiagnosticSeverity.Hint,
+          ),
+        );
       }
     } else {
       // was not found to be a valid target of setting
@@ -901,13 +906,23 @@ export class TypeChecker
       case 'targets':
         finalType = vesselTargetType;
         break;
-      case 'resources':
-      case 'parts':
-      case 'engines':
-      case 'sensors':
       case 'elements':
-      case 'dockingports':
+        finalType = elementType;
+        break;
+      case 'resources':
+        finalType = listType.toConcreteType(aggregateResourceType);
+        break;
+      case 'parts':
         finalType = partType;
+        break;
+      case 'sensors':
+        finalType = vesselSensorsType;
+        break;
+      case 'dockingports':
+        finalType = dockingPortType;
+        break;
+      case 'engines':
+        finalType = engineType;
         break;
       case 'files':
         finalType = volumeItemType;
@@ -919,7 +934,7 @@ export class TypeChecker
         finalType = volumeType;
         break;
       case 'processors':
-        finalType = partModuleType;
+        finalType = kosProcessorFields;
         break;
       default:
         finalType = structureType;
@@ -974,88 +989,14 @@ export class TypeChecker
     const rightResult = this.checkExpr(expr.right);
     const leftResult = this.checkExpr(expr.left);
 
-    switch (expr.operator.type) {
-      case TokenType.minus:
-        return this.checkOperator(
-          expr,
-          leftResult,
-          rightResult,
-          Operator.subtract,
-        );
-      case TokenType.multi:
-        return this.checkOperator(
-          expr,
-          leftResult,
-          rightResult,
-          Operator.multiply,
-        );
-      case TokenType.div:
-        return this.checkOperator(
-          expr,
-          leftResult,
-          rightResult,
-          Operator.divide,
-        );
-      case TokenType.plus:
-        return this.checkOperator(expr, leftResult, rightResult, Operator.plus);
-      case TokenType.less:
-        return this.checkOperator(
-          expr,
-          leftResult,
-          rightResult,
-          Operator.lessThan,
-        );
-      case TokenType.lessEqual:
-        return this.checkOperator(
-          expr,
-          leftResult,
-          rightResult,
-          Operator.lessThanEqual,
-        );
-      case TokenType.greater:
-        return this.checkOperator(
-          expr,
-          leftResult,
-          rightResult,
-          Operator.greaterThan,
-        );
-      case TokenType.greaterEqual:
-        return this.checkOperator(
-          expr,
-          leftResult,
-          rightResult,
-          Operator.greaterThanEqual,
-        );
-      case TokenType.and:
-      case TokenType.or:
-        const errors = leftResult.errors.concat(rightResult.errors);
-        if (
-          !isSubType(leftResult.type, booleanType) ||
-          !isSubType(leftResult.type, booleanType)
-        ) {
-          errors.push(
-            createDiagnostic(
-              expr,
-              '"and" and "or" require boolean types. May not be able to coerce one or other',
-              DiagnosticSeverity.Hint,
-            ),
-          );
-        }
-        return { errors, type: booleanType };
-      case TokenType.equal:
-        return this.checkOperator(
-          expr,
-          leftResult,
-          rightResult,
-          Operator.equal,
-        );
-      case TokenType.notEqual:
-        return this.checkOperator(
-          expr,
-          leftResult,
-          rightResult,
-          Operator.notEqual,
-        );
+    const operator = operatorMap.get(expr.operator.type);
+    if (!empty(operator)) {
+      return this.checkOperator(
+        expr,
+        leftResult,
+        rightResult,
+        operator,
+      );
     }
 
     throw new Error(
@@ -1241,7 +1182,6 @@ export class TypeChecker
       builder.nodes.push(new TypeNode(type, call));
       call.open.tracker = type.getTracker();
       call.close.tracker = type.getTracker();
-
     } else {
       builder.nodes.push(new TypeNode(suffixError, call));
       call.open.tracker = suffixError.getTracker();
@@ -1477,7 +1417,11 @@ export class TypeChecker
 
     // if we know the collection type is a list we need a scalar indexer
     if (coerce(type, userListType)) {
-      indexer = arrayBracketIndexer(type as IBasicType, scalarType, structureType);
+      indexer = arrayBracketIndexer(
+        type as IBasicType,
+        scalarType,
+        structureType,
+      );
       builder.nodes.push(new TypeNode(indexer, suffixTerm));
 
       if (!coerce(indexResult.type, scalarType)) {
@@ -1494,7 +1438,11 @@ export class TypeChecker
 
     // if we know the collection type is a lexicon we need a string indexer
     if (coerce(type, lexiconType)) {
-      indexer = arrayBracketIndexer(type as IBasicType, stringType, structureType);
+      indexer = arrayBracketIndexer(
+        type as IBasicType,
+        stringType,
+        structureType,
+      );
       builder.nodes.push(new TypeNode(indexer, suffixTerm));
 
       if (!coerce(indexResult.type, stringType)) {
@@ -1745,12 +1693,30 @@ export class TypeChecker
     expr: IExpr,
     leftResult: ITypeResultExpr<Type>,
     rightResult: ITypeResultExpr<Type>,
-    operator: Operator,
+    operator: OperatorKind,
   ): ITypeResultExpr<ArgumentType> {
+
     const leftType = leftResult.type;
     const rightType = rightResult.type;
     const errors = leftResult.errors.concat(rightResult.errors);
     let calcType: Maybe<ArgumentType> = undefined;
+
+    if (operator === OperatorKind.boolean) {
+      if (
+        !isSubType(leftResult.type, booleanType) ||
+        !isSubType(leftResult.type, booleanType)
+      ) {
+        errors.push(
+          createDiagnostic(
+            expr,
+            '"and" and "or" require boolean types. May not be able to coerce one or other',
+            DiagnosticSeverity.Hint,
+          ),
+        );
+      }
+
+      return { errors, type: booleanType };
+    }
 
     // TODO could be more efficient
     if (isSubType(leftType, scalarType) && isSubType(rightType, scalarType)) {

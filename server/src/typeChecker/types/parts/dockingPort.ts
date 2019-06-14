@@ -1,4 +1,8 @@
-import { createStructureType, createSuffixType, createArgSuffixType } from "../../typeCreators";
+import {
+  createStructureType,
+  createSuffixType,
+  createArgSuffixType,
+} from '../../typeCreators';
 import { ArgumentType } from '../types';
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { decouplerType } from './decoupler';
@@ -28,6 +32,12 @@ addSuffixes(
   createArgSuffixType('portFacing', directionType),
   createArgSuffixType('nodePosition', vectorType),
   createArgSuffixType('nodeType', stringType),
-  createArgSuffixType('dockWatchers', uniqueSetType.toConcreteType(userDelegateType)),
-  createArgSuffixType('undockWatchers', uniqueSetType.toConcreteType(userDelegateType)),
+  createArgSuffixType(
+    'dockWatchers',
+    uniqueSetType.toConcreteType(userDelegateType),
+  ),
+  createArgSuffixType(
+    'undockWatchers',
+    uniqueSetType.toConcreteType(userDelegateType),
+  ),
 );
