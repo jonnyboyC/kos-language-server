@@ -1,3 +1,7 @@
+if (Symbol['asyncIterator'] === undefined) {
+  (Symbol as any)['asyncIterator'] = Symbol.for('asyncIterator');
+}
+
 import {
   createConnection,
   TextDocuments,
@@ -60,6 +64,10 @@ program
   .option('--node-ipc', 'Connect with node inter process communication')
   .option('--stdio', 'Connect with standard io')
   .option('--clientProcessId', 'Id of the attached client process')
+  .option(
+    '--harmony_async_iteration',
+    'Must be enabled if using node.js pre 10.0',
+  )
   .parse(process.argv);
 
 export interface IClientConfiguration {
@@ -413,7 +421,10 @@ connection.onRenameRequest(
       return undefined;
     }
 
-    const locations = server.analyzer.getUsageLocations(position, textDocument.uri);
+    const locations = server.analyzer.getUsageLocations(
+      position,
+      textDocument.uri,
+    );
     if (empty(locations)) {
       return undefined;
     }
