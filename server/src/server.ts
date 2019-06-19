@@ -10,10 +10,10 @@ import {
   CompletionItem,
   TextDocumentPositionParams,
   Location,
-  DidChangeWatchedFilesParams,
-  DidOpenTextDocumentParams,
-  DidChangeTextDocumentParams,
-  DidCloseTextDocumentParams,
+  // DidChangeWatchedFilesParams,
+  // DidOpenTextDocumentParams,
+  // DidChangeTextDocumentParams,
+  // DidCloseTextDocumentParams,
   DocumentSymbolParams,
   SymbolInformation,
   CompletionParams,
@@ -30,6 +30,7 @@ import {
   RenameParams,
   WorkspaceEdit,
   TextEdit,
+  TextDocumentSyncKind,
 } from 'vscode-languageserver';
 import { empty } from './utilities/typeGuards';
 import { Analyzer } from './analyzer';
@@ -58,6 +59,7 @@ import { isValidIdentifier } from './entities/tokentypes';
 import { TypeKind } from './typeChecker/types';
 // tslint:disable-next-line:import-name
 import program from 'commander';
+import { DocumentService } from './services/documentService';
 
 program
   .version('0.6.1', '-v --version')
@@ -155,6 +157,19 @@ const server: IServer = {
 // Create a simple text document manager. The text document manager
 // supports full document sync only
 const documents: TextDocuments = new TextDocuments();
+const thing = new DocumentService(connection, server.analyzer.logger);
+
+thing.onChange((document) => {
+  console.log(document);
+});
+
+thing.onChange((document) => {
+  console.log('Thing', document);
+});
+
+thing.onClose((uri) => {
+  console.log(uri);
+});
 
 /**
  * Initialize the server from the client
@@ -188,7 +203,6 @@ connection.onInitialize((params: InitializeParams) => {
 
   // get root uri if it exists
   if (rootUri) {
-    server.analyzer.setUri(rootUri);
     server.workspaceUri = rootUri;
   }
 
@@ -200,7 +214,7 @@ connection.onInitialize((params: InitializeParams) => {
 
   return {
     capabilities: {
-      textDocumentSync: documents.syncKind,
+      textDocumentSync: TextDocumentSyncKind.Incremental,
 
       // Tell the client that the server supports code completion
       completionProvider: {
@@ -268,28 +282,28 @@ connection.onDidChangeConfiguration(change => {
 });
 
 // monitor when the editor opens a document
-connection.onDidOpenTextDocument((param: DidOpenTextDocumentParams) => {
-  connection.console.info(`We received ${param.textDocument.uri} was opened`);
-});
+// connection.onDidOpenTextDocument((param: DidOpenTextDocumentParams) => {
+//   connection.console.info(`We received ${param.textDocument.uri} was opened`);
+// });
 
 // monitor when a text document is changed
-connection.onDidChangeTextDocument((param: DidChangeTextDocumentParams) => {
-  connection.console.info(
-    `We received ${param.contentChanges.length} file changes`,
-  );
-});
+// connection.onDidChangeTextDocument((param: DidChangeTextDocumentParams) => {
+//   connection.console.info(
+//     `We received ${param.contentChanges.length} file changes`,
+//   );
+// });
 
 // monitor file change events
-connection.onDidChangeWatchedFiles((change: DidChangeWatchedFilesParams) => {
-  connection.console.info(
-    `We received ${change.changes.length} file change events`,
-  );
-});
+// connection.onDidChangeWatchedFiles((change: DidChangeWatchedFilesParams) => {
+//   connection.console.info(
+//     `We received ${change.changes.length} file change events`,
+//   );
+// });
 
 // monitor when a text document is closed
-connection.onDidCloseTextDocument((param: DidCloseTextDocumentParams) => {
-  connection.console.info(`We received ${param.textDocument.uri} was closed`);
-});
+// connection.onDidCloseTextDocument((param: DidCloseTextDocumentParams) => {
+//   connection.console.info(`We received ${param.textDocument.uri} was closed`);
+// });
 
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
@@ -639,7 +653,7 @@ const defaultSignature = (): SignatureHelp => ({
 
 // Make the text document manager listen on the connection
 // for open, change and close text document events
-documents.listen(connection);
+// documents.listen(connection);
 
 // Listen on the connection
 connection.listen();

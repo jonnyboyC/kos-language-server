@@ -86,14 +86,6 @@ export class Analyzer {
   }
 
   /**
-   * Set the volume 0 uri for the analyzer
-   * @param uri uri to volume 0
-   */
-  public setUri(uri: string): void {
-    this.pathResolver.volume0Uri = uri;
-  }
-
-  /**
    * Set the case of the body library and standard library
    * @param caseKind case to set
    */
@@ -168,7 +160,7 @@ export class Analyzer {
 
     const { declared } = tracker;
 
-    // exit if undefiend
+    // exit if undefined
     if (declared.uri === builtIn) {
       return undefined;
     }
@@ -597,9 +589,9 @@ export class Analyzer {
   }
 
   /**
-   * Get all valid uris from the documents run statments
+   * Get all valid uris from the documents run statements
    * @param uri uri of the calling document
-   * @param runStmts run statemtns in the document
+   * @param runStmts run statements in the document
    */
   private getValidUri(uri: string, runStmts: RunStmtType[]): ILoadData[] {
     // generate uris then remove empty or preloaded documents

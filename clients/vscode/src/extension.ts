@@ -28,7 +28,7 @@ import { parse } from 'semver';
 
 let client: LanguageClient;
 
-const serverFolder = process.env.NODE_ENV === 'dev'
+const serverFolder = process.env.NODE_ENV && process.env.NODE_ENV === 'dev'
   ? 'out'
   : 'dist';
 

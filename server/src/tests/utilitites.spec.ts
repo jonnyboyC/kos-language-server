@@ -39,12 +39,12 @@ describe('path resolver', () => {
 
     const otherFileLocation: Location = {
       range,
-      uri: 'file://example/otherFile.ks',
+      uri: 'file:///root/example/otherFile.ks',
     };
 
     const otherDirLocation: Location = {
       range,
-      uri: 'file://example/up/upFile.ks',
+      uri: 'file:///root/example/up/upFile.ks',
     };
 
     const relative1 = ['relative', 'path', 'file.ks'].join('/');
@@ -64,10 +64,9 @@ describe('path resolver', () => {
     expect(pathResolver.resolveUri(otherFileLocation, weird)).toBeUndefined();
 
     pathResolver.volume0Path = join('root', 'example');
-    pathResolver.volume0Uri = 'file://example';
 
     const resolvedPath = join('root', 'example', 'relative', 'path', 'file.ks');
-    const resolvedUri = 'file://example/relative/path/file.ks';
+    const resolvedUri = 'file:///root/example/relative/path/file.ks';
 
     const relativeResolved1 = pathResolver.resolveUri(
       otherFileLocation,

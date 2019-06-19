@@ -6,6 +6,9 @@
 			"request": "launch",
 			"name": "Launch VSCode Client",
 			"runtimeExecutable": "${execPath}",
+			"env": {
+				"NODE_ENV": "dev"
+			},
 			"args": ["--extensionDevelopmentPath=${workspaceRoot}"],
 			"stopOnEntry": false,
 			"sourceMaps": true,
@@ -17,6 +20,9 @@
 			"request": "launch",
 			"name": "Launch VSCode Client Fast",
 			"runtimeExecutable": "${execPath}",
+			"env": {
+				"NODE_ENV": "dev"
+			},
 			"args": ["--extensionDevelopmentPath=${workspaceRoot}"],
 			"stopOnEntry": false,
 			"sourceMaps": true,
@@ -39,6 +45,9 @@
 			"request": "launch",
 			"name": "Jest All",
 			"program": "${workspaceFolder}/node_modules/.bin/jest",
+			"env": {
+				"NODE_ENV": "dev"
+			},
 			"args": ["--runInBand"],
 			"console": "integratedTerminal",
 			"internalConsoleOptions": "neverOpen",
@@ -52,6 +61,9 @@
 			"request": "launch",
 			"name": "Jest Current File",
 			"program": "${workspaceFolder}/node_modules/.bin/jest",
+			"env": {
+				"NODE_ENV": "dev"
+			},
 			"args": [
 				"${fileBasenameNoExtension}",
 				"--config",

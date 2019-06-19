@@ -1,6 +1,7 @@
 import { SymbolTable } from './analysis/symbolTable';
 import { IScript } from './parser/types';
 import { Diagnostic, Range } from 'vscode-languageserver';
+import { URI } from 'vscode-uri';
 
 export interface IDocumentInfo {
   script: IScript;
@@ -10,7 +11,7 @@ export interface IDocumentInfo {
 
 export interface ILoadData {
   caller: Range;
-  uri: string;
+  uri: URI;
   path: string;
 }
 

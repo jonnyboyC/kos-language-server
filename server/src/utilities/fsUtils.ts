@@ -1,5 +1,8 @@
 import { readFile, readdirSync, statSync } from 'fs';
 import { join } from 'path';
+import { getUri } from 'get-uri';
+
+getUri.
 
 export const readFileAsync = (path: string, encoding: string): Promise<string> => {
   return new Promise((resolve, reject) => {
