@@ -4,8 +4,11 @@ import {
   DidChangeTextDocumentParams,
   DidCloseTextDocumentParams,
   DidOpenTextDocumentParams,
+  TextDocumentItem,
 } from 'vscode-languageserver';
 import { mockLogger } from '../utilities/logger';
+import { URI } from 'vscode-uri';
+import { empty } from '../utilities/typeGuards';
 
 const createMockDocConnection = () => ({
   changeDoc: undefined as Maybe<
@@ -57,10 +60,56 @@ describe('documentService', () => {
     const mockConnection = createMockDocConnection();
     const response = { response: 'first' };
 
+    const mockUriResponse = createMockUriResponse(response);
+
     const docService = new DocumentService(
       mockConnection,
-      createMockUriResponse(response),
+      mockUriResponse,
       mockLogger,
     );
+
+    const serverDocs = docService['serverDocs'];
+    const editorDocs = docService['editorDocs'];
+
+    let i = 0;
+
+    const uris = [
+      URI.file('/example/doc1.ks'),
+      URI.file('/example/doc2.ks'),
+      URI.file('/example/doc3.ks'),
+      URI.file('/example/doc4.ks'),
+    ];
+
+    const docs = [
+      'example 1',
+      'example 2',
+      'example 3',
+      'example 4',
+    ];
+
+    docService.onChange((document) => {
+      expect(document.uri).toBe(uris[i].toString());
+      expect(document.text).toBe(docs[i]);
+    });
+
+    for (i = 0; i < uris.length; i += 1) {
+      mockConnection.callOpen({
+        textDocument: TextDocumentItem.create(uris[i].toString(), 'kos', 1, docs[i]),
+      });
+
+      expect(serverDocs.size).toBe(0);
+      expect(editorDocs.size).toBe(i + 1);
+
+      for (let j = 0; j <= i; j += 1) {
+        const doc = docService.getDocument(uris[j].toString());
+        expect(doc).not.toBeUndefined();
+
+        if (!empty(doc)) {
+          expect(doc.getText()).toBe(docs[j]);
+        }
+
+        expect(editorDocs.has(uris[j].toString())).toBe(true);
+      }
+    }
   });
 });

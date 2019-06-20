@@ -59,7 +59,7 @@ import { isValidIdentifier } from './entities/tokentypes';
 import { TypeKind } from './typeChecker/types';
 // tslint:disable-next-line:import-name
 import program from 'commander';
-import { DocumentService } from './services/documentService';
+// import { DocumentService } from './services/documentService';
 
 program
   .version('0.6.1', '-v --version')
@@ -157,19 +157,19 @@ const server: IServer = {
 // Create a simple text document manager. The text document manager
 // supports full document sync only
 const documents: TextDocuments = new TextDocuments();
-const thing = new DocumentService(connection, server.analyzer.logger);
+// const thing = new DocumentService(connection, server.analyzer.logger);
 
-thing.onChange((document) => {
-  console.log(document);
-});
+// thing.onChange((document) => {
+//   console.log(document);
+// });
 
-thing.onChange((document) => {
-  console.log('Thing', document);
-});
+// thing.onChange((document) => {
+//   console.log('Thing', document);
+// });
 
-thing.onClose((uri) => {
-  console.log(uri);
-});
+// thing.onClose((uri) => {
+//   console.log(uri);
+// });
 
 /**
  * Initialize the server from the client

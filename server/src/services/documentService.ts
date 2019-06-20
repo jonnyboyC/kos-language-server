@@ -79,14 +79,14 @@ export class DocumentService {
    * Get a document from this document service
    * @param uri uri to lookup document
    */
-  getDocument(uri: string): Maybe<TextDocument> {
+  public getDocument(uri: string): Maybe<TextDocument> {
     return this.editorDocs.get(uri) || this.serverDocs.get(uri);
   }
 
   /**
    * Get all document held in this service
    */
-  getAllDocuments(): TextDocument[] {
+  public getAllDocuments(): TextDocument[] {
     return [...this.editorDocs.values(), ...this.serverDocs.values()];
   }
 
@@ -136,7 +136,7 @@ export class DocumentService {
    * in order to synchronize
    * @param handler document change handler
    */
-  onChange(handler: DocumentChangeHandler): void {
+  public onChange(handler: DocumentChangeHandler): void {
     this.onChangeHandler(handler);
     this.onOpenHandler(handler);
   }
@@ -165,7 +165,7 @@ export class DocumentService {
    * Called when the editor closes a document.
    * @param handler document close handler
    */
-  onClose(handler: DocumentClosedHandler): void {
+  public onClose(handler: DocumentClosedHandler): void {
     this.onCloseHandler(handler);
   }
 
@@ -177,6 +177,7 @@ export class DocumentService {
     this.conn.onDidOpenTextDocument(params => {
       const document = params.textDocument;
 
+      this.editorDocs.delete(document.uri);
       this.editorDocs.set(
         document.uri,
         TextDocument.create(
