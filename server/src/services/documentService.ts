@@ -10,7 +10,6 @@ import { empty } from '../utilities/typeGuards';
 import { PathResolver } from '../utilities/pathResolver';
 import { URI } from 'vscode-uri';
 import { extname } from 'path';
-import { retrieveUriAsync } from '../utilities/fsUtils';
 import { createDiagnostic } from '../utilities/diagnosticsUtils';
 
 interface Document {
@@ -21,10 +20,12 @@ interface Document {
 type DocumentChangeHandler = (document: Document) => void;
 type DocumentClosedHandler = (uri: string) => void;
 
-type DocumentConnection = Pick<
+export type DocumentConnection = Pick<
   IConnection,
   'onDidChangeTextDocument' | 'onDidCloseTextDocument' | 'onDidOpenTextDocument'
 >;
+
+export type UriLoader = (uri: string) => Promise<string>;
 
 /**
  * Service responsible for managing documents being loaded by the client and the server
@@ -51,6 +52,11 @@ export class DocumentService {
   private logger: ILogger;
 
   /**
+   * A function to load a uri asynchronously
+   */
+  private uriLoader: UriLoader;
+
+  /**
    * The path resolver to identifying file paths from kos run paths
    */
   private pathResolver: PathResolver;
@@ -60,11 +66,12 @@ export class DocumentService {
    * @param conn document connection holding the required callbacks from iconnection
    * @param logger logger to log messages to client
    */
-  constructor(conn: DocumentConnection, logger: ILogger) {
+  constructor(conn: DocumentConnection, uriLoader: UriLoader, logger: ILogger) {
     this.editorDocs = new Map();
     this.serverDocs = new Map();
     this.pathResolver = new PathResolver();
     this.conn = conn;
+    this.uriLoader = uriLoader;
     this.logger = logger;
   }
 
@@ -144,11 +151,11 @@ export class DocumentService {
 
     switch (ext) {
       case '.ks':
-        return retrieveUriAsync(uriString);
+        return this.uriLoader(uriString);
       case '.ksm':
-        return retrieveUriAsync(uriString.replace('.ksm', '.ks'));
+        return this.uriLoader(uriString.replace('.ksm', '.ks'));
       case '':
-        return retrieveUriAsync(`${uriString}.ks`);
+        return this.uriLoader(`${uriString}.ks`);
       default:
         return Promise.reject();
     }
