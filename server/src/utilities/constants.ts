@@ -7,6 +7,8 @@ export const iterator = 'iterator';
 export const serverName = 'kos-vscode';
 export const languageServer = 'kos-language-server';
 
+export const notFoundErrorCode = 'ENOTFOUND';
+
 export const keywords = new Set([
   'add',
   'and',

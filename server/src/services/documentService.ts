@@ -4,12 +4,14 @@ import {
   TextEdit,
   Diagnostic,
   Location,
+  DiagnosticSeverity,
 } from 'vscode-languageserver';
 import { empty } from '../utilities/typeGuards';
 import { PathResolver } from '../utilities/pathResolver';
 import { URI } from 'vscode-uri';
 import { extname } from 'path';
-import { existsSync } from 'fs';
+import { retrieveUriAsync } from '../utilities/fsUtils';
+import { createDiagnostic } from '../utilities/diagnosticsUtils';
 
 interface Document {
   uri: string;
@@ -81,45 +83,44 @@ export class DocumentService {
     return [...this.editorDocs.values(), ...this.serverDocs.values()];
   }
 
-  loadDocument(caller: Location, kosPath: string): Maybe<Diagnostic | TextDocument> {
+  public async loadDocument(
+    caller: Location,
+    kosPath: string,
+  ): Promise<Maybe<Diagnostic | TextDocument>> {
+    // resolver must first be ready
     if (!this.pathResolver.ready) {
       return undefined;
     }
 
+    // resolve kos path to uri
     const result = this.pathResolver.resolveUri(caller, kosPath);
     if (empty(result)) {
       return result;
     }
 
+    // check for cached versions first
     const cached = this.serverDocs.get(result.uri.toString());
     if (!empty(cached)) {
       return cached;
     }
 
+    try {
+      // attempt to load a resource from whatever uri is provided
+      const retrieved = await this.retrieveResource(result.uri);
+      const textDocument = TextDocument.create(result.uri.toString(), 'temp', 0, retrieved);
 
-  }
+      // if found set in cache and return document
+      this.serverDocs.set(result.uri.toString(), textDocument);
+      return textDocument;
 
-  private derp(uri: URI): void {
-    const ext = extname(uri.fsPath);
+    } catch (err) {
 
-    switch (ext) {
-      case '.ks':
-        // case '.ksm': probably need to report we can't read ksm files
-        if (existsSync(path)) {
-          return { path, uri };
-        }
-
-        return undefined;
-      case '.ksm':
-
-      
-      case '':
-        if (existsSync(`${path}.ks`)) {
-          return { path: `${path}.ks`, uri: `${uri}.ks` };
-        }
-        return undefined;
-      default:
-        return undefined;
+      // create a diagnostic if we can't load the file
+      return createDiagnostic(
+        caller.range,
+        `Unable to load script at ${kosPath}`,
+        DiagnosticSeverity.Information,
+      );
     }
   }
 
@@ -131,6 +132,26 @@ export class DocumentService {
   onChange(handler: DocumentChangeHandler): void {
     this.onChangeHandler(handler);
     this.onOpenHandler(handler);
+  }
+
+  /**
+   * Retrieve a resource from the provided uri
+   * @param uri uri to load resources from
+   */
+  private retrieveResource(uri: URI): Promise<string> {
+    const ext = extname(uri.fsPath);
+    const uriString = uri.toString();
+
+    switch (ext) {
+      case '.ks':
+        return retrieveUriAsync(uriString);
+      case '.ksm':
+        return retrieveUriAsync(uriString.replace('.ksm', '.ks'));
+      case '':
+        return retrieveUriAsync(`${uriString}.ks`);
+      default:
+        return Promise.reject();
+    }
   }
 
   /**

@@ -361,7 +361,7 @@ export class Analyzer {
       }
 
       // if cache not found attempt to find file from disk
-      const validated = this.tryFindDocument(path, uri);
+      const validated = this.tryFindDocument(path, uri.toString());
       if (empty(validated)) {
         return {
           diagnostics: [
