@@ -34,7 +34,7 @@ export class DocumentService {
   /**
    * Currently cached documents loaded by the client
    */
-  private editorDocs: Map<string, TextDocument>;
+  private clientDocs: Map<string, TextDocument>;
 
   /**
    * Current cached document only loaded by the server
@@ -74,7 +74,7 @@ export class DocumentService {
     logger: ILogger,
     volume0Uri?: string,
   ) {
-    this.editorDocs = new Map();
+    this.clientDocs = new Map();
     this.serverDocs = new Map();
     this.pathResolver = new PathResolver(volume0Uri);
     this.conn = conn;
@@ -91,14 +91,14 @@ export class DocumentService {
    * @param uri uri to lookup document
    */
   public getDocument(uri: string): Maybe<TextDocument> {
-    return this.editorDocs.get(uri) || this.serverDocs.get(uri);
+    return this.clientDocs.get(uri) || this.serverDocs.get(uri);
   }
 
   /**
    * Get all document held in this service
    */
   public getAllDocuments(): TextDocument[] {
-    return [...this.editorDocs.values(), ...this.serverDocs.values()];
+    return [...this.clientDocs.values(), ...this.serverDocs.values()];
   }
 
   public async loadDocument(
@@ -191,8 +191,8 @@ export class DocumentService {
     this.conn.onDidOpenTextDocument(params => {
       const document = params.textDocument;
 
-      this.editorDocs.delete(document.uri);
-      this.editorDocs.set(
+      this.clientDocs.delete(document.uri);
+      this.clientDocs.set(
         document.uri,
         TextDocument.create(
           document.uri,
@@ -213,7 +213,7 @@ export class DocumentService {
   private onChangeHandler(handler: DocumentChangeHandler): void {
     this.conn.onDidChangeTextDocument(params => {
       // lookup existing document
-      const document = this.editorDocs.get(params.textDocument.uri);
+      const document = this.clientDocs.get(params.textDocument.uri);
       if (empty(document)) {
         return;
       }
@@ -245,7 +245,7 @@ export class DocumentService {
       );
 
       // update editor docs
-      this.editorDocs.set(document.uri, updatedDoc);
+      this.clientDocs.set(document.uri, updatedDoc);
 
       // call handler
       handler({ text, uri: document.uri });
@@ -262,8 +262,8 @@ export class DocumentService {
       const { uri } = params.textDocument;
 
       // get the current document and remove
-      const document = this.editorDocs.get(uri);
-      this.editorDocs.delete(uri);
+      const document = this.clientDocs.get(uri);
+      this.clientDocs.delete(uri);
 
       // if document not empty add to server docs
       if (!empty(document)) {

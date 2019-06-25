@@ -8,6 +8,9 @@ import {
   Location,
   Range,
   TextDocument,
+  VersionedTextDocumentIdentifier,
+  Position,
+  TextDocumentIdentifier,
 } from 'vscode-languageserver';
 import { mockLogger } from '../utilities/logger';
 import { URI } from 'vscode-uri';
@@ -82,7 +85,7 @@ describe('documentService', () => {
     );
 
     const serverDocs = docService['serverDocs'];
-    const editorDocs = docService['editorDocs'];
+    const clientDocs = docService['clientDocs'];
 
     let i = 0;
 
@@ -111,7 +114,7 @@ describe('documentService', () => {
       });
 
       expect(serverDocs.size).toBe(0);
-      expect(editorDocs.size).toBe(i + 1);
+      expect(clientDocs.size).toBe(i + 1);
 
       for (let j = 0; j <= i; j += 1) {
         const doc = docService.getDocument(uris[j].toString());
@@ -121,7 +124,7 @@ describe('documentService', () => {
           expect(doc.getText()).toBe(docs[j]);
         }
 
-        expect(editorDocs.has(uris[j].toString())).toBe(true);
+        expect(clientDocs.has(uris[j].toString())).toBe(true);
       }
     }
 
@@ -154,7 +157,7 @@ describe('documentService', () => {
     );
 
     const serverDocs = docService['serverDocs'];
-    const editorDocs = docService['editorDocs'];
+    const clientDocs = docService['clientDocs'];
 
     const uris = [
       URI.file('/example/folder/doc1.ks'),
@@ -184,7 +187,7 @@ describe('documentService', () => {
         expect((loadedDoc as TextDocument).getText()).toBe(doc);
       }
 
-      expect(editorDocs.size).toBe(0);
+      expect(clientDocs.size).toBe(0);
       expect(serverDocs.size).toBe(i + 1);
       expect(serverDocs.has(uri.toString())).toBe(true);
 
@@ -201,5 +204,95 @@ describe('documentService', () => {
 
       i = i + 1;
     }
+  });
+
+  test('change update', async () => {
+    const mockConnection = createMockDocConnection();
+    const files = new Map();
+    const mockUriResponse = createMockUriResponse(files);
+
+    const baseUri = URI.file('/example/folder').toString();
+    // const callingUri = URI.file('/example/folder/example.ks').toString();
+
+    const docService = new DocumentService(
+      mockConnection,
+      mockUriResponse,
+      mockLogger,
+      baseUri,
+    );
+
+    const serverDocs = docService['serverDocs'];
+    const clientDocs = docService['clientDocs'];
+
+    const uri = URI.file('/example/folder/doc1.ks');
+    const content = 'example';
+    const afterEdit = 'example edited';
+
+    let first = true;
+
+    docService.onChange(document => {
+      if (first) {
+        expect(document.uri).toBe(uri.toString());
+        expect(document.text).toBe(content);
+        first = false;
+      } else {
+        expect(document.uri).toBe(uri.toString());
+        expect(document.text).toBe(afterEdit);
+      }
+    });
+
+    docService.onClose(closeUri => {
+      expect(closeUri).toBe(uri.toString());
+    });
+
+    mockConnection.callOpen({
+      textDocument: TextDocumentItem.create(
+        uri.toString(),
+        'kos',
+        1,
+        content,
+      ),
+    });
+
+    expect(serverDocs.size).toBe(0);
+    expect(clientDocs.size).toBe(1);
+
+    let clientDoc = docService.getDocument(uri.toString());
+    expect(clientDoc).not.toBeUndefined();
+    if (!empty(clientDoc)) {
+      expect(clientDoc.getText()).toBe(content);
+    }
+
+    mockConnection.callChange({
+      textDocument: VersionedTextDocumentIdentifier.create(uri.toString(), 1),
+      contentChanges: [{
+        range: Range.create(Position.create(0, 7), Position.create(0, 7)),
+        rangeLength: 0,
+        text: ' edited',
+      }],
+    });
+
+    expect(serverDocs.size).toBe(0);
+    expect(clientDocs.size).toBe(1);
+
+    clientDoc = docService.getDocument(uri.toString());
+    expect(clientDoc).not.toBeUndefined();
+    if (!empty(clientDoc)) {
+      expect(clientDoc.getText()).toBe(afterEdit);
+    }
+
+    mockConnection.callClose({
+      textDocument: TextDocumentIdentifier.create(uri.toString()),
+    });
+
+    expect(serverDocs.size).toBe(1);
+    expect(clientDocs.size).toBe(0);
+
+    clientDoc = docService.getDocument(uri.toString());
+    expect(clientDoc).not.toBeUndefined();
+    if (!empty(clientDoc)) {
+      expect(clientDoc.getText()).toBe(afterEdit);
+    }
+
   });
 });
