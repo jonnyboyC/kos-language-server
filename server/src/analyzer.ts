@@ -38,9 +38,10 @@ import { SymbolTable } from './analysis/symbolTable';
 import { TypeChecker } from './typeChecker/typeChecker';
 import { Token } from './entities/token';
 import { binarySearchIndex } from './utilities/positionUtils';
+import { URI } from 'vscode-uri';
 
 export class Analyzer {
-  public workspaceFolder?: string;
+  public workspaceUri?: string;
 
   private standardLibrary: SymbolTable;
   private bodyLibrary: SymbolTable;
@@ -60,7 +61,7 @@ export class Analyzer {
     this.logger = logger;
     this.tracer = tracer;
     this.documentInfos = new Map();
-    this.workspaceFolder = undefined;
+    this.workspaceUri = undefined;
 
     this.standardLibrary = standardLibraryBuilder(caseKind);
     this.bodyLibrary = bodyLibraryBuilder(caseKind);
@@ -78,11 +79,11 @@ export class Analyzer {
 
   /**
    * Set the volume 0 path for the analyzer
-   * @param path path of volume 0
+   * @param uri path of volume 0
    */
-  public setPath(path: string): void {
-    this.pathResolver.volume0Path = path;
-    this.workspaceFolder = path;
+  public setUri(uri: string): void {
+    this.pathResolver.volume0Uri = URI.parse(uri);
+    this.workspaceUri = uri;
   }
 
   /**
@@ -350,7 +351,7 @@ export class Analyzer {
    */
   private async *loadAndValidateDocument(
     parentUri: string,
-    { uri, caller, path }: ILoadData,
+    { uri, caller }: ILoadData,
     depth: number,
   ): AsyncIterableIterator<ValidateResult> {
     try {
@@ -361,7 +362,8 @@ export class Analyzer {
       }
 
       // if cache not found attempt to find file from disk
-      const validated = this.tryFindDocument(path, uri.toString());
+      // TODO
+      const validated = this.tryFindDocument(uri.fsPath, uri.toString());
       if (empty(validated)) {
         return {
           diagnostics: [
@@ -369,7 +371,7 @@ export class Analyzer {
               uri: parentUri,
               range: caller,
               severity: DiagnosticSeverity.Error,
-              message: `Unable to find ${path}`,
+              message: `Unable to find ${uri.fsPath}`,
             },
           ],
         };
@@ -386,7 +388,7 @@ export class Analyzer {
             uri: parentUri,
             range: caller,
             severity: DiagnosticSeverity.Error,
-            message: `Unable to read ${path}`,
+            message: `Unable to read ${uri.fsPath}`,
           },
         ],
       };

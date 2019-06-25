@@ -16,17 +16,23 @@ export class PathResolver {
   /**
    * The path corresponding to root of volume 0 of the kos directory
    */
-  public volume0Path?: string;
+  public volume0Uri?: URI;
 
-  constructor(volume0Path?: string) {
-    this.volume0Path = volume0Path;
+  /**
+   * Create an instance of that path resolve.
+   * @param volume0Uri the uri associated with volume 0
+   */
+  constructor(volume0Uri?: string) {
+    this.volume0Uri = !empty(volume0Uri)
+      ? URI.parse(volume0Uri)
+      : undefined;
   }
 
   /**
    * Is the resolve ready to resolve paths
    */
   public get ready(): boolean {
-    return !empty(this.volume0Path);
+    return !empty(this.volume0Uri);
   }
 
   /**
@@ -35,7 +41,7 @@ export class PathResolver {
    * @param runPath path provided in a run statement
    */
   public resolveUri(caller: Location, runPath?: string): Maybe<ILoadData> {
-    if (empty(runPath) || empty(this.volume0Path)) {
+    if (empty(runPath) || empty(this.volume0Uri)) {
       return undefined;
     }
 
@@ -47,7 +53,7 @@ export class PathResolver {
       return undefined;
     }
 
-    const relativePath = relative(this.volume0Path, dirname(uri.fsPath));
+    const relativePath = relative(this.volume0Uri.toString(), dirname(caller.uri));
 
     // check if the scripts reads from volume 0 "disk"
     // TODO no idea what to do for ship volumes
@@ -77,12 +83,11 @@ export class PathResolver {
     caller: Location,
     ...pathSegments: string[]
   ): Maybe<ILoadData> {
-    if (empty(this.volume0Path)) return undefined;
+    if (empty(this.volume0Uri)) return undefined;
 
     return {
       caller: { start: caller.range.start, end: caller.range.end },
-      path: join(this.volume0Path, ...pathSegments),
-      uri: URI.file(join(this.volume0Path, ...pathSegments)),
+      uri: URI.file(join(this.volume0Uri.fsPath, ...pathSegments)),
     };
   }
 }

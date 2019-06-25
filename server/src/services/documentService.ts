@@ -64,15 +64,26 @@ export class DocumentService {
   /**
    * Create a new instance of the document service.
    * @param conn document connection holding the required callbacks from iconnection
+   * @param uriLoader service to load from a provided uri
    * @param logger logger to log messages to client
+   * @param volume0Uri the uri to volume 0 on the drive
    */
-  constructor(conn: DocumentConnection, uriLoader: UriLoader, logger: ILogger) {
+  constructor(
+    conn: DocumentConnection,
+    uriLoader: UriLoader,
+    logger: ILogger,
+    volume0Uri?: string,
+  ) {
     this.editorDocs = new Map();
     this.serverDocs = new Map();
-    this.pathResolver = new PathResolver();
+    this.pathResolver = new PathResolver(volume0Uri);
     this.conn = conn;
     this.uriLoader = uriLoader;
     this.logger = logger;
+  }
+
+  public setVolume0Uri(uri: URI) {
+    this.pathResolver.volume0Uri = uri;
   }
 
   /**
@@ -114,14 +125,17 @@ export class DocumentService {
     try {
       // attempt to load a resource from whatever uri is provided
       const retrieved = await this.retrieveResource(result.uri);
-      const textDocument = TextDocument.create(result.uri.toString(), 'temp', 0, retrieved);
+      const textDocument = TextDocument.create(
+        result.uri.toString(),
+        'temp',
+        0,
+        retrieved,
+      );
 
       // if found set in cache and return document
       this.serverDocs.set(result.uri.toString(), textDocument);
       return textDocument;
-
     } catch (err) {
-
       // create a diagnostic if we can't load the file
       return createDiagnostic(
         caller.range,

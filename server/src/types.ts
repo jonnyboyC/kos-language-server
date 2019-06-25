@@ -12,7 +12,6 @@ export interface IDocumentInfo {
 export interface ILoadData {
   caller: Range;
   uri: URI;
-  path: string;
 }
 
 export type ValidateResult = IDiagnosticUri[] | SymbolTable;

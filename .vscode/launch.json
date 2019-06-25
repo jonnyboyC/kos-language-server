@@ -27,7 +27,6 @@
 			"stopOnEntry": false,
 			"sourceMaps": true,
 			"outFiles": ["${workspaceRoot}/clients/vscode/out/**/*.js"],
-			"preLaunchTask": "npm: dev:server"
 		},
 		{
 			"type": "node",

@@ -197,12 +197,12 @@ connection.onInitialize((params: InitializeParams) => {
 
   // get root path if it exists
   if (rootPath) {
-    server.analyzer.setPath(rootPath);
     server.workspaceFolder = rootPath;
   }
 
   // get root uri if it exists
   if (rootUri) {
+    server.analyzer.setUri(rootUri);
     server.workspaceUri = rootUri;
   }
 
@@ -653,7 +653,7 @@ const defaultSignature = (): SignatureHelp => ({
 
 // Make the text document manager listen on the connection
 // for open, change and close text document events
-// documents.listen(connection);
+documents.listen(connection);
 
 // Listen on the connection
 connection.listen();
