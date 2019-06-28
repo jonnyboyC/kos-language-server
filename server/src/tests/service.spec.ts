@@ -295,4 +295,64 @@ describe('documentService', () => {
     }
 
   });
+
+  test('load extension', async () => {
+    const mockConnection = createMockDocConnection();
+    const files = new Map();
+    const mockUriResponse = createMockUriResponse(files);
+
+    const baseUri = URI.file('/example/folder').toString();
+    const callingUri = URI.file('/example/folder/example.ks').toString();
+
+    const docService = new DocumentService(
+      mockConnection,
+      mockUriResponse,
+      mockLogger,
+      baseUri,
+    );
+
+    const serverDocs = docService['serverDocs'];
+    const clientDocs = docService['clientDocs'];
+
+    const actualUri = [
+      URI.file('/example/folder/doc1.ks'),
+      URI.file('/example/folder/doc2.ks'),
+      URI.file('/example/folder/doc3.ks'),
+    ];
+
+    const requestedUri = [
+      URI.file('/example/folder/doc1.ks'),
+      URI.file('/example/folder/doc2.ksm'),
+      URI.file('/example/folder/doc3'),
+      URI.file('/example/folder/doc4.txt'),
+    ];
+
+    const doc = 'example';
+
+    let i = 0;
+    for (const [aUri, rUri] of zip(actualUri, requestedUri)) {
+      const uriString = rUri.toString();
+      files.set(aUri.toString(), doc);
+
+      const loadedDoc = await docService.loadDocument(
+        Location.create(
+          callingUri,
+          Range.create({ line: 0, character: 0 }, { line: 0, character: 10 }),
+        ),
+        `0:/${basename(uriString)}`,
+      );
+
+      expect(loadedDoc).not.toBeUndefined();
+      if (!empty(loadedDoc)) {
+        expect(TextDocument.is(loadedDoc)).toBe(true);
+        expect((loadedDoc as TextDocument).getText()).toBe(doc);
+      }
+
+      expect(clientDocs.size).toBe(0);
+      expect(serverDocs.size).toBe(i + 1);
+
+      expect(serverDocs.has(aUri.toString())).toBe(true);
+      i += 1;
+    }
+  });
 });
