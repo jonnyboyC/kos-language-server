@@ -5,6 +5,7 @@ import {
   Diagnostic,
   Location,
   DiagnosticSeverity,
+  Range,
 } from 'vscode-languageserver';
 import { empty } from '../utilities/typeGuards';
 import { PathResolver } from '../utilities/pathResolver';
@@ -91,7 +92,12 @@ export class DocumentService {
    * @param uri uri to lookup document
    */
   public getDocument(uri: string): Maybe<TextDocument> {
-    return this.clientDocs.get(uri) || this.serverDocs.get(uri);
+    const normalized = this.normalizeExtensions(uri);
+
+    if (empty(normalized)) {
+      return undefined;
+    }
+    return this.clientDocs.get(normalized) || this.serverDocs.get(normalized);
   }
 
   /**
@@ -113,35 +119,46 @@ export class DocumentService {
     // resolve kos path to uri
     const result = this.pathResolver.resolveUri(caller, kosPath);
     if (empty(result)) {
-      return result;
+      return this.loadError(caller.range, kosPath);
+    }
+
+    // attempt to load a resource from whatever uri is provided
+    const normalized = this.normalizeExtensions(result.uri);
+    if (empty(normalized)) {
+      return this.loadError(caller.range, kosPath);
     }
 
     // check for cached versions first
-    const cached = this.serverDocs.get(result.uri.toString());
+    const cached = this.serverDocs.get(normalized);
     if (!empty(cached)) {
       return cached;
     }
 
     try {
       // attempt to load a resource from whatever uri is provided
-      const retrieved = await this.retrieveResource(result.uri);
+      const normalized = this.normalizeExtensions(result.uri);
+      if (empty(normalized)) {
+        return createDiagnostic(
+          caller.range,
+          `Unable to load script at ${kosPath}`,
+          DiagnosticSeverity.Information,
+        );
+      }
+
+      const retrieved = await this.retrieveResource(normalized);
       const textDocument = TextDocument.create(
-        result.uri.toString(),
+        normalized,
         'temp',
         0,
         retrieved,
       );
 
       // if found set in cache and return document
-      this.serverDocs.set(result.uri.toString(), textDocument);
+      this.serverDocs.set(normalized, textDocument);
       return textDocument;
     } catch (err) {
       // create a diagnostic if we can't load the file
-      return createDiagnostic(
-        caller.range,
-        `Unable to load script at ${kosPath}`,
-        DiagnosticSeverity.Information,
-      );
+      return this.loadError(caller.range, kosPath);
     }
   }
 
@@ -156,31 +173,52 @@ export class DocumentService {
   }
 
   /**
-   * Retrieve a resource from the provided uri
-   * @param uri uri to load resources from
-   */
-  private retrieveResource(uri: URI): Promise<string> {
-    const ext = extname(uri.fsPath);
-    const uriString = uri.toString();
-
-    switch (ext) {
-      case '.ks':
-        return this.uriLoader(uriString);
-      case '.ksm':
-        return this.uriLoader(uriString.replace('.ksm', '.ks'));
-      case '':
-        return this.uriLoader(`${uriString}.ks`);
-      default:
-        return Promise.reject();
-    }
-  }
-
-  /**
    * Called when the editor closes a document.
    * @param handler document close handler
    */
   public onClose(handler: DocumentClosedHandler): void {
     this.onCloseHandler(handler);
+  }
+
+  /**
+   * Generate a loading diagnostic if file cannot be loaded
+   * @param range range of the run statment
+   * @param path kos path of the file
+   */
+  private loadError(range: Range, path: string) {
+    return createDiagnostic(
+      range,
+      `Unable to load script at ${path}`,
+      DiagnosticSeverity.Information,
+    );
+  }
+
+  /**
+   * Normalize a filepath to the the default extension .ks if rules allow it to
+   * @param uri absolute resolved path
+   */
+  private normalizeExtensions(uri: URI | string): Maybe<string> {
+    const ext = URI.isUri(uri) ? extname(uri.fsPath) : extname(uri);
+    const uriString = uri.toString();
+
+    switch (ext) {
+      case '.ks':
+        return uriString;
+      case '.ksm':
+        return uriString.replace('.ksm', '.ks');
+      case '':
+        return `${uriString}.ks`;
+      default:
+        return undefined;
+    }
+  }
+
+  /**
+   * Retrieve a resource from the provided uri
+   * @param uri uri to load resources from
+   */
+  private retrieveResource(uri: string): Promise<string> {
+    return this.uriLoader(uri);
   }
 
   /**

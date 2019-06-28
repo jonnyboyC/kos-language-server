@@ -5,7 +5,7 @@
 'use strict';
 
 import * as path from 'path';
-import { ExtensionContext, commands } from 'vscode';
+import { ExtensionContext, commands, workspace } from 'vscode';
 
 import {
   LanguageClient,
@@ -28,9 +28,8 @@ import { parse } from 'semver';
 
 let client: LanguageClient;
 
-const serverFolder = process.env.NODE_ENV && process.env.NODE_ENV === 'dev'
-  ? 'out'
-  : 'dist';
+const serverFolder =
+  process.env.NODE_ENV && process.env.NODE_ENV === 'dev' ? 'out' : 'dist';
 
 /**
  * This function activates the extension when vscode determines we've either opens a
@@ -86,6 +85,15 @@ export function activate(context: ExtensionContext) {
   const clientOptions: LanguageClientOptions = {
     // Register the server for kos documents
     documentSelector: [{ scheme: 'file', language: 'kos' }],
+
+    synchronize: {
+      fileEvents: workspace.createFileSystemWatcher(
+        '**/*.ks',
+        true,
+        true,
+        false,
+      ),
+    },
 
     errorHandler: {
       error(error: Error, message: Message, count: number): ErrorAction {

@@ -4,16 +4,11 @@ if (Symbol['asyncIterator'] === undefined) {
 
 import {
   createConnection,
-  TextDocuments,
   ProposedFeatures,
   InitializeParams,
   CompletionItem,
   TextDocumentPositionParams,
   Location,
-  // DidChangeWatchedFilesParams,
-  // DidOpenTextDocumentParams,
-  // DidChangeTextDocumentParams,
-  // DidCloseTextDocumentParams,
   DocumentSymbolParams,
   SymbolInformation,
   CompletionParams,
@@ -59,6 +54,8 @@ import { isValidIdentifier } from './entities/tokentypes';
 import { TypeKind } from './typeChecker/types';
 // tslint:disable-next-line:import-name
 import program from 'commander';
+import { DocumentService } from './services/documentService';
+import { retrieveUriAsync } from './utilities/fsUtils';
 // import { DocumentService } from './services/documentService';
 
 program
@@ -114,6 +111,10 @@ export const connection = createConnection(
   writer,
 );
 
+connection.onDidChangeWatchedFiles(blah => {
+  console.log(blah);
+});
+
 // REMOVE ME TODO probably need to refactor the type modules as
 // structure and the primitives have a dependnecy loop
 primitiveInitializer();
@@ -154,22 +155,8 @@ const server: IServer = {
   ),
 };
 
-// Create a simple text document manager. The text document manager
-// supports full document sync only
-const documents: TextDocuments = new TextDocuments();
-// const thing = new DocumentService(connection, server.analyzer.logger);
-
-// thing.onChange((document) => {
-//   console.log(document);
-// });
-
-// thing.onChange((document) => {
-//   console.log('Thing', document);
-// });
-
-// thing.onClose((uri) => {
-//   console.log(uri);
-// });
+// create a document service for managing documents over the lsp connection
+const documentService = new DocumentService(connection, retrieveUriAsync, server.analyzer.logger);
 
 /**
  * Initialize the server from the client
@@ -213,6 +200,7 @@ connection.onInitialize((params: InitializeParams) => {
   );
 
   return {
+
     capabilities: {
       textDocumentSync: TextDocumentSyncKind.Incremental,
 
@@ -281,37 +269,13 @@ connection.onDidChangeConfiguration(change => {
   }
 });
 
-// monitor when the editor opens a document
-// connection.onDidOpenTextDocument((param: DidOpenTextDocumentParams) => {
-//   connection.console.info(`We received ${param.textDocument.uri} was opened`);
-// });
-
-// monitor when a text document is changed
-// connection.onDidChangeTextDocument((param: DidChangeTextDocumentParams) => {
-//   connection.console.info(
-//     `We received ${param.contentChanges.length} file changes`,
-//   );
-// });
-
-// monitor file change events
-// connection.onDidChangeWatchedFiles((change: DidChangeWatchedFilesParams) => {
-//   connection.console.info(
-//     `We received ${change.changes.length} file change events`,
-//   );
-// });
-
-// monitor when a text document is closed
-// connection.onDidCloseTextDocument((param: DidCloseTextDocumentParams) => {
-//   connection.console.info(`We received ${param.textDocument.uri} was closed`);
-// });
-
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
-documents.onDidChangeContent(async change => {
+documentService.onChange(async change => {
   try {
     const diagnosticResults = server.analyzer.validateDocument(
-      change.document.uri,
-      change.document.getText(),
+      change.uri,
+      change.text,
     );
 
     let total = 0;
@@ -342,7 +306,7 @@ documents.onDidChangeContent(async change => {
     // if not problems found clear out diagnostics
     if (total === 0) {
       connection.sendDiagnostics({
-        uri: change.document.uri,
+        uri: change.uri,
         diagnostics: [],
       });
     }
@@ -650,10 +614,6 @@ const defaultSignature = (): SignatureHelp => ({
   activeParameter: null,
   activeSignature: null,
 });
-
-// Make the text document manager listen on the connection
-// for open, change and close text document events
-documents.listen(connection);
 
 // Listen on the connection
 connection.listen();
