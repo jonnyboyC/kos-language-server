@@ -92,6 +92,9 @@ export class Generator implements IExprClassVisitor<string> {
   visitExprInvalid(exprClass: IExprClass<Expr.Invalid>): string {
     return this.generateGrammarNodes(exprClass.grammar);
   }
+  visitTernary(exprClass: IExprClass<Expr.Ternary>): string {
+    return this.generateGrammarNodes(exprClass.grammar);
+  }
   visitBinary(exprClass: IExprClass<Expr.Binary>): string {
     return this.generateGrammarNodes(exprClass.grammar);
   }

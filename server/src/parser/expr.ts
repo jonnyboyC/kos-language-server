@@ -93,6 +93,82 @@ export class Invalid extends Expr {
 }
 
 /**
+ * Class holding all valid ternary expressions in KOS
+ */
+export class Ternary extends Expr {
+  /**
+   * Grammar for the ternary expression
+   */
+  public static grammar: GrammarNode[];
+
+  /**
+   * Constructor for all ternary expressions
+   * @param choose the choose token
+   * @param condition ternary condition expression
+   * @param ifToken the if token
+   * @param trueBranch the true branch
+   * @param elseToken the else token
+   * @param falseBranch the false branch
+   */
+  constructor(
+    public readonly choose: Token,
+    public readonly condition: IExpr,
+    public readonly ifToken: Token,
+    public readonly trueBranch: IExpr,
+    public readonly elseToken: Token,
+    public readonly falseBranch: IExpr,
+  ) {
+    super();
+  }
+
+  public get start(): Position {
+    return this.choose.start;
+  }
+
+  public get end(): Position {
+    return this.falseBranch.end;
+  }
+
+  public get ranges(): Range[] {
+    return [
+      this.choose,
+      this.condition,
+      this.ifToken,
+      this.trueBranch,
+      this.elseToken,
+      this.falseBranch,
+    ];
+  }
+
+  public toLines(): string[] {
+    const conditionLines = this.condition.toLines();
+    const trueLines = this.trueBranch.toLines();
+    const falseLines = this.falseBranch.toLines();
+
+    conditionLines[0] = `${this.choose.lexeme} ${conditionLines[0]}`;
+
+    const lines = joinLines(
+      ` ${this.ifToken.lexeme} `,
+      conditionLines,
+      trueLines,
+    );
+    return joinLines(` ${this.elseToken.lexeme} `, lines, falseLines);
+  }
+
+  public accept<T>(visitor: IExprVisitor<T>): T {
+    return visitor.visitTernary(this);
+  }
+
+  public pass<T>(visitor: IExprPasser<T>): T {
+    return visitor.passTernary(this);
+  }
+
+  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
+    return visitor.visitTernary(this);
+  }
+}
+
+/**
  * Class holding all valid binary expressions in KOS
  */
 export class Binary extends Expr {
@@ -125,12 +201,6 @@ export class Binary extends Expr {
 
   public get ranges(): Range[] {
     return [this.left, this.operator, this.right];
-  }
-
-  public toString(): string {
-    return `${this.left.toString()} ${
-      this.operator.lexeme
-    } ${this.right.toString()}`;
   }
 
   public toLines(): string[] {
@@ -181,10 +251,6 @@ export class Unary extends Expr {
 
   public get ranges(): Range[] {
     return [this.operator, this.factor];
-  }
-
-  public toString(): string {
-    return `${this.operator.lexeme} ${this.factor.toString()}`;
   }
 
   public toLines(): string[] {
@@ -283,9 +349,7 @@ export class Lambda extends Expr {
    * Anonymous Function constructor
    * @param block the scope for the lambda
    */
-  constructor(
-    public readonly block: Stmt.Block,
-  ) {
+  constructor(public readonly block: Stmt.Block) {
     super();
   }
 

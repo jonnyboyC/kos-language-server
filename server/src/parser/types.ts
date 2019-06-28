@@ -196,6 +196,7 @@ export interface IExprVisitable {
 
 export interface IExprVisitor<T> {
   visitExprInvalid(expr: Expr.Invalid): T;
+  visitTernary(expr: Expr.Ternary): T;
   visitBinary(expr: Expr.Binary): T;
   visitUnary(expr: Expr.Unary): T;
   visitFactor(expr: Expr.Factor): T;
@@ -209,6 +210,7 @@ export interface IExprPassable {
 
 export interface IExprPasser<T> {
   passExprInvalid(expr: Expr.Invalid): T;
+  passTernary(expr: Expr.Ternary): T;
   passBinary(expr: Expr.Binary): T;
   passUnary(expr: Expr.Unary): T;
   passFactor(expr: Expr.Factor): T;
@@ -275,6 +277,7 @@ export interface IExprVisitableClass {
 
 export interface IExprClassVisitor<T> {
   visitExprInvalid(exprClass: Constructor<Expr.Invalid>): T;
+  visitTernary(exprClass: Constructor<Expr.Ternary>): T;
   visitBinary(exprClass: Constructor<Expr.Binary>): T;
   visitUnary(exprClass: Constructor<Expr.Unary>): T;
   visitFactor(exprClass: Constructor<Expr.Factor>): T;

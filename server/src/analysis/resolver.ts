@@ -21,10 +21,7 @@ import { Script } from '../entities/script';
 import { mockLogger, mockTracer } from '../utilities/logger';
 import { SymbolTableBuilder } from './symbolTableBuilder';
 import { IDeferred } from './types';
-import {
-  Diagnostic,
-  DiagnosticSeverity,
-} from 'vscode-languageserver';
+import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
 import { createDiagnostic } from '../utilities/diagnosticsUtils';
 // tslint:disable-next-line: import-name
 import Denque from 'denque';
@@ -312,7 +309,10 @@ export class Resolver
     const errors: Diagnostic[] = [];
 
     if (empty(tracker)) {
-      const declareError = this.tableBuilder.declareLock(scopeType, decl.identifier);
+      const declareError = this.tableBuilder.declareLock(
+        scopeType,
+        decl.identifier,
+      );
 
       if (!empty(declareError)) {
         errors.push(declareError);
@@ -987,6 +987,13 @@ export class Resolver
 
   public visitExprInvalid(_: Expr.Invalid): Diagnostics {
     return [];
+  }
+
+  public visitTernary(expr: Expr.Ternary): Diagnostic[] {
+    const errors = this.resolveExpr(expr.condition);
+    errors.push(...this.resolveExpr(expr.trueBranch));
+    errors.push(...this.resolveExpr(expr.falseBranch));
+    return errors;
   }
 
   public visitBinary(expr: Expr.Binary): Diagnostics {
