@@ -4,7 +4,7 @@
     "description": "Syntax highlighting, auto-complete, and language diagnostics for KerboScript in Kerbal Operating System.",
     "author": "John Chabot",
     "license": "MIT",
-    "version": "0.6.1",
+    "version": "0.6.2",
     "galleryBanner": {
         "color": "#a3a3a3",
         "theme": "dark"
@@ -177,16 +177,6 @@
         "watch:atom": "tsc -w -p ./clients/atom/tsconfig.json",
         "watch:server": "tsc -w -p ./server/tsconfig.json",
         "postinstall": "cd clients/vscode && npm install && cd ../atom && npm install && cd ../../server && npm install && cd .."
-    },
-    "ava": {
-        "files": [
-            "server/out/**/*.spec.js",
-            "clients/vscode/out/**/*.spec.js"
-        ],
-        "sources": [
-            "server/out/**/*.js",
-            "clients/vscode/out/**/*.js"
-        ]
     },
     "bugs": {
         "url": "https://github.com/jonnyboyC/kos-language-server/issues"

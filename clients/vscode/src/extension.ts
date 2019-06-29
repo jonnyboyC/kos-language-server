@@ -28,6 +28,9 @@ import { parse } from 'semver';
 
 let client: LanguageClient;
 
+const env = process.env.NODE_ENV || 'dev';
+const serverFolder = env === 'dev' ? 'out' : 'dist';
+
 /**
  * This function activates the extension when vscode determines we've either opens a
  * kos file or run an associated command
@@ -36,7 +39,7 @@ let client: LanguageClient;
 export function activate(context: ExtensionContext) {
   // The server is implemented in node
   const serverModule = context.asAbsolutePath(
-    path.join('server', 'out', 'server.js'),
+    path.join('server', serverFolder, 'server.js'),
   );
 
   // determine the major version of the bundled node process

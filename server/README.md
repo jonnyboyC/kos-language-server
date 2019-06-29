@@ -13,11 +13,12 @@ the server can then be started by
 
 ## Arguments
 
-- `-v` `--version`       output the version number
-- `--node-ipc`         Connect with node inter process communication
-- `--stdio`            Connect with standard io
-  --clientProcessId  Id of the attached client process
-  -h, --help         output usage information
+- `-v` `--version`            output the version number
+- `--node-ipc`                Connect with node inter process communication
+- `--stdio`                   Connect with standard io
+- `--clientProcessId`         Id of the attached client process
+- `--harmony_async_iteration` Must be enabled if using node.js pre 10.0
+- `-h` `--help`               output usage information
 
 
 ## Features

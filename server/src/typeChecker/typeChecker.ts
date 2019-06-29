@@ -985,6 +985,35 @@ export class TypeChecker
 
   // ----------------------------- Expressions -----------------------------------------
 
+  /**
+   * Check the ternary expression TODO need union type
+   * @param expr ternary expression
+   */
+  public visitTernary(expr: Expr.Ternary): ITypeResultExpr<IBasicType> {
+    const conditionResult = this.checkExpr(expr.condition);
+    const trueResult = this.checkExpr(expr.trueBranch);
+    const falseResult = this.checkExpr(expr.falseBranch);
+
+    const errors: Diagnostics = conditionResult.errors;
+
+    errors.push(
+      ...trueResult.errors,
+      ...falseResult.errors,
+    );
+
+    if (!coerce(conditionResult.type, booleanType)) {
+      errors.push(
+        createDiagnostic(
+          expr.condition,
+          'condition must be able to be coerced into boolean',
+          DiagnosticSeverity.Hint,
+        ),
+      );
+    }
+
+    return { errors, type: trueResult.type };
+  }
+
   public visitBinary(expr: Expr.Binary): ITypeResultExpr<ArgumentType> {
     const rightResult = this.checkExpr(expr.right);
     const leftResult = this.checkExpr(expr.left);

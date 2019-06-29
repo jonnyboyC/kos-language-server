@@ -26,6 +26,8 @@ unlock t.
 
 test(list(), 10).
 
+print(choose "hello" if true else "bye").
+
 sas off.
 runpath("definedtest.ks").
 

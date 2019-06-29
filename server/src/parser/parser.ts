@@ -184,11 +184,10 @@ export class Parser {
         return {
           errors: [error],
           value: new Stmt.Invalid(
-            start === this.current
-              ? this.peek().end
-              : tokens[0].start,
+            start === this.current ? this.peek().end : tokens[0].start,
             tokens,
-            error.partial),
+            error.partial,
+          ),
         };
       }
       throw error;
@@ -1412,17 +1411,23 @@ export class Parser {
 
   /**
    * Parse an expression
-   * @param stmt the statment context
+   * @param stmt the statement context
    */
   private expression(stmt?: Constructor<Stmt.Stmt>): INodeResult<IExpr> {
     try {
-      // match anonymous function
-      if (this.matchToken(TokenType.curlyOpen)) {
-        return this.lambda();
+      switch (this.peek().type) {
+        // open curly is a lambda
+        case TokenType.curlyOpen:
+          this.advance();
+          return this.lambda();
+        // choose indicates ternary
+        case TokenType.choose:
+          this.advance();
+          return this.ternary();
+        // other match conditional
+        default:
+          return this.or();
       }
-
-      // other match conditional
-      return this.or();
     } catch (error) {
       if (error instanceof ParseError) {
         error.failed.stmt = stmt;
@@ -1431,6 +1436,37 @@ export class Parser {
 
       throw error;
     }
+  }
+
+  /**
+   * Parse ternary expression
+   */
+  private ternary(): INodeResult<IExpr> {
+    const choose = this.previous();
+    const trueBranch = this.expression();
+    const ifToken = this.consumeTokenThrow(
+      'Expected if following true option',
+      Expr.Ternary,
+      TokenType.if,
+    );
+    const condition = this.expression();
+    const elseToken = this.consumeTokenThrow(
+      'Expected else following condition',
+      Expr.Ternary,
+      TokenType.else,
+    );
+    const falseBranch = this.expression();
+    return nodeResult(
+      new Expr.Ternary(
+        choose,
+        trueBranch.value,
+        ifToken,
+        condition.value,
+        elseToken,
+        falseBranch.value,
+      ),
+      flatten([condition.errors, trueBranch.errors, falseBranch.errors]),
+    );
   }
 
   // parse or expression
@@ -1662,10 +1698,9 @@ export class Parser {
         // braket we report an error and stop arguments
         if (this.check(TokenType.bracketClose)) {
           args.push(new Expr.Invalid([this.previous()]));
-          errors.push([this.error(
-            this.previous(),
-            context,
-            'Expected another argument.')]);
+          errors.push([
+            this.error(this.previous(), context, 'Expected another argument.'),
+          ]);
           break;
         }
 

@@ -14,6 +14,7 @@ import { Token } from '../entities/token';
  */
 export class LocalResolver
   implements IExprVisitor<Token[]>, ISuffixTermVisitor<Token[]> {
+
   /**
    * Are we currently looking at a suffix trailer
    */
@@ -48,6 +49,18 @@ export class LocalResolver
    */
   public visitExprInvalid(_: Expr.Invalid): Token[] {
     return [];
+  }
+
+  /**
+   * Visit a ternary expression
+   * @param expr ternary expression
+   */
+  public visitTernary(expr: Expr.Ternary): Token[] {
+    const tokens = this.resolveExpr(expr.condition);
+    tokens.push(
+      ...this.resolveExpr(expr.trueBranch),
+      ...this.resolveExpr(expr.falseBranch));
+    return tokens;
   }
 
   /**

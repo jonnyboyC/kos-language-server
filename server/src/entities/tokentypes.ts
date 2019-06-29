@@ -8,7 +8,7 @@ export enum TokenType {
 
     set, unset, to, is, until,
     if, else, for, when, then, from, do,
-    at, on, in,
+    at, on, in, choose,
     lock, unlock,
     print, arrayIndex,
 
@@ -18,7 +18,6 @@ export enum TokenType {
     preserve, break, return, declare,
     defined,
 
-    // done
     bracketOpen, bracketClose, curlyOpen, curlyClose,
     squareOpen, squareClose, comma, colon,
     period, atSign, eof,
@@ -59,6 +58,7 @@ export const isValidIdentifier = (type: TokenType): boolean => {
     case TokenType.at:
     case TokenType.on:
     case TokenType.in:
+    case TokenType.choose:
     case TokenType.lock:
     case TokenType.unlock:
     case TokenType.print:
