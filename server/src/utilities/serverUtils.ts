@@ -1,4 +1,4 @@
-import { Analyzer } from '../analyzer';
+import { KLS } from '../kls';
 import {
   TextDocumentPositionParams,
   CompletionItemKind,
@@ -114,7 +114,7 @@ export const updateServer = (server: IServer): void => {
  * @param keywordCompletions a list of keywords to always concat
  */
 export const symbolCompletionItems = (
-  analyzer: Analyzer,
+  analyzer: KLS,
   documentPosition: TextDocumentPositionParams,
   keywordCompletions: CompletionItem[],
 ): CompletionItem[] => {
@@ -172,7 +172,7 @@ export const symbolCompletionItems = (
  * @param documentPosition the current position in the document
  */
 export const suffixCompletionItems = (
-  analyzer: Analyzer,
+  analyzer: KLS,
   documentPosition: TextDocumentPositionParams,
 ): CompletionItem[] => {
   const { position } = documentPosition;
@@ -227,7 +227,7 @@ export const suffixCompletionItems = (
  * @param documentSymbol document identifier
  */
 export const documentSymbols = (
-  analyzer: Analyzer,
+  analyzer: KLS,
   documentSymbol: DocumentSymbolParams,
 ): Maybe<SymbolInformation[]> => {
   const { uri } = documentSymbol.textDocument;

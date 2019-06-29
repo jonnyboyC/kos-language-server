@@ -40,7 +40,7 @@ import { Token } from './entities/token';
 import { binarySearchIndex } from './utilities/positionUtils';
 import { URI } from 'vscode-uri';
 
-export class Analyzer {
+export class KLS {
   public workspaceUri?: string;
 
   private standardLibrary: SymbolTable;

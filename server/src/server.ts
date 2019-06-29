@@ -15,8 +15,6 @@ import {
   ReferenceParams,
   Hover,
   Diagnostic,
-  MessageReader,
-  MessageWriter,
   DidChangeConfigurationNotification,
   DocumentHighlight,
   SignatureHelp,
@@ -28,7 +26,7 @@ import {
   TextDocumentSyncKind,
 } from 'vscode-languageserver';
 import { empty } from './utilities/typeGuards';
-import { Analyzer } from './analyzer';
+import { KLS } from './kls';
 import { KsSymbolKind, TrackerKind } from './analysis/types';
 import {
   symbolCompletionItems,
@@ -56,7 +54,7 @@ import { TypeKind } from './typeChecker/types';
 import program from 'commander';
 import { DocumentService } from './services/documentService';
 import { retrieveUriAsync } from './utilities/fsUtils';
-// import { DocumentService } from './services/documentService';
+import { IClientConfiguration, IServerConfiguration } from './types';
 
 program
   .version('0.6.1', '-v --version')
@@ -68,37 +66,6 @@ program
     'Must be enabled if using node.js pre 10.0',
   )
   .parse(process.argv);
-
-export interface IClientConfiguration {
-  completionCase: 'lowercase' | 'uppercase' | 'camelcase' | 'pascalcase';
-  kerbalSpaceProgramPath?: string;
-  telnetHost: string;
-  telnetPort: number;
-  lspPort: number;
-  trace: {
-    server: {
-      verbosity: 'off' | 'message' | 'verbose';
-      format: 'text' | 'json';
-      level: 'verbose' | 'info' | 'log' | 'warn' | 'error' | 'none';
-    };
-  };
-}
-
-export interface IClientCapabilities {
-  hasConfiguration: boolean;
-  hasWorkspaceFolder: boolean;
-}
-
-export interface IServer {
-  reader: MessageReader;
-  writer: MessageWriter;
-  workspaceFolder: string;
-  workspaceUri: string;
-  keywords: CompletionItem[];
-  clientConfig: IClientConfiguration;
-  clientCapability: IClientCapabilities;
-  analyzer: Analyzer;
-}
 
 // get connection primitives based on command argument
 const { reader, writer } = getConnectionPrimitives(program);
@@ -137,7 +104,7 @@ const defaultClientConfiguration: IClientConfiguration = {
 };
 
 // create server options object
-const server: IServer = {
+const server: IServerConfiguration = {
   reader,
   writer,
   workspaceFolder: '',
@@ -148,7 +115,7 @@ const server: IServer = {
   },
   keywords: keywordCompletions(CaseKind.camelcase),
   clientConfig: defaultClientConfiguration,
-  analyzer: new Analyzer(
+  analyzer: new KLS(
     CaseKind.camelcase,
     new Logger(connection.console, LogLevel.info),
     connection.tracer,
