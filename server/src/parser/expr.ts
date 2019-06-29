@@ -93,6 +93,82 @@ export class Invalid extends Expr {
 }
 
 /**
+ * Class holding all valid ternary expressions in KOS
+ */
+export class Ternary extends Expr {
+  /**
+   * Grammar for the ternary expression
+   */
+  public static grammar: GrammarNode[];
+
+  /**
+   * Constructor for all ternary expressions
+   * @param choose the choose token
+   * @param trueBranch the true branch
+   * @param ifToken the if token
+   * @param condition ternary condition expression
+   * @param elseToken the else token
+   * @param falseBranch the false branch
+   */
+  constructor(
+    public readonly choose: Token,
+    public readonly trueBranch: IExpr,
+    public readonly ifToken: Token,
+    public readonly condition: IExpr,
+    public readonly elseToken: Token,
+    public readonly falseBranch: IExpr,
+  ) {
+    super();
+  }
+
+  public get start(): Position {
+    return this.choose.start;
+  }
+
+  public get end(): Position {
+    return this.falseBranch.end;
+  }
+
+  public get ranges(): Range[] {
+    return [
+      this.choose,
+      this.trueBranch,
+      this.ifToken,
+      this.condition,
+      this.elseToken,
+      this.falseBranch,
+    ];
+  }
+
+  public toLines(): string[] {
+    const trueLines = this.trueBranch.toLines();
+    const conditionLines = this.condition.toLines();
+    const falseLines = this.falseBranch.toLines();
+
+    trueLines[0] = `${this.choose.lexeme} ${trueLines[0]}`;
+
+    const lines = joinLines(
+      ` ${this.ifToken.lexeme} `,
+      trueLines,
+      conditionLines,
+    );
+    return joinLines(` ${this.elseToken.lexeme} `, lines, falseLines);
+  }
+
+  public accept<T>(visitor: IExprVisitor<T>): T {
+    return visitor.visitTernary(this);
+  }
+
+  public pass<T>(visitor: IExprPasser<T>): T {
+    return visitor.passTernary(this);
+  }
+
+  public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
+    return visitor.visitTernary(this);
+  }
+}
+
+/**
  * Class holding all valid binary expressions in KOS
  */
 export class Binary extends Expr {
@@ -125,12 +201,6 @@ export class Binary extends Expr {
 
   public get ranges(): Range[] {
     return [this.left, this.operator, this.right];
-  }
-
-  public toString(): string {
-    return `${this.left.toString()} ${
-      this.operator.lexeme
-    } ${this.right.toString()}`;
   }
 
   public toLines(): string[] {
@@ -181,10 +251,6 @@ export class Unary extends Expr {
 
   public get ranges(): Range[] {
     return [this.operator, this.factor];
-  }
-
-  public toString(): string {
-    return `${this.operator.lexeme} ${this.factor.toString()}`;
   }
 
   public toLines(): string[] {
@@ -283,9 +349,7 @@ export class Lambda extends Expr {
    * Anonymous Function constructor
    * @param block the scope for the lambda
    */
-  constructor(
-    public readonly block: Stmt.Block,
-  ) {
+  constructor(public readonly block: Stmt.Block) {
     super();
   }
 
@@ -467,6 +531,7 @@ export class Suffix extends Expr {
  * All valid expressions
  */
 export const validExpressions: Constructor<Expr>[] = [
+  Ternary,
   Binary,
   Unary,
   Factor,
@@ -475,6 +540,7 @@ export const validExpressions: Constructor<Expr>[] = [
 ];
 
 export const validExprTypes: [IExprClass, Distribution][] = [
+  [Ternary, createConstant(0.2)],
   [Binary, createConstant(1.0)],
   [Unary, createConstant(0.5)],
   [Factor, createConstant(0.5)],
@@ -484,6 +550,15 @@ export const validExprTypes: [IExprClass, Distribution][] = [
 ];
 
 export const expr = createGrammarUnion(...validExprTypes);
+
+Ternary.grammar = [
+  TokenType.choose,
+  expr,
+  TokenType.if,
+  expr,
+  TokenType.else,
+  expr,
+];
 
 Binary.grammar = [
   expr,

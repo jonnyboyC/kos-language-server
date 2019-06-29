@@ -28,8 +28,8 @@ import { parse } from 'semver';
 
 let client: LanguageClient;
 
-const serverFolder =
-  process.env.NODE_ENV && process.env.NODE_ENV === 'dev' ? 'out' : 'dist';
+const env = process.env.NODE_ENV || 'dev';
+const serverFolder = env === 'dev' ? 'out' : 'dist';
 
 /**
  * This function activates the extension when vscode determines we've either opens a

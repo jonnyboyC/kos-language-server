@@ -8,7 +8,7 @@ import { empty } from '../utilities/typeGuards';
 import { Token } from '../entities/token';
 
 /**
- * Identify all local sybmbols used and all used symbols
+ * Identify all local symbols used and all used symbols
  */
 export class SetResolver implements
   IExprVisitor<ISetResolverResult>,
@@ -45,7 +45,15 @@ export class SetResolver implements
   }
 
   /**
-   * Resolve binary expresiosn. Binary expression cannot be set
+   * Resolve the ternary expression. A ternary expression cannot be set
+   * @param _ ternary expression
+   */
+  public visitTernary(_: Expr.Ternary): ISetResolverResult {
+    return setResult();
+  }
+
+  /**
+   * Resolve binary expression. Binary expression cannot be set
    * @param _ binary expression
    */
   public visitBinary(_: Expr.Binary): ISetResolverResult {
