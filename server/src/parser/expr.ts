@@ -531,6 +531,7 @@ export class Suffix extends Expr {
  * All valid expressions
  */
 export const validExpressions: Constructor<Expr>[] = [
+  Ternary,
   Binary,
   Unary,
   Factor,
@@ -539,6 +540,7 @@ export const validExpressions: Constructor<Expr>[] = [
 ];
 
 export const validExprTypes: [IExprClass, Distribution][] = [
+  [Ternary, createConstant(0.2)],
   [Binary, createConstant(1.0)],
   [Unary, createConstant(0.5)],
   [Factor, createConstant(0.5)],
@@ -548,6 +550,15 @@ export const validExprTypes: [IExprClass, Distribution][] = [
 ];
 
 export const expr = createGrammarUnion(...validExprTypes);
+
+Ternary.grammar = [
+  TokenType.choose,
+  expr,
+  TokenType.if,
+  expr,
+  TokenType.else,
+  expr,
+];
 
 Binary.grammar = [
   expr,
