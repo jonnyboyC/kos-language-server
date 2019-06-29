@@ -104,17 +104,17 @@ export class Ternary extends Expr {
   /**
    * Constructor for all ternary expressions
    * @param choose the choose token
-   * @param condition ternary condition expression
-   * @param ifToken the if token
    * @param trueBranch the true branch
+   * @param ifToken the if token
+   * @param condition ternary condition expression
    * @param elseToken the else token
    * @param falseBranch the false branch
    */
   constructor(
     public readonly choose: Token,
-    public readonly condition: IExpr,
-    public readonly ifToken: Token,
     public readonly trueBranch: IExpr,
+    public readonly ifToken: Token,
+    public readonly condition: IExpr,
     public readonly elseToken: Token,
     public readonly falseBranch: IExpr,
   ) {
@@ -132,25 +132,25 @@ export class Ternary extends Expr {
   public get ranges(): Range[] {
     return [
       this.choose,
-      this.condition,
-      this.ifToken,
       this.trueBranch,
+      this.ifToken,
+      this.condition,
       this.elseToken,
       this.falseBranch,
     ];
   }
 
   public toLines(): string[] {
-    const conditionLines = this.condition.toLines();
     const trueLines = this.trueBranch.toLines();
+    const conditionLines = this.condition.toLines();
     const falseLines = this.falseBranch.toLines();
 
-    conditionLines[0] = `${this.choose.lexeme} ${conditionLines[0]}`;
+    trueLines[0] = `${this.choose.lexeme} ${trueLines[0]}`;
 
     const lines = joinLines(
       ` ${this.ifToken.lexeme} `,
-      conditionLines,
       trueLines,
+      conditionLines,
     );
     return joinLines(` ${this.elseToken.lexeme} `, lines, falseLines);
   }

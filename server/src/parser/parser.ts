@@ -1411,7 +1411,7 @@ export class Parser {
 
   /**
    * Parse an expression
-   * @param stmt the statment context
+   * @param stmt the statement context
    */
   private expression(stmt?: Constructor<Stmt.Stmt>): INodeResult<IExpr> {
     try {
@@ -1443,15 +1443,15 @@ export class Parser {
    */
   private ternary(): INodeResult<IExpr> {
     const choose = this.previous();
-    const condition = this.expression();
+    const trueBranch = this.expression();
     const ifToken = this.consumeTokenThrow(
-      'Expected if following choose condition',
+      'Expected if following true option',
       Expr.Ternary,
       TokenType.if,
     );
-    const trueBranch = this.expression();
+    const condition = this.expression();
     const elseToken = this.consumeTokenThrow(
-      'Expected else following true branch',
+      'Expected else following condition',
       Expr.Ternary,
       TokenType.else,
     );
@@ -1459,9 +1459,9 @@ export class Parser {
     return nodeResult(
       new Expr.Ternary(
         choose,
-        condition.value,
-        ifToken,
         trueBranch.value,
+        ifToken,
+        condition.value,
         elseToken,
         falseBranch.value,
       ),
