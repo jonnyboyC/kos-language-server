@@ -31,6 +31,7 @@ export class PreResolver
     IExprVisitor<Diagnostics>,
     IStmtVisitor<Diagnostics>,
     ISuffixTermVisitor<Diagnostics> {
+
   /**
    * current script being processed
    */
@@ -415,6 +416,15 @@ export class PreResolver
 
   public visitExprInvalid(_: Expr.Invalid): Diagnostics {
     return [];
+  }
+
+  public visitTernary(expr: Expr.Ternary): Diagnostic[] {
+    const errors = this.resolveExpr(expr.condition);
+    errors.push(
+      ...this.resolveExpr(expr.trueBranch),
+      ...this.resolveExpr(expr.falseBranch));
+
+    return errors;
   }
 
   public visitBinary(expr: Expr.Binary): Diagnostics {

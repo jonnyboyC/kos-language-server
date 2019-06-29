@@ -256,6 +256,14 @@ export abstract class TreeTraverse implements
   public visitExprInvalid(expr: Expr.Invalid): void {
     this.nodeAction(expr);
   }
+  public visitTernary(expr: Expr.Ternary): void {
+    if (this.nodeAction(expr)) {
+      this.exprAction(expr.condition);
+      this.exprAction(expr.trueBranch);
+      this.exprAction(expr.falseBranch);
+    }
+  }
+
   public visitBinary(expr: Expr.Binary): void {
     if (this.nodeAction(expr)) {
       this.exprAction(expr.left);

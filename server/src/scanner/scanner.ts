@@ -688,6 +688,7 @@ const keywords: ITokenMap = new Map([
   ['global', { type: TokenType.global }],
   ['if', { type: TokenType.if }],
   ['in', { type: TokenType.in }],
+  ['choose', { type: TokenType.choose }],
   ['is', { type: TokenType.is }],
   ['lazyglobal', { type: TokenType.lazyGlobal }],
   ['list', { type: TokenType.list }],

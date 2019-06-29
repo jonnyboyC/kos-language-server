@@ -147,6 +147,9 @@ export abstract class TreeExecute<T> implements
   public visitExprInvalid(expr: Expr.Invalid): T {
     return this.nodeAction(expr);
   }
+  public visitTernary(expr: Expr.Ternary): T {
+    return this.nodeAction(expr);
+  }
   public visitBinary(expr: Expr.Binary): T {
     return this.nodeAction(expr);
   }

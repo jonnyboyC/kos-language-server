@@ -224,6 +224,39 @@ const binaryTest = (
   };
 };
 
+interface ITernaryTest {
+  source: string;
+  trueArm: ExpressionComponent;
+  condition: ExpressionComponent;
+  falseArm: ExpressionComponent;
+}
+
+const ternaryTest = (
+  source: string,
+  trueArm: Constructor<SuffixTerm.SuffixTermBase | Expr.Expr>,
+  trueLiteral: any,
+  condition: Constructor<SuffixTerm.SuffixTermBase | Expr.Expr>,
+  conditionLiteral: any,
+  falseArm: Constructor<SuffixTerm.SuffixTermBase | Expr.Expr>,
+  falseLiteral: any,
+): ITernaryTest => {
+  return {
+    source,
+    trueArm: {
+      expr: trueArm,
+      literal: trueLiteral,
+    },
+    condition: {
+      expr: condition,
+      literal: conditionLiteral,
+    },
+    falseArm: {
+      expr: falseArm,
+      literal: falseLiteral,
+    },
+  };
+};
+
 describe('Parse expressions', () => {
   // test basic literal
   test('basic valid literal', () => {
@@ -485,6 +518,82 @@ describe('Parse expressions', () => {
           });
         } else {
           expect(value.right instanceof expression.rightArm.expr).toBe(true);
+        }
+      }
+    }
+  });
+
+  test('valid ternary', () => {
+    const validExpressions = [
+      ternaryTest(
+        'choose 10 if x < 10 else 20',
+        SuffixTerm.Literal,
+        10,
+        Expr.Binary,
+        undefined,
+        SuffixTerm.Literal,
+        20,
+      ),
+
+      ternaryTest(
+        'choose body:name if true else defined x',
+        Expr.Suffix,
+        undefined,
+        SuffixTerm.Literal,
+        true,
+        Expr.Unary,
+        undefined,
+      ),
+    ];
+
+    for (const expression of validExpressions) {
+      const [{ value, errors }, scannerErrors] = parseExpression(
+        expression.source,
+      );
+      expect(value instanceof Expr.Ternary).toBe(true);
+      expect(errors.length === 0).toBe(true);
+      expect(scannerErrors.length === 0).toBe(true);
+
+      if (value instanceof Expr.Ternary) {
+        if (
+          expression.trueArm.expr.prototype instanceof SuffixTerm.SuffixTermBase
+        ) {
+          testSuffixTerm(value.trueBranch, atom => {
+            expect(atom instanceof expression.trueArm.expr).toBe(true);
+            if (atom instanceof SuffixTerm.Literal) {
+              expect(expression.trueArm.literal).toBe(atom.token.literal);
+            }
+          });
+        } else {
+          expect(value.trueBranch instanceof expression.trueArm.expr).toBe(true);
+        }
+
+        if (
+          expression.condition.expr.prototype instanceof
+          SuffixTerm.SuffixTermBase
+        ) {
+          testSuffixTerm(value.condition, atom => {
+            expect(atom instanceof expression.condition.expr).toBe(true);
+            if (atom instanceof SuffixTerm.Literal) {
+              expect(expression.condition.literal).toBe(atom.token.literal);
+            }
+          });
+        } else {
+          expect(value.condition instanceof expression.condition.expr).toBe(true);
+        }
+
+        if (
+          expression.falseArm.expr.prototype instanceof
+          SuffixTerm.SuffixTermBase
+        ) {
+          testSuffixTerm(value.falseBranch, atom => {
+            expect(atom instanceof expression.falseArm.expr).toBe(true);
+            if (atom instanceof SuffixTerm.Literal) {
+              expect(expression.falseArm.literal).toBe(atom.token.literal);
+            }
+          });
+        } else {
+          expect(value.falseBranch instanceof expression.falseArm.expr).toBe(true);
         }
       }
     }
