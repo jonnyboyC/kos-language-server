@@ -13,7 +13,7 @@ import { URI } from 'vscode-uri';
 import { extname } from 'path';
 import { createDiagnostic } from '../utilities/diagnosticsUtils';
 
-interface Document {
+export interface Document {
   uri: string;
   text: string;
 }

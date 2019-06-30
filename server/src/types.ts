@@ -8,7 +8,6 @@ import {
   CompletionItem,
 } from 'vscode-languageserver';
 import { URI } from 'vscode-uri';
-import { KLS } from './kls';
 
 export interface IDocumentInfo {
   script: IScript;
@@ -27,7 +26,7 @@ export interface IDiagnosticUri extends Diagnostic {
   uri: string;
 }
 
-export interface IClientConfiguration {
+export interface ClientConfiguration {
   completionCase: 'lowercase' | 'uppercase' | 'camelcase' | 'pascalcase';
   kerbalSpaceProgramPath?: string;
   telnetHost: string;
@@ -47,13 +46,12 @@ export interface IClientCapabilities {
   hasWorkspaceFolder: boolean;
 }
 
-export interface IServerConfiguration {
+export interface KLSConfiguration {
   reader: MessageReader;
   writer: MessageWriter;
   workspaceFolder: string;
   workspaceUri: string;
   keywords: CompletionItem[];
-  clientConfig: IClientConfiguration;
+  clientConfig: ClientConfiguration;
   clientCapability: IClientCapabilities;
-  analyzer: KLS;
 }

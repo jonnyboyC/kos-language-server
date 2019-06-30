@@ -17,10 +17,28 @@ import { empty } from './typeGuards';
 import { allSuffixes, tokenTrackedType } from '../typeChecker/typeUitlities';
 import { KsSymbolKind } from '../analysis/types';
 import { cleanLocation, cleanToken, cleanCompletion } from './clean';
-import { IServer } from '../server';
-import { keywordCompletions } from './constants';
 import { CallKind } from '../typeChecker/types';
 import { CommanderStatic } from 'commander';
+import { ClientConfiguration } from '../types';
+import { mapper } from './mapper';
+
+/**
+ * The default client configuration if none are available
+ */
+export const defaultClientConfiguration: ClientConfiguration = {
+  kerbalSpaceProgramPath: undefined,
+  telnetHost: '127.0.0.1',
+  telnetPort: 5410,
+  lspPort: 7000,
+  completionCase: 'camelcase',
+  trace: {
+    server: {
+      verbosity: 'off',
+      format: 'text',
+      level: 'error',
+    },
+  },
+};
 
 /**
  * Get the connection primitives based on the request connection type
@@ -57,55 +75,31 @@ export const getConnectionPrimitives = (
   };
 };
 
+const caseMap = new Map([
+  ['lowercase', CaseKind.lowercase],
+  ['uppercase', CaseKind.uppercase],
+  ['camelcase', CaseKind.camelcase],
+  ['pascalcase', CaseKind.pascalcase],
+]);
+
+const logMap = new Map([
+  ['verbose', LogLevel.verbose],
+  ['info', LogLevel.info],
+  ['log', LogLevel.log],
+  ['warn', LogLevel.warn],
+  ['error', LogLevel.error],
+  ['none', LogLevel.none],
+]);
+
 /**
- * Get the connection primitives based on the request connection type
- * @param connectionType connection type
+ * Map a string to a case kind
  */
-export const updateServer = (server: IServer): void => {
-  const { clientConfig } = server;
+export const caseMapper = mapper(caseMap, 'CaseKind');
 
-  let caseKind: CaseKind = CaseKind.camelcase;
-  switch (clientConfig.completionCase) {
-    case 'lowercase':
-      caseKind = CaseKind.lowercase;
-      break;
-    case 'uppercase':
-      caseKind = CaseKind.uppercase;
-      break;
-    case 'camelcase':
-      caseKind = CaseKind.camelcase;
-      break;
-    case 'pascalcase':
-      caseKind = CaseKind.pascalcase;
-      break;
-  }
-
-  let logLevel: LogLevel = LogLevel.error;
-  switch (clientConfig.trace.server.level) {
-    case 'verbose':
-      logLevel = LogLevel.verbose;
-      break;
-    case 'info':
-      logLevel = LogLevel.info;
-      break;
-    case 'log':
-      logLevel = LogLevel.info;
-      break;
-    case 'warn':
-      logLevel = LogLevel.warn;
-      break;
-    case 'error':
-      logLevel = LogLevel.error;
-      break;
-    case 'none':
-      logLevel = LogLevel.none;
-      break;
-  }
-
-  server.keywords = keywordCompletions(caseKind);
-  server.analyzer.logger.level = logLevel;
-  server.analyzer.setCase(caseKind);
-};
+/**
+ * Map a string to a log level
+ */
+export const logMapper = mapper(logMap, 'LogLevel');
 
 /**
  * Get a list of all symbols currently in scope at the given line

@@ -5,7 +5,6 @@ if (Symbol['asyncIterator'] === undefined) {
 import {
   createConnection,
   ProposedFeatures,
-  InitializeParams,
   CompletionItem,
   TextDocumentPositionParams,
   Location,
@@ -14,8 +13,6 @@ import {
   CompletionParams,
   ReferenceParams,
   Hover,
-  Diagnostic,
-  DidChangeConfigurationNotification,
   DocumentHighlight,
   SignatureHelp,
   SignatureInformation,
@@ -23,7 +20,6 @@ import {
   RenameParams,
   WorkspaceEdit,
   TextEdit,
-  TextDocumentSyncKind,
 } from 'vscode-languageserver';
 import { empty } from './utilities/typeGuards';
 import { KLS } from './kls';
@@ -33,18 +29,16 @@ import {
   suffixCompletionItems,
   documentSymbols,
   getConnectionPrimitives,
-  updateServer,
 } from './utilities/serverUtils';
 import { Logger } from './utilities/logger';
 import { primitiveInitializer } from './typeChecker/types/primitives/initialize';
 import { orbitalInitializer } from './typeChecker/types/orbital/initialize';
 import {
-  cleanDiagnostic,
   cleanLocation,
   cleanPosition,
   cleanRange,
 } from './utilities/clean';
-import { keywordCompletions, serverName } from './utilities/constants';
+import { keywordCompletions } from './utilities/constants';
 import { Token } from './entities/token';
 import { tokenTrackedType } from './typeChecker/typeUitlities';
 import { Scanner } from './scanner/scanner';
@@ -52,9 +46,7 @@ import { isValidIdentifier } from './entities/tokentypes';
 import { TypeKind } from './typeChecker/types';
 // tslint:disable-next-line:import-name
 import program from 'commander';
-import { DocumentService } from './services/documentService';
-import { retrieveUriAsync } from './utilities/fsUtils';
-import { IClientConfiguration, IServerConfiguration } from './types';
+import { ClientConfiguration, KLSConfiguration } from './types';
 
 program
   .version('0.6.1', '-v --version')
@@ -78,17 +70,13 @@ export const connection = createConnection(
   writer,
 );
 
-connection.onDidChangeWatchedFiles(blah => {
-  console.log(blah);
-});
-
 // REMOVE ME TODO probably need to refactor the type modules as
 // structure and the primitives have a dependnecy loop
 primitiveInitializer();
 orbitalInitializer();
 
 // default client configuration
-const defaultClientConfiguration: IClientConfiguration = {
+const defaultClientConfiguration: ClientConfiguration = {
   kerbalSpaceProgramPath: undefined,
   telnetHost: '127.0.0.1',
   telnetPort: 5410,
@@ -104,7 +92,7 @@ const defaultClientConfiguration: IClientConfiguration = {
 };
 
 // create server options object
-const server: IServerConfiguration = {
+const configuration: KLSConfiguration = {
   reader,
   writer,
   workspaceFolder: '',
@@ -115,184 +103,18 @@ const server: IServerConfiguration = {
   },
   keywords: keywordCompletions(CaseKind.camelcase),
   clientConfig: defaultClientConfiguration,
-  analyzer: new KLS(
-    CaseKind.camelcase,
-    new Logger(connection.console, LogLevel.info),
-    connection.tracer,
-  ),
 };
 
-// create a document service for managing documents over the lsp connection
-const documentService = new DocumentService(connection, retrieveUriAsync, server.analyzer.logger);
+const kls = new KLS(
+  CaseKind.camelcase,
+  new Logger(connection.console, LogLevel.info),
+  connection.tracer,
+  connection,
+  configuration,
+);
 
 /**
- * Initialize the server from the client
- */
-connection.onInitialize((params: InitializeParams) => {
-  const { capabilities, rootPath, rootUri } = params;
-
-  connection.console.log(
-    `[Server(${process.pid}) ${JSON.stringify(
-      capabilities,
-      undefined,
-      2,
-    )}] Started and initialize received`,
-  );
-
-  // does the client support configurations
-  server.clientCapability.hasConfiguration = !!(
-    capabilities.workspace && !!capabilities.workspace.configuration
-  );
-
-  // does the client support workspace folders
-  server.clientCapability.hasWorkspaceFolder = !!(
-    capabilities.workspace && !!capabilities.workspace.workspaceFolders
-  );
-
-  // get root path if it exists
-  if (rootPath) {
-    server.workspaceFolder = rootPath;
-  }
-
-  // get root uri if it exists
-  if (rootUri) {
-    server.analyzer.setUri(rootUri);
-    server.workspaceUri = rootUri;
-  }
-
-  connection.console.log(
-    `[Server(${process.pid}) ${
-      server.workspaceFolder
-    }] Started and initialize received`,
-  );
-
-  return {
-
-    capabilities: {
-      textDocumentSync: TextDocumentSyncKind.Incremental,
-
-      // Tell the client that the server supports code completion
-      completionProvider: {
-        resolveProvider: true,
-        triggerCharacters: [':', '(', ', '],
-      },
-
-      signatureHelpProvider: {
-        triggerCharacters: ['(', ',', ', '],
-      },
-
-      renameProvider: true,
-      documentHighlightProvider: true,
-      hoverProvider: true,
-      referencesProvider: true,
-      documentSymbolProvider: true,
-      definitionProvider: true,
-    },
-  };
-});
-
-/**
- * Once connection is initialized make additional registrations based
- * on client capability
- */
-connection.onInitialized(async () => {
-  const { clientCapability } = server;
-
-  // register for all configuration changes.
-  if (clientCapability.hasConfiguration) {
-    connection.client.register(DidChangeConfigurationNotification.type, {
-      section: serverName,
-    });
-  }
-
-  // register workspace changes
-  if (clientCapability.hasWorkspaceFolder) {
-    connection.workspace.onDidChangeWorkspaceFolders(_ => {
-      connection.console.log('Workspace folder change event received.');
-    });
-  }
-
-  server.clientConfig = await getDocumentSettings();
-  updateServer(server);
-});
-
-/**
- * When the client changes a configuration update our server settings
- */
-connection.onDidChangeConfiguration(change => {
-  const { clientCapability } = server;
-
-  if (clientCapability.hasConfiguration) {
-    if (change.settings && serverName in change.settings) {
-      Object.assign(
-        server.clientConfig,
-        defaultClientConfiguration,
-        change.settings[serverName],
-      );
-    }
-
-    // update server on client config
-    updateServer(server);
-  }
-});
-
-// The content of a text document has changed. This event is emitted
-// when the text document first opened or when its content has changed.
-documentService.onChange(async change => {
-  try {
-    const diagnosticResults = server.analyzer.validateDocument(
-      change.uri,
-      change.text,
-    );
-
-    let total = 0;
-    const diagnosticMap: Map<string, Diagnostic[]> = new Map();
-
-    // retrieve diagnostics from analyzer
-    for await (const diagnostics of diagnosticResults) {
-      total += diagnostics.length;
-
-      for (const diagnostic of diagnostics) {
-        const uriDiagnostics = diagnosticMap.get(diagnostic.uri);
-        if (empty(uriDiagnostics)) {
-          diagnosticMap.set(diagnostic.uri, [cleanDiagnostic(diagnostic)]);
-        } else {
-          uriDiagnostics.push(cleanDiagnostic(diagnostic));
-        }
-      }
-    }
-
-    // send diagnostics to each document reported
-    for (const [uri, diagnostics] of diagnosticMap.entries()) {
-      connection.sendDiagnostics({
-        uri,
-        diagnostics,
-      });
-    }
-
-    // if not problems found clear out diagnostics
-    if (total === 0) {
-      connection.sendDiagnostics({
-        uri: change.uri,
-        diagnostics: [],
-      });
-    }
-  } catch (e) {
-    connection.console.error('kos-language-server Error occured:');
-    if (e instanceof Error) {
-      connection.console.error(e.message);
-
-      if (!empty(e.stack)) {
-        connection.console.error(e.stack);
-      }
-    } else {
-      connection.console.error(JSON.stringify(e));
-    }
-  }
-});
-
-/**
- * This handler provide completition items capability
+ * This handler provide completion items capability
  */
 connection.onCompletion(
   (completionParams: CompletionParams): CompletionItem[] => {
@@ -304,15 +126,15 @@ connection.onCompletion(
         const { triggerCharacter } = context;
 
         if (triggerCharacter === ':') {
-          return suffixCompletionItems(server.analyzer, completionParams);
+          return suffixCompletionItems(kls, completionParams);
         }
       }
 
       // complete base symbols
       return symbolCompletionItems(
-        server.analyzer,
+        kls,
         completionParams,
-        server.keywords,
+        configuration.keywords,
       );
 
       // catch any errors
@@ -366,7 +188,7 @@ connection.onRenameRequest(
       return undefined;
     }
 
-    const locations = server.analyzer.getUsageLocations(
+    const locations = kls.getUsageLocations(
       position,
       textDocument.uri,
     );
@@ -395,7 +217,7 @@ connection.onDocumentHighlight(
     const { position } = positionParams;
     const { uri } = positionParams.textDocument;
 
-    const locations = server.analyzer.getFileUsageRanges(position, uri);
+    const locations = kls.getFileUsageRanges(position, uri);
     return empty(locations)
       ? []
       : locations.map(range => ({ range: cleanRange(range) }));
@@ -410,7 +232,7 @@ connection.onHover(
     const { position } = positionParams;
     const { uri } = positionParams.textDocument;
 
-    const token = server.analyzer.getToken(position, uri);
+    const token = kls.getToken(position, uri);
 
     if (empty(token)) {
       return undefined;
@@ -461,7 +283,7 @@ connection.onReferences(
     const { position } = referenceParams;
     const { uri } = referenceParams.textDocument;
 
-    const locations = server.analyzer.getUsageLocations(position, uri);
+    const locations = kls.getUsageLocations(position, uri);
     return locations && locations.map(loc => cleanLocation(loc));
   },
 );
@@ -472,7 +294,7 @@ connection.onSignatureHelp(
     const { position } = documentPosition;
     const { uri } = documentPosition.textDocument;
 
-    const result = server.analyzer.getFunctionAtPosition(position, uri);
+    const result = kls.getFunctionAtPosition(position, uri);
     if (empty(result)) return defaultSignature();
     const { tracker, index } = result;
 
@@ -548,7 +370,7 @@ connection.onSignatureHelp(
  */
 connection.onDocumentSymbol(
   (documentSymbol: DocumentSymbolParams): Maybe<SymbolInformation[]> => {
-    return documentSymbols(server.analyzer, documentSymbol);
+    return documentSymbols(kls, documentSymbol);
   },
 );
 
@@ -560,21 +382,10 @@ connection.onDefinition(
     const { position } = documentPosition;
     const { uri } = documentPosition.textDocument;
 
-    const location = server.analyzer.getDeclarationLocation(position, uri);
+    const location = kls.getDeclarationLocation(position, uri);
     return location && cleanLocation(location);
   },
 );
-
-const getDocumentSettings = (): Thenable<IClientConfiguration> => {
-  if (!server.clientCapability.hasConfiguration) {
-    return Promise.resolve(defaultClientConfiguration);
-  }
-
-  return connection.workspace.getConfiguration({
-    scopeUri: server.workspaceUri,
-    section: serverName,
-  });
-};
 
 const defaultSignature = (): SignatureHelp => ({
   signatures: [],

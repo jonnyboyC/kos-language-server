@@ -5,12 +5,20 @@ import {
   Diagnostic,
   Range,
   Connection,
+  InitializeParams,
+  InitializeResult,
+  TextDocumentSyncKind,
+  InitializedParams,
+  DidChangeConfigurationNotification,
+  DidChangeConfigurationParams,
 } from 'vscode-languageserver';
 import {
   IDocumentInfo,
   ILoadData,
   IDiagnosticUri,
   ValidateResult,
+  KLSConfiguration,
+  ClientConfiguration,
 } from './types';
 import { performance, PerformanceObserver } from 'perf_hooks';
 import { Parser } from './parser/parser';
@@ -33,14 +41,16 @@ import {
   standardLibraryBuilder,
   bodyLibraryBuilder,
 } from './analysis/standardLibrary';
-import { builtIn } from './utilities/constants';
+import { builtIn, serverName, keywordCompletions } from './utilities/constants';
 import { SymbolTableBuilder } from './analysis/symbolTableBuilder';
 import { SymbolTable } from './analysis/symbolTable';
 import { TypeChecker } from './typeChecker/typeChecker';
 import { Token } from './entities/token';
 import { binarySearchIndex } from './utilities/positionUtils';
 import { URI } from 'vscode-uri';
-import { DocumentService } from './services/documentService';
+import { DocumentService, Document } from './services/documentService';
+import { defaultClientConfiguration, caseMapper, logMapper } from './utilities/serverUtils';
+import { cleanDiagnostic } from './utilities/clean';
 
 export class KLS {
   /**
@@ -89,6 +99,11 @@ export class KLS {
   private readonly connection: Connection;
 
   /**
+   * This server's configuration
+   */
+  private readonly configuration: KLSConfiguration;
+
+  /**
    * The document server to store and manage documents
    */
   private readonly documentService: DocumentService;
@@ -98,14 +113,20 @@ export class KLS {
     logger: ILogger = mockLogger,
     tracer: ITracer = mockTracer,
     connection: Connection,
+    configuration: KLSConfiguration,
   ) {
+    this.workspaceUri = undefined;
     this.pathResolver = new PathResolver();
     this.logger = logger;
     this.tracer = tracer;
     this.documentInfos = new Map();
-    this.workspaceUri = undefined;
+    this.configuration = configuration;
     this.connection = connection;
-    this.documentService = new DocumentService(connection, retrieveUriAsync, logger);
+    this.documentService = new DocumentService(
+      connection,
+      retrieveUriAsync,
+      logger,
+    );
 
     this.standardLibrary = standardLibraryBuilder(caseKind);
     this.bodyLibrary = bodyLibraryBuilder(caseKind);
@@ -123,9 +144,9 @@ export class KLS {
   }
 
   private initializeConnection(): void {
-    // this.connection.onInitialize();
-    // this.connection.onInitialized();
-    // this.connection.onDidChangeConfiguration();
+    this.connection.onInitialize(this.onInitialize.bind(this));
+    this.connection.onInitialized(this.onInitialized.bind(this));
+    this.connection.onDidChangeConfiguration(this.onDidChangeConfiguration.bind(this));
     // this.connection.onCompletion();
     // this.connection.onCompletionResolve();
     // this.connection.onRenameRequest();
@@ -135,7 +156,209 @@ export class KLS {
     // this.connection.onSignatureHelp();
     // this.connection.onDocumentSymbol();
 
-    // this.documentService.onChange();
+    this.documentService.onChange(this.onChange.bind(this));
+  }
+
+  /**
+   * Initialize the server from the client connection
+   * @param params initialization parameters
+   */
+  private onInitialize(params: InitializeParams): InitializeResult {
+    const { capabilities, rootPath, rootUri } = params;
+
+    this.connection.console.log(
+      `[KLS Server(${process.pid})] Started and initialize received.`,
+    );
+
+    // does the client support configurations
+    this.configuration.clientCapability.hasConfiguration = !!(
+      capabilities.workspace && !!capabilities.workspace.configuration
+    );
+
+    // does the client support workspace folders
+    this.configuration.clientCapability.hasWorkspaceFolder = !!(
+      capabilities.workspace && !!capabilities.workspace.workspaceFolders
+    );
+
+    // get root path if it exists
+    if (rootPath) {
+      this.configuration.workspaceFolder = rootPath;
+    }
+
+    // get root uri if it exists
+    if (rootUri) {
+      this.setUri(rootUri);
+      this.configuration.workspaceUri = rootUri;
+    }
+
+    return {
+      capabilities: {
+        textDocumentSync: TextDocumentSyncKind.Incremental,
+
+        // Tell the client that the server supports code completion
+        completionProvider: {
+          resolveProvider: true,
+          triggerCharacters: [':', '(', ', '],
+        },
+
+        // Tell the client that the server support signiture help
+        signatureHelpProvider: {
+          triggerCharacters: ['(', ',', ', '],
+        },
+
+        // indicate other capabilities
+        renameProvider: true,
+        documentHighlightProvider: true,
+        hoverProvider: true,
+        referencesProvider: true,
+        documentSymbolProvider: true,
+        definitionProvider: true,
+      },
+    };
+  }
+
+  /**
+   * Post initialization register additional hooks and retrieve client
+   * configurations
+   * @param _ initialized parameters
+   */
+  private async onInitialized(_: InitializedParams): Promise<void> {
+    const { clientCapability } = this.configuration;
+
+    // register for all configuration changes.
+    if (clientCapability.hasConfiguration) {
+      this.connection.client.register(DidChangeConfigurationNotification.type, {
+        section: serverName,
+      });
+    }
+
+    // register workspace changes
+    if (clientCapability.hasWorkspaceFolder) {
+      this.connection.workspace.onDidChangeWorkspaceFolders(_ => {
+        // TODO dump all documents
+        this.logger.log('Workspace folder change event received.');
+      });
+    }
+
+    const clientConfig = await this.getDocumentSettings();
+    this.configuration.clientConfig = clientConfig;
+
+    const casePreference = caseMapper(clientConfig.completionCase);
+    const logPreference = logMapper(clientConfig.trace.server.level);
+
+    this.setCase(casePreference);
+    this.logger.level = logPreference;
+  }
+
+  /**
+   * Update the server configuration when the client signals a change in it's configuration for
+   * the kos-language-server
+   * @param change The updated settings
+   */
+  private onDidChangeConfiguration(change: DidChangeConfigurationParams): void {
+    const { clientCapability } = this.configuration;
+
+    if (clientCapability.hasConfiguration) {
+      if (change.settings && serverName in change.settings) {
+        Object.assign(
+          this.configuration.clientConfig,
+          defaultClientConfiguration,
+          change.settings[serverName],
+        );
+      }
+
+      // update server on client config
+      this.updateServer(this.configuration.clientConfig);
+    }
+  }
+
+  /**
+   * Respond to updates made to document by the client. This method
+   * will parse and update the internal state of affects scripts
+   * reporting errors to the client as they are discovered
+   * @param document the updated document
+   */
+  private async onChange(document: Document) {
+    try {
+      const diagnosticResults = this.validateDocument(
+        document.uri,
+        document.text,
+      );
+
+      let total = 0;
+      const diagnosticMap: Map<string, Diagnostic[]> = new Map();
+
+      // retrieve diagnostics from analyzer
+      for await (const diagnostics of diagnosticResults) {
+        total += diagnostics.length;
+
+        for (const diagnostic of diagnostics) {
+          const uriDiagnostics = diagnosticMap.get(diagnostic.uri);
+          if (empty(uriDiagnostics)) {
+            diagnosticMap.set(diagnostic.uri, [cleanDiagnostic(diagnostic)]);
+          } else {
+            uriDiagnostics.push(cleanDiagnostic(diagnostic));
+          }
+        }
+      }
+
+      // send diagnostics to each document reported
+      for (const [uri, diagnostics] of diagnosticMap.entries()) {
+        this.connection.sendDiagnostics({
+          uri,
+          diagnostics,
+        });
+      }
+
+      // if not problems found clear out diagnostics
+      if (total === 0) {
+        this.connection.sendDiagnostics({
+          uri: document.uri,
+          diagnostics: [],
+        });
+      }
+    } catch (e) {
+      // report any exceptions to the client
+      this.connection.console.error('kos-language-server Error occurred:');
+      if (e instanceof Error) {
+        this.connection.console.error(e.message);
+
+        if (!empty(e.stack)) {
+          this.connection.console.error(e.stack);
+        }
+      } else {
+        this.connection.console.error(JSON.stringify(e));
+      }
+    }
+  }
+
+  /**
+   * Get document settings from the client. If the client does not support
+   * have configurations then return the default configurations.
+   */
+  private getDocumentSettings(): Thenable<ClientConfiguration> {
+    if (!this.configuration.clientCapability.hasConfiguration) {
+      return Promise.resolve(defaultClientConfiguration);
+    }
+
+    return this.connection.workspace.getConfiguration({
+      scopeUri: this.workspaceUri,
+      section: serverName,
+    });
+  }
+
+  /**
+   * Update the servers configuration in reponse to a change in the client configuration
+   * @param clientConfig client configuration
+   */
+  private updateServer(clientConfig: ClientConfiguration) {
+    this.configuration.clientConfig = clientConfig;
+
+    const casePreference = caseMapper(clientConfig.completionCase);
+    const logPreference = logMapper(clientConfig.trace.server.level);
+
+    this.setCase(casePreference);
+    this.logger.level = logPreference;
   }
 
   /**
@@ -152,6 +375,7 @@ export class KLS {
    * @param caseKind case to set
    */
   public setCase(caseKind: CaseKind) {
+    this.configuration.keywords = keywordCompletions(caseKind);
     this.standardLibrary = standardLibraryBuilder(caseKind);
     this.bodyLibrary = bodyLibraryBuilder(caseKind);
   }
@@ -227,7 +451,7 @@ export class KLS {
       return undefined;
     }
 
-    return typeof(declared.symbol.name) !== 'string'
+    return typeof declared.symbol.name !== 'string'
       ? declared.symbol.name
       : undefined;
   }
@@ -338,9 +562,8 @@ export class KLS {
       !empty(innerResult.node) &&
       innerResult.node instanceof SuffixTerm.Call
     ) {
-      index = innerResult.node.args.length > 0
-        ? innerResult.node.args.length - 1
-        : 0;
+      index =
+        innerResult.node.args.length > 0 ? innerResult.node.args.length - 1 : 0;
     }
 
     // currently we only support invalid statements for signature completion
