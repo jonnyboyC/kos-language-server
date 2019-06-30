@@ -4,6 +4,7 @@ import {
   Location,
   Diagnostic,
   Range,
+  Connection,
 } from 'vscode-languageserver';
 import {
   IDocumentInfo,
@@ -27,7 +28,7 @@ import * as SuffixTerm from './parser/suffixTerm';
 import { PathResolver, runPath } from './utilities/pathResolver';
 import { existsSync } from 'fs';
 import { extname } from 'path';
-import { readFileAsync } from './utilities/fsUtils';
+import { readFileAsync, retrieveUriAsync } from './utilities/fsUtils';
 import {
   standardLibraryBuilder,
   bodyLibraryBuilder,
@@ -39,29 +40,72 @@ import { TypeChecker } from './typeChecker/typeChecker';
 import { Token } from './entities/token';
 import { binarySearchIndex } from './utilities/positionUtils';
 import { URI } from 'vscode-uri';
+import { DocumentService } from './services/documentService';
 
 export class KLS {
+  /**
+   * What is the workspace uri
+   */
   public workspaceUri?: string;
 
+  /**
+   * The current loaded standard library
+   */
   private standardLibrary: SymbolTable;
+
+  /**
+   * The current loaded celetrial body library
+   */
   private bodyLibrary: SymbolTable;
 
-  public readonly pathResolver: PathResolver;
-  public readonly documentInfos: Map<string, IDocumentInfo>;
-  public readonly logger: ILogger;
-  public readonly tracer: ITracer;
-  public readonly observer: PerformanceObserver;
+  /**
+   * The logger used by this and all dependencies
+   */
+  private readonly logger: ILogger;
+
+  /**
+   * The tracer used by this and all dependencies
+   */
+  private readonly tracer: ITracer;
+
+  /**
+   * A path resolve for converting kos run paths into uris
+   */
+  private readonly pathResolver: PathResolver;
+
+  /**
+   * Document information
+   */
+  private readonly documentInfos: Map<string, IDocumentInfo>;
+
+  /**
+   * Performance observer for tracking analysis speed
+   */
+  private readonly observer: PerformanceObserver;
+
+  /**
+   * Connection to the client
+   */
+  private readonly connection: Connection;
+
+  /**
+   * The document server to store and manage documents
+   */
+  private readonly documentService: DocumentService;
 
   constructor(
     caseKind: CaseKind = CaseKind.camelcase,
     logger: ILogger = mockLogger,
     tracer: ITracer = mockTracer,
+    connection: Connection,
   ) {
     this.pathResolver = new PathResolver();
     this.logger = logger;
     this.tracer = tracer;
     this.documentInfos = new Map();
     this.workspaceUri = undefined;
+    this.connection = connection;
+    this.documentService = new DocumentService(connection, retrieveUriAsync, logger);
 
     this.standardLibrary = standardLibraryBuilder(caseKind);
     this.bodyLibrary = bodyLibraryBuilder(caseKind);
@@ -75,6 +119,23 @@ export class KLS {
       this.logger.info('------------------------------');
     });
     this.observer.observe({ entryTypes: ['measure'], buffered: true });
+    this.initializeConnection();
+  }
+
+  private initializeConnection(): void {
+    // this.connection.onInitialize();
+    // this.connection.onInitialized();
+    // this.connection.onDidChangeConfiguration();
+    // this.connection.onCompletion();
+    // this.connection.onCompletionResolve();
+    // this.connection.onRenameRequest();
+    // this.connection.onDocumentHighlight();
+    // this.connection.onHover();
+    // this.connection.onReferences();
+    // this.connection.onSignatureHelp();
+    // this.connection.onDocumentSymbol();
+
+    // this.documentService.onChange();
   }
 
   /**
