@@ -18,7 +18,7 @@ import { LocalResolver } from './localResolver';
 import { SetResolver } from './setResolver';
 import { TokenType } from '../entities/tokentypes';
 import { Script } from '../entities/script';
-import { mockLogger, mockTracer } from '../utilities/logger';
+import { mockLogger, mockTracer, logException } from '../utilities/logger';
 import { SymbolTableBuilder } from './symbolTableBuilder';
 import { IDeferred } from './types';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
@@ -190,12 +190,12 @@ export class Resolver
       this.logger.info(`Resolving finished for ${file}`);
 
       if (errors.length) {
-        this.logger.warn(`Resolver encounted ${errors.length} errors`);
+        this.logger.warn(`Resolver encountered ${errors.length} errors`);
       }
       return errors;
     } catch (err) {
-      this.logger.error(`Error occured in resolver ${err}`);
-      this.tracer.log(err);
+      this.logger.error('Error occurred in resolver');
+      logException(this.logger, this.tracer, err, LogLevel.error);
 
       return [];
     }

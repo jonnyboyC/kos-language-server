@@ -1,3 +1,5 @@
+import { empty } from "./typeGuards";
+
 // dummy logger we may need for testing or just performance
 export const mockLogger: ILogger = {
   level: LogLevel.verbose,
@@ -25,11 +27,58 @@ export const consoleTracer: ITracer = {
   log: (message: string, verbose?: string) => console.trace(message, verbose),
 };
 
+/**
+ * Log an exception at the provided level to the provided logger
+ * @param logger logger to write to
+ * @param err exception to log
+ * @param level log level to report
+ */
+export const logException = (logger: ILogger, tracer: ITracer, err: any, level: LogLevel) => {
+  let method = undefined;
+
+  switch (level) {
+    case LogLevel.error:
+      method = logger.error;
+      break;
+    case LogLevel.warn:
+      method = logger.warn;
+      break;
+    case LogLevel.log:
+      method = logger.log;
+      break;
+    case LogLevel.info:
+      method = logger.info;
+      break;
+    case LogLevel.verbose:
+      method = logger.verbose;
+      break;
+    case LogLevel.none:
+      return;
+    default:
+      throw new Error('Unknown log level');
+  }
+
+  if (typeof err === 'string') {
+    method(err);
+    tracer.log(err);
+    return;
+  }
+
+  if (err instanceof Error) {
+    method(`${err.name} ${err.message}`);
+    if (!empty(err.stack)) {
+      method(err.stack);
+    }
+    tracer.log(err.name);
+  }
+};
+
 // wrapper class for logger to implement logging levels
 export class Logger implements ILogger {
   constructor(
     private readonly connection: ILoggerBase,
-    public level: LogLevel) { }
+    public level: LogLevel,
+  ) {}
 
   error(message: string) {
     if (this.level <= LogLevel.error) {

@@ -11,6 +11,8 @@ import {
   InitializedParams,
   DidChangeConfigurationNotification,
   DidChangeConfigurationParams,
+  CompletionParams,
+  CompletionItem,
 } from 'vscode-languageserver';
 import {
   IDocumentInfo,
@@ -26,8 +28,8 @@ import { PreResolver } from './analysis/preResolver';
 import { Scanner } from './scanner/scanner';
 import { Resolver } from './analysis/resolver';
 import { IParseError, ScriptResult, RunStmtType } from './parser/types';
-import { KsSymbol, KsSymbolKind, SymbolTracker } from './analysis/types';
-import { mockLogger, mockTracer } from './utilities/logger';
+import { KsSymbol, KsSymbolKind, SymbolTracker, KsBaseSymbol } from './analysis/types';
+import { mockLogger, mockTracer, logException } from './utilities/logger';
 import { empty, notEmpty } from './utilities/typeGuards';
 import { ScriptFind } from './parser/scriptFind';
 import * as Expr from './parser/expr';
@@ -49,7 +51,13 @@ import { Token } from './entities/token';
 import { binarySearchIndex } from './utilities/positionUtils';
 import { URI } from 'vscode-uri';
 import { DocumentService, Document } from './services/documentService';
-import { defaultClientConfiguration, caseMapper, logMapper } from './utilities/serverUtils';
+import {
+  defaultClientConfiguration,
+  caseMapper,
+  logMapper,
+  suffixCompletionItems,
+  symbolCompletionItems,
+} from './utilities/serverUtils';
 import { cleanDiagnostic } from './utilities/clean';
 
 export class KLS {
@@ -146,9 +154,11 @@ export class KLS {
   private initializeConnection(): void {
     this.connection.onInitialize(this.onInitialize.bind(this));
     this.connection.onInitialized(this.onInitialized.bind(this));
-    this.connection.onDidChangeConfiguration(this.onDidChangeConfiguration.bind(this));
-    // this.connection.onCompletion();
-    // this.connection.onCompletionResolve();
+    this.connection.onDidChangeConfiguration(
+      this.onDidChangeConfiguration.bind(this),
+    );
+    this.connection.onCompletion(this.onCompletion.bind(this));
+    this.connection.onCompletionResolve(this.onCompletionResolve.bind(this));
     // this.connection.onRenameRequest();
     // this.connection.onDocumentHighlight();
     // this.connection.onHover();
@@ -248,6 +258,57 @@ export class KLS {
 
     this.setCase(casePreference);
     this.logger.level = logPreference;
+  }
+
+  /**
+   * Respond to completion requests from the client. This handler currently provides
+   * both symbol completion as well as suffix completion.
+   * @param completion the parameters describing the completion request
+   */
+  private onCompletion(completion: CompletionParams): Maybe<CompletionItem[]> {
+    const { context } = completion;
+
+    try {
+      // check if suffix completion
+      if (!empty(context) && !empty(context.triggerCharacter)) {
+        const { triggerCharacter } = context;
+
+        if (triggerCharacter === ':') {
+          return suffixCompletionItems(this, completion);
+        }
+      }
+
+      // complete base symbols
+      return symbolCompletionItems(
+        this,
+        completion,
+        this.configuration.keywords,
+      );
+
+      // catch any errors
+    } catch (err) {
+      logException(this.logger, this.tracer, err, LogLevel.error);
+      return undefined;
+    }
+  }
+
+  /**
+   * This handler provider completion item resolution capability. This provides
+   * additional information for the currently completion item selection
+   * @param completionItem the item to resolve further
+   */
+  private onCompletionResolve(completionItem: CompletionItem): CompletionItem {
+    try {
+      const token = completionItem.data as Maybe<Token>;
+
+      if (!empty(token)) {
+      }
+
+      return completionItem;
+    } catch (err) {
+      logException(this.logger, this.tracer, err, LogLevel.error);
+      return completionItem;
+    }
   }
 
   /**
@@ -512,7 +573,7 @@ export class KLS {
    * @param pos position in document
    * @param uri document uri
    */
-  public getScopedSymbols(pos: Position, uri: string): KsSymbol[] {
+  public getScopedSymbols(pos: Position, uri: string): KsBaseSymbol[] {
     const documentInfo = this.documentInfos.get(uri);
 
     if (!empty(documentInfo) && !empty(documentInfo.symbolsTable)) {

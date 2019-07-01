@@ -82,6 +82,11 @@ const caseMap = new Map([
   ['pascalcase', CaseKind.pascalcase],
 ]);
 
+/**
+ * Map a string to a case kind
+ */
+export const caseMapper = mapper(caseMap, 'CaseKind');
+
 const logMap = new Map([
   ['verbose', LogLevel.verbose],
   ['info', LogLevel.info],
@@ -92,14 +97,33 @@ const logMap = new Map([
 ]);
 
 /**
- * Map a string to a case kind
- */
-export const caseMapper = mapper(caseMap, 'CaseKind');
-
-/**
  * Map a string to a log level
  */
 export const logMapper = mapper(logMap, 'LogLevel');
+
+const symbolMap = new Map([
+  [KsSymbolKind.function, CompletionItemKind.Function],
+  [KsSymbolKind.parameter, CompletionItemKind.Variable],
+  [KsSymbolKind.lock, CompletionItemKind.Reference],
+  [KsSymbolKind.variable, CompletionItemKind.Variable],
+]);
+
+/**
+ * Map a ks symbol kind to a completion kind
+ */
+export const symbolMapper = mapper(symbolMap, 'KsSymbolKind');
+
+const callMap = new Map([
+  [CallKind.call, CompletionItemKind.Method],
+  [CallKind.optionalCall, CompletionItemKind.Method],
+  [CallKind.get, CompletionItemKind.Property],
+  [CallKind.set, CompletionItemKind.Property],
+]);
+
+/**
+ * Map a ks call kind to a completion kind
+ */
+export const callMapper = mapper(callMap, 'CallKind');
 
 /**
  * Get a list of all symbols currently in scope at the given line
@@ -121,23 +145,7 @@ export const symbolCompletionItems = (
   // generate completions
   return entities
     .map(entity => {
-      let kind: Maybe<CompletionItemKind> = undefined;
-      switch (entity.tag) {
-        case KsSymbolKind.function:
-          kind = CompletionItemKind.Function;
-          break;
-        case KsSymbolKind.parameter:
-          kind = CompletionItemKind.Variable;
-          break;
-        case KsSymbolKind.lock:
-          kind = CompletionItemKind.Reference;
-          break;
-        case KsSymbolKind.variable:
-          kind = CompletionItemKind.Variable;
-          break;
-        default:
-          throw new Error('Unknown entity type');
-      }
+      const kind = symbolMapper(entity.tag);
 
       let typeString = 'structure';
       const { tracker } = entity.name;
@@ -193,26 +201,11 @@ export const suffixCompletionItems = (
   const suffixes = allSuffixes(type);
 
   // generate completions
-  return suffixes.map(suffix => {
-    switch (suffix.callType) {
-      case CallKind.call:
-      case CallKind.optionalCall:
-        return {
-          kind: CompletionItemKind.Method,
-          label: suffix.name,
-          detail: `${suffix.name}: ${suffix.toTypeString()}`,
-        } as CompletionItem;
-      case CallKind.get:
-      case CallKind.set:
-        return {
-          kind: CompletionItemKind.Property,
-          label: suffix.name,
-          detail: `${suffix.name}: ${suffix.toTypeString()}`,
-        } as CompletionItem;
-      default:
-        throw new Error('Unanticipated call type found');
-    }
-  });
+  return suffixes.map(suffix => ({
+    kind: callMapper(suffix.callType),
+    label: suffix.name,
+    detail: `${suffix.name}: ${suffix.toTypeString()}`,
+  }));
 };
 
 /**

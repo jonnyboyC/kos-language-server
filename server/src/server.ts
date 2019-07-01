@@ -5,12 +5,10 @@ if (Symbol['asyncIterator'] === undefined) {
 import {
   createConnection,
   ProposedFeatures,
-  CompletionItem,
   TextDocumentPositionParams,
   Location,
   DocumentSymbolParams,
   SymbolInformation,
-  CompletionParams,
   ReferenceParams,
   Hover,
   DocumentHighlight,
@@ -25,8 +23,6 @@ import { empty } from './utilities/typeGuards';
 import { KLS } from './kls';
 import { KsSymbolKind, TrackerKind } from './analysis/types';
 import {
-  symbolCompletionItems,
-  suffixCompletionItems,
   documentSymbols,
   getConnectionPrimitives,
 } from './utilities/serverUtils';
@@ -39,7 +35,6 @@ import {
   cleanRange,
 } from './utilities/clean';
 import { keywordCompletions } from './utilities/constants';
-import { Token } from './entities/token';
 import { tokenTrackedType } from './typeChecker/typeUitlities';
 import { Scanner } from './scanner/scanner';
 import { isValidIdentifier } from './entities/tokentypes';
@@ -111,64 +106,6 @@ const kls = new KLS(
   connection.tracer,
   connection,
   configuration,
-);
-
-/**
- * This handler provide completion items capability
- */
-connection.onCompletion(
-  (completionParams: CompletionParams): CompletionItem[] => {
-    const { context } = completionParams;
-
-    try {
-      // check if suffix completion
-      if (!empty(context) && !empty(context.triggerCharacter)) {
-        const { triggerCharacter } = context;
-
-        if (triggerCharacter === ':') {
-          return suffixCompletionItems(kls, completionParams);
-        }
-      }
-
-      // complete base symbols
-      return symbolCompletionItems(
-        kls,
-        completionParams,
-        configuration.keywords,
-      );
-
-      // catch any errors
-    } catch (err) {
-      if (err instanceof Error) {
-        connection.console.warn(`${err.message} ${err.stack}`);
-      }
-
-      return [];
-    }
-  },
-);
-
-/**
- * This handler provider compleition item resolution capability. This provides
- * additional information for the currently compeltion item selection
- */
-connection.onCompletionResolve(
-  (item: CompletionItem): CompletionItem => {
-    try {
-      const token = item.data as Maybe<Token>;
-
-      if (!empty(token)) {
-      }
-
-      return item;
-    } catch (err) {
-      if (err instanceof Error) {
-        connection.console.error(`${err.message} ${err.stack}`);
-      }
-
-      return item;
-    }
-  },
 );
 
 /**

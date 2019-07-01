@@ -1,6 +1,5 @@
 import {
   EnvironmentNode,
-  KsSymbol,
   GraphNode,
   SymbolTrackerBase,
   KsBaseSymbol,
@@ -238,7 +237,7 @@ export class SymbolTable implements GraphNode<SymbolTable> {
    * Get all symbols available at the provide position
    * @param pos position to check
    */
-  public scopedSymbols(pos: Position): KsSymbol[] {
+  public scopedSymbols(pos: Position): KsBaseSymbol[] {
     return this.scopedTrackers(pos).map(tracker => tracker.declared.symbol);
   }
 
@@ -283,10 +282,10 @@ export class SymbolTable implements GraphNode<SymbolTable> {
   }
 
   /**
-   * get all symbol trackers in scope at a positition
-   * @param pos the position to retrive symbols from
+   * get all symbol trackers in scope at a position
+   * @param pos the position to retrieve symbols from
    */
-  private scopedTrackers(pos: Position): SymbolTrackerBase[] {
+  private scopedTrackers(pos: Position): BasicTracker[] {
     const scoped = this.scopedTrackersDepth(pos, this.rootScope.children);
     const fileGlobal = Array.from(this.rootScope.environment.trackers());
     const importedGlobals = Array.from(this.childSymbolTables.values()).map(
@@ -332,7 +331,7 @@ export class SymbolTable implements GraphNode<SymbolTable> {
   private scopedTrackersDepth(
     pos: Position,
     nodes: EnvironmentNode[],
-  ): SymbolTrackerBase[] {
+  ): BasicTracker[] {
     for (const node of nodes) {
       const { position } = node;
       switch (position.kind) {

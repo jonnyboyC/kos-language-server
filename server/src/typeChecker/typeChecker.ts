@@ -12,7 +12,7 @@ import * as Expr from '../parser/expr';
 import * as Stmt from '../parser/stmt';
 import * as Decl from '../parser/declare';
 import { ITypeResultExpr, TypeKind, OperatorKind } from './types';
-import { mockLogger, mockTracer } from '../utilities/logger';
+import { mockLogger, mockTracer, logException } from '../utilities/logger';
 import { Script } from '../entities/script';
 import { empty } from '../utilities/typeGuards';
 import {
@@ -123,13 +123,13 @@ export class TypeChecker
       this.logger.info(`Type Checking finished for ${file}`);
 
       if (typeErrors.length) {
-        this.logger.warn(`Type Checking encounted ${typeErrors.length} errors`);
+        this.logger.warn(`Type Checking encountered ${typeErrors.length} errors`);
       }
 
       return typeErrors;
     } catch (err) {
-      this.logger.error(`Error occured in type checker ${err}`);
-      this.tracer.log(err);
+      this.logger.error('Error occurred in type checker');
+      logException(this.logger, this.tracer, err, LogLevel.error);
       return [];
     }
   }
