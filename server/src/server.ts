@@ -11,13 +11,9 @@ import {
   SymbolInformation,
   ReferenceParams,
   Hover,
-  DocumentHighlight,
   SignatureHelp,
   SignatureInformation,
   ParameterInformation,
-  // RenameParams,
-  // WorkspaceEdit,
-  // TextEdit,
 } from 'vscode-languageserver';
 import { empty } from './utilities/typeGuards';
 import { KLS } from './kls';
@@ -32,12 +28,9 @@ import { orbitalInitializer } from './typeChecker/types/orbital/initialize';
 import {
   cleanLocation,
   cleanPosition,
-  cleanRange,
 } from './utilities/clean';
 import { keywordCompletions } from './utilities/constants';
 import { tokenTrackedType } from './typeChecker/typeUitlities';
-// import { Scanner } from './scanner/scanner';
-// import { isValidIdentifier } from './entities/tokentypes';
 import { TypeKind } from './typeChecker/types';
 // tslint:disable-next-line:import-name
 import program from 'commander';
@@ -106,110 +99,6 @@ const kls = new KLS(
   connection.tracer,
   connection,
   configuration,
-);
-
-/**
- * This handler provides document rename capabilitonRees
- */
-// connection.onRenameRequest(
-//   ({ newName, textDocument, position }: RenameParams): Maybe<WorkspaceEdit> => {
-//     const scanner = new Scanner(newName);
-//     const { tokens, scanErrors } = scanner.scanTokens();
-
-//     // check if rename is valid
-//     if (
-//       scanErrors.length > 0 ||
-//       tokens.length !== 1 ||
-//       !isValidIdentifier(tokens[0].type)
-//     ) {
-//       return undefined;
-//     }
-
-//     const locations = kls.getUsageLocations(
-//       position,
-//       textDocument.uri,
-//     );
-//     if (empty(locations)) {
-//       return undefined;
-//     }
-//     const changes: PropType<WorkspaceEdit, 'changes'> = {};
-
-//     for (const location of locations) {
-//       if (!changes.hasOwnProperty(location.uri)) {
-//         changes[location.uri] = [];
-//       }
-
-//       changes[location.uri].push(TextEdit.replace(location.range, newName));
-//     }
-
-//     return { changes };
-//   },
-// );
-
-/**
- * This handler provides document highlighting capability
- */
-connection.onDocumentHighlight(
-  (positionParams: TextDocumentPositionParams): DocumentHighlight[] => {
-    const { position } = positionParams;
-    const { uri } = positionParams.textDocument;
-
-    const locations = kls.getFileUsageRanges(position, uri);
-    return empty(locations)
-      ? []
-      : locations.map(range => ({ range: cleanRange(range) }));
-  },
-);
-
-/**
- * This handlers provides on hover capability
- */
-connection.onHover(
-  (positionParams: TextDocumentPositionParams): Maybe<Hover> => {
-    const { position } = positionParams;
-    const { uri } = positionParams.textDocument;
-
-    const token = kls.getToken(position, uri);
-
-    if (empty(token)) {
-      return undefined;
-    }
-
-    const type = tokenTrackedType(token);
-
-    const { tracker } = token;
-    let label: string;
-    let symbolKind: string;
-
-    if (!empty(tracker)) {
-      symbolKind = KsSymbolKind[tracker.declared.symbol.tag];
-
-      label =
-        tracker.kind === TrackerKind.basic
-          ? tracker.declared.symbol.name.lexeme
-          : tracker.declared.symbol.name;
-    } else {
-      symbolKind = 'literal';
-      label = token.lexeme;
-    }
-
-    if (empty(type)) {
-      return undefined;
-    }
-
-    return {
-      contents: {
-        // Note doesn't does do much other than format it as code
-        // may look into adding type def syntax highlighting
-        language: 'kos',
-        value: `(${symbolKind}) ${label}: ${type.toTypeString()} `,
-      },
-      range: {
-        start: cleanPosition(token.start),
-        end: cleanPosition(token.end),
-      },
-    };
-  },
 );
 
 /**

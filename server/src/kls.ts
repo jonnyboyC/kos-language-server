@@ -13,9 +13,11 @@ import {
   DidChangeConfigurationParams,
   CompletionParams,
   CompletionItem,
+  TextDocumentPositionParams,
   RenameParams,
   WorkspaceEdit,
   TextEdit,
+  DocumentHighlight,
 } from 'vscode-languageserver';
 import {
   IDocumentInfo,
@@ -31,7 +33,7 @@ import { PreResolver } from './analysis/preResolver';
 import { Scanner } from './scanner/scanner';
 import { Resolver } from './analysis/resolver';
 import { IParseError, ScriptResult, RunStmtType } from './parser/types';
-import { KsSymbol, KsSymbolKind, SymbolTracker, KsBaseSymbol } from './analysis/types';
+import { KsSymbol, KsSymbolKind, SymbolTracker, KsBaseSymbol, TrackerKind } from './analysis/types';
 import { mockLogger, mockTracer, logException } from './utilities/logger';
 import { empty, notEmpty } from './utilities/typeGuards';
 import { ScriptFind } from './parser/scriptFind';
@@ -61,8 +63,9 @@ import {
   suffixCompletionItems,
   symbolCompletionItems,
 } from './utilities/serverUtils';
-import { cleanDiagnostic } from './utilities/clean';
+import { cleanDiagnostic, cleanRange, cleanPosition } from './utilities/clean';
 import { isValidIdentifier } from './entities/tokentypes';
+import { tokenTrackedType } from './typeChecker/typeUitlities';
 
 export class KLS {
   /**
@@ -164,8 +167,8 @@ export class KLS {
     this.connection.onCompletion(this.onCompletion.bind(this));
     this.connection.onCompletionResolve(this.onCompletionResolve.bind(this));
     this.connection.onRenameRequest(this.onRenameRequest.bind(this));
-    // this.connection.onDocumentHighlight();
-    // this.connection.onHover();
+    this.connection.onDocumentHighlight(this.onDocumentHighlight.bind(this));
+    this.connection.onHover(this.onHover.bind(this));
     // this.connection.onReferences();
     // this.connection.onSignatureHelp();
     // this.connection.onDocumentSymbol();
@@ -265,6 +268,28 @@ export class KLS {
   }
 
   /**
+   * Update the server configuration when the client signals a change in it's configuration for
+   * the kos-language-server
+   * @param change The updated settings
+   */
+  private onDidChangeConfiguration(change: DidChangeConfigurationParams): void {
+    const { clientCapability } = this.configuration;
+
+    if (clientCapability.hasConfiguration) {
+      if (change.settings && serverName in change.settings) {
+        Object.assign(
+          this.configuration.clientConfig,
+          defaultClientConfiguration,
+          change.settings[serverName],
+        );
+      }
+
+      // update server on client config
+      this.updateServer(this.configuration.clientConfig);
+    }
+  }
+
+  /**
    * Respond to completion requests from the client. This handler currently provides
    * both symbol completion as well as suffix completion.
    * @param completion the parameters describing the completion request
@@ -315,6 +340,11 @@ export class KLS {
     }
   }
 
+  /**
+   * This handler provider rename capabilities. This allows a client to highlight
+   * as symbol and provide a new name that will change for all known symbols
+   * @param rename information describing what and where a rename should occur
+   */
   private onRenameRequest(rename: RenameParams): Maybe<WorkspaceEdit> {
     const { newName, position, textDocument } = rename;
     const scanner = new Scanner(newName);
@@ -350,25 +380,69 @@ export class KLS {
   }
 
   /**
-   * Update the server configuration when the client signals a change in it's configuration for
-   * the kos-language-server
-   * @param change The updated settings
+   * This handler provides highlight within a requested document. This allows the client
+   * to highlight and symbol and other instances of that symbol to also highlight.
+   * @param positionParams the position of the highlight request
    */
-  private onDidChangeConfiguration(change: DidChangeConfigurationParams): void {
-    const { clientCapability } = this.configuration;
+  private onDocumentHighlight(positionParams: TextDocumentPositionParams): DocumentHighlight[] {
+    const { position } = positionParams;
+    const { uri } = positionParams.textDocument;
 
-    if (clientCapability.hasConfiguration) {
-      if (change.settings && serverName in change.settings) {
-        Object.assign(
-          this.configuration.clientConfig,
-          defaultClientConfiguration,
-          change.settings[serverName],
-        );
-      }
+    const locations = this.getFileUsageRanges(position, uri);
+    return empty(locations)
+      ? []
+      : locations.map(range => ({ range: cleanRange(range) }));
+  }
 
-      // update server on client config
-      this.updateServer(this.configuration.clientConfig);
+  /**
+   * This handler provides on hover capability for symbols in a document. This allows additional
+   * information to be displayed to the user about symbols througout the document
+   * @param positionParams the position of the hover request
+   */
+  private onHover(positionParams: TextDocumentPositionParams) {
+    const { position } = positionParams;
+    const { uri } = positionParams.textDocument;
+
+    const token = this.getToken(position, uri);
+
+    if (empty(token)) {
+      return undefined;
     }
+
+    const type = tokenTrackedType(token);
+
+    const { tracker } = token;
+    let label: string;
+    let symbolKind: string;
+
+    if (!empty(tracker)) {
+      symbolKind = KsSymbolKind[tracker.declared.symbol.tag];
+
+      label =
+        tracker.kind === TrackerKind.basic
+          ? tracker.declared.symbol.name.lexeme
+          : tracker.declared.symbol.name;
+    } else {
+      symbolKind = 'literal';
+      label = token.lexeme;
+    }
+
+    if (empty(type)) {
+      return undefined;
+    }
+
+    return {
+      contents: {
+        // Note doesn't does do much other than format it as code
+        // may look into adding type def syntax highlighting
+        language: 'kos',
+        value: `(${symbolKind}) ${label}: ${type.toTypeString()} `,
+      },
+      range: {
+        start: cleanPosition(token.start),
+        end: cleanPosition(token.end),
+      },
+    };
   }
 
   /**
