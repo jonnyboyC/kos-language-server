@@ -13,6 +13,9 @@ import {
   DidChangeConfigurationParams,
   CompletionParams,
   CompletionItem,
+  RenameParams,
+  WorkspaceEdit,
+  TextEdit,
 } from 'vscode-languageserver';
 import {
   IDocumentInfo,
@@ -59,6 +62,7 @@ import {
   symbolCompletionItems,
 } from './utilities/serverUtils';
 import { cleanDiagnostic } from './utilities/clean';
+import { isValidIdentifier } from './entities/tokentypes';
 
 export class KLS {
   /**
@@ -159,7 +163,7 @@ export class KLS {
     );
     this.connection.onCompletion(this.onCompletion.bind(this));
     this.connection.onCompletionResolve(this.onCompletionResolve.bind(this));
-    // this.connection.onRenameRequest();
+    this.connection.onRenameRequest(this.onRenameRequest.bind(this));
     // this.connection.onDocumentHighlight();
     // this.connection.onHover();
     // this.connection.onReferences();
@@ -309,6 +313,40 @@ export class KLS {
       logException(this.logger, this.tracer, err, LogLevel.error);
       return completionItem;
     }
+  }
+
+  private onRenameRequest(rename: RenameParams): Maybe<WorkspaceEdit> {
+    const { newName, position, textDocument } = rename;
+    const scanner = new Scanner(newName);
+    const { tokens, scanErrors } = scanner.scanTokens();
+
+    // check if rename is valid
+    if (
+      scanErrors.length > 0 ||
+      tokens.length !== 1 ||
+      !isValidIdentifier(tokens[0].type)
+    ) {
+      return undefined;
+    }
+
+    const locations = this.getUsageLocations(
+      position,
+      textDocument.uri,
+    );
+    if (empty(locations)) {
+      return undefined;
+    }
+    const changes: PropType<WorkspaceEdit, 'changes'> = {};
+
+    for (const location of locations) {
+      if (!changes.hasOwnProperty(location.uri)) {
+        changes[location.uri] = [];
+      }
+
+      changes[location.uri].push(TextEdit.replace(location.range, newName));
+    }
+
+    return { changes };
   }
 
   /**

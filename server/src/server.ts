@@ -15,9 +15,9 @@ import {
   SignatureHelp,
   SignatureInformation,
   ParameterInformation,
-  RenameParams,
-  WorkspaceEdit,
-  TextEdit,
+  // RenameParams,
+  // WorkspaceEdit,
+  // TextEdit,
 } from 'vscode-languageserver';
 import { empty } from './utilities/typeGuards';
 import { KLS } from './kls';
@@ -36,8 +36,8 @@ import {
 } from './utilities/clean';
 import { keywordCompletions } from './utilities/constants';
 import { tokenTrackedType } from './typeChecker/typeUitlities';
-import { Scanner } from './scanner/scanner';
-import { isValidIdentifier } from './entities/tokentypes';
+// import { Scanner } from './scanner/scanner';
+// import { isValidIdentifier } from './entities/tokentypes';
 import { TypeKind } from './typeChecker/types';
 // tslint:disable-next-line:import-name
 import program from 'commander';
@@ -109,42 +109,42 @@ const kls = new KLS(
 );
 
 /**
- * This handler provides document rename capabilites
+ * This handler provides document rename capabilitonRees
  */
-connection.onRenameRequest(
-  ({ newName, textDocument, position }: RenameParams): Maybe<WorkspaceEdit> => {
-    const scanner = new Scanner(newName);
-    const { tokens, scanErrors } = scanner.scanTokens();
+// connection.onRenameRequest(
+//   ({ newName, textDocument, position }: RenameParams): Maybe<WorkspaceEdit> => {
+//     const scanner = new Scanner(newName);
+//     const { tokens, scanErrors } = scanner.scanTokens();
 
-    // check if rename is valid
-    if (
-      scanErrors.length > 0 ||
-      tokens.length !== 1 ||
-      !isValidIdentifier(tokens[0].type)
-    ) {
-      return undefined;
-    }
+//     // check if rename is valid
+//     if (
+//       scanErrors.length > 0 ||
+//       tokens.length !== 1 ||
+//       !isValidIdentifier(tokens[0].type)
+//     ) {
+//       return undefined;
+//     }
 
-    const locations = kls.getUsageLocations(
-      position,
-      textDocument.uri,
-    );
-    if (empty(locations)) {
-      return undefined;
-    }
-    const changes: PropType<WorkspaceEdit, 'changes'> = {};
+//     const locations = kls.getUsageLocations(
+//       position,
+//       textDocument.uri,
+//     );
+//     if (empty(locations)) {
+//       return undefined;
+//     }
+//     const changes: PropType<WorkspaceEdit, 'changes'> = {};
 
-    for (const location of locations) {
-      if (!changes.hasOwnProperty(location.uri)) {
-        changes[location.uri] = [];
-      }
+//     for (const location of locations) {
+//       if (!changes.hasOwnProperty(location.uri)) {
+//         changes[location.uri] = [];
+//       }
 
-      changes[location.uri].push(TextEdit.replace(location.range, newName));
-    }
+//       changes[location.uri].push(TextEdit.replace(location.range, newName));
+//     }
 
-    return { changes };
-  },
-);
+//     return { changes };
+//   },
+// );
 
 /**
  * This handler provides document highlighting capability

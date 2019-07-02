@@ -22,7 +22,7 @@ import { ScopeKind } from '../parser/types';
 import { BasicTracker } from './tracker';
 
 /**
- * The Symbol table is used to update and retreive symbol type infromation
+ * The Symbol table is used to update and retrieve symbol type information
  */
 export class SymbolTable implements GraphNode<SymbolTable> {
   /**
