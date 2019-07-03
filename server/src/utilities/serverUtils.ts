@@ -12,6 +12,7 @@ import {
   StreamMessageWriter,
   MessageReader,
   MessageWriter,
+  SignatureHelp,
 } from 'vscode-languageserver';
 import { empty } from './typeGuards';
 import { allSuffixes, tokenTrackedType } from '../typeChecker/typeUitlities';
@@ -249,3 +250,12 @@ export const documentSymbols = (
     } as SymbolInformation;
   });
 };
+
+/**
+ * The default signature if non can be provided
+ */
+export const defaultSignature = (): SignatureHelp => ({
+  signatures: [],
+  activeParameter: null,
+  activeSignature: null,
+});

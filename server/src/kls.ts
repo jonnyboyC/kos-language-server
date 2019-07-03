@@ -18,6 +18,12 @@ import {
   WorkspaceEdit,
   TextEdit,
   DocumentHighlight,
+  ReferenceParams,
+  ParameterInformation,
+  SignatureInformation,
+  SignatureHelp,
+  DocumentSymbolParams,
+  SymbolInformation,
 } from 'vscode-languageserver';
 import {
   IDocumentInfo,
@@ -62,10 +68,13 @@ import {
   logMapper,
   suffixCompletionItems,
   symbolCompletionItems,
+  defaultSignature,
+  documentSymbols,
 } from './utilities/serverUtils';
-import { cleanDiagnostic, cleanRange, cleanPosition } from './utilities/clean';
+import { cleanDiagnostic, cleanRange, cleanPosition, cleanLocation } from './utilities/clean';
 import { isValidIdentifier } from './entities/tokentypes';
 import { tokenTrackedType } from './typeChecker/typeUitlities';
+import { TypeKind } from './typeChecker/types';
 
 export class KLS {
   /**
@@ -155,10 +164,12 @@ export class KLS {
       this.logger.info('------------------------------');
     });
     this.observer.observe({ entryTypes: ['measure'], buffered: true });
-    this.initializeConnection();
   }
 
-  private initializeConnection(): void {
+  /**
+   * Start the language server listening to requests from the client
+   */
+  public listen(): void {
     this.connection.onInitialize(this.onInitialize.bind(this));
     this.connection.onInitialized(this.onInitialized.bind(this));
     this.connection.onDidChangeConfiguration(
@@ -169,11 +180,14 @@ export class KLS {
     this.connection.onRenameRequest(this.onRenameRequest.bind(this));
     this.connection.onDocumentHighlight(this.onDocumentHighlight.bind(this));
     this.connection.onHover(this.onHover.bind(this));
-    // this.connection.onReferences();
-    // this.connection.onSignatureHelp();
-    // this.connection.onDocumentSymbol();
+    this.connection.onReferences(this.onReference.bind(this));
+    this.connection.onSignatureHelp(this.onSignatureHelp.bind(this));
+    this.connection.onDocumentSymbol(this.onDocumentSymbol.bind(this));
+    this.connection.onDefinition(this.onDefinition.bind(this));
 
     this.documentService.onChange(this.onChange.bind(this));
+
+    this.connection.listen();
   }
 
   /**
@@ -396,7 +410,7 @@ export class KLS {
 
   /**
    * This handler provides on hover capability for symbols in a document. This allows additional
-   * information to be displayed to the user about symbols througout the document
+   * information to be displayed to the user about symbols throughout the document
    * @param positionParams the position of the hover request
    */
   private onHover(positionParams: TextDocumentPositionParams) {
@@ -443,6 +457,120 @@ export class KLS {
         end: cleanPosition(token.end),
       },
     };
+  }
+
+  /**
+   * This handler provides reference capabilities to symbols in a document. This allows a client
+   * to identify all positions that a symbol is used in the document or attached documents
+   * @param reference parameters describing the reference request
+   */
+  private onReference(reference: ReferenceParams): Maybe<Location[]> {
+    const { position } = reference;
+    const { uri } = reference.textDocument;
+
+    const locations = this.getUsageLocations(position, uri);
+    return locations && locations.map(loc => cleanLocation(loc));
+  }
+
+  /**
+   * This handler provides signature help suffixes and function within the document. This
+   * provides extra context to the client such as the current parameter
+   * @param positionParams the position of the signature request
+   */
+  private onSignatureHelp(positionParams: TextDocumentPositionParams): SignatureHelp {
+    const { position } = positionParams;
+    const { uri } = positionParams.textDocument;
+
+    const result = this.getFunctionAtPosition(position, uri);
+    if (empty(result)) return defaultSignature();
+    const { tracker, index } = result;
+
+    let label =
+      typeof tracker.declared.symbol.name === 'string'
+        ? tracker.declared.symbol.name
+        : tracker.declared.symbol.name.lexeme;
+
+    const type = tracker.getType({
+      uri,
+      range: { start: position, end: position },
+    });
+
+    if (empty(type)) {
+      return defaultSignature();
+    }
+
+    switch (type.kind) {
+      case TypeKind.function:
+      case TypeKind.suffix:
+        let start = label.length + 1;
+        const { params } = type;
+        const paramInfos: ParameterInformation[] = [];
+
+        // check if normal or variadic type
+        if (Array.isArray(params)) {
+          // generate normal labels
+          if (params.length > 0) {
+            const labels: string[] = [];
+            for (let i = 0; i < params.length - 1; i += 1) {
+              const paramLabel = `${params[i].toTypeString()}, `;
+              paramInfos.push(
+                ParameterInformation.create([
+                  start,
+                  start + paramLabel.length - 2,
+                ]),
+              );
+              labels.push(paramLabel);
+              start = start + paramLabel.length;
+            }
+
+            const paramLabel = `${params[params.length - 1].toTypeString()}`;
+            paramInfos.push(
+              ParameterInformation.create([start, start + paramLabel.length]),
+            );
+            labels.push(paramLabel);
+            label = `${label}(${labels.join('')})`;
+          }
+        } else {
+          // generate variadic labels
+          const variadicLabel = params.toTypeString();
+          paramInfos.push(
+            ParameterInformation.create([start, start + variadicLabel.length]),
+          );
+          label = `${label}(${variadicLabel})`;
+        }
+
+        return {
+          signatures: [
+            SignatureInformation.create(label, undefined, ...paramInfos),
+          ],
+          activeParameter: index,
+          activeSignature: null,
+        };
+      default:
+        return defaultSignature();
+    }
+  }
+
+  /**
+   * This handler provides document symbol capabilities. This provides a list of all
+   * symbols that are located within a given document
+   * @param documentSymbol the document to provide symbols for
+   */
+  private onDocumentSymbol(documentSymbol: DocumentSymbolParams): Maybe<SymbolInformation[]> {
+    return documentSymbols(this, documentSymbol);
+  }
+
+  /**
+   * This handler provides go to definition capabilities. When a client requests a symbol
+   * go to definition this provides the location if it exists
+   * @param positionParams the position of the definition request
+   */
+  private onDefinition(positionParams: TextDocumentPositionParams): Maybe<Location> {
+    const { position } = positionParams;
+    const { uri } = positionParams.textDocument;
+
+    const location = this.getDeclarationLocation(position, uri);
+    return location && cleanLocation(location);
   }
 
   /**
@@ -538,7 +666,7 @@ export class KLS {
    * Set the volume 0 path for the analyzer
    * @param uri path of volume 0
    */
-  public setUri(uri: string): void {
+  private setUri(uri: string): void {
     this.pathResolver.volume0Uri = URI.parse(uri);
     this.workspaceUri = uri;
   }
