@@ -72,8 +72,7 @@ const createMockUriResponse = (files: Map<string, string>): DocumentLoader => {
 
       return Promise.reject();
     },
-    loadDirectory(_: string): Promise<Document[]> {
-      return Promise.resolve([]);
+    async *loadDirectory(_: string): AsyncIterableIterator<Document>  {
     },
   };
 };

@@ -13,6 +13,7 @@ import { URI } from 'vscode-uri';
 import { extname } from 'path';
 import { createDiagnostic } from '../utilities/diagnosticsUtils';
 import { DocumentLoader, Document } from '../utilities/documentLoader';
+import { logException, mockTracer } from '../utilities/logger';
 
 type DocumentChangeHandler = (document: Document) => void;
 type DocumentClosedHandler = (uri: string) => void;
@@ -81,8 +82,9 @@ export class DocumentService {
     return this.pathResolver.ready;
   }
 
-  public setVolume0Uri(uri: URI) {
+  public async setVolume0Uri(uri: URI) {
     this.pathResolver.volume0Uri = uri;
+    this.cacheDocuments();
   }
 
   /**
@@ -104,6 +106,7 @@ export class DocumentService {
   public getAllDocuments(): TextDocument[] {
     return [...this.clientDocs.values(), ...this.serverDocs.values()];
   }
+
 
   public async loadDocument(
     caller: Location,
@@ -136,17 +139,11 @@ export class DocumentService {
       // attempt to load a resource from whatever uri is provided
       const uri = URI.parse(normalized);
       const retrieved = await this.retrieveResource(uri);
-      const textDocument = TextDocument.create(
-        normalized,
-        'temp',
-        0,
-        retrieved,
-      );
+      const textDocument = TextDocument.create(normalized, 'kos', 0, retrieved);
 
       // if found set in cache and return document
       this.serverDocs.set(normalized, textDocument);
       return textDocument;
-
     } catch (err) {
       // create a diagnostic if we can't load the file
       return this.loadError(caller.range, kosPath);
@@ -169,6 +166,28 @@ export class DocumentService {
    */
   public onClose(handler: DocumentClosedHandler): void {
     this.onCloseHandler(handler);
+  }
+
+  /**
+   * Cache all documents in the workspace.
+   */
+  private async cacheDocuments() {
+    if (empty(this.pathResolver.volume0Uri)) {
+      return;
+    }
+
+    const volume0Path = this.pathResolver.volume0Uri.fsPath;
+
+    try {
+      for await (const { uri, text } of this.documentLoader.loadDirectory(volume0Path)) {
+        const textDocument = TextDocument.create(uri, 'kos', 0, text);
+        if (!this.clientDocs.has(uri)) {
+          this.serverDocs.set(uri, textDocument);
+        }
+      }
+    } catch (err) {
+      logException(this.logger, mockTracer, err, LogLevel.error);
+    }
   }
 
   /**

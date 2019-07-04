@@ -1,4 +1,7 @@
 import { readFileAsync } from './fsUtils';
+import { statSync, readdirSync } from 'fs';
+import { join } from 'path';
+import { URI } from 'vscode-uri';
 
 /**
  * Document interface
@@ -19,7 +22,11 @@ export interface Document {
  * A small set of functionality for loading files and directory of files
  */
 export class DocumentLoader {
-  constructor() {}
+  // private loadDirectoryBound: (path: string) => AsyncIterableIterator<Document>;
+
+  constructor() {
+    // this.loadDirectoryBound = this.loadDirectory.bind(this);
+  }
 
   /**
    * Load a file from a given path
@@ -31,9 +38,24 @@ export class DocumentLoader {
 
   /**
    * Load a collection of documents from a given directory
-   * @param _ the path of the directory
+   * @param path the path of the directory
    */
-  public loadDirectory(_: string): Promise<Document[]> {
-    return Promise.resolve([]);
+  public async *loadDirectory(path: string): AsyncIterableIterator<Document> {
+    const directoryPaths = readdirSync(path);
+
+    for (const directoryPath of directoryPaths) {
+      const dirPath = join(path, directoryPath);
+
+      if (statSync(dirPath).isDirectory()) {
+        yield* this.loadDirectory(dirPath);
+      } else {
+        if (dirPath.endsWith('.ks')) {
+          yield {
+            uri: URI.file(dirPath).toString(),
+            text: await readFileAsync(dirPath, 'utf-8'),
+          };
+        }
+      }
+    }
   }
 }
