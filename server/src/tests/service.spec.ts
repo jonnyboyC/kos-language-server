@@ -17,6 +17,7 @@ import { URI } from 'vscode-uri';
 import { empty } from '../utilities/typeGuards';
 import { zip } from '../utilities/arrayUtils';
 import { basename } from 'path';
+import { DocumentLoader, Document } from '../utilities/documentLoader';
 
 const createMockDocConnection = () => ({
   changeDoc: undefined as Maybe<
@@ -60,16 +61,21 @@ const createMockDocConnection = () => ({
   },
 });
 
-const createMockUriResponse = (files: Map<string, string>) => (
-  path: string,
-) => {
-  const document = files.get(path);
+const createMockUriResponse = (files: Map<string, string>): DocumentLoader => {
+  return {
+    load(path: string): Promise<string> {
+      const document = files.get(path);
 
-  if (!empty(document)) {
-    return Promise.resolve(document);
-  }
+      if (!empty(document)) {
+        return Promise.resolve(document);
+      }
 
-  return Promise.reject();
+      return Promise.reject();
+    },
+    loadDirectory(_: string): Promise<Document[]> {
+      return Promise.resolve([]);
+    },
+  };
 };
 
 describe('documentService', () => {
@@ -171,7 +177,7 @@ describe('documentService', () => {
     let i = 0;
     for (const [uri, doc] of zip(uris, docs)) {
       const uriString = uri.toString();
-      files.set(uriString, doc);
+      files.set(uri.fsPath, doc);
 
       const loadedDoc = await docService.loadDocument(
         Location.create(
@@ -332,7 +338,7 @@ describe('documentService', () => {
     let i = 0;
     for (const [aUri, rUri] of zip(actualUri, requestedUri)) {
       const uriString = rUri.toString();
-      files.set(aUri.toString(), doc);
+      files.set(aUri.fsPath, doc);
 
       const loadedDoc = await docService.loadDocument(
         Location.create(

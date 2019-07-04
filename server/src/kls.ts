@@ -24,14 +24,15 @@ import {
   SignatureHelp,
   DocumentSymbolParams,
   SymbolInformation,
+  TextDocument,
 } from 'vscode-languageserver';
 import {
   IDocumentInfo,
-  ILoadData,
   IDiagnosticUri,
   ValidateResult,
   KLSConfiguration,
   ClientConfiguration,
+  LoadedDocuments,
 } from './types';
 import { performance, PerformanceObserver } from 'perf_hooks';
 import { Parser } from './parser/parser';
@@ -39,17 +40,20 @@ import { PreResolver } from './analysis/preResolver';
 import { Scanner } from './scanner/scanner';
 import { Resolver } from './analysis/resolver';
 import { IParseError, ScriptResult, RunStmtType } from './parser/types';
-import { KsSymbol, KsSymbolKind, SymbolTracker, KsBaseSymbol, TrackerKind } from './analysis/types';
+import {
+  KsSymbol,
+  KsSymbolKind,
+  SymbolTracker,
+  KsBaseSymbol,
+  TrackerKind,
+} from './analysis/types';
 import { mockLogger, mockTracer, logException } from './utilities/logger';
-import { empty, notEmpty } from './utilities/typeGuards';
+import { empty } from './utilities/typeGuards';
 import { ScriptFind } from './parser/scriptFind';
 import * as Expr from './parser/expr';
 import * as Stmt from './parser/stmt';
 import * as SuffixTerm from './parser/suffixTerm';
-import { PathResolver, runPath } from './utilities/pathResolver';
-import { existsSync } from 'fs';
-import { extname } from 'path';
-import { readFileAsync, retrieveUriAsync } from './utilities/fsUtils';
+import { runPath } from './utilities/pathResolver';
 import {
   standardLibraryBuilder,
   bodyLibraryBuilder,
@@ -61,7 +65,7 @@ import { TypeChecker } from './typeChecker/typeChecker';
 import { Token } from './entities/token';
 import { binarySearchIndex } from './utilities/positionUtils';
 import { URI } from 'vscode-uri';
-import { DocumentService, Document } from './services/documentService';
+import { DocumentService } from './services/documentService';
 import {
   defaultClientConfiguration,
   caseMapper,
@@ -71,10 +75,16 @@ import {
   defaultSignature,
   documentSymbols,
 } from './utilities/serverUtils';
-import { cleanDiagnostic, cleanRange, cleanPosition, cleanLocation } from './utilities/clean';
+import {
+  cleanDiagnostic,
+  cleanRange,
+  cleanPosition,
+  cleanLocation,
+} from './utilities/clean';
 import { isValidIdentifier } from './entities/tokentypes';
 import { tokenTrackedType } from './typeChecker/typeUitlities';
 import { TypeKind } from './typeChecker/types';
+import { DocumentLoader, Document } from './utilities/documentLoader';
 
 export class KLS {
   /**
@@ -101,11 +111,6 @@ export class KLS {
    * The tracer used by this and all dependencies
    */
   private readonly tracer: ITracer;
-
-  /**
-   * A path resolve for converting kos run paths into uris
-   */
-  private readonly pathResolver: PathResolver;
 
   /**
    * Document information
@@ -140,7 +145,6 @@ export class KLS {
     configuration: KLSConfiguration,
   ) {
     this.workspaceUri = undefined;
-    this.pathResolver = new PathResolver();
     this.logger = logger;
     this.tracer = tracer;
     this.documentInfos = new Map();
@@ -148,7 +152,7 @@ export class KLS {
     this.connection = connection;
     this.documentService = new DocumentService(
       connection,
-      retrieveUriAsync,
+      new DocumentLoader(),
       logger,
     );
 
@@ -373,10 +377,7 @@ export class KLS {
       return undefined;
     }
 
-    const locations = this.getUsageLocations(
-      position,
-      textDocument.uri,
-    );
+    const locations = this.getUsageLocations(position, textDocument.uri);
     if (empty(locations)) {
       return undefined;
     }
@@ -398,7 +399,9 @@ export class KLS {
    * to highlight and symbol and other instances of that symbol to also highlight.
    * @param positionParams the position of the highlight request
    */
-  private onDocumentHighlight(positionParams: TextDocumentPositionParams): DocumentHighlight[] {
+  private onDocumentHighlight(
+    positionParams: TextDocumentPositionParams,
+  ): DocumentHighlight[] {
     const { position } = positionParams;
     const { uri } = positionParams.textDocument;
 
@@ -477,7 +480,9 @@ export class KLS {
    * provides extra context to the client such as the current parameter
    * @param positionParams the position of the signature request
    */
-  private onSignatureHelp(positionParams: TextDocumentPositionParams): SignatureHelp {
+  private onSignatureHelp(
+    positionParams: TextDocumentPositionParams,
+  ): SignatureHelp {
     const { position } = positionParams;
     const { uri } = positionParams.textDocument;
 
@@ -556,7 +561,9 @@ export class KLS {
    * symbols that are located within a given document
    * @param documentSymbol the document to provide symbols for
    */
-  private onDocumentSymbol(documentSymbol: DocumentSymbolParams): Maybe<SymbolInformation[]> {
+  private onDocumentSymbol(
+    documentSymbol: DocumentSymbolParams,
+  ): Maybe<SymbolInformation[]> {
     return documentSymbols(this, documentSymbol);
   }
 
@@ -565,7 +572,9 @@ export class KLS {
    * go to definition this provides the location if it exists
    * @param positionParams the position of the definition request
    */
-  private onDefinition(positionParams: TextDocumentPositionParams): Maybe<Location> {
+  private onDefinition(
+    positionParams: TextDocumentPositionParams,
+  ): Maybe<Location> {
     const { position } = positionParams;
     const { uri } = positionParams.textDocument;
 
@@ -667,7 +676,9 @@ export class KLS {
    * @param uri path of volume 0
    */
   private setUri(uri: string): void {
-    this.pathResolver.volume0Uri = URI.parse(uri);
+    const parsed = URI.parse(uri);
+
+    this.documentService.setVolume0Uri(parsed);
     this.workspaceUri = uri;
   }
 
@@ -928,59 +939,6 @@ export class KLS {
   }
 
   /**
-   * Load and validate a document. First by attempting a lookup on previously validated
-   * documents. if the document is not found it is read from disk and validated
-   * @param parentUri uri of the parent document
-   * @param loadDat information describing what should be loaded
-   * @param depth TODO remove: depeth of the current graph.
-   */
-  private async *loadAndValidateDocument(
-    parentUri: string,
-    { uri, caller }: ILoadData,
-    depth: number,
-  ): AsyncIterableIterator<ValidateResult> {
-    try {
-      // non ideal fix for depedency cycle
-      // TODO we need to actually check for cycles and do something else
-      if (depth > 10) {
-        return { diagnostics: [] };
-      }
-
-      // if cache not found attempt to find file from disk
-      // TODO
-      const validated = this.tryFindDocument(uri.fsPath, uri.toString());
-      if (empty(validated)) {
-        return {
-          diagnostics: [
-            {
-              uri: parentUri,
-              range: caller,
-              severity: DiagnosticSeverity.Error,
-              message: `Unable to find ${uri.fsPath}`,
-            },
-          ],
-        };
-      }
-
-      // attempt to read file from disk
-      const fileResult = await readFileAsync(validated.path, 'utf-8');
-      yield* this.validateDocument_(validated.uri, fileResult, depth + 1);
-    } catch (err) {
-      // if we already checked for the file exists but failed anyways??
-      return {
-        diagnostics: [
-          {
-            uri: parentUri,
-            range: caller,
-            severity: DiagnosticSeverity.Error,
-            message: `Unable to read ${uri.fsPath}`,
-          },
-        ],
-      };
-    }
-  }
-
-  /**
    * Main validation function for a document. Lexically and semantically understands a document.
    * Will additionally perform the same analysis on other run scripts found in this script
    * @param uri uri of the document
@@ -992,6 +950,10 @@ export class KLS {
     text: string,
     depth: number,
   ): AsyncIterableIterator<ValidateResult> {
+    if (depth > 10) {
+      return { diagnostics: [] };
+    }
+
     const { script, parseErrors, scanErrors } = await this.parseDocument(
       uri,
       text,
@@ -1012,14 +974,16 @@ export class KLS {
     yield scanDiagnostics.concat(parserDiagnostics);
 
     // if any run statement exist get uri then load
-    if (script.runStmts.length > 0 && this.pathResolver.ready) {
-      const loadDatas = this.getValidUri(uri, script.runStmts);
+    if (script.runStmts.length > 0 && this.documentService.ready) {
+      const { documents, diagnostics } = await this.loadDocuments(uri, script.runStmts);
+
+      yield diagnostics.map(error => addDiagnosticsUri(error, uri));
 
       // for each document run validate and yield any results
-      for (const loadData of loadDatas) {
-        for await (const result of this.loadAndValidateDocument(
-          uri,
-          loadData,
+      for (const document of documents) {
+        for await (const result of this.validateDocument_(
+          document.uri,
+          document.getText(),
           depth + 1,
         )) {
           if (Array.isArray(result)) {
@@ -1180,52 +1144,43 @@ export class KLS {
    * @param uri uri of the calling document
    * @param runStmts run statements in the document
    */
-  private getValidUri(uri: string, runStmts: RunStmtType[]): ILoadData[] {
-    // generate uris then remove empty or preloaded documents
-    return runStmts
-      .map(stmt =>
-        this.pathResolver.resolveUri(
-          {
-            uri,
-            range: { start: stmt.start, end: stmt.end },
-          },
-          runPath(stmt),
-        ),
-      )
-      .filter(notEmpty);
-  }
+  private async loadDocuments(uri: string, runStmts: RunStmtType[]): Promise<LoadedDocuments> {
+    const documents: TextDocument[] = [];
+    const diagnostics: Diagnostic[] = [];
 
-  /**
-   * Try to find a document in the workspace
-   * @param path path to file
-   * @param uri uri to file
-   */
-  private tryFindDocument(
-    path: string,
-    uri: string,
-  ): Maybe<{ path: string; uri: string }> {
-    const ext = extname(path);
+    for (const runStmt of runStmts) {
 
-    switch (ext) {
-      case '.ks':
-        // case '.ksm': probably need to report we can't read ksm files
-        if (existsSync(path)) {
-          return { path, uri };
+      // attempt to get a resolvable path from a run statement
+      const path = runPath(runStmt);
+      if (typeof path === 'string') {
+
+        // attempt to load document
+        const document = await this.documentService.loadDocument(runStmt.toLocation(uri), path);
+
+        if (!empty(document)) {
+
+          // determine if document or diagnostic
+          if (TextDocument.is(document)) {
+            documents.push(document);
+          } else {
+            diagnostics.push(document);
+          }
         }
-
-        return undefined;
-      case '':
-        if (existsSync(`${path}.ks`)) {
-          return { path: `${path}.ks`, uri: `${uri}.ks` };
-        }
-        return undefined;
-      default:
-        return undefined;
+        // was dynamically loaded path can't load
+      } else {
+        diagnostics.push(path);
+      }
     }
+
+    // generate uris then remove empty or preloaded documents
+    return {
+      documents,
+      diagnostics,
+    };
   }
 
   /**
-   * Get the symbol table corresponding active set of celetrial bodies for the user.
+   * Get the symbol table corresponding active set of celestial bodies for the user.
    * This allows for bodies other than that in stock ksp to be incorporated
    */
   private activeBodyLibrary(): SymbolTable {

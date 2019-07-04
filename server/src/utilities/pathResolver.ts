@@ -6,7 +6,7 @@ import { RunStmtType } from '../parser/types';
 import { empty } from './typeGuards';
 import { TokenType } from '../entities/tokentypes';
 import { ILoadData } from '../types';
-import { Location } from 'vscode-languageserver';
+import { Location, Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
 import { URI } from 'vscode-uri';
 
 /**
@@ -96,7 +96,7 @@ export class PathResolver {
  * based on run type determine how to get file path
  * @param stmt run statement
  */
-export const runPath = (stmt: RunStmtType): Maybe<string> => {
+export const runPath = (stmt: RunStmtType): string | Diagnostic => {
   if (stmt instanceof Stmt.Run) {
     const { identifier } = stmt;
 
@@ -107,7 +107,7 @@ export const runPath = (stmt: RunStmtType): Maybe<string> => {
       case TokenType.identifier:
         return identifier.lexeme;
       default:
-        return undefined;
+        return cannotLoad(stmt);
     }
   }
 
@@ -115,18 +115,18 @@ export const runPath = (stmt: RunStmtType): Maybe<string> => {
   const { expr } = stmt;
   if (expr instanceof Expr.Suffix) {
     if (expr.suffixTerm.atom instanceof SuffixTerm.Literal) {
-      return literalPath(expr.suffixTerm.atom);
+      return literalPath(expr.suffixTerm.atom) || cannotLoad(stmt);
     }
   }
 
-  return undefined;
+  return cannotLoad(stmt);
 };
 
 /**
  * determine which string to return for the filepath from literal
  * @param expr literal expression
  */
-const literalPath = (expr: SuffixTerm.Literal): Maybe<string> => {
+const literalPath = (expr: SuffixTerm.Literal): string | undefined => {
   const { token } = expr;
 
   switch (token.type) {
@@ -138,3 +138,13 @@ const literalPath = (expr: SuffixTerm.Literal): Maybe<string> => {
 
   return undefined;
 };
+
+/**
+ * Provide a diagnostic when a path cannot be loaded
+ * @param stmt the run statement
+ */
+const cannotLoad = (stmt: RunStmtType) => Diagnostic.create(
+  stmt,
+  'kos-language-server cannot load runtime resolved run statements',
+  DiagnosticSeverity.Hint,
+);

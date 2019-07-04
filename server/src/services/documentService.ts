@@ -12,11 +12,7 @@ import { PathResolver } from '../utilities/pathResolver';
 import { URI } from 'vscode-uri';
 import { extname } from 'path';
 import { createDiagnostic } from '../utilities/diagnosticsUtils';
-
-export interface Document {
-  uri: string;
-  text: string;
-}
+import { DocumentLoader, Document } from '../utilities/documentLoader';
 
 type DocumentChangeHandler = (document: Document) => void;
 type DocumentClosedHandler = (uri: string) => void;
@@ -25,8 +21,6 @@ export type DocumentConnection = Pick<
   IConnection,
   'onDidChangeTextDocument' | 'onDidCloseTextDocument' | 'onDidOpenTextDocument'
 >;
-
-export type UriLoader = (uri: string) => Promise<string>;
 
 /**
  * Service responsible for managing documents being loaded by the client and the server
@@ -55,7 +49,7 @@ export class DocumentService {
   /**
    * A function to load a uri asynchronously
    */
-  private uriLoader: UriLoader;
+  private documentLoader: DocumentLoader;
 
   /**
    * The path resolver to identifying file paths from kos run paths
@@ -71,7 +65,7 @@ export class DocumentService {
    */
   constructor(
     conn: DocumentConnection,
-    uriLoader: UriLoader,
+    uriLoader: DocumentLoader,
     logger: ILogger,
     volume0Uri?: string,
   ) {
@@ -79,8 +73,12 @@ export class DocumentService {
     this.serverDocs = new Map();
     this.pathResolver = new PathResolver(volume0Uri);
     this.conn = conn;
-    this.uriLoader = uriLoader;
+    this.documentLoader = uriLoader;
     this.logger = logger;
+  }
+
+  public ready(): boolean {
+    return this.pathResolver.ready;
   }
 
   public setVolume0Uri(uri: URI) {
@@ -136,16 +134,8 @@ export class DocumentService {
 
     try {
       // attempt to load a resource from whatever uri is provided
-      const normalized = this.normalizeExtensions(result.uri);
-      if (empty(normalized)) {
-        return createDiagnostic(
-          caller.range,
-          `Unable to load script at ${kosPath}`,
-          DiagnosticSeverity.Information,
-        );
-      }
-
-      const retrieved = await this.retrieveResource(normalized);
+      const uri = URI.parse(normalized);
+      const retrieved = await this.retrieveResource(uri);
       const textDocument = TextDocument.create(
         normalized,
         'temp',
@@ -156,6 +146,7 @@ export class DocumentService {
       // if found set in cache and return document
       this.serverDocs.set(normalized, textDocument);
       return textDocument;
+
     } catch (err) {
       // create a diagnostic if we can't load the file
       return this.loadError(caller.range, kosPath);
@@ -182,7 +173,7 @@ export class DocumentService {
 
   /**
    * Generate a loading diagnostic if file cannot be loaded
-   * @param range range of the run statment
+   * @param range range of the run statement
    * @param path kos path of the file
    */
   private loadError(range: Range, path: string) {
@@ -217,8 +208,9 @@ export class DocumentService {
    * Retrieve a resource from the provided uri
    * @param uri uri to load resources from
    */
-  private retrieveResource(uri: string): Promise<string> {
-    return this.uriLoader(uri);
+  private retrieveResource(uri: URI): Promise<string> {
+    const path = uri.fsPath;
+    return this.documentLoader.load(path);
   }
 
   /**
