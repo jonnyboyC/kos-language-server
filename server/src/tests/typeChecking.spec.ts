@@ -15,8 +15,12 @@ import { booleanType } from '../typeChecker/types/primitives/boolean';
 import { primitiveInitializer } from '../typeChecker/types/primitives/initialize';
 import { orbitalInitializer } from '../typeChecker/types/orbital/initialize';
 import { Type } from '../typeChecker/types/types';
-import { doubleType, integarType } from '../typeChecker/types/primitives/scalar';
+import { doubleType, integerType } from '../typeChecker/types/primitives/scalar';
 import { stringType } from '../typeChecker/types/primitives/string';
+import { userListType } from '../typeChecker/types/collections/userList';
+import { structureType } from '../typeChecker/types/primitives/structure';
+// import { pathType } from '../typeChecker/types/io/path';
+// import { listType } from '../typeChecker/types/collections/list';
 
 const fakeUri = 'C:\\fake.ks';
 
@@ -137,6 +141,33 @@ print d4.
 print s2.
 `;
 
+const collectionSource = `
+local a is 0.
+local b is "cat".
+local c is false.
+
+local l1 is list(1, 2, 3).
+local l2 is list(a, b, c).
+
+local x1 is l1[1].
+local x2 is l2[1].
+
+print(x1).
+print(x2).
+
+for i1 in l1 { print(i1). }
+for i2 in l2 { print(i2). }
+
+// need to have userlisttype subtype listtype
+// local p is path("example").
+// local segments is p:segments.
+
+// local x3 is segments[0].
+// print(x3).
+
+// for i3 in segments { print(i3). }
+`;
+
 const symbolTests = (
   symbols: Map<string, KsBaseSymbol>,
   name: string,
@@ -175,7 +206,7 @@ describe('Basic inferring', () => {
     symbolTests(names, 'd1', KsSymbolKind.variable, doubleType);
     symbolTests(names, 'd2', KsSymbolKind.variable, doubleType);
 
-    symbolTests(names, 'i', KsSymbolKind.variable, integarType);
+    symbolTests(names, 'i', KsSymbolKind.variable, integerType);
 
     symbolTests(names, 's', KsSymbolKind.variable, stringType);
     symbolTests(names, 'fi', KsSymbolKind.variable, stringType);
@@ -197,9 +228,39 @@ describe('Basic inferring', () => {
     symbolTests(names, 'd3', KsSymbolKind.variable, doubleType);
     symbolTests(names, 'd4', KsSymbolKind.variable, doubleType);
 
-    symbolTests(names, 'i2', KsSymbolKind.variable, integarType);
+    symbolTests(names, 'i2', KsSymbolKind.variable, integerType);
 
     symbolTests(names, 's2', KsSymbolKind.variable, stringType);
     symbolTests(names, 'fi2', KsSymbolKind.variable, stringType);
+  });
+
+  test('collection inferring', () => {
+    const results = checkSource(collectionSource, true);
+    noErrors(results);
+
+    const { table } = results;
+    const symbols = table.fileSymbols();
+    const names = new Map(
+      symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
+    );
+
+    symbolTests(names, 'a', KsSymbolKind.variable, integerType);
+    symbolTests(names, 'b', KsSymbolKind.variable, stringType);
+    symbolTests(names, 'c', KsSymbolKind.variable, booleanType);
+
+    symbolTests(names, 'l1', KsSymbolKind.variable, userListType);
+    symbolTests(names, 'l2', KsSymbolKind.variable, userListType);
+
+    symbolTests(names, 'x1', KsSymbolKind.variable, structureType);
+    symbolTests(names, 'x2', KsSymbolKind.variable, structureType);
+
+    symbolTests(names, 'i1', KsSymbolKind.variable, structureType);
+    symbolTests(names, 'i2', KsSymbolKind.variable, structureType);
+
+    // symbolTests(names, 'p', KsSymbolKind.variable, pathType);
+    // symbolTests(names, 'segments', KsSymbolKind.variable, listType.toConcreteType(stringType));
+
+    // symbolTests(names, 'x3', KsSymbolKind.variable, stringType);
+    // symbolTests(names, 'i3', KsSymbolKind.variable, stringType);
   });
 });

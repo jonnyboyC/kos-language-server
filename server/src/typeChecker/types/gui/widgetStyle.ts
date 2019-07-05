@@ -4,7 +4,7 @@ import { createSetSuffixType, createSuffixType, createStructureType } from "../.
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { rgbaType } from '../rgba';
 import { widgetStyleStateType } from './widgetStyleState';
-import { scalarType, integarType } from '../primitives/scalar';
+import { scalarType, integerType } from '../primitives/scalar';
 import { booleanType } from '../primitives/boolean';
 import { stringType } from '../primitives/string';
 
@@ -33,7 +33,7 @@ addSuffixes(
   createSuffixType('focused_on', widgetStyleStateType),
   createSuffixType('hover_on', widgetStyleStateType),
   createSetSuffixType('font', stringType),
-  createSetSuffixType('fontSize', integarType),
+  createSetSuffixType('fontSize', integerType),
   createSetSuffixType('richText', booleanType),
   createSetSuffixType('align', stringType),
 );

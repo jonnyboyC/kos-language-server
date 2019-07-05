@@ -35,7 +35,7 @@ import { voidType } from './types/primitives/void';
 import { userListType } from './types/collections/userList';
 import { booleanType } from './types/primitives/boolean';
 import { stringType } from './types/primitives/string';
-import { scalarType, integarType, doubleType } from './types/primitives/scalar';
+import { scalarType, integerType, doubleType } from './types/primitives/scalar';
 import {
   suffixError,
   delegateCreation,
@@ -1395,7 +1395,7 @@ export class TypeChecker
         if (this.isBasicTracker(tracker)) {
           const type = tracker.getType(suffixTerm.indexer);
 
-          if (!empty(type) && coerce(type, integarType)) {
+          if (!empty(type) && coerce(type, integerType)) {
             return errors;
           }
         }
@@ -1578,7 +1578,7 @@ export class TypeChecker
         builder.nodes.push(new TypeNode(booleanType, suffixTerm));
         return [];
       case TokenType.integer:
-        builder.nodes.push(new TypeNode(integarType, suffixTerm));
+        builder.nodes.push(new TypeNode(integerType, suffixTerm));
         return [];
       case TokenType.double:
         builder.nodes.push(new TypeNode(doubleType, suffixTerm));
