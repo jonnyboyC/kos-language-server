@@ -12,7 +12,7 @@ The project currently has client support for [Visual Studio Code](https://code.v
 ## Features
 
 Currently the vscode client 0.6.1 implements the follow features
-- synatx highlighting
+- syntax highlighting
 - brace detection
 - code snippets
 - diagnostics on parsing errors
@@ -39,7 +39,7 @@ All commands can be launched with `ctrl+shift+p`
 ## Settings
 These settings are currently included with the tool
 - `kos-vscode.kerbalSpaceProgramPath` Path to kerbal space program
-- `kos-vscode.completionCase` Indicate the perferred completion case for built in symbols
+- `kos-vscode.completionCase` Indicate the preferred completion case for built in symbols
 - `kos-vscode.telnetHost` Host name of the telnet server
 - `kos-vscode.telnetPort` Host port of the telnet server
 - `kos-vscode.lspPort` Port to send lsp message to for the [LSP Inspector](https://marketplace.visualstudio.com/items?itemName=octref.lsp-inspector-webview)

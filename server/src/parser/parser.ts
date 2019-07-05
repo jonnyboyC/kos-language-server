@@ -26,7 +26,7 @@ import { empty } from '../utilities/typeGuards';
 import { Script } from '../entities/script';
 import { nodeResult } from './parseResult';
 import { Token } from '../entities/token';
-import { mockLogger, mockTracer } from '../utilities/logger';
+import { mockLogger, mockTracer, logException } from '../utilities/logger';
 import { flatten } from '../utilities/arrayUtils';
 import { Marker } from '../entities/marker';
 
@@ -88,7 +88,7 @@ export class Parser {
           `${this.runStmts.length} run statements`,
       );
       if (parseErrors.length > 0) {
-        this.logger.warn(`Parser encounted ${parseErrors.length} errors`);
+        this.logger.warn(`Parser encountered ${parseErrors.length} errors`);
       }
 
       return {
@@ -96,8 +96,8 @@ export class Parser {
         script: new Script(this.uri, statements, this.runStmts),
       };
     } catch (err) {
-      this.logger.error(`Error occured in parser ${err}`);
-      this.tracer.log(err);
+      this.logger.error('Error occurred in parser');
+      logException(this.logger, this.tracer, err, LogLevel.error);
 
       return {
         parseErrors: [],

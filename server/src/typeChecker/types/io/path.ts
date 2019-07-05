@@ -9,7 +9,7 @@ import {
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { structureType } from '../primitives/structure';
 import { volumeType } from './volume';
-import { integarType } from '../primitives/scalar';
+import { integerType } from '../primitives/scalar';
 import { stringType } from '../primitives/string';
 import { booleanType } from '../primitives/boolean';
 import { serializableStructureType } from '../primitives/serializeableStructure';
@@ -22,7 +22,7 @@ addSuffixes(
   pathType,
   createSuffixType('volume', volumeType),
   createSuffixType('segments', listType.toConcreteType(stringType)),
-  createSuffixType('length', integarType),
+  createSuffixType('length', integerType),
   createSuffixType('name', stringType),
   createSuffixType('hasExtension', booleanType),
   createSuffixType('extension', stringType),

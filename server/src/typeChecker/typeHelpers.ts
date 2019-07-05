@@ -1,6 +1,6 @@
 import { createSuffixType, createArgSuffixType, createFunctionType } from './typeCreators';
 import { structureType } from './types/primitives/structure';
-import { integarType } from './types/primitives/scalar';
+import { integerType } from './types/primitives/scalar';
 import { delegateType } from './types/primitives/delegate';
 import { ISuffixType, IBasicType } from './types/types';
 import { empty } from '../utilities/typeGuards';
@@ -10,7 +10,7 @@ const arrayBracketCache: Map<string, ISuffixType> = new Map();
 export const arrayIndexer = createArgSuffixType(
   'list#Indexer',
   structureType,
-  integarType,
+  integerType,
 );
 
 export const arrayBracketIndexer = (

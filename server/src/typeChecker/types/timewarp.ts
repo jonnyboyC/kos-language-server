@@ -7,7 +7,7 @@ import {
 import { addPrototype, addSuffixes } from '../typeUitlities';
 import { listType } from './collections/list';
 import { voidType } from './primitives/void';
-import { scalarType, integarType } from './primitives/scalar';
+import { scalarType, integerType } from './primitives/scalar';
 import { stringType } from './primitives/string';
 import { booleanType } from './primitives/boolean';
 import { serializableStructureType } from './primitives/serializeableStructure';
@@ -22,7 +22,7 @@ addSuffixes(
   createSuffixType('railRateList', listType.toConcreteType(scalarType)),
   createSuffixType('physicsRateList', listType.toConcreteType(scalarType)),
   createSuffixType('mode', stringType),
-  createSuffixType('warp', integarType),
+  createSuffixType('warp', integerType),
   createArgSuffixType('warpTo', scalarType),
   createArgSuffixType('cancelWarp', voidType),
   createArgSuffixType('physicsDeltaT', scalarType),

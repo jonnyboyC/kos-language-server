@@ -57,7 +57,7 @@ import { userListType } from '../typeChecker/types/collections/userList';
 import {
   scalarType,
   doubleType,
-  integarType,
+  integerType,
 } from '../typeChecker/types/primitives/scalar';
 import { stringType } from '../typeChecker/types/primitives/string';
 import { booleanType } from '../typeChecker/types/primitives/boolean';
@@ -149,8 +149,8 @@ const functionTypes: [string[], IFunctionType][] = [
   [['edit'], createFunctionType('edit', voidType, pathType)],
   [['exists'], createFunctionType('exists', booleanType, stringType)],
   [['floor'], createFunctionType('floor', scalarType, scalarType)],
-  [['get', 'voice'], createFunctionType('getvoice', voiceType, integarType)],
-  [['gui'], createFunctionType('gui', guiWidgetType, integarType, integarType)],
+  [['get', 'voice'], createFunctionType('getvoice', voiceType, integerType)],
+  [['gui'], createFunctionType('gui', guiWidgetType, integerType, integerType)],
   [
     ['heading'],
     createFunctionType('heading', directionType, scalarType, scalarType),
@@ -180,8 +180,8 @@ const functionTypes: [string[], IFunctionType][] = [
       'hudtext',
       voidType,
       stringType,
-      integarType,
-      integarType,
+      integerType,
+      integerType,
       rgbaType,
       booleanType,
     ),
@@ -315,9 +315,9 @@ const functionTypes: [string[], IFunctionType][] = [
     createFunctionType(
       'range',
       rangeType,
-      integarType,
-      integarType,
-      integarType,
+      integerType,
+      integerType,
+      integerType,
     ),
   ],
   [
@@ -610,7 +610,7 @@ const variables: [string[], ArgumentType][] = [
   [['version'], versionInfoType],
   [['vertical', 'speed'], scalarType],
   [['volume:name'], stringType],
-  [['warp'], integarType],
+  [['warp'], integerType],
   [['warpmode'], stringType],
   [['white'], rgbaType],
   [['yellow'], rgbaType],

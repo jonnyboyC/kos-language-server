@@ -13,7 +13,7 @@ import {
 import { Token } from '../entities/token';
 import { TokenType } from '../entities/tokentypes';
 import { booleanType } from './types/primitives/boolean';
-import { integarType, doubleType } from './types/primitives/scalar';
+import { integerType, doubleType } from './types/primitives/scalar';
 import { stringType } from './types/primitives/string';
 import { CallKind, TypeKind, OperatorKind } from './types';
 
@@ -46,7 +46,7 @@ export const tokenTrackedType = (token: Token): Maybe<Type> => {
     case TokenType.false:
       return booleanType;
     case TokenType.integer:
-      return integarType;
+      return integerType;
     case TokenType.double:
       return doubleType;
     case TokenType.string:
