@@ -1,7 +1,7 @@
 {
     "name": "kos-language-server",
     "description": "A Language server for Kerbal Operating System. A mod for Kerbal Space Program.",
-    "version": "0.7.0",
+    "version": "0.7.1",
     "main": "out/server.js",
     "types": "out/server.d.ts",
     "bin": {

@@ -1,10 +1,15 @@
+# [0.7.1] (2019-7-4)
+
+## Bug Fixes
+- **Marketplace README** Previously in the bundle the README.md was accidentally ignored causing the marketplace page to appear blank.
+
 # [0.7.0] (2019-7-4)
 
 ## Features
-- **Choose Syntax** Added the new choose syntax to the server. Both syntax highlighting and semantic rules have been added
+- **Choose Syntax** Added the new choose syntax to the server. Both syntax highlighting and semantic rules have been added.
 
 ## Other
-- **Document Service** Major refactor to begin splitting some of the server level functionality into difference services. A new document server has been added to handle
+- **Document Service** Major refactor to begin splitting some of the server level functionality into difference services. A new document server has been added to handle.
 
 
 # [0.6.2] (2019-6-15)
