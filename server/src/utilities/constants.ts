@@ -7,12 +7,15 @@ export const iterator = 'iterator';
 export const serverName = 'kos-vscode';
 export const languageServer = 'kos-language-server';
 
+export const notFoundErrorCode = 'ENOTFOUND';
+
 export const keywords = new Set([
   'add',
   'and',
   'all',
   'at',
   'break',
+  'choose',
   'clearscreen',
   'compile',
   'copy',
@@ -74,6 +77,7 @@ const keywordSegments: string[][] = [
   ['all'],
   ['at'],
   ['break'],
+  ['choose'],
   ['clear', 'screen'],
   ['compile'],
   ['copy'],

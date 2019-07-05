@@ -1,6 +1,14 @@
 import { SymbolTable } from './analysis/symbolTable';
 import { IScript } from './parser/types';
-import { Diagnostic, Range } from 'vscode-languageserver';
+import {
+  Diagnostic,
+  MessageReader,
+  MessageWriter,
+  CompletionItem,
+  TextDocument,
+  Range,
+} from 'vscode-languageserver';
+import { URI } from 'vscode-uri';
 
 export interface IDocumentInfo {
   script: IScript;
@@ -8,14 +16,48 @@ export interface IDocumentInfo {
   diagnostics: IDiagnosticUri[];
 }
 
+export interface LoadedDocuments {
+  documents: TextDocument[];
+  diagnostics: Diagnostic[];
+}
+
 export interface ILoadData {
   caller: Range;
-  uri: string;
-  path: string;
+  uri: URI;
 }
 
 export type ValidateResult = IDiagnosticUri[] | SymbolTable;
 
 export interface IDiagnosticUri extends Diagnostic {
   uri: string;
+}
+
+export interface ClientConfiguration {
+  completionCase: 'lowercase' | 'uppercase' | 'camelcase' | 'pascalcase';
+  kerbalSpaceProgramPath?: string;
+  telnetHost: string;
+  telnetPort: number;
+  lspPort: number;
+  trace: {
+    server: {
+      verbosity: 'off' | 'message' | 'verbose';
+      format: 'text' | 'json';
+      level: 'verbose' | 'info' | 'log' | 'warn' | 'error' | 'none';
+    };
+  };
+}
+
+export interface IClientCapabilities {
+  hasConfiguration: boolean;
+  hasWorkspaceFolder: boolean;
+}
+
+export interface KLSConfiguration {
+  reader: MessageReader;
+  writer: MessageWriter;
+  workspaceFolder: string;
+  workspaceUri: string;
+  keywords: CompletionItem[];
+  clientConfig: ClientConfiguration;
+  clientCapability: IClientCapabilities;
 }

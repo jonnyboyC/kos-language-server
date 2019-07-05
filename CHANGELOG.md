@@ -1,3 +1,17 @@
+# [0.7.0] (2019-7-4)
+
+## Features
+- **Choose Syntax** Added the new choose syntax to the server. Both syntax highlighting and semantic rules have been added
+
+## Other
+- **Document Service** Major refactor to begin splitting some of the server level functionality into difference services. A new document server has been added to handle
+
+
+# [0.6.2] (2019-6-15)
+
+## Features
+- **Better server experience** Added a new interface for calling, the language server from the command line. This also updates the build process so both type compile and bundled version of the code are produced.
+
 # [0.6.1] (2019-6-5)
 
 ## Features
@@ -5,7 +19,7 @@
 
 ## Bug Fixes
 - **Suffix Type Names** Previously some suffixes would be completed as `example<anotherExample>`. This was an error in the internal type system. This should not longer occur
-- **Identifer Led Statments** Previously auto complete for suffixes would not trigger some anything like the following. This has now be fixed.
+- **Identifer Led Statements** Previously auto complete for suffixes would not trigger some anything like the following. This has now be fixed.
 
       local l is list().
       l: // <- previously this wouldn't trigger for list suffixes
@@ -34,7 +48,7 @@
       }
 
 ## Bug Fixes
-- **Return In Anoymous Functions** Previously, Anoymous functions were not correctly counted as a valid scope for returns and would mark as an error. This has been fixed and will no longer provide a false positive
+- **Return In Anonymous Functions** Previously, Anonymous functions were not correctly counted as a valid scope for returns and would mark as an error. This has been fixed and will no longer provide a false positive
 - **Return Syntax Highlighting v2** syntax highlighting now **correctly** occurs correct for all forms of return. Previously `return.` used the wrong textmate form and would capture the remainder of the file. 
 - **Default function scope logic** A bug was introduced that caused function declared at the script level to not default to global scope. This would cause library scripts to be run to not place these functions in global scope.
 
@@ -49,7 +63,7 @@
 
 ## Other
 - **Type Checker Performance** Some changes to how the type checker looks up symbols has results in a speed up for `5x - 10x`
-- **Atom Client and Grammar Submodules** The atom client and the textmat grammar have sucessfully been moved to thier own repos and included here as submodules
+- **Atom Client and Grammar Submodules** The atom client and the textmate grammar have successfully been moved to their own repos and included here as submodules
 
 # [0.4.0] (2019-5-4)
 
@@ -83,7 +97,7 @@
 # [0.3.4] (2019-4-25)
 
 ## Bug Fixes
-- **Logging** Provided a temporary workarround to logging highing when server errors occur.
+- **Logging** Provided a temporary work around to logging highlighting when server errors occur.
 
 # [0.3.3] (2019-4-19)
 
@@ -127,10 +141,10 @@
 - **better auto complete** completions now include type inferred type information where available
 
 ## Bug Fixes
-- **rename statement grammer** Fixed an issue with the grammar for the rename statement
+- **rename statement grammar** Fixed an issue with the grammar for the rename statement
 - **update performance diagnostics** Between the release of 0.2.0 and 0.3.0 vscode now ships with node 10. The performance hooks that were previously used have been remove. The new node performance hooks have been added in it's place
 - **report error when lazyglobal off set** The language server now reports and errors when `lazyGlobal off. ... set x to "example".`
-- **run statements** Fixed a few issues related to the language server loading other file based on `runPath("example.ks").` and it's sibilings
+- **run statements** Fixed a few issues related to the language server loading other file based on `runPath("example.ks").` and it's siblings
 
 # [0.2.0] (2019-1-5)
 
@@ -138,21 +152,21 @@
 - **goto definition** Added support for Goto definition or variables, parameters, locks, and functions
 - **auto complete** Added initial set of suggestions for auto complete. These included keywords as well as variables, functions etc that are detected in scope
 - **find unused variable** Indicate variables that where declared but may not used
-- **find unitialized variable** Indicate when a variable is used that may not exist
+- **find uninitialized variable** Indicate when a variable is used that may not exist
 - **find file symbols** Using `CTRL + SHIFT + O` 
 
 ## Bug Fixes
 - **number parsing** Fixed an issue when a number followed by a variable e would be interpreted as a number
 - **parser** Fixed an issue where sometimes variable, parameter, lock or function declarations were not property parsed
 - **defined keyword** Previously defined keyword was not correctly identified as one
-- **node commands** Previously node commands were not highlighed correctly
+- **node commands** Previously node commands were not highlighted correctly
 
 
 # [0.1.3] (2018-12-1)
 
 ## Bug Fixes
 - **parameter parsing**: Fixed and issue with parameter parsing where default parameters follow a normal parameter wouldn't work correctly.
-- **updated vscode dependencies**: Precautionary update vscode depdencies to deal with the event-stream vunderability
+- **updated vscode dependencies**: Precautionary update vscode dependencies to deal with the event-stream vulnerability
 
 # [0.1.2] (2018-09-17)
 

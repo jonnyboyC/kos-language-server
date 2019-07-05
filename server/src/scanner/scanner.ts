@@ -2,7 +2,7 @@ import { TokenType } from '../entities/tokentypes';
 import { ITokenMap, IScanResult, ScanKind } from './types';
 import { Token } from '../entities/token';
 import { empty } from '../utilities/typeGuards';
-import { mockLogger, mockTracer } from '../utilities/logger';
+import { mockLogger, mockTracer, logException } from '../utilities/logger';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
 import { createDiagnostic } from '../utilities/diagnosticsUtils';
 import { MutableMarker } from '../entities/marker';
@@ -167,13 +167,13 @@ export class Scanner {
         `Scanning finished for ${file} with ${tokens.length} tokens.`,
       );
       if (scanErrors.length > 0) {
-        this.logger.warn(`Scanning encounted ${scanErrors.length} errors`);
+        this.logger.warn(`Scanning encounter ${scanErrors.length} errors`);
       }
 
       return { tokens, scanErrors };
     } catch (err) {
-      this.logger.error(`Error occured in scanner ${err}`);
-      this.tracer.log(err);
+      this.logger.error('Error occurred in scanner');
+      logException(this.logger, this.tracer, err, LogLevel.error);
 
       return {
         tokens: [],

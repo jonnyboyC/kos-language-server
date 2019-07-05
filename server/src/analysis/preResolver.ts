@@ -14,7 +14,7 @@ import * as Stmt from '../parser/stmt';
 import { Var, Lock, Func, Param } from '../parser/declare';
 import { empty } from '../utilities/typeGuards';
 import { TokenType } from '../entities/tokentypes';
-import { mockLogger, mockTracer } from '../utilities/logger';
+import { mockLogger, mockTracer, logException } from '../utilities/logger';
 import { SymbolTableBuilder } from './symbolTableBuilder';
 import { Diagnostic } from 'vscode-languageserver';
 import { FunctionScan } from './functionScan';
@@ -99,14 +99,14 @@ export class PreResolver
 
       if (resolveErrors.length) {
         this.logger.warn(
-          `Function Resolver encounted ${resolveErrors.length} errors`,
+          `Function Resolver encountered ${resolveErrors.length} errors`,
         );
       }
 
       return resolveErrors;
     } catch (err) {
-      this.logger.error(`Error occured in resolver ${err}`);
-      this.tracer.log(err);
+      this.logger.error('Error occurred in resolver');
+      logException(this.logger, this.tracer, err, LogLevel.error);
 
       return [];
     }

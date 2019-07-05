@@ -5,7 +5,7 @@
 'use strict';
 
 import * as path from 'path';
-import { ExtensionContext, commands } from 'vscode';
+import { ExtensionContext, commands, workspace } from 'vscode';
 
 import {
   LanguageClient,
@@ -85,6 +85,15 @@ export function activate(context: ExtensionContext) {
   const clientOptions: LanguageClientOptions = {
     // Register the server for kos documents
     documentSelector: [{ scheme: 'file', language: 'kos' }],
+
+    synchronize: {
+      fileEvents: workspace.createFileSystemWatcher(
+        '**/*.ks',
+        true,
+        true,
+        false,
+      ),
+    },
 
     errorHandler: {
       error(error: Error, message: Message, count: number): ErrorAction {

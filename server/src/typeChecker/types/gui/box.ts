@@ -18,7 +18,7 @@ import { sliderType } from './elements/slider';
 import { voidType } from '../primitives/void';
 import { stringType } from '../primitives/string';
 import { booleanType } from '../primitives/boolean';
-import { doubleType, integarType } from '../primitives/scalar';
+import { doubleType, integerType } from '../primitives/scalar';
 import { listType } from '../collections/list';
 
 export const boxType: ArgumentType = createStructureType('box');
@@ -54,7 +54,7 @@ addSuffixes(
   createSuffixType('addVLayout', boxType),
   createSuffixType('addScrollBox', scrollBoxType),
   createSuffixType('addStack', scrollBoxType),
-  createArgSuffixType('addSpacing', spacingType, integarType),
+  createArgSuffixType('addSpacing', spacingType, integerType),
   createSuffixType('widgets', listType.toConcreteType(widgetType)),
   createSuffixType('radioValue', stringType),
   createSetSuffixType('onRadioChange', userDelegateType),

@@ -12,7 +12,7 @@ import * as Expr from '../parser/expr';
 import * as Stmt from '../parser/stmt';
 import * as Decl from '../parser/declare';
 import { ITypeResultExpr, TypeKind, OperatorKind } from './types';
-import { mockLogger, mockTracer } from '../utilities/logger';
+import { mockLogger, mockTracer, logException } from '../utilities/logger';
 import { Script } from '../entities/script';
 import { empty } from '../utilities/typeGuards';
 import {
@@ -35,7 +35,7 @@ import { voidType } from './types/primitives/void';
 import { userListType } from './types/collections/userList';
 import { booleanType } from './types/primitives/boolean';
 import { stringType } from './types/primitives/string';
-import { scalarType, integarType, doubleType } from './types/primitives/scalar';
+import { scalarType, integerType, doubleType } from './types/primitives/scalar';
 import {
   suffixError,
   delegateCreation,
@@ -123,13 +123,13 @@ export class TypeChecker
       this.logger.info(`Type Checking finished for ${file}`);
 
       if (typeErrors.length) {
-        this.logger.warn(`Type Checking encounted ${typeErrors.length} errors`);
+        this.logger.warn(`Type Checking encountered ${typeErrors.length} errors`);
       }
 
       return typeErrors;
     } catch (err) {
-      this.logger.error(`Error occured in type checker ${err}`);
-      this.tracer.log(err);
+      this.logger.error('Error occurred in type checker');
+      logException(this.logger, this.tracer, err, LogLevel.error);
       return [];
     }
   }
@@ -1395,7 +1395,7 @@ export class TypeChecker
         if (this.isBasicTracker(tracker)) {
           const type = tracker.getType(suffixTerm.indexer);
 
-          if (!empty(type) && coerce(type, integarType)) {
+          if (!empty(type) && coerce(type, integerType)) {
             return errors;
           }
         }
@@ -1578,7 +1578,7 @@ export class TypeChecker
         builder.nodes.push(new TypeNode(booleanType, suffixTerm));
         return [];
       case TokenType.integer:
-        builder.nodes.push(new TypeNode(integarType, suffixTerm));
+        builder.nodes.push(new TypeNode(integerType, suffixTerm));
         return [];
       case TokenType.double:
         builder.nodes.push(new TypeNode(doubleType, suffixTerm));

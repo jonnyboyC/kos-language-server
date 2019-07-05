@@ -22,7 +22,7 @@ the server can then be started by
 
 
 ## Features
-Currently the kos-language-server 0.6.1 implements the follow features
+Currently the kos-language-server 0.7.0 implements the follow features
 - Code completion
     - Built in symbols and keywords
     - local in scope symbols
@@ -41,5 +41,6 @@ Currently the kos-language-server 0.6.1 implements the follow features
 - Go to definition for each symbol in the open documents. In some case can resolve functions in other scripts that have been run.
 - Refactoring
   - Rename symbol
-- On hover with experimentail type inference support
+- On hover with experimental type inference support
 - Signature help for functions that can be correctly resolved
+- Caching of all documents in the workspace

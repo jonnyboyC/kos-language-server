@@ -1,57 +1,67 @@
 import * as Stmt from '../parser/stmt';
 import * as SuffixTerm from '../parser/suffixTerm';
 import * as Expr from '../parser/expr';
-import { relative, join, sep, dirname } from 'path';
+import { relative, join, dirname } from 'path';
 import { RunStmtType } from '../parser/types';
 import { empty } from './typeGuards';
 import { TokenType } from '../entities/tokentypes';
 import { ILoadData } from '../types';
-import { Location } from 'vscode-languageserver';
+import { Location, Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
+import { URI } from 'vscode-uri';
 
 /**
  * Class to resolve run statements or calls to file paths
  */
 export class PathResolver {
-  private replacer: RegExp;
+  /**
+   * The path corresponding to root of volume 0 of the kos directory
+   */
+  public volume0Uri?: URI;
 
-  constructor(public volume0Path?: string, public volume0Uri?: string) {
-    if (sep === '\\') {
-      this.replacer = /\\/g;
-    } else {
-      this.replacer = new RegExp(sep, 'g');
-    }
+  /**
+   * Create an instance of that path resolve.
+   * @param volume0Uri the uri associated with volume 0
+   */
+  constructor(volume0Uri?: string) {
+    this.volume0Uri = !empty(volume0Uri)
+      ? URI.parse(volume0Uri)
+      : undefined;
   }
 
   /**
    * Is the resolve ready to resolve paths
    */
   public get ready(): boolean {
-    return !empty(this.volume0Path) && !empty(this.volume0Uri);
+    return !empty(this.volume0Uri);
   }
 
   /**
    * Resolve uri to load data
    * @param caller location of caller
-   * @param path provided path in run statement or class
+   * @param runPath path provided in a run statement
    */
-  public resolveUri(caller: Location, path?: string): Maybe<ILoadData> {
-    if (empty(path) || empty(this.volume0Path) || empty(this.volume0Uri)) {
+  public resolveUri(caller: Location, runPath?: string): Maybe<ILoadData> {
+    if (empty(runPath) || empty(this.volume0Uri)) {
       return undefined;
     }
 
     // get relative run path from file
-    const relativePath = relative(this.volume0Uri, dirname(caller.uri)).replace(
-      '%20',
-      ' ',
-    );
+    const uri = URI.parse(caller.uri);
+
+    // currently only support file scheme
+    if (uri.scheme !== 'file') {
+      return undefined;
+    }
+
+    const relativePath = relative(this.volume0Uri.toString(), dirname(caller.uri));
 
     // check if the scripts reads from volume 0 "disk"
     // TODO no idea what to do for ship volumes
-    const [possibleVolumne, ...remaining] = path.split('/');
-    if (possibleVolumne.startsWith('0:')) {
+    const [possibleVolume, ...remaining] = runPath.split('/');
+    if (possibleVolume.startsWith('0:')) {
       // if of style 0:first\remaining...
-      if (possibleVolumne.length > 2) {
-        const first = possibleVolumne.slice(2);
+      if (possibleVolume.length > 2) {
+        const first = possibleVolume.slice(2);
 
         return this.loadData(caller, first, ...remaining);
       }
@@ -60,8 +70,8 @@ export class PathResolver {
       return this.loadData(caller, ...remaining);
     }
 
-    // if no volumne do a relative lookup
-    return this.loadData(caller, relativePath, possibleVolumne, ...remaining);
+    // if no volume do a relative lookup
+    return this.loadData(caller, relativePath, possibleVolume, ...remaining);
   }
 
   /**
@@ -73,56 +83,20 @@ export class PathResolver {
     caller: Location,
     ...pathSegments: string[]
   ): Maybe<ILoadData> {
-    if (empty(this.volume0Path)) return undefined;
+    if (empty(this.volume0Uri)) return undefined;
 
     return {
       caller: { start: caller.range.start, end: caller.range.end },
-      path: join(this.volume0Path, ...pathSegments),
-      uri: [this.volume0Uri, this.pathToUri(...pathSegments)].join('/'),
+      uri: URI.file(join(this.volume0Uri.fsPath, ...pathSegments)),
     };
   }
-
-  /**
-   * Convert a path to a uri
-   * @param pathSegments path segments to convert
-   */
-  private pathToUri(...pathSegments: string[]): string {
-    return join(...pathSegments).replace(this.replacer, '/');
-  }
-
-  /**
-   * Get the relative path to volume 0: for a uri
-   * @param uri requested uri
-   */
-  public relativePath(uri: string): string {
-    if (empty(this.volume0Uri)) {
-      return uri;
-    }
-
-    return relative(this.volume0Uri, uri).replace('%20', ' ');
-  }
 }
-
-/**
- * Get io path, currently only supports string literals
- * @param stmt io statements
- */
-export const ioPath = (
-  stmt: Stmt.Rename | Stmt.Copy | Stmt.Delete | Stmt.Log,
-): Maybe<string> => {
-  const { target } = stmt;
-  if (target instanceof SuffixTerm.Literal) {
-    return literalPath(target);
-  }
-
-  return undefined;
-};
 
 /**
  * based on run type determine how to get file path
  * @param stmt run statement
  */
-export const runPath = (stmt: RunStmtType): Maybe<string> => {
+export const runPath = (stmt: RunStmtType): string | Diagnostic => {
   if (stmt instanceof Stmt.Run) {
     const { identifier } = stmt;
 
@@ -133,26 +107,26 @@ export const runPath = (stmt: RunStmtType): Maybe<string> => {
       case TokenType.identifier:
         return identifier.lexeme;
       default:
-        return undefined;
+        return cannotLoad(stmt);
     }
   }
 
-  // for run path varients check for literal
+  // for run path variants check for literal
   const { expr } = stmt;
   if (expr instanceof Expr.Suffix) {
     if (expr.suffixTerm.atom instanceof SuffixTerm.Literal) {
-      return literalPath(expr.suffixTerm.atom);
+      return literalPath(expr.suffixTerm.atom) || cannotLoad(stmt);
     }
   }
 
-  return undefined;
+  return cannotLoad(stmt);
 };
 
 /**
  * determine which string to return for the filepath from literal
  * @param expr literal expression
  */
-const literalPath = (expr: SuffixTerm.Literal): Maybe<string> => {
+const literalPath = (expr: SuffixTerm.Literal): string | undefined => {
   const { token } = expr;
 
   switch (token.type) {
@@ -164,3 +138,13 @@ const literalPath = (expr: SuffixTerm.Literal): Maybe<string> => {
 
   return undefined;
 };
+
+/**
+ * Provide a diagnostic when a path cannot be loaded
+ * @param stmt the run statement
+ */
+const cannotLoad = (stmt: RunStmtType) => Diagnostic.create(
+  stmt,
+  'kos-language-server cannot load runtime resolved run statements',
+  DiagnosticSeverity.Hint,
+);

@@ -1,7 +1,7 @@
 {
     "name": "kos-language-server",
     "description": "A Language server for Kerbal Operating System. A mod for Kerbal Space Program.",
-    "version": "0.6.3",
+    "version": "0.7.0",
     "main": "out/server.js",
     "types": "out/server.d.ts",
     "bin": {
@@ -24,8 +24,10 @@
     "dependencies": {
         "commander": "^2.20.0",
         "denque": "^1.4.1",
+        "get-uri": "^2.0.3",
         "jstat": "^1.7.1",
-        "vscode-languageserver": "^5.2.1"
+        "vscode-languageserver": "^5.2.1",
+        "vscode-uri": "^2.0.2"
     },
     "keywords": [
         "Kerbal Operating System",
@@ -38,6 +40,6 @@
         "prepublishOnly": "cd .. && npm run dev:server && npm run prod:server && npm test"
     },
     "devDependencies": {
-        "@types/node": "^12.0.4"
+        "@types/node": "^12.0.8"
     }
 }

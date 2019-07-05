@@ -6,7 +6,7 @@ import { booleanType } from './boolean';
 import { voidType } from './void';
 import { serializableStructureType } from './serializeableStructure';
 import { primitiveType } from './primitives';
-import { scalarType, integarType, doubleType } from './scalar';
+import { scalarType, integerType, doubleType } from './scalar';
 import { listType } from '../collections/list';
 import { delegateType } from './delegate';
 import { OperatorKind } from '../../types';
@@ -93,7 +93,7 @@ export const primitiveInitializer = () => {
   addPrototype(scalarType, primitiveType);
 
   // ------------------ integar ---------------------------
-  addPrototype(integarType, scalarType);
+  addPrototype(integerType, scalarType);
 
   // ------------------ double ---------------------------
   addPrototype(doubleType, scalarType);
