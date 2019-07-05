@@ -24,7 +24,6 @@
     "dependencies": {
         "commander": "^2.20.0",
         "denque": "^1.4.1",
-        "get-uri": "^2.0.3",
         "jstat": "^1.7.1",
         "vscode-languageserver": "^5.2.1",
         "vscode-uri": "^2.0.2"
