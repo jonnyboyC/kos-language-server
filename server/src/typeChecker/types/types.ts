@@ -1,5 +1,6 @@
 import { SuffixTracker } from '../../analysis/suffixTracker';
 import { CallKind, TypeKind, OperatorKind } from '../types';
+import { Operator } from '../operator';
 
 interface ITypeMeta<T> {
   toTypeString(): string;
@@ -11,7 +12,7 @@ export interface ITemplateBasicType<TSuffixType, TConcreteType>
   extends ITypeMeta<TConcreteType> {
   name: string;
   suffixes: Map<string, TSuffixType>;
-  operators: Map<OperatorKind, TConcreteType>;
+  operators: Map<OperatorKind, Operator[]>;
   superType?: ITemplateBasicType<TSuffixType, TConcreteType>;
   fullType: boolean;
 }

@@ -249,9 +249,9 @@ export const addPrototype = <T extends IGenericBasicType>(
  */
 export const addOperators = <T extends IGenericBasicType>(
   type: T,
-  ...operators: [OperatorKind, IBasicType][]
+  ...operators: { operator: OperatorKind, other: ArgumentType, returnType: ArgumentType }[]
 ): void => {
-  for (const [operator, returnType] of operators) {
+  for (const {operator, other, returnType } of operators) {
     if (type.operators.has(operator)) {
       throw new Error(`duplicate operator ${operator} added to type`);
     }
@@ -259,6 +259,8 @@ export const addOperators = <T extends IGenericBasicType>(
     type.operators.set(operator, returnType);
   }
 };
+
+
 
 /**
  * Add suffixes to type

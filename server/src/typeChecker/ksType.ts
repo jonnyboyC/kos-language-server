@@ -15,6 +15,7 @@ import { SuffixTracker } from '../analysis/suffixTracker';
 import { KsSuffix } from '../entities/suffix';
 import { tType } from './typeCreators';
 import { OperatorKind, TypeKind, CallKind } from './types';
+import { Operator } from './operator';
 
 /**
  * This represents a generic type, typically the containers of kos
@@ -28,7 +29,7 @@ export class GenericBasicType implements IGenericBasicType {
   /**
    * Operators that are applicable for this type
    */
-  public operators: Map<OperatorKind, IBasicType>;
+  public operators: Map<OperatorKind, Operator[]>;
 
   /**
    * Suffixes attach to this type
@@ -227,7 +228,7 @@ export class BasicType implements IBasicType {
   /**
    * Operators that are applicable for this type
    */
-  public operators: Map<OperatorKind, IBasicType>;
+  public operators: Map<OperatorKind, Operator[]>;
 
   /**
    * Is this type a subtype of another type
