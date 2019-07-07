@@ -96,6 +96,11 @@ export class Resolver
   private loopDepth: number;
 
   /**
+   * How many triggers deep is the current location
+   */
+  private triggerDepth: number;
+
+  /**
    * Cached bound method for resolving statement
    */
   private readonly resolveStmtBind = this.resolveStmt.bind(this);
@@ -131,8 +136,10 @@ export class Resolver
     this.lazyGlobal = true;
     this.firstStmt = true;
     this.deferResolve = true;
+
     this.loopDepth = 0;
     this.functionDepth = 0;
+    this.triggerDepth = 0;
 
     this.logger = logger;
     this.tracer = tracer;
@@ -181,6 +188,7 @@ export class Resolver
         this.tableBuilder.setPath(current.path, current.activeScope);
         this.functionDepth = current.functionDepth;
         this.loopDepth = current.loopDepth;
+        this.triggerDepth = current.triggerDepth;
 
         // resolve deferred node
         switch (current.node.tag) {
@@ -468,8 +476,22 @@ export class Resolver
    * Visit the Command Stmt syntax node
    * @param _ the syntax node
    */
-  public visitCommand(_: Stmt.Command): Diagnostics {
-    return [];
+  public visitCommand(stmt: Stmt.Command): Diagnostics {
+    const errors: Diagnostics = [];
+
+    if (stmt.command.type === TokenType.preserve) {
+      if (this.triggerDepth < 1) {
+        errors.push(
+          createDiagnostic(
+            stmt,
+            'preserve appeared outside of a trigger body',
+            DiagnosticSeverity.Error,
+          ),
+        );
+      }
+    }
+
+    return errors;
   }
 
   /**
@@ -628,8 +650,9 @@ export class Resolver
     const errors = this.useExprLocalsBind(stmt.condition);
     errors.push(
       ...this.resolveExpr(stmt.condition),
-      ...this.resolveStmt(stmt.body),
     );
+
+    errors.push(...this.trackTrigger(() => this.resolveStmt(stmt.body)));
 
     return errors;
   }
@@ -648,11 +671,11 @@ export class Resolver
       );
     }
 
-    if (this.functionDepth < 1) {
+    if (this.functionDepth < 1 && this.triggerDepth < 1) {
       errors.push(
         createDiagnostic(
           stmt.returnToken,
-          'Return appeared outside of function body',
+          'Return appeared outside of function or trigger body',
           DiagnosticSeverity.Error,
         ),
       );
@@ -729,10 +752,11 @@ export class Resolver
       return this.deferNode(stmt, stmt.body);
     }
 
-    return this.useExprLocalsBind(stmt.suffix).concat(
-      this.resolveExpr(stmt.suffix),
-      this.resolveStmt(stmt.body),
-    );
+    const errors = this.useExprLocalsBind(stmt.suffix);
+    errors.push(...this.resolveExpr(stmt.suffix));
+    errors.push(...this.trackTrigger(() => this.resolveStmt(stmt.body)));
+
+    return errors;
   }
 
   /**
@@ -1126,6 +1150,13 @@ export class Resolver
     return result;
   }
 
+  private trackTrigger(triggerFunc: () => Diagnostics): Diagnostics {
+    this.triggerDepth += 1;
+    const result = triggerFunc();
+    this.triggerDepth -= 1;
+    return result;
+  }
+
   /**
    * Defer a node for later execution
    * @param node node to defer
@@ -1135,6 +1166,7 @@ export class Resolver
       node,
       functionDepth: this.functionDepth,
       loopDepth: this.loopDepth,
+      triggerDepth: this.triggerDepth,
       ...this.tableBuilder.getPath(),
     });
 

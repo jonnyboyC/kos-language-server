@@ -11,6 +11,7 @@ when 10 <> 5 then {
     delete 10 from "someplace".
     switch to 0.
     compile body to 10.
+    preserve.
 }
 
 toggle ship:panels.
@@ -67,7 +68,6 @@ log choose 10 if body:atm:exists else 5 to dump.txt.
 
 stage.
 clearScreen.
-preserve.
 reboot.
 shutdown.
 
