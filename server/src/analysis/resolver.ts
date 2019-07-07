@@ -150,6 +150,13 @@ export class Resolver
 
       this.tableBuilder.rewind();
       this.tableBuilder.beginScope(this.script);
+
+      // if no statements simply return immediatly
+      if (this.script.stmts.length === 0) {
+        this.tableBuilder.endScope();
+        return [];
+      }
+
       const [firstStmt, ...restStmts] = this.script.stmts;
 
       // check for lazy global flag

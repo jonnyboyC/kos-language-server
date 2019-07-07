@@ -17,10 +17,18 @@ export class Script extends NodeBase implements IScript {
   }
 
   public get start(): Position {
+    if (this.stmts.length === 0) {
+      return Position.create(0, 0);
+    }
+
     return this.stmts[0].start;
   }
 
   public get end(): Position {
+    if (this.stmts.length === 0) {
+      return Position.create(0, 0);
+    }
+
     return this.stmts[this.stmts.length - 1].end;
   }
 
