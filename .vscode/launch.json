@@ -9,7 +9,10 @@
 			"env": {
 				"NODE_ENV": "dev"
 			},
-			"args": ["--extensionDevelopmentPath=${workspaceRoot}"],
+			"args": [
+				"--extensionDevelopmentPath=${workspaceRoot}",
+				"--disable-extensions"
+			],
 			"stopOnEntry": false,
 			"sourceMaps": true,
 			"outFiles": ["${workspaceRoot}/clients/vscode/out/**/*.js"],
@@ -23,7 +26,10 @@
 			"env": {
 				"NODE_ENV": "dev"
 			},
-			"args": ["--extensionDevelopmentPath=${workspaceRoot}"],
+			"args": [
+				"--extensionDevelopmentPath=${workspaceRoot}",
+				"--disable-extensions"
+			],
 			"stopOnEntry": false,
 			"sourceMaps": true,
 			"outFiles": ["${workspaceRoot}/clients/vscode/out/**/*.js"],

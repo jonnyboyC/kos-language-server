@@ -75,44 +75,40 @@
                         "pascalcase"
                     ]
                 },
-                "kos-vscode.trace.server": {
+                "kos-vscode.trace.server.verbosity": {
                     "scope": "window",
-                    "type": "object",
-                    "description": "Traces the communication between VS Code and the language server.",
-                    "properties": {
-                        "verbosity": {
-                            "type": "string",
-                            "description": "Controls the verbosity of the trace.",
-                            "enum": [
-                                "off",
-                                "message",
-                                "verbose"
-                            ],
-                            "default": "off"
-                        },
-                        "format": {
-                            "type": "string",
-                            "description": "Controls the output format of the trace.",
-                            "enum": [
-                                "text",
-                                "json"
-                            ],
-                            "default": "text"
-                        },
-                        "level": {
-                            "type": "string",
-                            "description": "Controls the level of mesage log.",
-                            "enum": [
-                                "verbose",
-                                "info",
-                                "log",
-                                "warn",
-                                "error",
-                                "none"
-                            ],
-                            "default": "error"
-                        }
-                    }
+                    "type": "string",
+                    "description": "Controls the verbosity of the trace between VS Code and the language server",
+                    "enum": [
+                        "off",
+                        "message",
+                        "verbose"
+                    ],
+                    "default": "off"
+                },
+                "kos-vscode.trace.server.format": {
+                    "scope": "window",
+                    "type": "string",
+                    "description": "Controls the format of the trace between VS Code and the language server",
+                    "enum": [
+                        "text",
+                        "json"
+                    ],
+                    "default": "text"
+                },
+                "kos-vscode.trace.server.level": {
+                    "scope": "window",
+                    "type": "string",
+                    "description": "Controls the level of message log.",
+                    "enum": [
+                        "verbose",
+                        "info",
+                        "log",
+                        "warn",
+                        "error",
+                        "none"
+                    ],
+                    "default": "error"
                 }
             }
         },
