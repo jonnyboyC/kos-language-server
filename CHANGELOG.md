@@ -1,7 +1,16 @@
+# [0.8.0] (2019-7-7)
+
+## Features
+- **Preserve Diagnostic** report a new error when the preserve keyword appears outside of a trigger scope. Previously preserve wouldn't trigger any warning when it appeared in an inappropriate place
+
+## Bug Fixes
+- **Trigger Return** Previously it returns were reported as error when they appeared inside of a trigger body. The return statement can be used as a more dynamic form of preserve when inside a trigger. It determines when trigger should remain active after its current execution.
+
+
 # [0.7.2] (2019-7-7)
 
 ## Bug Fixes
-- **Error for Empty Files** A bug was introduced as part of the code reorganization that caused an excception to be throw with empty files. This included blank files and files with only withspace or comment. 
+- **Error for Empty Files** A bug was introduced as part of the code reorganization that caused an exception to be throw with empty files. This included blank files and files with only whitespace or comment. 
 
 # [0.7.1] (2019-7-4)
 

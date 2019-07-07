@@ -188,6 +188,11 @@ export interface IDeferred {
   functionDepth: number;
 
   /**
+   * How many triggers deep is the current location
+   */
+  triggerDepth: number;
+
+  /**
    * Node to be executed later
    */
   node: IStmt | IExpr;
