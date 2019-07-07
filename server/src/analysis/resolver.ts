@@ -150,14 +150,21 @@ export class Resolver
 
       this.tableBuilder.rewind();
       this.tableBuilder.beginScope(this.script);
-      const [firstStmt, ...restStmts] = this.script.stmts;
 
-      // check for lazy global flag
-      const errors = this.resolveStmt(firstStmt);
-      this.firstStmt = false;
+      const errors: Diagnostics = [];
 
-      // resolve reset
-      const resolveErrors = this.resolveStmts(restStmts);
+      // if no statements simply return immediatly
+      if (this.script.stmts.length > 0) {
+        const [firstStmt, ...restStmts] = this.script.stmts;
+
+        // check for lazy global flag
+        errors.push(...this.resolveStmt(firstStmt));
+        this.firstStmt = false;
+
+        // resolve reset
+        errors.push(...this.resolveStmts(restStmts));
+      }
+
       this.tableBuilder.endScope();
 
       this.script.lazyGlobal = this.lazyGlobal;
@@ -165,7 +172,6 @@ export class Resolver
 
       // process all deferred nodes
       let current: Maybe<IDeferred>;
-      errors.push(...resolveErrors);
 
       // process deferred queue
       while ((current = this.deferred.shift())) {
