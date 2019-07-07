@@ -4,7 +4,7 @@
     "description": "Syntax highlighting, auto-complete, and language diagnostics for KerboScript in Kerbal Operating System.",
     "author": "John Chabot",
     "license": "MIT",
-    "version": "0.7.0",
+    "version": "0.7.2",
     "galleryBanner": {
         "color": "#a3a3a3",
         "theme": "dark"
@@ -73,50 +73,48 @@
                         "uppercase",
                         "camelcase",
                         "pascalcase"
-                    ]
+                    ],
+                    "description": "The case kos-language-server will suggest as part of auto completion"
                 },
-                "kos-vscode.trace.server": {
+                "kos-vscode.trace.server.verbosity": {
                     "scope": "window",
-                    "type": "object",
-                    "description": "Traces the communication between VS Code and the language server.",
-                    "properties": {
-                        "verbosity": {
-                            "type": "string",
-                            "description": "Controls the verbosity of the trace.",
-                            "enum": [
-                                "off",
-                                "message",
-                                "verbose"
-                            ],
-                            "default": "off"
-                        },
-                        "format": {
-                            "type": "string",
-                            "description": "Controls the output format of the trace.",
-                            "enum": [
-                                "text",
-                                "json"
-                            ],
-                            "default": "text"
-                        },
-                        "level": {
-                            "type": "string",
-                            "description": "Controls the level of mesage log.",
-                            "enum": [
-                                "verbose",
-                                "info",
-                                "log",
-                                "warn",
-                                "error",
-                                "none"
-                            ],
-                            "default": "error"
-                        }
-                    }
+                    "type": "string",
+                    "description": "Controls the verbosity of the trace between VS Code and the language server",
+                    "enum": [
+                        "off",
+                        "message",
+                        "verbose"
+                    ],
+                    "default": "off"
+                },
+                "kos-vscode.trace.server.format": {
+                    "scope": "window",
+                    "type": "string",
+                    "description": "Controls the format of the trace between VS Code and the language server",
+                    "enum": [
+                        "text",
+                        "json"
+                    ],
+                    "default": "text"
+                },
+                "kos-vscode.trace.server.level": {
+                    "scope": "window",
+                    "type": "string",
+                    "description": "Controls the level of message log.",
+                    "enum": [
+                        "verbose",
+                        "info",
+                        "log",
+                        "warn",
+                        "error",
+                        "none"
+                    ],
+                    "default": "error"
                 }
             }
         },
-        "commands": [{
+        "commands": [
+            {
                 "command": "kos.startTelnet",
                 "title": "kOS: Connect Telnet Client"
             },
@@ -133,26 +131,32 @@
                 "title": "kOS: Route Logging to Vscode"
             }
         ],
-        "languages": [{
-            "id": "kos",
-            "aliases": [
-                "Kerbal Operating System",
-                "kos"
-            ],
-            "extensions": [
-                ".ks"
-            ],
-            "configuration": "./kos.configuration.json"
-        }],
-        "grammars": [{
-            "language": "kos",
-            "scopeName": "source.kos",
-            "path": "./clients/vscode/kos-grammar/language-kos.json"
-        }],
-        "snippets": [{
-            "language": "kos",
-            "path": "clients/vscode/snippets/snippets.json"
-        }]
+        "languages": [
+            {
+                "id": "kos",
+                "aliases": [
+                    "Kerbal Operating System",
+                    "kos"
+                ],
+                "extensions": [
+                    ".ks"
+                ],
+                "configuration": "./kos.configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "kos",
+                "scopeName": "source.kos",
+                "path": "./clients/vscode/kos-grammar/language-kos.json"
+            }
+        ],
+        "snippets": [
+            {
+                "language": "kos",
+                "path": "clients/vscode/snippets/snippets.json"
+            }
+        ]
     },
     "scripts": {
         "vscode:prepublish": "cd clients/vscode && npm run update-vscode && cd ../.. && node build/clean.js && npm run prod && npm run test",

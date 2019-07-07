@@ -276,13 +276,7 @@ export class KLS {
     }
 
     const clientConfig = await this.getDocumentSettings();
-    this.configuration.clientConfig = clientConfig;
-
-    const casePreference = caseMapper(clientConfig.completionCase);
-    const logPreference = logMapper(clientConfig.trace.server.level);
-
-    this.setCase(casePreference);
-    this.logger.level = logPreference;
+    this.updateServer(clientConfig);
   }
 
   /**

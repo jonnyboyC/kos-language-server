@@ -397,7 +397,7 @@ describe('Resolver tracking', () => {
       expect(name.lexeme).toBe('body');
 
       expect(tag).toBe(KsSymbolKind.variable);
-      expect(bodyTracker.usages.length).toBe(2);
+      expect(bodyTracker.usages.length).toBe(3);
       expect(bodyTracker.sets.length).toBe(0);
     }
 

@@ -152,7 +152,6 @@ describe('Scan test file', () => {
     expect(scanErrors.length === 0).toBe(true);
 
     for (const [type, token] of zip(sequence, tokens)) {
-      // console.log(`${TokenType[token.type]} vs ${TokenType[type]}`);
       expect(token.type).toBe(type);
     }
   });

@@ -6,7 +6,6 @@
 **/tsconfig.base.json
 **/buildcache.json
 **/contributing.md
-**/README.md
 **/junit.xml
 kerboscripts
 node_modules
