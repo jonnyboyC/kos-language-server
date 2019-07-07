@@ -63,7 +63,7 @@ if "something":someMethod((10:typestring + "cat")) or false {
     unlock other.
 }
 
-log 10 to dump.txt.
+log choose 10 if body:atm:exists else 5 to dump.txt.
 
 stage.
 clearScreen.

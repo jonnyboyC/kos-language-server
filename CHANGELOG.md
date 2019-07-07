@@ -1,3 +1,8 @@
+# [0.7.2] (2019-7-7)
+
+## Bug Fixes
+- **Error for Empty Files** A bug was introduced as part of the code reorganization that caused an excception to be throw with empty files. This included blank files and files with only withspace or comment. 
+
 # [0.7.1] (2019-7-4)
 
 ## Bug Fixes
