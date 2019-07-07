@@ -73,7 +73,8 @@
                         "uppercase",
                         "camelcase",
                         "pascalcase"
-                    ]
+                    ],
+                    "description": "The case kos-language-server will suggest as part of auto completion"
                 },
                 "kos-vscode.trace.server.verbosity": {
                     "scope": "window",
