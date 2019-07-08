@@ -2,7 +2,7 @@ import { Parser } from '../parser/parser';
 import { Scanner } from '../scanner/scanner';
 import { IParseResult } from '../parser/types';
 import { empty, unWrap, unWrapMany } from '../utilities/typeGuards';
-import { rangeEqual } from '../utilities/positionUtils';
+import { rangeEqual, rangeOrder } from '../utilities/positionUtils';
 import { Range, Diagnostic, DiagnosticSeverity, Position } from 'vscode-languageserver';
 import { structureType } from '../typeChecker/types/primitives/structure';
 import { IScanResult } from '../scanner/types';
@@ -602,19 +602,50 @@ describe('Resolver errors', () => {
   );
 
   const returnLocations: Range[] = [
-    { start: new Marker(14, 4), end: new Marker(14, 10) },
+    { start: new Marker(24, 4), end: new Marker(24, 10) },
+    { start: new Marker(27, 0), end: new Marker(27, 6) },
   ];
 
   // invalid return locations
   test('return locations', () => {
-    const deferredSource = readFileSync(returnPath, 'utf8');
-    const results = resolveSource(deferredSource);
+    const returnSource = readFileSync(returnPath, 'utf8');
+    const results = resolveSource(returnSource);
 
     expect(results.scan.scanErrors.length).toBe(0);
     expect(results.parse.parseErrors.length).toBe(0);
     expect(results.resolveDiagnostics.length > 0).toBe(true);
 
     for (const [error, location] of zip(results.resolveDiagnostics, returnLocations)) {
+      expect(error.severity).toBe(DiagnosticSeverity.Error);
+      expect(location.start).toEqual(error.range.start);
+      expect(location.end).toEqual(error.range.end);
+    }
+  });
+
+  const preservePath = join(
+    __dirname,
+    '../../../kerboscripts/parser_valid/unitTests/preservetest.ks',
+  );
+
+  const preserveLocations: Range[] = [
+    { start: new Marker(2, 4), end: new Marker(2, 12) },
+    { start: new Marker(7, 4), end: new Marker(7, 12) },
+    { start: new Marker(16, 4), end: new Marker(16, 12) },
+    { start: new Marker(23, 0), end: new Marker(23, 8) },
+  ];
+
+  // invalid preserve locations
+  test('preserve locations', () => {
+    const preserveSource = readFileSync(preservePath, 'utf8');
+    const results = resolveSource(preserveSource, true);
+
+    expect(results.scan.scanErrors.length).toBe(0);
+    expect(results.parse.parseErrors.length).toBe(0);
+    expect(results.resolveDiagnostics.length > 0).toBe(true);
+
+    const sorted = results.resolveDiagnostics.sort((a, b) => rangeOrder(a.range, b.range));
+
+    for (const [error, location] of zip(sorted, preserveLocations)) {
       expect(error.severity).toBe(DiagnosticSeverity.Error);
       expect(location.start).toEqual(error.range.start);
       expect(location.end).toEqual(error.range.end);
