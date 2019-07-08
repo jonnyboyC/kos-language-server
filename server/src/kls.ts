@@ -160,12 +160,12 @@ export class KLS {
     this.bodyLibrary = bodyLibraryBuilder(caseKind);
 
     this.observer = new PerformanceObserver(list => {
-      this.logger.info('');
-      this.logger.info('-------- Performance ---------');
+      this.logger.verbose('');
+      this.logger.verbose('-------- Performance ---------');
       for (const entry of list.getEntries()) {
-        this.logger.info(`${entry.name} took ${entry.duration} ms`);
+        this.logger.verbose(`${entry.name} took ${entry.duration} ms`);
       }
-      this.logger.info('------------------------------');
+      this.logger.verbose('------------------------------');
     });
     this.observer.observe({ entryTypes: ['measure'], buffered: true });
   }
@@ -989,8 +989,8 @@ export class KLS {
       }
     }
 
-    this.logger.info('');
-    this.logger.info('-------------Semantic Analysis------------');
+    this.logger.verbose('');
+    this.logger.verbose('-------------Semantic Analysis------------');
 
     // generate a scope manager for resolving
     const symbolTableBuilder = new SymbolTableBuilder(uri, this.logger);
@@ -1087,7 +1087,7 @@ export class KLS {
       ),
     });
 
-    this.logger.info('--------------------------------------');
+    this.logger.verbose('--------------------------------------');
     performance.clearMarks();
 
     yield symbolTable;
@@ -1102,8 +1102,8 @@ export class KLS {
     uri: string,
     text: string,
   ): Promise<ScriptResult> {
-    this.logger.info('');
-    this.logger.info('-------------Lexical Analysis------------');
+    this.logger.verbose('');
+    this.logger.verbose('-------------Lexical Analysis------------');
 
     performance.mark('scanner-start');
     const scanner = new Scanner(text, uri, this.logger, this.tracer);
@@ -1125,7 +1125,7 @@ export class KLS {
     performance.measure('Parser', 'parser-start', 'parser-end');
     performance.clearMarks();
 
-    this.logger.info('--------------------------------------');
+    this.logger.verbose('--------------------------------------');
 
     return {
       scanErrors,
