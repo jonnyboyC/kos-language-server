@@ -27,6 +27,7 @@ import { vectorType } from '../typeChecker/types/collections/vector';
 import { directionType } from '../typeChecker/types/direction';
 import { Marker } from '../entities/marker';
 import { zip } from '../utilities/arrayUtils';
+import { timeSpanType } from '../typeChecker/types/timespan';
 
 const fakeUri = 'C:\\fake.ks';
 
@@ -323,6 +324,28 @@ print(b1).
 print(n1).
 `;
 
+const binaryMultiplicationSource = `
+local s1 is 10 * 10.
+
+local v1 is v(1, 1, 1) * v(1, 1, 1).
+local v2 is v(1, 1, 1) * 10.
+
+local d1 is q(1, 1, 1, 1) * v(1, 1, 1).
+local d2 is q(1, 1, 1, 1) * q(1, 1, 1, 1).
+
+local t1 is time * 10.
+
+print(s1).
+
+print(v1).
+print(v2).
+
+print(d1).
+print(d2).
+
+print(t1).
+`;
+
 describe('Operators', () => {
   test('unary operators', () => {
     const results = checkSource(unarySource, true);
@@ -380,5 +403,26 @@ describe('Operators', () => {
       expect(location.start).toEqual(error.range.start);
       expect(location.end).toEqual(error.range.end);
     }
+  });
+
+  test('binary multiplication operators', () => {
+    const results = checkSource(binaryMultiplicationSource, true);
+    noErrors(results);
+
+    const { table } = results;
+    const symbols = table.fileSymbols();
+    const names = new Map(
+      symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
+    );
+
+    symbolTests(names, 's1', KsSymbolKind.variable, scalarType);
+
+    symbolTests(names, 'v1', KsSymbolKind.variable, scalarType);
+    symbolTests(names, 'v2', KsSymbolKind.variable, vectorType);
+
+    symbolTests(names, 'd1', KsSymbolKind.variable, vectorType);
+    symbolTests(names, 'd2', KsSymbolKind.variable, directionType);
+
+    symbolTests(names, 't1', KsSymbolKind.variable, timeSpanType);
   });
 });
