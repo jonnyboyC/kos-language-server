@@ -94,7 +94,7 @@ export interface UnaryConstructor {
   /**
    * What is the operator
    */
-  operator: OperatorKind.negate | OperatorKind.defined | OperatorKind.not;
+  operator: OperatorKind.negate;
 
   /**
    * What is the return type of this operator

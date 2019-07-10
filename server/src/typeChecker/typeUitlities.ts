@@ -22,6 +22,7 @@ import {
   UnaryConstructor,
 } from './types';
 import { Operator } from './operator';
+import { structureType } from './types/primitives/structure';
 
 /**
  * This map token types to operator kinds
@@ -143,6 +144,10 @@ export const hasOperator = (
  * @param suffix suffix string
  */
 export const hasSuffix = (type: Type, suffix: string): boolean => {
+  if (type === structureType) {
+    return true;
+  }
+
   if (type.kind === TypeKind.basic) {
     return moveUpSuperTypes(type, false, currentType => {
       if (currentType.suffixes.has(suffix)) {
@@ -172,7 +177,7 @@ export const getSuffix = (type: Type, suffix: string): Maybe<ISuffixType> => {
 };
 
 /**
- * Retreive all suffixes from the given type
+ * Retrieve all suffixes from the given type
  * @param type type
  */
 export const allSuffixes = (type: Type): ISuffixType[] => {

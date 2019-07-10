@@ -63,7 +63,7 @@ addOperators(
   },
   {
     operator: OperatorKind.negate,
-    returnType: booleanType,
+    returnType: directionType,
     other: undefined,
   },
 );

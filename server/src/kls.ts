@@ -969,7 +969,10 @@ export class KLS {
 
     // if any run statement exist get uri then load
     if (script.runStmts.length > 0 && this.documentService.ready) {
-      const { documents, diagnostics } = await this.loadDocuments(uri, script.runStmts);
+      const { documents, diagnostics } = await this.loadDocuments(
+        uri,
+        script.runStmts,
+      );
 
       yield diagnostics.map(error => addDiagnosticsUri(error, uri));
 
@@ -1051,9 +1054,11 @@ export class KLS {
 
     performance.mark('type-checking-start');
 
-    typeChecker.check().map(error => addDiagnosticsUri(error, uri));
+    const typeDiagnostics = typeChecker
+      .check()
+      .map(error => addDiagnosticsUri(error, uri));
 
-    // yield typeDiagnostics;
+    yield typeDiagnostics;
     performance.mark('type-checking-end');
 
     // measure performance
@@ -1083,7 +1088,7 @@ export class KLS {
         parserDiagnostics,
         preDiagnostics,
         resolverDiagnostics,
-        // typeDiagnostics,
+        typeDiagnostics,
       ),
     });
 
@@ -1138,21 +1143,24 @@ export class KLS {
    * @param uri uri of the calling document
    * @param runStmts run statements in the document
    */
-  private async loadDocuments(uri: string, runStmts: RunStmtType[]): Promise<LoadedDocuments> {
+  private async loadDocuments(
+    uri: string,
+    runStmts: RunStmtType[],
+  ): Promise<LoadedDocuments> {
     const documents: TextDocument[] = [];
     const diagnostics: Diagnostic[] = [];
 
     for (const runStmt of runStmts) {
-
       // attempt to get a resolvable path from a run statement
       const path = runPath(runStmt);
       if (typeof path === 'string') {
-
         // attempt to load document
-        const document = await this.documentService.loadDocument(runStmt.toLocation(uri), path);
+        const document = await this.documentService.loadDocument(
+          runStmt.toLocation(uri),
+          path,
+        );
 
         if (!empty(document)) {
-
           // determine if document or diagnostic
           if (TextDocument.is(document)) {
             documents.push(document);

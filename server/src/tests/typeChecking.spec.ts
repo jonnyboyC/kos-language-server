@@ -10,17 +10,21 @@ import { PreResolver } from '../analysis/preResolver';
 import { Resolver } from '../analysis/resolver';
 import { TypeChecker } from '../typeChecker/typeChecker';
 import { KsBaseSymbol, KsSymbolKind } from '../analysis/types';
-import { unWrap } from '../utilities/typeGuards';
+import { unWrap, empty } from '../utilities/typeGuards';
 import { booleanType } from '../typeChecker/types/primitives/boolean';
 import { primitiveInitializer } from '../typeChecker/types/primitives/initialize';
 import { orbitalInitializer } from '../typeChecker/types/orbital/initialize';
 import { Type } from '../typeChecker/types/types';
-import { doubleType, integerType } from '../typeChecker/types/primitives/scalar';
+import {
+  doubleType,
+  integerType,
+  scalarType,
+} from '../typeChecker/types/primitives/scalar';
 import { stringType } from '../typeChecker/types/primitives/string';
 import { userListType } from '../typeChecker/types/collections/userList';
 import { structureType } from '../typeChecker/types/primitives/structure';
-// import { pathType } from '../typeChecker/types/io/path';
-// import { listType } from '../typeChecker/types/collections/list';
+import { vectorType } from '../typeChecker/types/collections/vector';
+import { directionType } from '../typeChecker/types/direction';
 
 const fakeUri = 'C:\\fake.ks';
 
@@ -172,7 +176,7 @@ const symbolTests = (
   symbols: Map<string, KsBaseSymbol>,
   name: string,
   symbolKind: KsSymbolKind,
-  targetType: Type,
+  targetType?: Type,
 ) => {
   expect(symbols.has(name)).toBe(true);
   const nameWrap = symbols.get(name);
@@ -185,8 +189,10 @@ const symbolTests = (
 
   expect(nameUnWrap.name.tracker).not.toBeUndefined();
 
-  const nameTrack = unWrap(nameUnWrap.name.tracker);
-  expect(nameTrack.declared.type).toBe(targetType);
+  if (!empty(targetType)) {
+    const nameTrack = unWrap(nameUnWrap.name.tracker);
+    expect(nameTrack.declared.type).toBe(targetType);
+  }
 };
 
 describe('Basic inferring', () => {
@@ -262,5 +268,70 @@ describe('Basic inferring', () => {
 
     // symbolTests(names, 'x3', KsSymbolKind.variable, stringType);
     // symbolTests(names, 'i3', KsSymbolKind.variable, stringType);
+  });
+});
+
+const unarySource = `
+function f { }
+local x is 10.
+lock l to x.
+
+local d1 is defined f.
+local d2 is defined x.
+local d3 is defined l.
+
+print(d1).
+print(d2).
+print(d3).
+
+local b1 is not true.
+local b2 is not false.
+local b3 is not (10 > 5).
+
+print(b1).
+print(b2).
+print(b3).
+
+local n1 is -10.
+local n2 is -16.3.
+local n3 is +18.3.
+lock n4 to -v(1, 1, 1).
+local n5 is -q(1, 1, 1, 1).
+
+print(n1).
+print(n2).
+print(n3).
+print(n4).
+print(n5).
+`;
+
+describe('Operators', () => {
+  test('unary operators', () => {
+    const results = checkSource(unarySource, true);
+    noErrors(results);
+
+    const { table } = results;
+    const symbols = table.fileSymbols();
+    const names = new Map(
+      symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
+    );
+
+    symbolTests(names, 'f', KsSymbolKind.function);
+    symbolTests(names, 'x', KsSymbolKind.variable, integerType);
+    symbolTests(names, 'l', KsSymbolKind.lock, integerType);
+
+    symbolTests(names, 'd1', KsSymbolKind.variable, booleanType);
+    symbolTests(names, 'd2', KsSymbolKind.variable, booleanType);
+    symbolTests(names, 'd3', KsSymbolKind.variable, booleanType);
+
+    symbolTests(names, 'b1', KsSymbolKind.variable, booleanType);
+    symbolTests(names, 'b2', KsSymbolKind.variable, booleanType);
+    symbolTests(names, 'b3', KsSymbolKind.variable, booleanType);
+
+    symbolTests(names, 'n1', KsSymbolKind.variable, scalarType);
+    symbolTests(names, 'n2', KsSymbolKind.variable, scalarType);
+    symbolTests(names, 'n3', KsSymbolKind.variable, scalarType);
+    symbolTests(names, 'n4', KsSymbolKind.lock, vectorType);
+    symbolTests(names, 'n5', KsSymbolKind.variable, directionType);
   });
 });

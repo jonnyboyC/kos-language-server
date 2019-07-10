@@ -1053,8 +1053,23 @@ export class TypeChecker
           type: booleanType,
         };
 
-      case TokenType.minus:
       case TokenType.not:
+        if (!coerce(result.type, booleanType)) {
+          errors.push(
+            createDiagnostic(
+              expr.factor,
+              'Can only apply not operator to booleans',
+              DiagnosticSeverity.Hint,
+            ),
+          );
+        }
+
+        return {
+          errors,
+          type: booleanType,
+        };
+
+      case TokenType.minus:
       case TokenType.plus:
         const operatorKind = operatorMap.get(expr.operator.type);
         if (!empty(operatorKind)) {
@@ -1327,7 +1342,7 @@ export class TypeChecker
         createDiagnostic(
           call.close,
           `Function expected ${params.length} parameters but was called with ${
-            call.args
+            call.args.length
           } arguments`,
           DiagnosticSeverity.Hint,
         ),
@@ -1595,7 +1610,7 @@ export class TypeChecker
         suffixTerm.token.lookup,
       );
 
-      // may need to pass sommething in about if we're in get set context
+      // may need to pass something in about if we're in get set context
       if (!empty(suffix)) {
         // assign type tracker
         suffixTerm.token.tracker = suffix.getTracker();

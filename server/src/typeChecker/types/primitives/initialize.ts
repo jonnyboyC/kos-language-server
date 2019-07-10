@@ -222,11 +222,6 @@ export const primitiveInitializer = () => {
       other: booleanType,
       returnType: booleanType,
     },
-    {
-      operator: OperatorKind.not,
-      returnType: booleanType,
-      other: undefined,
-    },
   );
   addPrototype(booleanType, primitiveType);
 };
