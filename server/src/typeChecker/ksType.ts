@@ -22,7 +22,7 @@ import { Operator } from './operator';
  */
 export class GenericBasicType implements IGenericBasicType {
   /**
-   * A memoized mapping of this genertic type to concrete types
+   * A memoized mapping of this generic type to concrete types
    */
   private concreteTypes: Map<ArgumentType, IBasicType>;
 
@@ -268,7 +268,9 @@ export class BasicType implements IBasicType {
       return this.name;
     }
 
-    const typeParameterStr = this.typeParameters.map(t => t.toTypeString()).join(', ');
+    const typeParameterStr = this.typeParameters
+      .map(t => t.toTypeString())
+      .join(', ');
     return `${this.name}<${typeParameterStr}>`;
   }
 
@@ -318,9 +320,10 @@ export class SuffixType implements ISuffixType {
    * Generate the type string for this suffix type
    */
   public toTypeString(): string {
-    const typeParameterStr = this.typeParameters.length > 0
-      ? `<${this.typeParameters.map(t => t.toTypeString()).join(', ')}>`
-      : '';
+    const typeParameterStr =
+      this.typeParameters.length > 0
+        ? `<${this.typeParameters.map(t => t.toTypeString()).join(', ')}>`
+        : '';
 
     const returnString = returnTypeString(this.returns);
     if (

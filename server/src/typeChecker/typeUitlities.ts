@@ -8,19 +8,27 @@ import {
   IVariadicType,
   IGenericBasicType,
   Type,
-  IBasicType,
 } from './types/types';
 import { Token } from '../entities/token';
 import { TokenType } from '../entities/tokentypes';
 import { booleanType } from './types/primitives/boolean';
 import { integerType, doubleType } from './types/primitives/scalar';
 import { stringType } from './types/primitives/string';
-import { CallKind, TypeKind, OperatorKind } from './types';
+import {
+  CallKind,
+  TypeKind,
+  OperatorKind,
+  BinaryConstructor,
+  UnaryConstructor,
+} from './types';
+import { Operator } from './operator';
 
 /**
  * This map token types to operator kinds
  */
 export const operatorMap: Map<TokenType, OperatorKind> = new Map([
+  [TokenType.not, OperatorKind.not],
+  [TokenType.defined, OperatorKind.defined],
   [TokenType.minus, OperatorKind.subtract],
   [TokenType.multi, OperatorKind.multiply],
   [TokenType.div, OperatorKind.divide],
@@ -29,8 +37,8 @@ export const operatorMap: Map<TokenType, OperatorKind> = new Map([
   [TokenType.lessEqual, OperatorKind.lessThanEqual],
   [TokenType.greater, OperatorKind.greaterThan],
   [TokenType.greaterEqual, OperatorKind.greaterThanEqual],
-  [TokenType.and, OperatorKind.boolean],
-  [TokenType.or, OperatorKind.boolean],
+  [TokenType.and, OperatorKind.and],
+  [TokenType.or, OperatorKind.or],
   [TokenType.equal, OperatorKind.equal],
   [TokenType.notEqual, OperatorKind.notEqual],
 ]);
@@ -113,11 +121,13 @@ export const isSubType = (queryType: Type, targetType: Type): boolean => {
 export const hasOperator = (
   type: Type,
   operator: OperatorKind,
-): Maybe<ArgumentType> => {
+): Maybe<Operator[]> => {
   if (type.kind === TypeKind.basic) {
     return moveUpSuperTypes(type, undefined, currentType => {
-      if (!empty(currentType.operators.has(operator))) {
-        return type;
+      const definedOperators = currentType.operators.get(operator);
+
+      if (definedOperators) {
+        return definedOperators;
       }
 
       return undefined;
@@ -168,8 +178,7 @@ export const getSuffix = (type: Type, suffix: string): Maybe<ISuffixType> => {
 export const allSuffixes = (type: Type): ISuffixType[] => {
   const suffixes: Map<string, ISuffixType> = new Map();
 
-  switch (type.kind)
-  {
+  switch (type.kind) {
     // if basic type get all suffixes on type
     case TypeKind.basic:
       moveUpSuperTypes(type, false, currentType => {
@@ -249,18 +258,18 @@ export const addPrototype = <T extends IGenericBasicType>(
  */
 export const addOperators = <T extends IGenericBasicType>(
   type: T,
-  ...operators: { operator: OperatorKind, other: ArgumentType, returnType: ArgumentType }[]
+  ...operators: (BinaryConstructor | UnaryConstructor)[]
 ): void => {
-  for (const {operator, other, returnType } of operators) {
-    if (type.operators.has(operator)) {
-      throw new Error(`duplicate operator ${operator} added to type`);
-    }
+  for (const { operator, other, returnType } of operators) {
+    const operators = type.operators.get(operator);
 
-    type.operators.set(operator, returnType);
+    if (!empty(operators)) {
+      operators.push(new Operator(operator, returnType, other));
+    } else {
+      type.operators.set(operator, [new Operator(operator, returnType, other)]);
+    }
   }
 };
-
-
 
 /**
  * Add suffixes to type

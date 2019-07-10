@@ -1,6 +1,10 @@
 import { addSuffixes, addPrototype, addOperators } from '../../typeUitlities';
 import { structureType } from './structure';
-import { createArgSuffixType, createVarSuffixType, createVarType } from '../../typeCreators';
+import {
+  createArgSuffixType,
+  createVarSuffixType,
+  createVarType,
+} from '../../typeCreators';
 import { stringType } from './string';
 import { booleanType } from './boolean';
 import { voidType } from './void';
@@ -10,6 +14,8 @@ import { scalarType, integerType, doubleType } from './scalar';
 import { listType } from '../collections/list';
 import { delegateType } from './delegate';
 import { OperatorKind } from '../../types';
+import { iterator } from '../../../utilities/constants';
+import { enumeratorType } from '../collections/enumerator';
 
 let set = false;
 
@@ -40,13 +46,41 @@ export const primitiveInitializer = () => {
   // ------------------ string ---------------------------
   addOperators(
     stringType,
-    [OperatorKind.plus, stringType],
-    [OperatorKind.greaterThan, booleanType],
-    [OperatorKind.lessThan, booleanType],
-    [OperatorKind.greaterThanEqual, booleanType],
-    [OperatorKind.lessThanEqual, booleanType],
-    [OperatorKind.equal, booleanType],
-    [OperatorKind.notEqual, booleanType],
+    {
+      operator: OperatorKind.plus,
+      other: structureType,
+      returnType: stringType,
+    },
+    {
+      operator: OperatorKind.greaterThan,
+      other: stringType,
+      returnType: booleanType,
+    },
+    {
+      operator: OperatorKind.lessThan,
+      other: stringType,
+      returnType: booleanType,
+    },
+    {
+      operator: OperatorKind.greaterThanEqual,
+      other: stringType,
+      returnType: booleanType,
+    },
+    {
+      operator: OperatorKind.lessThanEqual,
+      other: stringType,
+      returnType: booleanType,
+    },
+    {
+      operator: OperatorKind.equal,
+      other: stringType,
+      returnType: booleanType,
+    },
+    {
+      operator: OperatorKind.notEqual,
+      other: stringType,
+      returnType: booleanType,
+    },
   );
   addPrototype(stringType, primitiveType);
   addSuffixes(
@@ -62,7 +96,11 @@ export const primitiveInitializer = () => {
     createArgSuffixType('padright', stringType, scalarType),
     createArgSuffixType('remove', stringType, scalarType, scalarType),
     createArgSuffixType('replace', stringType, stringType, stringType),
-    createArgSuffixType('split', listType.toConcreteType(stringType), stringType),
+    createArgSuffixType(
+      'split',
+      listType.toConcreteType(stringType),
+      stringType,
+    ),
     createArgSuffixType('startswith', booleanType, stringType),
     createArgSuffixType('tolower', stringType),
     createArgSuffixType('toupper', stringType),
@@ -73,26 +111,80 @@ export const primitiveInitializer = () => {
     createArgSuffixType('tonumber', scalarType, structureType),
     createArgSuffixType('toscalar', scalarType, structureType),
     createArgSuffixType('format', stringType, structureType),
+    createArgSuffixType('indexof', stringType, structureType),
+    createArgSuffixType('find', stringType, structureType),
+    createArgSuffixType('lastindexof', scalarType, stringType),
+    createArgSuffixType('findlast', scalarType, stringType),
+    createArgSuffixType(iterator, enumeratorType.toConcreteType(stringType)),
   );
 
   // ------------------ scalar ---------------------------
   addOperators(
     scalarType,
-    [OperatorKind.plus, scalarType],
-    [OperatorKind.subtract, scalarType],
-    [OperatorKind.multiply, scalarType],
-    [OperatorKind.divide, scalarType],
-    [OperatorKind.power, scalarType],
-    [OperatorKind.greaterThan, booleanType],
-    [OperatorKind.lessThan, booleanType],
-    [OperatorKind.greaterThanEqual, booleanType],
-    [OperatorKind.lessThanEqual, booleanType],
-    [OperatorKind.notEqual, booleanType],
-    [OperatorKind.equal, booleanType],
+    {
+      operator: OperatorKind.plus,
+      other: scalarType,
+      returnType: scalarType,
+    },
+    {
+      operator: OperatorKind.subtract,
+      other: scalarType,
+      returnType: scalarType,
+    },
+    {
+      operator: OperatorKind.multiply,
+      other: scalarType,
+      returnType: scalarType,
+    },
+    {
+      operator: OperatorKind.divide,
+      other: scalarType,
+      returnType: scalarType,
+    },
+    {
+      operator: OperatorKind.power,
+      other: scalarType,
+      returnType: scalarType,
+    },
+    {
+      operator: OperatorKind.greaterThan,
+      other: scalarType,
+      returnType: booleanType,
+    },
+    {
+      operator: OperatorKind.lessThan,
+      other: scalarType,
+      returnType: booleanType,
+    },
+    {
+      operator: OperatorKind.greaterThanEqual,
+      other: scalarType,
+      returnType: booleanType,
+    },
+    {
+      operator: OperatorKind.lessThanEqual,
+      other: scalarType,
+      returnType: booleanType,
+    },
+    {
+      operator: OperatorKind.notEqual,
+      other: scalarType,
+      returnType: booleanType,
+    },
+    {
+      operator: OperatorKind.equal,
+      other: scalarType,
+      returnType: booleanType,
+    },
+    {
+      operator: OperatorKind.negate,
+      returnType: scalarType,
+      other: undefined,
+    },
   );
   addPrototype(scalarType, primitiveType);
 
-  // ------------------ integar ---------------------------
+  // ------------------ integer ---------------------------
   addPrototype(integerType, scalarType);
 
   // ------------------ double ---------------------------
@@ -110,8 +202,31 @@ export const primitiveInitializer = () => {
   // ------------------ boolean ---------------------------
   addOperators(
     booleanType,
-    [OperatorKind.notEqual, booleanType],
-    [OperatorKind.equal, booleanType],
+    {
+      operator: OperatorKind.notEqual,
+      other: booleanType,
+      returnType: booleanType,
+    },
+    {
+      operator: OperatorKind.equal,
+      other: booleanType,
+      returnType: booleanType,
+    },
+    {
+      operator: OperatorKind.and,
+      other: booleanType,
+      returnType: booleanType,
+    },
+    {
+      operator: OperatorKind.or,
+      other: booleanType,
+      returnType: booleanType,
+    },
+    {
+      operator: OperatorKind.not,
+      returnType: booleanType,
+      other: undefined,
+    },
   );
   addPrototype(booleanType, primitiveType);
 };

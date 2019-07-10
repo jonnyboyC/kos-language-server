@@ -1,5 +1,6 @@
 import { ArgumentType } from './types/types';
 import { OperatorKind } from './types';
+import { empty } from '../utilities/typeGuards';
 
 export class Operator {
   /**
@@ -10,7 +11,7 @@ export class Operator {
   /**
    * What is the other operand for this operator
    */
-  public readonly otherOperand: ArgumentType;
+  public readonly otherOperand?: ArgumentType;
 
   /**
    * What is the return type of this operator
@@ -24,11 +25,19 @@ export class Operator {
    * @param returnType what is the return type of this operation
    */
   constructor(
-      operator: OperatorKind,
-      otherOperand: ArgumentType,
-      returnType: ArgumentType) {
+    operator: OperatorKind,
+    returnType: ArgumentType,
+    otherOperand?: ArgumentType,
+  ) {
     this.operator = operator;
     this.otherOperand = otherOperand;
     this.returnType = returnType;
+  }
+
+  /**
+   * Is the operator a unary operator
+   */
+  public isUnary(): boolean {
+    return empty(this.otherOperand);
   }
 }

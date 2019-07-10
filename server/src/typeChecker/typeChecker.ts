@@ -30,7 +30,13 @@ import { nodeType } from './types/node';
 import { createFunctionType } from './typeCreators';
 import { lexiconType } from './types/collections/lexicon';
 import { zip } from '../utilities/arrayUtils';
-import { isSubType, hasOperator, getSuffix, hasSuffix, operatorMap } from './typeUitlities';
+import {
+  isSubType,
+  hasOperator,
+  getSuffix,
+  hasSuffix,
+  operatorMap,
+} from './typeUitlities';
 import { voidType } from './types/primitives/void';
 import { userListType } from './types/collections/userList';
 import { booleanType } from './types/primitives/boolean';
@@ -65,6 +71,7 @@ import { vesselSensorsType } from './types/vessel/vesselSensors';
 import { kosProcessorFields } from './types/kosProcessorFields';
 import { elementType } from './types/parts/element';
 import { aggregateResourceType } from './types/parts/aggregateResource';
+import { Operator } from './operator';
 
 type Diagnostics = Diagnostic[];
 
@@ -123,7 +130,9 @@ export class TypeChecker
       this.logger.info(`Type Checking finished for ${file}`);
 
       if (typeErrors.length) {
-        this.logger.warn(`Type Checking encountered ${typeErrors.length} errors`);
+        this.logger.warn(
+          `Type Checking encountered ${typeErrors.length} errors`,
+        );
       }
 
       return typeErrors;
@@ -996,10 +1005,7 @@ export class TypeChecker
 
     const errors: Diagnostics = conditionResult.errors;
 
-    errors.push(
-      ...trueResult.errors,
-      ...falseResult.errors,
-    );
+    errors.push(...trueResult.errors, ...falseResult.errors);
 
     if (!coerce(conditionResult.type, booleanType)) {
       errors.push(
@@ -1018,14 +1024,15 @@ export class TypeChecker
     const rightResult = this.checkExpr(expr.right);
     const leftResult = this.checkExpr(expr.left);
 
-    const operator = operatorMap.get(expr.operator.type);
-    if (!empty(operator)) {
-      return this.checkOperator(
-        expr,
-        leftResult,
-        rightResult,
-        operator,
-      );
+    const operatorKind = operatorMap.get(expr.operator.type);
+    if (!empty(operatorKind)) {
+      switch (operatorKind) {
+        case OperatorKind.and:
+        case OperatorKind.or:
+          return this.checkLogical(expr, leftResult, rightResult);
+        default:
+          return this.checkBinary(expr, leftResult, rightResult, operatorKind);
+      }
     }
 
     throw new Error(
@@ -1037,48 +1044,27 @@ export class TypeChecker
 
   public visitUnary(expr: Expr.Unary): ITypeResultExpr<ArgumentType> {
     const result = this.checkExpr(expr.factor);
-    const errors: Diagnostics = result.errors;
-    let finalType: Maybe<ArgumentType> = undefined;
+    const errors = result.errors;
 
     switch (expr.operator.type) {
-      case TokenType.plus:
-      case TokenType.minus:
-        // TODO check if this is true
-        if (!coerce(result.type, scalarType)) {
-          errors.push(
-            createDiagnostic(
-              expr.factor,
-              '+/- only valid for a scalar type. ' +
-                'This may not able to be coerced into scalar type',
-              DiagnosticSeverity.Hint,
-            ),
-          );
-        }
-        finalType = scalarType;
-        break;
-      case TokenType.not:
-        if (!coerce(result.type, booleanType)) {
-          errors.push(
-            createDiagnostic(
-              expr.factor,
-              'Can only "not" a boolean type. ' +
-                'This may not able to be coerced into string type',
-              DiagnosticSeverity.Hint,
-            ),
-          );
-        }
-        finalType = booleanType;
-        break;
       case TokenType.defined:
-        finalType = booleanType;
-        break;
-      default:
-        throw new Error(
-          `Invalid Token ${expr.operator.typeString} for unary operator.`,
-        );
+        return {
+          errors,
+          type: booleanType,
+        };
+
+      case TokenType.minus:
+      case TokenType.not:
+      case TokenType.plus:
+        const operatorKind = operatorMap.get(expr.operator.type);
+        if (!empty(operatorKind)) {
+          return this.checkUnary(expr, result, operatorKind);
+        }
     }
 
-    return { errors, type: finalType };
+    throw new Error(
+      `Invalid Token ${expr.operator.typeString} for unary operator.`,
+    );
   }
   public visitFactor(expr: Expr.Factor): ITypeResultExpr<ArgumentType> {
     const suffixResult = this.checkExpr(expr.suffix);
@@ -1712,40 +1698,95 @@ export class TypeChecker
   }
 
   /**
+   * Check if unary operator is valid for this type
+   * @param expr unary expression
+   * @param subExpression the sub expression result
+   * @param operatorKind the kind of operator
+   */
+  private checkUnary(
+    expr: Expr.Unary,
+    subExpression: ITypeResultExpr<Type>,
+    operatorKind: OperatorKind,
+  ) {
+    const subType = subExpression.type;
+    const subOp = hasOperator(subType, operatorKind);
+    const errors = subExpression.errors;
+
+    // check if we support this unary operator
+    if (empty(subOp)) {
+      errors.push(this.operatorError(operatorKind, expr, subType));
+      return {
+        errors,
+        type: structureType,
+      };
+    }
+
+    // return the unary operator type
+    return {
+      errors,
+      type: subOp[0].returnType,
+    };
+  }
+
+  /**
+   * Check if a logical operator is valid for these operands
+   * @param expr underlying expression
+   * @param leftResult the left operand result
+   * @param rightResult the right operand result
+   */
+  private checkLogical(
+    expr: Expr.Binary,
+    leftResult: ITypeResultExpr<Type>,
+    rightResult: ITypeResultExpr<Type>,
+  ): ITypeResultExpr<ArgumentType> {
+    const leftType = leftResult.type;
+    const rightType = rightResult.type;
+    const errors = leftResult.errors.concat(rightResult.errors);
+
+    // check if left can be converted to a boolean
+    if (!coerce(leftType, booleanType)) {
+      errors.push(
+        createDiagnostic(
+          expr.left,
+          `${leftType.name} cannot be converted to a boolean`,
+          DiagnosticSeverity.Hint,
+        ),
+      );
+      return { errors, type: booleanType };
+    }
+
+    // check if right can be converted to a boolean
+    if (!coerce(rightType, booleanType)) {
+      errors.push(
+        createDiagnostic(
+          expr.right,
+          `${rightType.name} cannot be converted to a boolean`,
+          DiagnosticSeverity.Hint,
+        ),
+      );
+      return { errors, type: booleanType };
+    }
+
+    return { errors, type: booleanType };
+  }
+
+  /**
    * Check if the current operator is valid and it's resulting type
-   * @param expr the operator expresion
+   * @param expr the operator expression
    * @param leftResult the left type
    * @param rightResult the right type
    * @param operator the operator to consider
    */
-  private checkOperator(
-    expr: IExpr,
+  private checkBinary(
+    expr: Expr.Binary,
     leftResult: ITypeResultExpr<Type>,
     rightResult: ITypeResultExpr<Type>,
     operator: OperatorKind,
   ): ITypeResultExpr<ArgumentType> {
-
     const leftType = leftResult.type;
     const rightType = rightResult.type;
     const errors = leftResult.errors.concat(rightResult.errors);
     let calcType: Maybe<ArgumentType> = undefined;
-
-    if (operator === OperatorKind.boolean) {
-      if (
-        !isSubType(leftResult.type, booleanType) ||
-        !isSubType(leftResult.type, booleanType)
-      ) {
-        errors.push(
-          createDiagnostic(
-            expr,
-            '"and" and "or" require boolean types. May not be able to coerce one or other',
-            DiagnosticSeverity.Hint,
-          ),
-        );
-      }
-
-      return { errors, type: booleanType };
-    }
 
     // TODO could be more efficient
     if (isSubType(leftType, scalarType) && isSubType(rightType, scalarType)) {
@@ -1761,47 +1802,97 @@ export class TypeChecker
     ) {
       calcType = booleanType;
     } else {
-      const leftOp = hasOperator(leftType, operator);
-      const rightOp = hasOperator(rightType, operator);
+      const leftOps = hasOperator(leftType, operator);
+      const rightOps = hasOperator(rightType, operator);
 
-      if (empty(leftOp) && empty(rightOp)) {
+      if (empty(leftOps) && empty(rightOps)) {
+        errors.push(this.operatorError(operator, expr, leftType, rightType));
+
         return {
+          errors,
           type: structureType,
-          errors: errors.concat(
-            createDiagnostic(
-              expr,
-              `${leftType.name} nor ${rightType.name} have TODO operator`,
-              DiagnosticSeverity.Hint,
-            ),
-          ),
         };
       }
 
-      if (!empty(leftOp)) {
-        return { errors, type: leftOp };
+      if (!empty(leftOps)) {
+        const result = this.tryBinaryOperators(leftOps, rightType, errors);
+        if (!empty(result)) {
+          return result;
+        }
       }
-      if (!empty(rightOp)) {
-        return { errors, type: rightOp };
+      if (!empty(rightOps)) {
+        const result = this.tryBinaryOperators(rightOps, leftType, errors);
+        if (!empty(result)) {
+          return result;
+        }
       }
 
+      errors.push(this.operatorError(operator, expr, leftType, rightType));
       return { errors, type: structureType };
     }
 
-    const returnType = calcType.operators.get(operator);
-    if (empty(returnType)) {
-      return {
-        type: structureType,
-        errors: errors.concat(
-          createDiagnostic(
-            expr,
-            `${calcType.name} type does not have TODO operator`,
-            DiagnosticSeverity.Hint,
-          ),
-        ),
-      };
+    const calcOps = calcType.operators.get(operator);
+    if (!empty(calcOps)) {
+      const result = this.tryBinaryOperators(calcOps, leftType, errors);
+      if (!empty(result)) {
+        return result;
+      }
     }
 
-    return { errors, type: returnType };
+    errors.push(this.operatorError(operator, expr, leftType, rightType));
+    return { errors, type: structureType };
+  }
+
+  /**
+   * Report an error when an operator is not supported by the provided types
+   * @param operatorKind operator kind
+   * @param expr expression the error occurred in
+   * @param leftType the left type
+   * @param rightType the right type
+   */
+  private operatorError(
+    operatorKind: OperatorKind,
+    expr: IExpr,
+    leftType: Type,
+    rightType?: Type,
+  ): Diagnostic {
+    if (empty(rightType)) {
+      return createDiagnostic(
+        expr,
+        `${leftType.name} does not support the ${
+          OperatorKind[operatorKind]
+        } operator`,
+        DiagnosticSeverity.Hint,
+      );
+    }
+
+    return createDiagnostic(
+      expr,
+      `${leftType.name} nor ${rightType.name} supports the ${
+        OperatorKind[operatorKind]
+      } operator between them`,
+      DiagnosticSeverity.Hint,
+    );
+  }
+
+  /**
+   * Check if any of the available binary operators can work for the other operand
+   * @param operators the available operators for a given operator type
+   * @param otherType the type of the other operand
+   * @param errors the current set of errors
+   */
+  private tryBinaryOperators(
+    operators: Operator[],
+    otherType: Type,
+    errors: Diagnostics,
+  ): Maybe<ITypeResultExpr<ArgumentType>> {
+    for (const { otherOperand, returnType } of operators) {
+      if (!empty(otherOperand) && coerce(otherType, otherOperand)) {
+        return { errors, type: returnType };
+      }
+    }
+
+    return undefined;
   }
 
   /**

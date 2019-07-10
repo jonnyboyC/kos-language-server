@@ -1,4 +1,4 @@
-import { Type } from './types/types';
+import { Type, ArgumentType } from './types/types';
 import { Diagnostic } from 'vscode-languageserver';
 import { SuffixTypeBuilder } from './suffixTypeNode';
 
@@ -20,7 +20,9 @@ export interface ITypeResultExpr<T extends Type> {
 /**
  * type result for a kerboscript suffix
  */
-export interface ITypeResultSuffix<T extends SuffixTypeBuilder = SuffixTypeBuilder> {
+export interface ITypeResultSuffix<
+  T extends SuffixTypeBuilder = SuffixTypeBuilder
+> {
   /**
    * resolved cummulative suffix types
    */
@@ -53,9 +55,67 @@ export const enum CallKind {
 }
 
 /**
+ * Construct a binary operation for a given type
+ */
+export interface BinaryConstructor {
+  /**
+   * What is the operator
+   */
+  operator:
+    | OperatorKind.and
+    | OperatorKind.or
+    | OperatorKind.plus
+    | OperatorKind.subtract
+    | OperatorKind.multiply
+    | OperatorKind.divide
+    | OperatorKind.power
+    | OperatorKind.greaterThan
+    | OperatorKind.lessThan
+    | OperatorKind.greaterThanEqual
+    | OperatorKind.lessThanEqual
+    | OperatorKind.notEqual
+    | OperatorKind.equal;
+
+  /**
+   * What is the return type of this operator
+   */
+  returnType: ArgumentType;
+
+  /**
+   * What is the other type of the operator
+   */
+  other: ArgumentType;
+}
+
+/**
+ * Construct a unary operation for a given type
+ */
+export interface UnaryConstructor {
+  /**
+   * What is the operator
+   */
+  operator: OperatorKind.negate | OperatorKind.defined | OperatorKind.not;
+
+  /**
+   * What is the return type of this operator
+   */
+  returnType: ArgumentType;
+
+  /**
+   * What is the other type of this operator
+   */
+  other: undefined;
+}
+
+/**
  * What operator kind is present
  */
-export const enum OperatorKind {
+export enum OperatorKind {
+  not,
+  defined,
+  negate,
+  and,
+  or,
   plus,
   subtract,
   multiply,
@@ -67,5 +127,4 @@ export const enum OperatorKind {
   lessThanEqual,
   notEqual,
   equal,
-  boolean,
 }
