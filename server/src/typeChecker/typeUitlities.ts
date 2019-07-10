@@ -22,14 +22,11 @@ import {
   UnaryConstructor,
 } from './types';
 import { Operator } from './operator';
-import { structureType } from './types/primitives/structure';
 
 /**
- * This map token types to operator kinds
+ * This map token types to binary operator kinds
  */
-export const operatorMap: Map<TokenType, OperatorKind> = new Map([
-  [TokenType.not, OperatorKind.not],
-  [TokenType.defined, OperatorKind.defined],
+export const binaryOperatorMap: Map<TokenType, OperatorKind> = new Map([
   [TokenType.minus, OperatorKind.subtract],
   [TokenType.multi, OperatorKind.multiply],
   [TokenType.div, OperatorKind.divide],
@@ -42,6 +39,16 @@ export const operatorMap: Map<TokenType, OperatorKind> = new Map([
   [TokenType.or, OperatorKind.or],
   [TokenType.equal, OperatorKind.equal],
   [TokenType.notEqual, OperatorKind.notEqual],
+]);
+
+/**
+ * This maps tokens types to unary operator kinds
+ */
+export const unaryOperatorMap: Map<TokenType, OperatorKind> = new Map([
+  [TokenType.not, OperatorKind.not],
+  [TokenType.defined, OperatorKind.defined],
+  [TokenType.minus, OperatorKind.negate],
+  [TokenType.plus, OperatorKind.negate],
 ]);
 
 /**
@@ -144,10 +151,6 @@ export const hasOperator = (
  * @param suffix suffix string
  */
 export const hasSuffix = (type: Type, suffix: string): boolean => {
-  if (type === structureType) {
-    return true;
-  }
-
   if (type.kind === TypeKind.basic) {
     return moveUpSuperTypes(type, false, currentType => {
       if (currentType.suffixes.has(suffix)) {

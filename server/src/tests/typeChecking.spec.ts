@@ -1,7 +1,7 @@
 import { IScanResult } from '../scanner/types';
 import { IParseResult } from '../parser/types';
 import { SymbolTable } from '../analysis/symbolTable';
-import { Diagnostic } from 'vscode-languageserver';
+import { Diagnostic, Range, DiagnosticSeverity } from 'vscode-languageserver';
 import { Scanner } from '../scanner/scanner';
 import { Parser } from '../parser/parser';
 import { SymbolTableBuilder } from '../analysis/symbolTableBuilder';
@@ -25,6 +25,8 @@ import { userListType } from '../typeChecker/types/collections/userList';
 import { structureType } from '../typeChecker/types/primitives/structure';
 import { vectorType } from '../typeChecker/types/collections/vector';
 import { directionType } from '../typeChecker/types/direction';
+import { Marker } from '../entities/marker';
+import { zip } from '../utilities/arrayUtils';
 
 const fakeUri = 'C:\\fake.ks';
 
@@ -83,6 +85,12 @@ const checkSource = (
     typeCheckDiagnostics: typeCheckError,
     table: symbolTableBuilder.build(),
   };
+};
+
+const noResolverErrors = (result: ITypeCheckResults): void => {
+  expect(result.scan.scanErrors.length).toBe(0);
+  expect(result.parse.parseErrors.length).toBe(0);
+  expect(result.resolveDiagnostics.length).toBe(0);
 };
 
 const noErrors = (result: ITypeCheckResults): void => {
@@ -296,13 +304,23 @@ local n1 is -10.
 local n2 is -16.3.
 local n3 is +18.3.
 lock n4 to -v(1, 1, 1).
-local n5 is -q(1, 1, 1, 1).
+local n5 is +q(1, 1, 1, 1).
 
 print(n1).
 print(n2).
 print(n3).
 print(n4).
 print(n5).
+`;
+
+const unaryInvalidSource = `
+function f {}.
+
+local b1 is not f.
+local n1 is -"test".
+
+print(b1).
+print(n1).
 `;
 
 describe('Operators', () => {
@@ -333,5 +351,34 @@ describe('Operators', () => {
     symbolTests(names, 'n3', KsSymbolKind.variable, scalarType);
     symbolTests(names, 'n4', KsSymbolKind.lock, vectorType);
     symbolTests(names, 'n5', KsSymbolKind.variable, directionType);
+  });
+
+  const unaryLocations: Range[] = [
+    { start: new Marker(3, 16), end: new Marker(3, 17) },
+    { start: new Marker(4, 13), end: new Marker(4, 19) },
+  ];
+
+  test('unary invalid operators', () => {
+    const results = checkSource(unaryInvalidSource, true);
+    noResolverErrors(results);
+
+    const { table } = results;
+    const symbols = table.fileSymbols();
+    const names = new Map(
+      symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
+    );
+
+    symbolTests(names, 'b1', KsSymbolKind.variable, booleanType);
+    symbolTests(names, 'n1', KsSymbolKind.variable, structureType);
+
+    const sortedErrors = results.typeCheckDiagnostics.sort(
+      (a, b) => a.range.start.line - b.range.start.line,
+    );
+
+    for (const [error, location] of zip(sortedErrors, unaryLocations)) {
+      expect(error.severity).toBe(DiagnosticSeverity.Hint);
+      expect(location.start).toEqual(error.range.start);
+      expect(location.end).toEqual(error.range.end);
+    }
   });
 });

@@ -64,7 +64,7 @@ addOperators(
   },
   {
     operator: OperatorKind.negate,
-    returnType: booleanType,
+    returnType: vectorType,
     other: undefined,
   },
 );

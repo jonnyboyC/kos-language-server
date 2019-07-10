@@ -35,7 +35,8 @@ import {
   hasOperator,
   getSuffix,
   hasSuffix,
-  operatorMap,
+  binaryOperatorMap,
+  unaryOperatorMap,
 } from './typeUitlities';
 import { voidType } from './types/primitives/void';
 import { userListType } from './types/collections/userList';
@@ -1024,7 +1025,7 @@ export class TypeChecker
     const rightResult = this.checkExpr(expr.right);
     const leftResult = this.checkExpr(expr.left);
 
-    const operatorKind = operatorMap.get(expr.operator.type);
+    const operatorKind = binaryOperatorMap.get(expr.operator.type);
     if (!empty(operatorKind)) {
       switch (operatorKind) {
         case OperatorKind.and:
@@ -1071,7 +1072,7 @@ export class TypeChecker
 
       case TokenType.minus:
       case TokenType.plus:
-        const operatorKind = operatorMap.get(expr.operator.type);
+        const operatorKind = unaryOperatorMap.get(expr.operator.type);
         if (!empty(operatorKind)) {
           return this.checkUnary(expr, result, operatorKind);
         }
@@ -1727,19 +1728,17 @@ export class TypeChecker
     const subOp = hasOperator(subType, operatorKind);
     const errors = subExpression.errors;
 
-    // check if we support this unary operator
-    if (empty(subOp)) {
-      errors.push(this.operatorError(operatorKind, expr, subType));
-      return {
-        errors,
-        type: structureType,
-      };
+    if (!empty(subOp)) {
+      const result = this.tryUnaryOperators(subOp, errors);
+      if (!empty(result)) {
+        return result;
+      }
     }
 
-    // return the unary operator type
+    errors.push(this.operatorError(operatorKind, expr.factor, subType));
     return {
       errors,
-      type: subOp[0].returnType,
+      type: structureType,
     };
   }
 
@@ -1888,6 +1887,24 @@ export class TypeChecker
       } operator between them`,
       DiagnosticSeverity.Hint,
     );
+  }
+
+  /**
+   * Check if any of the available operators are in fact unary operands
+   * @param operators the available operators for a given operator type
+   * @param errors the current set of errors
+   */
+  private tryUnaryOperators(
+    operators: Operator[],
+    errors: Diagnostics,
+  ): Maybe<ITypeResultExpr<ArgumentType>> {
+    for (const operator of operators) {
+      if (operator.isUnary()) {
+        return { errors, type: operator.returnType };
+      }
+    }
+
+    return undefined;
   }
 
   /**
