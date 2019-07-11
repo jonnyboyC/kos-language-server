@@ -346,6 +346,30 @@ print(d2).
 print(t1).
 `;
 
+const binaryAdditionSource = `
+local s1 is 10 + 10.
+local str1 is "cat" + "dog".
+
+local v1 is v(1, 1, 1) + v(1, 1, 1).
+
+local d1 is q(1, 1, 1, 1) + v(1, 1, 1).
+local d2 is q(1, 1, 1, 1) + q(1, 1, 1, 1).
+
+local t1 is time + time.
+local t2 is time + 10.
+
+print(s1).
+print(str1).
+
+print(v1).
+
+print(d1).
+print(d2).
+
+print(t1).
+print(t2).
+`;
+
 describe('Operators', () => {
   test('unary operators', () => {
     const results = checkSource(unarySource, true);
@@ -424,5 +448,28 @@ describe('Operators', () => {
     symbolTests(names, 'd2', KsSymbolKind.variable, directionType);
 
     symbolTests(names, 't1', KsSymbolKind.variable, timeSpanType);
+  });
+
+  test('binary plus operators', () => {
+    const results = checkSource(binaryAdditionSource, true);
+    noErrors(results);
+
+    const { table } = results;
+    const symbols = table.fileSymbols();
+    const names = new Map(
+      symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
+    );
+
+    symbolTests(names, 's1', KsSymbolKind.variable, scalarType);
+
+    symbolTests(names, 'str1', KsSymbolKind.variable, stringType);
+
+    symbolTests(names, 'v1', KsSymbolKind.variable, vectorType);
+
+    symbolTests(names, 'd1', KsSymbolKind.variable, vectorType);
+    symbolTests(names, 'd2', KsSymbolKind.variable, directionType);
+
+    symbolTests(names, 't1', KsSymbolKind.variable, timeSpanType);
+    symbolTests(names, 't2', KsSymbolKind.variable, timeSpanType);
   });
 });
