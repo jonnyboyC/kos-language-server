@@ -1,27 +1,20 @@
 import { TokenType } from '../entities/tokentypes';
-import { ITokenMap, IScanResult, ScanKind } from './types';
+import {
+  ITokenMap,
+  ScanResult,
+  ScanKind,
+  TokenResult,
+  WhitespaceResult,
+  RegionResult,
+  DiagnosticResult,
+  Tokenized,
+} from './types';
 import { Token } from '../entities/token';
 import { empty } from '../utilities/typeGuards';
 import { mockLogger, mockTracer, logException } from '../utilities/logger';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
 import { createDiagnostic } from '../utilities/diagnosticsUtils';
 import { MutableMarker } from '../entities/marker';
-
-type Result<T, S extends ScanKind> = {
-  result: T;
-  kind: S;
-};
-
-type TokenResult = Result<Token, ScanKind.Token>;
-type WhitespaceResult = Result<null, ScanKind.Whitespace>;
-type DiagnosticResult = Result<Diagnostic, ScanKind.Diagnostic>;
-type RegionResult = Result<Token, ScanKind.Region>;
-
-type ScanResult =
-  | TokenResult
-  | WhitespaceResult
-  | DiagnosticResult
-  | RegionResult;
 
 /**
  * Class for scanning kerboscript files
@@ -153,7 +146,7 @@ export class Scanner {
   /**
    * scan all available tokens
    */
-  public scanTokens(): IScanResult {
+  public scanTokens(): Tokenized {
     try {
       // create arrays for valid tokens and encountered errors
       const tokens: Token[] = [];
@@ -196,7 +189,7 @@ export class Scanner {
         this.logger.warn(`Scanning encounter ${scanErrors.length} errors`);
       }
 
-      return { tokens, scanErrors };
+      return { tokens, scanErrors, regions };
     } catch (err) {
       this.logger.error('Error occurred in scanner');
       logException(this.logger, this.tracer, err, LogLevel.error);
@@ -204,6 +197,7 @@ export class Scanner {
       return {
         tokens: [],
         scanErrors: [],
+        regions: [],
       };
     }
   }

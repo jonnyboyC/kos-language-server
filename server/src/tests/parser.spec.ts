@@ -1,7 +1,7 @@
 import { readdirSync, statSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { Diagnostic } from 'vscode-languageserver';
-import { IScanResult } from '../scanner/types';
+import { Tokenized } from '../scanner/types';
 import { Scanner } from '../scanner/scanner';
 import {
   INodeResult,
@@ -9,7 +9,7 @@ import {
   Atom,
   SuffixTermTrailer,
   ScopeKind,
-  IParseResult,
+  ParseResult,
 } from '../parser/types';
 import { Parser } from '../parser/parser';
 import { TokenCheck } from '../parser/tokenCheck';
@@ -21,7 +21,7 @@ import { empty } from '../utilities/typeGuards';
 import * as SuffixTerm from '../parser/suffixTerm';
 
 // scan source file
-const scan = (source: string): IScanResult => {
+const scan = (source: string): Tokenized => {
   const scanner = new Scanner(source);
   return scanner.scanTokens();
 };
@@ -36,7 +36,7 @@ const parseExpression = (
 };
 
 // parse source expression
-const parse = (source: string): IParseResult => {
+const parse = (source: string): ParseResult => {
   const { tokens, scanErrors } = scan(source);
   expect(scanErrors.length).toBe(0);
 
@@ -565,7 +565,9 @@ describe('Parse expressions', () => {
             }
           });
         } else {
-          expect(value.trueBranch instanceof expression.trueArm.expr).toBe(true);
+          expect(value.trueBranch instanceof expression.trueArm.expr).toBe(
+            true,
+          );
         }
 
         if (
@@ -579,7 +581,9 @@ describe('Parse expressions', () => {
             }
           });
         } else {
-          expect(value.condition instanceof expression.condition.expr).toBe(true);
+          expect(value.condition instanceof expression.condition.expr).toBe(
+            true,
+          );
         }
 
         if (
@@ -593,7 +597,9 @@ describe('Parse expressions', () => {
             }
           });
         } else {
-          expect(value.falseBranch instanceof expression.falseArm.expr).toBe(true);
+          expect(value.falseBranch instanceof expression.falseArm.expr).toBe(
+            true,
+          );
         }
       }
     }
@@ -686,12 +692,7 @@ describe('Parse statement', () => {
 
   test('valid lock declarations', () => {
     const validDeclarations = [
-      lockDeclareTest(
-        'lock a to { return 10. }.',
-        'a',
-        Expr.Lambda,
-        undefined,
-      ),
+      lockDeclareTest('lock a to { return 10. }.', 'a', Expr.Lambda, undefined),
       lockDeclareTest(
         'local lock other to "example" + "another".',
         'other',

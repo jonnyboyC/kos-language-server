@@ -1,5 +1,5 @@
-import { IScanResult } from '../scanner/types';
-import { IParseResult } from '../parser/types';
+import { Tokenized } from '../scanner/types';
+import { ParseResult } from '../parser/types';
 import { SymbolTable } from '../analysis/symbolTable';
 import { Diagnostic, Range, DiagnosticSeverity } from 'vscode-languageserver';
 import { Scanner } from '../scanner/scanner';
@@ -35,8 +35,8 @@ primitiveInitializer();
 orbitalInitializer();
 
 interface ITypeCheckResults {
-  scan: IScanResult;
-  parse: IParseResult;
+  scan: Tokenized;
+  parse: ParseResult;
   table: SymbolTable;
   resolveDiagnostics: Diagnostic[];
   typeCheckDiagnostics: Diagnostic[];
@@ -75,14 +75,14 @@ const checkSource = (
 
   const preResolverError = functionResolver.resolve();
   const resolverErrors = resolver.resolve();
-  const ususedErrors = symbolTableBuilder.findUnused();
+  const unusedErrors = symbolTableBuilder.findUnused();
 
   const checker = new TypeChecker(result.parse.script);
   const typeCheckError = checker.check();
 
   return {
     ...result,
-    resolveDiagnostics: preResolverError.concat(resolverErrors, ususedErrors),
+    resolveDiagnostics: preResolverError.concat(resolverErrors, unusedErrors),
     typeCheckDiagnostics: typeCheckError,
     table: symbolTableBuilder.build(),
   };

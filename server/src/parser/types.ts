@@ -7,11 +7,11 @@ import { TokenType } from '../entities/tokentypes';
 import { NodeBase } from './base';
 import { Token } from '../entities/token';
 
-export interface IRangeSequence extends Range {
+export interface RangeSequence extends Range {
   ranges: Range[];
 }
 
-export interface IDeclScope extends IRangeSequence {
+export interface IDeclScope extends RangeSequence {
   declare?: Token;
   scope?: Token;
   type: ScopeKind;
@@ -32,7 +32,7 @@ export type Atom = SuffixTerm.Literal
   | SuffixTerm.Grouping
   | SuffixTerm.Invalid;
 
-export interface IParameter extends IRangeSequence {
+export interface IParameter extends RangeSequence {
   identifier: Token;
   toLines(): string[];
 }
@@ -44,7 +44,7 @@ export enum SyntaxKind {
   suffixTerm,
 }
 
-export interface IScript extends IRangeSequence {
+export interface IScript extends RangeSequence {
   lazyGlobal: boolean;
   stmts: IStmt[];
   runStmts: RunStmtType[];
@@ -58,7 +58,7 @@ export interface IScript extends IRangeSequence {
 export interface IStmt extends
   IStmtVisitable,
   IStmtPassable,
-  IRangeSequence {
+  RangeSequence {
   toLocation(uri: string): Location;
   toLines(): string[];
   toString(): string;
@@ -68,7 +68,7 @@ export interface IStmt extends
 export interface IExpr extends
   IExprVisitable,
   IExprPassable,
-  IRangeSequence {
+  RangeSequence {
   toLocation(uri: string): Location;
   toLines(): string[];
   toString(): string;
@@ -79,7 +79,7 @@ export interface ISuffixTerm extends
   ISuffixTermPassable,
   ISuffixTermVisitable,
   ISuffixTermParamVisitable,
-  IRangeSequence {
+  RangeSequence {
   toLocation(uri: string): Location;
   toString(): string;
   tag: SyntaxKind.suffixTerm;
@@ -154,12 +154,12 @@ export interface IParseError extends Range {
   inner: IParseError[];
 }
 
-export interface IParseResult {
+export interface ParseResult {
   script: IScript;
   parseErrors: IParseError[];
 }
 
-export interface ScriptResult extends IParseResult {
+export interface ScriptResult extends ParseResult {
   scanErrors: Diagnostic[];
 }
 
