@@ -1,6 +1,7 @@
 # kOS Language Server
 
 [![Build Status](https://dev.azure.com/johnchabot2013/KOS-Language-Server/_apis/build/status/jonnyboyC.kos-language-server?branchName=master)](https://dev.azure.com/johnchabot2013/KOS-Language-Server/_build/latest?definitionId=1&branchName=master)
+![Azure DevOps coverage (branch)](https://img.shields.io/azure-devops/coverage/johnchabot2013/KOS-Language-Server/1/master.svg)
 
 A language server for Kerboscript within the [KOS](https://github.com/KSP-KOS/KOS) mod for Kerbal Space Program. A [language server](https://langserver.org/) can provide features typical to an IDE language for the supported target language, in this case Kerboscript. 
 
