@@ -3,6 +3,8 @@
 ## Features
 - **Preserve Diagnostic** report a new error when the preserve keyword appears outside of a trigger scope. Previously preserve wouldn't trigger any warning when it appeared in an inappropriate place
 
+- **Improved Operator Type Checking** The internal type checker has been improved to better represent operators inside of kerboscript.
+
 ## Bug Fixes
 - **Trigger Return** Previously it returns were reported as error when they appeared inside of a trigger body. The return statement can be used as a more dynamic form of preserve when inside a trigger. It determines when trigger should remain active after its current execution.
 

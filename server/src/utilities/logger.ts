@@ -1,4 +1,4 @@
-import { empty } from "./typeGuards";
+import { empty } from './typeGuards';
 
 // dummy logger we may need for testing or just performance
 export const mockLogger: ILogger = {

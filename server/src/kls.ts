@@ -160,12 +160,12 @@ export class KLS {
     this.bodyLibrary = bodyLibraryBuilder(caseKind);
 
     this.observer = new PerformanceObserver(list => {
-      this.logger.info('');
-      this.logger.info('-------- Performance ---------');
+      this.logger.verbose('');
+      this.logger.verbose('-------- Performance ---------');
       for (const entry of list.getEntries()) {
-        this.logger.info(`${entry.name} took ${entry.duration} ms`);
+        this.logger.verbose(`${entry.name} took ${entry.duration} ms`);
       }
-      this.logger.info('------------------------------');
+      this.logger.verbose('------------------------------');
     });
     this.observer.observe({ entryTypes: ['measure'], buffered: true });
   }
@@ -969,7 +969,10 @@ export class KLS {
 
     // if any run statement exist get uri then load
     if (script.runStmts.length > 0 && this.documentService.ready) {
-      const { documents, diagnostics } = await this.loadDocuments(uri, script.runStmts);
+      const { documents, diagnostics } = await this.loadDocuments(
+        uri,
+        script.runStmts,
+      );
 
       yield diagnostics.map(error => addDiagnosticsUri(error, uri));
 
@@ -989,8 +992,8 @@ export class KLS {
       }
     }
 
-    this.logger.info('');
-    this.logger.info('-------------Semantic Analysis------------');
+    this.logger.verbose('');
+    this.logger.verbose('-------------Semantic Analysis------------');
 
     // generate a scope manager for resolving
     const symbolTableBuilder = new SymbolTableBuilder(uri, this.logger);
@@ -1051,9 +1054,11 @@ export class KLS {
 
     performance.mark('type-checking-start');
 
-    typeChecker.check().map(error => addDiagnosticsUri(error, uri));
+    const typeDiagnostics = typeChecker
+      .check()
+      .map(error => addDiagnosticsUri(error, uri));
 
-    // yield typeDiagnostics;
+    yield typeDiagnostics;
     performance.mark('type-checking-end');
 
     // measure performance
@@ -1083,11 +1088,11 @@ export class KLS {
         parserDiagnostics,
         preDiagnostics,
         resolverDiagnostics,
-        // typeDiagnostics,
+        typeDiagnostics,
       ),
     });
 
-    this.logger.info('--------------------------------------');
+    this.logger.verbose('--------------------------------------');
     performance.clearMarks();
 
     yield symbolTable;
@@ -1102,8 +1107,8 @@ export class KLS {
     uri: string,
     text: string,
   ): Promise<ScriptResult> {
-    this.logger.info('');
-    this.logger.info('-------------Lexical Analysis------------');
+    this.logger.verbose('');
+    this.logger.verbose('-------------Lexical Analysis------------');
 
     performance.mark('scanner-start');
     const scanner = new Scanner(text, uri, this.logger, this.tracer);
@@ -1125,7 +1130,7 @@ export class KLS {
     performance.measure('Parser', 'parser-start', 'parser-end');
     performance.clearMarks();
 
-    this.logger.info('--------------------------------------');
+    this.logger.verbose('--------------------------------------');
 
     return {
       scanErrors,
@@ -1138,21 +1143,24 @@ export class KLS {
    * @param uri uri of the calling document
    * @param runStmts run statements in the document
    */
-  private async loadDocuments(uri: string, runStmts: RunStmtType[]): Promise<LoadedDocuments> {
+  private async loadDocuments(
+    uri: string,
+    runStmts: RunStmtType[],
+  ): Promise<LoadedDocuments> {
     const documents: TextDocument[] = [];
     const diagnostics: Diagnostic[] = [];
 
     for (const runStmt of runStmts) {
-
       // attempt to get a resolvable path from a run statement
       const path = runPath(runStmt);
       if (typeof path === 'string') {
-
         // attempt to load document
-        const document = await this.documentService.loadDocument(runStmt.toLocation(uri), path);
+        const document = await this.documentService.loadDocument(
+          runStmt.toLocation(uri),
+          path,
+        );
 
         if (!empty(document)) {
-
           // determine if document or diagnostic
           if (TextDocument.is(document)) {
             documents.push(document);

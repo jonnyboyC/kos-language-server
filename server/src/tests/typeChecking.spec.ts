@@ -1,7 +1,7 @@
 import { IScanResult } from '../scanner/types';
 import { IParseResult } from '../parser/types';
 import { SymbolTable } from '../analysis/symbolTable';
-import { Diagnostic } from 'vscode-languageserver';
+import { Diagnostic, Range, DiagnosticSeverity } from 'vscode-languageserver';
 import { Scanner } from '../scanner/scanner';
 import { Parser } from '../parser/parser';
 import { SymbolTableBuilder } from '../analysis/symbolTableBuilder';
@@ -10,17 +10,24 @@ import { PreResolver } from '../analysis/preResolver';
 import { Resolver } from '../analysis/resolver';
 import { TypeChecker } from '../typeChecker/typeChecker';
 import { KsBaseSymbol, KsSymbolKind } from '../analysis/types';
-import { unWrap } from '../utilities/typeGuards';
+import { unWrap, empty } from '../utilities/typeGuards';
 import { booleanType } from '../typeChecker/types/primitives/boolean';
 import { primitiveInitializer } from '../typeChecker/types/primitives/initialize';
 import { orbitalInitializer } from '../typeChecker/types/orbital/initialize';
 import { Type } from '../typeChecker/types/types';
-import { doubleType, integerType } from '../typeChecker/types/primitives/scalar';
+import {
+  doubleType,
+  integerType,
+  scalarType,
+} from '../typeChecker/types/primitives/scalar';
 import { stringType } from '../typeChecker/types/primitives/string';
 import { userListType } from '../typeChecker/types/collections/userList';
 import { structureType } from '../typeChecker/types/primitives/structure';
-// import { pathType } from '../typeChecker/types/io/path';
-// import { listType } from '../typeChecker/types/collections/list';
+import { vectorType } from '../typeChecker/types/collections/vector';
+import { directionType } from '../typeChecker/types/direction';
+import { Marker } from '../entities/marker';
+import { zip } from '../utilities/arrayUtils';
+import { timeSpanType } from '../typeChecker/types/timespan';
 
 const fakeUri = 'C:\\fake.ks';
 
@@ -79,6 +86,12 @@ const checkSource = (
     typeCheckDiagnostics: typeCheckError,
     table: symbolTableBuilder.build(),
   };
+};
+
+const noResolverErrors = (result: ITypeCheckResults): void => {
+  expect(result.scan.scanErrors.length).toBe(0);
+  expect(result.parse.parseErrors.length).toBe(0);
+  expect(result.resolveDiagnostics.length).toBe(0);
 };
 
 const noErrors = (result: ITypeCheckResults): void => {
@@ -172,7 +185,7 @@ const symbolTests = (
   symbols: Map<string, KsBaseSymbol>,
   name: string,
   symbolKind: KsSymbolKind,
-  targetType: Type,
+  targetType?: Type,
 ) => {
   expect(symbols.has(name)).toBe(true);
   const nameWrap = symbols.get(name);
@@ -185,8 +198,10 @@ const symbolTests = (
 
   expect(nameUnWrap.name.tracker).not.toBeUndefined();
 
-  const nameTrack = unWrap(nameUnWrap.name.tracker);
-  expect(nameTrack.declared.type).toBe(targetType);
+  if (!empty(targetType)) {
+    const nameTrack = unWrap(nameUnWrap.name.tracker);
+    expect(nameTrack.declared.type).toBe(targetType);
+  }
 };
 
 describe('Basic inferring', () => {
@@ -262,5 +277,199 @@ describe('Basic inferring', () => {
 
     // symbolTests(names, 'x3', KsSymbolKind.variable, stringType);
     // symbolTests(names, 'i3', KsSymbolKind.variable, stringType);
+  });
+});
+
+const unarySource = `
+function f { }
+local x is 10.
+lock l to x.
+
+local d1 is defined f.
+local d2 is defined x.
+local d3 is defined l.
+
+print(d1).
+print(d2).
+print(d3).
+
+local b1 is not true.
+local b2 is not false.
+local b3 is not (10 > 5).
+
+print(b1).
+print(b2).
+print(b3).
+
+local n1 is -10.
+local n2 is -16.3.
+local n3 is +18.3.
+lock n4 to -v(1, 1, 1).
+local n5 is +q(1, 1, 1, 1).
+
+print(n1).
+print(n2).
+print(n3).
+print(n4).
+print(n5).
+`;
+
+const unaryInvalidSource = `
+function f {}.
+
+local b1 is not f.
+local n1 is -"test".
+
+print(b1).
+print(n1).
+`;
+
+const binaryMultiplicationSource = `
+local s1 is 10 * 10.
+
+local v1 is v(1, 1, 1) * v(1, 1, 1).
+local v2 is v(1, 1, 1) * 10.
+
+local d1 is q(1, 1, 1, 1) * v(1, 1, 1).
+local d2 is q(1, 1, 1, 1) * q(1, 1, 1, 1).
+
+local t1 is time * 10.
+
+print(s1).
+
+print(v1).
+print(v2).
+
+print(d1).
+print(d2).
+
+print(t1).
+`;
+
+const binaryAdditionSource = `
+local s1 is 10 + 10.
+local str1 is "cat" + "dog".
+
+local v1 is v(1, 1, 1) + v(1, 1, 1).
+
+local d1 is q(1, 1, 1, 1) + v(1, 1, 1).
+local d2 is q(1, 1, 1, 1) + q(1, 1, 1, 1).
+
+local t1 is time + time.
+local t2 is time + 10.
+
+print(s1).
+print(str1).
+
+print(v1).
+
+print(d1).
+print(d2).
+
+print(t1).
+print(t2).
+`;
+
+describe('Operators', () => {
+  test('unary operators', () => {
+    const results = checkSource(unarySource, true);
+    noErrors(results);
+
+    const { table } = results;
+    const symbols = table.fileSymbols();
+    const names = new Map(
+      symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
+    );
+
+    symbolTests(names, 'f', KsSymbolKind.function);
+    symbolTests(names, 'x', KsSymbolKind.variable, integerType);
+    symbolTests(names, 'l', KsSymbolKind.lock, integerType);
+
+    symbolTests(names, 'd1', KsSymbolKind.variable, booleanType);
+    symbolTests(names, 'd2', KsSymbolKind.variable, booleanType);
+    symbolTests(names, 'd3', KsSymbolKind.variable, booleanType);
+
+    symbolTests(names, 'b1', KsSymbolKind.variable, booleanType);
+    symbolTests(names, 'b2', KsSymbolKind.variable, booleanType);
+    symbolTests(names, 'b3', KsSymbolKind.variable, booleanType);
+
+    symbolTests(names, 'n1', KsSymbolKind.variable, scalarType);
+    symbolTests(names, 'n2', KsSymbolKind.variable, scalarType);
+    symbolTests(names, 'n3', KsSymbolKind.variable, scalarType);
+    symbolTests(names, 'n4', KsSymbolKind.lock, vectorType);
+    symbolTests(names, 'n5', KsSymbolKind.variable, directionType);
+  });
+
+  const unaryLocations: Range[] = [
+    { start: new Marker(3, 16), end: new Marker(3, 17) },
+    { start: new Marker(4, 13), end: new Marker(4, 19) },
+  ];
+
+  test('unary invalid operators', () => {
+    const results = checkSource(unaryInvalidSource, true);
+    noResolverErrors(results);
+
+    const { table } = results;
+    const symbols = table.fileSymbols();
+    const names = new Map(
+      symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
+    );
+
+    symbolTests(names, 'b1', KsSymbolKind.variable, booleanType);
+    symbolTests(names, 'n1', KsSymbolKind.variable, structureType);
+
+    const sortedErrors = results.typeCheckDiagnostics.sort(
+      (a, b) => a.range.start.line - b.range.start.line,
+    );
+
+    for (const [error, location] of zip(sortedErrors, unaryLocations)) {
+      expect(error.severity).toBe(DiagnosticSeverity.Hint);
+      expect(location.start).toEqual(error.range.start);
+      expect(location.end).toEqual(error.range.end);
+    }
+  });
+
+  test('binary multiplication operators', () => {
+    const results = checkSource(binaryMultiplicationSource, true);
+    noErrors(results);
+
+    const { table } = results;
+    const symbols = table.fileSymbols();
+    const names = new Map(
+      symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
+    );
+
+    symbolTests(names, 's1', KsSymbolKind.variable, scalarType);
+
+    symbolTests(names, 'v1', KsSymbolKind.variable, scalarType);
+    symbolTests(names, 'v2', KsSymbolKind.variable, vectorType);
+
+    symbolTests(names, 'd1', KsSymbolKind.variable, vectorType);
+    symbolTests(names, 'd2', KsSymbolKind.variable, directionType);
+
+    symbolTests(names, 't1', KsSymbolKind.variable, timeSpanType);
+  });
+
+  test('binary plus operators', () => {
+    const results = checkSource(binaryAdditionSource, true);
+    noErrors(results);
+
+    const { table } = results;
+    const symbols = table.fileSymbols();
+    const names = new Map(
+      symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
+    );
+
+    symbolTests(names, 's1', KsSymbolKind.variable, scalarType);
+
+    symbolTests(names, 'str1', KsSymbolKind.variable, stringType);
+
+    symbolTests(names, 'v1', KsSymbolKind.variable, vectorType);
+
+    symbolTests(names, 'd1', KsSymbolKind.variable, vectorType);
+    symbolTests(names, 'd2', KsSymbolKind.variable, directionType);
+
+    symbolTests(names, 't1', KsSymbolKind.variable, timeSpanType);
+    symbolTests(names, 't2', KsSymbolKind.variable, timeSpanType);
   });
 });

@@ -5,7 +5,7 @@ import {
   createSuffixType,
   createSetSuffixType,
 } from '../../typeCreators';
-import { addPrototype, addSuffixes } from '../../typeUitlities';
+import { addPrototype, addSuffixes, addOperators } from '../../typeUitlities';
 import { structureType } from '../primitives/structure';
 import { directionType } from '../direction';
 import { vectorType } from '../collections/vector';
@@ -17,6 +17,7 @@ import { booleanType } from '../primitives/boolean';
 import { partModuleType } from './partModule';
 import { vesselTargetType } from '../orbital/vesselTarget';
 import { resourceType } from './resource';
+import { OperatorKind } from '../../types';
 
 export const partType: ArgumentType = createStructureType('part');
 addPrototype(partType, structureType);
@@ -52,4 +53,18 @@ addSuffixes(
   createSuffixType('mass', scalarType),
   createSuffixType('wetMass', scalarType),
   createSuffixType('hasPhysics', booleanType),
+);
+
+addOperators(
+  partType,
+  {
+    operator: OperatorKind.equal,
+    other: partType,
+    returnType: booleanType,
+  },
+  {
+    operator: OperatorKind.notEqual,
+    other: partType,
+    returnType: booleanType,
+  },
 );
