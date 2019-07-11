@@ -25,6 +25,7 @@ import {
   DocumentSymbolParams,
   SymbolInformation,
   TextDocument,
+  FoldingRangeParams,
 } from 'vscode-languageserver';
 import {
   IDocumentInfo,
@@ -85,6 +86,7 @@ import { isValidIdentifier } from './entities/tokentypes';
 import { tokenTrackedType } from './typeChecker/typeUitlities';
 import { TypeKind } from './typeChecker/types';
 import { DocumentLoader, Document } from './utilities/documentLoader';
+import { FoldingRange } from 'vscode-languageserver-protocol/lib/protocol.foldingRange';
 
 export class KLS {
   /**
@@ -188,6 +190,7 @@ export class KLS {
     this.connection.onSignatureHelp(this.onSignatureHelp.bind(this));
     this.connection.onDocumentSymbol(this.onDocumentSymbol.bind(this));
     this.connection.onDefinition(this.onDefinition.bind(this));
+    this.connection.onFoldingRanges(this.onFoldingRange.bind(this));
 
     this.documentService.onChange(this.onChange.bind(this));
 
@@ -248,6 +251,7 @@ export class KLS {
         referencesProvider: true,
         documentSymbolProvider: true,
         definitionProvider: true,
+        foldingRangeProvider: true,
       },
     };
   }
@@ -574,6 +578,15 @@ export class KLS {
 
     const location = this.getDeclarationLocation(position, uri);
     return location && cleanLocation(location);
+  }
+
+  /**
+   * This handler provide folding region capabilities. The client will ask for available folding
+   * region in which this will respond with the ranges defined by #region and #endregion
+   * @param _ the document to preform folding analysis on
+   */
+  private onFoldingRange(_: FoldingRangeParams): FoldingRange[] {
+    return [];
   }
 
   /**
