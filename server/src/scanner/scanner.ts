@@ -306,7 +306,7 @@ export class Scanner {
 
     const region = regions.get(text);
 
-    this.advanceWhitespace();
+    this.advanceEndOfLine();
     return empty(region)
       ? this.whiteSpaceResult
       : this.generateRegion(region.type);
