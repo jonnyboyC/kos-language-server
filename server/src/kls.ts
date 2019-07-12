@@ -25,6 +25,9 @@ import {
   DocumentSymbolParams,
   SymbolInformation,
   TextDocument,
+  FoldingRangeParams,
+  FoldingRange,
+  FoldingRangeKind,
 } from 'vscode-languageserver';
 import {
   IDocumentInfo,
@@ -46,6 +49,7 @@ import {
   SymbolTracker,
   KsBaseSymbol,
   TrackerKind,
+  IStack,
 } from './analysis/types';
 import { mockLogger, mockTracer, logException } from './utilities/logger';
 import { empty } from './utilities/typeGuards';
@@ -81,7 +85,7 @@ import {
   cleanPosition,
   cleanLocation,
 } from './utilities/clean';
-import { isValidIdentifier } from './entities/tokentypes';
+import { isValidIdentifier, TokenType } from './entities/tokentypes';
 import { tokenTrackedType } from './typeChecker/typeUitlities';
 import { TypeKind } from './typeChecker/types';
 import { DocumentLoader, Document } from './utilities/documentLoader';
@@ -160,12 +164,12 @@ export class KLS {
     this.bodyLibrary = bodyLibraryBuilder(caseKind);
 
     this.observer = new PerformanceObserver(list => {
-      this.logger.info('');
-      this.logger.info('-------- Performance ---------');
+      this.logger.verbose('');
+      this.logger.verbose('-------- Performance ---------');
       for (const entry of list.getEntries()) {
-        this.logger.info(`${entry.name} took ${entry.duration} ms`);
+        this.logger.verbose(`${entry.name} took ${entry.duration} ms`);
       }
-      this.logger.info('------------------------------');
+      this.logger.verbose('------------------------------');
     });
     this.observer.observe({ entryTypes: ['measure'], buffered: true });
   }
@@ -188,6 +192,7 @@ export class KLS {
     this.connection.onSignatureHelp(this.onSignatureHelp.bind(this));
     this.connection.onDocumentSymbol(this.onDocumentSymbol.bind(this));
     this.connection.onDefinition(this.onDefinition.bind(this));
+    this.connection.onFoldingRanges(this.onFoldingRange.bind(this));
 
     this.documentService.onChange(this.onChange.bind(this));
 
@@ -248,6 +253,7 @@ export class KLS {
         referencesProvider: true,
         documentSymbolProvider: true,
         definitionProvider: true,
+        foldingRangeProvider: true,
       },
     };
   }
@@ -577,6 +583,44 @@ export class KLS {
   }
 
   /**
+   * This handler provide folding region capabilities. The client will ask for available folding
+   * region in which this will respond with the ranges defined by #region and #endregion
+   * @param foldingParams the document to preform folding analysis on
+   */
+  private onFoldingRange(foldingParams: FoldingRangeParams): FoldingRange[] {
+    const { uri } = foldingParams.textDocument;
+    const documentInfo = this.documentInfos.get(uri);
+
+    if (empty(documentInfo)) {
+      return [];
+    }
+
+    const { regions } = documentInfo;
+    const regionStack: IStack<Token> = [];
+    const foldingRanges: FoldingRange[] = [];
+
+    for (const region of regions) {
+      if (region.type === TokenType.region) {
+        regionStack.push(region);
+      } else {
+        const beginRegion = regionStack.pop();
+
+        if (!empty(beginRegion)) {
+          foldingRanges.push({
+            startCharacter: beginRegion.start.character,
+            startLine: beginRegion.start.line,
+            endCharacter: region.end.character,
+            endLine: region.end.line,
+            kind: FoldingRangeKind.Region,
+          });
+        }
+      }
+    }
+
+    return foldingRanges;
+  }
+
+  /**
    * Respond to updates made to document by the client. This method
    * will parse and update the internal state of affects scripts
    * reporting errors to the client as they are discovered
@@ -771,14 +815,14 @@ export class KLS {
     const documentInfo = this.documentInfos.get(uri);
     if (
       empty(documentInfo) ||
-      empty(documentInfo.symbolsTable) ||
+      empty(documentInfo.symbolTable) ||
       empty(documentInfo.script)
     ) {
       return undefined;
     }
 
     // try to find the symbol at the position
-    const { symbolsTable, script } = documentInfo;
+    const { symbolTable: symbolsTable, script } = documentInfo;
     const finder = new ScriptFind();
     const result = finder.find(script, pos);
 
@@ -821,8 +865,8 @@ export class KLS {
   public getScopedSymbols(pos: Position, uri: string): KsBaseSymbol[] {
     const documentInfo = this.documentInfos.get(uri);
 
-    if (!empty(documentInfo) && !empty(documentInfo.symbolsTable)) {
-      return documentInfo.symbolsTable.scopedSymbols(pos);
+    if (!empty(documentInfo) && !empty(documentInfo.symbolTable)) {
+      return documentInfo.symbolTable.scopedSymbols(pos);
     }
 
     return [];
@@ -835,8 +879,8 @@ export class KLS {
   public getAllFileSymbols(uri: string): KsSymbol[] {
     const documentInfo = this.documentInfos.get(uri);
 
-    if (!empty(documentInfo) && !empty(documentInfo.symbolsTable)) {
-      return documentInfo.symbolsTable.fileSymbols();
+    if (!empty(documentInfo) && !empty(documentInfo.symbolTable)) {
+      return documentInfo.symbolTable.fileSymbols();
     }
 
     return [];
@@ -948,10 +992,12 @@ export class KLS {
       return { diagnostics: [] };
     }
 
-    const { script, parseErrors, scanErrors } = await this.parseDocument(
-      uri,
-      text,
-    );
+    const {
+      script,
+      regions,
+      parseErrors,
+      scanErrors,
+    } = await this.parseDocument(uri, text);
     const symbolTables: SymbolTable[] = [];
 
     const scanDiagnostics = scanErrors.map(scanError =>
@@ -969,7 +1015,10 @@ export class KLS {
 
     // if any run statement exist get uri then load
     if (script.runStmts.length > 0 && this.documentService.ready) {
-      const { documents, diagnostics } = await this.loadDocuments(uri, script.runStmts);
+      const { documents, diagnostics } = await this.loadDocuments(
+        uri,
+        script.runStmts,
+      );
 
       yield diagnostics.map(error => addDiagnosticsUri(error, uri));
 
@@ -989,8 +1038,8 @@ export class KLS {
       }
     }
 
-    this.logger.info('');
-    this.logger.info('-------------Semantic Analysis------------');
+    this.logger.verbose('');
+    this.logger.verbose('-------------Semantic Analysis------------');
 
     // generate a scope manager for resolving
     const symbolTableBuilder = new SymbolTableBuilder(uri, this.logger);
@@ -1051,9 +1100,11 @@ export class KLS {
 
     performance.mark('type-checking-start');
 
-    typeChecker.check().map(error => addDiagnosticsUri(error, uri));
+    const typeDiagnostics = typeChecker
+      .check()
+      .map(error => addDiagnosticsUri(error, uri));
 
-    // yield typeDiagnostics;
+    yield typeDiagnostics;
     performance.mark('type-checking-end');
 
     // measure performance
@@ -1072,22 +1123,23 @@ export class KLS {
     // make sure to delete references so scope manager can be gc'ed
     let documentInfo: Maybe<IDocumentInfo> = this.documentInfos.get(uri);
     if (!empty(documentInfo)) {
-      documentInfo.symbolsTable.removeSelf();
+      documentInfo.symbolTable.removeSelf();
       documentInfo = undefined;
     }
 
     this.documentInfos.set(uri, {
       script,
-      symbolsTable: symbolTable,
+      regions,
+      symbolTable,
       diagnostics: scanDiagnostics.concat(
         parserDiagnostics,
         preDiagnostics,
         resolverDiagnostics,
-        // typeDiagnostics,
+        typeDiagnostics,
       ),
     });
 
-    this.logger.info('--------------------------------------');
+    this.logger.verbose('--------------------------------------');
     performance.clearMarks();
 
     yield symbolTable;
@@ -1102,12 +1154,12 @@ export class KLS {
     uri: string,
     text: string,
   ): Promise<ScriptResult> {
-    this.logger.info('');
-    this.logger.info('-------------Lexical Analysis------------');
+    this.logger.verbose('');
+    this.logger.verbose('-------------Lexical Analysis------------');
 
     performance.mark('scanner-start');
     const scanner = new Scanner(text, uri, this.logger, this.tracer);
-    const { tokens, scanErrors } = scanner.scanTokens();
+    const { tokens, scanErrors, regions } = scanner.scanTokens();
     performance.mark('scanner-end');
 
     // if scanner found errors report those immediately
@@ -1125,10 +1177,11 @@ export class KLS {
     performance.measure('Parser', 'parser-start', 'parser-end');
     performance.clearMarks();
 
-    this.logger.info('--------------------------------------');
+    this.logger.verbose('--------------------------------------');
 
     return {
       scanErrors,
+      regions,
       ...result,
     };
   }
@@ -1138,21 +1191,24 @@ export class KLS {
    * @param uri uri of the calling document
    * @param runStmts run statements in the document
    */
-  private async loadDocuments(uri: string, runStmts: RunStmtType[]): Promise<LoadedDocuments> {
+  private async loadDocuments(
+    uri: string,
+    runStmts: RunStmtType[],
+  ): Promise<LoadedDocuments> {
     const documents: TextDocument[] = [];
     const diagnostics: Diagnostic[] = [];
 
     for (const runStmt of runStmts) {
-
       // attempt to get a resolvable path from a run statement
       const path = runPath(runStmt);
       if (typeof path === 'string') {
-
         // attempt to load document
-        const document = await this.documentService.loadDocument(runStmt.toLocation(uri), path);
+        const document = await this.documentService.loadDocument(
+          runStmt.toLocation(uri),
+          path,
+        );
 
         if (!empty(document)) {
-
           // determine if document or diagnostic
           if (TextDocument.is(document)) {
             documents.push(document);

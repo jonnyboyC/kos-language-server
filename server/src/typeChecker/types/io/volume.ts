@@ -1,5 +1,10 @@
 import { ArgumentType } from '../types';
-import { createStructureType, createArgSuffixType, createSuffixType, createSetSuffixType } from "../../typeCreators";
+import {
+  createStructureType,
+  createArgSuffixType,
+  createSuffixType,
+  createSetSuffixType,
+} from '../../typeCreators';
 import { addPrototype, addSuffixes } from '../../typeUitlities';
 import { structureType } from '../primitives/structure';
 import { volumeDirectoryType } from './volumeDirectory';

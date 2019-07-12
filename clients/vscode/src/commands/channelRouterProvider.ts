@@ -60,7 +60,10 @@ class KosOutputChannel implements OutputChannel {
     this.log += value;
     switch (this.output) {
       case OutputChannelKind.websocket:
-        if (this.socket !== undefined && this.socket.readyState === WebSocket.OPEN) {
+        if (
+          this.socket !== undefined &&
+          this.socket.readyState === WebSocket.OPEN
+        ) {
           this.socket.send(this.log);
           break;
         }
@@ -75,7 +78,10 @@ class KosOutputChannel implements OutputChannel {
     this.log += value;
     switch (this.output) {
       case OutputChannelKind.websocket:
-        if (this.socket !== undefined && this.socket.readyState === WebSocket.OPEN) {
+        if (
+          this.socket !== undefined &&
+          this.socket.readyState === WebSocket.OPEN
+        ) {
           this.socket.send(this.log);
           break;
         }
@@ -137,17 +143,17 @@ class KosOutputChannel implements OutputChannel {
   }
 }
 
-export const channelRouter = new KosOutputChannel('kOS (Kerboscript)')
+export const channelRouter = new KosOutputChannel('kOS (Kerboscript)');
 
 export const inspectorChannelProvider: IKosCommand = {
   command: 'kos.startLspLog',
   commandCallback: async () => {
     try {
       // get configuration
-      const configruation = workspace.getConfiguration('kos-vscode');
+      const configuration = workspace.getConfiguration('kos-vscode');
 
       // determine host and port
-      const lspPort = configruation.get('lspPort', 7000);
+      const lspPort = configuration.get('lspPort', 7000);
 
       // create websocket
       channelRouter.routeSocket(lspPort);

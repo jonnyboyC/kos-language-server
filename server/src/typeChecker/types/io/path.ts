@@ -6,7 +6,7 @@ import {
   createVarSuffixType,
   createVarType,
 } from '../../typeCreators';
-import { addPrototype, addSuffixes } from '../../typeUitlities';
+import { addPrototype, addSuffixes, addOperators } from '../../typeUitlities';
 import { structureType } from '../primitives/structure';
 import { volumeType } from './volume';
 import { integerType } from '../primitives/scalar';
@@ -14,6 +14,7 @@ import { stringType } from '../primitives/string';
 import { booleanType } from '../primitives/boolean';
 import { serializableStructureType } from '../primitives/serializeableStructure';
 import { listType } from '../collections/list';
+import { OperatorKind } from '../../types';
 
 export const pathType: ArgumentType = createStructureType('path');
 addPrototype(pathType, serializableStructureType);
@@ -32,4 +33,18 @@ addSuffixes(
   createArgSuffixType('changeName', pathType, stringType),
   createArgSuffixType('changeExtension', pathType, stringType),
   createVarSuffixType('combine', pathType, createVarType(structureType)),
+);
+
+addOperators(
+  pathType,
+  {
+    operator: OperatorKind.equal,
+    other: pathType,
+    returnType: booleanType,
+  },
+  {
+    operator: OperatorKind.notEqual,
+    other: pathType,
+    returnType: booleanType,
+  },
 );

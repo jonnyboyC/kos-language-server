@@ -60,7 +60,7 @@ describe('Type Utilities', () => {
     expect(isSubType(booleanType, partType)).toBe(false);
     expect(isSubType(booleanType, dockingPortType)).toBe(false);
 
-    expect(isSubType(structureType, booleanType)).toBe(false);
+    expect(isSubType(structureType, stringType)).toBe(false);
     expect(isSubType(structureType, booleanType)).toBe(false);
     expect(isSubType(structureType, structureType)).toBe(true);
     expect(isSubType(structureType, partType)).toBe(false);

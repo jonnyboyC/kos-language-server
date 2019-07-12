@@ -1,22 +1,20 @@
 import { TokenType } from '../entities/tokentypes';
-import { ITokenMap, IScanResult, ScanKind } from './types';
+import {
+  ITokenMap,
+  ScanResult,
+  ScanKind,
+  TokenResult,
+  WhitespaceResult,
+  RegionResult,
+  DiagnosticResult,
+  Tokenized,
+} from './types';
 import { Token } from '../entities/token';
 import { empty } from '../utilities/typeGuards';
 import { mockLogger, mockTracer, logException } from '../utilities/logger';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
 import { createDiagnostic } from '../utilities/diagnosticsUtils';
 import { MutableMarker } from '../entities/marker';
-
-type Result<T, S extends ScanKind> = {
-  result: T;
-  kind: S;
-};
-
-type TokenResult = Result<Token, ScanKind.Token>;
-type WhitespaceResult = Result<null, ScanKind.Whitespace>;
-type DiagnosticResult = Result<Diagnostic, ScanKind.Diagnostic>;
-
-type ScanResult = TokenResult | WhitespaceResult | DiagnosticResult;
 
 /**
  * Class for scanning kerboscript files
@@ -73,6 +71,11 @@ export class Scanner {
   private readonly whiteSpaceResult: WhitespaceResult;
 
   /**
+   * results for regions
+   */
+  private readonly regionResult: RegionResult;
+
+  /**
    * results for diagnostic
    */
   private readonly diagnosticResult: DiagnosticResult;
@@ -111,6 +114,18 @@ export class Scanner {
       kind: ScanKind.Token,
     };
 
+    this.regionResult = {
+      result: new Token(
+        TokenType.region,
+        'placeholder',
+        undefined,
+        { line: 0, character: 0 },
+        { line: 0, character: 0 },
+        'placeholder',
+      ),
+      kind: ScanKind.Region,
+    };
+
     this.whiteSpaceResult = {
       result: null,
       kind: ScanKind.Whitespace,
@@ -131,11 +146,12 @@ export class Scanner {
   /**
    * scan all available tokens
    */
-  public scanTokens(): IScanResult {
+  public scanTokens(): Tokenized {
     try {
       // create arrays for valid tokens and encountered errors
       const tokens: Token[] = [];
       const scanErrors: Diagnostic[] = [];
+      const regions: Token[] = [];
 
       const splits = this.uri.split('/');
       const file = splits[splits.length - 1];
@@ -158,6 +174,9 @@ export class Scanner {
           case ScanKind.Diagnostic:
             scanErrors.push(result.result);
             break;
+          case ScanKind.Region:
+            regions.push(result.result);
+            break;
           case ScanKind.Whitespace:
             break;
         }
@@ -170,7 +189,7 @@ export class Scanner {
         this.logger.warn(`Scanning encounter ${scanErrors.length} errors`);
       }
 
-      return { tokens, scanErrors };
+      return { tokens, scanErrors, regions };
     } catch (err) {
       this.logger.error('Error occurred in scanner');
       logException(this.logger, this.tracer, err, LogLevel.error);
@@ -178,6 +197,7 @@ export class Scanner {
       return {
         tokens: [],
         scanErrors: [],
+        regions: [],
       };
     }
   }
@@ -234,8 +254,7 @@ export class Scanner {
         return this.generateToken(TokenType.greater);
       case '/':
         if (this.match('/')) {
-          while (this.peek() !== '\n' && !this.isAtEnd()) this.increment();
-          return this.whiteSpaceResult;
+          return this.comment();
         }
         return this.generateToken(TokenType.div);
       case ' ':
@@ -255,7 +274,7 @@ export class Scanner {
           return this.identifier();
         }
         return this.generateError(
-          `Unexpected symbol, uncountered ${this.source.substr(
+          `Unexpected symbol, encountered ${this.source.substr(
             this.start,
             this.current - this.start,
           )}`,
@@ -264,12 +283,36 @@ export class Scanner {
   }
 
   /**
+   * Extract a comment or a region
+   */
+  private comment(): WhitespaceResult | RegionResult {
+    this.advanceWhitespace();
+    if (this.peek() !== '#') {
+      this.advanceEndOfLine();
+      return this.whiteSpaceResult;
+    }
+
+    this.increment();
+    const start = this.current;
+    while (this.isAlpha(this.peek())) this.increment();
+
+    const text = this.source.substr(start, this.current - start).toLowerCase();
+
+    const region = regions.get(text);
+
+    this.advanceEndOfLine();
+    return empty(region)
+      ? this.whiteSpaceResult
+      : this.generateRegion(region.type);
+  }
+
+  /**
    * extract any identifiers
    */
   private identifier(): TokenResult {
     while (this.isAlphaNumeric(this.peek())) this.increment();
 
-    // if "." immediatily followed by alpha numeri
+    // if "." immediately followed by alpha numeric
     if (this.peek() === '.' && this.isAlphaNumeric(this.peekNext())) {
       return this.fileIdentifier();
     }
@@ -362,7 +405,7 @@ export class Scanner {
 
     // unsure number follows exponent
     if (!this.isDigit(this.peekNext())) {
-      return this.generateError('Expected number following exponet e');
+      return this.generateError('Expected number following exponent e');
     }
 
     // advance exponent number
@@ -402,10 +445,19 @@ export class Scanner {
    * advance through whitespace
    */
   private advanceWhitespace(): void {
-    let current = this.peek();
-    while (this.isWhitespace(current)) {
+    // let current = this.peek();
+    while (this.isWhitespace(this.peek())) {
       this.increment();
-      current = this.peek();
+      // current = this.peek();
+    }
+  }
+
+  /**
+   * advance to end of line
+   */
+  private advanceEndOfLine(): void {
+    while (this.peek() !== '\n' && !this.isAtEnd()) {
+      this.increment();
     }
   }
 
@@ -429,10 +481,7 @@ export class Scanner {
    * @param literal optional literal
    * @param toLower should the lexeme be lowered
    */
-  private generateToken(
-    type: TokenType,
-    literal?: any,
-  ): TokenResult {
+  private generateToken(type: TokenType, literal?: any): TokenResult {
     const text = this.source.substr(this.start, this.current - this.start);
 
     const token = new Token(
@@ -446,6 +495,26 @@ export class Scanner {
 
     this.tokenResult.result = token;
     return this.tokenResult;
+  }
+
+  /**
+   * generate a region from provided token type
+   * @param type token type
+   */
+  private generateRegion(type: TokenType): RegionResult {
+    const text = this.source.substr(this.start, this.current - this.start);
+
+    const token = new Token(
+      type,
+      text,
+      undefined,
+      this.startPosition.toImmutable(),
+      this.currentPosition.toImmutable(),
+      this.uri,
+    );
+
+    this.regionResult.result = token;
+    return this.regionResult;
   }
 
   /**
@@ -507,7 +576,7 @@ export class Scanner {
   }
 
   /**
-   * Peek the current chacter return null character is past
+   * Peek the current character return null character is past
    * the end
    */
   private peek(): string {
@@ -725,4 +794,10 @@ const keywords: ITokenMap = new Map([
   ['volume', { type: TokenType.volume }],
   ['wait', { type: TokenType.wait }],
   ['when', { type: TokenType.when }],
+]);
+
+// region map
+const regions: ITokenMap = new Map([
+  ['region', { type: TokenType.region }],
+  ['endregion', { type: TokenType.endRegion }],
 ]);

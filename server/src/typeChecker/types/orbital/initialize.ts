@@ -1,4 +1,4 @@
-import { addPrototype, addSuffixes } from '../../typeUitlities';
+import { addPrototype, addSuffixes, addOperators } from '../../typeUitlities';
 import { orbitableType } from './orbitable';
 import { serializableStructureType } from '../primitives/serializeableStructure';
 import { createSuffixType, createArgSuffixType } from '../../typeCreators';
@@ -29,6 +29,7 @@ import { vesselTargetType } from './vesselTarget';
 import { partModuleType } from '../parts/partModule';
 import { crewType } from '../crew';
 import { vesselSensorsType } from '../vessel/vesselSensors';
+import { OperatorKind } from '../../types';
 
 let set = false;
 
@@ -75,7 +76,10 @@ export const orbitalInitializer = () => {
     createSuffixType('mass', scalarType),
     createSuffixType('hasOcean', booleanType),
     createSuffixType('hasSolidSurface', booleanType),
-    createSuffixType('orbitingChildren', listType.toConcreteType(bodyTargetType)),
+    createSuffixType(
+      'orbitingChildren',
+      listType.toConcreteType(bodyTargetType),
+    ),
     createSuffixType('altitude', scalarType),
     createSuffixType('radius', scalarType),
     createSuffixType('mu', scalarType),
@@ -86,26 +90,92 @@ export const orbitalInitializer = () => {
     createSuffixType('rotationAngle', scalarType),
     createArgSuffixType('geoPositionOf', geoCoordinatesType, vectorType),
     createArgSuffixType('altitudeOf', scalarType, vectorType),
-    createArgSuffixType('geoPositionLatLng', geoCoordinatesType, scalarType, scalarType),
+    createArgSuffixType(
+      'geoPositionLatLng',
+      geoCoordinatesType,
+      scalarType,
+      scalarType,
+    ),
+  );
+
+  addOperators(
+    bodyTargetType,
+    {
+      operator: OperatorKind.equal,
+      other: bodyTargetType,
+      returnType: booleanType,
+    },
+    {
+      operator: OperatorKind.notEqual,
+      other: bodyTargetType,
+      returnType: booleanType,
+    },
   );
 
   addPrototype(vesselTargetType, orbitableType);
   addSuffixes(
     vesselTargetType,
-    createArgSuffixType('partsNamed', listType.toConcreteType(partType), stringType),
-    createArgSuffixType('partsNamedPattern', listType.toConcreteType(partType), stringType),
-    createArgSuffixType('partsTitled', listType.toConcreteType(partType), stringType),
-    createArgSuffixType('partsTitledPattern', listType.toConcreteType(partType), stringType),
-    createArgSuffixType('partsDubbed', listType.toConcreteType(partType), stringType),
-    createArgSuffixType('partsDubbedPattern', listType.toConcreteType(partType), stringType),
-    createArgSuffixType('modulesNamed', listType.toConcreteType(partModuleType), stringType),
-    createArgSuffixType('partsInGroup', listType.toConcreteType(partType), stringType),
-    createArgSuffixType('modulesInGroup', listType.toConcreteType(partModuleType), stringType),
-    createArgSuffixType('partStagged', listType.toConcreteType(partType), stringType),
-    createArgSuffixType('partStaggedPattern', listType.toConcreteType(partType), stringType),
+    createArgSuffixType(
+      'partsNamed',
+      listType.toConcreteType(partType),
+      stringType,
+    ),
+    createArgSuffixType(
+      'partsNamedPattern',
+      listType.toConcreteType(partType),
+      stringType,
+    ),
+    createArgSuffixType(
+      'partsTitled',
+      listType.toConcreteType(partType),
+      stringType,
+    ),
+    createArgSuffixType(
+      'partsTitledPattern',
+      listType.toConcreteType(partType),
+      stringType,
+    ),
+    createArgSuffixType(
+      'partsDubbed',
+      listType.toConcreteType(partType),
+      stringType,
+    ),
+    createArgSuffixType(
+      'partsDubbedPattern',
+      listType.toConcreteType(partType),
+      stringType,
+    ),
+    createArgSuffixType(
+      'modulesNamed',
+      listType.toConcreteType(partModuleType),
+      stringType,
+    ),
+    createArgSuffixType(
+      'partsInGroup',
+      listType.toConcreteType(partType),
+      stringType,
+    ),
+    createArgSuffixType(
+      'modulesInGroup',
+      listType.toConcreteType(partModuleType),
+      stringType,
+    ),
+    createArgSuffixType(
+      'partStagged',
+      listType.toConcreteType(partType),
+      stringType,
+    ),
+    createArgSuffixType(
+      'partStaggedPattern',
+      listType.toConcreteType(partType),
+      stringType,
+    ),
     createArgSuffixType('allTaggedParts', listType.toConcreteType(partType)),
     createArgSuffixType('parts', listType.toConcreteType(partType)),
-    createArgSuffixType('dockingPorts', listType.toConcreteType(dockingPortType)),
+    createArgSuffixType(
+      'dockingPorts',
+      listType.toConcreteType(dockingPortType),
+    ),
     createArgSuffixType('decouplers', listType.toConcreteType(decouplerType)),
     createArgSuffixType('separators', listType.toConcreteType(decouplerType)),
     createArgSuffixType('elements', userListType),
@@ -136,7 +206,10 @@ export const orbitalInitializer = () => {
     createSuffixType('controlPart', partType),
     createSuffixType('dryMass', scalarType),
     createSuffixType('wetMass', scalarType),
-    createSuffixType('resources', listType.toConcreteType(aggregateResourceType)),
+    createSuffixType(
+      'resources',
+      listType.toConcreteType(aggregateResourceType),
+    ),
     createSuffixType('loadDistance', loadDistanceType),
     createArgSuffixType('isDead', booleanType),
     createSuffixType('status', stringType),
@@ -148,6 +221,23 @@ export const orbitalInitializer = () => {
     createSuffixType('connection', vesselConnectionType),
     createSuffixType('messages', messageQueueType),
     createArgSuffixType('startTracking', voidType),
-    createArgSuffixType('soiChangeWatchers', uniqueSetType.toConcreteType(userDelegateType)),
+    createArgSuffixType(
+      'soiChangeWatchers',
+      uniqueSetType.toConcreteType(userDelegateType),
+    ),
+  );
+
+  addOperators(
+    vesselTargetType,
+    {
+      operator: OperatorKind.equal,
+      other: vesselTargetType,
+      returnType: booleanType,
+    },
+    {
+      operator: OperatorKind.notEqual,
+      other: vesselTargetType,
+      returnType: booleanType,
+    },
   );
 };

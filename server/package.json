@@ -1,44 +1,44 @@
 {
-    "name": "kos-language-server",
-    "description": "A Language server for Kerbal Operating System. A mod for Kerbal Space Program.",
-    "version": "0.7.2",
-    "main": "out/server.js",
-    "types": "out/server.d.ts",
-    "bin": {
-        "kls": "./bin/kos"
-    },
-    "files": [
-        "dist/**/*",
-        "out/**/*",
-        "bin"
-    ],
-    "author": "John Chabot",
-    "license": "MIT",
-    "engines": {
-        "node": ">=8.9.0"
-    },
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/jonnyboyC/kos-language-server"
-    },
-    "dependencies": {
-        "commander": "^2.20.0",
-        "denque": "^1.4.1",
-        "jstat": "^1.7.1",
-        "vscode-languageserver": "^5.2.1",
-        "vscode-uri": "^2.0.2"
-    },
-    "keywords": [
-        "Kerbal Operating System",
-        "kos",
-        "Kerbal Space Program",
-        "ksp",
-        "language-server"
-    ],
-    "scripts": {
-        "prepack": "cd .. && npm run dev:server && npm run prod:server && npm test"
-    },
-    "devDependencies": {
-        "@types/node": "^12.0.8"
-    }
+  "name": "kos-language-server",
+  "description": "A Language server for Kerbal Operating System. A mod for Kerbal Space Program.",
+  "version": "0.8.0",
+  "main": "out/server.js",
+  "types": "out/server.d.ts",
+  "bin": {
+    "kls": "./bin/kos"
+  },
+  "files": [
+    "dist/**/*",
+    "out/**/*",
+    "bin"
+  ],
+  "author": "John Chabot",
+  "license": "MIT",
+  "engines": {
+    "node": ">=8.9.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jonnyboyC/kos-language-server"
+  },
+  "dependencies": {
+    "commander": "^2.20.0",
+    "denque": "^1.4.1",
+    "jstat": "^1.9.0",
+    "vscode-languageserver": "^5.2.1",
+    "vscode-uri": "^2.0.3"
+  },
+  "keywords": [
+    "Kerbal Operating System",
+    "kos",
+    "Kerbal Space Program",
+    "ksp",
+    "language-server"
+  ],
+  "scripts": {
+    "prepack": "cd .. && npm run dev:server && npm run prod:server && npm test"
+  },
+  "devDependencies": {
+    "@types/node": "^12.6.2"
+  }
 }

@@ -15,20 +15,21 @@ import { SuffixTracker } from '../analysis/suffixTracker';
 import { KsSuffix } from '../entities/suffix';
 import { tType } from './typeCreators';
 import { OperatorKind, TypeKind, CallKind } from './types';
+import { Operator } from './operator';
 
 /**
  * This represents a generic type, typically the containers of kos
  */
 export class GenericBasicType implements IGenericBasicType {
   /**
-   * A memoized mapping of this genertic type to concrete types
+   * A memoized mapping of this generic type to concrete types
    */
   private concreteTypes: Map<ArgumentType, IBasicType>;
 
   /**
    * Operators that are applicable for this type
    */
-  public operators: Map<OperatorKind, IBasicType>;
+  public operators: Map<OperatorKind, Operator[]>;
 
   /**
    * Suffixes attach to this type
@@ -227,7 +228,7 @@ export class BasicType implements IBasicType {
   /**
    * Operators that are applicable for this type
    */
-  public operators: Map<OperatorKind, IBasicType>;
+  public operators: Map<OperatorKind, Operator[]>;
 
   /**
    * Is this type a subtype of another type
@@ -267,7 +268,9 @@ export class BasicType implements IBasicType {
       return this.name;
     }
 
-    const typeParameterStr = this.typeParameters.map(t => t.toTypeString()).join(', ');
+    const typeParameterStr = this.typeParameters
+      .map(t => t.toTypeString())
+      .join(', ');
     return `${this.name}<${typeParameterStr}>`;
   }
 
@@ -317,9 +320,10 @@ export class SuffixType implements ISuffixType {
    * Generate the type string for this suffix type
    */
   public toTypeString(): string {
-    const typeParameterStr = this.typeParameters.length > 0
-      ? `<${this.typeParameters.map(t => t.toTypeString()).join(', ')}>`
-      : '';
+    const typeParameterStr =
+      this.typeParameters.length > 0
+        ? `<${this.typeParameters.map(t => t.toTypeString()).join(', ')}>`
+        : '';
 
     const returnString = returnTypeString(this.returns);
     if (

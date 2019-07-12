@@ -1,8 +1,8 @@
-import { IRangeSequence } from './types';
+import { RangeSequence } from './types';
 import { Location, Position, Range } from 'vscode-languageserver';
 import { EOL } from 'os';
 
-export abstract class NodeBase implements IRangeSequence {
+export abstract class NodeBase implements RangeSequence {
   /**
    * Array of all valid ranges in the syntax node
    */
