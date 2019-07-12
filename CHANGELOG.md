@@ -1,3 +1,8 @@
+# [0.8.1] (2019-7-12)
+
+## Bug Fixes
+- **Log Exception Fix** There was a bug in the exception logging code causing another exception to be throw. This fix resolves this issue.
+
 # [0.8.0] (2019-7-12)
 
 ## Features

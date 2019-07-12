@@ -13,7 +13,7 @@ The project currently has client support for [Visual Studio Code](https://code.v
 
 ## Features
 
-Currently the vscode client 0.8.0 implements the follow features
+Currently the vscode client 0.8.1 implements the follow features
 - syntax highlighting
 - brace detection
 - code snippets
@@ -29,6 +29,7 @@ Currently the vscode client 0.8.0 implements the follow features
 - identify symbols that shadow (hide) an existing variable
 - identify symbols that may not exist at runtime
 - on hover type definitions (experimental)
+- foldable regions with `\\ #region` and `\\ #endregion`
 
 
 ## Commands

@@ -20,6 +20,22 @@
 		{
 			"type": "extensionHost",
 			"request": "launch",
+			"name": "Launch VSCode Client Prod",
+			"runtimeExecutable": "${execPath}",
+			"env": {
+				"NODE_ENV": "prod"
+			},
+			"args": [
+				"--extensionDevelopmentPath=${workspaceRoot}",
+			],
+			"stopOnEntry": false,
+			"sourceMaps": true,
+			"outFiles": ["${workspaceRoot}/clients/vscode/dist/**/*.js"],
+			"preLaunchTask": "npm: prod"
+		},
+		{
+			"type": "extensionHost",
+			"request": "launch",
 			"name": "Launch VSCode Client Fast",
 			"runtimeExecutable": "${execPath}",
 			"env": {
@@ -57,6 +73,17 @@
 		},
 		{
 			"type": "node",
+			"request": "attach",
+			"name": "Attach to Server Prod",
+			"address": "localhost",
+			"protocol": "inspector",
+			"timeout": 30000,
+			"port": 6009,
+			"sourceMaps": true,
+			"outFiles": ["${workspaceRoot}/server/dist/**/*.js"]
+		},
+		{
+			"type": "node",
 			"request": "launch",
 			"name": "Jest All",
 			"program": "${workspaceFolder}/node_modules/.bin/jest",
@@ -67,6 +94,9 @@
 			"console": "integratedTerminal",
 			"internalConsoleOptions": "neverOpen",
 			"disableOptimisticBPs": true,
+			"outFiles": [
+				"${workspaceRoot}/server/out/**/*.js"
+			],
 			"windows": {
 				"program": "${workspaceFolder}/node_modules/jest/bin/jest",
 			}
@@ -87,12 +117,19 @@
 			"console": "integratedTerminal",
 			"internalConsoleOptions": "neverOpen",
 			"disableOptimisticBPs": true,
+			"outFiles": [
+				"${workspaceRoot}/server/out/**/*.js"
+			],
 			"windows": {
 				"program": "${workspaceFolder}/node_modules/jest/bin/jest",
 			}
 		},
 	],
 	"compounds": [
+		{
+			"name": "VSCode + Server Prod",
+			"configurations": ["Launch VSCode Client Prod", "Attach to Server Prod"]
+		},
 		{
 			"name": "VSCode + Server",
 			"configurations": ["Launch VSCode Client", "Attach to Server"]
