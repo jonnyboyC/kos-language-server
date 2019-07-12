@@ -29,6 +29,7 @@ Currently the vscode client 0.8.1 implements the follow features
 - identify symbols that shadow (hide) an existing variable
 - identify symbols that may not exist at runtime
 - on hover type definitions (experimental)
+- foldable regions with `\\ #region` and `\\ #endregion`
 
 
 ## Commands
