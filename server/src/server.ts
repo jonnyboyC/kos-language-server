@@ -2,14 +2,9 @@ if (Symbol['asyncIterator'] === undefined) {
   (Symbol as any)['asyncIterator'] = Symbol.for('asyncIterator');
 }
 
-import {
-  createConnection,
-  ProposedFeatures,
-} from 'vscode-languageserver';
+import { createConnection, ProposedFeatures } from 'vscode-languageserver';
 import { KLS } from './kls';
-import {
-  getConnectionPrimitives,
-} from './utilities/serverUtils';
+import { getConnectionPrimitives } from './utilities/serverUtils';
 import { Logger } from './utilities/logger';
 import { primitiveInitializer } from './typeChecker/types/primitives/initialize';
 import { orbitalInitializer } from './typeChecker/types/orbital/initialize';
@@ -19,7 +14,7 @@ import program from 'commander';
 import { ClientConfiguration, KLSConfiguration } from './types';
 
 program
-  .version('0.7.2', '-v --version')
+  .version('0.8.0', '-v --version')
   .option('--node-ipc', 'Connect with node inter process communication')
   .option('--stdio', 'Connect with standard io')
   .option('--clientProcessId', 'Id of the attached client process')
