@@ -648,9 +648,7 @@ export class Resolver
     }
 
     const errors = this.useExprLocalsBind(stmt.condition);
-    errors.push(
-      ...this.resolveExpr(stmt.condition),
-    );
+    errors.push(...this.resolveExpr(stmt.condition));
 
     errors.push(...this.trackTrigger(() => this.resolveStmt(stmt.body)));
 

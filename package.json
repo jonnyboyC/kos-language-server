@@ -35,7 +35,7 @@
     "onCommand:kos.startTelnet",
     "onCommand:kos.startksp"
   ],
-  "main": "./clients/vscode/out/extension",
+  "main": "./clients/vscode/out/extension.js",
   "contributes": {
     "configuration": {
       "type": "object",

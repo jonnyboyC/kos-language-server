@@ -107,7 +107,6 @@ export class DocumentService {
     return [...this.clientDocs.values(), ...this.serverDocs.values()];
   }
 
-
   public async loadDocument(
     caller: Location,
     kosPath: string,
@@ -179,7 +178,9 @@ export class DocumentService {
     const volume0Path = this.pathResolver.volume0Uri.fsPath;
 
     try {
-      for await (const { uri, text } of this.documentLoader.loadDirectory(volume0Path)) {
+      for await (const { uri, text } of this.documentLoader.loadDirectory(
+        volume0Path,
+      )) {
         const textDocument = TextDocument.create(uri, 'kos', 0, text);
         if (!this.clientDocs.has(uri)) {
           this.serverDocs.set(uri, textDocument);
