@@ -20,14 +20,19 @@ export interface IDeclScope extends RangeSequence {
 
 export type NodeDataBuilder<T> = Partial<Writeable<NodeData<T>>>;
 
-export type NodeData<T> = Properties<T, Token | NodeBase | NodeBase[] | undefined>;
+export type NodeData<T> = Properties<
+  T,
+  Token | NodeBase | NodeBase[] | undefined
+>;
 
-export type SuffixTermTrailer = SuffixTerm.Call
+export type SuffixTermTrailer =
+  | SuffixTerm.Call
   | SuffixTerm.ArrayBracket
   | SuffixTerm.ArrayIndex
   | SuffixTerm.Delegate;
 
-export type Atom = SuffixTerm.Literal
+export type Atom =
+  | SuffixTerm.Literal
   | SuffixTerm.Identifier
   | SuffixTerm.Grouping
   | SuffixTerm.Invalid;
@@ -55,51 +60,45 @@ export interface IScript extends RangeSequence {
   tag: SyntaxKind.script;
 }
 
-export interface IStmt extends
-  IStmtVisitable,
-  IStmtPassable,
-  RangeSequence {
+export interface IStmt extends IStmtVisitable, IStmtPassable, RangeSequence {
   toLocation(uri: string): Location;
   toLines(): string[];
   toString(): string;
   tag: SyntaxKind.stmt;
 }
 
-export interface IExpr extends
-  IExprVisitable,
-  IExprPassable,
-  RangeSequence {
+export interface IExpr extends IExprVisitable, IExprPassable, RangeSequence {
   toLocation(uri: string): Location;
   toLines(): string[];
   toString(): string;
   tag: SyntaxKind.expr;
 }
 
-export interface ISuffixTerm extends
-  ISuffixTermPassable,
-  ISuffixTermVisitable,
-  ISuffixTermParamVisitable,
-  RangeSequence {
+export interface ISuffixTerm
+  extends ISuffixTermPassable,
+    ISuffixTermVisitable,
+    ISuffixTermParamVisitable,
+    RangeSequence {
   toLocation(uri: string): Location;
   toString(): string;
   tag: SyntaxKind.suffixTerm;
 }
 
-export interface IStmtClass extends
-  Constructor<Stmt.Stmt>,
-  IExprVisitableClass {
+export interface IStmtClass
+  extends Constructor<Stmt.Stmt>,
+    IExprVisitableClass {
   grammar: GrammarNode[];
 }
 
-export interface IExprClass<T = Expr.Expr> extends
-  Constructor<T>,
-  IExprVisitableClass {
+export interface IExprClass<T = Expr.Expr>
+  extends Constructor<T>,
+    IExprVisitableClass {
   grammar: GrammarNode[];
 }
 
-export interface ISuffixTermClass<T = SuffixTerm.SuffixTermBase> extends
-  Constructor<T>,
-  ISuffixTermVisitableClass {
+export interface ISuffixTermClass<T = SuffixTerm.SuffixTermBase>
+  extends Constructor<T>,
+    ISuffixTermVisitableClass {
   grammar: GrammarNode[];
 }
 
@@ -120,7 +119,8 @@ export interface IGrammarUnion {
   tag: 'union';
 }
 
-export type Distribution = INormalDistribution
+export type Distribution =
+  | INormalDistribution
   | IGammaDistribution
   | IExponentialDistribution
   | IConstantDistribution;
@@ -161,6 +161,7 @@ export interface ParseResult {
 
 export interface ScriptResult extends ParseResult {
   scanErrors: Diagnostic[];
+  regions: Token[];
 }
 
 export interface IFindResult {
@@ -182,13 +183,24 @@ export type PartialNode = {
   [key: string]: Token | TreeNode | undefined;
 };
 
-export type GrammarNode = IExprClass
-  | IStmtClass | ISuffixTermClass | TokenType
-  | IGrammarOptional | IGrammarRepeat | IGrammarUnion;
+export type GrammarNode =
+  | IExprClass
+  | IStmtClass
+  | ISuffixTermClass
+  | TokenType
+  | IGrammarOptional
+  | IGrammarRepeat
+  | IGrammarUnion;
 
 export type RunStmtType = Stmt.Run | Stmt.RunPath | Stmt.RunOncePath;
 export type ScriptNode = IStmt | IExpr | ISuffixTerm;
-export type TreeNode = IScript | IStmt | IExpr | ISuffixTerm | IParameter | IDeclScope;
+export type TreeNode =
+  | IScript
+  | IStmt
+  | IExpr
+  | ISuffixTerm
+  | IParameter
+  | IDeclScope;
 
 export interface IExprVisitable {
   accept<T>(visitor: IExprVisitor<T>): T;
@@ -255,16 +267,26 @@ export interface ISuffixTermPasser<T> {
 export interface ISuffixTermParamVisitable {
   acceptParam<TParam, TReturn>(
     visitor: ISuffixTermParamVisitor<TParam, TReturn>,
-    param: TParam): TReturn;
+    param: TParam,
+  ): TReturn;
 }
 
 export interface ISuffixTermParamVisitor<TParam, TReturn> {
-  visitSuffixTermInvalid(suffixTerm: SuffixTerm.Invalid, param: TParam): TReturn;
-  visitSuffixTrailer(suffixTerm: SuffixTerm.SuffixTrailer, param: TParam): TReturn;
+  visitSuffixTermInvalid(
+    suffixTerm: SuffixTerm.Invalid,
+    param: TParam,
+  ): TReturn;
+  visitSuffixTrailer(
+    suffixTerm: SuffixTerm.SuffixTrailer,
+    param: TParam,
+  ): TReturn;
   visitSuffixTerm(suffixTerm: SuffixTerm.SuffixTerm, param: TParam): TReturn;
   visitCall(suffixTerm: SuffixTerm.Call, param: TParam): TReturn;
   visitArrayIndex(suffixTerm: SuffixTerm.ArrayIndex, param: TParam): TReturn;
-  visitArrayBracket(suffixTerm: SuffixTerm.ArrayBracket, param: TParam): TReturn;
+  visitArrayBracket(
+    suffixTerm: SuffixTerm.ArrayBracket,
+    param: TParam,
+  ): TReturn;
   visitDelegate(suffixTerm: SuffixTerm.Delegate, param: TParam): TReturn;
   visitLiteral(suffixTerm: SuffixTerm.Literal, param: TParam): TReturn;
   visitIdentifier(suffixTerm: SuffixTerm.Identifier, param: TParam): TReturn;

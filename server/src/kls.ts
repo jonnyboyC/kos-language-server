@@ -26,6 +26,8 @@ import {
   SymbolInformation,
   TextDocument,
   FoldingRangeParams,
+  FoldingRange,
+  FoldingRangeKind,
 } from 'vscode-languageserver';
 import {
   IDocumentInfo,
@@ -47,6 +49,7 @@ import {
   SymbolTracker,
   KsBaseSymbol,
   TrackerKind,
+  IStack,
 } from './analysis/types';
 import { mockLogger, mockTracer, logException } from './utilities/logger';
 import { empty } from './utilities/typeGuards';
@@ -82,11 +85,10 @@ import {
   cleanPosition,
   cleanLocation,
 } from './utilities/clean';
-import { isValidIdentifier } from './entities/tokentypes';
+import { isValidIdentifier, TokenType } from './entities/tokentypes';
 import { tokenTrackedType } from './typeChecker/typeUitlities';
 import { TypeKind } from './typeChecker/types';
 import { DocumentLoader, Document } from './utilities/documentLoader';
-import { FoldingRange } from 'vscode-languageserver-protocol/lib/protocol.foldingRange';
 
 export class KLS {
   /**
@@ -583,10 +585,39 @@ export class KLS {
   /**
    * This handler provide folding region capabilities. The client will ask for available folding
    * region in which this will respond with the ranges defined by #region and #endregion
-   * @param _ the document to preform folding analysis on
+   * @param foldingParams the document to preform folding analysis on
    */
-  private onFoldingRange(_: FoldingRangeParams): FoldingRange[] {
-    return [];
+  private onFoldingRange(foldingParams: FoldingRangeParams): FoldingRange[] {
+    const { uri } = foldingParams.textDocument;
+    const documentInfo = this.documentInfos.get(uri);
+
+    if (empty(documentInfo)) {
+      return [];
+    }
+
+    const { regions } = documentInfo;
+    const regionStack: IStack<Token> = [];
+    const foldingRanges: FoldingRange[] = [];
+
+    for (const region of regions) {
+      if (region.type === TokenType.region) {
+        regionStack.push(region);
+      } else {
+        const beginRegion = regionStack.pop();
+
+        if (!empty(beginRegion)) {
+          foldingRanges.push({
+            startCharacter: beginRegion.start.character,
+            startLine: beginRegion.start.line,
+            endCharacter: region.end.character,
+            endLine: region.end.line,
+            kind: FoldingRangeKind.Region,
+          });
+        }
+      }
+    }
+
+    return foldingRanges;
   }
 
   /**
@@ -784,14 +815,14 @@ export class KLS {
     const documentInfo = this.documentInfos.get(uri);
     if (
       empty(documentInfo) ||
-      empty(documentInfo.symbolsTable) ||
+      empty(documentInfo.symbolTable) ||
       empty(documentInfo.script)
     ) {
       return undefined;
     }
 
     // try to find the symbol at the position
-    const { symbolsTable, script } = documentInfo;
+    const { symbolTable: symbolsTable, script } = documentInfo;
     const finder = new ScriptFind();
     const result = finder.find(script, pos);
 
@@ -834,8 +865,8 @@ export class KLS {
   public getScopedSymbols(pos: Position, uri: string): KsBaseSymbol[] {
     const documentInfo = this.documentInfos.get(uri);
 
-    if (!empty(documentInfo) && !empty(documentInfo.symbolsTable)) {
-      return documentInfo.symbolsTable.scopedSymbols(pos);
+    if (!empty(documentInfo) && !empty(documentInfo.symbolTable)) {
+      return documentInfo.symbolTable.scopedSymbols(pos);
     }
 
     return [];
@@ -848,8 +879,8 @@ export class KLS {
   public getAllFileSymbols(uri: string): KsSymbol[] {
     const documentInfo = this.documentInfos.get(uri);
 
-    if (!empty(documentInfo) && !empty(documentInfo.symbolsTable)) {
-      return documentInfo.symbolsTable.fileSymbols();
+    if (!empty(documentInfo) && !empty(documentInfo.symbolTable)) {
+      return documentInfo.symbolTable.fileSymbols();
     }
 
     return [];
@@ -961,10 +992,12 @@ export class KLS {
       return { diagnostics: [] };
     }
 
-    const { script, parseErrors, scanErrors } = await this.parseDocument(
-      uri,
-      text,
-    );
+    const {
+      script,
+      regions,
+      parseErrors,
+      scanErrors,
+    } = await this.parseDocument(uri, text);
     const symbolTables: SymbolTable[] = [];
 
     const scanDiagnostics = scanErrors.map(scanError =>
@@ -1090,13 +1123,14 @@ export class KLS {
     // make sure to delete references so scope manager can be gc'ed
     let documentInfo: Maybe<IDocumentInfo> = this.documentInfos.get(uri);
     if (!empty(documentInfo)) {
-      documentInfo.symbolsTable.removeSelf();
+      documentInfo.symbolTable.removeSelf();
       documentInfo = undefined;
     }
 
     this.documentInfos.set(uri, {
       script,
-      symbolsTable: symbolTable,
+      regions,
+      symbolTable,
       diagnostics: scanDiagnostics.concat(
         parserDiagnostics,
         preDiagnostics,
@@ -1125,7 +1159,7 @@ export class KLS {
 
     performance.mark('scanner-start');
     const scanner = new Scanner(text, uri, this.logger, this.tracer);
-    const { tokens, scanErrors } = scanner.scanTokens();
+    const { tokens, scanErrors, regions } = scanner.scanTokens();
     performance.mark('scanner-end');
 
     // if scanner found errors report those immediately
@@ -1147,6 +1181,7 @@ export class KLS {
 
     return {
       scanErrors,
+      regions,
       ...result,
     };
   }
