@@ -14,7 +14,7 @@ import program from 'commander';
 import { ClientConfiguration, KLSConfiguration } from './types';
 
 program
-  .version('0.8.0', '-v --version')
+  .version('0.8.1', '-v --version')
   .option('--node-ipc', 'Connect with node inter process communication')
   .option('--stdio', 'Connect with standard io')
   .option('--clientProcessId', 'Id of the attached client process')

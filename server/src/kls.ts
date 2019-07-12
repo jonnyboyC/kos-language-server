@@ -1104,7 +1104,7 @@ export class KLS {
       .check()
       .map(error => addDiagnosticsUri(error, uri));
 
-    yield typeDiagnostics;
+    // yield typeDiagnostics;
     performance.mark('type-checking-end');
 
     // measure performance

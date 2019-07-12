@@ -31,7 +31,6 @@ export class PreResolver
     IExprVisitor<Diagnostics>,
     IStmtVisitor<Diagnostics>,
     ISuffixTermVisitor<Diagnostics> {
-
   /**
    * current script being processed
    */
@@ -422,7 +421,8 @@ export class PreResolver
     const errors = this.resolveExpr(expr.condition);
     errors.push(
       ...this.resolveExpr(expr.trueBranch),
-      ...this.resolveExpr(expr.falseBranch));
+      ...this.resolveExpr(expr.falseBranch),
+    );
 
     return errors;
   }

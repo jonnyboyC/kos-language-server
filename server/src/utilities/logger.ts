@@ -33,24 +33,29 @@ export const consoleTracer: ITracer = {
  * @param err exception to log
  * @param level log level to report
  */
-export const logException = (logger: ILogger, tracer: ITracer, err: any, level: LogLevel) => {
+export const logException = (
+  logger: ILogger,
+  tracer: ITracer,
+  err: any,
+  level: LogLevel,
+) => {
   let method = undefined;
 
   switch (level) {
     case LogLevel.error:
-      method = logger.error;
+      method = logger.error.bind(logger);
       break;
     case LogLevel.warn:
-      method = logger.warn;
+      method = logger.warn.bind(logger);
       break;
     case LogLevel.log:
-      method = logger.log;
+      method = logger.log.bind(logger);
       break;
     case LogLevel.info:
-      method = logger.info;
+      method = logger.info.bind(logger);
       break;
     case LogLevel.verbose:
-      method = logger.verbose;
+      method = logger.verbose.bind(logger);
       break;
     case LogLevel.none:
       return;
@@ -69,6 +74,7 @@ export const logException = (logger: ILogger, tracer: ITracer, err: any, level: 
     if (!empty(err.stack)) {
       method(err.stack);
     }
+
     tracer.log(err.name);
   }
 };
