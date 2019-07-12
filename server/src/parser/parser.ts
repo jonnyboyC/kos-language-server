@@ -5,7 +5,7 @@ import {
   IStmt,
   INodeResult,
   RunStmtType,
-  IParseResult,
+  ParseResult,
   Atom,
   SuffixTermTrailer,
   PartialNode,
@@ -65,7 +65,7 @@ export class Parser {
   }
 
   // parse tokens
-  public parse(): IParseResult {
+  public parse(): ParseResult {
     try {
       const splits = this.uri.split('/');
       const file = splits[splits.length - 1];

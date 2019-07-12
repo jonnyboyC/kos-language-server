@@ -22,7 +22,7 @@ the server can then be started by
 
 
 ## Features
-Currently the kos-language-server 0.7.2 implements the follow features
+Currently the kos-language-server 0.8.0 implements the follow features
 - Code completion
     - Built in symbols and keywords
     - local in scope symbols
@@ -44,3 +44,4 @@ Currently the kos-language-server 0.7.2 implements the follow features
 - On hover with experimental type inference support
 - Signature help for functions that can be correctly resolved
 - Caching of all documents in the workspace
+- Foldable regions using `\\#region` and `\\#endregion`

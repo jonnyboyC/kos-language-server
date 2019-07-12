@@ -9,10 +9,12 @@ import {
   Range,
 } from 'vscode-languageserver';
 import { URI } from 'vscode-uri';
+import { Token } from './entities/token';
 
 export interface IDocumentInfo {
   script: IScript;
-  symbolsTable: SymbolTable;
+  regions: Token[];
+  symbolTable: SymbolTable;
   diagnostics: IDiagnosticUri[];
 }
 
