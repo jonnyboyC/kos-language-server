@@ -71,12 +71,12 @@ export function activate(context: ExtensionContext) {
   const serverOptions: ServerOptions = {
     run: {
       module: serverModule,
-      transport: TransportKind.stdio,
+      transport: TransportKind.ipc,
       options: runOptions,
     },
     debug: {
       module: serverModule,
-      transport: TransportKind.stdio,
+      transport: TransportKind.ipc,
       options: debugOptions,
     },
   };

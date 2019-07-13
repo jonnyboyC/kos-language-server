@@ -18,7 +18,7 @@ import { logException, mockTracer } from '../utilities/logger';
 type DocumentChangeHandler = (document: Document) => void;
 type DocumentClosedHandler = (uri: string) => void;
 
-export type DocumentConnection = Pick<
+type DocumentConnection = Pick<
   IConnection,
   'onDidChangeTextDocument' | 'onDidCloseTextDocument' | 'onDidOpenTextDocument'
 >;
@@ -79,7 +79,7 @@ export class DocumentService {
   }
 
   public ready(): boolean {
-    return this.pathResolver.ready;
+    return this.pathResolver.ready();
   }
 
   public async setVolume0Uri(uri: URI) {
@@ -112,7 +112,7 @@ export class DocumentService {
     kosPath: string,
   ): Promise<Maybe<Diagnostic | TextDocument>> {
     // resolver must first be ready
-    if (!this.pathResolver.ready) {
+    if (!this.ready()) {
       return undefined;
     }
 

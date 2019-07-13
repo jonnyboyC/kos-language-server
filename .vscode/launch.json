@@ -111,6 +111,7 @@
 			},
 			"args": [
 				"${fileBasenameNoExtension}",
+				"--runInBand",
 				"--config",
 				"${workspaceFolder}/server/jest.config.js"
 			],

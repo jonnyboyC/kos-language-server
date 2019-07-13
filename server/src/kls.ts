@@ -27,7 +27,6 @@ import {
   TextDocument,
   FoldingRangeParams,
   FoldingRange,
-  FoldingRangeKind,
 } from 'vscode-languageserver';
 import {
   IDocumentInfo,
@@ -49,7 +48,6 @@ import {
   SymbolTracker,
   KsBaseSymbol,
   TrackerKind,
-  IStack,
 } from './analysis/types';
 import { mockLogger, mockTracer, logException } from './utilities/logger';
 import { empty } from './utilities/typeGuards';
@@ -85,10 +83,11 @@ import {
   cleanPosition,
   cleanLocation,
 } from './utilities/clean';
-import { isValidIdentifier, TokenType } from './entities/tokentypes';
+import { isValidIdentifier } from './entities/tokentypes';
 import { tokenTrackedType } from './typeChecker/typeUitlities';
 import { TypeKind } from './typeChecker/types';
 import { DocumentLoader, Document } from './utilities/documentLoader';
+import { FoldableService } from './services/foldableService';
 
 export class KLS {
   /**
@@ -137,9 +136,14 @@ export class KLS {
   private readonly configuration: KLSConfiguration;
 
   /**
-   * The document server to store and manage documents
+   * The document service to store and manage documents
    */
   private readonly documentService: DocumentService;
+
+  /**
+   * A service to take document info and generate all foldable regions
+   */
+  private readonly foldableService: FoldableService;
 
   constructor(
     caseKind: CaseKind = CaseKind.camelcase,
@@ -159,6 +163,7 @@ export class KLS {
       new DocumentLoader(),
       logger,
     );
+    this.foldableService = new FoldableService();
 
     this.standardLibrary = standardLibraryBuilder(caseKind);
     this.bodyLibrary = bodyLibraryBuilder(caseKind);
@@ -595,29 +600,8 @@ export class KLS {
       return [];
     }
 
-    const { regions } = documentInfo;
-    const regionStack: IStack<Token> = [];
-    const foldingRanges: FoldingRange[] = [];
-
-    for (const region of regions) {
-      if (region.type === TokenType.region) {
-        regionStack.push(region);
-      } else {
-        const beginRegion = regionStack.pop();
-
-        if (!empty(beginRegion)) {
-          foldingRanges.push({
-            startCharacter: beginRegion.start.character,
-            startLine: beginRegion.start.line,
-            endCharacter: region.end.character,
-            endLine: region.end.line,
-            kind: FoldingRangeKind.Region,
-          });
-        }
-      }
-    }
-
-    return foldingRanges;
+    const { script, regions } = documentInfo;
+    return this.foldableService.findRegions(script, regions);
   }
 
   /**

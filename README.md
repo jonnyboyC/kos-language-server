@@ -13,7 +13,7 @@ The project currently has client support for [Visual Studio Code](https://code.v
 
 ## Features
 
-Currently the vscode client 0.8.1 implements the follow features
+Currently the vscode client 0.8.2 implements the follow features
 - syntax highlighting
 - brace detection
 - code snippets

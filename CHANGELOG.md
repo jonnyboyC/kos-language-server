@@ -1,3 +1,8 @@
+# [0.8.2] (2019-7-13)
+
+## Bug Fixes
+- **Folding Region** The addition of `// #region` to the language server override vscode default folding behavior. This replicates the default folding behavior inside of the language server.
+
 # [0.8.1] (2019-7-12)
 
 ## Bug Fixes

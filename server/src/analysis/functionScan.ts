@@ -1,10 +1,8 @@
 import { IFunctionScanResult } from './types';
-import { ScriptNode } from '../parser/types';
 import * as Decl from '../parser/declare';
 import * as Expr from '../parser/expr';
 import * as Stmt from '../parser/stmt';
 import { TreeTraverse } from '../parser/treeTraverse';
-import * as SuffixTerm from '../parser/suffixTerm';
 
 /**
  * Class to help identify parameters and return statements in
@@ -32,56 +30,44 @@ export class FunctionScan extends TreeTraverse {
    * Scan the function node for parameters and return statements
    * @param node function body
    */
-  public scan(node: ScriptNode): IFunctionScanResult {
+  public scan(node: Stmt.Block): IFunctionScanResult {
     this.result = {
       requiredParameters: 0,
       optionalParameters: 0,
       return: false,
     };
 
-    if (node instanceof Expr.Expr) {
-      this.exprAction(node);
-    } else if (node instanceof Stmt.Stmt) {
-      this.stmtAction(node);
-    } else if (node instanceof SuffixTerm.SuffixTerm) {
-      this.suffixTermAction(node);
-    }
+    this.stmtAction(node);
 
     return { ...this.result };
   }
 
   /**
-   * Action to apply at each node traversed
-   * @param node node in question
+   * Indicate that the function has a return statement
+   * @param _ return statement
    */
-  protected nodeAction(node: ScriptNode): boolean {
-    // traverse anonymous functions
-    if (node instanceof Expr.Lambda) {
-      return true;
-    }
-
-    // traverse statements
-    if (node instanceof Stmt.Stmt) {
-      // stop if we find another function
-      if (node instanceof Decl.Func) {
-        return false;
-      }
-
-      // indicate return statement exists
-      if (node instanceof Stmt.Return) {
-        this.result.return = true;
-      }
-
-      // Note this has no logic to detect parameters in loops
-      // increment parameter count
-      if (node instanceof Decl.Param) {
-        this.result.requiredParameters += node.requiredParameters.length;
-        this.result.optionalParameters += node.optionalParameters.length;
-      }
-
-      return true;
-    }
-
-    return false;
+  public visitReturn(_: Stmt.Return): void {
+    this.result.return = true;
   }
+
+  /**
+   * Don't proceed further in if enter another have a function
+   * @param _ function declaration
+   */
+  public visitDeclFunction(_: Decl.Func): void {}
+
+  /**
+   * Add required and optional parameters when found
+   * @param decl parameter declaration
+   */
+  public visitDeclParameter(decl: Decl.Param): void {
+    this.result.requiredParameters += decl.requiredParameters.length;
+    this.result.optionalParameters += decl.optionalParameters.length;
+  }
+
+  /**
+   * DOn't proceed further if another lambda is encountered
+   * @param expr lambda expression
+   */
+  public visitLambda(_: Expr.Lambda): void {}
 }
