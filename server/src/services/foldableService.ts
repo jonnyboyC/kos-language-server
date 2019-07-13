@@ -1,4 +1,3 @@
-import { IDocumentInfo } from '../types';
 import { empty } from '../utilities/typeGuards';
 import { IStack } from '../analysis/types';
 import * as Stmt from '../parser/stmt';
@@ -6,6 +5,7 @@ import { FoldingRange, FoldingRangeKind } from 'vscode-languageserver';
 import { Token } from '../entities/token';
 import { TokenType } from '../entities/tokentypes';
 import { TreeTraverse } from '../parser/treeTraverse';
+import { IScript } from '../parser/types';
 
 /**
  * A service for identifying foldable regions inside a kerboscript
@@ -26,10 +26,10 @@ export class FoldableService extends TreeTraverse {
 
   /**
    * Find foldable regions within a document info
+   * @param script the script ast
+   * @param regions the region token throughout the script
    */
-  public findRegions(documentInfo: IDocumentInfo): FoldingRange[] {
-    const { regions, script } = documentInfo;
-
+  public findRegions(script: IScript, regions: Token[]): FoldingRange[] {
     this.result = [];
 
     for (const stmt of script.stmts) {

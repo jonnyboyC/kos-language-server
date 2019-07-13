@@ -600,7 +600,8 @@ export class KLS {
       return [];
     }
 
-    return this.foldableService.findRegions(documentInfo);
+    const { script, regions } = documentInfo;
+    return this.foldableService.findRegions(script, regions);
   }
 
   /**

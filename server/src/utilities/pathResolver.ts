@@ -6,7 +6,11 @@ import { RunStmtType } from '../parser/types';
 import { empty } from './typeGuards';
 import { TokenType } from '../entities/tokentypes';
 import { ILoadData } from '../types';
-import { Location, Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
+import {
+  Location,
+  Diagnostic,
+  DiagnosticSeverity,
+} from 'vscode-languageserver';
 import { URI } from 'vscode-uri';
 
 /**
@@ -23,15 +27,13 @@ export class PathResolver {
    * @param volume0Uri the uri associated with volume 0
    */
   constructor(volume0Uri?: string) {
-    this.volume0Uri = !empty(volume0Uri)
-      ? URI.parse(volume0Uri)
-      : undefined;
+    this.volume0Uri = !empty(volume0Uri) ? URI.parse(volume0Uri) : undefined;
   }
 
   /**
    * Is the resolve ready to resolve paths
    */
-  public get ready(): boolean {
+  public ready(): boolean {
     return !empty(this.volume0Uri);
   }
 
@@ -53,7 +55,10 @@ export class PathResolver {
       return undefined;
     }
 
-    const relativePath = relative(this.volume0Uri.toString(), dirname(caller.uri));
+    const relativePath = relative(
+      this.volume0Uri.toString(),
+      dirname(caller.uri),
+    );
 
     // check if the scripts reads from volume 0 "disk"
     // TODO no idea what to do for ship volumes
@@ -143,8 +148,9 @@ const literalPath = (expr: SuffixTerm.Literal): string | undefined => {
  * Provide a diagnostic when a path cannot be loaded
  * @param stmt the run statement
  */
-const cannotLoad = (stmt: RunStmtType) => Diagnostic.create(
-  stmt,
-  'kos-language-server cannot load runtime resolved run statements',
-  DiagnosticSeverity.Hint,
-);
+const cannotLoad = (stmt: RunStmtType) =>
+  Diagnostic.create(
+    stmt,
+    'kos-language-server cannot load runtime resolved run statements',
+    DiagnosticSeverity.Hint,
+  );
