@@ -1,9 +1,7 @@
 {
-    "kos-vscode.trace.server": {
-        "verbosity": "off",
-        "format": "text",
-        "level": "info",
-    },
+    "kos-vscode.trace.server.verbosity": "verbose",
+    "kos-vscode.trace.server.format": "json",
+    "kos-vscode.trace.server.level": "none",
     "kos-vscode.lspPort": 7000,
     "lspInspector.port": 7000,
     "kos-vscode.telnetPort": 5415,
