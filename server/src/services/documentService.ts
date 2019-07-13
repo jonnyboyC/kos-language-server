@@ -18,7 +18,7 @@ import { logException, mockTracer } from '../utilities/logger';
 type DocumentChangeHandler = (document: Document) => void;
 type DocumentClosedHandler = (uri: string) => void;
 
-export type DocumentConnection = Pick<
+type DocumentConnection = Pick<
   IConnection,
   'onDidChangeTextDocument' | 'onDidCloseTextDocument' | 'onDidOpenTextDocument'
 >;
