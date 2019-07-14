@@ -43,7 +43,7 @@ walkDir(testDir, (filePath) => {
   const { script } = parser.parse();
 
   const symbolTableBuilder = new SymbolTableBuilder('');
-  symbolTableBuilder.linkTable(standardLibrary);
+  symbolTableBuilder.linkDependency(standardLibrary);
 
   const preResolver = new PreResolver(script, symbolTableBuilder);
   const resolver = new Resolver(script, symbolTableBuilder);
@@ -74,7 +74,7 @@ for (let i = 0; i < 10; i += 1) {
 
     const resolverStart = performance.now();
     const symbolTableBuilder = new SymbolTableBuilder('');
-    symbolTableBuilder.linkTable(standardLibrary);
+    symbolTableBuilder.linkDependency(standardLibrary);
 
     const preResolver = new PreResolver(script, symbolTableBuilder);
     const resolver = new Resolver(script, symbolTableBuilder);

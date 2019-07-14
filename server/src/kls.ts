@@ -1008,16 +1008,23 @@ export class KLS {
 
       // for each document run validate and yield any results
       for (const document of documents) {
-        for await (const result of this.validateDocument_(
-          document.uri,
-          document.getText(),
-          depth + 1,
-        )) {
-          if (Array.isArray(result)) {
-            yield result;
-          } else {
-            symbolTables.push(result);
+        const cached = this.documentInfos.get(document.uri);
+
+        if (empty(cached)) {
+          for await (const result of this.validateDocument_(
+            document.uri,
+            document.getText(),
+            depth + 1,
+          )) {
+            if (Array.isArray(result)) {
+              yield result;
+            } else {
+              symbolTables.push(result);
+            }
           }
+        } else {
+          yield cached.diagnostics;
+          yield cached.symbolTable;
         }
       }
     }
@@ -1030,12 +1037,12 @@ export class KLS {
 
     // add child scopes
     for (const symbolTable of symbolTables) {
-      symbolTableBuilder.linkTable(symbolTable);
+      symbolTableBuilder.linkDependency(symbolTable);
     }
 
     // add standard library
-    symbolTableBuilder.linkTable(this.standardLibrary);
-    symbolTableBuilder.linkTable(this.activeBodyLibrary());
+    symbolTableBuilder.linkDependency(this.standardLibrary);
+    symbolTableBuilder.linkDependency(this.activeBodyLibrary());
 
     // generate resolvers
     const preResolver = new PreResolver(
@@ -1060,7 +1067,7 @@ export class KLS {
     yield preDiagnostics;
     performance.mark('pre-resolver-end');
 
-    // traverse the ast again to resolve the remaning symbols
+    // traverse the ast again to resolve the remaining symbols
     performance.mark('resolver-start');
     const resolverDiagnostics = resolver
       .resolve()
@@ -1076,8 +1083,12 @@ export class KLS {
     yield unusedDiagnostics;
     performance.mark('resolver-end');
 
+    const oldDocumentInfo = this.documentInfos.get(uri);
+
     // build the final symbol table
-    const symbolTable = symbolTableBuilder.build();
+    const symbolTable = symbolTableBuilder.build(
+      oldDocumentInfo && oldDocumentInfo.symbolTable,
+    );
 
     // perform type checking
     const typeChecker = new TypeChecker(script, this.logger, this.tracer);

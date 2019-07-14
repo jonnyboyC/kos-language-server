@@ -33,12 +33,12 @@ export class SymbolTable implements GraphNode<SymbolTable> {
   /**
    * The parent symbol tables to this symbol table
    */
-  public readonly parentSymbolTables: Set<SymbolTable>;
+  public readonly dependentTables: Set<SymbolTable>;
 
   /**
    * the child symbol tables to this symbol table
    */
-  public readonly childSymbolTables: Set<SymbolTable>;
+  public readonly dependencyTables: Set<SymbolTable>;
 
   /**
    * file uri for this symbol table
@@ -53,25 +53,26 @@ export class SymbolTable implements GraphNode<SymbolTable> {
   /**
    * construct a symbol table. typically this is done by the symbol table builder
    * @param rootScope the root scope of the symbol table
-   * @param childSymbolTables child scopes for this symbol table
+   * @param dependencyTables tables that this table is dependent on
+   * @param dependentTable tables that are dependent on this table
    * @param uri the file uri for this symbol table
    * @param logger a logger for the symbol table
    */
   constructor(
     rootScope: EnvironmentNode,
-    childSymbolTables: Set<SymbolTable>,
+    dependencyTables: Set<SymbolTable>,
+    dependentTable: Set<SymbolTable>,
     uri: string,
     logger: ILogger = mockLogger,
   ) {
     this.rootScope = rootScope;
-    this.childSymbolTables = childSymbolTables;
+    this.dependencyTables = dependencyTables;
+    this.dependentTables = dependentTable;
     this.uri = uri;
     this.logger = logger;
 
-    this.parentSymbolTables = new Set();
-
-    for (const symbolTable of childSymbolTables) {
-      symbolTable.parentSymbolTables.add(this);
+    for (const symbolTable of dependencyTables) {
+      symbolTable.dependentTables.add(this);
     }
   }
 
@@ -86,16 +87,17 @@ export class SymbolTable implements GraphNode<SymbolTable> {
    * get all adjacent nodes to this symbol table
    */
   public get adjacentNodes(): GraphNode<SymbolTable>[] {
-    return Array.from(this.childSymbolTables);
+    return Array.from(this.dependencyTables);
   }
 
   /**
-   * add a new child symbol table to this symbol table
-   * @param symbolTable the new child
+   * Replace a dependency with an updated one
+   * @param newTable The new table dependency
+   * @param oldTable the old version of the dependency if it exists
    */
-  public addScope(symbolTable: SymbolTable): void {
-    this.childSymbolTables.add(symbolTable);
-    symbolTable.parentSymbolTables.add(this);
+  public updateDependency(newTable: SymbolTable, oldTable: SymbolTable) {
+    this.dependencyTables.add(newTable);
+    this.dependencyTables.delete(oldTable);
   }
 
   /**
@@ -103,15 +105,15 @@ export class SymbolTable implements GraphNode<SymbolTable> {
    * if another symbol table doesn't reference it
    */
   public closeSelf(): void {
-    // remove childern if no parents
-    if (this.parentSymbolTables.size === 0) {
+    // remove children if no parents
+    if (this.dependentTables.size === 0) {
       // remove references from child scopes
-      for (const child of this.childSymbolTables) {
-        child.parentSymbolTables.delete(this);
+      for (const child of this.dependencyTables) {
+        child.dependentTables.delete(this);
       }
 
       // clear own references
-      this.childSymbolTables.clear();
+      this.dependencyTables.clear();
     }
   }
 
@@ -120,18 +122,18 @@ export class SymbolTable implements GraphNode<SymbolTable> {
    */
   public removeSelf(): void {
     // remove refernces from parent scopes
-    for (const parent of this.parentSymbolTables) {
-      parent.childSymbolTables.delete(this);
+    for (const parent of this.dependentTables) {
+      parent.dependencyTables.delete(this);
     }
 
     // remove references from child scopes
-    for (const child of this.childSymbolTables) {
-      child.parentSymbolTables.delete(this);
+    for (const child of this.dependencyTables) {
+      child.dependentTables.delete(this);
     }
 
     // clear own references
-    this.childSymbolTables.clear();
-    this.parentSymbolTables.clear();
+    this.dependencyTables.clear();
+    this.dependentTables.clear();
   }
 
   /**
@@ -288,7 +290,7 @@ export class SymbolTable implements GraphNode<SymbolTable> {
   private scopedTrackers(pos: Position): BasicTracker[] {
     const scoped = this.scopedTrackersDepth(pos, this.rootScope.children);
     const fileGlobal = Array.from(this.rootScope.environment.trackers());
-    const importedGlobals = Array.from(this.childSymbolTables.values()).map(
+    const importedGlobals = Array.from(this.dependencyTables.values()).map(
       scope => Array.from(scope.rootScope.environment.trackers()),
     );
 
@@ -314,7 +316,7 @@ export class SymbolTable implements GraphNode<SymbolTable> {
     }
 
     const fileGlobal = this.rootScope.environment.trackers();
-    const importedGlobals = Array.from(this.childSymbolTables.values()).map(
+    const importedGlobals = Array.from(this.dependencyTables.values()).map(
       scope => Array.from(scope.rootScope.environment.trackers()),
     );
 
@@ -400,9 +402,9 @@ export class SymbolTable implements GraphNode<SymbolTable> {
               return childSymbol;
             }
 
-            const currentSymbols = Array.from(node.environment.trackers()).filter(
-              trackerFilter,
-            );
+            const currentSymbols = Array.from(
+              node.environment.trackers(),
+            ).filter(trackerFilter);
             if (currentSymbols.length === 1) {
               return currentSymbols[0];
             }

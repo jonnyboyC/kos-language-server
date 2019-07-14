@@ -62,7 +62,7 @@ const resolveSource = (
   const symbolTableBuilder = new SymbolTableBuilder(fakeUri);
 
   if (standardLib) {
-    symbolTableBuilder.linkTable(standardLibraryBuilder(CaseKind.lowercase));
+    symbolTableBuilder.linkDependency(standardLibraryBuilder(CaseKind.lowercase));
   }
 
   const functionResolver = new PreResolver(

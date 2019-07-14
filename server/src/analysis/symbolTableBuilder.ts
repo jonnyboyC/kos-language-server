@@ -62,12 +62,17 @@ export class SymbolTableBuilder {
   private path: EnvironmentPath;
 
   /**
-   * A set of child symbols tables relative to this symbols table builder
+   * A set of symbols tables that are dependencies of this table
    */
-  public childSymbolTables: Set<SymbolTable>;
+  public dependencyTables: Set<SymbolTable>;
 
   /**
-   * logger class to reporting errors and infomation
+   * A set of symbol tables that are dependent on this table
+   */
+  public dependentTables: Set<SymbolTable>;
+
+  /**
+   * logger class to reporting errors and information
    */
   public logger: ILogger;
 
@@ -90,19 +95,31 @@ export class SymbolTableBuilder {
       active: [],
       backTrack: [],
     };
-    this.childSymbolTables = new Set();
+    this.dependencyTables = new Set();
+    this.dependentTables = new Set();
   }
 
   /**
-   * Generate a symbol table
+   * Generate a symbol table. This method will update dependent tables
+   * if and old version of the symbol table exists
+   * @param oldTable the old version of this table
    */
-  public build(): SymbolTable {
-    return new SymbolTable(
+  public build(oldTable?: SymbolTable): SymbolTable {
+    const table = new SymbolTable(
       this.rootNode,
-      this.childSymbolTables,
+      this.dependencyTables,
+      this.dependentTables,
       this.uri,
       this.logger,
     );
+
+    if (!empty(oldTable)) {
+      for (const symbolTable of oldTable.dependentTables) {
+        symbolTable.updateDependency(table, oldTable);
+      }
+    }
+
+    return table;
   }
 
   /**
@@ -141,11 +158,19 @@ export class SymbolTableBuilder {
   }
 
   /**
-   * Add a child symbol table to this symbol table builder
-   * @param symbolTable the child symbol table
+   * Add a dependency symbol table to this symbol table builder
+   * @param symbolTable the dependency symbol table
    */
-  public linkTable(symbolTable: SymbolTable): void {
-    this.childSymbolTables.add(symbolTable);
+  public linkDependency(symbolTable: SymbolTable): void {
+    this.dependencyTables.add(symbolTable);
+  }
+
+  /**
+   * Add a dependent symbol table to this symbol table builder
+   * @param symbolTable the dependent symbol table
+   */
+  public linkDependent(symbolTable: SymbolTable): void {
+    this.dependentTables.add(symbolTable);
   }
 
   /**
@@ -348,7 +373,11 @@ export class SymbolTableBuilder {
     token: Token,
     type?: ArgumentType,
   ): Maybe<Diagnostic> {
-    const conflictTracker = this.lookupKind(token.lookup, scopeType, KsSymbolKind.variable);
+    const conflictTracker = this.lookupKind(
+      token.lookup,
+      scopeType,
+      KsSymbolKind.variable,
+    );
 
     // check if variable has already been defined
     if (!empty(conflictTracker)) {
@@ -363,7 +392,11 @@ export class SymbolTableBuilder {
 
       // if local check for shadowing hints
     } else {
-      const shadowTracker = this.lookupKind(token.lookup, ScopeKind.global, KsSymbolKind.variable);
+      const shadowTracker = this.lookupKind(
+        token.lookup,
+        ScopeKind.global,
+        KsSymbolKind.variable,
+      );
       diagnostic = empty(shadowTracker)
         ? undefined
         : this.shadowSymbolHint(
@@ -407,7 +440,11 @@ export class SymbolTableBuilder {
     returnValue: boolean,
     type?: IFunctionType,
   ): Maybe<Diagnostic> {
-    const conflictTracker = this.lookupKind(token.lookup, scopeType, KsSymbolKind.function);
+    const conflictTracker = this.lookupKind(
+      token.lookup,
+      scopeType,
+      KsSymbolKind.function,
+    );
 
     // check if variable has already been defined
     if (!empty(conflictTracker)) {
@@ -422,7 +459,11 @@ export class SymbolTableBuilder {
 
       // if local check for shadowing hints
     } else {
-      const shadowTracker = this.lookupKind(token.lookup, ScopeKind.global, KsSymbolKind.function);
+      const shadowTracker = this.lookupKind(
+        token.lookup,
+        ScopeKind.global,
+        KsSymbolKind.function,
+      );
       diagnostic = empty(shadowTracker)
         ? undefined
         : this.shadowSymbolHint(
@@ -466,7 +507,11 @@ export class SymbolTableBuilder {
     token: Token,
     type?: ArgumentType,
   ): Maybe<Diagnostic> {
-    const conflictTracker = this.lookupKind(token.lookup, scopeType, KsSymbolKind.lock);
+    const conflictTracker = this.lookupKind(
+      token.lookup,
+      scopeType,
+      KsSymbolKind.lock,
+    );
 
     // check if lock has already been defined
     if (!empty(conflictTracker)) {
@@ -481,7 +526,11 @@ export class SymbolTableBuilder {
 
       // if local check for shadowing hints
     } else {
-      const shadowTracker = this.lookupKind(token.lookup, ScopeKind.global, KsSymbolKind.lock);
+      const shadowTracker = this.lookupKind(
+        token.lookup,
+        ScopeKind.global,
+        KsSymbolKind.lock,
+      );
       diagnostic = empty(shadowTracker)
         ? undefined
         : this.shadowSymbolHint(
@@ -519,7 +568,11 @@ export class SymbolTableBuilder {
     token: Token,
     defaulted: boolean,
   ): Maybe<Diagnostic> {
-    const conflictTracker = this.lookupKind(token.lookup, scopeType, KsSymbolKind.parameter);
+    const conflictTracker = this.lookupKind(
+      token.lookup,
+      scopeType,
+      KsSymbolKind.parameter,
+    );
 
     // check if variable has already been defined
     if (!empty(conflictTracker)) {
@@ -534,7 +587,11 @@ export class SymbolTableBuilder {
 
       // if local check for shadowing hints
     } else {
-      const shadowTracker = this.lookupKind(token.lookup, ScopeKind.global, KsSymbolKind.parameter);
+      const shadowTracker = this.lookupKind(
+        token.lookup,
+        ScopeKind.global,
+        KsSymbolKind.parameter,
+      );
       diagnostic = empty(shadowTracker)
         ? undefined
         : this.shadowSymbolHint(
@@ -916,7 +973,7 @@ export class SymbolTableBuilder {
     }
 
     // check child scopes symbol is in another file
-    for (const child of this.childSymbolTables) {
+    for (const child of this.dependencyTables) {
       if (child.rootScope.environment.has(lookup)) {
         return child.rootScope;
       }
@@ -986,7 +1043,7 @@ export class SymbolTableBuilder {
           { uri: this.uri, range: symbol.name },
           symbol.name.uri === builtIn
             ? `${symbol.name.lexeme} is a built in ${KsSymbolKind[symbol.tag]}`
-            : 'Orignally declared here',
+            : 'Originally declared here',
         ),
       ],
     );
