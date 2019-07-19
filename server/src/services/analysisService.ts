@@ -2,10 +2,15 @@ import {
   DiagnosticUri,
   IDocumentInfo,
   LoadedDocuments,
-  ValidateResult2,
+  ValidateResult,
 } from '../types';
 import { SymbolTable } from '../analysis/symbolTable';
-import { ScriptResult, RunStmtType } from '../parser/types';
+import {
+  LexicalResult,
+  RunStmtType,
+  IScript,
+  SemanticResult,
+} from '../parser/types';
 import { SymbolTableBuilder } from '../analysis/symbolTableBuilder';
 import { PreResolver } from '../analysis/preResolver';
 import { performance, PerformanceObserver } from 'perf_hooks';
@@ -59,7 +64,7 @@ export class AnalysisService {
   private standardLibrary: SymbolTable;
 
   /**
-   * The current loaded celetrial body library
+   * The current loaded celestial body library
    */
   private bodyLibrary: SymbolTable;
 
@@ -137,25 +142,93 @@ export class AnalysisService {
     uri: string,
     text: string,
     depth: number,
-  ): Promise<ValidateResult2> {
-    if (depth > 10) {
-      return { diagnostics: [], tables: [] };
-    }
-
-    const {
-      script,
-      regions,
-      parseErrors,
-      scanErrors,
-    } = await this.parseDocument(uri, text);
-
-    const validationResult: ValidateResult2 = {
+  ): Promise<ValidateResult> {
+    const result: ValidateResult = {
       tables: [],
       diagnostics: [],
     };
 
-    validationResult.diagnostics.push(
-      ...scanErrors.map(scanError => addDiagnosticsUri(scanError, uri)),
+    if (depth > 10) {
+      return result;
+    }
+
+    // preform lexical analysis
+    const {
+      script,
+      regions,
+      scannerDiagnostics,
+      parserDiagnostics,
+    } = await this.lexicalAnalysisDocument(uri, text);
+
+    result.diagnostics.push(...scannerDiagnostics);
+    result.diagnostics.push(...parserDiagnostics);
+
+    // load dependencies found in the ast
+    const dependenciesResult = await this.loadDependencies(uri, script, depth);
+    result.tables.push(...dependenciesResult.tables);
+    result.diagnostics.push(...dependenciesResult.diagnostics);
+
+    // perform semantic analysis
+    const {
+      resolverDiagnostics,
+      typeDiagnostics,
+      symbolTable,
+    } = await this.semanticAnalysisDocument(uri, script, result.tables);
+
+    result.diagnostics.push(...resolverDiagnostics);
+    // validationResult.diagnostics.push(...typeDiagnostics);
+
+    // set result
+    this.documentInfos.set(uri, {
+      script,
+      regions,
+      symbolTable,
+      diagnostics: result.diagnostics.concat(typeDiagnostics),
+    });
+
+    performance.clearMarks();
+
+    result.tables.push(symbolTable);
+    return result;
+  }
+
+  /**
+   * Perform lexical analysis on the provided provided source text
+   * @param uri uri to document
+   * @param text source text of document
+   */
+  private async lexicalAnalysisDocument(
+    uri: string,
+    text: string,
+  ): Promise<LexicalResult> {
+    this.logger.verbose('');
+    this.logger.verbose('-------------Lexical Analysis------------');
+
+    performance.mark('scanner-start');
+    const scanner = new Scanner(text, uri, this.logger, this.tracer);
+    const { tokens, scanErrors, regions } = scanner.scanTokens();
+    performance.mark('scanner-end');
+
+    // if scanner found errors report those immediately
+    if (scanErrors.length > 0) {
+      this.logger.warn(`Scanning encountered ${scanErrors.length} Errors.`);
+    }
+
+    performance.mark('parser-start');
+    const parser = new Parser(uri, tokens, this.logger, this.tracer);
+    const { script, parseErrors } = parser.parse();
+    performance.mark('parser-end');
+
+    // measure performance
+    performance.measure('Scanner', 'scanner-start', 'scanner-end');
+    performance.measure('Parser', 'parser-start', 'parser-end');
+    performance.clearMarks();
+
+    this.logger.verbose('--------------------------------------');
+
+    // generate lexical diagnostics
+    const scannerDiagnostics = scanErrors.map(scanError =>
+      addDiagnosticsUri(scanError, uri),
     );
     const parserDiagnostics =
       parseErrors.length === 0
@@ -165,40 +238,25 @@ export class AnalysisService {
             .reduce((acc, current) => acc.concat(current))
             .map(error => parseToDiagnostics(error, uri));
 
-    validationResult.diagnostics.push(...parserDiagnostics);
+    return {
+      scannerDiagnostics,
+      parserDiagnostics,
+      script,
+      regions,
+    };
+  }
 
-    // if any run statement exist get uri then load
-    if (script.runStmts.length > 0 && this.documentService.ready) {
-      const { documents, diagnostics } = await this.loadDocuments(
-        uri,
-        script.runStmts,
-      );
-
-      validationResult.diagnostics.push(
-        ...diagnostics.map(error => addDiagnosticsUri(error, uri)),
-      );
-
-      // for each document run validate and yield any results
-      for (const document of documents) {
-        const cached = this.documentInfos.get(document.uri);
-        if (!empty(cached)) {
-          validationResult.diagnostics.push(...cached.diagnostics);
-
-          // TODO
-          validationResult.tables.push(cached.symbolTable);
-        } else {
-          const { diagnostics, tables } = await this.validateDocument_(
-            document.uri,
-            document.getText(),
-            depth + 1,
-          );
-
-          validationResult.diagnostics.push(...diagnostics);
-          validationResult.tables.push(...tables);
-        }
-      }
-    }
-
+  /**
+   * Perform semantic analysis on the an ast and provided dependency symbol tables
+   * @param uri uri to document
+   * @param script Ast of the document
+   * @param tables symbol tables that are dependencies of this document
+   */
+  private async semanticAnalysisDocument(
+    uri: string,
+    script: IScript,
+    tables: SymbolTable[],
+  ): Promise<SemanticResult> {
     this.logger.verbose('');
     this.logger.verbose('-------------Semantic Analysis------------');
 
@@ -206,7 +264,7 @@ export class AnalysisService {
     const symbolTableBuilder = new SymbolTableBuilder(uri, this.logger);
 
     // add child scopes
-    for (const symbolTable of validationResult.tables) {
+    for (const symbolTable of tables) {
       symbolTableBuilder.linkDependency(symbolTable);
     }
 
@@ -230,27 +288,25 @@ export class AnalysisService {
 
     // traverse the ast to find functions to pre populate symbol table
     performance.mark('pre-resolver-start');
-    const preDiagnostics = preResolver
+    const resolverDiagnostics = preResolver
       .resolve()
       .map(error => addDiagnosticsUri(error, uri));
 
-    validationResult.diagnostics.push(...preDiagnostics);
     performance.mark('pre-resolver-end');
 
-    // traverse the ast again to resolve the remaning symbols
+    // traverse the ast again to resolve the remaining symbols
     performance.mark('resolver-start');
-    const resolverDiagnostics = resolver
-      .resolve()
-      .map(error => addDiagnosticsUri(error, uri));
-
-    validationResult.diagnostics.push(...resolverDiagnostics);
+    resolverDiagnostics.push(
+      ...resolver.resolve().map(error => addDiagnosticsUri(error, uri)),
+    );
 
     // find scopes were symbols were never used
-    const unusedDiagnostics = symbolTableBuilder
-      .findUnused()
-      .map(error => addDiagnosticsUri(error, uri));
+    resolverDiagnostics.push(
+      ...symbolTableBuilder
+        .findUnused()
+        .map(error => addDiagnosticsUri(error, uri)),
+    );
 
-    validationResult.diagnostics.push(...unusedDiagnostics);
     performance.mark('resolver-end');
 
     const oldDocumentInfo = this.documentInfos.get(uri);
@@ -269,7 +325,6 @@ export class AnalysisService {
       .check()
       .map(error => addDiagnosticsUri(error, uri));
 
-    // yield typeDiagnostics;
     performance.mark('type-checking-end');
 
     // measure performance
@@ -291,60 +346,65 @@ export class AnalysisService {
       documentInfo.symbolTable.removeSelf();
       documentInfo = undefined;
     }
-
-    this.documentInfos.set(uri, {
-      script,
-      regions,
-      symbolTable,
-      diagnostics: validationResult.diagnostics.concat(typeDiagnostics),
-    });
-
-    this.logger.verbose('--------------------------------------');
-    performance.clearMarks();
-
-    validationResult.tables.push(symbolTable);
-    return validationResult;
-  }
-
-  /**
-   * Generate a ast from the provided source text
-   * @param uri uri to document
-   * @param text source text of document
-   */
-  private async parseDocument(
-    uri: string,
-    text: string,
-  ): Promise<ScriptResult> {
-    this.logger.verbose('');
-    this.logger.verbose('-------------Lexical Analysis------------');
-
-    performance.mark('scanner-start');
-    const scanner = new Scanner(text, uri, this.logger, this.tracer);
-    const { tokens, scanErrors, regions } = scanner.scanTokens();
-    performance.mark('scanner-end');
-
-    // if scanner found errors report those immediately
-    if (scanErrors.length > 0) {
-      this.logger.warn(`Scanning encountered ${scanErrors.length} Errors.`);
-    }
-
-    performance.mark('parser-start');
-    const parser = new Parser(uri, tokens, this.logger, this.tracer);
-    const result = parser.parse();
-    performance.mark('parser-end');
-
-    // measure performance
-    performance.measure('Scanner', 'scanner-start', 'scanner-end');
-    performance.measure('Parser', 'parser-start', 'parser-end');
-    performance.clearMarks();
-
     this.logger.verbose('--------------------------------------');
 
     return {
-      scanErrors,
-      regions,
-      ...result,
+      symbolTable,
+      typeDiagnostics,
+      resolverDiagnostics,
     };
+  }
+
+  /**
+   * Load dependencies either from cache or by perform analysis on them as well
+   * @param uri uri to document
+   * @param script Ast of the document
+   * @param depth current resolving depth TODO actually check cycles
+   */
+  private async loadDependencies(
+    uri: string,
+    script: IScript,
+    depth: number,
+  ): Promise<ValidateResult> {
+    const result: ValidateResult = {
+      tables: [],
+      diagnostics: [],
+    };
+
+    // if any run statement exist get uri then load
+    if (script.runStmts.length > 0 && this.documentService.ready) {
+      const { documents, diagnostics } = await this.loadDocuments(
+        uri,
+        script.runStmts,
+      );
+
+      // add diagnostics related to the actual load
+      result.diagnostics.push(
+        ...diagnostics.map(error => addDiagnosticsUri(error, uri)),
+      );
+
+      // for each document run validate and yield any results
+      for (const document of documents) {
+        const cached = this.documentInfos.get(document.uri);
+        if (!empty(cached)) {
+          result.diagnostics.push(...cached.diagnostics);
+
+          // TODO need to get this tables own dependencies
+          result.tables.push(cached.symbolTable);
+        } else {
+          const { diagnostics, tables } = await this.validateDocument_(
+            document.uri,
+            document.getText(),
+            depth + 1,
+          );
+
+          result.diagnostics.push(...diagnostics);
+          result.tables.push(...tables);
+        }
+      }
+    }
+
+    return result;
   }
 
   /**

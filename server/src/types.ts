@@ -28,8 +28,7 @@ export interface ILoadData {
   uri: URI;
 }
 
-export type ValidateResult = DiagnosticUri[] | SymbolTable;
-export interface ValidateResult2 {
+export interface ValidateResult {
   diagnostics: DiagnosticUri[];
   tables: SymbolTable[];
 }

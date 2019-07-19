@@ -2,10 +2,12 @@ import * as Expr from './expr';
 import * as Stmt from './stmt';
 import * as SuffixTerm from './suffixTerm';
 import { Var, Lock, Func, Param } from './declare';
-import { Range, Location, Diagnostic } from 'vscode-languageserver';
+import { Range, Location } from 'vscode-languageserver';
 import { TokenType } from '../entities/tokentypes';
 import { NodeBase } from './base';
 import { Token } from '../entities/token';
+import { DiagnosticUri } from '../types';
+import { SymbolTable } from '../analysis/symbolTable';
 
 export interface RangeSequence extends Range {
   ranges: Range[];
@@ -159,9 +161,17 @@ export interface ParseResult {
   parseErrors: IParseError[];
 }
 
-export interface ScriptResult extends ParseResult {
-  scanErrors: Diagnostic[];
+export interface LexicalResult {
+  scannerDiagnostics: DiagnosticUri[];
+  parserDiagnostics: DiagnosticUri[];
   regions: Token[];
+  script: IScript;
+}
+
+export interface SemanticResult {
+  resolverDiagnostics: DiagnosticUri[];
+  typeDiagnostics: DiagnosticUri[];
+  symbolTable: SymbolTable;
 }
 
 export interface IFindResult {
