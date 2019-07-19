@@ -180,14 +180,22 @@ export class AnalysisService {
 
       // for each document run validate and yield any results
       for (const document of documents) {
-        const { diagnostics, tables } = await this.validateDocument_(
-          document.uri,
-          document.getText(),
-          depth + 1,
-        );
+        const cached = this.documentInfos.get(document.uri);
+        if (!empty(cached)) {
+          validationResult.diagnostics.push(...cached.diagnostics);
 
-        validationResult.diagnostics.push(...diagnostics);
-        validationResult.tables.push(...tables);
+          // TODO
+          validationResult.tables.push(cached.symbolTable);
+        } else {
+          const { diagnostics, tables } = await this.validateDocument_(
+            document.uri,
+            document.getText(),
+            depth + 1,
+          );
+
+          validationResult.diagnostics.push(...diagnostics);
+          validationResult.tables.push(...tables);
+        }
       }
     }
 
@@ -199,12 +207,12 @@ export class AnalysisService {
 
     // add child scopes
     for (const symbolTable of validationResult.tables) {
-      symbolTableBuilder.linkTable(symbolTable);
+      symbolTableBuilder.linkDependency(symbolTable);
     }
 
     // add standard library
-    symbolTableBuilder.linkTable(this.activeStandardLibrary());
-    symbolTableBuilder.linkTable(this.activeBodyLibrary());
+    symbolTableBuilder.linkDependency(this.activeStandardLibrary());
+    symbolTableBuilder.linkDependency(this.activeBodyLibrary());
 
     // generate resolvers
     const preResolver = new PreResolver(
@@ -245,8 +253,12 @@ export class AnalysisService {
     validationResult.diagnostics.push(...unusedDiagnostics);
     performance.mark('resolver-end');
 
+    const oldDocumentInfo = this.documentInfos.get(uri);
+
     // build the final symbol table
-    const symbolTable = symbolTableBuilder.build();
+    const symbolTable = symbolTableBuilder.build(
+      oldDocumentInfo && oldDocumentInfo.symbolTable,
+    );
 
     // perform type checking
     const typeChecker = new TypeChecker(script, this.logger, this.tracer);
