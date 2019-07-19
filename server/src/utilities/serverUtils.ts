@@ -13,6 +13,8 @@ import {
   MessageReader,
   MessageWriter,
   SignatureHelp,
+  Diagnostic,
+  DiagnosticSeverity,
 } from 'vscode-languageserver';
 import { empty } from './typeGuards';
 import { allSuffixes, tokenTrackedType } from '../typeChecker/typeUitlities';
@@ -20,8 +22,9 @@ import { KsSymbolKind } from '../analysis/types';
 import { cleanLocation, cleanToken, cleanCompletion } from './clean';
 import { CallKind } from '../typeChecker/types';
 import { CommanderStatic } from 'commander';
-import { ClientConfiguration } from '../types';
+import { ClientConfiguration, DiagnosticUri } from '../types';
 import { mapper } from './mapper';
+import { IParseError } from '../parser/types';
 
 /**
  * The default client configuration if none are available
@@ -259,3 +262,30 @@ export const defaultSignature = (): SignatureHelp => ({
   activeParameter: null,
   activeSignature: null,
 });
+
+/**
+ * Convert parser error to diagnostic
+ * @param error parser error
+ * @param uri uri string
+ */
+export const parseToDiagnostics = (
+  error: IParseError,
+  uri: string,
+): DiagnosticUri => {
+  return {
+    uri,
+    severity: DiagnosticSeverity.Error,
+    range: { start: error.start, end: error.end },
+    message: error.message,
+    source: 'kos-language-server',
+  };
+};
+
+/**
+ * convert resolver error to diagnostic
+ * @param error diagnostic
+ * @param uri uri string
+ */
+export const addDiagnosticsUri = (error: Diagnostic, uri: string): DiagnosticUri => {
+  return { uri, ...error };
+};

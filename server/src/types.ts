@@ -15,7 +15,7 @@ export interface IDocumentInfo {
   script: IScript;
   regions: Token[];
   symbolTable: SymbolTable;
-  diagnostics: IDiagnosticUri[];
+  diagnostics: DiagnosticUri[];
 }
 
 export interface LoadedDocuments {
@@ -28,9 +28,13 @@ export interface ILoadData {
   uri: URI;
 }
 
-export type ValidateResult = IDiagnosticUri[] | SymbolTable;
+export type ValidateResult = DiagnosticUri[] | SymbolTable;
+export interface ValidateResult2 {
+  diagnostics: DiagnosticUri[];
+  tables: SymbolTable[];
+}
 
-export interface IDiagnosticUri extends Diagnostic {
+export interface DiagnosticUri extends Diagnostic {
   uri: string;
 }
 

@@ -1,5 +1,4 @@
 import {
-  DiagnosticSeverity,
   Position,
   Location,
   Diagnostic,
@@ -24,24 +23,11 @@ import {
   SignatureHelp,
   DocumentSymbolParams,
   SymbolInformation,
-  TextDocument,
   FoldingRangeParams,
   FoldingRange,
 } from 'vscode-languageserver';
-import {
-  IDocumentInfo,
-  IDiagnosticUri,
-  ValidateResult,
-  KLSConfiguration,
-  ClientConfiguration,
-  LoadedDocuments,
-} from './types';
-import { performance, PerformanceObserver } from 'perf_hooks';
-import { Parser } from './parser/parser';
-import { PreResolver } from './analysis/preResolver';
+import { KLSConfiguration, ClientConfiguration } from './types';
 import { Scanner } from './scanner/scanner';
-import { Resolver } from './analysis/resolver';
-import { IParseError, ScriptResult, RunStmtType } from './parser/types';
 import {
   KsSymbol,
   KsSymbolKind,
@@ -55,15 +41,7 @@ import { ScriptFind } from './parser/scriptFind';
 import * as Expr from './parser/expr';
 import * as Stmt from './parser/stmt';
 import * as SuffixTerm from './parser/suffixTerm';
-import { runPath } from './utilities/pathResolver';
-import {
-  standardLibraryBuilder,
-  bodyLibraryBuilder,
-} from './analysis/standardLibrary';
 import { builtIn, serverName, keywordCompletions } from './utilities/constants';
-import { SymbolTableBuilder } from './analysis/symbolTableBuilder';
-import { SymbolTable } from './analysis/symbolTable';
-import { TypeChecker } from './typeChecker/typeChecker';
 import { Token } from './entities/token';
 import { binarySearchIndex } from './utilities/positionUtils';
 import { URI } from 'vscode-uri';
@@ -88,22 +66,13 @@ import { tokenTrackedType } from './typeChecker/typeUitlities';
 import { TypeKind } from './typeChecker/types';
 import { DocumentLoader, Document } from './utilities/documentLoader';
 import { FoldableService } from './services/foldableService';
+import { AnalysisService } from './services/analysisService';
 
 export class KLS {
   /**
    * What is the workspace uri
    */
   public workspaceUri?: string;
-
-  /**
-   * The current loaded standard library
-   */
-  private standardLibrary: SymbolTable;
-
-  /**
-   * The current loaded celetrial body library
-   */
-  private bodyLibrary: SymbolTable;
 
   /**
    * The logger used by this and all dependencies
@@ -114,16 +83,6 @@ export class KLS {
    * The tracer used by this and all dependencies
    */
   private readonly tracer: ITracer;
-
-  /**
-   * Document information
-   */
-  private readonly documentInfos: Map<string, IDocumentInfo>;
-
-  /**
-   * Performance observer for tracking analysis speed
-   */
-  private readonly observer: PerformanceObserver;
 
   /**
    * Connection to the client
@@ -145,6 +104,11 @@ export class KLS {
    */
   private readonly foldableService: FoldableService;
 
+  /**
+   * A service to provide analysis against scripts
+   */
+  private readonly analysisService: AnalysisService;
+
   constructor(
     caseKind: CaseKind = CaseKind.camelcase,
     logger: ILogger = mockLogger,
@@ -155,7 +119,6 @@ export class KLS {
     this.workspaceUri = undefined;
     this.logger = logger;
     this.tracer = tracer;
-    this.documentInfos = new Map();
     this.configuration = configuration;
     this.connection = connection;
     this.documentService = new DocumentService(
@@ -164,19 +127,12 @@ export class KLS {
       logger,
     );
     this.foldableService = new FoldableService();
-
-    this.standardLibrary = standardLibraryBuilder(caseKind);
-    this.bodyLibrary = bodyLibraryBuilder(caseKind);
-
-    this.observer = new PerformanceObserver(list => {
-      this.logger.verbose('');
-      this.logger.verbose('-------- Performance ---------');
-      for (const entry of list.getEntries()) {
-        this.logger.verbose(`${entry.name} took ${entry.duration} ms`);
-      }
-      this.logger.verbose('------------------------------');
-    });
-    this.observer.observe({ entryTypes: ['measure'], buffered: true });
+    this.analysisService = new AnalysisService(
+      caseKind,
+      this.logger,
+      this.tracer,
+      this.documentService,
+    );
   }
 
   /**
@@ -594,7 +550,7 @@ export class KLS {
    */
   private onFoldingRange(foldingParams: FoldingRangeParams): FoldingRange[] {
     const { uri } = foldingParams.textDocument;
-    const documentInfo = this.documentInfos.get(uri);
+    const documentInfo = this.analysisService.getInfo(uri);
 
     if (empty(documentInfo)) {
       return [];
@@ -612,25 +568,21 @@ export class KLS {
    */
   private async onChange(document: Document) {
     try {
-      const diagnosticResults = this.validateDocument(
+      const diagnosticResults = await this.analysisService.validateDocument(
         document.uri,
         document.text,
       );
 
-      let total = 0;
+      const total = diagnosticResults.length;
       const diagnosticMap: Map<string, Diagnostic[]> = new Map();
 
       // retrieve diagnostics from analyzer
-      for await (const diagnostics of diagnosticResults) {
-        total += diagnostics.length;
-
-        for (const diagnostic of diagnostics) {
-          const uriDiagnostics = diagnosticMap.get(diagnostic.uri);
-          if (empty(uriDiagnostics)) {
-            diagnosticMap.set(diagnostic.uri, [cleanDiagnostic(diagnostic)]);
-          } else {
-            uriDiagnostics.push(cleanDiagnostic(diagnostic));
-          }
+      for (const diagnostic of diagnosticResults) {
+        const uriDiagnostics = diagnosticMap.get(diagnostic.uri);
+        if (empty(uriDiagnostics)) {
+          diagnosticMap.set(diagnostic.uri, [cleanDiagnostic(diagnostic)]);
+        } else {
+          uriDiagnostics.push(cleanDiagnostic(diagnostic));
         }
       }
 
@@ -649,18 +601,9 @@ export class KLS {
           diagnostics: [],
         });
       }
-    } catch (e) {
+    } catch (err) {
       // report any exceptions to the client
-      this.connection.console.error('kos-language-server Error occurred:');
-      if (e instanceof Error) {
-        this.connection.console.error(e.message);
-
-        if (!empty(e.stack)) {
-          this.connection.console.error(e.stack);
-        }
-      } else {
-        this.connection.console.error(JSON.stringify(e));
-      }
+      logException(this.logger, this.tracer, err, LogLevel.error);
     }
   }
 
@@ -710,27 +653,7 @@ export class KLS {
    */
   public setCase(caseKind: CaseKind) {
     this.configuration.keywords = keywordCompletions(caseKind);
-    this.standardLibrary = standardLibraryBuilder(caseKind);
-    this.bodyLibrary = bodyLibraryBuilder(caseKind);
-  }
-
-  /**
-   * Validate a document in asynchronous stages. This produces diagnostics about known errors or
-   * potential problems in the provided script
-   * @param uri uri of the document
-   * @param text source text of the document
-   * @param depth TODO remove: current depth of the document
-   */
-  public async *validateDocument(
-    uri: string,
-    text: string,
-    depth: number = 0,
-  ): AsyncIterableIterator<IDiagnosticUri[]> {
-    for await (const result of this.validateDocument_(uri, text, depth)) {
-      if (Array.isArray(result)) {
-        yield result;
-      }
-    }
+    this.analysisService.setCase(caseKind);
   }
 
   /**
@@ -739,7 +662,7 @@ export class KLS {
    * @param uri uri of the text document
    */
   public getToken(pos: Position, uri: string): Maybe<Token> {
-    const documentInfo = this.documentInfos.get(uri);
+    const documentInfo = this.analysisService.getInfo(uri);
     if (empty(documentInfo)) {
       return undefined;
     }
@@ -758,7 +681,7 @@ export class KLS {
    * @param uri uri of the document
    */
   public getDeclarationLocation(pos: Position, uri: string): Maybe<Location> {
-    const documentInfo = this.documentInfos.get(uri);
+    const documentInfo = this.analysisService.getInfo(uri);
     if (empty(documentInfo)) {
       return undefined;
     }
@@ -796,7 +719,7 @@ export class KLS {
    * @param uri uri of document
    */
   public getUsageLocations(pos: Position, uri: string): Maybe<Location[]> {
-    const documentInfo = this.documentInfos.get(uri);
+    const documentInfo = this.analysisService.getInfo(uri);
     if (
       empty(documentInfo) ||
       empty(documentInfo.symbolTable) ||
@@ -847,7 +770,7 @@ export class KLS {
    * @param uri document uri
    */
   public getScopedSymbols(pos: Position, uri: string): KsBaseSymbol[] {
-    const documentInfo = this.documentInfos.get(uri);
+    const documentInfo = this.analysisService.getInfo(uri);
 
     if (!empty(documentInfo) && !empty(documentInfo.symbolTable)) {
       return documentInfo.symbolTable.scopedSymbols(pos);
@@ -861,7 +784,7 @@ export class KLS {
    * @param uri document uri
    */
   public getAllFileSymbols(uri: string): KsSymbol[] {
-    const documentInfo = this.documentInfos.get(uri);
+    const documentInfo = this.analysisService.getInfo(uri);
 
     if (!empty(documentInfo) && !empty(documentInfo.symbolTable)) {
       return documentInfo.symbolTable.fileSymbols();
@@ -880,7 +803,7 @@ export class KLS {
     uri: string,
   ): Maybe<{ tracker: SymbolTracker; index: number }> {
     // we need the document info to lookup a signature
-    const documentInfo = this.documentInfos.get(uri);
+    const documentInfo = this.analysisService.getInfo(uri);
     if (empty(documentInfo)) return undefined;
 
     const { script } = documentInfo;
@@ -959,285 +882,4 @@ export class KLS {
 
     return undefined;
   }
-
-  /**
-   * Main validation function for a document. Lexically and semantically understands a document.
-   * Will additionally perform the same analysis on other run scripts found in this script
-   * @param uri uri of the document
-   * @param text source text of the document
-   * @param depth TODO remove: current depth of the document
-   */
-  private async *validateDocument_(
-    uri: string,
-    text: string,
-    depth: number,
-  ): AsyncIterableIterator<ValidateResult> {
-    if (depth > 10) {
-      return { diagnostics: [] };
-    }
-
-    const {
-      script,
-      regions,
-      parseErrors,
-      scanErrors,
-    } = await this.parseDocument(uri, text);
-    const symbolTables: SymbolTable[] = [];
-
-    const scanDiagnostics = scanErrors.map(scanError =>
-      addDiagnosticsUri(scanError, uri),
-    );
-    const parserDiagnostics =
-      parseErrors.length === 0
-        ? []
-        : parseErrors
-            .map(error => error.inner.concat(error))
-            .reduce((acc, current) => acc.concat(current))
-            .map(error => parseToDiagnostics(error, uri));
-
-    yield scanDiagnostics.concat(parserDiagnostics);
-
-    // if any run statement exist get uri then load
-    if (script.runStmts.length > 0 && this.documentService.ready) {
-      const { documents, diagnostics } = await this.loadDocuments(
-        uri,
-        script.runStmts,
-      );
-
-      yield diagnostics.map(error => addDiagnosticsUri(error, uri));
-
-      // for each document run validate and yield any results
-      for (const document of documents) {
-        for await (const result of this.validateDocument_(
-          document.uri,
-          document.getText(),
-          depth + 1,
-        )) {
-          if (Array.isArray(result)) {
-            yield result;
-          } else {
-            symbolTables.push(result);
-          }
-        }
-      }
-    }
-
-    this.logger.verbose('');
-    this.logger.verbose('-------------Semantic Analysis------------');
-
-    // generate a scope manager for resolving
-    const symbolTableBuilder = new SymbolTableBuilder(uri, this.logger);
-
-    // add child scopes
-    for (const symbolTable of symbolTables) {
-      symbolTableBuilder.linkTable(symbolTable);
-    }
-
-    // add standard library
-    symbolTableBuilder.linkTable(this.standardLibrary);
-    symbolTableBuilder.linkTable(this.activeBodyLibrary());
-
-    // generate resolvers
-    const preResolver = new PreResolver(
-      script,
-      symbolTableBuilder,
-      this.logger,
-      this.tracer,
-    );
-    const resolver = new Resolver(
-      script,
-      symbolTableBuilder,
-      this.logger,
-      this.tracer,
-    );
-
-    // traverse the ast to find functions to pre populate symbol table
-    performance.mark('pre-resolver-start');
-    const preDiagnostics = preResolver
-      .resolve()
-      .map(error => addDiagnosticsUri(error, uri));
-
-    yield preDiagnostics;
-    performance.mark('pre-resolver-end');
-
-    // traverse the ast again to resolve the remaning symbols
-    performance.mark('resolver-start');
-    const resolverDiagnostics = resolver
-      .resolve()
-      .map(error => addDiagnosticsUri(error, uri));
-
-    yield resolverDiagnostics;
-
-    // find scopes were symbols were never used
-    const unusedDiagnostics = symbolTableBuilder
-      .findUnused()
-      .map(error => addDiagnosticsUri(error, uri));
-
-    yield unusedDiagnostics;
-    performance.mark('resolver-end');
-
-    // build the final symbol table
-    const symbolTable = symbolTableBuilder.build();
-
-    // perform type checking
-    const typeChecker = new TypeChecker(script, this.logger, this.tracer);
-
-    performance.mark('type-checking-start');
-
-    const typeDiagnostics = typeChecker
-      .check()
-      .map(error => addDiagnosticsUri(error, uri));
-
-    // yield typeDiagnostics;
-    performance.mark('type-checking-end');
-
-    // measure performance
-    performance.measure(
-      'Pre Resolver',
-      'pre-resolver-start',
-      'pre-resolver-end',
-    );
-    performance.measure('Resolver', 'resolver-start', 'resolver-end');
-    performance.measure(
-      'Type Checking',
-      'type-checking-start',
-      'type-checking-end',
-    );
-
-    // make sure to delete references so scope manager can be gc'ed
-    let documentInfo: Maybe<IDocumentInfo> = this.documentInfos.get(uri);
-    if (!empty(documentInfo)) {
-      documentInfo.symbolTable.removeSelf();
-      documentInfo = undefined;
-    }
-
-    this.documentInfos.set(uri, {
-      script,
-      regions,
-      symbolTable,
-      diagnostics: scanDiagnostics.concat(
-        parserDiagnostics,
-        preDiagnostics,
-        resolverDiagnostics,
-        typeDiagnostics,
-      ),
-    });
-
-    this.logger.verbose('--------------------------------------');
-    performance.clearMarks();
-
-    yield symbolTable;
-  }
-
-  /**
-   * Generate a ast from the provided source text
-   * @param uri uri to document
-   * @param text source text of document
-   */
-  private async parseDocument(
-    uri: string,
-    text: string,
-  ): Promise<ScriptResult> {
-    this.logger.verbose('');
-    this.logger.verbose('-------------Lexical Analysis------------');
-
-    performance.mark('scanner-start');
-    const scanner = new Scanner(text, uri, this.logger, this.tracer);
-    const { tokens, scanErrors, regions } = scanner.scanTokens();
-    performance.mark('scanner-end');
-
-    // if scanner found errors report those immediately
-    if (scanErrors.length > 0) {
-      this.logger.warn(`Scanning encountered ${scanErrors.length} Errors.`);
-    }
-
-    performance.mark('parser-start');
-    const parser = new Parser(uri, tokens, this.logger, this.tracer);
-    const result = parser.parse();
-    performance.mark('parser-end');
-
-    // measure performance
-    performance.measure('Scanner', 'scanner-start', 'scanner-end');
-    performance.measure('Parser', 'parser-start', 'parser-end');
-    performance.clearMarks();
-
-    this.logger.verbose('--------------------------------------');
-
-    return {
-      scanErrors,
-      regions,
-      ...result,
-    };
-  }
-
-  /**
-   * Get all valid uris from the documents run statements
-   * @param uri uri of the calling document
-   * @param runStmts run statements in the document
-   */
-  private async loadDocuments(
-    uri: string,
-    runStmts: RunStmtType[],
-  ): Promise<LoadedDocuments> {
-    const documents: TextDocument[] = [];
-    const diagnostics: Diagnostic[] = [];
-
-    for (const runStmt of runStmts) {
-      // attempt to get a resolvable path from a run statement
-      const path = runPath(runStmt);
-      if (typeof path === 'string') {
-        // attempt to load document
-        const document = await this.documentService.loadDocument(
-          runStmt.toLocation(uri),
-          path,
-        );
-
-        if (!empty(document)) {
-          // determine if document or diagnostic
-          if (TextDocument.is(document)) {
-            documents.push(document);
-          } else {
-            diagnostics.push(document);
-          }
-        }
-        // was dynamically loaded path can't load
-      } else {
-        diagnostics.push(path);
-      }
-    }
-
-    // generate uris then remove empty or preloaded documents
-    return {
-      documents,
-      diagnostics,
-    };
-  }
-
-  /**
-   * Get the symbol table corresponding active set of celestial bodies for the user.
-   * This allows for bodies other than that in stock ksp to be incorporated
-   */
-  private activeBodyLibrary(): SymbolTable {
-    /** TODO actually load other bodies */
-    return this.bodyLibrary;
-  }
 }
-
-// convert parse error to diagnostic
-const parseToDiagnostics = (
-  error: IParseError,
-  uri: string,
-): IDiagnosticUri => {
-  return {
-    uri,
-    severity: DiagnosticSeverity.Error,
-    range: { start: error.start, end: error.end },
-    message: error.message,
-    source: 'kos-language-server',
-  };
-};
-
-// convert resolver error to diagnostic
-const addDiagnosticsUri = (error: Diagnostic, uri: string): IDiagnosticUri => {
-  return { uri, ...error };
-};
