@@ -125,6 +125,7 @@ export class KLS {
       connection,
       new DocumentLoader(),
       logger,
+      tracer,
     );
     this.foldableService = new FoldableService();
     this.analysisService = new AnalysisService(

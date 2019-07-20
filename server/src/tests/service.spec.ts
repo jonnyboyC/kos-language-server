@@ -1,9 +1,5 @@
 import { DocumentService } from '../services/documentService';
-import { NotificationHandler } from 'vscode-jsonrpc';
 import {
-  DidChangeTextDocumentParams,
-  DidCloseTextDocumentParams,
-  DidOpenTextDocumentParams,
   TextDocumentItem,
   Location,
   Range,
@@ -12,75 +8,24 @@ import {
   Position,
   TextDocumentIdentifier,
   FoldingRange,
+  Diagnostic,
+  DiagnosticSeverity,
 } from 'vscode-languageserver';
-import { mockLogger } from '../utilities/logger';
+import { mockLogger, mockTracer } from '../utilities/logger';
 import { URI } from 'vscode-uri';
 import { empty } from '../utilities/typeGuards';
 import { zip } from '../utilities/arrayUtils';
 import { basename } from 'path';
-import { DocumentLoader, Document } from '../utilities/documentLoader';
 import { Scanner } from '../scanner/scanner';
 import { Parser } from '../parser/parser';
 import { Tokenized } from '../scanner/types';
 import { ParseResult } from '../parser/types';
 import { FoldableService } from '../services/foldableService';
-
-const createMockDocConnection = () => ({
-  changeDoc: undefined as Maybe<
-    NotificationHandler<DidChangeTextDocumentParams>
-  >,
-  openDoc: undefined as Maybe<NotificationHandler<DidOpenTextDocumentParams>>,
-  closeDoc: undefined as Maybe<NotificationHandler<DidCloseTextDocumentParams>>,
-
-  onDidChangeTextDocument(
-    handler: NotificationHandler<DidChangeTextDocumentParams>,
-  ) {
-    this.changeDoc = handler;
-  },
-  onDidCloseTextDocument(
-    handler: NotificationHandler<DidCloseTextDocumentParams>,
-  ) {
-    this.closeDoc = handler;
-  },
-  onDidOpenTextDocument(
-    handler: NotificationHandler<DidOpenTextDocumentParams>,
-  ) {
-    this.openDoc = handler;
-  },
-
-  callChange(params: DidChangeTextDocumentParams) {
-    if (this.changeDoc) {
-      this.changeDoc(params);
-    }
-  },
-
-  callOpen(params: DidOpenTextDocumentParams) {
-    if (this.openDoc) {
-      this.openDoc(params);
-    }
-  },
-
-  callClose(params: DidCloseTextDocumentParams) {
-    if (this.closeDoc) {
-      this.closeDoc(params);
-    }
-  },
-});
-
-const createMockUriResponse = (files: Map<string, string>): DocumentLoader => {
-  return {
-    load(path: string): Promise<string> {
-      const document = files.get(path);
-
-      if (!empty(document)) {
-        return Promise.resolve(document);
-      }
-
-      return Promise.reject();
-    },
-    async *loadDirectory(_: string): AsyncIterableIterator<Document> {},
-  };
-};
+import {
+  createMockDocConnection,
+  createMockUriResponse,
+} from './utilities/mockServices';
+import { rangeEqual } from '../utilities/positionUtils';
 
 describe('documentService', () => {
   test('ready', async () => {
@@ -95,9 +40,10 @@ describe('documentService', () => {
       mockConnection,
       mockUriResponse,
       mockLogger,
+      mockTracer,
     );
 
-    const documentLoaded = await docService.loadDocument(
+    const documentLoaded = await docService.loadDocumentFromScript(
       {
         uri: callingUri,
         range: {
@@ -130,6 +76,7 @@ describe('documentService', () => {
       mockConnection,
       mockUriResponse,
       mockLogger,
+      mockTracer,
     );
 
     const serverDocs = docService['serverDocs'];
@@ -189,7 +136,7 @@ describe('documentService', () => {
     }
   });
 
-  test('load from server', async () => {
+  test('load from server using kOS run', async () => {
     const mockConnection = createMockDocConnection();
     const files = new Map();
     const mockUriResponse = createMockUriResponse(files);
@@ -201,6 +148,7 @@ describe('documentService', () => {
       mockConnection,
       mockUriResponse,
       mockLogger,
+      mockTracer,
       baseUri,
     );
 
@@ -221,7 +169,7 @@ describe('documentService', () => {
       const uriString = uri.toString();
       files.set(uri.fsPath, doc);
 
-      const loadedDoc = await docService.loadDocument(
+      const loadedDoc = await docService.loadDocumentFromScript(
         Location.create(
           callingUri,
           Range.create({ line: 0, character: 0 }, { line: 0, character: 10 }),
@@ -252,6 +200,104 @@ describe('documentService', () => {
 
       i = i + 1;
     }
+
+    const nonExistentUri = [
+      URI.file('/example/folder/none1.ks'),
+      URI.file('/example/folder/none2.ks'),
+    ];
+
+    for (const uri of nonExistentUri) {
+      const uriString = uri.toString();
+      const loadedDoc = await docService.loadDocumentFromScript(
+        Location.create(
+          callingUri,
+          Range.create({ line: 0, character: 0 }, { line: 0, character: 10 }),
+        ),
+        `0:/${basename(uriString)}`,
+      );
+      expect(loadedDoc).not.toBeUndefined();
+      expect(Diagnostic.is(loadedDoc)).toBe(true);
+
+      if (Diagnostic.is(loadedDoc)) {
+        expect(loadedDoc.severity).toBe(DiagnosticSeverity.Information);
+        expect(
+          rangeEqual(
+            loadedDoc.range,
+            Range.create({ line: 0, character: 0 }, { line: 0, character: 10 }),
+          ),
+        ).toBe(true);
+      }
+    }
+  });
+
+  test('load from server using uri', async () => {
+    const mockConnection = createMockDocConnection();
+    const files = new Map();
+    const mockUriResponse = createMockUriResponse(files);
+
+    const baseUri = URI.file('/example/folder').toString();
+
+    const docService = new DocumentService(
+      mockConnection,
+      mockUriResponse,
+      mockLogger,
+      mockTracer,
+      baseUri,
+    );
+
+    const serverDocs = docService['serverDocs'];
+    const clientDocs = docService['clientDocs'];
+
+    const uris = [
+      URI.file('/example/folder/doc1.ks'),
+      URI.file('/example/folder/doc2.ks'),
+      URI.file('/example/folder/doc3.ks'),
+      URI.file('/example/folder/doc4.ks'),
+    ];
+
+    const docs = ['example 1', 'example 2', 'example 3', 'example 4'];
+
+    let i = 0;
+    for (const [uri, doc] of zip(uris, docs)) {
+      const uriString = uri.toString();
+      files.set(uri.fsPath, doc);
+
+      const loadedDoc = await docService.loadDocument(uriString);
+
+      expect(loadedDoc).not.toBeUndefined();
+      if (!empty(loadedDoc)) {
+        expect(TextDocument.is(loadedDoc)).toBe(true);
+        expect((loadedDoc as TextDocument).getText()).toBe(doc);
+      }
+
+      expect(clientDocs.size).toBe(0);
+      expect(serverDocs.size).toBe(i + 1);
+      expect(serverDocs.has(uri.toString())).toBe(true);
+
+      for (let j = 0; j <= i; j += 1) {
+        const doc = docService.getDocument(uris[j].toString());
+        expect(doc).not.toBeUndefined();
+
+        if (!empty(doc)) {
+          expect(doc.getText()).toBe(docs[j]);
+        }
+
+        expect(serverDocs.has(uris[j].toString())).toBe(true);
+      }
+
+      i = i + 1;
+    }
+
+    const nonExistentUri = [
+      URI.file('/example/folder/none1.ks'),
+      URI.file('/example/folder/none2.ks'),
+    ];
+
+    for (const uri of nonExistentUri) {
+      const uriString = uri.toString();
+      const loadedDoc = await docService.loadDocument(uriString);
+      expect(loadedDoc).toBeUndefined();
+    }
   });
 
   test('change update', async () => {
@@ -266,6 +312,7 @@ describe('documentService', () => {
       mockConnection,
       mockUriResponse,
       mockLogger,
+      mockTracer,
       baseUri,
     );
 
@@ -352,6 +399,7 @@ describe('documentService', () => {
       mockConnection,
       mockUriResponse,
       mockLogger,
+      mockTracer,
       baseUri,
     );
 
@@ -378,7 +426,7 @@ describe('documentService', () => {
       const uriString = rUri.toString();
       files.set(aUri.fsPath, doc);
 
-      const loadedDoc = await docService.loadDocument(
+      const loadedDoc = await docService.loadDocumentFromScript(
         Location.create(
           callingUri,
           Range.create({ line: 0, character: 0 }, { line: 0, character: 10 }),
@@ -401,6 +449,29 @@ describe('documentService', () => {
   });
 });
 
+describe('analysisService', () => {
+  test('validate single document', () => {
+    expect(true).toBe(false);
+  });
+
+  test('validate multiple documents', () => {
+    expect(true).toBe(false);
+  });
+
+  test('validate multiple with updates documents', () => {
+    expect(true).toBe(false);
+  });
+
+  test('setCase', () => {
+    expect(true).toBe(false);
+  });
+
+  test('getInfo', () => {
+    expect(true).toBe(false);
+  });
+});
+
+// #region string scripts
 const regionFold = `
 // #region
 
@@ -428,6 +499,7 @@ function example {
 }
 // #endregion
 `;
+// #endregion
 
 const fakeUri = 'file:///fake.ks';
 

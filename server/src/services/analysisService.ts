@@ -68,6 +68,13 @@ export class AnalysisService {
    */
   private bodyLibrary: SymbolTable;
 
+  /**
+   * Construct a new analysis service
+   * @param caseKind the typing case of the build in standard and body libraries
+   * @param logger A logger to log performance and exception
+   * @param tracer a tracer to location exceptions
+   * @param documentService The document service to load new files from disk
+   */
   constructor(
     caseKind: CaseKind,
     logger: ILogger,
@@ -119,7 +126,13 @@ export class AnalysisService {
    * Get a document info if it exists
    */
   public getInfo(uri: string): Maybe<IDocumentInfo> {
-    return this.documentInfos.get(uri);
+    // if we already have the document loaded return it
+    const docInfo = this.documentInfos.get(uri);
+    if (!empty(docInfo)) {
+      return docInfo;
+    }
+
+    const blah = this.documentService.loadDocumentFromScript();
   }
 
   /**
@@ -424,7 +437,7 @@ export class AnalysisService {
       const path = runPath(runStmt);
       if (typeof path === 'string') {
         // attempt to load document
-        const document = await this.documentService.loadDocument(
+        const document = await this.documentService.loadDocumentFromScript(
           runStmt.toLocation(uri),
           path,
         );
@@ -464,7 +477,6 @@ export class AnalysisService {
    * This allows for bodies other than that in stock ksp to be incorporated
    */
   private activeBodyLibrary(): SymbolTable {
-    /** TODO actually load other bodies */
     return this.bodyLibrary;
   }
 }

@@ -48,6 +48,11 @@ export class DocumentService {
   private logger: ILogger;
 
   /**
+   * A tracer to location exception
+   */
+  private tracer: ITracer;
+
+  /**
    * A function to load a uri asynchronously
    */
   private documentLoader: DocumentLoader;
@@ -62,12 +67,14 @@ export class DocumentService {
    * @param conn document connection holding the required callbacks from iconnection
    * @param uriLoader service to load from a provided uri
    * @param logger logger to log messages to client
+   * @param tracer tracer to location exception
    * @param volume0Uri the uri to volume 0 on the drive
    */
   constructor(
     conn: DocumentConnection,
     uriLoader: DocumentLoader,
     logger: ILogger,
+    tracer: ITracer,
     volume0Uri?: string,
   ) {
     this.clientDocs = new Map();
@@ -76,6 +83,7 @@ export class DocumentService {
     this.conn = conn;
     this.documentLoader = uriLoader;
     this.logger = logger;
+    this.tracer = tracer;
   }
 
   public ready(): boolean {
@@ -107,7 +115,12 @@ export class DocumentService {
     return [...this.clientDocs.values(), ...this.serverDocs.values()];
   }
 
-  public async loadDocument(
+  /**
+   * Attempt load a document from a kOS script
+   * @param caller the caller location for the document
+   * @param kosPath the path in the run statement
+   */
+  public async loadDocumentFromScript(
     caller: Location,
     kosPath: string,
   ): Promise<Maybe<Diagnostic | TextDocument>> {
@@ -146,6 +159,44 @@ export class DocumentService {
     } catch (err) {
       // create a diagnostic if we can't load the file
       return this.loadError(caller.range, kosPath);
+    }
+  }
+
+  /**
+   * Attempt to load a document from a provided uri
+   * @param uri the requested uri
+   */
+  public async loadDocument(uri: string): Promise<Maybe<TextDocument>> {
+    // resolver must first be ready
+    if (!this.ready()) {
+      return undefined;
+    }
+
+    // attempt to load a resource from whatever uri is provided
+    const normalized = this.normalizeExtensions(uri);
+    if (empty(normalized)) {
+      return undefined;
+    }
+
+    // check for cached versions first
+    const cached = this.serverDocs.get(normalized);
+    if (!empty(cached)) {
+      return cached;
+    }
+
+    try {
+      // attempt to load a resource from whatever uri is provided
+      const uri = URI.parse(normalized);
+      const retrieved = await this.retrieveResource(uri);
+      const textDocument = TextDocument.create(normalized, 'kos', 0, retrieved);
+
+      // if found set in cache and return document
+      this.serverDocs.set(normalized, textDocument);
+      return textDocument;
+    } catch (err) {
+      logException(this.logger, this.tracer, err, LogLevel.error);
+
+      return undefined;
     }
   }
 
