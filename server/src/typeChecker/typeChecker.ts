@@ -37,7 +37,7 @@ import {
   hasSuffix,
   binaryOperatorMap,
   unaryOperatorMap,
-} from './typeUitlities';
+} from './typeUtilities';
 import { voidType } from './types/primitives/void';
 import { userListType } from './types/collections/userList';
 import { booleanType } from './types/primitives/boolean';

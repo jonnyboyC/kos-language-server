@@ -62,7 +62,7 @@ import {
   cleanLocation,
 } from './utilities/clean';
 import { isValidIdentifier } from './entities/tokentypes';
-import { tokenTrackedType } from './typeChecker/typeUitlities';
+import { tokenTrackedType } from './typeChecker/typeUtilities';
 import { TypeKind } from './typeChecker/types';
 import { DocumentLoader, Document } from './utilities/documentLoader';
 import { FoldableService } from './services/foldableService';
@@ -203,7 +203,7 @@ export class KLS {
           triggerCharacters: [':', '(', ', '],
         },
 
-        // Tell the client that the server support signiture help
+        // Tell the client that the server support signature help
         signatureHelpProvider: {
           triggerCharacters: ['(', ',', ', '],
         },
@@ -274,7 +274,9 @@ export class KLS {
    * both symbol completion as well as suffix completion.
    * @param completion the parameters describing the completion request
    */
-  private onCompletion(completion: CompletionParams): Maybe<CompletionItem[]> {
+  private async onCompletion(
+    completion: CompletionParams,
+  ): Promise<Maybe<CompletionItem[]>> {
     const { context } = completion;
 
     try {
@@ -288,7 +290,7 @@ export class KLS {
       }
 
       // complete base symbols
-      return symbolCompletionItems(
+      return await symbolCompletionItems(
         this,
         completion,
         this.configuration.keywords,
@@ -325,7 +327,9 @@ export class KLS {
    * as symbol and provide a new name that will change for all known symbols
    * @param rename information describing what and where a rename should occur
    */
-  private onRenameRequest(rename: RenameParams): Maybe<WorkspaceEdit> {
+  private async onRenameRequest(
+    rename: RenameParams,
+  ): Promise<Maybe<WorkspaceEdit>> {
     const { newName, position, textDocument } = rename;
     const scanner = new Scanner(newName);
     const { tokens, scanErrors } = scanner.scanTokens();
@@ -339,7 +343,7 @@ export class KLS {
       return undefined;
     }
 
-    const locations = this.getUsageLocations(position, textDocument.uri);
+    const locations = await this.getUsageLocations(position, textDocument.uri);
     if (empty(locations)) {
       return undefined;
     }
@@ -361,13 +365,13 @@ export class KLS {
    * to highlight and symbol and other instances of that symbol to also highlight.
    * @param positionParams the position of the highlight request
    */
-  private onDocumentHighlight(
+  private async onDocumentHighlight(
     positionParams: TextDocumentPositionParams,
-  ): DocumentHighlight[] {
+  ): Promise<DocumentHighlight[]> {
     const { position } = positionParams;
     const { uri } = positionParams.textDocument;
 
-    const locations = this.getFileUsageRanges(position, uri);
+    const locations = await this.getFileUsageRanges(position, uri);
     return empty(locations)
       ? []
       : locations.map(range => ({ range: cleanRange(range) }));
@@ -378,11 +382,11 @@ export class KLS {
    * information to be displayed to the user about symbols throughout the document
    * @param positionParams the position of the hover request
    */
-  private onHover(positionParams: TextDocumentPositionParams) {
+  private async onHover(positionParams: TextDocumentPositionParams) {
     const { position } = positionParams;
     const { uri } = positionParams.textDocument;
 
-    const token = this.getToken(position, uri);
+    const token = await this.getToken(position, uri);
 
     if (empty(token)) {
       return undefined;
@@ -429,11 +433,13 @@ export class KLS {
    * to identify all positions that a symbol is used in the document or attached documents
    * @param reference parameters describing the reference request
    */
-  private onReference(reference: ReferenceParams): Maybe<Location[]> {
+  private async onReference(
+    reference: ReferenceParams,
+  ): Promise<Maybe<Location[]>> {
     const { position } = reference;
     const { uri } = reference.textDocument;
 
-    const locations = this.getUsageLocations(position, uri);
+    const locations = await this.getUsageLocations(position, uri);
     return locations && locations.map(loc => cleanLocation(loc));
   }
 
@@ -442,13 +448,13 @@ export class KLS {
    * provides extra context to the client such as the current parameter
    * @param positionParams the position of the signature request
    */
-  private onSignatureHelp(
+  private async onSignatureHelp(
     positionParams: TextDocumentPositionParams,
-  ): SignatureHelp {
+  ): Promise<SignatureHelp> {
     const { position } = positionParams;
     const { uri } = positionParams.textDocument;
 
-    const result = this.getFunctionAtPosition(position, uri);
+    const result = await this.getFunctionAtPosition(position, uri);
     if (empty(result)) return defaultSignature();
     const { tracker, index } = result;
 
@@ -523,10 +529,10 @@ export class KLS {
    * symbols that are located within a given document
    * @param documentSymbol the document to provide symbols for
    */
-  private onDocumentSymbol(
+  private async onDocumentSymbol(
     documentSymbol: DocumentSymbolParams,
-  ): Maybe<SymbolInformation[]> {
-    return documentSymbols(this, documentSymbol);
+  ): Promise<Maybe<SymbolInformation[]>> {
+    return await documentSymbols(this, documentSymbol);
   }
 
   /**
@@ -534,13 +540,13 @@ export class KLS {
    * go to definition this provides the location if it exists
    * @param positionParams the position of the definition request
    */
-  private onDefinition(
+  private async onDefinition(
     positionParams: TextDocumentPositionParams,
-  ): Maybe<Location> {
+  ): Promise<Maybe<Location>> {
     const { position } = positionParams;
     const { uri } = positionParams.textDocument;
 
-    const location = this.getDeclarationLocation(position, uri);
+    const location = await this.getDeclarationLocation(position, uri);
     return location && cleanLocation(location);
   }
 
@@ -549,9 +555,11 @@ export class KLS {
    * region in which this will respond with the ranges defined by #region and #endregion
    * @param foldingParams the document to preform folding analysis on
    */
-  private onFoldingRange(foldingParams: FoldingRangeParams): FoldingRange[] {
+  private async onFoldingRange(
+    foldingParams: FoldingRangeParams,
+  ): Promise<FoldingRange[]> {
     const { uri } = foldingParams.textDocument;
-    const documentInfo = this.analysisService.getInfo(uri);
+    const documentInfo = await this.analysisService.getInfo(uri);
 
     if (empty(documentInfo)) {
       return [];
@@ -624,7 +632,7 @@ export class KLS {
   }
 
   /**
-   * Update the servers configuration in reponse to a change in the client configuration
+   * Update the servers configuration in response to a change in the client configuration
    * @param clientConfig client configuration
    */
   private updateServer(clientConfig: ClientConfiguration) {
@@ -662,8 +670,8 @@ export class KLS {
    * @param pos position in the text document
    * @param uri uri of the text document
    */
-  public getToken(pos: Position, uri: string): Maybe<Token> {
-    const documentInfo = this.analysisService.getInfo(uri);
+  public async getToken(pos: Position, uri: string): Promise<Maybe<Token>> {
+    const documentInfo = await this.analysisService.getInfo(uri);
     if (empty(documentInfo)) {
       return undefined;
     }
@@ -681,8 +689,11 @@ export class KLS {
    * @param pos position in the document
    * @param uri uri of the document
    */
-  public getDeclarationLocation(pos: Position, uri: string): Maybe<Location> {
-    const documentInfo = this.analysisService.getInfo(uri);
+  public async getDeclarationLocation(
+    pos: Position,
+    uri: string,
+  ): Promise<Maybe<Location>> {
+    const documentInfo = await this.analysisService.getInfo(uri);
     if (empty(documentInfo)) {
       return undefined;
     }
@@ -719,8 +730,11 @@ export class KLS {
    * @param pos position in document
    * @param uri uri of document
    */
-  public getUsageLocations(pos: Position, uri: string): Maybe<Location[]> {
-    const documentInfo = this.analysisService.getInfo(uri);
+  public async getUsageLocations(
+    pos: Position,
+    uri: string,
+  ): Promise<Maybe<Location[]>> {
+    const documentInfo = await this.analysisService.getInfo(uri);
     if (
       empty(documentInfo) ||
       empty(documentInfo.symbolTable) ||
@@ -756,8 +770,11 @@ export class KLS {
    * @param pos position in document
    * @param uri uri of document
    */
-  public getFileUsageRanges(pos: Position, uri: string): Maybe<Range[]> {
-    const locations = this.getUsageLocations(pos, uri);
+  public async getFileUsageRanges(
+    pos: Position,
+    uri: string,
+  ): Promise<Maybe<Range[]>> {
+    const locations = await this.getUsageLocations(pos, uri);
     if (empty(locations)) {
       return locations;
     }
@@ -766,12 +783,15 @@ export class KLS {
   }
 
   /**
-   * Get all symbols in scope at a particulare location in the file
+   * Get all symbols in scope at a particular location in the file
    * @param pos position in document
    * @param uri document uri
    */
-  public getScopedSymbols(pos: Position, uri: string): KsBaseSymbol[] {
-    const documentInfo = this.analysisService.getInfo(uri);
+  public async getScopedSymbols(
+    pos: Position,
+    uri: string,
+  ): Promise<KsBaseSymbol[]> {
+    const documentInfo = await this.analysisService.getInfo(uri);
 
     if (!empty(documentInfo) && !empty(documentInfo.symbolTable)) {
       return documentInfo.symbolTable.scopedSymbols(pos);
@@ -784,8 +804,8 @@ export class KLS {
    * Get all symbols in a provided file
    * @param uri document uri
    */
-  public getAllFileSymbols(uri: string): KsSymbol[] {
-    const documentInfo = this.analysisService.getInfo(uri);
+  public async getAllFileSymbols(uri: string): Promise<KsSymbol[]> {
+    const documentInfo = await this.analysisService.getInfo(uri);
 
     if (!empty(documentInfo) && !empty(documentInfo.symbolTable)) {
       return documentInfo.symbolTable.fileSymbols();
@@ -799,12 +819,12 @@ export class KLS {
    * @param pos position in the document
    * @param uri document uri
    */
-  public getFunctionAtPosition(
+  public async getFunctionAtPosition(
     pos: Position,
     uri: string,
-  ): Maybe<{ tracker: SymbolTracker; index: number }> {
+  ): Promise<Maybe<{ tracker: SymbolTracker; index: number }>> {
     // we need the document info to lookup a signature
-    const documentInfo = this.analysisService.getInfo(uri);
+    const documentInfo = await this.analysisService.getInfo(uri);
     if (empty(documentInfo)) return undefined;
 
     const { script } = documentInfo;
@@ -853,7 +873,7 @@ export class KLS {
       }
     }
 
-    // check if invalid statment
+    // check if invalid statement
     if (node instanceof Stmt.Invalid) {
       const { ranges } = node;
       const indices = binarySearchIndex(ranges, pos);

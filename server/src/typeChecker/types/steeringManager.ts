@@ -1,6 +1,6 @@
 import { ArgumentType } from './types';
 import { createStructureType, createArgSuffixType, createSetSuffixType, createSuffixType } from "../typeCreators";
-import { addPrototype, addSuffixes } from '../typeUitlities';
+import { addPrototype, addSuffixes } from '../typeUtilities';
 import { structureType } from './primitives/structure';
 import { pidLoopType } from './pidLoop';
 import { directionType } from './direction';

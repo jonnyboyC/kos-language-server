@@ -1,4 +1,4 @@
-import { addPrototype, addSuffixes, addOperators } from '../../typeUitlities';
+import { addPrototype, addSuffixes, addOperators } from '../../typeUtilities';
 import { orbitableType } from './orbitable';
 import { serializableStructureType } from '../primitives/serializeableStructure';
 import { createSuffixType, createArgSuffixType } from '../../typeCreators';

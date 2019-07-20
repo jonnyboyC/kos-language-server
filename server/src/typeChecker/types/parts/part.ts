@@ -5,7 +5,7 @@ import {
   createSuffixType,
   createSetSuffixType,
 } from '../../typeCreators';
-import { addPrototype, addSuffixes, addOperators } from '../../typeUitlities';
+import { addPrototype, addSuffixes, addOperators } from '../../typeUtilities';
 import { structureType } from '../primitives/structure';
 import { directionType } from '../direction';
 import { vectorType } from '../collections/vector';

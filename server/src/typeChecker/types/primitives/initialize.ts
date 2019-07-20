@@ -1,4 +1,4 @@
-import { addSuffixes, addPrototype, addOperators } from '../../typeUitlities';
+import { addSuffixes, addPrototype, addOperators } from '../../typeUtilities';
 import { structureType } from './structure';
 import {
   createArgSuffixType,

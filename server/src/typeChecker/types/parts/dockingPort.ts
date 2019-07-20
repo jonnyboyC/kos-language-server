@@ -4,7 +4,7 @@ import {
   createArgSuffixType,
 } from '../../typeCreators';
 import { ArgumentType } from '../types';
-import { addPrototype, addSuffixes } from '../../typeUitlities';
+import { addPrototype, addSuffixes } from '../../typeUtilities';
 import { decouplerType } from './decoupler';
 import { scalarType } from '../primitives/scalar';
 import { stringType } from '../primitives/string';

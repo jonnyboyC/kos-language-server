@@ -1,6 +1,6 @@
 import { createStructureType, createSetSuffixType } from "../../../typeCreators";
 import { ArgumentType } from '../../types';
-import { addPrototype, addSuffixes } from '../../../typeUitlities';
+import { addPrototype, addSuffixes } from '../../../typeUtilities';
 import { userDelegateType } from '../../userDelegate';
 import { labelType } from './label';
 import { booleanType } from '../../primitives/boolean';

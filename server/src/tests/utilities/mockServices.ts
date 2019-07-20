@@ -3,9 +3,14 @@ import {
   DidChangeTextDocumentParams,
   DidOpenTextDocumentParams,
   DidCloseTextDocumentParams,
+  TextDocument,
+  Location,
+  Diagnostic,
 } from 'vscode-languageserver';
 import { DocumentLoader, Document } from '../../utilities/documentLoader';
 import { empty } from '../../utilities/typeGuards';
+import { DocumentService } from '../../services/documentService';
+import { URI } from 'vscode-uri';
 
 export const createMockDocConnection = () => ({
   changeDoc: undefined as Maybe<
@@ -64,4 +69,34 @@ export const createMockUriResponse = (
     },
     async *loadDirectory(_: string): AsyncIterableIterator<Document> {},
   };
+};
+
+export const createMockDocumentService = (
+  documents: Map<string, TextDocument>,
+): DocumentService => {
+  return {
+    ready(): boolean {
+      return true;
+    },
+    async setVolume0Uri(_: URI) {
+      return Promise.resolve();
+    },
+    getDocument(uri: string): Maybe<TextDocument> {
+      return documents.get(uri);
+    },
+    getAllDocuments(): TextDocument[] {
+      return [...documents.values()];
+    },
+    async loadDocumentFromScript(
+      _: Location,
+      __: string,
+    ): Promise<Maybe<Diagnostic | TextDocument>> {
+      return Promise.resolve(undefined);
+    },
+    async loadDocument(uri: string): Promise<Maybe<TextDocument>> {
+      return Promise.resolve(documents.get(uri));
+    },
+    onChange(_: (document: Document) => void) {},
+    onClose(_: (uri: string) => void) {},
+  } as DocumentService;
 };

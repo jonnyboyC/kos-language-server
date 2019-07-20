@@ -4,7 +4,7 @@ import {
   addPrototype,
   addSuffixes,
   hasSuffix,
-} from '../typeChecker/typeUitlities';
+} from '../typeChecker/typeUtilities';
 import { stringType } from '../typeChecker/types/primitives/string';
 import { booleanType } from '../typeChecker/types/primitives/boolean';
 import { structureType } from '../typeChecker/types/primitives/structure';

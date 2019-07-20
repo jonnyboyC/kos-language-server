@@ -24,8 +24,10 @@ import { FoldableService } from '../services/foldableService';
 import {
   createMockDocConnection,
   createMockUriResponse,
+  createMockDocumentService,
 } from './utilities/mockServices';
 import { rangeEqual } from '../utilities/positionUtils';
+import { AnalysisService } from '../services/analysisService';
 
 describe('documentService', () => {
   test('ready', async () => {
@@ -451,6 +453,22 @@ describe('documentService', () => {
 
 describe('analysisService', () => {
   test('validate single document', () => {
+    const uri = URI.file('/example/folder/example.ks').toString();
+
+    const documents = new Map([
+      [uri, TextDocument.create(uri, 'kos', 1.0, 'print(10).')],
+    ]);
+    const docService = createMockDocumentService(documents);
+
+    const analysisService = new AnalysisService(
+      CaseKind.camelcase,
+      mockLogger,
+      mockTracer,
+      docService,
+    );
+
+    analysisService.validateDocument(uri, 'print(x)');
+
     expect(true).toBe(false);
   });
 

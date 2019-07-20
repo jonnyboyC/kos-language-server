@@ -1,6 +1,6 @@
 import { ArgumentType } from './types';
 import { createStructureType, createArgSuffixType } from '../typeCreators';
-import { addPrototype, addSuffixes } from '../typeUitlities';
+import { addPrototype, addSuffixes } from '../typeUtilities';
 import { partModuleType } from './parts/partModule';
 import { volumeType } from './io/volume';
 import { processorConnectionType } from './communication/processorConnection';

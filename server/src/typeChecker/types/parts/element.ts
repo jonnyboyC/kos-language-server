@@ -3,7 +3,7 @@ import {
   createStructureType,
   createSuffixType,
 } from '../../typeCreators';
-import { addPrototype, addSuffixes } from '../../typeUitlities';
+import { addPrototype, addSuffixes } from '../../typeUtilities';
 import { structureType } from '../primitives/structure';
 import { listType } from '../collections/list';
 import { stringType } from '../primitives/string';

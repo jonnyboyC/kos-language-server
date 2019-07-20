@@ -1,8 +1,7 @@
 import {
   DiagnosticUri,
-  IDocumentInfo,
+  IDocumentInfo as DocumentInfo,
   LoadedDocuments,
-  ValidateResult,
 } from '../types';
 import { SymbolTable } from '../analysis/symbolTable';
 import {
@@ -32,6 +31,11 @@ import {
   bodyLibraryBuilder,
 } from '../analysis/standardLibrary';
 
+interface DependencyLoadResult {
+  documentInfos: DocumentInfo[];
+  loadDiagnostics: DiagnosticUri[];
+}
+
 export class AnalysisService {
   /**
    * A logger for message and error logger
@@ -56,7 +60,7 @@ export class AnalysisService {
   /**
    * Document information
    */
-  private readonly documentInfos: Map<string, IDocumentInfo>;
+  private readonly documentInfos: Map<string, DocumentInfo>;
 
   /**
    * The current loaded standard library
@@ -106,16 +110,14 @@ export class AnalysisService {
    * potential problems in the provided script
    * @param uri uri of the document
    * @param text source text of the document
-   * @param depth TODO remove: current depth of the document
    */
   public async validateDocument(
     uri: string,
     text: string,
-    depth: number = 0,
   ): Promise<DiagnosticUri[]> {
     try {
-      const result = await this.validateDocument_(uri, text, depth);
-      return result.diagnostics;
+      const result = await this.validateDocument_(uri, text, 0);
+      return empty(result) ? [] : result.diagnostics;
     } catch (err) {
       logException(this.logger, this.tracer, err, LogLevel.error);
       return [];
@@ -125,14 +127,24 @@ export class AnalysisService {
   /**
    * Get a document info if it exists
    */
-  public getInfo(uri: string): Maybe<IDocumentInfo> {
+  public async getInfo(uri: string): Promise<Maybe<DocumentInfo>> {
     // if we already have the document loaded return it
     const docInfo = this.documentInfos.get(uri);
     if (!empty(docInfo)) {
-      return docInfo;
+      return Promise.resolve(docInfo);
     }
 
-    const blah = this.documentService.loadDocumentFromScript();
+    try {
+      const document = await this.documentService.loadDocument(uri);
+      if (empty(document)) {
+        return Promise.resolve(undefined);
+      }
+
+      return await this.validateDocument_(uri, document.getText(), 0);
+    } catch (err) {
+      logException(this.logger, this.tracer, err, LogLevel.error);
+      return Promise.resolve(undefined);
+    }
   }
 
   /**
@@ -155,14 +167,9 @@ export class AnalysisService {
     uri: string,
     text: string,
     depth: number,
-  ): Promise<ValidateResult> {
-    const result: ValidateResult = {
-      tables: [],
-      diagnostics: [],
-    };
-
+  ): Promise<Maybe<DocumentInfo>> {
     if (depth > 10) {
-      return result;
+      return undefined;
     }
 
     // preform lexical analysis
@@ -173,36 +180,43 @@ export class AnalysisService {
       parserDiagnostics,
     } = await this.lexicalAnalysisDocument(uri, text);
 
-    result.diagnostics.push(...scannerDiagnostics);
-    result.diagnostics.push(...parserDiagnostics);
-
     // load dependencies found in the ast
-    const dependenciesResult = await this.loadDependencies(uri, script, depth);
-    result.tables.push(...dependenciesResult.tables);
-    result.diagnostics.push(...dependenciesResult.diagnostics);
+    const { documentInfos, loadDiagnostics } = await this.loadDependencies(
+      uri,
+      script,
+      depth,
+    );
+    const dependencyTables: SymbolTable[] = [];
+
+    for (const documentInfo of documentInfos) {
+      dependencyTables.push(documentInfo.symbolTable);
+      dependencyTables.push(...documentInfo.dependencyTables);
+    }
 
     // perform semantic analysis
     const {
       resolverDiagnostics,
       typeDiagnostics,
       symbolTable,
-    } = await this.semanticAnalysisDocument(uri, script, result.tables);
+    } = await this.semanticAnalysisDocument(uri, script, dependencyTables);
 
-    result.diagnostics.push(...resolverDiagnostics);
-    // validationResult.diagnostics.push(...typeDiagnostics);
+    // clear performance observer marks
+    performance.clearMarks();
 
-    // set result
-    this.documentInfos.set(uri, {
+    // generate the document info
+    return {
       script,
       regions,
       symbolTable,
-      diagnostics: result.diagnostics.concat(typeDiagnostics),
-    });
-
-    performance.clearMarks();
-
-    result.tables.push(symbolTable);
-    return result;
+      dependencyTables,
+      diagnostics: [
+        ...scannerDiagnostics,
+        ...parserDiagnostics,
+        ...loadDiagnostics,
+        ...resolverDiagnostics,
+        ...typeDiagnostics,
+      ],
+    };
   }
 
   /**
@@ -378,10 +392,10 @@ export class AnalysisService {
     uri: string,
     script: IScript,
     depth: number,
-  ): Promise<ValidateResult> {
-    const result: ValidateResult = {
-      tables: [],
-      diagnostics: [],
+  ): Promise<DependencyLoadResult> {
+    const result: DependencyLoadResult = {
+      documentInfos: [],
+      loadDiagnostics: [],
     };
 
     // if any run statement exist get uri then load
@@ -392,7 +406,7 @@ export class AnalysisService {
       );
 
       // add diagnostics related to the actual load
-      result.diagnostics.push(
+      result.loadDiagnostics.push(
         ...diagnostics.map(error => addDiagnosticsUri(error, uri)),
       );
 
@@ -400,19 +414,19 @@ export class AnalysisService {
       for (const document of documents) {
         const cached = this.documentInfos.get(document.uri);
         if (!empty(cached)) {
-          result.diagnostics.push(...cached.diagnostics);
-
-          // TODO need to get this tables own dependencies
-          result.tables.push(cached.symbolTable);
+          result.documentInfos.push(cached);
         } else {
-          const { diagnostics, tables } = await this.validateDocument_(
+          const documentInfo = await this.validateDocument_(
             document.uri,
             document.getText(),
             depth + 1,
           );
 
-          result.diagnostics.push(...diagnostics);
-          result.tables.push(...tables);
+          // if document valid cache and push to result
+          if (!empty(documentInfo)) {
+            this.documentInfos.set(document.uri, documentInfo);
+            result.documentInfos.push(documentInfo);
+          }
         }
       }
     }

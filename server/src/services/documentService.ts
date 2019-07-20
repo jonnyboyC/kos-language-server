@@ -86,10 +86,17 @@ export class DocumentService {
     this.tracer = tracer;
   }
 
+  /**
+   * Is the document service read
+   */
   public ready(): boolean {
     return this.pathResolver.ready();
   }
 
+  /**
+   * Set the volume 0 uri
+   * @param uri uri of volume 0
+   */
   public async setVolume0Uri(uri: URI) {
     this.pathResolver.volume0Uri = uri;
     this.cacheDocuments();

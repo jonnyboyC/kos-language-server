@@ -5,7 +5,7 @@ import {
   tType,
   createGenericArgSuffixType,
 } from '../../typeCreators';
-import { addPrototype, addSuffixes } from '../../typeUitlities';
+import { addPrototype, addSuffixes } from '../../typeUtilities';
 import { voidType } from '../primitives/void';
 import { scalarType } from '../primitives/scalar';
 import { collectionType } from './enumerable';

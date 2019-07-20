@@ -4,7 +4,7 @@ import {
   createArgSuffixType,
   createSetSuffixType,
 } from '../typeCreators';
-import { addPrototype, addSuffixes } from '../typeUitlities';
+import { addPrototype, addSuffixes } from '../typeUtilities';
 import { scalarType } from './primitives/scalar';
 import { serializableStructureType } from './primitives/serializeableStructure';
 

@@ -1,7 +1,7 @@
 import { ArgumentType, IBasicType } from './types';
 import { ConstantType } from '../ksType';
 import { createStructureType, createSuffixType } from '../typeCreators';
-import { addPrototype, addSuffixes } from '../typeUitlities';
+import { addPrototype, addSuffixes } from '../typeUtilities';
 import { structureType } from './primitives/structure';
 import { doubleType } from './primitives/scalar';
 

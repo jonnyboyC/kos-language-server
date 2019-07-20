@@ -6,7 +6,7 @@ import {
   createArgSuffixType,
   createStructureType,
 } from '../../typeCreators';
-import { addPrototype, addSuffixes } from '../../typeUitlities';
+import { addPrototype, addSuffixes } from '../../typeUtilities';
 import { widgetStyleType } from './widgetStyle';
 import { guiWidgetType } from './guiWidget';
 import { voidType } from '../primitives/void';
