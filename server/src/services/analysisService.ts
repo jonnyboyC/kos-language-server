@@ -309,12 +309,18 @@ export class AnalysisService {
 
     performance.mark('resolver-end');
 
-    const oldDocumentInfo = this.documentInfos.get(uri);
+    let oldDocumentInfo = this.documentInfos.get(uri);
 
     // build the final symbol table
     const symbolTable = symbolTableBuilder.build(
       oldDocumentInfo && oldDocumentInfo.symbolTable,
     );
+
+    // make sure to delete references so scope manager can be gc'ed
+    if (!empty(oldDocumentInfo)) {
+      oldDocumentInfo.symbolTable.removeSelf();
+      oldDocumentInfo = undefined;
+    }
 
     // perform type checking
     const typeChecker = new TypeChecker(script, this.logger, this.tracer);
@@ -340,12 +346,6 @@ export class AnalysisService {
       'type-checking-end',
     );
 
-    // make sure to delete references so scope manager can be gc'ed
-    let documentInfo: Maybe<IDocumentInfo> = this.documentInfos.get(uri);
-    if (!empty(documentInfo)) {
-      documentInfo.symbolTable.removeSelf();
-      documentInfo = undefined;
-    }
     this.logger.verbose('--------------------------------------');
 
     return {
