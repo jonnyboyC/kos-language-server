@@ -28,11 +28,9 @@ import {
 } from './utilities/mockServices';
 import { rangeEqual } from '../utilities/positionUtils';
 import { AnalysisService } from '../services/analysisService';
-import { primitiveInitializer } from '../typeChecker/types/primitives/initialize';
-import { orbitalInitializer } from '../typeChecker/types/orbital/initialize';
+import { typeInitializer } from '../typeChecker/initialize';
 
-primitiveInitializer();
-orbitalInitializer();
+typeInitializer();
 
 describe('documentService', () => {
   test('ready', async () => {
@@ -634,8 +632,95 @@ describe('analysisService', () => {
     }
   });
 
-  test('validate multiple with updates documents', () => {
-    expect(true).toBe(true);
+  test('validate multiple with updates documents', async () => {
+    const uri1 = URI.file('/example/folder/example1.ks').toString();
+    const uri2 = URI.file('/example/folder/example2.ks').toString();
+    const baseUri = URI.file('/example/folder').toString();
+
+    const documents = new Map([
+      [
+        uri1,
+        TextDocument.create(
+          uri1,
+          'kos',
+          1.0,
+          'runOncePath("example2.ks"). hi().',
+        ),
+      ],
+      [
+        uri2,
+        TextDocument.create(uri2, 'kos', 1.0, 'function hi { print("hi"). }'),
+      ],
+    ]);
+    const docService = createMockDocumentService(documents, baseUri);
+
+    const analysisService = new AnalysisService(
+      CaseKind.camelcase,
+      mockLogger,
+      mockTracer,
+      docService,
+    );
+
+    // initial load of example1.ks
+    const diagnostics11 = await analysisService.validateDocument(
+      uri1,
+      (documents.get(uri1) as TextDocument).getText(),
+    );
+    const documentInfo11 = await analysisService.getInfo(uri1);
+
+    // load from client example2.ks
+    const diagnostics21 = await analysisService.validateDocument(
+      uri2,
+      (documents.get(uri2) as TextDocument).getText(),
+    );
+    const documentInfo21 = await analysisService.getInfo(uri2);
+
+    // update load of example1.ks
+    const diagnostics12 = await analysisService.validateDocument(
+      uri1,
+      (documents.get(uri1) as TextDocument).getText(),
+    );
+    const documentInfo12 = await analysisService.getInfo(uri1);
+
+    // update load of example2.ks
+    const diagnostics22 = await analysisService.validateDocument(
+      uri2,
+      (documents.get(uri2) as TextDocument).getText(),
+    );
+    const documentInfo22 = await analysisService.getInfo(uri2);
+
+    expect(diagnostics11.length).toBe(0);
+    expect(diagnostics12.length).toBe(0);
+    expect(diagnostics21.length).toBe(0);
+    expect(diagnostics22.length).toBe(0);
+
+    expect(documentInfo11).not.toBeUndefined();
+    expect(documentInfo12).not.toBeUndefined();
+    expect(documentInfo21).not.toBeUndefined();
+    expect(documentInfo22).not.toBeUndefined();
+
+    const documentInfos = analysisService['documentInfos'];
+
+    if (!empty(documentInfo11) && !empty(documentInfo21)) {
+      expect(documentInfo11.symbolTable.dependencyTables.size).toBe(0);
+      expect(documentInfo11.symbolTable.dependentTables.size).toBe(0);
+      expect(documentInfo21.symbolTable.dependencyTables.size).toBe(0);
+      expect(documentInfo21.symbolTable.dependentTables.size).toBe(0);
+
+      expect(documentInfos.get(uri1)).not.toBe(documentInfo11);
+      expect(documentInfos.get(uri2)).not.toBe(documentInfo21);
+    }
+
+    if (!empty(documentInfo12) && !empty(documentInfo22)) {
+      expect(documentInfo12.symbolTable.dependencyTables.size).toBe(3);
+      expect(documentInfo12.symbolTable.dependentTables.size).toBe(0);
+      console.log(documentInfo22);
+      expect(documentInfo22.symbolTable.dependencyTables.size).toBe(2);
+      expect(documentInfo22.symbolTable.dependentTables.size).toBe(1);
+
+      expect(documentInfos.get(uri1)).toBe(documentInfo12);
+      expect(documentInfos.get(uri2)).toBe(documentInfo22);
+    }
   });
 
   test('getInfo', () => {

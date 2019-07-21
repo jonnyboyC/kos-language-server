@@ -10,17 +10,15 @@ import { booleanType } from '../typeChecker/types/primitives/boolean';
 import { structureType } from '../typeChecker/types/primitives/structure';
 import { partType } from '../typeChecker/types/parts/part';
 import { dockingPortType } from '../typeChecker/types/parts/dockingPort';
-import { primitiveInitializer } from '../typeChecker/types/primitives/initialize';
-import { orbitalInitializer } from '../typeChecker/types/orbital/initialize';
 import {
   createStructureType,
   createSuffixType,
   createArgSuffixType,
 } from '../typeChecker/typeCreators';
 import { CallKind } from '../typeChecker/types';
+import { typeInitializer } from '../typeChecker/initialize';
 
-primitiveInitializer();
-orbitalInitializer();
+typeInitializer();
 
 describe('Type Utilities', () => {
   test('Call type', () => {

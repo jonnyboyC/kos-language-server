@@ -28,4 +28,6 @@ addSuffixes(
   createSetSuffixType('scale', scalarType),
   createSetSuffixType('label', stringType),
   createSetSuffixType('width', scalarType),
+  createSetSuffixType('pointy', booleanType),
+  createSetSuffixType('wiping', booleanType),
 );
