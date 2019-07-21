@@ -39,6 +39,6 @@
     "prepack": "cd .. && npm run dev:server && npm run prod:server && npm test"
   },
   "devDependencies": {
-    "@types/node": "^12.6.2"
+    "@types/node": "^12.6.8"
   }
 }
