@@ -121,7 +121,7 @@ export class SymbolTable implements GraphNode<SymbolTable> {
    * This should be called when the associated symbol table is to be deleted
    */
   public removeSelf(): void {
-    // remove refernces from parent scopes
+    // remove references from parent scopes
     for (const parent of this.dependentTables) {
       parent.dependencyTables.delete(this);
     }
@@ -258,7 +258,7 @@ export class SymbolTable implements GraphNode<SymbolTable> {
     const baseFilter = (trackers: BasicTracker) =>
       trackers.declared.symbol.name.lookup === name;
 
-    // our compound filter checkes for any and the other requested filtering operations
+    // our compound filter checks for any and the other requested filtering operations
     const compoundFilter = empty(symbolFilter)
       ? baseFilter
       : (trackers: BasicTracker) =>
@@ -269,7 +269,7 @@ export class SymbolTable implements GraphNode<SymbolTable> {
 
   /**
    * recursively move up the scope to get every file symbol
-   * @param nodes nodes to retrive symbols from
+   * @param nodes nodes to retrieve symbols from
    */
   private fileSymbolsDepth(nodes: EnvironmentNode[]): KsBaseSymbol[] {
     const symbols: KsBaseSymbol[] = [];
@@ -299,7 +299,7 @@ export class SymbolTable implements GraphNode<SymbolTable> {
 
   /**
    * get a symbol tracker under the conditions of a provided filter
-   * @param pos the posiition to check for symbols
+   * @param pos the position to check for symbols
    * @param trackerFilter the tracker filter
    */
   private scopedTracker(

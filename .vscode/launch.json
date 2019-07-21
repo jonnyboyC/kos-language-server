@@ -90,7 +90,11 @@
 			"env": {
 				"NODE_ENV": "dev"
 			},
-			"args": ["--runInBand"],
+			"args": [
+				"--runInBand",
+				"--config",
+				"${workspaceFolder}/server/jest.config.js"
+			],
 			"console": "integratedTerminal",
 			"internalConsoleOptions": "neverOpen",
 			"disableOptimisticBPs": true,

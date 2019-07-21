@@ -6,27 +6,20 @@ import {
   MessageWriter,
   CompletionItem,
   TextDocument,
-  Range,
 } from 'vscode-languageserver';
-import { URI } from 'vscode-uri';
 import { Token } from './entities/token';
 
 export interface IDocumentInfo {
   script: IScript;
   regions: Token[];
   symbolTable: SymbolTable;
-  dependencyTables: SymbolTable[];
+  dependencyTables: Set<SymbolTable>;
   diagnostics: DiagnosticUri[];
 }
 
 export interface LoadedDocuments {
   documents: TextDocument[];
   diagnostics: Diagnostic[];
-}
-
-export interface ILoadData {
-  caller: Range;
-  uri: URI;
 }
 
 export interface DiagnosticUri extends Diagnostic {

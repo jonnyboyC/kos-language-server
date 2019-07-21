@@ -137,13 +137,13 @@ export class DocumentService {
     }
 
     // resolve kos path to uri
-    const result = this.pathResolver.resolveUri(caller, kosPath);
-    if (empty(result)) {
+    const uri = this.pathResolver.resolveUri(caller, kosPath);
+    if (empty(uri)) {
       return this.loadError(caller.range, kosPath);
     }
 
     // attempt to load a resource from whatever uri is provided
-    const normalized = this.normalizeExtensions(result.uri);
+    const normalized = this.normalizeExtensions(uri);
     if (empty(normalized)) {
       return this.loadError(caller.range, kosPath);
     }

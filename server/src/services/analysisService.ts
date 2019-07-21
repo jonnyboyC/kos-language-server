@@ -117,6 +117,10 @@ export class AnalysisService {
   ): Promise<DiagnosticUri[]> {
     try {
       const result = await this.validateDocument_(uri, text, 0);
+      if (!empty(result)) {
+        this.documentInfos.set(uri, result);
+      }
+
       return empty(result) ? [] : result.diagnostics;
     } catch (err) {
       logException(this.logger, this.tracer, err, LogLevel.error);
@@ -129,21 +133,26 @@ export class AnalysisService {
    */
   public async getInfo(uri: string): Promise<Maybe<DocumentInfo>> {
     // if we already have the document loaded return it
-    const docInfo = this.documentInfos.get(uri);
-    if (!empty(docInfo)) {
-      return Promise.resolve(docInfo);
+    const documentInfo = this.documentInfos.get(uri);
+    if (!empty(documentInfo)) {
+      return documentInfo;
     }
 
     try {
       const document = await this.documentService.loadDocument(uri);
       if (empty(document)) {
-        return Promise.resolve(undefined);
+        return undefined;
       }
 
-      return await this.validateDocument_(uri, document.getText(), 0);
+      const result = await this.validateDocument_(uri, document.getText(), 0);
+
+      if (!empty(result)) {
+        this.documentInfos.set(uri, result);
+      }
+      return result;
     } catch (err) {
       logException(this.logger, this.tracer, err, LogLevel.error);
-      return Promise.resolve(undefined);
+      return undefined;
     }
   }
 
@@ -186,11 +195,20 @@ export class AnalysisService {
       script,
       depth,
     );
-    const dependencyTables: SymbolTable[] = [];
 
+    // add standard library to dependencies
+    const dependencyTables: Set<SymbolTable> = new Set([
+      this.activeStandardLibrary(),
+      this.activeBodyLibrary(),
+    ]);
+
+    // add run statement dependencies and their dependencies
     for (const documentInfo of documentInfos) {
-      dependencyTables.push(documentInfo.symbolTable);
-      dependencyTables.push(...documentInfo.dependencyTables);
+      dependencyTables.add(documentInfo.symbolTable);
+
+      for (const dependencyTable of documentInfo.dependencyTables) {
+        dependencyTables.add(dependencyTable);
+      }
     }
 
     // perform semantic analysis
@@ -282,7 +300,7 @@ export class AnalysisService {
   private async semanticAnalysisDocument(
     uri: string,
     script: IScript,
-    tables: SymbolTable[],
+    tables: Set<SymbolTable>,
   ): Promise<SemanticResult> {
     this.logger.verbose('');
     this.logger.verbose('-------------Semantic Analysis------------');
@@ -294,10 +312,6 @@ export class AnalysisService {
     for (const symbolTable of tables) {
       symbolTableBuilder.linkDependency(symbolTable);
     }
-
-    // add standard library
-    symbolTableBuilder.linkDependency(this.activeStandardLibrary());
-    symbolTableBuilder.linkDependency(this.activeBodyLibrary());
 
     // generate resolvers
     const preResolver = new PreResolver(

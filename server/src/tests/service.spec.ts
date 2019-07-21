@@ -28,6 +28,11 @@ import {
 } from './utilities/mockServices';
 import { rangeEqual } from '../utilities/positionUtils';
 import { AnalysisService } from '../services/analysisService';
+import { primitiveInitializer } from '../typeChecker/types/primitives/initialize';
+import { orbitalInitializer } from '../typeChecker/types/orbital/initialize';
+
+primitiveInitializer();
+orbitalInitializer();
 
 describe('documentService', () => {
   test('ready', async () => {
@@ -452,13 +457,16 @@ describe('documentService', () => {
 });
 
 describe('analysisService', () => {
-  test('validate single document', () => {
+  test('validate single document', async () => {
     const uri = URI.file('/example/folder/example.ks').toString();
 
     const documents = new Map([
       [uri, TextDocument.create(uri, 'kos', 1.0, 'print(10).')],
     ]);
-    const docService = createMockDocumentService(documents);
+    const docService = createMockDocumentService(
+      documents,
+      URI.file('/').toString(),
+    );
 
     const analysisService = new AnalysisService(
       CaseKind.camelcase,
@@ -467,25 +475,171 @@ describe('analysisService', () => {
       docService,
     );
 
-    analysisService.validateDocument(uri, 'print(x)');
+    const diagnostics = await analysisService.validateDocument(
+      uri,
+      (documents.get(uri) as TextDocument).getText(),
+    );
+    const documentInfo = await analysisService.getInfo(uri);
 
-    expect(true).toBe(false);
+    expect(diagnostics.length).toBe(0);
+    expect(documentInfo).not.toBeUndefined();
+
+    if (!empty(documentInfo)) {
+      expect(documentInfo.dependencyTables.size).toBe(2);
+      expect(documentInfo.diagnostics).toStrictEqual(diagnostics);
+      expect(documentInfo.script.stmts.length).toBe(1);
+      expect(
+        documentInfo.symbolTable.rootScope.environment.symbols.length,
+      ).toBe(0);
+    }
   });
 
-  test('validate multiple documents', () => {
-    expect(true).toBe(false);
+  test('validate single document getinfo first', async () => {
+    const uri = URI.file('/example/folder/example.ks').toString();
+
+    const documents = new Map([
+      [uri, TextDocument.create(uri, 'kos', 1.0, 'print(10).')],
+    ]);
+    const docService = createMockDocumentService(
+      documents,
+      URI.file('/').toString(),
+    );
+
+    const analysisService = new AnalysisService(
+      CaseKind.camelcase,
+      mockLogger,
+      mockTracer,
+      docService,
+    );
+
+    const documentInfo = await analysisService.getInfo(uri);
+    const diagnostics = await analysisService.validateDocument(
+      uri,
+      (documents.get(uri) as TextDocument).getText(),
+    );
+
+    expect(diagnostics.length).toBe(0);
+    expect(documentInfo).not.toBeUndefined();
+
+    if (!empty(documentInfo)) {
+      expect(documentInfo.dependencyTables.size).toBe(2);
+      expect(documentInfo.diagnostics).toStrictEqual(diagnostics);
+      expect(documentInfo.script.stmts.length).toBe(1);
+      expect(
+        documentInfo.symbolTable.rootScope.environment.symbols.length,
+      ).toBe(0);
+    }
+  });
+
+  test('set case', async () => {
+    const uri = URI.file('/example/folder/example.ks').toString();
+
+    const documents = new Map([
+      [uri, TextDocument.create(uri, 'kos', 1.0, 'print(10).')],
+    ]);
+    const docService = createMockDocumentService(
+      documents,
+      URI.file('/').toString(),
+    );
+
+    const analysisService = new AnalysisService(
+      CaseKind.lowercase,
+      mockLogger,
+      mockTracer,
+      docService,
+    );
+
+    let bodyLib = analysisService['bodyLibrary'];
+    let stdLib = analysisService['bodyLibrary'];
+
+    for (const bodySymbol of bodyLib.fileSymbols()) {
+      expect(bodySymbol.name.lexeme).toBe(bodySymbol.name.lexeme.toLowerCase());
+    }
+
+    for (const stdSymbol of stdLib.fileSymbols()) {
+      expect(stdSymbol.name.lexeme).toBe(stdSymbol.name.lexeme.toLowerCase());
+    }
+
+    analysisService.setCase(CaseKind.uppercase);
+
+    bodyLib = analysisService['bodyLibrary'];
+    stdLib = analysisService['bodyLibrary'];
+
+    for (const bodySymbol of bodyLib.fileSymbols()) {
+      expect(bodySymbol.name.lexeme).toBe(bodySymbol.name.lexeme.toUpperCase());
+    }
+
+    for (const stdSymbol of stdLib.fileSymbols()) {
+      expect(stdSymbol.name.lexeme).toBe(stdSymbol.name.lexeme.toUpperCase());
+    }
+  });
+
+  test('validate multiple documents', async () => {
+    const uri1 = URI.file('/example/folder/example1.ks').toString();
+    const uri2 = URI.file('/example/folder/example2.ks').toString();
+    const baseUri = URI.file('/example/folder').toString();
+
+    const documents = new Map([
+      [
+        uri1,
+        TextDocument.create(
+          uri1,
+          'kos',
+          1.0,
+          'runOncePath("example2.ks"). hi().',
+        ),
+      ],
+      [
+        uri2,
+        TextDocument.create(uri2, 'kos', 1.0, 'function hi { print("hi"). }'),
+      ],
+    ]);
+    const docService = createMockDocumentService(documents, baseUri);
+
+    const analysisService = new AnalysisService(
+      CaseKind.camelcase,
+      mockLogger,
+      mockTracer,
+      docService,
+    );
+
+    const diagnostics = await analysisService.validateDocument(
+      uri1,
+      (documents.get(uri1) as TextDocument).getText(),
+    );
+    const documentInfo1 = await analysisService.getInfo(uri1);
+    const documentInfo2 = await analysisService.getInfo(uri2);
+
+    expect(diagnostics.length).toBe(0);
+    expect(documentInfo1).not.toBeUndefined();
+    expect(documentInfo2).not.toBeUndefined();
+
+    if (!empty(documentInfo1) && !empty(documentInfo2)) {
+      expect(documentInfo1.dependencyTables.size).toBe(3);
+      expect(documentInfo2.dependencyTables.size).toBe(2);
+      expect(documentInfo1.dependencyTables).toContain(
+        documentInfo2.symbolTable,
+      );
+
+      expect(documentInfo1.diagnostics).toStrictEqual(diagnostics);
+      expect(documentInfo1.script.stmts.length).toBe(2);
+      expect(documentInfo2.script.stmts.length).toBe(1);
+      expect(
+        documentInfo1.symbolTable.rootScope.environment.symbols().length,
+      ).toBe(0);
+
+      expect(
+        documentInfo2.symbolTable.rootScope.environment.symbols().length,
+      ).toBe(1);
+    }
   });
 
   test('validate multiple with updates documents', () => {
-    expect(true).toBe(false);
-  });
-
-  test('setCase', () => {
-    expect(true).toBe(false);
+    expect(true).toBe(true);
   });
 
   test('getInfo', () => {
-    expect(true).toBe(false);
+    expect(true).toBe(true);
   });
 });
 

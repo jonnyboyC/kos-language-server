@@ -5,7 +5,6 @@ import { relative, join, dirname } from 'path';
 import { RunStmtType } from '../parser/types';
 import { empty } from './typeGuards';
 import { TokenType } from '../entities/tokentypes';
-import { ILoadData } from '../types';
 import {
   Location,
   Diagnostic,
@@ -42,7 +41,7 @@ export class PathResolver {
    * @param caller location of caller
    * @param runPath path provided in a run statement
    */
-  public resolveUri(caller: Location, runPath?: string): Maybe<ILoadData> {
+  public resolveUri(caller: Location, runPath?: string): Maybe<URI> {
     if (empty(runPath) || empty(this.volume0Uri)) {
       return undefined;
     }
@@ -68,15 +67,15 @@ export class PathResolver {
       if (possibleVolume.length > 2) {
         const first = possibleVolume.slice(2);
 
-        return this.loadData(caller, first, ...remaining);
+        return this.loadData(first, ...remaining);
       }
 
       // else of style 0:\remaining...
-      return this.loadData(caller, ...remaining);
+      return this.loadData(...remaining);
     }
 
     // if no volume do a relative lookup
-    return this.loadData(caller, relativePath, possibleVolume, ...remaining);
+    return this.loadData(relativePath, possibleVolume, ...remaining);
   }
 
   /**
@@ -84,16 +83,10 @@ export class PathResolver {
    * @param caller call location
    * @param pathSegments path segments
    */
-  private loadData(
-    caller: Location,
-    ...pathSegments: string[]
-  ): Maybe<ILoadData> {
+  private loadData(...pathSegments: string[]): Maybe<URI> {
     if (empty(this.volume0Uri)) return undefined;
 
-    return {
-      caller: { start: caller.range.start, end: caller.range.end },
-      uri: URI.file(join(this.volume0Uri.fsPath, ...pathSegments)),
-    };
+    return URI.file(join(this.volume0Uri.fsPath, ...pathSegments));
   }
 }
 

@@ -11,6 +11,7 @@ import { DocumentLoader, Document } from '../../utilities/documentLoader';
 import { empty } from '../../utilities/typeGuards';
 import { DocumentService } from '../../services/documentService';
 import { URI } from 'vscode-uri';
+import { PathResolver } from '../../utilities/pathResolver';
 
 export const createMockDocConnection = () => ({
   changeDoc: undefined as Maybe<
@@ -73,12 +74,16 @@ export const createMockUriResponse = (
 
 export const createMockDocumentService = (
   documents: Map<string, TextDocument>,
+  volume0: string,
 ): DocumentService => {
+  const resolver = new PathResolver(volume0);
+
   return {
     ready(): boolean {
       return true;
     },
-    async setVolume0Uri(_: URI) {
+    async setVolume0Uri(uri: URI) {
+      resolver.volume0Uri = uri;
       return Promise.resolve();
     },
     getDocument(uri: string): Maybe<TextDocument> {
@@ -88,10 +93,11 @@ export const createMockDocumentService = (
       return [...documents.values()];
     },
     async loadDocumentFromScript(
-      _: Location,
-      __: string,
+      location: Location,
+      runPath: string,
     ): Promise<Maybe<Diagnostic | TextDocument>> {
-      return Promise.resolve(undefined);
+      const uri = resolver.resolveUri(location, runPath);
+      return uri && documents.get(uri.toString());
     },
     async loadDocument(uri: string): Promise<Maybe<TextDocument>> {
       return Promise.resolve(documents.get(uri));
