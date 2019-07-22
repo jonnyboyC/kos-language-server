@@ -210,7 +210,7 @@ describe('Basic inferring', () => {
     noErrors(results);
 
     const { table } = results;
-    const symbols = table.fileSymbols();
+    const symbols = table.globalSymbols();
     const names = new Map(
       symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
     );
@@ -232,7 +232,7 @@ describe('Basic inferring', () => {
     noErrors(results);
 
     const { table } = results;
-    const symbols = table.fileSymbols();
+    const symbols = table.globalSymbols();
     const names = new Map(
       symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
     );
@@ -254,7 +254,7 @@ describe('Basic inferring', () => {
     noErrors(results);
 
     const { table } = results;
-    const symbols = table.fileSymbols();
+    const symbols = table.globalSymbols();
     const names = new Map(
       symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
     );
@@ -376,7 +376,7 @@ describe('Operators', () => {
     noErrors(results);
 
     const { table } = results;
-    const symbols = table.fileSymbols();
+    const symbols = table.globalSymbols();
     const names = new Map(
       symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
     );
@@ -410,7 +410,7 @@ describe('Operators', () => {
     noResolverErrors(results);
 
     const { table } = results;
-    const symbols = table.fileSymbols();
+    const symbols = table.globalSymbols();
     const names = new Map(
       symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
     );
@@ -434,7 +434,7 @@ describe('Operators', () => {
     noErrors(results);
 
     const { table } = results;
-    const symbols = table.fileSymbols();
+    const symbols = table.globalSymbols();
     const names = new Map(
       symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
     );
@@ -455,7 +455,7 @@ describe('Operators', () => {
     noErrors(results);
 
     const { table } = results;
-    const symbols = table.fileSymbols();
+    const symbols = table.globalSymbols();
     const names = new Map(
       symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
     );

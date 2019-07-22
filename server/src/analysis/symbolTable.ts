@@ -1,25 +1,12 @@
-import {
-  EnvironmentNode,
-  GraphNode,
-  SymbolTrackerBase,
-  KsBaseSymbol,
-} from './types';
+import { EnvironmentNode, GraphNode, KsBaseSymbol } from './types';
 import { Position } from 'vscode-languageserver';
 import { rangeContainsPos } from '../utilities/positionUtils';
 import { mockLogger } from '../utilities/logger';
 import { empty } from '../utilities/typeGuards';
-import { KsFunction } from '../entities/function';
-import { KsLock } from '../entities/lock';
-import { KsVariable } from '../entities/variable';
-import { KsParameter } from '../entities/parameter';
-import {
-  isFunction,
-  isLock,
-  isVariable,
-  isParameter,
-} from '../entities/entityHelpers';
 import { ScopeKind } from '../parser/types';
 import { BasicTracker } from './tracker';
+import { Environment } from './environment';
+import { builtIn } from '../utilities/constants';
 
 /**
  * The Symbol table is used to update and retrieve symbol type information
@@ -91,16 +78,6 @@ export class SymbolTable implements GraphNode<SymbolTable> {
   }
 
   /**
-   * Replace a dependency with an updated one
-   * @param newTable The new table dependency
-   * @param oldTable the old version of the dependency if it exists
-   */
-  public updateDependency(newTable: SymbolTable, oldTable: SymbolTable) {
-    this.dependencyTables.add(newTable);
-    this.dependencyTables.delete(oldTable);
-  }
-
-  /**
    * should be called when the associated file is closed. It will remove it's reference
    * if another symbol table doesn't reference it
    */
@@ -139,7 +116,7 @@ export class SymbolTable implements GraphNode<SymbolTable> {
   /**
    * get every symbol in the file
    */
-  public fileSymbols(): KsBaseSymbol[] {
+  public globalSymbols(): KsBaseSymbol[] {
     return Array.from(this.rootScope.environment.symbols()).concat(
       this.fileSymbolsDepth(this.rootScope.children),
     );
@@ -149,87 +126,37 @@ export class SymbolTable implements GraphNode<SymbolTable> {
    * Get global symbols that match the requested symbol name
    * @param name symbol name
    */
-  public globalTrackers(name: string): SymbolTrackerBase[] {
-    return Array.from(this.rootScope.environment.trackers()).filter(
-      tracker => tracker.declared.symbol.name.lookup === name,
-    );
-  }
-
-  /**
-   * Get the tracker for a function symbol
-   * @param pos position of symbol
-   * @param name name of the symbol
-   */
-  public scopedFunctionTracker(
-    pos: Position,
+  public globalEnvironment(
     name: string,
-  ): Maybe<SymbolTrackerBase<KsFunction>> {
-    const tracker = this.scopedNamedTracker(pos, name, tracker =>
-      isFunction(tracker.declared.symbol),
-    );
-
-    if (!empty(tracker)) {
-      return tracker as SymbolTrackerBase<KsFunction>;
+    has: (env: Environment, lookup: string) => boolean,
+    checked: Set<SymbolTable>,
+  ): Maybe<Environment> {
+    if (checked.has(this)) {
+      return undefined;
     }
 
-    return undefined;
-  }
+    checked.add(this);
 
-  /**
-   * Get the tracker for a lock symbol
-   * @param pos position of symbol
-   * @param name name of the symbol
-   */
-  public scopedLockTracker(
-    pos: Position,
-    name: string,
-  ): Maybe<SymbolTrackerBase<KsLock>> {
-    const tracker = this.scopedNamedTracker(pos, name, trackers =>
-      isLock(trackers.declared.symbol),
-    );
-
-    if (!empty(tracker)) {
-      return tracker as SymbolTrackerBase<KsLock>;
+    if (has(this.rootScope.environment, name)) {
+      return this.rootScope.environment;
     }
 
-    return undefined;
-  }
-
-  /**
-   * Get the tracker for a variable symbol
-   * @param pos position of the symbol
-   * @param name name of the symbol
-   */
-  public scopedVariableTracker(
-    pos: Position,
-    name: string,
-  ): Maybe<SymbolTrackerBase<KsVariable>> {
-    const tracker = this.scopedNamedTracker(pos, name, trackers =>
-      isVariable(trackers.declared.symbol),
-    );
-
-    if (!empty(tracker)) {
-      return tracker as SymbolTrackerBase<KsVariable>;
+    if (this.uri === builtIn) {
+      return undefined;
     }
 
-    return undefined;
-  }
+    for (const table of this.dependencyTables) {
+      const result = table.globalEnvironment(name, has, checked);
+      if (!empty(result)) {
+        return result;
+      }
+    }
 
-  /**
-   * Get the tracker for a parameter symbol
-   * @param pos position of the symbol
-   * @param name name of the symbol
-   */
-  public scopedParameterTracker(
-    pos: Position,
-    name: string,
-  ): Maybe<SymbolTrackerBase<KsParameter>> {
-    const tracker = this.scopedNamedTracker(pos, name, tracker =>
-      isParameter(tracker.declared.symbol),
-    );
-
-    if (!empty(tracker)) {
-      return tracker as SymbolTrackerBase<KsParameter>;
+    for (const table of this.dependentTables) {
+      const result = table.globalEnvironment(name, has, checked);
+      if (!empty(result)) {
+        return result;
+      }
     }
 
     return undefined;

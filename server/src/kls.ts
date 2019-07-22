@@ -808,7 +808,7 @@ export class KLS {
     const documentInfo = await this.analysisService.getInfo(uri);
 
     if (!empty(documentInfo) && !empty(documentInfo.symbolTable)) {
-      return documentInfo.symbolTable.fileSymbols();
+      return documentInfo.symbolTable.globalSymbols();
     }
 
     return [];

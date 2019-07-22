@@ -13,7 +13,6 @@ export interface IDocumentInfo {
   script: IScript;
   regions: Token[];
   symbolTable: SymbolTable;
-  dependencyTables: Set<SymbolTable>;
   diagnostics: DiagnosticUri[];
 }
 

@@ -95,12 +95,12 @@ export class AnalysisService {
     this.bodyLibrary = bodyLibraryBuilder(caseKind);
 
     this.observer = new PerformanceObserver(list => {
-      this.logger.verbose('');
-      this.logger.verbose('-------- Performance ---------');
+      this.logger.info('');
+      this.logger.info('-------- Performance ---------');
       for (const entry of list.getEntries()) {
-        this.logger.verbose(`${entry.name} took ${entry.duration} ms`);
+        this.logger.info(`${entry.name} took ${entry.duration} ms`);
       }
-      this.logger.verbose('------------------------------');
+      this.logger.info('------------------------------');
     });
     this.observer.observe({ entryTypes: ['measure'], buffered: true });
   }
@@ -187,7 +187,7 @@ export class AnalysisService {
       regions,
       scannerDiagnostics,
       parserDiagnostics,
-    } = await this.lexicalAnalysisDocument(uri, text);
+    } = this.lexicalAnalysisDocument(uri, text);
 
     // load dependencies found in the ast
     const { documentInfos, loadDiagnostics } = await this.loadDependencies(
@@ -205,10 +205,6 @@ export class AnalysisService {
     // add run statement dependencies and their dependencies
     for (const documentInfo of documentInfos) {
       dependencyTables.add(documentInfo.symbolTable);
-
-      for (const dependencyTable of documentInfo.dependencyTables) {
-        dependencyTables.add(dependencyTable);
-      }
     }
 
     // perform semantic analysis
@@ -216,7 +212,7 @@ export class AnalysisService {
       resolverDiagnostics,
       typeDiagnostics,
       symbolTable,
-    } = await this.semanticAnalysisDocument(uri, script, dependencyTables);
+    } = this.semanticAnalysisDocument(uri, script, dependencyTables);
 
     // clear performance observer marks
     performance.clearMarks();
@@ -226,7 +222,6 @@ export class AnalysisService {
       script,
       regions,
       symbolTable,
-      dependencyTables,
       diagnostics: [
         ...scannerDiagnostics,
         ...parserDiagnostics,
@@ -242,10 +237,7 @@ export class AnalysisService {
    * @param uri uri to document
    * @param text source text of document
    */
-  private async lexicalAnalysisDocument(
-    uri: string,
-    text: string,
-  ): Promise<LexicalResult> {
+  private lexicalAnalysisDocument(uri: string, text: string): LexicalResult {
     this.logger.verbose('');
     this.logger.verbose('-------------Lexical Analysis------------');
 
@@ -297,11 +289,11 @@ export class AnalysisService {
    * @param script Ast of the document
    * @param tables symbol tables that are dependencies of this document
    */
-  private async semanticAnalysisDocument(
+  private semanticAnalysisDocument(
     uri: string,
     script: IScript,
     tables: Set<SymbolTable>,
-  ): Promise<SemanticResult> {
+  ): SemanticResult {
     this.logger.verbose('');
     this.logger.verbose('-------------Semantic Analysis------------');
 
@@ -314,6 +306,8 @@ export class AnalysisService {
       for (const dependent of oldDocumentInfo.symbolTable.dependentTables) {
         symbolTableBuilder.linkDependent(dependent);
       }
+
+      oldDocumentInfo.symbolTable.removeSelf();
     }
 
     // add symbol tables that are dependencies
@@ -359,9 +353,7 @@ export class AnalysisService {
     performance.mark('resolver-end');
 
     // build the final symbol table
-    const symbolTable = symbolTableBuilder.build(
-      oldDocumentInfo && oldDocumentInfo.symbolTable,
-    );
+    const symbolTable = symbolTableBuilder.build();
 
     // make sure to delete references so scope manager can be gc'ed
     if (!empty(oldDocumentInfo)) {

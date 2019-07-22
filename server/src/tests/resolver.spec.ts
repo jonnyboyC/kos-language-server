@@ -140,7 +140,7 @@ describe('Resolver tracking', () => {
     noErrors(results);
 
     const { table } = results;
-    const symbols = table.fileSymbols();
+    const symbols = table.globalSymbols();
     const names = new Map(
       symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
     );
@@ -236,7 +236,7 @@ describe('Resolver tracking', () => {
     noErrors(results);
 
     const { table } = results;
-    const symbols = table.fileSymbols();
+    const symbols = table.globalSymbols();
     const names = new Map(
       symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
     );

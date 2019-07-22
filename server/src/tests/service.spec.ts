@@ -483,7 +483,7 @@ describe('analysisService', () => {
     expect(documentInfo).not.toBeUndefined();
 
     if (!empty(documentInfo)) {
-      expect(documentInfo.dependencyTables.size).toBe(2);
+      expect(documentInfo.symbolTable.dependencyTables.size).toBe(2);
       expect(documentInfo.diagnostics).toStrictEqual(diagnostics);
       expect(documentInfo.script.stmts.length).toBe(1);
       expect(
@@ -511,16 +511,25 @@ describe('analysisService', () => {
     );
 
     const documentInfo = await analysisService.getInfo(uri);
+
+    expect(documentInfo).not.toBeUndefined();
+
+    if (!empty(documentInfo)) {
+      expect(documentInfo.symbolTable.dependencyTables.size).toBe(2);
+      expect(documentInfo.script.stmts.length).toBe(1);
+      expect(
+        documentInfo.symbolTable.rootScope.environment.symbols.length,
+      ).toBe(0);
+    }
+
     const diagnostics = await analysisService.validateDocument(
       uri,
       (documents.get(uri) as TextDocument).getText(),
     );
-
     expect(diagnostics.length).toBe(0);
-    expect(documentInfo).not.toBeUndefined();
 
     if (!empty(documentInfo)) {
-      expect(documentInfo.dependencyTables.size).toBe(2);
+      expect(documentInfo.symbolTable.dependencyTables.size).toBe(0);
       expect(documentInfo.diagnostics).toStrictEqual(diagnostics);
       expect(documentInfo.script.stmts.length).toBe(1);
       expect(
@@ -550,11 +559,11 @@ describe('analysisService', () => {
     let bodyLib = analysisService['bodyLibrary'];
     let stdLib = analysisService['bodyLibrary'];
 
-    for (const bodySymbol of bodyLib.fileSymbols()) {
+    for (const bodySymbol of bodyLib.globalSymbols()) {
       expect(bodySymbol.name.lexeme).toBe(bodySymbol.name.lexeme.toLowerCase());
     }
 
-    for (const stdSymbol of stdLib.fileSymbols()) {
+    for (const stdSymbol of stdLib.globalSymbols()) {
       expect(stdSymbol.name.lexeme).toBe(stdSymbol.name.lexeme.toLowerCase());
     }
 
@@ -563,11 +572,11 @@ describe('analysisService', () => {
     bodyLib = analysisService['bodyLibrary'];
     stdLib = analysisService['bodyLibrary'];
 
-    for (const bodySymbol of bodyLib.fileSymbols()) {
+    for (const bodySymbol of bodyLib.globalSymbols()) {
       expect(bodySymbol.name.lexeme).toBe(bodySymbol.name.lexeme.toUpperCase());
     }
 
-    for (const stdSymbol of stdLib.fileSymbols()) {
+    for (const stdSymbol of stdLib.globalSymbols()) {
       expect(stdSymbol.name.lexeme).toBe(stdSymbol.name.lexeme.toUpperCase());
     }
   });
@@ -613,9 +622,9 @@ describe('analysisService', () => {
     expect(documentInfo2).not.toBeUndefined();
 
     if (!empty(documentInfo1) && !empty(documentInfo2)) {
-      expect(documentInfo1.dependencyTables.size).toBe(3);
-      expect(documentInfo2.dependencyTables.size).toBe(2);
-      expect(documentInfo1.dependencyTables).toContain(
+      expect(documentInfo1.symbolTable.dependencyTables.size).toBe(3);
+      expect(documentInfo2.symbolTable.dependencyTables.size).toBe(2);
+      expect(documentInfo1.symbolTable.dependencyTables).toContain(
         documentInfo2.symbolTable,
       );
 
@@ -689,6 +698,11 @@ describe('analysisService', () => {
     );
     const documentInfo22 = await analysisService.getInfo(uri2);
 
+    console.log(diagnostics11);
+    console.log(diagnostics12);
+    console.log(diagnostics21);
+    console.log(diagnostics22);
+
     expect(diagnostics11.length).toBe(0);
     expect(diagnostics12.length).toBe(0);
     expect(diagnostics21.length).toBe(0);
@@ -706,6 +720,11 @@ describe('analysisService', () => {
       expect(documentInfo11.symbolTable.dependentTables.size).toBe(0);
       expect(documentInfo21.symbolTable.dependencyTables.size).toBe(0);
       expect(documentInfo21.symbolTable.dependentTables.size).toBe(0);
+
+      expect(documentInfo11.diagnostics).toStrictEqual(diagnostics11);
+      expect(documentInfo11.diagnostics).toStrictEqual(diagnostics12);
+      expect(documentInfo21.diagnostics).toStrictEqual(diagnostics21);
+      expect(documentInfo21.diagnostics).toStrictEqual(diagnostics22);
 
       expect(documentInfos.get(uri1)).not.toBe(documentInfo11);
       expect(documentInfos.get(uri2)).not.toBe(documentInfo21);
