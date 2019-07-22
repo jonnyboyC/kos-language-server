@@ -307,8 +307,16 @@ export class AnalysisService {
 
     // generate a scope manager for resolving
     const symbolTableBuilder = new SymbolTableBuilder(uri, this.logger);
+    let oldDocumentInfo = this.documentInfos.get(uri);
 
-    // add child scopes
+    // add symbol tables that are dependent
+    if (!empty(oldDocumentInfo)) {
+      for (const dependent of oldDocumentInfo.symbolTable.dependentTables) {
+        symbolTableBuilder.linkDependent(dependent);
+      }
+    }
+
+    // add symbol tables that are dependencies
     for (const symbolTable of tables) {
       symbolTableBuilder.linkDependency(symbolTable);
     }
@@ -349,8 +357,6 @@ export class AnalysisService {
     );
 
     performance.mark('resolver-end');
-
-    let oldDocumentInfo = this.documentInfos.get(uri);
 
     // build the final symbol table
     const symbolTable = symbolTableBuilder.build(

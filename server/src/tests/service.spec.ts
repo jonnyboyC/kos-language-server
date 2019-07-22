@@ -722,10 +722,6 @@ describe('analysisService', () => {
       expect(documentInfos.get(uri2)).toBe(documentInfo22);
     }
   });
-
-  test('getInfo', () => {
-    expect(true).toBe(true);
-  });
 });
 
 // #region string scripts
