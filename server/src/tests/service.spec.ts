@@ -698,11 +698,6 @@ describe('analysisService', () => {
     );
     const documentInfo22 = await analysisService.getInfo(uri2);
 
-    console.log(diagnostics11);
-    console.log(diagnostics12);
-    console.log(diagnostics21);
-    console.log(diagnostics22);
-
     expect(diagnostics11.length).toBe(0);
     expect(diagnostics12.length).toBe(0);
     expect(diagnostics21.length).toBe(0);

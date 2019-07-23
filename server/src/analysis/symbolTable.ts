@@ -125,15 +125,25 @@ export class SymbolTable implements GraphNode<SymbolTable> {
   /**
    * Get global symbols that match the requested symbol name
    * @param name symbol name
+   * @param has function to determine if an environment has the appropriate symbol
+   * @param state are we currently looking up or down the dependency tree
    */
   public globalEnvironment(
     name: string,
-    has: (env: Environment, lookup: string) => boolean,
-    state: SearchState,
+    state: SearchState = SearchState.dependents,
+    has: (env: Environment, lookup: string) => boolean = (env, lookup) =>
+      env.has(lookup),
   ): Maybe<Environment> {
     return this.globalEnvironment_(name, has, new Set(), state);
   }
 
+  /**
+   * Get global symbols that match the requested symbol name
+   * @param name symbol name
+   * @param has function to determine if an environment has the appropriate symbol
+   * @param checked tables we've already checked
+   * @param state are we currently looking up or down the dependency tree
+   */
   private globalEnvironment_(
     name: string,
     has: (env: Environment, lookup: string) => boolean,
@@ -154,32 +164,30 @@ export class SymbolTable implements GraphNode<SymbolTable> {
       return undefined;
     }
 
-    switch (state) {
-      // @ts-ignore
-      case SearchState.dependents:
-        for (const table of this.dependencyTables) {
-          const result = table.globalEnvironment_(
-            name,
-            has,
-            checked,
-            SearchState.dependents,
-          );
-          if (!empty(result)) {
-            return result;
-          }
+    if (state === SearchState.dependents) {
+      for (const table of this.dependentTables) {
+        const result = table.globalEnvironment_(
+          name,
+          has,
+          checked,
+          SearchState.dependents,
+        );
+        if (!empty(result)) {
+          return result;
         }
-      case SearchState.dependencies:
-        for (const table of this.dependentTables) {
-          const result = table.globalEnvironment_(
-            name,
-            has,
-            checked,
-            SearchState.dependencies,
-          );
-          if (!empty(result)) {
-            return result;
-          }
-        }
+      }
+    }
+
+    for (const table of this.dependencyTables) {
+      const result = table.globalEnvironment_(
+        name,
+        has,
+        checked,
+        SearchState.dependencies,
+      );
+      if (!empty(result)) {
+        return result;
+      }
     }
 
     return undefined;

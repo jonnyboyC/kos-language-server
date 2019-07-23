@@ -943,8 +943,8 @@ export class SymbolTableBuilder {
     for (const child of this.dependencyTables) {
       const environment = child.globalEnvironment(
         lookup,
-        has,
         SearchState.dependencies,
+        has,
       );
       if (!empty(environment)) {
         this.globalSymbolEnvironment.set(key, environment);
@@ -956,8 +956,8 @@ export class SymbolTableBuilder {
     for (const child of this.dependentTables) {
       const environment = child.globalEnvironment(
         lookup,
-        has,
         SearchState.dependents,
+        has,
       );
       if (!empty(environment)) {
         this.globalSymbolEnvironment.set(key, environment);
