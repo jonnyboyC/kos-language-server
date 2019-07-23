@@ -1,6 +1,6 @@
 import { ArgumentType } from '../types';
 import { createStructureType, createArgSuffixType, createSuffixType } from "../../typeCreators";
-import { addPrototype, addSuffixes } from '../../typeUitlities';
+import { addPrototype, addSuffixes } from '../../typeUtilities';
 import { volumeItemType } from './volumeItem';
 import { lexiconType } from '../collections/lexicon';
 import { enumeratorType } from '../collections/enumerator';

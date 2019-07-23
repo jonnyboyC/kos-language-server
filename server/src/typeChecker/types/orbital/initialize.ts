@@ -1,4 +1,4 @@
-import { addPrototype, addSuffixes, addOperators } from '../../typeUitlities';
+import { addPrototype, addSuffixes, addOperators } from '../../typeUtilities';
 import { orbitableType } from './orbitable';
 import { serializableStructureType } from '../primitives/serializeableStructure';
 import { createSuffixType, createArgSuffixType } from '../../typeCreators';
@@ -30,6 +30,7 @@ import { partModuleType } from '../parts/partModule';
 import { crewType } from '../crew';
 import { vesselSensorsType } from '../vessel/vesselSensors';
 import { OperatorKind } from '../../types';
+import { boundsType } from '../parts/bounds';
 
 let set = false;
 
@@ -187,6 +188,7 @@ export const orbitalInitializer = () => {
     createSuffixType('maxThrust', scalarType),
     createArgSuffixType('maxThrustAt', scalarType, scalarType),
     createSuffixType('facing', directionType),
+    createSuffixType('bounds', boundsType),
     createSuffixType('angularMomentum', vectorType),
     createSuffixType('angularVel', vectorType),
     createSuffixType('mass', scalarType),

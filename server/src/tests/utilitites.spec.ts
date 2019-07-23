@@ -74,8 +74,7 @@ describe('path resolver', () => {
     );
     expect(undefined).not.toBe(relativeResolved1);
     if (!empty(relativeResolved1)) {
-      expect(relativeResolved1.uri.toString()).toBe(resolvedUri);
-      expect(rangeEqual(range, relativeResolved1.caller)).toBe(true);
+      expect(relativeResolved1.toString()).toBe(resolvedUri);
     }
 
     const relativeResolved2 = pathResolver.resolveUri(
@@ -84,8 +83,7 @@ describe('path resolver', () => {
     );
     expect(undefined).not.toBe(relativeResolved2);
     if (!empty(relativeResolved2)) {
-      expect(relativeResolved2.uri.toString()).toBe(resolvedUri);
-      expect(rangeEqual(range, relativeResolved2.caller)).toBe(true);
+      expect(relativeResolved2.toString()).toBe(resolvedUri);
     }
 
     const absoluteResolved = pathResolver.resolveUri(
@@ -94,15 +92,13 @@ describe('path resolver', () => {
     );
     expect(undefined).not.toBe(absoluteResolved);
     if (!empty(absoluteResolved)) {
-      expect(absoluteResolved.uri.toString()).toBe(resolvedUri);
-      expect(rangeEqual(range, absoluteResolved.caller)).toBe(true);
+      expect(absoluteResolved.toString()).toBe(resolvedUri);
     }
 
     const weirdResolved = pathResolver.resolveUri(otherFileLocation, weird);
     expect(undefined).not.toBe(weirdResolved);
     if (!empty(weirdResolved)) {
-      expect(weirdResolved.uri.toString()).toBe(resolvedUri);
-      expect(rangeEqual(range, weirdResolved.caller)).toBe(true);
+      expect(weirdResolved.toString()).toBe(resolvedUri);
     }
   });
 });

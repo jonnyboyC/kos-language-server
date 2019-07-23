@@ -4,13 +4,14 @@
     "baseUrl": ".",
     "module": "commonjs",
     "target": "es6",
-    "incremental": true,
-    "tsBuildInfoFile": "./out/buildcache.json",
     "outDir": "out",
     "rootDir": "src",
     "lib": ["es6", "dom"],
     "esModuleInterop": true,
     "sourceMap": true,
+    "noEmit": false,
+    // "incremental": true,
+    // "tsBuildInfoFile": "./out/buildcache.json",
   },
   "include": [
     "src"

@@ -1,7 +1,7 @@
 import { ArgumentType, IBasicType } from './types';
 import { ConstantType } from '../ksType';
 import { createStructureType, createSuffixType } from '../typeCreators';
-import { addPrototype, addSuffixes } from '../typeUitlities';
+import { addPrototype, addSuffixes } from '../typeUtilities';
 import { structureType } from './primitives/structure';
 import { doubleType } from './primitives/scalar';
 
@@ -37,6 +37,24 @@ export const radToDegType = new ConstantType(
   57.295779513082320876798154814105,
 );
 addPrototype<IBasicType>(radToDegType, doubleType);
+
+export const avogadroType: ArgumentType = new ConstantType(
+  'avogadro',
+  6.02214076e23,
+);
+addPrototype<IBasicType>(avogadroType, structureType);
+
+export const boltzmannType: ArgumentType = new ConstantType(
+  'boltzmann',
+  1.380649e-23,
+);
+addPrototype<IBasicType>(boltzmannType, structureType);
+
+export const idealGasType: ArgumentType = new ConstantType(
+  'idealGas',
+  8.31446215324,
+);
+addPrototype<IBasicType>(boltzmannType, structureType);
 
 export const constantType: ArgumentType = createStructureType('constant');
 addPrototype<IBasicType>(constantType, structureType);

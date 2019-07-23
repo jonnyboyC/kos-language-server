@@ -1,6 +1,6 @@
 import { ArgumentType } from './types';
 import { createStructureType, createSetSuffixType } from '../typeCreators';
-import { addPrototype, addSuffixes } from '../typeUitlities';
+import { addPrototype, addSuffixes } from '../typeUtilities';
 import { structureType } from './primitives/structure';
 import { vectorType } from './collections/vector';
 import { userDelegateType } from './userDelegate';
@@ -28,4 +28,6 @@ addSuffixes(
   createSetSuffixType('scale', scalarType),
   createSetSuffixType('label', stringType),
   createSetSuffixType('width', scalarType),
+  createSetSuffixType('pointy', booleanType),
+  createSetSuffixType('wiping', booleanType),
 );

@@ -1,6 +1,6 @@
 import { ArgumentType } from './types';
 import { createStructureType, createArgSuffixType, createSuffixType } from '../typeCreators';
-import { addPrototype, addSuffixes } from '../typeUitlities';
+import { addPrototype, addSuffixes } from '../typeUtilities';
 import { kosProcessorFields } from './kosProcessorFields';
 import { volumeType } from './io/volume';
 import { versionInfoType } from './versionInfo';

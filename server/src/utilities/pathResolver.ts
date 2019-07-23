@@ -5,8 +5,11 @@ import { relative, join, dirname } from 'path';
 import { RunStmtType } from '../parser/types';
 import { empty } from './typeGuards';
 import { TokenType } from '../entities/tokentypes';
-import { ILoadData } from '../types';
-import { Location, Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
+import {
+  Location,
+  Diagnostic,
+  DiagnosticSeverity,
+} from 'vscode-languageserver';
 import { URI } from 'vscode-uri';
 
 /**
@@ -23,15 +26,13 @@ export class PathResolver {
    * @param volume0Uri the uri associated with volume 0
    */
   constructor(volume0Uri?: string) {
-    this.volume0Uri = !empty(volume0Uri)
-      ? URI.parse(volume0Uri)
-      : undefined;
+    this.volume0Uri = !empty(volume0Uri) ? URI.parse(volume0Uri) : undefined;
   }
 
   /**
    * Is the resolve ready to resolve paths
    */
-  public get ready(): boolean {
+  public ready(): boolean {
     return !empty(this.volume0Uri);
   }
 
@@ -40,7 +41,7 @@ export class PathResolver {
    * @param caller location of caller
    * @param runPath path provided in a run statement
    */
-  public resolveUri(caller: Location, runPath?: string): Maybe<ILoadData> {
+  public resolveUri(caller: Location, runPath?: string): Maybe<URI> {
     if (empty(runPath) || empty(this.volume0Uri)) {
       return undefined;
     }
@@ -53,7 +54,10 @@ export class PathResolver {
       return undefined;
     }
 
-    const relativePath = relative(this.volume0Uri.toString(), dirname(caller.uri));
+    const relativePath = relative(
+      this.volume0Uri.toString(),
+      dirname(caller.uri),
+    );
 
     // check if the scripts reads from volume 0 "disk"
     // TODO no idea what to do for ship volumes
@@ -63,15 +67,15 @@ export class PathResolver {
       if (possibleVolume.length > 2) {
         const first = possibleVolume.slice(2);
 
-        return this.loadData(caller, first, ...remaining);
+        return this.loadData(first, ...remaining);
       }
 
       // else of style 0:\remaining...
-      return this.loadData(caller, ...remaining);
+      return this.loadData(...remaining);
     }
 
     // if no volume do a relative lookup
-    return this.loadData(caller, relativePath, possibleVolume, ...remaining);
+    return this.loadData(relativePath, possibleVolume, ...remaining);
   }
 
   /**
@@ -79,16 +83,10 @@ export class PathResolver {
    * @param caller call location
    * @param pathSegments path segments
    */
-  private loadData(
-    caller: Location,
-    ...pathSegments: string[]
-  ): Maybe<ILoadData> {
+  private loadData(...pathSegments: string[]): Maybe<URI> {
     if (empty(this.volume0Uri)) return undefined;
 
-    return {
-      caller: { start: caller.range.start, end: caller.range.end },
-      uri: URI.file(join(this.volume0Uri.fsPath, ...pathSegments)),
-    };
+    return URI.file(join(this.volume0Uri.fsPath, ...pathSegments));
   }
 }
 
@@ -143,8 +141,9 @@ const literalPath = (expr: SuffixTerm.Literal): string | undefined => {
  * Provide a diagnostic when a path cannot be loaded
  * @param stmt the run statement
  */
-const cannotLoad = (stmt: RunStmtType) => Diagnostic.create(
-  stmt,
-  'kos-language-server cannot load runtime resolved run statements',
-  DiagnosticSeverity.Hint,
-);
+const cannotLoad = (stmt: RunStmtType) =>
+  Diagnostic.create(
+    stmt,
+    'kos-language-server cannot load runtime resolved run statements',
+    DiagnosticSeverity.Hint,
+  );

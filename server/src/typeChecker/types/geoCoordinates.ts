@@ -1,6 +1,6 @@
 import { ArgumentType } from './types';
 import { createStructureType, createSuffixType, createArgSuffixType } from "../typeCreators";
-import { addPrototype, addSuffixes } from '../typeUitlities';
+import { addPrototype, addSuffixes } from '../typeUtilities';
 import { vectorType } from './collections/vector';
 import { orbitableVelocityType } from './orbitalVelocity';
 import { scalarType } from './primitives/scalar';

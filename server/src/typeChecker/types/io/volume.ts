@@ -5,7 +5,7 @@ import {
   createSuffixType,
   createSetSuffixType,
 } from '../../typeCreators';
-import { addPrototype, addSuffixes } from '../../typeUitlities';
+import { addPrototype, addSuffixes } from '../../typeUtilities';
 import { structureType } from '../primitives/structure';
 import { volumeDirectoryType } from './volumeDirectory';
 import { volumeFileType } from './volumneFile';

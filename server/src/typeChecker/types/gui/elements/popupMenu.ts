@@ -4,7 +4,7 @@ import {
   createArgSuffixType,
 } from '../../../typeCreators';
 import { ArgumentType } from '../../types';
-import { addPrototype, addSuffixes } from '../../../typeUitlities';
+import { addPrototype, addSuffixes } from '../../../typeUtilities';
 import { userDelegateType } from '../../userDelegate';
 import { buttonType } from './button';
 import { structureType } from '../../primitives/structure';

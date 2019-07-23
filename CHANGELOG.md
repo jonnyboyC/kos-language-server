@@ -1,3 +1,26 @@
+# [0.9.0] (2019-7-22)
+
+## Features
+- **Boot Directory** The boot directory now correctly resolves to the base of volume0
+
+## Bug Fixes
+- **Globals** Global variables better reflect kOS with the following more actually being represented.
+
+      // main.ks
+      runPath("lib.ks").
+      global hi is "hi".
+      greet().
+
+      // lib.ks
+      function greet {
+        print(hi)
+      }  //   ^---- know of hi in main.ks
+
+# [0.8.2] (2019-7-13)
+
+## Bug Fixes
+- **Folding Region** The addition of `// #region` to the language server override vscode default folding behavior. This replicates the default folding behavior inside of the language server.
+
 # [0.8.1] (2019-7-12)
 
 ## Bug Fixes

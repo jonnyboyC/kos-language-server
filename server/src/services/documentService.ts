@@ -18,7 +18,7 @@ import { logException, mockTracer } from '../utilities/logger';
 type DocumentChangeHandler = (document: Document) => void;
 type DocumentClosedHandler = (uri: string) => void;
 
-export type DocumentConnection = Pick<
+type DocumentConnection = Pick<
   IConnection,
   'onDidChangeTextDocument' | 'onDidCloseTextDocument' | 'onDidOpenTextDocument'
 >;
@@ -48,6 +48,11 @@ export class DocumentService {
   private logger: ILogger;
 
   /**
+   * A tracer to location exception
+   */
+  private tracer: ITracer;
+
+  /**
    * A function to load a uri asynchronously
    */
   private documentLoader: DocumentLoader;
@@ -62,12 +67,14 @@ export class DocumentService {
    * @param conn document connection holding the required callbacks from iconnection
    * @param uriLoader service to load from a provided uri
    * @param logger logger to log messages to client
+   * @param tracer tracer to location exception
    * @param volume0Uri the uri to volume 0 on the drive
    */
   constructor(
     conn: DocumentConnection,
     uriLoader: DocumentLoader,
     logger: ILogger,
+    tracer: ITracer,
     volume0Uri?: string,
   ) {
     this.clientDocs = new Map();
@@ -76,12 +83,20 @@ export class DocumentService {
     this.conn = conn;
     this.documentLoader = uriLoader;
     this.logger = logger;
+    this.tracer = tracer;
   }
 
+  /**
+   * Is the document service read
+   */
   public ready(): boolean {
-    return this.pathResolver.ready;
+    return this.pathResolver.ready();
   }
 
+  /**
+   * Set the volume 0 uri
+   * @param uri uri of volume 0
+   */
   public async setVolume0Uri(uri: URI) {
     this.pathResolver.volume0Uri = uri;
     this.cacheDocuments();
@@ -107,23 +122,28 @@ export class DocumentService {
     return [...this.clientDocs.values(), ...this.serverDocs.values()];
   }
 
-  public async loadDocument(
+  /**
+   * Attempt load a document from a kOS script
+   * @param caller the caller location for the document
+   * @param kosPath the path in the run statement
+   */
+  public async loadDocumentFromScript(
     caller: Location,
     kosPath: string,
   ): Promise<Maybe<Diagnostic | TextDocument>> {
     // resolver must first be ready
-    if (!this.pathResolver.ready) {
+    if (!this.ready()) {
       return undefined;
     }
 
     // resolve kos path to uri
-    const result = this.pathResolver.resolveUri(caller, kosPath);
-    if (empty(result)) {
+    const uri = this.pathResolver.resolveUri(caller, kosPath);
+    if (empty(uri)) {
       return this.loadError(caller.range, kosPath);
     }
 
     // attempt to load a resource from whatever uri is provided
-    const normalized = this.normalizeExtensions(result.uri);
+    const normalized = this.normalizeExtensions(uri);
     if (empty(normalized)) {
       return this.loadError(caller.range, kosPath);
     }
@@ -146,6 +166,44 @@ export class DocumentService {
     } catch (err) {
       // create a diagnostic if we can't load the file
       return this.loadError(caller.range, kosPath);
+    }
+  }
+
+  /**
+   * Attempt to load a document from a provided uri
+   * @param uri the requested uri
+   */
+  public async loadDocument(uri: string): Promise<Maybe<TextDocument>> {
+    // resolver must first be ready
+    if (!this.ready()) {
+      return undefined;
+    }
+
+    // attempt to load a resource from whatever uri is provided
+    const normalized = this.normalizeExtensions(uri);
+    if (empty(normalized)) {
+      return undefined;
+    }
+
+    // check for cached versions first
+    const cached = this.serverDocs.get(normalized);
+    if (!empty(cached)) {
+      return cached;
+    }
+
+    try {
+      // attempt to load a resource from whatever uri is provided
+      const uri = URI.parse(normalized);
+      const retrieved = await this.retrieveResource(uri);
+      const textDocument = TextDocument.create(normalized, 'kos', 0, retrieved);
+
+      // if found set in cache and return document
+      this.serverDocs.set(normalized, textDocument);
+      return textDocument;
+    } catch (err) {
+      logException(this.logger, this.tracer, err, LogLevel.error);
+
+      return undefined;
     }
   }
 
@@ -296,6 +354,7 @@ export class DocumentService {
 
       // update editor docs
       this.clientDocs.set(document.uri, updatedDoc);
+      this.serverDocs.delete(document.uri);
 
       // call handler
       handler({ text, uri: document.uri });
