@@ -1,6 +1,6 @@
 import { ArgumentType } from './types';
 import { createStructureType, createSuffixType } from '../typeCreators';
-import { addPrototype, addSuffixes } from '../typeUitlities';
+import { addPrototype, addSuffixes } from '../typeUtilities';
 import { scalarType } from './primitives/scalar';
 import { structureType } from './primitives/structure';
 import { stringType } from './primitives/string';

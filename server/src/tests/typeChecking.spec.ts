@@ -12,8 +12,6 @@ import { TypeChecker } from '../typeChecker/typeChecker';
 import { KsBaseSymbol, KsSymbolKind } from '../analysis/types';
 import { unWrap, empty } from '../utilities/typeGuards';
 import { booleanType } from '../typeChecker/types/primitives/boolean';
-import { primitiveInitializer } from '../typeChecker/types/primitives/initialize';
-import { orbitalInitializer } from '../typeChecker/types/orbital/initialize';
 import { Type } from '../typeChecker/types/types';
 import {
   doubleType,
@@ -28,11 +26,11 @@ import { directionType } from '../typeChecker/types/direction';
 import { Marker } from '../entities/marker';
 import { zip } from '../utilities/arrayUtils';
 import { timeSpanType } from '../typeChecker/types/timespan';
+import { typeInitializer } from '../typeChecker/initialize';
 
 const fakeUri = 'C:\\fake.ks';
 
-primitiveInitializer();
-orbitalInitializer();
+typeInitializer();
 
 interface ITypeCheckResults {
   scan: Tokenized;
@@ -64,7 +62,9 @@ const checkSource = (
   const symbolTableBuilder = new SymbolTableBuilder(fakeUri);
 
   if (standardLib) {
-    symbolTableBuilder.linkTable(standardLibraryBuilder(CaseKind.lowercase));
+    symbolTableBuilder.linkDependency(
+      standardLibraryBuilder(CaseKind.lowercase),
+    );
   }
 
   const functionResolver = new PreResolver(
@@ -210,7 +210,7 @@ describe('Basic inferring', () => {
     noErrors(results);
 
     const { table } = results;
-    const symbols = table.fileSymbols();
+    const symbols = table.globalSymbols();
     const names = new Map(
       symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
     );
@@ -232,7 +232,7 @@ describe('Basic inferring', () => {
     noErrors(results);
 
     const { table } = results;
-    const symbols = table.fileSymbols();
+    const symbols = table.globalSymbols();
     const names = new Map(
       symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
     );
@@ -254,7 +254,7 @@ describe('Basic inferring', () => {
     noErrors(results);
 
     const { table } = results;
-    const symbols = table.fileSymbols();
+    const symbols = table.globalSymbols();
     const names = new Map(
       symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
     );
@@ -376,7 +376,7 @@ describe('Operators', () => {
     noErrors(results);
 
     const { table } = results;
-    const symbols = table.fileSymbols();
+    const symbols = table.globalSymbols();
     const names = new Map(
       symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
     );
@@ -410,7 +410,7 @@ describe('Operators', () => {
     noResolverErrors(results);
 
     const { table } = results;
-    const symbols = table.fileSymbols();
+    const symbols = table.globalSymbols();
     const names = new Map(
       symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
     );
@@ -434,7 +434,7 @@ describe('Operators', () => {
     noErrors(results);
 
     const { table } = results;
-    const symbols = table.fileSymbols();
+    const symbols = table.globalSymbols();
     const names = new Map(
       symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
     );
@@ -455,7 +455,7 @@ describe('Operators', () => {
     noErrors(results);
 
     const { table } = results;
-    const symbols = table.fileSymbols();
+    const symbols = table.globalSymbols();
     const names = new Map(
       symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
     );

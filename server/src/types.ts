@@ -6,16 +6,14 @@ import {
   MessageWriter,
   CompletionItem,
   TextDocument,
-  Range,
 } from 'vscode-languageserver';
-import { URI } from 'vscode-uri';
 import { Token } from './entities/token';
 
 export interface IDocumentInfo {
   script: IScript;
   regions: Token[];
   symbolTable: SymbolTable;
-  diagnostics: IDiagnosticUri[];
+  diagnostics: DiagnosticUri[];
 }
 
 export interface LoadedDocuments {
@@ -23,14 +21,7 @@ export interface LoadedDocuments {
   diagnostics: Diagnostic[];
 }
 
-export interface ILoadData {
-  caller: Range;
-  uri: URI;
-}
-
-export type ValidateResult = IDiagnosticUri[] | SymbolTable;
-
-export interface IDiagnosticUri extends Diagnostic {
+export interface DiagnosticUri extends Diagnostic {
   uri: string;
 }
 

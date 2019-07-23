@@ -1,9 +1,5 @@
 import { DocumentService } from '../services/documentService';
-import { NotificationHandler } from 'vscode-jsonrpc';
 import {
-  DidChangeTextDocumentParams,
-  DidCloseTextDocumentParams,
-  DidOpenTextDocumentParams,
   TextDocumentItem,
   Location,
   Range,
@@ -12,75 +8,29 @@ import {
   Position,
   TextDocumentIdentifier,
   FoldingRange,
+  Diagnostic,
+  DiagnosticSeverity,
 } from 'vscode-languageserver';
-import { mockLogger } from '../utilities/logger';
+import { mockLogger, mockTracer } from '../utilities/logger';
 import { URI } from 'vscode-uri';
 import { empty } from '../utilities/typeGuards';
 import { zip } from '../utilities/arrayUtils';
 import { basename } from 'path';
-import { DocumentLoader, Document } from '../utilities/documentLoader';
 import { Scanner } from '../scanner/scanner';
 import { Parser } from '../parser/parser';
 import { Tokenized } from '../scanner/types';
 import { ParseResult } from '../parser/types';
 import { FoldableService } from '../services/foldableService';
+import {
+  createMockDocConnection,
+  createMockUriResponse,
+  createMockDocumentService,
+} from './utilities/mockServices';
+import { rangeEqual } from '../utilities/positionUtils';
+import { AnalysisService } from '../services/analysisService';
+import { typeInitializer } from '../typeChecker/initialize';
 
-const createMockDocConnection = () => ({
-  changeDoc: undefined as Maybe<
-    NotificationHandler<DidChangeTextDocumentParams>
-  >,
-  openDoc: undefined as Maybe<NotificationHandler<DidOpenTextDocumentParams>>,
-  closeDoc: undefined as Maybe<NotificationHandler<DidCloseTextDocumentParams>>,
-
-  onDidChangeTextDocument(
-    handler: NotificationHandler<DidChangeTextDocumentParams>,
-  ) {
-    this.changeDoc = handler;
-  },
-  onDidCloseTextDocument(
-    handler: NotificationHandler<DidCloseTextDocumentParams>,
-  ) {
-    this.closeDoc = handler;
-  },
-  onDidOpenTextDocument(
-    handler: NotificationHandler<DidOpenTextDocumentParams>,
-  ) {
-    this.openDoc = handler;
-  },
-
-  callChange(params: DidChangeTextDocumentParams) {
-    if (this.changeDoc) {
-      this.changeDoc(params);
-    }
-  },
-
-  callOpen(params: DidOpenTextDocumentParams) {
-    if (this.openDoc) {
-      this.openDoc(params);
-    }
-  },
-
-  callClose(params: DidCloseTextDocumentParams) {
-    if (this.closeDoc) {
-      this.closeDoc(params);
-    }
-  },
-});
-
-const createMockUriResponse = (files: Map<string, string>): DocumentLoader => {
-  return {
-    load(path: string): Promise<string> {
-      const document = files.get(path);
-
-      if (!empty(document)) {
-        return Promise.resolve(document);
-      }
-
-      return Promise.reject();
-    },
-    async *loadDirectory(_: string): AsyncIterableIterator<Document> {},
-  };
-};
+typeInitializer();
 
 describe('documentService', () => {
   test('ready', async () => {
@@ -95,9 +45,10 @@ describe('documentService', () => {
       mockConnection,
       mockUriResponse,
       mockLogger,
+      mockTracer,
     );
 
-    const documentLoaded = await docService.loadDocument(
+    const documentLoaded = await docService.loadDocumentFromScript(
       {
         uri: callingUri,
         range: {
@@ -130,6 +81,7 @@ describe('documentService', () => {
       mockConnection,
       mockUriResponse,
       mockLogger,
+      mockTracer,
     );
 
     const serverDocs = docService['serverDocs'];
@@ -189,7 +141,7 @@ describe('documentService', () => {
     }
   });
 
-  test('load from server', async () => {
+  test('load from server using kOS run', async () => {
     const mockConnection = createMockDocConnection();
     const files = new Map();
     const mockUriResponse = createMockUriResponse(files);
@@ -201,6 +153,7 @@ describe('documentService', () => {
       mockConnection,
       mockUriResponse,
       mockLogger,
+      mockTracer,
       baseUri,
     );
 
@@ -221,7 +174,7 @@ describe('documentService', () => {
       const uriString = uri.toString();
       files.set(uri.fsPath, doc);
 
-      const loadedDoc = await docService.loadDocument(
+      const loadedDoc = await docService.loadDocumentFromScript(
         Location.create(
           callingUri,
           Range.create({ line: 0, character: 0 }, { line: 0, character: 10 }),
@@ -252,6 +205,104 @@ describe('documentService', () => {
 
       i = i + 1;
     }
+
+    const nonExistentUri = [
+      URI.file('/example/folder/none1.ks'),
+      URI.file('/example/folder/none2.ks'),
+    ];
+
+    for (const uri of nonExistentUri) {
+      const uriString = uri.toString();
+      const loadedDoc = await docService.loadDocumentFromScript(
+        Location.create(
+          callingUri,
+          Range.create({ line: 0, character: 0 }, { line: 0, character: 10 }),
+        ),
+        `0:/${basename(uriString)}`,
+      );
+      expect(loadedDoc).not.toBeUndefined();
+      expect(Diagnostic.is(loadedDoc)).toBe(true);
+
+      if (Diagnostic.is(loadedDoc)) {
+        expect(loadedDoc.severity).toBe(DiagnosticSeverity.Information);
+        expect(
+          rangeEqual(
+            loadedDoc.range,
+            Range.create({ line: 0, character: 0 }, { line: 0, character: 10 }),
+          ),
+        ).toBe(true);
+      }
+    }
+  });
+
+  test('load from server using uri', async () => {
+    const mockConnection = createMockDocConnection();
+    const files = new Map();
+    const mockUriResponse = createMockUriResponse(files);
+
+    const baseUri = URI.file('/example/folder').toString();
+
+    const docService = new DocumentService(
+      mockConnection,
+      mockUriResponse,
+      mockLogger,
+      mockTracer,
+      baseUri,
+    );
+
+    const serverDocs = docService['serverDocs'];
+    const clientDocs = docService['clientDocs'];
+
+    const uris = [
+      URI.file('/example/folder/doc1.ks'),
+      URI.file('/example/folder/doc2.ks'),
+      URI.file('/example/folder/doc3.ks'),
+      URI.file('/example/folder/doc4.ks'),
+    ];
+
+    const docs = ['example 1', 'example 2', 'example 3', 'example 4'];
+
+    let i = 0;
+    for (const [uri, doc] of zip(uris, docs)) {
+      const uriString = uri.toString();
+      files.set(uri.fsPath, doc);
+
+      const loadedDoc = await docService.loadDocument(uriString);
+
+      expect(loadedDoc).not.toBeUndefined();
+      if (!empty(loadedDoc)) {
+        expect(TextDocument.is(loadedDoc)).toBe(true);
+        expect((loadedDoc as TextDocument).getText()).toBe(doc);
+      }
+
+      expect(clientDocs.size).toBe(0);
+      expect(serverDocs.size).toBe(i + 1);
+      expect(serverDocs.has(uri.toString())).toBe(true);
+
+      for (let j = 0; j <= i; j += 1) {
+        const doc = docService.getDocument(uris[j].toString());
+        expect(doc).not.toBeUndefined();
+
+        if (!empty(doc)) {
+          expect(doc.getText()).toBe(docs[j]);
+        }
+
+        expect(serverDocs.has(uris[j].toString())).toBe(true);
+      }
+
+      i = i + 1;
+    }
+
+    const nonExistentUri = [
+      URI.file('/example/folder/none1.ks'),
+      URI.file('/example/folder/none2.ks'),
+    ];
+
+    for (const uri of nonExistentUri) {
+      const uriString = uri.toString();
+      const loadedDoc = await docService.loadDocument(uriString);
+      expect(loadedDoc).toBeUndefined();
+    }
   });
 
   test('change update', async () => {
@@ -266,6 +317,7 @@ describe('documentService', () => {
       mockConnection,
       mockUriResponse,
       mockLogger,
+      mockTracer,
       baseUri,
     );
 
@@ -352,6 +404,7 @@ describe('documentService', () => {
       mockConnection,
       mockUriResponse,
       mockLogger,
+      mockTracer,
       baseUri,
     );
 
@@ -378,7 +431,7 @@ describe('documentService', () => {
       const uriString = rUri.toString();
       files.set(aUri.fsPath, doc);
 
-      const loadedDoc = await docService.loadDocument(
+      const loadedDoc = await docService.loadDocumentFromScript(
         Location.create(
           callingUri,
           Range.create({ line: 0, character: 0 }, { line: 0, character: 10 }),
@@ -401,6 +454,291 @@ describe('documentService', () => {
   });
 });
 
+describe('analysisService', () => {
+  test('validate single document', async () => {
+    const uri = URI.file('/example/folder/example.ks').toString();
+
+    const documents = new Map([
+      [uri, TextDocument.create(uri, 'kos', 1.0, 'print(10).')],
+    ]);
+    const docService = createMockDocumentService(
+      documents,
+      URI.file('/').toString(),
+    );
+
+    const analysisService = new AnalysisService(
+      CaseKind.camelcase,
+      mockLogger,
+      mockTracer,
+      docService,
+    );
+
+    const diagnostics = await analysisService.validateDocument(
+      uri,
+      (documents.get(uri) as TextDocument).getText(),
+    );
+    const documentInfo = await analysisService.getInfo(uri);
+
+    expect(diagnostics.length).toBe(0);
+    expect(documentInfo).not.toBeUndefined();
+
+    if (!empty(documentInfo)) {
+      expect(documentInfo.symbolTable.dependencyTables.size).toBe(2);
+      expect(documentInfo.diagnostics).toStrictEqual(diagnostics);
+      expect(documentInfo.script.stmts.length).toBe(1);
+      expect(
+        documentInfo.symbolTable.rootScope.environment.symbols.length,
+      ).toBe(0);
+    }
+  });
+
+  test('validate single document getinfo first', async () => {
+    const uri = URI.file('/example/folder/example.ks').toString();
+
+    const documents = new Map([
+      [uri, TextDocument.create(uri, 'kos', 1.0, 'print(10).')],
+    ]);
+    const docService = createMockDocumentService(
+      documents,
+      URI.file('/').toString(),
+    );
+
+    const analysisService = new AnalysisService(
+      CaseKind.camelcase,
+      mockLogger,
+      mockTracer,
+      docService,
+    );
+
+    const documentInfo = await analysisService.getInfo(uri);
+
+    expect(documentInfo).not.toBeUndefined();
+
+    if (!empty(documentInfo)) {
+      expect(documentInfo.symbolTable.dependencyTables.size).toBe(2);
+      expect(documentInfo.script.stmts.length).toBe(1);
+      expect(
+        documentInfo.symbolTable.rootScope.environment.symbols.length,
+      ).toBe(0);
+    }
+
+    const diagnostics = await analysisService.validateDocument(
+      uri,
+      (documents.get(uri) as TextDocument).getText(),
+    );
+    expect(diagnostics.length).toBe(0);
+
+    if (!empty(documentInfo)) {
+      expect(documentInfo.symbolTable.dependencyTables.size).toBe(0);
+      expect(documentInfo.diagnostics).toStrictEqual(diagnostics);
+      expect(documentInfo.script.stmts.length).toBe(1);
+      expect(
+        documentInfo.symbolTable.rootScope.environment.symbols.length,
+      ).toBe(0);
+    }
+  });
+
+  test('set case', async () => {
+    const uri = URI.file('/example/folder/example.ks').toString();
+
+    const documents = new Map([
+      [uri, TextDocument.create(uri, 'kos', 1.0, 'print(10).')],
+    ]);
+    const docService = createMockDocumentService(
+      documents,
+      URI.file('/').toString(),
+    );
+
+    const analysisService = new AnalysisService(
+      CaseKind.lowercase,
+      mockLogger,
+      mockTracer,
+      docService,
+    );
+
+    let bodyLib = analysisService['bodyLibrary'];
+    let stdLib = analysisService['bodyLibrary'];
+
+    for (const bodySymbol of bodyLib.globalSymbols()) {
+      expect(bodySymbol.name.lexeme).toBe(bodySymbol.name.lexeme.toLowerCase());
+    }
+
+    for (const stdSymbol of stdLib.globalSymbols()) {
+      expect(stdSymbol.name.lexeme).toBe(stdSymbol.name.lexeme.toLowerCase());
+    }
+
+    analysisService.setCase(CaseKind.uppercase);
+
+    bodyLib = analysisService['bodyLibrary'];
+    stdLib = analysisService['bodyLibrary'];
+
+    for (const bodySymbol of bodyLib.globalSymbols()) {
+      expect(bodySymbol.name.lexeme).toBe(bodySymbol.name.lexeme.toUpperCase());
+    }
+
+    for (const stdSymbol of stdLib.globalSymbols()) {
+      expect(stdSymbol.name.lexeme).toBe(stdSymbol.name.lexeme.toUpperCase());
+    }
+  });
+
+  test('validate multiple documents', async () => {
+    const uri1 = URI.file('/example/folder/example1.ks').toString();
+    const uri2 = URI.file('/example/folder/example2.ks').toString();
+    const baseUri = URI.file('/example/folder').toString();
+
+    const documents = new Map([
+      [
+        uri1,
+        TextDocument.create(
+          uri1,
+          'kos',
+          1.0,
+          'runOncePath("example2.ks"). hi().',
+        ),
+      ],
+      [
+        uri2,
+        TextDocument.create(uri2, 'kos', 1.0, 'function hi { print("hi"). }'),
+      ],
+    ]);
+    const docService = createMockDocumentService(documents, baseUri);
+
+    const analysisService = new AnalysisService(
+      CaseKind.camelcase,
+      mockLogger,
+      mockTracer,
+      docService,
+    );
+
+    const diagnostics = await analysisService.validateDocument(
+      uri1,
+      (documents.get(uri1) as TextDocument).getText(),
+    );
+    const documentInfo1 = await analysisService.getInfo(uri1);
+    const documentInfo2 = await analysisService.getInfo(uri2);
+
+    expect(diagnostics.length).toBe(0);
+    expect(documentInfo1).not.toBeUndefined();
+    expect(documentInfo2).not.toBeUndefined();
+
+    if (!empty(documentInfo1) && !empty(documentInfo2)) {
+      expect(documentInfo1.symbolTable.dependencyTables.size).toBe(3);
+      expect(documentInfo2.symbolTable.dependencyTables.size).toBe(2);
+      expect(documentInfo1.symbolTable.dependencyTables).toContain(
+        documentInfo2.symbolTable,
+      );
+
+      expect(documentInfo1.diagnostics).toStrictEqual(diagnostics);
+      expect(documentInfo1.script.stmts.length).toBe(2);
+      expect(documentInfo2.script.stmts.length).toBe(1);
+      expect(
+        documentInfo1.symbolTable.rootScope.environment.symbols().length,
+      ).toBe(0);
+
+      expect(
+        documentInfo2.symbolTable.rootScope.environment.symbols().length,
+      ).toBe(1);
+    }
+  });
+
+  test('validate multiple with updates documents', async () => {
+    const uri1 = URI.file('/example/folder/example1.ks').toString();
+    const uri2 = URI.file('/example/folder/example2.ks').toString();
+    const baseUri = URI.file('/example/folder').toString();
+
+    const documents = new Map([
+      [
+        uri1,
+        TextDocument.create(
+          uri1,
+          'kos',
+          1.0,
+          'runOncePath("example2.ks"). hi().',
+        ),
+      ],
+      [
+        uri2,
+        TextDocument.create(uri2, 'kos', 1.0, 'function hi { print("hi"). }'),
+      ],
+    ]);
+    const docService = createMockDocumentService(documents, baseUri);
+
+    const analysisService = new AnalysisService(
+      CaseKind.camelcase,
+      mockLogger,
+      mockTracer,
+      docService,
+    );
+
+    // initial load of example1.ks
+    const diagnostics11 = await analysisService.validateDocument(
+      uri1,
+      (documents.get(uri1) as TextDocument).getText(),
+    );
+    const documentInfo11 = await analysisService.getInfo(uri1);
+
+    // load from client example2.ks
+    const diagnostics21 = await analysisService.validateDocument(
+      uri2,
+      (documents.get(uri2) as TextDocument).getText(),
+    );
+    const documentInfo21 = await analysisService.getInfo(uri2);
+
+    // update load of example1.ks
+    const diagnostics12 = await analysisService.validateDocument(
+      uri1,
+      (documents.get(uri1) as TextDocument).getText(),
+    );
+    const documentInfo12 = await analysisService.getInfo(uri1);
+
+    // update load of example2.ks
+    const diagnostics22 = await analysisService.validateDocument(
+      uri2,
+      (documents.get(uri2) as TextDocument).getText(),
+    );
+    const documentInfo22 = await analysisService.getInfo(uri2);
+
+    expect(diagnostics11.length).toBe(0);
+    expect(diagnostics12.length).toBe(0);
+    expect(diagnostics21.length).toBe(0);
+    expect(diagnostics22.length).toBe(0);
+
+    expect(documentInfo11).not.toBeUndefined();
+    expect(documentInfo12).not.toBeUndefined();
+    expect(documentInfo21).not.toBeUndefined();
+    expect(documentInfo22).not.toBeUndefined();
+
+    const documentInfos = analysisService['documentInfos'];
+
+    if (!empty(documentInfo11) && !empty(documentInfo21)) {
+      expect(documentInfo11.symbolTable.dependencyTables.size).toBe(0);
+      expect(documentInfo11.symbolTable.dependentTables.size).toBe(0);
+      expect(documentInfo21.symbolTable.dependencyTables.size).toBe(0);
+      expect(documentInfo21.symbolTable.dependentTables.size).toBe(0);
+
+      expect(documentInfo11.diagnostics).toStrictEqual(diagnostics11);
+      expect(documentInfo11.diagnostics).toStrictEqual(diagnostics12);
+      expect(documentInfo21.diagnostics).toStrictEqual(diagnostics21);
+      expect(documentInfo21.diagnostics).toStrictEqual(diagnostics22);
+
+      expect(documentInfos.get(uri1)).not.toBe(documentInfo11);
+      expect(documentInfos.get(uri2)).not.toBe(documentInfo21);
+    }
+
+    if (!empty(documentInfo12) && !empty(documentInfo22)) {
+      expect(documentInfo12.symbolTable.dependencyTables.size).toBe(3);
+      expect(documentInfo12.symbolTable.dependentTables.size).toBe(0);
+      console.log(documentInfo22);
+      expect(documentInfo22.symbolTable.dependencyTables.size).toBe(2);
+      expect(documentInfo22.symbolTable.dependentTables.size).toBe(1);
+
+      expect(documentInfos.get(uri1)).toBe(documentInfo12);
+      expect(documentInfos.get(uri2)).toBe(documentInfo22);
+    }
+  });
+});
+
+// #region string scripts
 const regionFold = `
 // #region
 
@@ -428,6 +766,7 @@ function example {
 }
 // #endregion
 `;
+// #endregion
 
 const fakeUri = 'file:///fake.ks';
 

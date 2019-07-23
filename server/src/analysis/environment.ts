@@ -5,8 +5,9 @@ import { KsParameter } from '../entities/parameter';
 import { KsFunction } from '../entities/function';
 import { KsLock } from '../entities/lock';
 
-type TrackerKind<T extends KsSymbolKind> =
-  T extends KsSymbolKind.variable | KsSymbolKind.parameter
+type TrackerKind<T extends KsSymbolKind> = T extends
+  | KsSymbolKind.variable
+  | KsSymbolKind.parameter
   ? BasicTracker<KsVariable | KsParameter>
   : BasicTracker<KsFunction | KsLock>;
 
@@ -80,7 +81,11 @@ export class Environment {
    * @param key key lookup
    * @param value basic tracker
    */
-  public set<TKind extends KsSymbolKind>(key: string, kind: TKind, value: TrackerKind<TKind>) {
+  public set<TKind extends KsSymbolKind>(
+    key: string,
+    kind: TKind,
+    value: TrackerKind<TKind>,
+  ) {
     switch (kind) {
       case KsSymbolKind.variable:
       case KsSymbolKind.parameter:

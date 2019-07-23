@@ -6,7 +6,7 @@ import {
   createVarSuffixType,
   createVarType,
 } from '../../typeCreators';
-import { addPrototype, addSuffixes, addOperators } from '../../typeUitlities';
+import { addPrototype, addSuffixes, addOperators } from '../../typeUtilities';
 import { structureType } from '../primitives/structure';
 import { volumeType } from './volume';
 import { integerType } from '../primitives/scalar';

@@ -1,5 +1,5 @@
 import { Type } from './types/types';
-import { isSubType } from './typeUitlities';
+import { isSubType } from './typeUtilities';
 import { booleanType } from './types/primitives/boolean';
 import { stringType } from './types/primitives/string';
 import { scalarType } from './types/primitives/scalar';

@@ -98,7 +98,6 @@ export interface IKsDeclared<
   TSymbol extends KsSymbol = KsSymbol,
   TType extends Type = Type
 > extends Location {
-
   /**
    * The underlying symbol declared
    */
@@ -138,6 +137,11 @@ export type EnvironmentRange = RealEnvironmentRange | GlobalEnvironmentRange;
 export interface GraphNode<T> {
   value: T;
   adjacentNodes: GraphNode<T>[];
+}
+
+export const enum SearchState {
+  dependents,
+  dependencies,
 }
 
 export interface EnvironmentNode {

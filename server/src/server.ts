@@ -6,12 +6,11 @@ import { createConnection, ProposedFeatures } from 'vscode-languageserver';
 import { KLS } from './kls';
 import { getConnectionPrimitives } from './utilities/serverUtils';
 import { Logger } from './utilities/logger';
-import { primitiveInitializer } from './typeChecker/types/primitives/initialize';
-import { orbitalInitializer } from './typeChecker/types/orbital/initialize';
 import { keywordCompletions } from './utilities/constants';
 // tslint:disable-next-line:import-name
 import program from 'commander';
 import { ClientConfiguration, KLSConfiguration } from './types';
+import { typeInitializer } from './typeChecker/initialize';
 
 program
   .version('0.8.2', '-v --version')
@@ -37,8 +36,7 @@ export const connection = createConnection(
 
 // REMOVE ME TODO probably need to refactor the type modules as
 // structure and the primitives have a dependency loop
-primitiveInitializer();
-orbitalInitializer();
+typeInitializer();
 
 // default client configuration
 const defaultClientConfiguration: ClientConfiguration = {

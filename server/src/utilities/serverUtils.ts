@@ -13,15 +13,18 @@ import {
   MessageReader,
   MessageWriter,
   SignatureHelp,
+  Diagnostic,
+  DiagnosticSeverity,
 } from 'vscode-languageserver';
 import { empty } from './typeGuards';
-import { allSuffixes, tokenTrackedType } from '../typeChecker/typeUitlities';
+import { allSuffixes, tokenTrackedType } from '../typeChecker/typeUtilities';
 import { KsSymbolKind } from '../analysis/types';
 import { cleanLocation, cleanToken, cleanCompletion } from './clean';
 import { CallKind } from '../typeChecker/types';
 import { CommanderStatic } from 'commander';
-import { ClientConfiguration } from '../types';
+import { ClientConfiguration, DiagnosticUri } from '../types';
 import { mapper } from './mapper';
+import { IParseError } from '../parser/types';
 
 /**
  * The default client configuration if none are available
@@ -48,7 +51,6 @@ export const defaultClientConfiguration: ClientConfiguration = {
 export const getConnectionPrimitives = (
   program: CommanderStatic,
 ): { writer: MessageWriter; reader: MessageReader } => {
-
   let reader: MessageReader;
   let writer: MessageWriter;
 
@@ -132,16 +134,16 @@ export const callMapper = mapper(callMap, 'CallKind');
  * @param documentPosition the current position in the document
  * @param keywordCompletions a list of keywords to always concat
  */
-export const symbolCompletionItems = (
+export const symbolCompletionItems = async (
   analyzer: KLS,
   documentPosition: TextDocumentPositionParams,
   keywordCompletions: CompletionItem[],
-): CompletionItem[] => {
+): Promise<CompletionItem[]> => {
   const { position } = documentPosition;
   const { uri } = documentPosition.textDocument;
 
   // get all symbols currently in scope
-  const entities = analyzer.getScopedSymbols(position, uri);
+  const entities = await analyzer.getScopedSymbols(position, uri);
 
   // generate completions
   return entities
@@ -174,15 +176,15 @@ export const symbolCompletionItems = (
  * @param analyzer analyzer instance
  * @param documentPosition the current position in the document
  */
-export const suffixCompletionItems = (
+export const suffixCompletionItems = async (
   analyzer: KLS,
   documentPosition: TextDocumentPositionParams,
-): CompletionItem[] => {
+): Promise<CompletionItem[]> => {
   const { position } = documentPosition;
   const { uri } = documentPosition.textDocument;
 
   // TODO more robust method
-  const token = analyzer.getToken(
+  const token = await analyzer.getToken(
     { line: position.line, character: position.character - 2 },
     uri,
   );
@@ -214,13 +216,13 @@ export const suffixCompletionItems = (
  * @param analyzer analyzer instance
  * @param documentSymbol document identifier
  */
-export const documentSymbols = (
+export const documentSymbols = async (
   analyzer: KLS,
   documentSymbol: DocumentSymbolParams,
-): Maybe<SymbolInformation[]> => {
+): Promise<Maybe<SymbolInformation[]>> => {
   const { uri } = documentSymbol.textDocument;
 
-  const entities = analyzer.getAllFileSymbols(uri);
+  const entities = await analyzer.getAllFileSymbols(uri);
   return entities.map(entity => {
     let kind: Maybe<SymbolKind> = undefined;
     switch (entity.tag) {
@@ -259,3 +261,33 @@ export const defaultSignature = (): SignatureHelp => ({
   activeParameter: null,
   activeSignature: null,
 });
+
+/**
+ * Convert parser error to diagnostic
+ * @param error parser error
+ * @param uri uri string
+ */
+export const parseToDiagnostics = (
+  error: IParseError,
+  uri: string,
+): DiagnosticUri => {
+  return {
+    uri,
+    severity: DiagnosticSeverity.Error,
+    range: { start: error.start, end: error.end },
+    message: error.message,
+    source: 'kos-language-server',
+  };
+};
+
+/**
+ * convert resolver error to diagnostic
+ * @param error diagnostic
+ * @param uri uri string
+ */
+export const addDiagnosticsUri = (
+  error: Diagnostic,
+  uri: string,
+): DiagnosticUri => {
+  return { uri, ...error };
+};

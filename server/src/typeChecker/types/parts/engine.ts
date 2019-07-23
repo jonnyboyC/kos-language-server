@@ -5,7 +5,7 @@ import {
   createSuffixType,
   createSetSuffixType,
 } from '../../typeCreators';
-import { addPrototype, addSuffixes } from '../../typeUitlities';
+import { addPrototype, addSuffixes } from '../../typeUtilities';
 import { listType } from '../collections/list';
 import { voidType } from '../primitives/void';
 import { stringType } from '../primitives/string';

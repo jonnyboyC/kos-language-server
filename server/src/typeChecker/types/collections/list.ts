@@ -5,10 +5,11 @@ import {
   tType,
   createGenericArgSuffixType,
 } from '../../typeCreators';
-import { addPrototype, addSuffixes } from '../../typeUitlities';
+import { addPrototype, addSuffixes } from '../../typeUtilities';
 import { voidType } from '../primitives/void';
 import { scalarType } from '../primitives/scalar';
 import { collectionType } from './enumerable';
+import { stringType } from '../primitives/string';
 
 export const listType: IGenericArgumentType = createGenericBasicType('list');
 
@@ -20,6 +21,7 @@ addSuffixes(
   createGenericArgSuffixType('insert', voidType, scalarType, tType),
   createArgSuffixType('remove', voidType, scalarType),
   createGenericArgSuffixType('sublist', listType, scalarType, scalarType),
+  createArgSuffixType('join', stringType, stringType),
   createGenericArgSuffixType('indexOf', scalarType, tType),
   createGenericArgSuffixType('find', scalarType, tType),
   createGenericArgSuffixType('lastIndexOf', scalarType, tType),

@@ -4,7 +4,7 @@ import {
   createSuffixType,
   createStructureType,
 } from '../../typeCreators';
-import { addPrototype, addSuffixes, addOperators } from '../../typeUitlities';
+import { addPrototype, addSuffixes, addOperators } from '../../typeUtilities';
 import { scalarType } from '../primitives/scalar';
 import { serializableStructureType } from '../primitives/serializeableStructure';
 import { OperatorKind } from '../../types';

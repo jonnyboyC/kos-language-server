@@ -5,7 +5,7 @@ import {
   createArgSuffixType,
   createStructureType,
 } from '../../typeCreators';
-import { addPrototype, addSuffixes } from '../../typeUitlities';
+import { addPrototype, addSuffixes } from '../../typeUtilities';
 import { widgetType } from './widget';
 import { userDelegateType } from '../userDelegate';
 import { scrollBoxType } from './scrollBox';

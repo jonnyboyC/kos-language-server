@@ -73,6 +73,7 @@ import { vesselTargetType } from '../typeChecker/types/orbital/vesselTarget';
 import { SymbolTable } from './symbolTable';
 import { toCase } from '../utilities/stringUtils';
 import { Marker } from '../entities/marker';
+import { boundsType } from '../typeChecker/types/parts/bounds';
 
 const functionTypes: [string[], IFunctionType][] = [
   [['abs'], createFunctionType('abs', scalarType, scalarType)],
@@ -109,6 +110,17 @@ const functionTypes: [string[], IFunctionType][] = [
   [
     ['body', 'atmosphere'],
     createFunctionType('bodyatmosphere', bodyAtmosphereType, stringType),
+  ],
+  [
+    ['bounds'],
+    createFunctionType(
+      'bounds',
+      boundsType,
+      vectorType,
+      directionType,
+      vectorType,
+      vectorType,
+    ),
   ],
   [
     ['build', 'list'],

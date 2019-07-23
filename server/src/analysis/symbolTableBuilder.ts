@@ -7,6 +7,7 @@ import {
   EnvironmentPath,
   KsBaseSymbol,
   UseResult,
+  SearchState,
 } from './types';
 import { KsFunction } from '../entities/function';
 import { KsLock } from '../entities/lock';
@@ -62,12 +63,22 @@ export class SymbolTableBuilder {
   private path: EnvironmentPath;
 
   /**
-   * A set of child symbols tables relative to this symbols table builder
+   * A cache from global symbols to their environment
    */
-  public childSymbolTables: Set<SymbolTable>;
+  private globalSymbolEnvironment: Map<string, Environment>;
 
   /**
-   * logger class to reporting errors and infomation
+   * A set of symbols tables that are dependencies of this table
+   */
+  public dependencyTables: Set<SymbolTable>;
+
+  /**
+   * A set of symbol tables that are dependent on this table
+   */
+  public dependentTables: Set<SymbolTable>;
+
+  /**
+   * logger class to reporting errors and information
    */
   public logger: ILogger;
 
@@ -90,19 +101,30 @@ export class SymbolTableBuilder {
       active: [],
       backTrack: [],
     };
-    this.childSymbolTables = new Set();
+    this.globalSymbolEnvironment = new Map();
+    this.dependencyTables = new Set();
+    this.dependentTables = new Set();
   }
 
   /**
-   * Generate a symbol table
+   * Generate a symbol table. This method will update dependent tables
+   * if and old version of the symbol table exists
    */
   public build(): SymbolTable {
-    return new SymbolTable(
+    const table = new SymbolTable(
       this.rootNode,
-      this.childSymbolTables,
+      this.dependencyTables,
+      this.dependentTables,
       this.uri,
       this.logger,
     );
+
+    // add self as dependency to dependent tables
+    for (const dependentTable of table.dependentTables) {
+      dependentTable.dependencyTables.add(table);
+    }
+
+    return table;
   }
 
   /**
@@ -141,11 +163,19 @@ export class SymbolTableBuilder {
   }
 
   /**
-   * Add a child symbol table to this symbol table builder
-   * @param symbolTable the child symbol table
+   * Add a dependency symbol table to this symbol table builder
+   * @param symbolTable the dependency symbol table
    */
-  public linkTable(symbolTable: SymbolTable): void {
-    this.childSymbolTables.add(symbolTable);
+  public linkDependency(symbolTable: SymbolTable): void {
+    this.dependencyTables.add(symbolTable);
+  }
+
+  /**
+   * Add a dependent symbol table to this symbol table builder
+   * @param symbolTable the dependent symbol table
+   */
+  public linkDependent(symbolTable: SymbolTable): void {
+    this.dependentTables.add(symbolTable);
   }
 
   /**
@@ -262,58 +292,6 @@ export class SymbolTableBuilder {
   }
 
   /**
-   * Use a variable symbol
-   * @param name token for the current variable
-   */
-  public useVariable(name: Token): Maybe<Diagnostic> {
-    const result = this.lookupVariableTracker(name, ScopeKind.global);
-    if (result.error) {
-      return result.error;
-    }
-
-    return this.checkUseSymbol(name, result.tracker, KsSymbolKind.variable);
-  }
-
-  /**
-   * Use a function symbol
-   * @param name token for the current function
-   */
-  public useFunction(name: Token): Maybe<Diagnostic> {
-    const result = this.lookupFunctionTracker(name, ScopeKind.global);
-    if (result.error) {
-      return result.error;
-    }
-
-    return this.checkUseSymbol(name, result.tracker, KsSymbolKind.function);
-  }
-
-  /**
-   * Use a lock symbol
-   * @param name token for the current lock
-   */
-  public useLock(name: Token): Maybe<Diagnostic> {
-    const result = this.lookupLockTracker(name, ScopeKind.global);
-    if (result.error) {
-      return result.error;
-    }
-
-    return this.checkUseSymbol(name, result.tracker, KsSymbolKind.lock);
-  }
-
-  /**
-   * Use a parameter symbol
-   * @param name token for the current parameter
-   */
-  public useParameter(name: Token): Maybe<Diagnostic> {
-    const result = this.lookupParameterTracker(name, ScopeKind.global);
-    if (result.error) {
-      return result.error;
-    }
-
-    return this.checkUseSymbol(name, result.tracker, KsSymbolKind.parameter);
-  }
-
-  /**
    * Set a variable symbol
    * @param token token for the variable to set
    */
@@ -348,7 +326,11 @@ export class SymbolTableBuilder {
     token: Token,
     type?: ArgumentType,
   ): Maybe<Diagnostic> {
-    const conflictTracker = this.lookupKind(token.lookup, scopeType, KsSymbolKind.variable);
+    const conflictTracker = this.lookupKind(
+      token.lookup,
+      scopeType,
+      KsSymbolKind.variable,
+    );
 
     // check if variable has already been defined
     if (!empty(conflictTracker)) {
@@ -363,7 +345,11 @@ export class SymbolTableBuilder {
 
       // if local check for shadowing hints
     } else {
-      const shadowTracker = this.lookupKind(token.lookup, ScopeKind.global, KsSymbolKind.variable);
+      const shadowTracker = this.lookupKind(
+        token.lookup,
+        ScopeKind.global,
+        KsSymbolKind.variable,
+      );
       diagnostic = empty(shadowTracker)
         ? undefined
         : this.shadowSymbolHint(
@@ -407,7 +393,11 @@ export class SymbolTableBuilder {
     returnValue: boolean,
     type?: IFunctionType,
   ): Maybe<Diagnostic> {
-    const conflictTracker = this.lookupKind(token.lookup, scopeType, KsSymbolKind.function);
+    const conflictTracker = this.lookupKind(
+      token.lookup,
+      scopeType,
+      KsSymbolKind.function,
+    );
 
     // check if variable has already been defined
     if (!empty(conflictTracker)) {
@@ -422,7 +412,11 @@ export class SymbolTableBuilder {
 
       // if local check for shadowing hints
     } else {
-      const shadowTracker = this.lookupKind(token.lookup, ScopeKind.global, KsSymbolKind.function);
+      const shadowTracker = this.lookupKind(
+        token.lookup,
+        ScopeKind.global,
+        KsSymbolKind.function,
+      );
       diagnostic = empty(shadowTracker)
         ? undefined
         : this.shadowSymbolHint(
@@ -466,7 +460,11 @@ export class SymbolTableBuilder {
     token: Token,
     type?: ArgumentType,
   ): Maybe<Diagnostic> {
-    const conflictTracker = this.lookupKind(token.lookup, scopeType, KsSymbolKind.lock);
+    const conflictTracker = this.lookupKind(
+      token.lookup,
+      scopeType,
+      KsSymbolKind.lock,
+    );
 
     // check if lock has already been defined
     if (!empty(conflictTracker)) {
@@ -481,7 +479,11 @@ export class SymbolTableBuilder {
 
       // if local check for shadowing hints
     } else {
-      const shadowTracker = this.lookupKind(token.lookup, ScopeKind.global, KsSymbolKind.lock);
+      const shadowTracker = this.lookupKind(
+        token.lookup,
+        ScopeKind.global,
+        KsSymbolKind.lock,
+      );
       diagnostic = empty(shadowTracker)
         ? undefined
         : this.shadowSymbolHint(
@@ -519,7 +521,11 @@ export class SymbolTableBuilder {
     token: Token,
     defaulted: boolean,
   ): Maybe<Diagnostic> {
-    const conflictTracker = this.lookupKind(token.lookup, scopeType, KsSymbolKind.parameter);
+    const conflictTracker = this.lookupKind(
+      token.lookup,
+      scopeType,
+      KsSymbolKind.parameter,
+    );
 
     // check if variable has already been defined
     if (!empty(conflictTracker)) {
@@ -534,7 +540,11 @@ export class SymbolTableBuilder {
 
       // if local check for shadowing hints
     } else {
-      const shadowTracker = this.lookupKind(token.lookup, ScopeKind.global, KsSymbolKind.parameter);
+      const shadowTracker = this.lookupKind(
+        token.lookup,
+        ScopeKind.global,
+        KsSymbolKind.parameter,
+      );
       diagnostic = empty(shadowTracker)
         ? undefined
         : this.shadowSymbolHint(
@@ -590,8 +600,8 @@ export class SymbolTableBuilder {
         `${token.lexeme} at ${rangeToString(token)}`,
     );
 
-    // check if a variable may not be defined in a runtime situtation
-    // functions will always be availbe because they are executed
+    // check if a variable may not be defined in a runtime situation
+    // functions will always be available because they are executed
     // during a pre pass
     if (
       rangeBefore(token, tracker.declared.range.start) &&
@@ -869,10 +879,12 @@ export class SymbolTableBuilder {
    * @param scopeKind scope kind for the lookup local or global
    */
   private lookup(lookup: string, scopeKind: ScopeKind): Maybe<BasicTracker> {
-    const node = this.lookupScopeNode(lookup, scopeKind, (env, lookup) =>
-      env.has(lookup),
+    const environment = this.lookupEnvironment(
+      lookup,
+      scopeKind,
+      (env, lookup) => env.has(lookup),
     );
-    return node && node.environment.get(lookup);
+    return environment && environment.get(lookup);
   }
 
   /**
@@ -886,10 +898,12 @@ export class SymbolTableBuilder {
     scopeKind: ScopeKind,
     symbolKind: KsSymbolKind,
   ): Maybe<BasicTracker> {
-    const node = this.lookupScopeNode(lookup, scopeKind, (env, lookup) =>
-      env.hasKind(lookup, symbolKind),
+    const environment = this.lookupEnvironment(
+      lookup,
+      scopeKind,
+      (env, lookup) => env.hasKind(lookup, symbolKind),
     );
-    return node && node.environment.getKind(lookup, symbolKind);
+    return environment && environment.getKind(lookup, symbolKind);
   }
 
   /**
@@ -897,31 +911,61 @@ export class SymbolTableBuilder {
    * @param lookup token lookup string
    * @param scopeKind scope kind for the lookup local or global
    */
-  private lookupScopeNode(
+  private lookupEnvironment(
     lookup: string,
     scopeKind: ScopeKind,
     has: (env: Environment, lookup: string) => boolean,
-  ): Maybe<EnvironmentNode> {
+  ): Maybe<Environment> {
     if (scopeKind === ScopeKind.local) {
-      return has(this.peekScope(), lookup) ? this.activeNode : undefined;
+      return has(this.peekScope(), lookup)
+        ? this.activeNode.environment
+        : undefined;
     }
 
+    // progress current set of scopes
     let currentScope: Maybe<EnvironmentNode> = this.activeNode;
     while (!empty(currentScope)) {
       if (has(currentScope.environment, lookup)) {
-        return currentScope;
+        return currentScope.environment;
       }
 
       currentScope = currentScope.parent;
     }
 
-    // check child scopes symbol is in another file
-    for (const child of this.childSymbolTables) {
-      if (child.rootScope.environment.has(lookup)) {
-        return child.rootScope;
+    const key = `${lookup}%${scopeKind}`;
+    const found = this.globalSymbolEnvironment.get(key);
+
+    if (!empty(found)) {
+      return found;
+    }
+
+    // check dependency tables for the symbol
+    for (const child of this.dependencyTables) {
+      const environment = child.globalEnvironment(
+        lookup,
+        SearchState.dependencies,
+        has,
+      );
+      if (!empty(environment)) {
+        this.globalSymbolEnvironment.set(key, environment);
+        return environment;
       }
     }
 
+    // check dependent tables for the symbol
+    for (const child of this.dependentTables) {
+      const environment = child.globalEnvironment(
+        lookup,
+        SearchState.dependents,
+        has,
+      );
+      if (!empty(environment)) {
+        this.globalSymbolEnvironment.set(key, environment);
+        return environment;
+      }
+    }
+
+    // not found
     return undefined;
   }
 
@@ -962,7 +1006,7 @@ export class SymbolTableBuilder {
           { uri: this.uri, range: symbol.name },
           symbol.name.uri === builtIn
             ? `${symbol.name.lexeme} is a built in ${KsSymbolKind[symbol.tag]}`
-            : 'Orignally declared here',
+            : 'Originally declared here',
         ),
       ],
     );
@@ -986,7 +1030,7 @@ export class SymbolTableBuilder {
           { uri: this.uri, range: symbol.name },
           symbol.name.uri === builtIn
             ? `${symbol.name.lexeme} is a built in ${KsSymbolKind[symbol.tag]}`
-            : 'Orignally declared here',
+            : 'Originally declared here',
         ),
       ],
     );

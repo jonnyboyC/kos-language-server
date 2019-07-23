@@ -1,0 +1,3 @@
+runOncePath("lib.ks").
+
+test().
