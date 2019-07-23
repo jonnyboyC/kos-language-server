@@ -1,4 +1,4 @@
-import { EnvironmentNode, GraphNode, KsBaseSymbol } from './types';
+import { EnvironmentNode, GraphNode, KsBaseSymbol, SearchState } from './types';
 import { Position } from 'vscode-languageserver';
 import { rangeContainsPos } from '../utilities/positionUtils';
 import { mockLogger } from '../utilities/logger';
@@ -129,7 +129,16 @@ export class SymbolTable implements GraphNode<SymbolTable> {
   public globalEnvironment(
     name: string,
     has: (env: Environment, lookup: string) => boolean,
+    state: SearchState,
+  ): Maybe<Environment> {
+    return this.globalEnvironment_(name, has, new Set(), state);
+  }
+
+  private globalEnvironment_(
+    name: string,
+    has: (env: Environment, lookup: string) => boolean,
     checked: Set<SymbolTable>,
+    state: SearchState,
   ): Maybe<Environment> {
     if (checked.has(this)) {
       return undefined;
@@ -145,18 +154,32 @@ export class SymbolTable implements GraphNode<SymbolTable> {
       return undefined;
     }
 
-    for (const table of this.dependencyTables) {
-      const result = table.globalEnvironment(name, has, checked);
-      if (!empty(result)) {
-        return result;
-      }
-    }
-
-    for (const table of this.dependentTables) {
-      const result = table.globalEnvironment(name, has, checked);
-      if (!empty(result)) {
-        return result;
-      }
+    switch (state) {
+      // @ts-ignore
+      case SearchState.dependents:
+        for (const table of this.dependencyTables) {
+          const result = table.globalEnvironment_(
+            name,
+            has,
+            checked,
+            SearchState.dependents,
+          );
+          if (!empty(result)) {
+            return result;
+          }
+        }
+      case SearchState.dependencies:
+        for (const table of this.dependentTables) {
+          const result = table.globalEnvironment_(
+            name,
+            has,
+            checked,
+            SearchState.dependencies,
+          );
+          if (!empty(result)) {
+            return result;
+          }
+        }
     }
 
     return undefined;

@@ -7,6 +7,7 @@ import {
   EnvironmentPath,
   KsBaseSymbol,
   UseResult,
+  SearchState,
 } from './types';
 import { KsFunction } from '../entities/function';
 import { KsLock } from '../entities/lock';
@@ -938,11 +939,13 @@ export class SymbolTableBuilder {
       return found;
     }
 
-    const checked: Set<SymbolTable> = new Set();
-
     // check dependency tables for the symbol
     for (const child of this.dependencyTables) {
-      const environment = child.globalEnvironment(lookup, has, checked);
+      const environment = child.globalEnvironment(
+        lookup,
+        has,
+        SearchState.dependencies,
+      );
       if (!empty(environment)) {
         this.globalSymbolEnvironment.set(key, environment);
         return environment;
@@ -951,7 +954,11 @@ export class SymbolTableBuilder {
 
     // check dependent tables for the symbol
     for (const child of this.dependentTables) {
-      const environment = child.globalEnvironment(lookup, has, checked);
+      const environment = child.globalEnvironment(
+        lookup,
+        has,
+        SearchState.dependents,
+      );
       if (!empty(environment)) {
         this.globalSymbolEnvironment.set(key, environment);
         return environment;

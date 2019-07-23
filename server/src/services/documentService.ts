@@ -354,6 +354,7 @@ export class DocumentService {
 
       // update editor docs
       this.clientDocs.set(document.uri, updatedDoc);
+      this.serverDocs.delete(document.uri);
 
       // call handler
       handler({ text, uri: document.uri });
