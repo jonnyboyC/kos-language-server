@@ -67,6 +67,12 @@ import { TypeKind } from './typeChecker/types';
 import { DocumentLoader, Document } from './utilities/documentLoader';
 import { FoldableService } from './services/foldableService';
 import { AnalysisService } from './services/analysisService';
+import {
+  PathResolver,
+  runPath,
+  normalizeExtensions,
+} from './utilities/pathResolver';
+import { existsSync } from 'fs';
 
 export class KLS {
   /**
@@ -701,19 +707,57 @@ export class KLS {
     // try to find an symbol at the position
     const { script } = documentInfo;
     const finder = new ScriptFind();
-    const result = finder.find(script, pos);
+    const result = finder.find(
+      script,
+      pos,
+      Stmt.Run,
+      Stmt.RunPath,
+      Stmt.RunOncePath,
+    );
 
     if (empty(result)) {
       return undefined;
     }
 
     // check if symbols exists
-    const { tracker } = result.token;
-    if (empty(tracker)) {
+    const { token, node } = result;
+    if (empty(token.tracker)) {
+      if (
+        node instanceof Stmt.Run ||
+        node instanceof Stmt.RunPath ||
+        node instanceof Stmt.RunOncePath
+      ) {
+        const pathResolver = new PathResolver(this.configuration.workspaceUri);
+        const kosPath = runPath(node);
+        if (typeof kosPath !== 'string') {
+          return undefined;
+        }
+
+        const path = pathResolver.resolveUri(node.toLocation(uri), kosPath);
+        if (empty(path)) {
+          return undefined;
+        }
+
+        const result = normalizeExtensions(path);
+        if (empty(result)) {
+          return undefined;
+        }
+
+        const normalized = URI.parse(result);
+        if (!existsSync(normalized.fsPath)) {
+          return undefined;
+        }
+
+        return Location.create(
+          normalized.toString(),
+          Range.create(Position.create(0, 0), Position.create(0, 0)),
+        );
+      }
+
       return undefined;
     }
 
-    const { declared } = tracker;
+    const { declared } = token.tracker;
 
     // exit if undefined
     if (declared.uri === builtIn) {

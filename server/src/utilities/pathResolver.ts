@@ -1,7 +1,7 @@
 import * as Stmt from '../parser/stmt';
 import * as SuffixTerm from '../parser/suffixTerm';
 import * as Expr from '../parser/expr';
-import { relative, join, dirname } from 'path';
+import { relative, join, dirname, extname } from 'path';
 import { RunStmtType } from '../parser/types';
 import { empty } from './typeGuards';
 import { TokenType } from '../entities/tokentypes';
@@ -74,6 +74,10 @@ export class PathResolver {
       return this.loadData(...remaining);
     }
 
+    if (relativePath === 'boot') {
+      return this.loadData(possibleVolume, ...remaining);
+    }
+
     // if no volume do a relative lookup
     return this.loadData(relativePath, possibleVolume, ...remaining);
   }
@@ -135,6 +139,26 @@ const literalPath = (expr: SuffixTerm.Literal): string | undefined => {
   }
 
   return undefined;
+};
+
+/**
+ * Normalize a filepath to the the default extension .ks if rules allow it to
+ * @param uri absolute resolved path
+ */
+export const normalizeExtensions = (uri: URI | string): Maybe<string> => {
+  const ext = URI.isUri(uri) ? extname(uri.fsPath) : extname(uri);
+  const uriString = uri.toString();
+
+  switch (ext) {
+    case '.ks':
+      return uriString;
+    case '.ksm':
+      return uriString.replace('.ksm', '.ks');
+    case '':
+      return `${uriString}.ks`;
+    default:
+      return undefined;
+  }
 };
 
 /**
