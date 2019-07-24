@@ -18,7 +18,7 @@ Currently the vscode client 0.9.0 implements the follow features
 - brace detection
 - code snippets
 - diagnostics on parsing errors
-- go to definition
+- go to definition and symbols and run statements
 - symbol auto complete
 - suffix auto complete
 - rename symbol

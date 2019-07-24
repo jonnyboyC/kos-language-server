@@ -722,22 +722,35 @@ export class KLS {
     // check if symbols exists
     const { token, node } = result;
     if (empty(token.tracker)) {
+      // if no tracker it might be a run statment
       if (
         node instanceof Stmt.Run ||
         node instanceof Stmt.RunPath ||
         node instanceof Stmt.RunOncePath
       ) {
         const pathResolver = new PathResolver(this.configuration.workspaceUri);
+
+        // get the kos run path
         const kosPath = runPath(node);
         if (typeof kosPath !== 'string') {
           return undefined;
         }
 
+        // resolve to the file system
         const path = pathResolver.resolveUri(node.toLocation(uri), kosPath);
         if (empty(path)) {
           return undefined;
         }
 
+        // check if file exists then
+        if (existsSync(path.fsPath)) {
+          return Location.create(
+            path.toString(),
+            Range.create(Position.create(0, 0), Position.create(0, 0)),
+          );
+        }
+
+        // if we didn't find try to normalize the path with extension .ks
         const result = normalizeExtensions(path);
         if (empty(result)) {
           return undefined;
