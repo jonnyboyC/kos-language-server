@@ -190,13 +190,13 @@ const symbolTests = (
   expect(symbols.has(name)).toBe(true);
   const nameWrap = symbols.get(name);
 
-  expect(nameWrap).not.toBeUndefined();
+  expect(nameWrap).toBeDefined();
   const nameUnWrap = unWrap(nameWrap);
 
   expect(nameUnWrap.name.lexeme).toBe(name);
   expect(nameUnWrap.tag).toBe(symbolKind);
 
-  expect(nameUnWrap.name.tracker).not.toBeUndefined();
+  expect(nameUnWrap.name.tracker).toBeDefined();
 
   if (!empty(targetType)) {
     const nameTrack = unWrap(nameUnWrap.name.tracker);
