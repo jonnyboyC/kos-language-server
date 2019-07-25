@@ -23,7 +23,12 @@ import { Environment } from './environment';
 import { BasicTracker, createSymbolSet } from './tracker';
 import { ArgumentType, IFunctionType } from '../typeChecker/types/types';
 import { SymbolTable } from './symbolTable';
-import { isVariable, isParameter, isLock } from '../entities/entityHelpers';
+import {
+  isVariable,
+  isParameter,
+  isLock,
+  isFunction,
+} from '../entities/entityHelpers';
 import {
   rangeToString,
   positionToString,
@@ -35,7 +40,6 @@ import { toCase } from '../utilities/stringUtils';
 import { cleanLocation } from '../utilities/clean';
 import { Token } from '../entities/token';
 import { KsParameter } from '../entities/parameter';
-import { isFunction } from 'util';
 
 /**
  * The Symbol table builder is used to declare new symbols and track new symbols
@@ -831,46 +835,57 @@ export class SymbolTableBuilder {
     for (const tracker of environment.trackers()) {
       switch (tracker.declared.symbol.tag) {
         case KsSymbolKind.function:
+          if (
+            tracker.declared.symbol.scope === ScopeKind.local &&
+            tracker.usages.length === 0
+          ) {
+            errors.push(this.createUnusedDiagnostic(tracker));
+          }
           break;
         case KsSymbolKind.parameter:
           if (tracker.usages.length === 0) {
-            errors.push(
-              createDiagnostic(
-                tracker.declared.symbol.name,
-                `Parameter ${
-                  tracker.declared.symbol.name.lexeme
-                } was not used.`,
-                DiagnosticSeverity.Warning,
-              ),
-            );
+            errors.push(this.createUnusedDiagnostic(tracker));
           }
           break;
         case KsSymbolKind.lock:
           if (!tracker.declared.symbol.cooked && tracker.usages.length === 0) {
-            errors.push(
-              createDiagnostic(
-                tracker.declared.symbol.name,
-                `Lock ${tracker.declared.symbol.name.lexeme} was not used.`,
-                DiagnosticSeverity.Warning,
-              ),
-            );
+            errors.push(this.createUnusedDiagnostic(tracker));
           }
           break;
         case KsSymbolKind.variable:
           if (tracker.usages.length === 0) {
-            errors.push(
-              createDiagnostic(
-                tracker.declared.symbol.name,
-                `Variable ${tracker.declared.symbol.name.lexeme} was not used.`,
-                DiagnosticSeverity.Warning,
-              ),
-            );
+            errors.push(this.createUnusedDiagnostic(tracker));
           }
           break;
         default:
           throw new Error('Unknown symbol found');
       }
     }
+  }
+
+  private createUnusedDiagnostic(tracker: BasicTracker) {
+    const { symbol } = tracker.declared;
+    const { tag, name } = symbol;
+
+    let level: DiagnosticSeverity = DiagnosticSeverity.Warning;
+    let usedString = 'was not used.';
+    let scopeString = 'Local';
+
+    if (isLock(symbol) || isVariable(symbol) || isFunction(symbol)) {
+      if (symbol.scope === ScopeKind.global) {
+        level = DiagnosticSeverity.Information;
+        usedString = 'was not used locally.';
+        scopeString = 'Global';
+      }
+    }
+
+    const kindString = toCase(CaseKind.lowercase, KsSymbolKind[tag]);
+
+    return createDiagnostic(
+      name,
+      `${scopeString} ${kindString} ${name.lexeme} ${usedString}`,
+      level,
+    );
   }
 
   /**
