@@ -210,7 +210,7 @@ export class AnalysisService {
     // perform semantic analysis
     const {
       resolverDiagnostics,
-      typeDiagnostics,
+      // typeDiagnostics,
       symbolTable,
     } = this.semanticAnalysisDocument(uri, script, dependencyTables);
 
@@ -227,7 +227,7 @@ export class AnalysisService {
         ...parserDiagnostics,
         ...loadDiagnostics,
         ...resolverDiagnostics,
-        ...typeDiagnostics,
+        // ...typeDiagnostics,
       ],
     };
   }
