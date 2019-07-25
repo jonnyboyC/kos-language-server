@@ -66,11 +66,11 @@ describe('Symbol Table', () => {
     const uncleInfo = await analysisService.getInfo(uncleUri);
     const childInfo = await analysisService.getInfo(childUri);
 
-    expect(grandInfo).not.toBeUndefined();
-    expect(greatUncleInfo).not.toBeUndefined();
-    expect(parentInfo).not.toBeUndefined();
-    expect(uncleInfo).not.toBeUndefined();
-    expect(childInfo).not.toBeUndefined();
+    expect(grandInfo).toBeDefined();
+    expect(greatUncleInfo).toBeDefined();
+    expect(parentInfo).toBeDefined();
+    expect(uncleInfo).toBeDefined();
+    expect(childInfo).toBeDefined();
 
     if (
       !empty(grandInfo) &&
@@ -81,81 +81,59 @@ describe('Symbol Table', () => {
     ) {
       expect(
         grandInfo.symbolTable.globalEnvironment('grandparent'),
-      ).not.toBeUndefined();
+      ).toBeDefined();
       expect(
         grandInfo.symbolTable.globalEnvironment('greatuncle'),
       ).toBeUndefined();
-      expect(
-        grandInfo.symbolTable.globalEnvironment('parent'),
-      ).not.toBeUndefined();
+      expect(grandInfo.symbolTable.globalEnvironment('parent')).toBeDefined();
       expect(grandInfo.symbolTable.globalEnvironment('uncle')).toBeUndefined();
-      expect(
-        grandInfo.symbolTable.globalEnvironment('child'),
-      ).not.toBeUndefined();
+      expect(grandInfo.symbolTable.globalEnvironment('child')).toBeDefined();
 
       expect(
         greatUncleInfo.symbolTable.globalEnvironment('grandparent'),
       ).toBeUndefined();
       expect(
         greatUncleInfo.symbolTable.globalEnvironment('greatuncle'),
-      ).not.toBeUndefined();
+      ).toBeDefined();
       expect(
         greatUncleInfo.symbolTable.globalEnvironment('parent'),
-      ).not.toBeUndefined();
+      ).toBeDefined();
       expect(
         greatUncleInfo.symbolTable.globalEnvironment('uncle'),
-      ).not.toBeUndefined();
+      ).toBeDefined();
       expect(
         greatUncleInfo.symbolTable.globalEnvironment('child'),
-      ).not.toBeUndefined();
+      ).toBeDefined();
 
       expect(
         parentInfo.symbolTable.globalEnvironment('grandparent'),
-      ).not.toBeUndefined();
+      ).toBeDefined();
       expect(
         parentInfo.symbolTable.globalEnvironment('greatuncle'),
-      ).not.toBeUndefined();
-      expect(
-        parentInfo.symbolTable.globalEnvironment('parent'),
-      ).not.toBeUndefined();
-      expect(
-        parentInfo.symbolTable.globalEnvironment('uncle'),
-      ).not.toBeUndefined();
-      expect(
-        parentInfo.symbolTable.globalEnvironment('child'),
-      ).not.toBeUndefined();
+      ).toBeDefined();
+      expect(parentInfo.symbolTable.globalEnvironment('parent')).toBeDefined();
+      expect(parentInfo.symbolTable.globalEnvironment('uncle')).toBeDefined();
+      expect(parentInfo.symbolTable.globalEnvironment('child')).toBeDefined();
 
       expect(
         uncleInfo.symbolTable.globalEnvironment('grandparent'),
       ).toBeUndefined();
       expect(
         uncleInfo.symbolTable.globalEnvironment('greatuncle'),
-      ).not.toBeUndefined();
-      expect(
-        uncleInfo.symbolTable.globalEnvironment('parent'),
-      ).not.toBeUndefined();
-      expect(
-        uncleInfo.symbolTable.globalEnvironment('uncle'),
-      ).not.toBeUndefined();
-      expect(
-        uncleInfo.symbolTable.globalEnvironment('child'),
-      ).not.toBeUndefined();
+      ).toBeDefined();
+      expect(uncleInfo.symbolTable.globalEnvironment('parent')).toBeDefined();
+      expect(uncleInfo.symbolTable.globalEnvironment('uncle')).toBeDefined();
+      expect(uncleInfo.symbolTable.globalEnvironment('child')).toBeDefined();
 
       expect(
         childInfo.symbolTable.globalEnvironment('grandparent'),
-      ).not.toBeUndefined();
+      ).toBeDefined();
       expect(
         childInfo.symbolTable.globalEnvironment('greatuncle'),
-      ).not.toBeUndefined();
-      expect(
-        childInfo.symbolTable.globalEnvironment('parent'),
-      ).not.toBeUndefined();
-      expect(
-        childInfo.symbolTable.globalEnvironment('uncle'),
-      ).not.toBeUndefined();
-      expect(
-        childInfo.symbolTable.globalEnvironment('child'),
-      ).not.toBeUndefined();
+      ).toBeDefined();
+      expect(childInfo.symbolTable.globalEnvironment('parent')).toBeDefined();
+      expect(childInfo.symbolTable.globalEnvironment('uncle')).toBeDefined();
+      expect(childInfo.symbolTable.globalEnvironment('child')).toBeDefined();
     }
   });
 });

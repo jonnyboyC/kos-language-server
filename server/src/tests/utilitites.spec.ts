@@ -101,6 +101,63 @@ describe('path resolver', () => {
       expect(weirdResolved.toString()).toBe(resolvedUri);
     }
   });
+
+  test('path resolver boot', () => {
+    const pathResolver = new PathResolver();
+    const range = {
+      start: {
+        line: 0,
+        character: 0,
+      },
+      end: {
+        line: 0,
+        character: 1,
+      },
+    };
+
+    const bootFileLocation: Location = {
+      range,
+      uri: 'file:///root/example/boot/otherFile.ks',
+    };
+
+    const relative1 = ['relative', 'path', 'file.ks'].join('/');
+    const absolute = ['0:', 'relative', 'path', 'file.ks'].join('/');
+    const weird = ['0:relative', 'path', 'file.ks'].join('/');
+
+    expect(
+      pathResolver.resolveUri(bootFileLocation, relative1),
+    ).toBeUndefined();
+    expect(pathResolver.resolveUri(bootFileLocation, absolute)).toBeUndefined();
+    expect(pathResolver.resolveUri(bootFileLocation, weird)).toBeUndefined();
+
+    pathResolver.volume0Uri = URI.file(join('root', 'example'));
+
+    const resolvedUri = 'file:///root/example/relative/path/file.ks';
+
+    const relativeResolved1 = pathResolver.resolveUri(
+      bootFileLocation,
+      relative1,
+    );
+    expect(relativeResolved1).toBeDefined();
+    if (!empty(relativeResolved1)) {
+      expect(relativeResolved1.toString()).toBe(resolvedUri);
+    }
+
+    const absoluteResolved = pathResolver.resolveUri(
+      bootFileLocation,
+      absolute,
+    );
+    expect(absoluteResolved).toBeDefined();
+    if (!empty(absoluteResolved)) {
+      expect(absoluteResolved.toString()).toBe(resolvedUri);
+    }
+
+    const weirdResolved = pathResolver.resolveUri(bootFileLocation, weird);
+    expect(weirdResolved).toBeDefined();
+    if (!empty(weirdResolved)) {
+      expect(weirdResolved.toString()).toBe(resolvedUri);
+    }
+  });
 });
 
 const createRange = (

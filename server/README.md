@@ -22,7 +22,7 @@ the server can then be started by
 
 
 ## Features
-Currently the kos-language-server 0.8.2 implements the follow features
+Currently the kos-language-server 0.9.0 implements the follow features
 - Code completion
     - Built in symbols and keywords
     - local in scope symbols
@@ -38,7 +38,7 @@ Currently the kos-language-server 0.8.2 implements the follow features
     - potentially undefined symbols
     - symbols that are shadowed by other symbols
     - potentially unused symbols
-- Go to definition for each symbol in the open documents. In some case can resolve functions in other scripts that have been run.
+- Go to definition for symbols and run statements. Currently for clashing globals the first found will be shown
 - Refactoring
   - Rename symbol
 - On hover with experimental type inference support

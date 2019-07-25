@@ -118,7 +118,7 @@ describe('documentService', () => {
 
       for (let j = 0; j <= i; j += 1) {
         const doc = docService.getDocument(uris[j].toString());
-        expect(doc).not.toBeUndefined();
+        expect(doc).toBeDefined();
 
         if (!empty(doc)) {
           expect(doc.getText()).toBe(docs[j]);
@@ -182,7 +182,7 @@ describe('documentService', () => {
         `0:/${basename(uriString)}`,
       );
 
-      expect(loadedDoc).not.toBeUndefined();
+      expect(loadedDoc).toBeDefined();
       if (!empty(loadedDoc)) {
         expect(TextDocument.is(loadedDoc)).toBe(true);
         expect((loadedDoc as TextDocument).getText()).toBe(doc);
@@ -194,7 +194,7 @@ describe('documentService', () => {
 
       for (let j = 0; j <= i; j += 1) {
         const doc = docService.getDocument(uris[j].toString());
-        expect(doc).not.toBeUndefined();
+        expect(doc).toBeDefined();
 
         if (!empty(doc)) {
           expect(doc.getText()).toBe(docs[j]);
@@ -220,7 +220,7 @@ describe('documentService', () => {
         ),
         `0:/${basename(uriString)}`,
       );
-      expect(loadedDoc).not.toBeUndefined();
+      expect(loadedDoc).toBeDefined();
       expect(Diagnostic.is(loadedDoc)).toBe(true);
 
       if (Diagnostic.is(loadedDoc)) {
@@ -269,7 +269,7 @@ describe('documentService', () => {
 
       const loadedDoc = await docService.loadDocument(uriString);
 
-      expect(loadedDoc).not.toBeUndefined();
+      expect(loadedDoc).toBeDefined();
       if (!empty(loadedDoc)) {
         expect(TextDocument.is(loadedDoc)).toBe(true);
         expect((loadedDoc as TextDocument).getText()).toBe(doc);
@@ -281,7 +281,7 @@ describe('documentService', () => {
 
       for (let j = 0; j <= i; j += 1) {
         const doc = docService.getDocument(uris[j].toString());
-        expect(doc).not.toBeUndefined();
+        expect(doc).toBeDefined();
 
         if (!empty(doc)) {
           expect(doc.getText()).toBe(docs[j]);
@@ -353,7 +353,7 @@ describe('documentService', () => {
     expect(clientDocs.size).toBe(1);
 
     let clientDoc = docService.getDocument(uri.toString());
-    expect(clientDoc).not.toBeUndefined();
+    expect(clientDoc).toBeDefined();
     if (!empty(clientDoc)) {
       expect(clientDoc.getText()).toBe(content);
     }
@@ -373,7 +373,7 @@ describe('documentService', () => {
     expect(clientDocs.size).toBe(1);
 
     clientDoc = docService.getDocument(uri.toString());
-    expect(clientDoc).not.toBeUndefined();
+    expect(clientDoc).toBeDefined();
     if (!empty(clientDoc)) {
       expect(clientDoc.getText()).toBe(afterEdit);
     }
@@ -386,7 +386,7 @@ describe('documentService', () => {
     expect(clientDocs.size).toBe(0);
 
     clientDoc = docService.getDocument(uri.toString());
-    expect(clientDoc).not.toBeUndefined();
+    expect(clientDoc).toBeDefined();
     if (!empty(clientDoc)) {
       expect(clientDoc.getText()).toBe(afterEdit);
     }
@@ -439,7 +439,7 @@ describe('documentService', () => {
         `0:/${basename(uriString)}`,
       );
 
-      expect(loadedDoc).not.toBeUndefined();
+      expect(loadedDoc).toBeDefined();
       if (!empty(loadedDoc)) {
         expect(TextDocument.is(loadedDoc)).toBe(true);
         expect((loadedDoc as TextDocument).getText()).toBe(doc);
@@ -480,7 +480,7 @@ describe('analysisService', () => {
     const documentInfo = await analysisService.getInfo(uri);
 
     expect(diagnostics.length).toBe(0);
-    expect(documentInfo).not.toBeUndefined();
+    expect(documentInfo).toBeDefined();
 
     if (!empty(documentInfo)) {
       expect(documentInfo.symbolTable.dependencyTables.size).toBe(2);
@@ -512,7 +512,7 @@ describe('analysisService', () => {
 
     const documentInfo = await analysisService.getInfo(uri);
 
-    expect(documentInfo).not.toBeUndefined();
+    expect(documentInfo).toBeDefined();
 
     if (!empty(documentInfo)) {
       expect(documentInfo.symbolTable.dependencyTables.size).toBe(2);
@@ -618,8 +618,8 @@ describe('analysisService', () => {
     const documentInfo2 = await analysisService.getInfo(uri2);
 
     expect(diagnostics.length).toBe(0);
-    expect(documentInfo1).not.toBeUndefined();
-    expect(documentInfo2).not.toBeUndefined();
+    expect(documentInfo1).toBeDefined();
+    expect(documentInfo2).toBeDefined();
 
     if (!empty(documentInfo1) && !empty(documentInfo2)) {
       expect(documentInfo1.symbolTable.dependencyTables.size).toBe(3);
@@ -703,10 +703,10 @@ describe('analysisService', () => {
     expect(diagnostics21.length).toBe(0);
     expect(diagnostics22.length).toBe(0);
 
-    expect(documentInfo11).not.toBeUndefined();
-    expect(documentInfo12).not.toBeUndefined();
-    expect(documentInfo21).not.toBeUndefined();
-    expect(documentInfo22).not.toBeUndefined();
+    expect(documentInfo11).toBeDefined();
+    expect(documentInfo12).toBeDefined();
+    expect(documentInfo21).toBeDefined();
+    expect(documentInfo22).toBeDefined();
 
     const documentInfos = analysisService['documentInfos'];
 
@@ -728,7 +728,6 @@ describe('analysisService', () => {
     if (!empty(documentInfo12) && !empty(documentInfo22)) {
       expect(documentInfo12.symbolTable.dependencyTables.size).toBe(3);
       expect(documentInfo12.symbolTable.dependentTables.size).toBe(0);
-      console.log(documentInfo22);
       expect(documentInfo22.symbolTable.dependencyTables.size).toBe(2);
       expect(documentInfo22.symbolTable.dependentTables.size).toBe(1);
 
