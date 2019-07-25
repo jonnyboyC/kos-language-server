@@ -1,4 +1,9 @@
-# [0.9.0] (2019-7-22)
+# [0.9.1] (2019-7-24)
+
+## Bug Fixes
+- **Disable Type Checking Diagnostics** Reverted type checking diagnostics to not display
+
+# [0.9.0] (2019-7-24)
 
 ## Features
 - **Boot Directory** The boot directory now correctly resolves to the base of volume0
