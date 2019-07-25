@@ -2,6 +2,7 @@
 
 ## Features
 - **Boot Directory** The boot directory now correctly resolves to the base of volume0
+- **Run Statement Go to Definition** Run statements now support go to definition in addition to symbols. This will open the file that kos-language server has resolve your run statement to. If the file is found it will go to. If a file extension is omitted kos-language server will attempt to look for a file with the `.ks` extension.
 
 ## Bug Fixes
 - **Globals** Global variables better reflect kOS with the following more actually being represented.

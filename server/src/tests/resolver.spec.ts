@@ -62,7 +62,9 @@ const resolveSource = (
   const symbolTableBuilder = new SymbolTableBuilder(fakeUri);
 
   if (standardLib) {
-    symbolTableBuilder.linkDependency(standardLibraryBuilder(CaseKind.lowercase));
+    symbolTableBuilder.linkDependency(
+      standardLibraryBuilder(CaseKind.lowercase),
+    );
   }
 
   const functionResolver = new PreResolver(
@@ -281,7 +283,7 @@ describe('Resolver tracking', () => {
     );
 
     // check test function
-    expect(testTracker).not.toBeUndefined();
+    expect(testTracker).toBeDefined();
     if (testTracker !== undefined) {
       const { name, tag } = testTracker.declared.symbol;
       expect(name.lexeme).toBe('test');
@@ -301,7 +303,7 @@ describe('Resolver tracking', () => {
     outOfScope = table.scopedNamedTracker(Position.create(0, 0), 'a');
 
     expect(outOfScope).toBeUndefined();
-    expect(aParamTracker).not.toBeUndefined();
+    expect(aParamTracker).toBeDefined();
     if (aParamTracker !== undefined) {
       const { name, tag } = aParamTracker.declared.symbol;
       expect(name.lexeme).toBe('a');
@@ -321,7 +323,7 @@ describe('Resolver tracking', () => {
     outOfScope = table.scopedNamedTracker(Position.create(0, 0), 'b');
 
     expect(outOfScope).toBeUndefined();
-    expect(bParamTracker).not.toBeUndefined();
+    expect(bParamTracker).toBeDefined();
     if (bParamTracker !== undefined) {
       const { name, tag } = bParamTracker.declared.symbol;
       expect(name.lexeme).toBe('b');
@@ -338,7 +340,7 @@ describe('Resolver tracking', () => {
     outOfScope = table.scopedNamedTracker(Position.create(6, 0), 'i');
 
     expect(outOfScope).toBeUndefined();
-    expect(iTracker).not.toBeUndefined();
+    expect(iTracker).toBeDefined();
     if (iTracker !== undefined) {
       const { name, tag } = iTracker.declared.symbol;
       expect(name.lexeme).toBe('i');
@@ -355,7 +357,7 @@ describe('Resolver tracking', () => {
     outOfScope = table.scopedNamedTracker(Position.create(15, 0), 'x');
 
     expect(outOfScope).toBeUndefined();
-    expect(xTracker).not.toBeUndefined();
+    expect(xTracker).toBeDefined();
     if (xTracker !== undefined) {
       const { name, tag } = xTracker.declared.symbol;
       expect(name.lexeme).toBe('x');
@@ -370,7 +372,7 @@ describe('Resolver tracking', () => {
     // check t lock
     const tTracker = table.scopedNamedTracker({ line: 16, character: 0 }, 't');
 
-    expect(tTracker).not.toBeUndefined();
+    expect(tTracker).toBeDefined();
     if (tTracker !== undefined) {
       const { name, tag } = tTracker.declared.symbol;
       expect(name.lexeme).toBe('t');
@@ -418,7 +420,7 @@ describe('Resolver tracking', () => {
     );
 
     // check test function
-    expect(shipTracker).not.toBeUndefined();
+    expect(shipTracker).toBeDefined();
     if (shipTracker !== undefined) {
       const { name, tag } = shipTracker.declared.symbol;
       expect(name.lexeme).toBe('ship');
@@ -434,7 +436,7 @@ describe('Resolver tracking', () => {
     );
 
     // check test function
-    expect(bodyTracker).not.toBeUndefined();
+    expect(bodyTracker).toBeDefined();
     if (bodyTracker !== undefined) {
       const { name, tag } = bodyTracker.declared.symbol;
       expect(name.lexeme).toBe('body');
@@ -450,7 +452,7 @@ describe('Resolver tracking', () => {
     );
 
     // check test function
-    expect(funcTracker).not.toBeUndefined();
+    expect(funcTracker).toBeDefined();
     if (funcTracker !== undefined) {
       const { name, tag } = funcTracker.declared.symbol;
       expect(name.lexeme).toBe('func');
@@ -466,7 +468,7 @@ describe('Resolver tracking', () => {
     );
 
     // check test function
-    expect(otherTracker).not.toBeUndefined();
+    expect(otherTracker).toBeDefined();
     if (otherTracker !== undefined) {
       const { name, tag } = otherTracker.declared.symbol;
       expect(name.lexeme).toBe('other');
@@ -778,7 +780,7 @@ describe('Function Scan', () => {
 
     if (funcStmt instanceof Decl.Func) {
       const scanResult = funcScanner.scan(funcStmt.block);
-      expect(scanResult).not.toBeUndefined();
+      expect(scanResult).toBeDefined();
 
       if (!empty(scanResult)) {
         expect(scanResult.return).toBe(false);
@@ -802,7 +804,7 @@ describe('Function Scan', () => {
 
     if (funcStmt instanceof Decl.Func) {
       const scanResult = funcScanner.scan(funcStmt.block);
-      expect(scanResult).not.toBeUndefined();
+      expect(scanResult).toBeDefined();
 
       if (!empty(scanResult)) {
         expect(scanResult.return).toBe(true);
@@ -826,7 +828,7 @@ describe('Function Scan', () => {
 
     if (funcStmt instanceof Decl.Func) {
       const scanResult = funcScanner.scan(funcStmt.block);
-      expect(scanResult).not.toBeUndefined();
+      expect(scanResult).toBeDefined();
 
       if (!empty(scanResult)) {
         expect(scanResult.return).toBe(true);
@@ -901,7 +903,7 @@ describe('Set Resolver', () => {
     const resolver = new SetResolver(local);
     if (stmt instanceof Stmt.Set) {
       const { used, set } = resolver.resolveExpr(stmt.suffix);
-      expect(set).not.toBeUndefined();
+      expect(set).toBeDefined();
       if (!empty(set)) {
         expect(set.lexeme).toBe('Thing');
       }

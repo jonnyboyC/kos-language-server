@@ -8,9 +8,8 @@ import {
   Range,
 } from 'vscode-languageserver';
 import { empty } from '../utilities/typeGuards';
-import { PathResolver } from '../utilities/pathResolver';
+import { PathResolver, normalizeExtensions } from '../utilities/pathResolver';
 import { URI } from 'vscode-uri';
-import { extname } from 'path';
 import { createDiagnostic } from '../utilities/diagnosticsUtils';
 import { DocumentLoader, Document } from '../utilities/documentLoader';
 import { logException, mockTracer } from '../utilities/logger';
@@ -107,7 +106,7 @@ export class DocumentService {
    * @param uri uri to lookup document
    */
   public getDocument(uri: string): Maybe<TextDocument> {
-    const normalized = this.normalizeExtensions(uri);
+    const normalized = normalizeExtensions(uri);
 
     if (empty(normalized)) {
       return undefined;
@@ -143,7 +142,7 @@ export class DocumentService {
     }
 
     // attempt to load a resource from whatever uri is provided
-    const normalized = this.normalizeExtensions(uri);
+    const normalized = normalizeExtensions(uri);
     if (empty(normalized)) {
       return this.loadError(caller.range, kosPath);
     }
@@ -180,7 +179,7 @@ export class DocumentService {
     }
 
     // attempt to load a resource from whatever uri is provided
-    const normalized = this.normalizeExtensions(uri);
+    const normalized = normalizeExtensions(uri);
     if (empty(normalized)) {
       return undefined;
     }
@@ -260,26 +259,6 @@ export class DocumentService {
       `Unable to load script at ${path}`,
       DiagnosticSeverity.Information,
     );
-  }
-
-  /**
-   * Normalize a filepath to the the default extension .ks if rules allow it to
-   * @param uri absolute resolved path
-   */
-  private normalizeExtensions(uri: URI | string): Maybe<string> {
-    const ext = URI.isUri(uri) ? extname(uri.fsPath) : extname(uri);
-    const uriString = uri.toString();
-
-    switch (ext) {
-      case '.ks':
-        return uriString;
-      case '.ksm':
-        return uriString.replace('.ksm', '.ks');
-      case '':
-        return `${uriString}.ks`;
-      default:
-        return undefined;
-    }
   }
 
   /**
