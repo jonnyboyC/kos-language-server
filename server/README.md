@@ -22,7 +22,7 @@ the server can then be started by
 
 
 ## Features
-Currently the kos-language-server 0.9.0 implements the follow features
+Currently the kos-language-server 0.9.1 implements the follow features
 - Code completion
     - Built in symbols and keywords
     - local in scope symbols
