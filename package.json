@@ -149,6 +149,10 @@
     },
     "commands": [
       {
+        "command": "kos.searchDocs",
+        "title": "kOS: Search Documentation"
+      },
+      {
         "command": "kos.startTelnet",
         "title": "kOS: Connect Telnet Client"
       },
@@ -165,6 +169,25 @@
         "title": "kOS: Route Logging to Vscode"
       }
     ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "kos.startksp",
+          "when": "resourceLangId == kos"
+        },
+        {
+          "command": "kos.startLspLog",
+          "when": "resourceLangId == kos"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "kos.searchDocs",
+          "when": "resourceLangId == kos",
+          "group": "4_search"
+        }
+      ]
+    },
     "languages": [
       {
         "id": "kos",

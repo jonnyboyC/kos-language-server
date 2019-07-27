@@ -86,18 +86,18 @@ const resolveSource = (
 
 const makeRange = (
   sLine: number,
-  schar: number,
+  sChar: number,
   eLine: number,
-  echar: number,
+  eChar: number,
 ): Range => {
   return {
     start: {
       line: sLine,
-      character: schar,
+      character: sChar,
     },
     end: {
       line: eLine,
-      character: echar,
+      character: eChar,
     },
   };
 };

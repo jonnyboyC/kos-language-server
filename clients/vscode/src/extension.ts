@@ -25,6 +25,7 @@ import {
 import { telnetProvider } from './commands/telnetProvider';
 import { kspProvider } from './commands/kspProvider';
 import { parse } from 'semver';
+import { searchDocumentationProvider } from './commands/searchDocumentationProvider';
 
 let client: LanguageClient;
 
@@ -141,6 +142,14 @@ export function activate(context: ExtensionContext) {
   // add start provider to commands
   context.subscriptions.push(
     commands.registerCommand(kspProvider.command, kspProvider.commandCallback),
+  );
+
+  // add search documentation command
+  context.subscriptions.push(
+    commands.registerCommand(
+      searchDocumentationProvider.command,
+      searchDocumentationProvider.commandCallback,
+    ),
   );
 }
 
