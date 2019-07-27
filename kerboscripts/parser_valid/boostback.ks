@@ -11,6 +11,10 @@ for ms in core:part:modules { //for some reason terminal sometimes closes on doc
 	if m:hasaction("Open Terminal") m:doevent("Open Terminal").
 }
 
+set x to list():length.
+set y to body:geopositionlatlng(10, 10):distance.
+set blah to ship:rootpart:facing.
+
 print "Boostback script running.".
 
 //local gloc is LATLNG(-0.0972098829757138, -74.557676687929). //Launchpad

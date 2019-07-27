@@ -146,7 +146,7 @@ export const enum SearchState {
 
 export interface EnvironmentNode {
   readonly parent: Maybe<EnvironmentNode>;
-  readonly position: EnvironmentRange;
+  readonly range: EnvironmentRange;
   readonly environment: Environment;
   readonly children: EnvironmentNode[];
 }

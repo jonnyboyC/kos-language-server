@@ -8,7 +8,7 @@ import {
 import { addPrototype, addSuffixes } from '../../typeUtilities';
 import { enumeratorType } from './enumerator';
 import { iterator } from '../../../utilities/constants';
-import { scalarType } from '../primitives/scalar';
+import { integerType } from '../primitives/scalar';
 import { booleanType } from '../primitives/boolean';
 import { stringType } from '../primitives/string';
 import { voidType } from '../primitives/void';
@@ -23,7 +23,7 @@ addSuffixes(
   enumerableType,
   createGenericArgSuffixType(iterator, enumeratorType),
   createGenericArgSuffixType('reverseIterator', enumeratorType),
-  createArgSuffixType('length', scalarType),
+  createArgSuffixType('length', integerType),
   createGenericArgSuffixType('contains', booleanType, tType),
   createArgSuffixType('empty', booleanType),
   createArgSuffixType('dump', stringType),

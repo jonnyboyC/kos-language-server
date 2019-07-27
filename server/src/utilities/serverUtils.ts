@@ -107,7 +107,7 @@ export const logMapper = mapper(logMap, 'LogLevel');
 const symbolMap = new Map([
   [KsSymbolKind.function, CompletionItemKind.Function],
   [KsSymbolKind.parameter, CompletionItemKind.Variable],
-  [KsSymbolKind.lock, CompletionItemKind.Reference],
+  [KsSymbolKind.lock, CompletionItemKind.Property],
   [KsSymbolKind.variable, CompletionItemKind.Variable],
 ]);
 
@@ -249,6 +249,7 @@ export const documentSymbols = async (
         uri: entity.name.uri || uri,
         range: entity.name,
       }),
+      containerName: 'example',
     } as SymbolInformation;
   });
 };

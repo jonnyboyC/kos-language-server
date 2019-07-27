@@ -2,6 +2,34 @@ import { SuffixTracker } from '../../analysis/suffixTracker';
 import { CallKind, TypeKind, OperatorKind } from '../types';
 import { Operator } from '../operator';
 
+// variadic type use kind to determine we can keep pulling off
+// function has call signature and no access
+// delegate checks for kind function
+
+interface Something {
+  name: string;
+  superType?: Something;
+  access: Access;
+  callSignature?: CallSignature;
+  fullType: boolean;
+  kind: TypeKind;
+  canCoerce(type: Something): boolean;
+  getSuffix(name: string): Maybe<Something>;
+  getOperator(kind: OperatorKind, other: Something): Maybe<Operator>;
+  toTypeString(): string;
+  toConcreteType(type: Something): Something;
+}
+
+interface Access {
+  get: boolean;
+  set: boolean;
+}
+
+interface CallSignature {
+  params: Something[];
+  returns: Something;
+}
+
 interface ITypeMeta<T> {
   toTypeString(): string;
   toConcreteType(type: ArgumentType): T;
@@ -33,7 +61,11 @@ export interface IGenericBasicType
 }
 
 export interface IGenericSuffixType
-  extends ITemplateSuffixType<IGenericArgumentType, IGenericVariadicType, ISuffixType> {
+  extends ITemplateSuffixType<
+    IGenericArgumentType,
+    IGenericVariadicType,
+    ISuffixType
+  > {
   kind: TypeKind.suffix;
 }
 

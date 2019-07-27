@@ -73,6 +73,11 @@ export class AnalysisService {
   private bodyLibrary: SymbolTable;
 
   /**
+   * The current requested completion case
+   */
+  private caseKind: CaseKind;
+
+  /**
    * Construct a new analysis service
    * @param caseKind the typing case of the build in standard and body libraries
    * @param logger A logger to log performance and exception
@@ -91,6 +96,7 @@ export class AnalysisService {
 
     this.documentInfos = new Map();
 
+    this.caseKind = caseKind;
     this.standardLibrary = standardLibraryBuilder(caseKind);
     this.bodyLibrary = bodyLibraryBuilder(caseKind);
 
@@ -161,8 +167,11 @@ export class AnalysisService {
    * @param caseKind case to set
    */
   public setCase(caseKind: CaseKind) {
-    this.standardLibrary = standardLibraryBuilder(caseKind);
-    this.bodyLibrary = bodyLibraryBuilder(caseKind);
+    if (this.caseKind !== caseKind) {
+      this.caseKind = caseKind;
+      this.standardLibrary = standardLibraryBuilder(caseKind);
+      this.bodyLibrary = bodyLibraryBuilder(caseKind);
+    }
   }
 
   /**
