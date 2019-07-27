@@ -106,7 +106,7 @@ export class Resolver
   private readonly resolveStmtBind = this.resolveStmt.bind(this);
 
   /**
-   * Cached bound method for using locals in an expreesion
+   * Cached bound method for using locals in an expression
    */
   private readonly useExprLocalsBind = this.useExprLocals.bind(this);
 
@@ -1138,7 +1138,7 @@ export class Resolver
   }
 
   /**
-   * Tracket when the loop depth has increased or decreased
+   * Track when the loop depth has increased or decreased
    * @param loopFunc loop body
    */
   private trackLoop(loopFunc: () => Diagnostics): Diagnostics {
@@ -1148,6 +1148,10 @@ export class Resolver
     return result;
   }
 
+  /**
+   * Tracke when the trigger depth has increased or decreased
+   * @param triggerFunc trigger body
+   */
   private trackTrigger(triggerFunc: () => Diagnostics): Diagnostics {
     this.triggerDepth += 1;
     const result = triggerFunc();

@@ -204,10 +204,18 @@ export class PreResolver
 
   ----------------------------------------------*/
 
+  /**
+   * Visit an invalid statement
+   * @param _ invalid statement
+   */
   public visitStmtInvalid(_: Stmt.Invalid): Diagnostics {
     return [];
   }
 
+  /**
+   * Visit a block statement
+   * @param stmt block statement
+   */
   public visitBlock(stmt: Stmt.Block): Diagnostics {
     this.tableBuilder.beginScope(stmt);
     const errors = this.resolveStmts(stmt.stmts);
@@ -216,6 +224,10 @@ export class PreResolver
     return errors;
   }
 
+  /**
+   * Visit an expression statement
+   * @param stmt expression statement
+   */
   public visitExpr(stmt: Stmt.ExprStmt): Diagnostics {
     return this.resolveExpr(stmt.suffix);
   }
@@ -271,12 +283,18 @@ export class PreResolver
   }
 
   public visitFrom(stmt: Stmt.From): Diagnostics {
+    // begin hidden loop scope
+    this.tableBuilder.beginScope(stmt);
+
     const errors = this.resolveStmts(stmt.initializer.stmts);
     errors.push(
       ...this.resolveExpr(stmt.condition),
       ...this.resolveStmts(stmt.increment.stmts),
       ...this.resolveStmt(stmt.body),
     );
+
+    // end hidden loop scope
+    this.tableBuilder.endScope();
 
     return errors;
   }
@@ -304,8 +322,14 @@ export class PreResolver
   }
 
   public visitFor(stmt: Stmt.For): Diagnostics {
+    // begin hidden loop scope
+    this.tableBuilder.beginScope(stmt);
+
     const errors = this.resolveExpr(stmt.collection);
     errors.push(...this.resolveStmt(stmt.body));
+
+    // end hidden loop scope
+    this.tableBuilder.endScope();
 
     return errors;
   }
