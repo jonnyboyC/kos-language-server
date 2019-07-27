@@ -559,11 +559,11 @@ describe('analysisService', () => {
     let bodyLib = analysisService['bodyLibrary'];
     let stdLib = analysisService['bodyLibrary'];
 
-    for (const bodySymbol of bodyLib.globalSymbols()) {
+    for (const bodySymbol of bodyLib.allSymbols()) {
       expect(bodySymbol.name.lexeme).toBe(bodySymbol.name.lexeme.toLowerCase());
     }
 
-    for (const stdSymbol of stdLib.globalSymbols()) {
+    for (const stdSymbol of stdLib.allSymbols()) {
       expect(stdSymbol.name.lexeme).toBe(stdSymbol.name.lexeme.toLowerCase());
     }
 
@@ -572,11 +572,11 @@ describe('analysisService', () => {
     bodyLib = analysisService['bodyLibrary'];
     stdLib = analysisService['bodyLibrary'];
 
-    for (const bodySymbol of bodyLib.globalSymbols()) {
+    for (const bodySymbol of bodyLib.allSymbols()) {
       expect(bodySymbol.name.lexeme).toBe(bodySymbol.name.lexeme.toUpperCase());
     }
 
-    for (const stdSymbol of stdLib.globalSymbols()) {
+    for (const stdSymbol of stdLib.allSymbols()) {
       expect(stdSymbol.name.lexeme).toBe(stdSymbol.name.lexeme.toUpperCase());
     }
   });

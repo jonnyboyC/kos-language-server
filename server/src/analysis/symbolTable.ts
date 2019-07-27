@@ -114,12 +114,12 @@ export class SymbolTable implements GraphNode<SymbolTable> {
   }
 
   /**
-   * get every symbol in the file
+   * get every symbol in this file
    */
-  public globalSymbols(): KsBaseSymbol[] {
-    return Array.from(this.rootScope.environment.symbols()).concat(
-      this.fileSymbolsDepth(this.rootScope.children),
-    );
+  public allSymbols(): KsBaseSymbol[] {
+    const symbols: KsBaseSymbol[] = [];
+    this.fileSymbolsDepth(symbols, this.rootScope);
+    return symbols;
   }
 
   /**
@@ -130,66 +130,16 @@ export class SymbolTable implements GraphNode<SymbolTable> {
    */
   public globalEnvironment(
     name: string,
-    state: SearchState = SearchState.dependents,
+    state: SearchState,
+    searched: Set<SymbolTable>,
     has: (env: Environment, lookup: string) => boolean = (env, lookup) =>
       env.has(lookup),
   ): Maybe<Environment> {
-    return this.globalEnvironment_(name, has, new Set(), state);
-  }
-
-  /**
-   * Get global symbols that match the requested symbol name
-   * @param name symbol name
-   * @param has function to determine if an environment has the appropriate symbol
-   * @param checked tables we've already checked
-   * @param state are we currently looking up or down the dependency tree
-   */
-  private globalEnvironment_(
-    name: string,
-    has: (env: Environment, lookup: string) => boolean,
-    checked: Set<SymbolTable>,
-    state: SearchState,
-  ): Maybe<Environment> {
-    if (checked.has(this)) {
-      return undefined;
-    }
-
-    checked.add(this);
-
-    if (has(this.rootScope.environment, name)) {
-      return this.rootScope.environment;
-    }
-
-    if (this.uri === builtIn) {
-      return undefined;
-    }
-
-    if (state === SearchState.dependents) {
-      for (const table of this.dependentTables) {
-        const result = table.globalEnvironment_(
-          name,
-          has,
-          checked,
-          SearchState.dependents,
-        );
-        if (!empty(result)) {
-          return result;
-        }
+    for (const environment of this.importedEnvironments_(searched, state)) {
+      if (has(environment, name)) {
+        return environment;
       }
     }
-
-    for (const table of this.dependencyTables) {
-      const result = table.globalEnvironment_(
-        name,
-        has,
-        checked,
-        SearchState.dependencies,
-      );
-      if (!empty(result)) {
-        return result;
-      }
-    }
-
     return undefined;
   }
 
@@ -227,18 +177,18 @@ export class SymbolTable implements GraphNode<SymbolTable> {
 
   /**
    * recursively move up the scope to get every file symbol
-   * @param nodes nodes to retrieve symbols from
+   * @param symbols symbols found so far
+   * @param node current environment node
    */
-  private fileSymbolsDepth(nodes: EnvironmentNode[]): KsBaseSymbol[] {
-    const symbols: KsBaseSymbol[] = [];
-    for (const node of nodes) {
-      symbols.push(
-        ...node.environment.symbols(),
-        ...this.fileSymbolsDepth(node.children),
-      );
-    }
+  private fileSymbolsDepth(
+    symbols: KsBaseSymbol[],
+    node: EnvironmentNode,
+  ): void {
+    symbols.push(...node.environment.symbols());
 
-    return symbols;
+    for (const child of node.children) {
+      this.fileSymbolsDepth(symbols, child);
+    }
   }
 
   /**
@@ -246,13 +196,12 @@ export class SymbolTable implements GraphNode<SymbolTable> {
    * @param pos the position to retrieve symbols from
    */
   private scopedTrackers(pos: Position): BasicTracker[] {
-    const scoped = this.scopedTrackersDepth(pos, this.rootScope.children);
-    const fileGlobal = Array.from(this.rootScope.environment.trackers());
-    const importedGlobals = Array.from(this.dependencyTables.values()).map(
-      scope => Array.from(scope.rootScope.environment.trackers()),
-    );
+    const trackers: BasicTracker[] = [];
 
-    return scoped.concat(fileGlobal, ...importedGlobals);
+    this.scopedTrackersDepth(trackers, pos, this.rootScope);
+    trackers.push(...this.importedTrackers());
+
+    return trackers;
   }
 
   /**
@@ -264,54 +213,52 @@ export class SymbolTable implements GraphNode<SymbolTable> {
     pos: Position,
     trackerFilter: (x: BasicTracker) => boolean = _ => true,
   ): Maybe<BasicTracker> {
-    const scoped = this.scopedTrackerDepth(
-      pos,
-      this.rootScope.children,
-      trackerFilter,
-    );
-    if (!empty(scoped)) {
-      return scoped;
+    const tracker = this.scopedTrackerDepth(pos, this.rootScope, trackerFilter);
+    if (!empty(tracker)) {
+      return tracker;
     }
 
-    const fileGlobal = this.rootScope.environment.trackers();
-    const importedGlobals = Array.from(this.dependencyTables.values()).map(
-      scope => Array.from(scope.rootScope.environment.trackers()),
-    );
+    // search all imported trackers
+    for (const tracker of this.importedTrackers()) {
+      if (trackerFilter(tracker)) {
+        return tracker;
+      }
+    }
 
-    const [match] = fileGlobal.concat(...importedGlobals).filter(trackerFilter);
-
-    return match;
+    return undefined;
   }
 
   /**
    * recursively move up scopes to find most relevant symbols
+   * @param trackers basic trackers found so far
    * @param pos position to search
    * @param nodes scope nodes to check
    */
   private scopedTrackersDepth(
+    trackers: BasicTracker[],
     pos: Position,
-    nodes: EnvironmentNode[],
-  ): BasicTracker[] {
-    for (const node of nodes) {
-      const { position } = node;
-      switch (position.kind) {
-        // if global it is available
-        case ScopeKind.global:
-          return this.scopedTrackersDepth(pos, node.children).concat(
-            Array.from(node.environment.trackers()),
-          );
-        // if the scope has a real position check if we're in the bounds
-        case ScopeKind.local:
-          if (rangeContainsPos(position, pos)) {
-            return this.scopedTrackersDepth(pos, node.children).concat(
-              Array.from(node.environment.trackers()),
-            );
+    node: EnvironmentNode,
+  ): void {
+    const { range } = node;
+
+    switch (range.kind) {
+      case ScopeKind.global:
+        // if global scope we're in scope
+        trackers.push(...node.environment.trackers());
+        for (const child of node.children) {
+          this.scopedTrackersDepth(trackers, pos, child);
+        }
+        break;
+      case ScopeKind.local:
+        // if local scope check that we're in range
+        if (rangeContainsPos(range, pos)) {
+          trackers.push(...node.environment.trackers());
+          for (const child of node.children) {
+            this.scopedTrackersDepth(trackers, pos, child);
           }
           break;
-      }
+        }
     }
-
-    return [];
   }
 
   /**
@@ -322,55 +269,118 @@ export class SymbolTable implements GraphNode<SymbolTable> {
    */
   private scopedTrackerDepth(
     pos: Position,
-    nodes: EnvironmentNode[],
+    node: EnvironmentNode,
     trackerFilter: (x: BasicTracker) => boolean,
   ): Maybe<BasicTracker> {
     let childSymbol: Maybe<BasicTracker> = undefined;
 
-    for (const node of nodes) {
-      const { position } = node;
-      switch (position.kind) {
-        // if global it is available
-        case ScopeKind.global:
-          childSymbol = this.scopedTrackerDepth(
-            pos,
-            node.children,
-            trackerFilter,
-          );
+    const { range } = node;
+    switch (range.kind) {
+      // if global it is available
+      case ScopeKind.global:
+        for (const child of node.children) {
+          childSymbol = this.scopedTrackerDepth(pos, child, trackerFilter);
           if (!empty(childSymbol)) {
             return childSymbol;
           }
+        }
 
-          const currentSymbols = Array.from(node.environment.trackers()).filter(
-            trackerFilter,
-          );
-          if (currentSymbols.length === 1) {
-            return currentSymbols[0];
+        for (const tracker of node.environment.trackers()) {
+          if (trackerFilter(tracker)) {
+            return tracker;
           }
-          break;
-        // if the scope has a real position check if we're in the bounds
-        case ScopeKind.local:
-          if (rangeContainsPos(position, pos)) {
-            childSymbol = this.scopedTrackerDepth(
-              pos,
-              node.children,
-              trackerFilter,
-            );
+        }
+
+        break;
+      // if the scope has a real position check if we're in the bounds
+      case ScopeKind.local:
+        if (rangeContainsPos(range, pos)) {
+          for (const child of node.children) {
+            childSymbol = this.scopedTrackerDepth(pos, child, trackerFilter);
             if (!empty(childSymbol)) {
               return childSymbol;
             }
+          }
 
-            const currentSymbols = Array.from(
-              node.environment.trackers(),
-            ).filter(trackerFilter);
-            if (currentSymbols.length === 1) {
-              return currentSymbols[0];
+          for (const tracker of node.environment.trackers()) {
+            if (trackerFilter(tracker)) {
+              return tracker;
             }
           }
-          break;
-      }
+        }
+        break;
     }
 
     return undefined;
+  }
+
+  /**
+   * Search all imported trackers that are accessible from this
+   * environment
+   */
+  private *importedTrackers(): IterableIterator<BasicTracker> {
+    for (const environment of this.importedEnvironments()) {
+      yield* environment.trackers();
+    }
+  }
+
+  /**
+   * Search all accessible environments from this environment
+   * @param checked what environments have already been checked
+   * @param state what is the current search state
+   */
+  private *importedEnvironments(): IterableIterator<Environment> {
+    const checked = new Set<SymbolTable>([this]);
+
+    // If we're currently looking up the dependency tree we can continue doing so
+    for (const dependent of this.dependentTables) {
+      yield* dependent.importedEnvironments_(checked, SearchState.dependents);
+    }
+
+    // check dependencies
+    for (const dependency of this.dependencyTables) {
+      yield* dependency.importedEnvironments_(
+        checked,
+        SearchState.dependencies,
+      );
+    }
+  }
+
+  /**
+   * Search all accessible environments from this environment
+   * @param checked what environments have already been checked
+   * @param state what is the current search state
+   */
+  private *importedEnvironments_(
+    checked: Set<SymbolTable>,
+    state: SearchState,
+  ): IterableIterator<Environment> {
+    // return if we already checked this environment
+    if (checked.has(this)) {
+      return;
+    }
+    checked.add(this);
+
+    yield this.rootScope.environment;
+
+    // don't check any further if built in
+    if (this.uri === builtIn) {
+      return;
+    }
+
+    // If we're currently looking up the dependency tree we can continue doing so
+    if (state === SearchState.dependents) {
+      for (const dependent of this.dependentTables) {
+        yield* dependent.importedEnvironments_(checked, SearchState.dependents);
+      }
+    }
+
+    // check dependencies
+    for (const dependency of this.dependencyTables) {
+      yield* dependency.importedEnvironments_(
+        checked,
+        SearchState.dependencies,
+      );
+    }
   }
 }

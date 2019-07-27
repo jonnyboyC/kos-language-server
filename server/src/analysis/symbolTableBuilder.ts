@@ -98,7 +98,7 @@ export class SymbolTableBuilder {
       parent: undefined,
       environment: this.global,
       children: [],
-      position: { kind: ScopeKind.global },
+      range: { kind: ScopeKind.global },
     };
     this.activeNode = this.rootNode;
     this.path = {
@@ -201,7 +201,7 @@ export class SymbolTableBuilder {
       activeScope = {
         parent: currentScope,
         environment: new Environment(),
-        position: new ScopePosition(range.start, range.end),
+        range: new ScopePosition(range.start, range.end),
         children: [],
       };
 
@@ -232,9 +232,9 @@ export class SymbolTableBuilder {
     this.activeNode = currentScope.parent;
     this.path.active.pop();
 
-    if (currentScope.position.kind === ScopeKind.local) {
+    if (currentScope.range.kind === ScopeKind.local) {
       this.logger.verbose(
-        `end scope at ${positionToString(currentScope.position.end)}`,
+        `end scope at ${positionToString(currentScope.range.end)}`,
       );
     }
   }
@@ -954,11 +954,14 @@ export class SymbolTableBuilder {
       return found;
     }
 
+    const searched = new Set<SymbolTable>();
+
     // check dependency tables for the symbol
     for (const child of this.dependencyTables) {
       const environment = child.globalEnvironment(
         lookup,
         SearchState.dependencies,
+        searched,
         has,
       );
       if (!empty(environment)) {
@@ -972,6 +975,7 @@ export class SymbolTableBuilder {
       const environment = child.globalEnvironment(
         lookup,
         SearchState.dependents,
+        searched,
         has,
       );
       if (!empty(environment)) {

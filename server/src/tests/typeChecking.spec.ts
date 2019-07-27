@@ -27,6 +27,9 @@ import { Marker } from '../entities/marker';
 import { zip } from '../utilities/arrayUtils';
 import { timeSpanType } from '../typeChecker/types/timespan';
 import { typeInitializer } from '../typeChecker/initialize';
+import { bodyAtmosphereType } from '../typeChecker/types/bodyatmosphere';
+import { listType } from '../typeChecker/types/collections/list';
+import { partType } from '../typeChecker/types/parts/part';
 
 const fakeUri = 'C:\\fake.ks';
 
@@ -181,6 +184,20 @@ for i2 in l2 { print(i2). }
 // for i3 in segments { print(i3). }
 `;
 
+const suffixSource = `
+local atm is body:atm.
+local length is list():length.
+local parts is ship:parts.
+// local facing is ship:parts[0]:facing.
+local distance is body:geopositionlatlng(10, 10):distance.
+
+print(atm).
+print(length).
+print(parts).
+// print(facing).
+print(distance).
+`;
+
 const symbolTests = (
   symbols: Map<string, KsBaseSymbol>,
   name: string,
@@ -210,7 +227,7 @@ describe('Basic inferring', () => {
     noErrors(results);
 
     const { table } = results;
-    const symbols = table.globalSymbols();
+    const symbols = table.allSymbols();
     const names = new Map(
       symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
     );
@@ -232,7 +249,7 @@ describe('Basic inferring', () => {
     noErrors(results);
 
     const { table } = results;
-    const symbols = table.globalSymbols();
+    const symbols = table.allSymbols();
     const names = new Map(
       symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
     );
@@ -254,7 +271,7 @@ describe('Basic inferring', () => {
     noErrors(results);
 
     const { table } = results;
-    const symbols = table.globalSymbols();
+    const symbols = table.allSymbols();
     const names = new Map(
       symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
     );
@@ -277,6 +294,28 @@ describe('Basic inferring', () => {
 
     // symbolTests(names, 'x3', KsSymbolKind.variable, stringType);
     // symbolTests(names, 'i3', KsSymbolKind.variable, stringType);
+  });
+
+  test('suffix inferring', () => {
+    const results = checkSource(suffixSource, true);
+    noErrors(results);
+
+    const { table } = results;
+    const symbols = table.allSymbols();
+    const names = new Map(
+      symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
+    );
+
+    symbolTests(names, 'atm', KsSymbolKind.variable, bodyAtmosphereType);
+    symbolTests(names, 'length', KsSymbolKind.variable, integerType);
+    symbolTests(
+      names,
+      'parts',
+      KsSymbolKind.variable,
+      listType.toConcreteType(partType),
+    );
+    // symbolTests(names, 'facing', KsSymbolKind.variable, directionType);
+    symbolTests(names, 'distance', KsSymbolKind.variable, scalarType);
   });
 });
 
@@ -376,7 +415,7 @@ describe('Operators', () => {
     noErrors(results);
 
     const { table } = results;
-    const symbols = table.globalSymbols();
+    const symbols = table.allSymbols();
     const names = new Map(
       symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
     );
@@ -410,7 +449,7 @@ describe('Operators', () => {
     noResolverErrors(results);
 
     const { table } = results;
-    const symbols = table.globalSymbols();
+    const symbols = table.allSymbols();
     const names = new Map(
       symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
     );
@@ -434,7 +473,7 @@ describe('Operators', () => {
     noErrors(results);
 
     const { table } = results;
-    const symbols = table.globalSymbols();
+    const symbols = table.allSymbols();
     const names = new Map(
       symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
     );
@@ -455,7 +494,7 @@ describe('Operators', () => {
     noErrors(results);
 
     const { table } = results;
-    const symbols = table.globalSymbols();
+    const symbols = table.allSymbols();
     const names = new Map(
       symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
     );

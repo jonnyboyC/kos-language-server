@@ -4,7 +4,7 @@
   "description": "Syntax highlighting, auto-complete, and language diagnostics for KerboScript in Kerbal Operating System.",
   "author": "John Chabot",
   "license": "MIT",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "scripts": {
     "vscode:prepublish": "cd clients/vscode && npm run update-vscode && cd ../.. && node build/clean.js && npm run prod && npm run test",
     "prod": "run-p prod:vscode prod:atom prod:server",
@@ -149,6 +149,10 @@
     },
     "commands": [
       {
+        "command": "kos.searchDocs",
+        "title": "kOS: Search Documentation"
+      },
+      {
         "command": "kos.startTelnet",
         "title": "kOS: Connect Telnet Client"
       },
@@ -165,6 +169,25 @@
         "title": "kOS: Route Logging to Vscode"
       }
     ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "kos.startksp",
+          "when": "resourceLangId == kos"
+        },
+        {
+          "command": "kos.startLspLog",
+          "when": "resourceLangId == kos"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "kos.searchDocs",
+          "when": "resourceLangId == kos",
+          "group": "4_search"
+        }
+      ]
+    },
     "languages": [
       {
         "id": "kos",
