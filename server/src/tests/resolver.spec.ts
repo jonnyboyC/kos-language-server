@@ -135,6 +135,15 @@ list files in x.
 print x.
 `;
 
+const localFunctionSource = `
+from { local x is 0. } until x > 10 step { set x to x + 1. } do {
+  local function example {
+    print("hi").
+  }
+  example().
+}
+`;
+
 describe('Resolver tracking', () => {
   // test basic identifier
   test('basic set test', () => {
@@ -477,6 +486,71 @@ describe('Resolver tracking', () => {
       expect(otherTracker.usages.length).toBe(1);
       expect(otherTracker.sets.length).toBe(0);
     }
+  });
+
+  test('local function', () => {
+    const results = resolveSource(localFunctionSource, true);
+    noErrors(results);
+
+    const { table } = results;
+    const xTrack = table.scopedNamedTracker({ line: 2, character: 0 }, 'x');
+    const exampleTrack = table.scopedNamedTracker(
+      { line: 2, character: 0 },
+      'example',
+    );
+
+    expect(xTrack).toBeDefined();
+    expect(exampleTrack).toBeDefined();
+
+    const [x, example] = unWrapMany(xTrack, exampleTrack);
+
+    const xRange: Range = {
+      start: { line: 1, character: 13 },
+      end: { line: 1, character: 14 },
+    };
+    const exampleRange: Range = {
+      start: { line: 2, character: 17 },
+      end: { line: 2, character: 24 },
+    };
+
+    expect(rangeEqual(x.declared.range, xRange)).toBe(true);
+    expect(rangeEqual(example.declared.range, exampleRange)).toBe(true);
+
+    // check the tracked declared properties
+    expect(x.declared.uri).toBe(fakeUri);
+    expect(example.declared.uri).toBe(fakeUri);
+
+    // should only be structure as it is the default placeholder
+    expect(x.declared.type).toBe(structureType);
+    expect(example.declared.type).toBe(structureType);
+
+    expect(x.declared.symbol.name.lexeme).toBe('x');
+    expect(example.declared.symbol.name.lexeme).toBe('example');
+
+    expect(x.declared.symbol.tag).toBe(KsSymbolKind.variable);
+    expect(example.declared.symbol.tag).toBe(KsSymbolKind.function);
+
+    // check the tracked set properties
+    expect(x.sets.length).toBe(1);
+    expect(example.sets.length).toBe(0);
+
+    // check the tracked set properties
+    expect(x.usages.length).toBe(2);
+    expect(example.usages.length).toBe(1);
+
+    expect(
+      table.scopedNamedTracker({ line: 1, character: 15 }, 'x'),
+    ).toBeDefined();
+    expect(
+      table.scopedNamedTracker({ line: 1, character: 15 }, 'example'),
+    ).toBeUndefined();
+
+    expect(
+      table.scopedNamedTracker({ line: 0, character: 0 }, 'x'),
+    ).toBeUndefined();
+    expect(
+      table.scopedNamedTracker({ line: 0, character: 0 }, 'example'),
+    ).toBeUndefined();
   });
 });
 
