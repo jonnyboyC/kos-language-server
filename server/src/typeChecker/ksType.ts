@@ -1,251 +1,224 @@
 import { empty } from '../utilities/typeGuards';
-import {
-  IGenericArgumentType,
-  ArgumentType,
-  IGenericSuffixType,
-  IGenericVariadicType,
-  IGenericBasicType,
-  IConstantType,
-  IBasicType,
-  ISuffixType,
-  IVariadicType,
-  IFunctionType,
-} from './types/types';
+// import {
+//   IGenericArgumentType,
+//   ArgumentType,
+//   IGenericSuffixType,
+//   IGenericVariadicType,
+//   IGenericBasicType,
+//   IConstantType,
+//   IBasicType,
+//   ISuffixType,
+//   IVariadicType,
+//   IFunctionType,
+// } from './types/types';
 import { SuffixTracker } from '../analysis/suffixTracker';
 import { KsSuffix } from '../entities/suffix';
 import { tType } from './typeCreators';
-import { OperatorKind, TypeKind, CallKind } from './types';
+import {
+  OperatorKind,
+  TypeKind,
+  CallKind,
+  IGenericType,
+  Access,
+  CallSignature,
+  IType,
+} from './types';
 import { Operator } from './operator';
+import { TypeParameter } from './typeParameter';
 
-/**
- * This represents a generic type, typically the containers of kos
- */
-export class GenericBasicType implements IGenericBasicType {
-  /**
-   * A memoized mapping of this generic type to concrete types
-   */
-  private concreteTypes: Map<ArgumentType, IBasicType>;
+export class GenericType implements IGenericType {
+  public readonly name: string;
+  public readonly access: Access;
+  public readonly callSignature?: CallSignature;
+  public readonly kind: TypeKind;
 
-  /**
-   * Operators that are applicable for this type
-   */
-  public operators: Map<OperatorKind, Operator[]>;
+  private superType?: IGenericType;
+  private concreteTypes: any;
+  public readonly typeParameters: Set<TypeParameter>;
+  private coercibleTypes: Set<IGenericType>;
+  private suffixes: Map<string, IGenericType>;
+  private operators: Map<OperatorKind, Operator<IGenericType>[]>;
 
-  /**
-   * Suffixes attach to this type
-   */
-  public suffixes: Map<string, IGenericSuffixType>;
-
-  /**
-   * Is this type a subtype of another type
-   */
-  public superType?: IGenericArgumentType;
-
-  /**
-   * Constructor a generic type
-   * @param name name of generic type
-   */
-  constructor(public readonly name: string) {
+  constructor(
+    name: string,
+    access: Access,
+    typeParameter: Set<TypeParameter>,
+    kind: TypeKind,
+    callSignature?: CallSignature,
+  ) {
+    this.name = name;
+    this.access = access;
+    this.callSignature = callSignature;
+    this.typeParameters = typeParameter;
+    this.kind = kind;
+    this.coercibleTypes = new Set();
     this.suffixes = new Map();
-    this.concreteTypes = new Map();
     this.operators = new Map();
   }
 
-  /**
-   * Convert this type into a type string
-   */
+  public addSuper(type: IGenericType): void {
+    if (!empty(this.superType)) {
+      throw new Error(`Super type for ${this.name} has already been set.`);
+    }
+
+    this.superType = type;
+  }
+
+  public addSuffixes(...suffixes: [string, IGenericType][]): void {
+    for (const [name, type] of suffixes) {
+      if (this.suffixes.has(name)) {
+        throw new Error(`Duplicate suffix of ${name} added to ${this.name}`);
+      }
+
+      this.suffixes.set(name, type);
+    }
+  }
+
+  public addOperator(
+    ...operators: [OperatorKind, Operator<IGenericType>][]
+  ): void {
+    for (const [kind, operator] of operators) {
+      if (!this.operators.has(kind)) {
+        this.operators.set(kind, []);
+      }
+
+      const operatorsKind = this.operators.get(kind);
+
+      // should never happen
+      if (empty(operatorsKind)) {
+        throw new Error(
+          `Operator kind ${OperatorKind[kind]} not found for ${this.name}`,
+        );
+      }
+
+      // check to make sure we didn't add two operators with the same
+      // other operand
+      for (const existingOperator of operatorsKind) {
+        if (existingOperator.otherOperand === operator.otherOperand) {
+          let message: string;
+          const { otherOperand } = existingOperator;
+          if (empty(otherOperand)) {
+            message =
+              `Operator of kind ${OperatorKind[kind]}` +
+              ` already exists between for ${this.name}`;
+          } else {
+            message =
+              `Operator of kind ${OperatorKind[kind]} already exists between` +
+              ` ${this.name} and ${otherOperand.name}`;
+          }
+
+          throw new Error(message);
+        }
+      }
+
+      operatorsKind.push(operator);
+    }
+  }
+
+  public getTypeParameters(): Set<TypeParameter> {
+    throw new Error('Method not implemented.');
+  }
+
+  public getSuperType(): IGenericType | undefined {
+    return this.superType;
+  }
+  public isSubtype(type: IGenericType): boolean {
+    if (type === this) {
+      return true;
+    }
+
+    return empty(this.superType) ? false : this.superType.isSubtype(type);
+  }
+  public canCoerce(type: IGenericType): boolean {
+    if (type === this) {
+      return true;
+    }
+
+    if (this.coercibleTypes.has(type)) {
+      return true;
+    }
+
+    return empty(this.superType) ? false : this.superType.canCoerce(type);
+  }
+  public getSuffix(name: string): IGenericType | undefined {
+    const suffix = this.suffixes.get(name);
+    if (!empty(suffix)) {
+      return suffix;
+    }
+
+    return empty(this.superType) ? undefined : this.superType.getSuffix(name);
+  }
+  public getOperator(
+    kind: OperatorKind,
+    other?: IGenericType,
+  ): Maybe<Operator<IGenericType>> {
+    const operators = this.operators.get(kind);
+
+    if (empty(operators)) {
+      return operators;
+    }
+
+    for (const operator of operators) {
+      if (other === operator.otherOperand) {
+        return operator;
+      }
+    }
+
+    throw new Error('Method not implemented.');
+  }
   public toTypeString(): string {
-    return `${this.name}<T>`;
+    throw new Error('Method not implemented.');
   }
-
-  /**
-   * Convert this type into it's concrete representation
-   * @param type type parameter
-   */
-  public toConcreteType(type: ArgumentType): ArgumentType {
-    if (this === tType) {
-      return type;
-    }
-
-    // check cache
-    const cache = this.concreteTypes.get(type);
-    if (!empty(cache)) {
-      return cache;
-    }
-
-    const newType = new BasicType(this.name, [type]);
-    this.concreteTypes.set(type, newType);
-
-    const newInherentsFrom = !empty(this.superType)
-      ? this.superType.toConcreteType(type)
-      : undefined;
-
-    // add suffixes and prototype
-    for (const [name, suffixType] of this.suffixes.entries()) {
-      newType.suffixes.set(name, suffixType.toConcreteType(type));
-    }
-    newType.operators = new Map(this.operators);
-    newType.superType = newInherentsFrom;
-
-    return newType;
-  }
-
-  /**
-   * Is this a full type
-   */
-  public get fullType(): boolean {
-    return false;
-  }
-
-  /**
-   * What is the type kind of this type
-   */
-  public get kind(): TypeKind.basic {
-    return TypeKind.basic;
-  }
-}
-
-/**
- * This represents a generic suffix type, typically suffixes of containers in kos
- */
-export class GenericSuffixType implements IGenericSuffixType {
-  /**
-   * A memoized mapping of this genertic type to concrete types
-   */
-  private concreteTypes: Map<ArgumentType, ISuffixType>;
-
-  /**
-   * Construct a generic suffix type
-   * @param name name of the type
-   * @param callType call type of this suffix
-   * @param params parameters for this suffix
-   * @param returns return type of this suffix
-   */
-  constructor(
-    public readonly name: string,
-    public readonly callType: CallKind,
-    public readonly params: IGenericArgumentType[] | IGenericVariadicType,
-    public readonly returns: IGenericArgumentType,
-  ) {
-    this.concreteTypes = new Map();
-  }
-
-  /**
-   * Convert this type to a type string
-   */
-  public toTypeString(): string {
-    const returnString = returnTypeString(this.returns);
-    if (
-      this.callType !== CallKind.call &&
-      this.callType !== CallKind.optionalCall
-    ) {
-      return returnString;
-    }
-
-    const paramsString = parameterTypeString(this.params);
-    return `<T>(${paramsString}) => ${returnString}`;
-  }
-
-  /**
-   * Convert this type into it's concrete representation
-   * @param type type parameter
-   */
-  public toConcreteType(type: ArgumentType): ISuffixType {
-    // check cache
-    const cache = this.concreteTypes.get(type);
-    if (!empty(cache)) {
-      return cache;
-    }
-
-    // generate concete parameters
-    const newParams = this.newParameters(this.params, type);
-
-    // generate concrete return
-    const newReturns = this.returns.toConcreteType(type);
-    const newType = new SuffixType(
-      this.name,
-      this.callType,
-      newParams,
-      newReturns,
-      [type],
-    );
-
-    this.concreteTypes.set(type, newType);
-    return newType;
-  }
-
-  /**
-   * Is this type a full type
-   */
-  public get fullType(): boolean {
-    return false;
-  }
-
-  /**
-   * What is the kind of this type
-   */
-  public get kind(): TypeKind.suffix {
-    return TypeKind.suffix;
-  }
-
-  /**
-   * Generate new parameters types for suffixes with calls
-   * @param params parameters to convert to concrete types
-   * @param type type parameter
-   */
-  private newParameters(
-    params: IGenericArgumentType[] | IGenericVariadicType,
-    type: ArgumentType,
-  ): ArgumentType[] | IVariadicType {
-    // check if variadic type
-    if (!Array.isArray(params)) {
-      return params.toConcreteType(type);
-    }
-
-    const newParams: ArgumentType[] = [];
-    for (const param of params) {
-      newParams.push(param.toConcreteType(type));
-    }
-
-    return newParams;
+  public toConcreteType(typeArguments: Map<TypeParameter, IType>): IType {
+    throw new Error('Method not implemented.');
   }
 }
 
 /**
  * This represents a type
  */
-export class BasicType implements IBasicType {
+export class Type implements IType {
+  /**
+   * A memoized mapping of this generic type to concrete types
+   */
+  private concreteTypes: Map<IGenericType, IGenericType>;
+
   /**
    * Name of the type
    */
-  public readonly name: string;
+  private readonly name: string;
 
   /**
    * Suffixes attach to this type
    */
-  public suffixes: Map<string, ISuffixType>;
+  private suffixes: Map<string, IGenericType>;
 
   /**
    * Operators that are applicable for this type
    */
-  public operators: Map<OperatorKind, Operator[]>;
+  private operators: Map<OperatorKind, Operator[]>;
 
   /**
    * Is this type a subtype of another type
    */
-  public superType?: ArgumentType;
+  private superType?: IGenericType;
 
   /**
-   * type paremters for this type
+   * type parameters for this type
    */
-  private typeParameters: ArgumentType[];
+  public typeParameters: Map<IGenericType, Maybe<IGenericType>>;
 
   /**
    * Type constructor
    * @param name name of the new type
    * @param typeParameters type parameters of this type
    */
-  constructor(name: string, typeParameters: ArgumentType[]) {
+  constructor(
+    name: string,
+    access: Access,
+    callSignature: CallSignature,
+    typeParameters: Map<IGenericType, Maybe<IGenericType>>,
+  ) {
     this.name = name;
     this.typeParameters = typeParameters;
     this.suffixes = new Map();

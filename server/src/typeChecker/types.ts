@@ -1,11 +1,12 @@
-import { Type, ArgumentType } from './types/types';
 import { Diagnostic } from 'vscode-languageserver';
 import { SuffixTypeBuilder } from './suffixTypeNode';
+import { Operator } from './operator';
+import { TypeParameter } from './typeParameter';
 
 /**
  * type result for a kerboscript expression
  */
-export interface ITypeResultExpr<T extends Type> {
+export interface ITypeResultExpr<T extends IType> {
   /**
    * result type
    */
@@ -24,12 +25,12 @@ export interface ITypeResultSuffix<
   T extends SuffixTypeBuilder = SuffixTypeBuilder
 > {
   /**
-   * resolved cummulative suffix types
+   * resolved cumulative suffix types
    */
   builder: T;
 
   /**
-   * errors encounted during this suffix type check
+   * errors encountered during this suffix type check
    */
   errors: Diagnostic[];
 }
@@ -79,12 +80,12 @@ export interface BinaryConstructor {
   /**
    * What is the return type of this operator
    */
-  returnType: ArgumentType;
+  returnType: IType;
 
   /**
    * What is the other type of the operator
    */
-  other: ArgumentType;
+  other: IType;
 }
 
 /**
@@ -99,7 +100,7 @@ export interface UnaryConstructor {
   /**
    * What is the return type of this operator
    */
-  returnType: ArgumentType;
+  returnType: IType;
 
   /**
    * What is the other type of this operator
@@ -127,4 +128,45 @@ export enum OperatorKind {
   lessThanEqual,
   notEqual,
   equal,
+}
+
+export interface IGenericType {
+  readonly name: string;
+  readonly access: Access;
+  readonly callSignature?: CallSignature;
+  readonly kind: TypeKind;
+  addSuper(type: IGenericType): void;
+  addSuffixes(...suffixes: [string, IGenericType][]): void;
+  addOperator(...operators: [OperatorKind, Operator<IGenericType>][]): void;
+  getTypeParameters(): Set<TypeParameter>;
+  isSubtype(type: IGenericType): boolean;
+  canCoerce(type: IGenericType): boolean;
+  getSuperType(): Maybe<IGenericType>;
+  getSuffix(name: string): Maybe<IGenericType>;
+  getSuffixes(): IGenericType[];
+  getOperator(
+    kind: OperatorKind,
+    other?: IGenericType,
+  ): Maybe<Operator<IGenericType>>;
+  toTypeString(): string;
+  toConcreteType(typeArguments: Map<TypeParameter, IType>): IType;
+}
+
+export interface IType extends IGenericType {
+  typeArguments: Map<TypeParameter, IType>;
+  getSuperType(): Maybe<IType>;
+  isSubtype(type: IType): boolean;
+  canCoerce(type: IType): boolean;
+  getSuffix(name: string): Maybe<IType>;
+  getOperator(kind: OperatorKind, other?: IType): Maybe<Operator<IType>>;
+}
+
+export interface Access {
+  get: boolean;
+  set: boolean;
+}
+
+export interface CallSignature {
+  params: IType[];
+  returns: IType;
 }

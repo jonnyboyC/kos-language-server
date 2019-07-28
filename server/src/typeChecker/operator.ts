@@ -1,8 +1,7 @@
-import { ArgumentType } from './types/types';
-import { OperatorKind } from './types';
+import { OperatorKind, IGenericType, IType } from './types';
 import { empty } from '../utilities/typeGuards';
 
-export class Operator {
+export class Operator<T extends IGenericType = IType> {
   /**
    * What operator kind associated with this operator
    */
@@ -11,12 +10,12 @@ export class Operator {
   /**
    * What is the other operand for this operator
    */
-  public readonly otherOperand?: ArgumentType;
+  public readonly otherOperand?: T;
 
   /**
    * What is the return type of this operator
    */
-  public readonly returnType: ArgumentType;
+  public readonly returnType: T;
 
   /**
    * Construct and instance of an operator
@@ -24,11 +23,7 @@ export class Operator {
    * @param otherOperand what else need to appear in this operation
    * @param returnType what is the return type of this operation
    */
-  constructor(
-    operator: OperatorKind,
-    returnType: ArgumentType,
-    otherOperand?: ArgumentType,
-  ) {
+  constructor(operator: OperatorKind, returnType: T, otherOperand?: T) {
     this.operator = operator;
     this.otherOperand = otherOperand;
     this.returnType = returnType;
