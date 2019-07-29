@@ -43,6 +43,7 @@ export const enum TypeKind {
   variadic,
   suffix,
   function,
+  typePlaceholder,
 }
 
 /**
@@ -133,32 +134,45 @@ export enum OperatorKind {
 export interface IGenericType {
   readonly name: string;
   readonly access: Access;
-  readonly callSignature?: CallSignature;
+  readonly callSignature?: CallSignature<IGenericType>;
   readonly kind: TypeKind;
   addSuper(type: IGenericType): void;
+  addCoercion(...types: IGenericType[]): void;
   addSuffixes(...suffixes: [string, IGenericType][]): void;
   addOperator(...operators: [OperatorKind, Operator<IGenericType>][]): void;
-  getTypeParameters(): Set<TypeParameter>;
   isSubtype(type: IGenericType): boolean;
   canCoerce(type: IGenericType): boolean;
+  getTypeParameters(): TypeParameter[];
   getSuperType(): Maybe<IGenericType>;
+  getCoercions(): Set<IGenericType>;
   getSuffix(name: string): Maybe<IGenericType>;
-  getSuffixes(): IGenericType[];
+  getSuffixes(): Map<string, IGenericType>;
   getOperator(
     kind: OperatorKind,
     other?: IGenericType,
   ): Maybe<Operator<IGenericType>>;
+  getOperators(): Map<OperatorKind, Operator<IGenericType>[]>;
   toTypeString(): string;
   toConcreteType(typeArguments: Map<TypeParameter, IType>): IType;
 }
 
 export interface IType extends IGenericType {
   typeArguments: Map<TypeParameter, IType>;
-  getSuperType(): Maybe<IType>;
+  addSuper(type: IType): void;
+  addCoercion(...types: IType[]): void;
+  addSuffixes(...suffixes: [string, IType][]): void;
+  addOperator(...operators: [OperatorKind, Operator<IType>][]): void;
   isSubtype(type: IType): boolean;
   canCoerce(type: IType): boolean;
+  getTypeParameters(): TypeParameter[];
+  getSuperType(): Maybe<IType>;
+  getCoercions(): Set<IType>;
   getSuffix(name: string): Maybe<IType>;
+  getSuffixes(): Map<string, IType>;
   getOperator(kind: OperatorKind, other?: IType): Maybe<Operator<IType>>;
+  getOperators(): Map<OperatorKind, Operator<IType>[]>;
+  toTypeString(): string;
+  toConcreteType(typeArguments: Map<TypeParameter, IType>): IType;
 }
 
 export interface Access {
@@ -166,7 +180,7 @@ export interface Access {
   set: boolean;
 }
 
-export interface CallSignature {
-  params: IType[];
-  returns: IType;
+export interface CallSignature<T extends IGenericType = IType> {
+  params: T[];
+  returns: T;
 }

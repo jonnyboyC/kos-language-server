@@ -1,19 +1,8 @@
 import { empty } from '../utilities/typeGuards';
-// import {
-//   IGenericArgumentType,
-//   ArgumentType,
-//   IGenericSuffixType,
-//   IGenericVariadicType,
-//   IGenericBasicType,
-//   IConstantType,
-//   IBasicType,
-//   ISuffixType,
-//   IVariadicType,
-//   IFunctionType,
-// } from './types/types';
 import { SuffixTracker } from '../analysis/suffixTracker';
 import { KsSuffix } from '../entities/suffix';
 import { tType } from './typeCreators';
+import { TypeSubstitution } from './typeSubstitution';
 import {
   OperatorKind,
   TypeKind,
@@ -33,8 +22,7 @@ export class GenericType implements IGenericType {
   public readonly kind: TypeKind;
 
   private superType?: IGenericType;
-  private concreteTypes: any;
-  public readonly typeParameters: Set<TypeParameter>;
+  private substitution: TypeSubstitution;
   private coercibleTypes: Set<IGenericType>;
   private suffixes: Map<string, IGenericType>;
   private operators: Map<OperatorKind, Operator<IGenericType>[]>;
@@ -42,15 +30,15 @@ export class GenericType implements IGenericType {
   constructor(
     name: string,
     access: Access,
-    typeParameter: Set<TypeParameter>,
+    typeParameters: Set<TypeParameter>,
     kind: TypeKind,
     callSignature?: CallSignature,
   ) {
     this.name = name;
     this.access = access;
     this.callSignature = callSignature;
-    this.typeParameters = typeParameter;
     this.kind = kind;
+    this.substitution = new TypeSubstitution(typeParameters);
     this.coercibleTypes = new Set();
     this.suffixes = new Map();
     this.operators = new Map();
@@ -62,6 +50,16 @@ export class GenericType implements IGenericType {
     }
 
     this.superType = type;
+  }
+
+  public addCoercion(type: IGenericType): void {
+    if (this.coercibleTypes.has(type)) {
+      throw new Error(
+        `Coercible type ${type.name} has already been added to ${this.name}`,
+      );
+    }
+
+    this.coercibleTypes.add(type);
   }
 
   public addSuffixes(...suffixes: [string, IGenericType][]): void {
@@ -115,13 +113,6 @@ export class GenericType implements IGenericType {
     }
   }
 
-  public getTypeParameters(): Set<TypeParameter> {
-    throw new Error('Method not implemented.');
-  }
-
-  public getSuperType(): IGenericType | undefined {
-    return this.superType;
-  }
   public isSubtype(type: IGenericType): boolean {
     if (type === this) {
       return true;
@@ -140,6 +131,19 @@ export class GenericType implements IGenericType {
 
     return empty(this.superType) ? false : this.superType.canCoerce(type);
   }
+
+  public getTypeParameters(): TypeParameter[] {
+    return [...this.substitution.typeParameters];
+  }
+
+  public getSuperType(): IGenericType | undefined {
+    return this.superType;
+  }
+
+  public getCoercions(): Set<IGenericType> {
+    return this.coercibleTypes;
+  }
+
   public getSuffix(name: string): IGenericType | undefined {
     const suffix = this.suffixes.get(name);
     if (!empty(suffix)) {
@@ -148,6 +152,19 @@ export class GenericType implements IGenericType {
 
     return empty(this.superType) ? undefined : this.superType.getSuffix(name);
   }
+
+  public getSuffixes(): Map<string, IGenericType> {
+    const suffixes = new Map(this.suffixes.entries());
+
+    if (!empty(this.superType)) {
+      for (const [key, value] of this.superType.getSuffixes()) {
+        suffixes.set(key, value);
+      }
+    }
+
+    return suffixes;
+  }
+
   public getOperator(
     kind: OperatorKind,
     other?: IGenericType,
@@ -159,18 +176,50 @@ export class GenericType implements IGenericType {
     }
 
     for (const operator of operators) {
-      if (other === operator.otherOperand) {
+      // check if operator is unary other see if it can coerced into other operand
+      if (empty(operator.otherOperand)) {
+        if (empty(other)) {
+          return operator;
+        }
+      } else if (!empty(other) && operator.otherOperand.canCoerce(other)) {
         return operator;
       }
     }
 
-    throw new Error('Method not implemented.');
+    return undefined;
   }
+
+  public getOperators(): Map<OperatorKind, Operator<IGenericType>[]> {
+    return this.operators;
+  }
+
   public toTypeString(): string {
-    throw new Error('Method not implemented.');
+    const typeParameters = this.getTypeParameters();
+
+    const typeParameterStr =
+      typeParameters.length > 0
+        ? `<${typeParameters.map(t => t.toTypeString()).join(', ')}>`
+        : '';
+
+    if (empty(this.callSignature)) {
+      return `${this.name}${typeParameterStr}`;
+    }
+
+    return this.callToTypeString(this.callSignature, typeParameterStr);
   }
+
+  private callToTypeString(
+    callSignature: CallSignature,
+    typeParameterStr: string,
+  ): string {
+    const paramsStr = callSignature.params
+      .map(p => p.toTypeString())
+      .join(', ');
+    return `${typeParameterStr}(${paramsStr}) => ${callSignature.returns.toTypeString()}`;
+  }
+
   public toConcreteType(typeArguments: Map<TypeParameter, IType>): IType {
-    throw new Error('Method not implemented.');
+    return this.substitution.substitute(this, typeArguments);
   }
 }
 
@@ -178,6 +227,52 @@ export class GenericType implements IGenericType {
  * This represents a type
  */
 export class Type implements IType {
+  typeArguments: Map<TypeParameter, IType>;
+  addSuper(type: IType): void {
+    throw new Error('Method not implemented.');
+  }
+  addCoercion(...types: IType[]): void {
+    throw new Error('Method not implemented.');
+  }
+  addSuffixes(...suffixes: [string, IType][]): void {
+    throw new Error('Method not implemented.');
+  }
+  addOperator(...operators: [OperatorKind, Operator<IType>][]): void {
+    throw new Error('Method not implemented.');
+  }
+  isSubtype(type: IType): boolean {
+    throw new Error('Method not implemented.');
+  }
+  canCoerce(type: IType): boolean {
+    throw new Error('Method not implemented.');
+  }
+  getTypeParameters(): TypeParameter[] {
+    throw new Error('Method not implemented.');
+  }
+  getSuperType(): Maybe<IType> {
+    throw new Error('Method not implemented.');
+  }
+  getCoercions(): Set<IType> {
+    throw new Error('Method not implemented.');
+  }
+  getSuffix(name: string): Maybe<IType> {
+    throw new Error('Method not implemented.');
+  }
+  getSuffixes(): Map<string, IType> {
+    throw new Error('Method not implemented.');
+  }
+  getOperator(
+    kind: OperatorKind,
+    other?: Maybe<IType>,
+  ): Maybe<Operator<IType>> {
+    throw new Error('Method not implemented.');
+  }
+  getOperators(): Map<OperatorKind, Operator<IType>[]> {
+    throw new Error('Method not implemented.');
+  }
+  access: Access;
+  callSignature?: CallSignature<IGenericType> | undefined;
+
   /**
    * A memoized mapping of this generic type to concrete types
    */
@@ -186,7 +281,7 @@ export class Type implements IType {
   /**
    * Name of the type
    */
-  private readonly name: string;
+  public readonly name: string;
 
   /**
    * Suffixes attach to this type
@@ -216,8 +311,9 @@ export class Type implements IType {
   constructor(
     name: string,
     access: Access,
-    callSignature: CallSignature,
-    typeParameters: Map<IGenericType, Maybe<IGenericType>>,
+    typeArguments: Map<TypeParameter, IType>,
+    kind: TypeKind,
+    callSignature?: CallSignature,
   ) {
     this.name = name;
     this.typeParameters = typeParameters;
