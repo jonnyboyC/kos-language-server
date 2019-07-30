@@ -1,16 +1,11 @@
 import { structureType } from '../primitives/structure';
 import { createSetSuffixType, createStructureType } from '../../typeCreators';
-import { addPrototype, addSuffixes } from '../../typeUtilities';
 import { integerType } from '../primitives/scalar';
-import { ArgumentType } from '../types';
 
-export const widgetStyleRectOffsetType: ArgumentType = createStructureType(
-  'styleRectOffset',
-);
-addPrototype(widgetStyleRectOffsetType, structureType);
+export const widgetStyleRectOffsetType = createStructureType('styleRectOffset');
+widgetStyleRectOffsetType.addSuper(structureType);
 
-addSuffixes(
-  widgetStyleRectOffsetType,
+widgetStyleRectOffsetType.addSuffixes(
   createSetSuffixType('h', integerType),
   createSetSuffixType('v', integerType),
   createSetSuffixType('left', integerType),

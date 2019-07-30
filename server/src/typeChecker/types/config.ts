@@ -1,15 +1,12 @@
-import { ArgumentType } from './types';
-import { createStructureType, createSetSuffixType } from "../typeCreators";
-import { addPrototype, addSuffixes } from '../typeUtilities';
+import { createStructureType, createSetSuffixType } from '../typeCreators';
 import { structureType } from './primitives/structure';
 import { scalarType } from './primitives/scalar';
 import { booleanType } from './primitives/boolean';
 
-export const configType: ArgumentType = createStructureType('config');
-addPrototype(configType, structureType);
+export const configType = createStructureType('config');
+configType.addSuper(structureType);
 
-addSuffixes(
-  configType,
+configType.addSuffixes(
   createSetSuffixType('ipu', scalarType),
   createSetSuffixType('ucp', booleanType),
   createSetSuffixType('stat', booleanType),

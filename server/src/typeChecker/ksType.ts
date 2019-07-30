@@ -1,12 +1,8 @@
 import { empty } from '../utilities/typeGuards';
-import { SuffixTracker } from '../analysis/suffixTracker';
-import { KsSuffix } from '../entities/suffix';
-import { tType } from './typeCreators';
 import { TypeSubstitution } from './typeSubstitution';
 import {
   OperatorKind,
   TypeKind,
-  CallKind,
   IGenericType,
   Access,
   CallSignature,
@@ -18,10 +14,11 @@ import { TypeParameter } from './typeParameter';
 export class GenericType implements IGenericType {
   public readonly name: string;
   public readonly access: Access;
-  public readonly callSignature?: CallSignature;
+  public readonly callSignature?: CallSignature<IGenericType>;
   public readonly kind: TypeKind;
 
   private superType?: IGenericType;
+  private typeParameterLink?: Map<TypeParameter, TypeParameter>;
   private substitution: TypeSubstitution;
   private coercibleTypes: Set<IGenericType>;
   private suffixes: Map<string, IGenericType>;
@@ -30,9 +27,9 @@ export class GenericType implements IGenericType {
   constructor(
     name: string,
     access: Access,
-    typeParameters: Set<TypeParameter>,
+    typeParameters: string[],
     kind: TypeKind,
-    callSignature?: CallSignature,
+    callSignature?: CallSignature<IGenericType>,
   ) {
     this.name = name;
     this.access = access;
@@ -44,48 +41,91 @@ export class GenericType implements IGenericType {
     this.operators = new Map();
   }
 
-  public addSuper(type: IGenericType): void {
+  public addSuper(
+    type: IGenericType,
+    typeParameterLink?: Map<TypeParameter, TypeParameter>,
+  ): void {
     if (!empty(this.superType)) {
       throw new Error(`Super type for ${this.name} has already been set.`);
+    }
+
+    if (type.getTypeParameters().length > 0) {
+      const superTypeParams = type.getTypeParameters();
+      const thisTypeParams = this.getTypeParameters();
+
+      if (empty(typeParameterLink)) {
+        throw new Error(
+          `Super type ${type.name} was not passed a type parameter map`,
+        );
+      }
+
+      if (typeParameterLink.size !== superTypeParams.length) {
+        throw new Error(
+          `Super type has type parameters ${superTypeParams.join(', ')}` +
+            ` but was only given ${typeParameterLink.size} arguments`,
+        );
+      }
+
+      for (const [key, value] of typeParameterLink) {
+        if (!thisTypeParams.includes(key)) {
+          throw new Error(
+            `Type ${this.name} does not have a type parameter ${key.name}`,
+          );
+        }
+
+        if (!superTypeParams.includes(value)) {
+          throw new Error(
+            `Super type ${type.name} does not have a type parameter ${
+              value.name
+            }`,
+          );
+        }
+      }
+
+      this.typeParameterLink = typeParameterLink;
     }
 
     this.superType = type;
   }
 
-  public addCoercion(type: IGenericType): void {
-    if (this.coercibleTypes.has(type)) {
-      throw new Error(
-        `Coercible type ${type.name} has already been added to ${this.name}`,
-      );
-    }
-
-    this.coercibleTypes.add(type);
-  }
-
-  public addSuffixes(...suffixes: [string, IGenericType][]): void {
-    for (const [name, type] of suffixes) {
-      if (this.suffixes.has(name)) {
-        throw new Error(`Duplicate suffix of ${name} added to ${this.name}`);
+  public addCoercion(...types: IGenericType[]): void {
+    for (const type of types) {
+      if (this.coercibleTypes.has(type)) {
+        throw new Error(
+          `Coercible type ${type.name} has already been added to ${this.name}`,
+        );
       }
 
-      this.suffixes.set(name, type);
+      this.coercibleTypes.add(type);
     }
   }
 
-  public addOperator(
-    ...operators: [OperatorKind, Operator<IGenericType>][]
-  ): void {
-    for (const [kind, operator] of operators) {
-      if (!this.operators.has(kind)) {
-        this.operators.set(kind, []);
+  public addSuffixes(...suffixes: IGenericType[]): void {
+    for (const suffix of suffixes) {
+      if (this.suffixes.has(suffix.name)) {
+        throw new Error(
+          `Duplicate suffix of ${suffix.name} added to ${this.name}`,
+        );
       }
 
-      const operatorsKind = this.operators.get(kind);
+      this.suffixes.set(suffix.name, suffix);
+    }
+  }
+
+  public addOperators(...operators: Operator<IGenericType>[]): void {
+    for (const operator of operators) {
+      if (!this.operators.has(operator.operator)) {
+        this.operators.set(operator.operator, []);
+      }
+
+      const operatorsKind = this.operators.get(operator.operator);
 
       // should never happen
       if (empty(operatorsKind)) {
         throw new Error(
-          `Operator kind ${OperatorKind[kind]} not found for ${this.name}`,
+          `Operator kind ${OperatorKind[operator.operator]} not found for ${
+            this.name
+          }`,
         );
       }
 
@@ -97,11 +137,13 @@ export class GenericType implements IGenericType {
           const { otherOperand } = existingOperator;
           if (empty(otherOperand)) {
             message =
-              `Operator of kind ${OperatorKind[kind]}` +
+              `Operator of kind ${OperatorKind[operator.operator]}` +
               ` already exists between for ${this.name}`;
           } else {
             message =
-              `Operator of kind ${OperatorKind[kind]} already exists between` +
+              `Operator of kind ${
+                OperatorKind[operator.operator]
+              } already exists between` +
               ` ${this.name} and ${otherOperand.name}`;
           }
 
@@ -113,23 +155,32 @@ export class GenericType implements IGenericType {
     }
   }
 
-  public isSubtype(type: IGenericType): boolean {
+  public isSubtypeOf(type: IGenericType): boolean {
     if (type === this) {
       return true;
     }
 
-    return empty(this.superType) ? false : this.superType.isSubtype(type);
+    return empty(this.superType) ? false : this.superType.isSubtypeOf(type);
   }
-  public canCoerce(type: IGenericType): boolean {
+  public canCoerceFrom(type: IGenericType): boolean {
+    // if type no coercion needed
     if (type === this) {
       return true;
     }
 
+    // Are we directly a type that can be coerced
     if (this.coercibleTypes.has(type)) {
       return true;
     }
 
-    return empty(this.superType) ? false : this.superType.canCoerce(type);
+    // Are we a subtype of one of the coercible types
+    for (const coercibleType of this.coercibleTypes) {
+      if (type.isSubtypeOf(coercibleType)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   public getTypeParameters(): TypeParameter[] {
@@ -181,7 +232,7 @@ export class GenericType implements IGenericType {
         if (empty(other)) {
           return operator;
         }
-      } else if (!empty(other) && operator.otherOperand.canCoerce(other)) {
+      } else if (!empty(other) && operator.otherOperand.canCoerceFrom(other)) {
         return operator;
       }
     }
@@ -202,14 +253,16 @@ export class GenericType implements IGenericType {
         : '';
 
     if (empty(this.callSignature)) {
-      return `${this.name}${typeParameterStr}`;
+      return this.kind === TypeKind.variadic
+        ? `...${this.name}${typeParameterStr}`
+        : `${this.name}${typeParameterStr}`;
     }
 
     return this.callToTypeString(this.callSignature, typeParameterStr);
   }
 
   private callToTypeString(
-    callSignature: CallSignature,
+    callSignature: CallSignature<IGenericType>,
     typeParameterStr: string,
   ): string {
     const paramsStr = callSignature.params
@@ -218,232 +271,285 @@ export class GenericType implements IGenericType {
     return `${typeParameterStr}(${paramsStr}) => ${callSignature.returns.toTypeString()}`;
   }
 
-  public toConcreteType(typeArguments: Map<TypeParameter, IType>): IType {
-    return this.substitution.substitute(this, typeArguments);
+  public toConcreteType(typeArguments: Map<string, IType>): IType {
+    return this.substitution.substitute(
+      this,
+      typeArguments,
+      this.typeParameterLink,
+    );
   }
 }
 
-/**
- * This represents a type
- */
 export class Type implements IType {
-  typeArguments: Map<TypeParameter, IType>;
-  addSuper(type: IType): void {
-    throw new Error('Method not implemented.');
+  typeArguments: Map<string, IType>;
+
+  name: string;
+  access: Access;
+  callSignature?: CallSignature<IType>;
+  kind: TypeKind;
+
+  private superType?: IType;
+  private typeTemplate?: IGenericType;
+  private coercibleTypes: Set<IType>;
+  private suffixes: Map<string, IType>;
+  private operators: Map<OperatorKind, Operator<IType>[]>;
+
+  constructor(
+    name: string,
+    access: Access,
+    typeArguments: Map<string, IType>,
+    kind: TypeKind,
+    callSignature?: CallSignature,
+    typeTemplate?: IGenericType,
+  ) {
+    this.name = name;
+    this.access = access;
+    this.typeArguments = typeArguments;
+    this.kind = kind;
+    this.callSignature = callSignature;
+    this.typeTemplate = typeTemplate;
+    this.coercibleTypes = new Set();
+    this.suffixes = new Map();
+    this.operators = new Map();
+  }
+
+  public addSuper(type: IType, _?: Map<TypeParameter, TypeParameter>): void {
+    if (!empty(this.superType)) {
+      throw new Error(`Super type for ${this.name} has already been set.`);
+    }
+
+    this.superType = type;
   }
   addCoercion(...types: IType[]): void {
-    throw new Error('Method not implemented.');
+    for (const type of types) {
+      if (this.coercibleTypes.has(type)) {
+        throw new Error(
+          `Coercible type ${type.name} has already been added to ${this.name}`,
+        );
+      }
+
+      this.coercibleTypes.add(type);
+    }
   }
-  addSuffixes(...suffixes: [string, IType][]): void {
-    throw new Error('Method not implemented.');
+  addSuffixes(...suffixes: IType[]): void {
+    for (const suffix of suffixes) {
+      if (this.suffixes.has(suffix.name)) {
+        throw new Error(
+          `Duplicate suffix of ${suffix.name} added to ${this.name}`,
+        );
+      }
+
+      this.suffixes.set(suffix.name, suffix);
+    }
   }
-  addOperator(...operators: [OperatorKind, Operator<IType>][]): void {
-    throw new Error('Method not implemented.');
+  addOperators(...operators: Operator<IType>[]): void {
+    for (const operator of operators) {
+      if (!this.operators.has(operator.operator)) {
+        this.operators.set(operator.operator, []);
+      }
+
+      const operatorsKind = this.operators.get(operator.operator);
+
+      // should never happen
+      if (empty(operatorsKind)) {
+        throw new Error(
+          `Operator kind ${OperatorKind[operator.operator]} not found for ${
+            this.name
+          }`,
+        );
+      }
+
+      // check to make sure we didn't add two operators with the same
+      // other operand
+      for (const existingOperator of operatorsKind) {
+        if (existingOperator.otherOperand === operator.otherOperand) {
+          let message: string;
+          const { otherOperand } = existingOperator;
+          if (empty(otherOperand)) {
+            message =
+              `Operator of kind ${OperatorKind[operator.operator]}` +
+              ` already exists between for ${this.name}`;
+          } else {
+            message =
+              `Operator of kind ${
+                OperatorKind[operator.operator]
+              } already exists between` +
+              ` ${this.name} and ${otherOperand.name}`;
+          }
+
+          throw new Error(message);
+        }
+      }
+
+      operatorsKind.push(operator);
+    }
   }
-  isSubtype(type: IType): boolean {
-    throw new Error('Method not implemented.');
+  isSubtypeOf(type: IType): boolean {
+    if (type === this) {
+      return true;
+    }
+
+    // check if super type matches provided type
+    if (!empty(this.superType)) {
+      const isSubtype = this.superType.isSubtypeOf(type);
+      if (isSubtype) {
+        return isSubtype;
+      }
+    }
+
+    // check if type template matches provided type
+    if (!empty(this.typeTemplate)) {
+      const isSubtype = this.typeTemplate.isSubtypeOf(type);
+      if (isSubtype) {
+        return isSubtype;
+      }
+    }
+
+    return false;
   }
-  canCoerce(type: IType): boolean {
-    throw new Error('Method not implemented.');
+  canCoerceFrom(type: IType): boolean {
+    // if type no coercion needed
+    if (type === this) {
+      return true;
+    }
+
+    // Are we directly a type that can be coerced
+    if (this.coercibleTypes.has(type)) {
+      return true;
+    }
+
+    // Are we a subtype of one of the coercible types
+    for (const coercibleType of this.coercibleTypes) {
+      if (type.isSubtypeOf(coercibleType)) {
+        return true;
+      }
+    }
+
+    return false;
   }
   getTypeParameters(): TypeParameter[] {
-    throw new Error('Method not implemented.');
+    return [];
   }
   getSuperType(): Maybe<IType> {
-    throw new Error('Method not implemented.');
+    return this.superType;
   }
   getCoercions(): Set<IType> {
-    throw new Error('Method not implemented.');
+    return this.coercibleTypes;
   }
   getSuffix(name: string): Maybe<IType> {
-    throw new Error('Method not implemented.');
+    const suffix = this.suffixes.get(name);
+    if (!empty(suffix)) {
+      return suffix;
+    }
+
+    return empty(this.superType) ? undefined : this.superType.getSuffix(name);
   }
   getSuffixes(): Map<string, IType> {
-    throw new Error('Method not implemented.');
+    const suffixes = new Map(this.suffixes.entries());
+
+    if (!empty(this.superType)) {
+      for (const [key, value] of this.superType.getSuffixes()) {
+        suffixes.set(key, value);
+      }
+    }
+
+    return suffixes;
   }
   getOperator(
     kind: OperatorKind,
     other?: Maybe<IType>,
   ): Maybe<Operator<IType>> {
-    throw new Error('Method not implemented.');
+    const operators = this.operators.get(kind);
+
+    if (empty(operators)) {
+      return operators;
+    }
+
+    for (const operator of operators) {
+      // check if operator is unary other see if it can coerced into other operand
+      if (empty(operator.otherOperand)) {
+        if (empty(other)) {
+          return operator;
+        }
+      } else if (!empty(other) && operator.otherOperand.canCoerceFrom(other)) {
+        return operator;
+      }
+    }
+
+    return undefined;
   }
   getOperators(): Map<OperatorKind, Operator<IType>[]> {
-    throw new Error('Method not implemented.');
+    return this.operators;
   }
-  access: Access;
-  callSignature?: CallSignature<IGenericType> | undefined;
+  toTypeString(): string {
+    const typeParameters = this.getTypeParameters();
 
-  /**
-   * A memoized mapping of this generic type to concrete types
-   */
-  private concreteTypes: Map<IGenericType, IGenericType>;
+    let typeArgumentsStr: string;
+    if (typeParameters.length === 0) {
+      typeArgumentsStr = '';
+    } else {
+      const typeArgumentStrs: string[] = [];
+      for (const typeParameter of typeParameters) {
+        const typeArgument = this.typeArguments.get(typeParameter.name);
+        if (empty(typeArgument)) {
+          throw new Error(
+            `Type argument not found for parameter ${typeParameter}` +
+              ` for type ${this.name}`,
+          );
+        }
 
-  /**
-   * Name of the type
-   */
-  public readonly name: string;
+        typeArgumentStrs.push(typeArgument.toTypeString());
+      }
 
-  /**
-   * Suffixes attach to this type
-   */
-  private suffixes: Map<string, IGenericType>;
-
-  /**
-   * Operators that are applicable for this type
-   */
-  private operators: Map<OperatorKind, Operator[]>;
-
-  /**
-   * Is this type a subtype of another type
-   */
-  private superType?: IGenericType;
-
-  /**
-   * type parameters for this type
-   */
-  public typeParameters: Map<IGenericType, Maybe<IGenericType>>;
-
-  /**
-   * Type constructor
-   * @param name name of the new type
-   * @param typeParameters type parameters of this type
-   */
-  constructor(
-    name: string,
-    access: Access,
-    typeArguments: Map<TypeParameter, IType>,
-    kind: TypeKind,
-    callSignature?: CallSignature,
-  ) {
-    this.name = name;
-    this.typeParameters = typeParameters;
-    this.suffixes = new Map();
-    this.operators = new Map();
-  }
-
-  /**
-   * Convert this type into it's concrete representation
-   * @param _ type parameter
-   */
-  public toConcreteType(_: ArgumentType): ArgumentType {
-    return this;
-  }
-
-  /**
-   * Convert this type into a type string
-   */
-  public toTypeString(): string {
-    if (this.typeParameters.length === 0) {
-      return this.name;
+      typeArgumentsStr = `<${typeArgumentStrs.join(', ')}>`;
     }
 
-    const typeParameterStr = this.typeParameters
-      .map(t => t.toTypeString())
+    if (empty(this.callSignature)) {
+      return this.kind === TypeKind.variadic
+        ? `...${this.name}${typeArgumentsStr}`
+        : `${this.name}${typeArgumentsStr}`;
+    }
+
+    return this.callToTypeString(this.callSignature, typeArgumentsStr);
+  }
+
+  private callToTypeString(
+    callSignature: CallSignature,
+    typeArgumentsStr: string,
+  ): string {
+    const paramsStr = callSignature.params
+      .map(p => p.toTypeString())
       .join(', ');
-    return `${this.name}<${typeParameterStr}>`;
+    return `${typeArgumentsStr}(${paramsStr}) => ${callSignature.returns.toTypeString()}`;
   }
 
-  /**
-   * Is this a full type
-   */
-  public get fullType(): true {
-    return true;
-  }
-
-  /**
-   * What is the kind of this type
-   */
-  public get kind(): TypeKind.basic {
-    return TypeKind.basic;
-  }
-}
-
-/**
- * This represents a suffix type
- */
-export class SuffixType implements ISuffixType {
-  /**
-   * The suffix tracker for this type
-   */
-  private tracker: SuffixTracker;
-
-  /**
-   * Construct a suffix type
-   * @param name name of the type
-   * @param callType call type of this suffix
-   * @param params parameters for this suffix
-   * @param returns return type of this suffix
-   * @param typeParameters type parameters of this type
-   */
-  constructor(
-    public readonly name: string,
-    public readonly callType: CallKind,
-    public readonly params: ArgumentType[] | IVariadicType,
-    public readonly returns: ArgumentType,
-    public readonly typeParameters: ArgumentType[],
-  ) {
-    this.tracker = new SuffixTracker(new KsSuffix(name), this);
-  }
-
-  /**
-   * Generate the type string for this suffix type
-   */
-  public toTypeString(): string {
-    const typeParameterStr =
-      this.typeParameters.length > 0
-        ? `<${this.typeParameters.map(t => t.toTypeString()).join(', ')}>`
-        : '';
-
-    const returnString = returnTypeString(this.returns);
-    if (
-      this.callType !== CallKind.call &&
-      this.callType !== CallKind.optionalCall
-    ) {
-      return `${typeParameterStr}${returnString}`;
-    }
-
-    const paramsString = parameterTypeString(this.params);
-    return `${typeParameterStr}(${paramsString}) => ${returnString}`;
-  }
-
-  /**
-   * Convert this type into it's concrete representation
-   * @param _ type parameter
-   */
-  public toConcreteType(_: ArgumentType): ISuffixType {
+  toConcreteType(_: Map<string, IType>): IType {
     return this;
-  }
-
-  /**
-   * Is this a full type
-   */
-  public get fullType(): true {
-    return true;
-  }
-
-  /**
-   * What is the kind of this type
-   */
-  public get kind(): TypeKind.suffix {
-    return TypeKind.suffix;
-  }
-
-  getTracker(): SuffixTracker {
-    return this.tracker;
   }
 }
 
 /**
  * Represents a constant type, or a type with a fixed value
  */
-export class ConstantType<T> extends BasicType implements IConstantType<T> {
+export class ConstantType<T> extends Type {
+  public readonly value: T;
+
   /**
    * Construct a constant type
    * @param name name of this constant type
    * @param value value of this constant type
    */
-  constructor(name: string, public readonly value: T) {
-    super(name, []);
+  constructor(
+    name: string,
+    value: T,
+    access: Access,
+    typeArguments: Map<string, IType>,
+    kind: TypeKind,
+    callSignature?: CallSignature,
+    typeTemplate?: IGenericType,
+  ) {
+    super(name, access, typeArguments, kind, callSignature, typeTemplate);
+    this.value = value;
   }
 
   /**
@@ -453,120 +559,3 @@ export class ConstantType<T> extends BasicType implements IConstantType<T> {
     return `${super.toTypeString()} = ${this.value}`;
   }
 }
-
-/**
- * Represents a generic variadic type, typically for functions that take an
- * unspecified number of the same parameter.
- */
-export class GenericVariadicType implements IGenericVariadicType {
-  /**
-   * A memoized mapping of this genertic type to concrete types
-   */
-  private concreteTypes: Map<ArgumentType, IVariadicType>;
-
-  /**
-   * Construct a generic variadic type
-   * @param type type parameter
-   */
-  constructor(public readonly type: IGenericBasicType) {
-    this.concreteTypes = new Map();
-  }
-
-  /**
-   * Convert this type to a type string
-   */
-  public toTypeString(): string {
-    return `...${this.type.toTypeString()}[]`;
-  }
-
-  /**
-   * Convert this type into it's concrete representation
-   * @param type type parameter
-   */
-  public toConcreteType(type: IBasicType): IVariadicType {
-    // check cache
-    const cache = this.concreteTypes.get(type);
-    if (!empty(cache)) {
-      return cache;
-    }
-
-    const newType = new VariadicType(type);
-    this.concreteTypes.set(type, newType);
-    return newType;
-  }
-
-  /**
-   * What is the kind of this type
-   */
-  public get kind(): TypeKind.variadic {
-    return TypeKind.variadic;
-  }
-}
-
-/**
- * Represent a variadictype, typically for functions that take an
- * unspecified number of the same parameter.
- */
-export class VariadicType extends GenericVariadicType implements IVariadicType {
-  constructor(public readonly type: IBasicType) {
-    super(type);
-  }
-  public toConcreteType(_: IBasicType): IVariadicType {
-    return this;
-  }
-  public get fullType(): true {
-    return true;
-  }
-  public get kind(): TypeKind.variadic {
-    return TypeKind.variadic;
-  }
-}
-
-export class FunctionType implements IFunctionType {
-  constructor(
-    public readonly name: string,
-    public readonly callType: CallKind.call | CallKind.optionalCall,
-    public readonly params: ArgumentType[] | IVariadicType,
-    public readonly returns: ArgumentType,
-  ) {}
-
-  public toTypeString(): string {
-    const returnString = returnTypeString(this.returns);
-    const paramsString = parameterTypeString(this.params);
-
-    return `(${paramsString}) => ${returnString}`;
-  }
-
-  public toConcreteType(_: IBasicType): IFunctionType {
-    return this;
-  }
-
-  public get kind(): TypeKind.function {
-    return TypeKind.function;
-  }
-
-  public get fullType(): true {
-    return true;
-  }
-}
-
-const returnTypeString = (returns?: IGenericArgumentType) => {
-  return empty(returns) ? 'void' : returns.toTypeString();
-};
-
-const parameterTypeString = (
-  params: IGenericArgumentType[] | IGenericVariadicType,
-) => {
-  // empty string for no params
-  if (empty(params)) {
-    return '';
-  }
-
-  // check if variadic type
-  if (!Array.isArray(params)) {
-    return params.toTypeString();
-  }
-
-  // string separated i
-  return params.map(param => param.toTypeString()).join(', ');
-};

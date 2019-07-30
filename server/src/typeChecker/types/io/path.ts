@@ -1,12 +1,9 @@
-import { ArgumentType } from '../types';
 import {
   createStructureType,
   createSuffixType,
   createArgSuffixType,
   createVarSuffixType,
-  createVarType,
 } from '../../typeCreators';
-import { addPrototype, addSuffixes, addOperators } from '../../typeUtilities';
 import { structureType } from '../primitives/structure';
 import { volumeType } from './volume';
 import { integerType } from '../primitives/scalar';
@@ -15,12 +12,12 @@ import { booleanType } from '../primitives/boolean';
 import { serializableStructureType } from '../primitives/serializeableStructure';
 import { listType } from '../collections/list';
 import { OperatorKind } from '../../types';
+import { Operator } from '../../operator';
 
-export const pathType: ArgumentType = createStructureType('path');
-addPrototype(pathType, serializableStructureType);
+export const pathType = createStructureType('path');
+pathType.addSuper(serializableStructureType);
 
-addSuffixes(
-  pathType,
+pathType.addSuffixes(
   createSuffixType('volume', volumeType),
   createSuffixType('segments', listType.toConcreteType(stringType)),
   createSuffixType('length', integerType),
@@ -35,16 +32,7 @@ addSuffixes(
   createVarSuffixType('combine', pathType, createVarType(structureType)),
 );
 
-addOperators(
-  pathType,
-  {
-    operator: OperatorKind.equal,
-    other: pathType,
-    returnType: booleanType,
-  },
-  {
-    operator: OperatorKind.notEqual,
-    other: pathType,
-    returnType: booleanType,
-  },
+pathType.addOperators(
+  new Operator(OperatorKind.equal, booleanType, pathType),
+  new Operator(OperatorKind.notEqual, booleanType, pathType),
 );

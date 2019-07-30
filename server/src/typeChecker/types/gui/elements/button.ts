@@ -1,15 +1,15 @@
-import { createStructureType, createSetSuffixType } from "../../../typeCreators";
-import { ArgumentType } from '../../types';
-import { addPrototype, addSuffixes } from '../../../typeUtilities';
+import {
+  createStructureType,
+  createSetSuffixType,
+} from '../../../typeCreators';
 import { userDelegateType } from '../../userDelegate';
 import { labelType } from './label';
 import { booleanType } from '../../primitives/boolean';
 
-export const buttonType: ArgumentType = createStructureType('button');
-addPrototype(buttonType, labelType);
+export const buttonType = createStructureType('button');
+buttonType.addSuper(labelType);
 
-addSuffixes(
-  buttonType,
+buttonType.addSuffixes(
   createSetSuffixType('pressed', booleanType),
   createSetSuffixType('takePress', booleanType),
   createSetSuffixType('toggle', booleanType),

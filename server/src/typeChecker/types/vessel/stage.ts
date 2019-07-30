@@ -1,17 +1,14 @@
-import { ArgumentType } from '../types';
 import { createStructureType, createSuffixType } from '../../typeCreators';
-import { addPrototype, addSuffixes } from '../../typeUtilities';
 import { structureType } from '../primitives/structure';
 import { listType } from '../collections/list';
 import { lexiconType } from '../collections/lexicon';
 import { activeResourceType } from '../parts/activeResource';
 import { scalarType } from '../primitives/scalar';
 
-export const stageType: ArgumentType = createStructureType('stage');
-addPrototype(stageType, structureType);
+export const stageType = createStructureType('stage');
+stageType.addSuper(structureType);
 
-addSuffixes(
-  stageType,
+stageType.addSuffixes(
   createSuffixType('number', scalarType),
   createSuffixType('ready', scalarType),
   createSuffixType('resources', listType.toConcreteType(activeResourceType)),

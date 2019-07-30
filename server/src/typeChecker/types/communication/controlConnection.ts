@@ -1,7 +1,5 @@
-import { ArgumentType } from '../types';
-import { createStructureType } from "../../typeCreators";
-import { addPrototype } from '../../typeUtilities';
+import { createStructureType } from '../../typeCreators';
 import { connectionType } from './connection';
 
-export const controlConnectionType: ArgumentType = createStructureType('controlConnection');
-addPrototype(controlConnectionType, connectionType);
+export const controlConnectionType = createStructureType('controlConnection');
+controlConnectionType.addSuper(connectionType);

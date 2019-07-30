@@ -1,11 +1,9 @@
-import { ArgumentType } from './types';
 import {
   createStructureType,
   createArgSuffixType,
   createSuffixType,
   createSetSuffixType,
 } from '../typeCreators';
-import { addPrototype, addSuffixes } from '../typeUtilities';
 import { structureType } from './primitives/structure';
 import { uniqueSetType } from './collections/uniqueset';
 import { terminalInputType } from './terminalInput';
@@ -13,13 +11,10 @@ import { scalarType } from './primitives/scalar';
 import { booleanType } from './primitives/boolean';
 import { userDelegateType } from './userDelegate';
 
-export const terminalStructType: ArgumentType = createStructureType(
-  'terminalStruct',
-);
-addPrototype(terminalStructType, structureType);
+export const terminalStructType = createStructureType('terminalStruct');
+terminalStructType.addSuper(structureType);
 
-addSuffixes(
-  terminalStructType,
+terminalStructType.addSuffixes(
   createSetSuffixType('height', scalarType),
   createSetSuffixType('width', scalarType),
   createSetSuffixType('reverse', booleanType),

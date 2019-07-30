@@ -1,20 +1,17 @@
-import { ArgumentType } from '../types';
 import {
   createStructureType,
   createSetSuffixType,
   createArgSuffixType,
 } from '../../typeCreators';
-import { addPrototype, addSuffixes } from '../../typeUtilities';
 import { structureType } from '../primitives/structure';
 import { scalarType } from '../primitives/scalar';
 import { vectorType } from '../collections/vector';
 import { directionType } from '../direction';
 
-export const boundsType: ArgumentType = createStructureType('bounds');
-addPrototype(boundsType, structureType);
+export const boundsType = createStructureType('bounds');
+boundsType.addSuper(structureType);
 
-addSuffixes(
-  boundsType,
+boundsType.addSuffixes(
   createSetSuffixType('absOrigin', vectorType),
   createSetSuffixType('facing', directionType),
   createSetSuffixType('relMin', vectorType),

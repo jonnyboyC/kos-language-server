@@ -1,16 +1,17 @@
-import { ArgumentType } from './types';
-import { createStructureType, createArgSuffixType, createSuffixType } from '../typeCreators';
-import { addPrototype, addSuffixes } from '../typeUtilities';
+import {
+  createStructureType,
+  createArgSuffixType,
+  createSuffixType,
+} from '../typeCreators';
 import { structureType } from './primitives/structure';
 import { voidType } from './primitives/void';
 import { stringType } from './primitives/string';
 import { booleanType } from './primitives/boolean';
 
-export const terminalInputType: ArgumentType = createStructureType('terminalInput');
-addPrototype(terminalInputType, structureType);
+export const terminalInputType = createStructureType('terminalInput');
+terminalInputType.addSuper(structureType);
 
-addSuffixes(
-  terminalInputType,
+terminalInputType.addSuffixes(
   createSuffixType('getChar', stringType),
   createSuffixType('hasChar', booleanType),
   createArgSuffixType('clear', voidType),

@@ -1,16 +1,17 @@
-import { ArgumentType } from './types';
-import { createStructureType, createSuffixType, createSetSuffixType } from "../typeCreators";
-import { addPrototype, addSuffixes } from '../typeUtilities';
+import {
+  createStructureType,
+  createSuffixType,
+  createSetSuffixType,
+} from '../typeCreators';
 import { structureType } from './primitives/structure';
 import { vectorType } from './collections/vector';
 import { orbitInfoType } from './orbitInfo';
 import { scalarType } from './primitives/scalar';
 
-export const nodeType: ArgumentType = createStructureType('node');
-addPrototype(nodeType, structureType);
+export const nodeType = createStructureType('node');
+nodeType.addSuper(structureType);
 
-addSuffixes(
-  nodeType,
+nodeType.addSuffixes(
   createSuffixType('deltaV', vectorType),
   createSuffixType('burnVector', vectorType),
   createSetSuffixType('eta', scalarType),

@@ -1,15 +1,13 @@
-import { ArgumentType } from './types';
-import { createStructureType, createSetSuffixType } from "../typeCreators";
-import { addPrototype, addSuffixes } from '../typeUtilities';
+import { createStructureType, createSetSuffixType } from '../typeCreators';
 import { structureType } from './primitives/structure';
 import { scalarType } from './primitives/scalar';
 
-export const situationLoadDistanceType: ArgumentType
-  = createStructureType('situationLoadDistance');
-addPrototype(situationLoadDistanceType, structureType);
+export const situationLoadDistanceType = createStructureType(
+  'situationLoadDistance',
+);
+situationLoadDistanceType.addSuper(structureType);
 
-addSuffixes(
-  situationLoadDistanceType,
+situationLoadDistanceType.addSuffixes(
   createSetSuffixType('load', scalarType),
   createSetSuffixType('unload', scalarType),
   createSetSuffixType('pack', scalarType),

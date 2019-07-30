@@ -4,10 +4,10 @@ import { addPrototype, addSuffixes } from '../../typeUtilities';
 import { structureType } from '../primitives/structure';
 import { booleanType } from '../primitives/boolean';
 
-export const addonType: ArgumentType = createStructureType('addon');
-addPrototype(addonType, structureType);
+export const addonType = createStructureType('addon');
+addonType.addSuper(structureType);
 
-addSuffixes(
-  addonType,
+addonType.add
+addonType.addSuffixes(
   createSuffixType('available', booleanType),
 );

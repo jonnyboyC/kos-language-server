@@ -1,17 +1,14 @@
-import { ArgumentType } from './types';
 import { createStructureType, createSuffixType } from '../typeCreators';
-import { addPrototype, addSuffixes } from '../typeUtilities';
 import { scalarType } from './primitives/scalar';
 import { structureType } from './primitives/structure';
 import { stringType } from './primitives/string';
 import { booleanType } from './primitives/boolean';
 import { partType } from './parts/part';
 
-export const crewType: ArgumentType = createStructureType('crew');
-addPrototype(crewType, structureType);
+export const crewType = createStructureType('crew');
+crewType.addSuper(structureType);
 
-addSuffixes(
-  crewType,
+crewType.addSuffixes(
   createSuffixType('name', stringType),
   createSuffixType('tourist', booleanType),
   createSuffixType('gender', stringType),

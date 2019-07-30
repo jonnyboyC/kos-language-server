@@ -1,14 +1,11 @@
-import { ArgumentType } from '../types';
 import { createStructureType, createArgSuffixType } from '../../typeCreators';
-import { addPrototype, addSuffixes } from '../../typeUtilities';
 import { structureType } from '../primitives/structure';
 import { scalarType } from '../primitives/scalar';
 
-export const vesselEtaType: ArgumentType = createStructureType('vesselEta');
-addPrototype(vesselEtaType, structureType);
+export const vesselEtaType = createStructureType('vesselEta');
+vesselEtaType.addSuper(structureType);
 
-addSuffixes(
-  vesselEtaType,
+vesselEtaType.addSuffixes(
   createArgSuffixType('apoapsis', scalarType),
   createArgSuffixType('periapsis', scalarType),
   createArgSuffixType('transition', scalarType),

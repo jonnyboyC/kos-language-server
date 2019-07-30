@@ -69,7 +69,7 @@ import { SuffixTypeBuilder } from './suffixTypeNode';
 import { engineType } from './types/parts/engine';
 import { dockingPortType } from './types/parts/dockingPort';
 import { vesselSensorsType } from './types/vessel/vesselSensors';
-import { kosProcessorFields } from './types/kosProcessorFields';
+import { kosProcessorFieldsType } from './types/kosProcessorFields';
 import { elementType } from './types/parts/element';
 import { aggregateResourceType } from './types/parts/aggregateResource';
 import { Operator } from './operator';
@@ -944,7 +944,7 @@ export class TypeChecker
         finalType = volumeType;
         break;
       case 'processors':
-        finalType = kosProcessorFields;
+        finalType = kosProcessorFieldsType;
         break;
       default:
         finalType = structureType;

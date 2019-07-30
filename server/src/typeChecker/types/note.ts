@@ -1,14 +1,11 @@
-import { ArgumentType } from './types';
-import { createStructureType, createSuffixType } from "../typeCreators";
-import { addPrototype, addSuffixes } from '../typeUtilities';
+import { createStructureType, createSuffixType } from '../typeCreators';
 import { doubleType } from './primitives/scalar';
 import { serializableStructureType } from './primitives/serializeableStructure';
 
-export const noteType: ArgumentType = createStructureType('note');
-addPrototype(noteType, serializableStructureType);
+export const noteType = createStructureType('note');
+noteType.addSuper(serializableStructureType);
 
-addSuffixes(
-  noteType,
+noteType.addSuffixes(
   createSuffixType('frequency', doubleType),
   createSuffixType('endFrequency', doubleType),
   createSuffixType('volume', doubleType),

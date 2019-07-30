@@ -1,9 +1,4 @@
-import { ArgumentType } from '../types';
-import {
-  createStructureType,
-  createSuffixType,
-} from '../../typeCreators';
-import { addPrototype, addSuffixes } from '../../typeUtilities';
+import { createStructureType, createSuffixType } from '../../typeCreators';
 import { structureType } from '../primitives/structure';
 import { listType } from '../collections/list';
 import { stringType } from '../primitives/string';
@@ -12,11 +7,10 @@ import { partType } from './part';
 import { dockingPortType } from './dockingPort';
 import { aggregateResourceType } from './aggregateResource';
 
-export const elementType: ArgumentType = createStructureType('element');
-addPrototype(elementType, structureType);
+export const elementType = createStructureType('element');
+elementType.addSuper(structureType);
 
-addSuffixes(
-  elementType,
+elementType.addSuffixes(
   createSuffixType('name', stringType),
   createSuffixType('uid', stringType),
   createSuffixType('vessel', vesselTargetType),

@@ -1,7 +1,5 @@
-import { ArgumentType } from '../types';
-import { createStructureType } from "../../typeCreators";
-import { addPrototype } from '../../typeUtilities';
+import { createStructureType } from '../../typeCreators';
 import { connectionType } from './connection';
 
-export const homeConnectionType: ArgumentType = createStructureType('homeConnection');
-addPrototype(homeConnectionType, connectionType);
+export const homeConnectionType = createStructureType('homeConnection');
+homeConnectionType.addSuper(connectionType);

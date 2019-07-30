@@ -1,15 +1,16 @@
-import { ArgumentType } from '../types';
-import { createStructureType, createSuffixType, createSetSuffixType } from '../../typeCreators';
-import { addPrototype, addSuffixes } from '../../typeUtilities';
+import {
+  createStructureType,
+  createSuffixType,
+  createSetSuffixType,
+} from '../../typeCreators';
 import { booleanType } from '../primitives/boolean';
 import { partModuleType } from './partModule';
 import { scalarType } from '../primitives/scalar';
 
-export const gimbalType: ArgumentType = createStructureType('gimbal');
-addPrototype(gimbalType, partModuleType);
+export const gimbalType = createStructureType('gimbal');
+gimbalType.addSuper(partModuleType);
 
-addSuffixes(
-  gimbalType,
+gimbalType.addSuffixes(
   createSetSuffixType('lock', booleanType),
   createSetSuffixType('pitch', booleanType),
   createSetSuffixType('yaw', booleanType),

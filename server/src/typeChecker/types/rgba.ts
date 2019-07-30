@@ -1,18 +1,15 @@
-import { ArgumentType } from './types';
 import {
   createStructureType,
   createArgSuffixType,
   createSetSuffixType,
 } from '../typeCreators';
-import { addPrototype, addSuffixes } from '../typeUtilities';
 import { scalarType } from './primitives/scalar';
 import { serializableStructureType } from './primitives/serializeableStructure';
 
-export const rgbaType: ArgumentType = createStructureType('rgba');
-addPrototype(rgbaType, serializableStructureType);
+export const rgbaType = createStructureType('rgba');
+rgbaType.addSuper(serializableStructureType);
 
-addSuffixes(
-  rgbaType,
+rgbaType.addSuffixes(
   createSetSuffixType('r', scalarType),
   createSetSuffixType('red', scalarType),
   createSetSuffixType('g', scalarType),

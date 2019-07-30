@@ -1,21 +1,18 @@
-import { ArgumentType } from './types';
 import {
   createStructureType,
   createArgSuffixType,
   createSetSuffixType,
 } from '../typeCreators';
-import { addPrototype, addSuffixes } from '../typeUtilities';
 import { structureType } from './primitives/structure';
 import { voidType } from './primitives/void';
 import { scalarType } from './primitives/scalar';
 import { stringType } from './primitives/string';
 import { booleanType } from './primitives/boolean';
 
-export const voiceType: ArgumentType = createStructureType('voice');
-addPrototype(voiceType, structureType);
+export const voiceType = createStructureType('voice');
+voiceType.addSuper(structureType);
 
-addSuffixes(
-  voiceType,
+voiceType.addSuffixes(
   createSetSuffixType('attack', scalarType),
   createSetSuffixType('decay', scalarType),
   createSetSuffixType('sustain', scalarType),

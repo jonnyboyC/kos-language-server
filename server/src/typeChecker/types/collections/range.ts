@@ -4,11 +4,10 @@ import { addPrototype, addSuffixes } from '../../typeUtilities';
 import { enumerableType } from './enumerable';
 import { scalarType } from '../primitives/scalar';
 
-export const rangeType: ArgumentType = createStructureType('range');
-addPrototype(rangeType, enumerableType.toConcreteType(scalarType));
+export const rangeType = createStructureType('range');
+rangeType.addSuper(enumerableType.toConcreteType(scalarType));
 
-addSuffixes(
-  rangeType,
+rangeType.addSuffixes(
   createArgSuffixType('start', scalarType),
   createArgSuffixType('stop', scalarType),
   createArgSuffixType('step', scalarType),

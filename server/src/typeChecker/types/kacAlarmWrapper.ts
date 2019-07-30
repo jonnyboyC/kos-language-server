@@ -1,16 +1,17 @@
-import { ArgumentType } from './types';
-import { createStructureType, createSuffixType, createSetSuffixType } from "../typeCreators";
-import { addPrototype, addSuffixes } from '../typeUtilities';
+import {
+  createStructureType,
+  createSuffixType,
+  createSetSuffixType,
+} from '../typeCreators';
 import { structureType } from './primitives/structure';
 import { stringType } from './primitives/string';
 import { scalarType } from './primitives/scalar';
 import { booleanType } from './primitives/boolean';
 
-export const kacAlarmType: ArgumentType = createStructureType('kacAlarm');
-addPrototype(kacAlarmType, structureType);
+export const kacAlarmType = createStructureType('kacAlarm');
+kacAlarmType.addSuper(structureType);
 
-addSuffixes(
-  kacAlarmType,
+kacAlarmType.addSuffixes(
   createSuffixType('id', stringType),
   createSetSuffixType('name', stringType),
   createSetSuffixType('notes', stringType),

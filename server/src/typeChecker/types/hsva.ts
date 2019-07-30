@@ -1,14 +1,11 @@
-import { ArgumentType } from './types';
-import { createStructureType, createSetSuffixType } from "../typeCreators";
-import { addPrototype, addSuffixes } from '../typeUtilities';
+import { createStructureType, createSetSuffixType } from '../typeCreators';
 import { rgbaType } from './rgba';
 import { scalarType } from './primitives/scalar';
 
-export const hsvaType: ArgumentType = createStructureType('hsva');
-addPrototype(hsvaType, rgbaType);
+export const hsvaType = createStructureType('hsva');
+hsvaType.addSuper(rgbaType);
 
-addSuffixes(
-  hsvaType,
+hsvaType.addSuffixes(
   createSetSuffixType('h', scalarType),
   createSetSuffixType('hue', scalarType),
   createSetSuffixType('s', scalarType),

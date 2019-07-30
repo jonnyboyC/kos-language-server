@@ -3,8 +3,6 @@ import {
   createSuffixType,
   createArgSuffixType,
 } from '../../typeCreators';
-import { ArgumentType } from '../types';
-import { addPrototype, addSuffixes } from '../../typeUtilities';
 import { decouplerType } from './decoupler';
 import { scalarType } from '../primitives/scalar';
 import { stringType } from '../primitives/string';
@@ -15,11 +13,10 @@ import { vectorType } from '../collections/vector';
 import { uniqueSetType } from '../collections/uniqueset';
 import { userDelegateType } from '../userDelegate';
 
-export const dockingPortType: ArgumentType = createStructureType('dockingPort');
-addPrototype(dockingPortType, decouplerType);
+export const dockingPortType = createStructureType('dockingPort');
+dockingPortType.addSuper(decouplerType);
 
-addSuffixes(
-  dockingPortType,
+dockingPortType.addSuffixes(
   createSuffixType('acquireRange', scalarType),
   createSuffixType('acquireForce', scalarType),
   createSuffixType('acquireTorque', scalarType),

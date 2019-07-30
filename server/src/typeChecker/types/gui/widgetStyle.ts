@@ -1,18 +1,19 @@
-import { ArgumentType } from '../types';
 import { structureType } from '../primitives/structure';
-import { createSetSuffixType, createSuffixType, createStructureType } from "../../typeCreators";
-import { addPrototype, addSuffixes } from '../../typeUtilities';
+import {
+  createSetSuffixType,
+  createSuffixType,
+  createStructureType,
+} from '../../typeCreators';
 import { rgbaType } from '../rgba';
 import { widgetStyleStateType } from './widgetStyleState';
 import { scalarType, integerType } from '../primitives/scalar';
 import { booleanType } from '../primitives/boolean';
 import { stringType } from '../primitives/string';
 
-export const widgetStyleType: ArgumentType = createStructureType('widgetStyle');
-addPrototype(widgetStyleType, structureType);
+export const widgetStyleType = createStructureType('widgetStyle');
+widgetStyleType.addSuper(structureType);
 
-addSuffixes(
-  widgetStyleType,
+widgetStyleType.addSuffixes(
   createSuffixType('margin', widgetStyleStateType),
   createSuffixType('padding', widgetStyleStateType),
   createSuffixType('border', widgetStyleStateType),

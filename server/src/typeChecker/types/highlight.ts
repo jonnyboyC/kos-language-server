@@ -1,15 +1,12 @@
-import { ArgumentType } from './types';
-import { createStructureType, createSetSuffixType } from "../typeCreators";
-import { addPrototype, addSuffixes } from '../typeUtilities';
+import { createStructureType, createSetSuffixType } from '../typeCreators';
 import { structureType } from './primitives/structure';
 import { rgbaType } from './rgba';
 import { booleanType } from './primitives/boolean';
 
-export const highlightType: ArgumentType = createStructureType('highlight');
-addPrototype(highlightType, structureType);
+export const highlightType = createStructureType('highlight');
+highlightType.addSuper(structureType);
 
-addSuffixes(
-  highlightType,
+highlightType.addSuffixes(
   createSetSuffixType('color', rgbaType),
   createSetSuffixType('enabled', booleanType),
 );

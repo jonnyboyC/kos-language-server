@@ -1,17 +1,14 @@
-import { ArgumentType } from './types';
 import { createStructureType, createSuffixType } from '../typeCreators';
-import { addPrototype, addSuffixes, addOperators } from '../typeUtilities';
 import { scalarType } from './primitives/scalar';
 import { stringType } from './primitives/string';
 import { serializableStructureType } from './primitives/serializeableStructure';
 import { OperatorKind } from '../types';
 import { booleanType } from './primitives/boolean';
 
-export const timeSpanType: ArgumentType = createStructureType('timeSpan');
-addPrototype(timeSpanType, serializableStructureType);
+export const timeSpanType = createStructureType('timeSpan');
+timeSpanType.addSuper(serializableStructureType);
 
-addSuffixes(
-  timeSpanType,
+timeSpanType.addSuffixes(
   createSuffixType('year', scalarType),
   createSuffixType('day', scalarType),
   createSuffixType('hour', scalarType),
@@ -22,8 +19,7 @@ addSuffixes(
   createSuffixType('calendar', stringType),
 );
 
-addOperators(
-  timeSpanType,
+timeSpanType.addOperators(
   // +
   {
     operator: OperatorKind.plus,

@@ -1,22 +1,17 @@
-import { ArgumentType } from './types';
 import {
   createStructureType,
   createSuffixType,
   createSetSuffixType,
 } from '../typeCreators';
-import { addPrototype, addSuffixes } from '../typeUtilities';
 import { structureType } from './primitives/structure';
 import { vectorType } from './collections/vector';
 import { scalarType } from './primitives/scalar';
 import { booleanType } from './primitives/boolean';
 
-export const flightControlType: ArgumentType = createStructureType(
-  'flightControl',
-);
-addPrototype(flightControlType, structureType);
+export const flightControlType = createStructureType('flightControl');
+flightControlType.addSuper(structureType);
 
-addSuffixes(
-  flightControlType,
+flightControlType.addSuffixes(
   createSetSuffixType('yaw', scalarType),
   createSetSuffixType('yawTrim', scalarType),
   createSetSuffixType('roll', scalarType),

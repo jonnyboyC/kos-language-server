@@ -1,4 +1,3 @@
-import { addPrototype, addSuffixes, addOperators } from '../../typeUtilities';
 import { orbitableType } from './orbitable';
 import { serializableStructureType } from '../primitives/serializeableStructure';
 import { createSuffixType, createArgSuffixType } from '../../typeCreators';
@@ -31,6 +30,7 @@ import { crewType } from '../crew';
 import { vesselSensorsType } from '../vessel/vesselSensors';
 import { OperatorKind } from '../../types';
 import { boundsType } from '../parts/bounds';
+import { Operator } from '../../operator';
 
 let set = false;
 
@@ -40,9 +40,8 @@ export const orbitalInitializer = () => {
   }
   set = true;
 
-  addPrototype(orbitableType, serializableStructureType);
-  addSuffixes(
-    orbitableType,
+  orbitableType.addSuper(serializableStructureType);
+  orbitableType.addSuffixes(
     createSuffixType('name', stringType),
     createSuffixType('apoapsis', scalarType),
     createSuffixType('periapsis', scalarType),
@@ -69,9 +68,8 @@ export const orbitalInitializer = () => {
     createSuffixType('patches', listType.toConcreteType(orbitInfoType)),
   );
 
-  addPrototype(bodyTargetType, orbitableType);
-  addSuffixes(
-    bodyTargetType,
+  bodyTargetType.addSuper(orbitableType);
+  bodyTargetType.addSuffixes(
     createSuffixType('name', stringType),
     createSuffixType('description', stringType),
     createSuffixType('mass', scalarType),
@@ -99,23 +97,13 @@ export const orbitalInitializer = () => {
     ),
   );
 
-  addOperators(
-    bodyTargetType,
-    {
-      operator: OperatorKind.equal,
-      other: bodyTargetType,
-      returnType: booleanType,
-    },
-    {
-      operator: OperatorKind.notEqual,
-      other: bodyTargetType,
-      returnType: booleanType,
-    },
+  bodyTargetType.addOperators(
+    new Operator(OperatorKind.equal, booleanType, bodyTargetType),
+    new Operator(OperatorKind.notEqual, booleanType, bodyTargetType),
   );
 
-  addPrototype(vesselTargetType, orbitableType);
-  addSuffixes(
-    vesselTargetType,
+  vesselTargetType.addSuper(orbitableType);
+  vesselTargetType.addSuffixes(
     createArgSuffixType(
       'partsNamed',
       listType.toConcreteType(partType),
@@ -229,17 +217,8 @@ export const orbitalInitializer = () => {
     ),
   );
 
-  addOperators(
-    vesselTargetType,
-    {
-      operator: OperatorKind.equal,
-      other: vesselTargetType,
-      returnType: booleanType,
-    },
-    {
-      operator: OperatorKind.notEqual,
-      other: vesselTargetType,
-      returnType: booleanType,
-    },
+  vesselTargetType.addOperators(
+    new Operator(OperatorKind.equal, booleanType, vesselTargetType),
+    new Operator(OperatorKind.notEqual, booleanType, vesselTargetType),
   );
 };

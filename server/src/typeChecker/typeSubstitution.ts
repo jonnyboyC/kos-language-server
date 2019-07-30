@@ -1,31 +1,37 @@
 import { TypeParameter } from './typeParameter';
 import { IGenericType, IType, CallSignature } from './types';
 import { empty } from '../utilities/typeGuards';
-import { Type, SuffixType } from './ksType';
+import { Type } from './ksType';
 import { Operator } from './operator';
 
 export class TypeSubstitution {
   /**
-   *
+   * A set of type parameters
    */
-  public readonly typeParameters: Set<TypeParameter>;
+  public readonly typeParameters: TypeParameter[];
 
   /**
-   *
+   * Mappings from placeholder types to type parameters
    */
   public readonly placeHolders: Map<IGenericType, TypeParameter>;
 
   /**
-   *
+   * Cached substitution for a variety of type arguments
    */
-  public substitutions: Map<Map<TypeParameter, IType>, IType>;
+  public substitutions: Map<Map<string, IType>, IType>;
 
   /**
-   *
-   * @param names
+   * Construct a new type substitution
+   * @param names names of the type for substituting
    */
-  constructor(names: Set<string>) {
-    this.typeParameters = TypeParameter.toTypeParameters(names);
+  constructor(names: string[]) {
+    if (new Set(names).size !== names.length) {
+      throw new Error(
+        `Type parameter must have unique names. Provided ${names.join(', ')}`,
+      );
+    }
+
+    this.typeParameters = names.map(name => TypeParameter.create(name));
     this.placeHolders = new Map();
 
     for (const typeParameter of this.typeParameters) {
@@ -36,20 +42,25 @@ export class TypeSubstitution {
   }
 
   /**
-   *
-   * @param type
-   * @param typeArguments
+   * Substitute placeholder types in a generic for real one using the
+   * provided type arguments
+   * @param type the generic type to be made concrete
+   * @param typeArguments the type arguments for th type
+   * @param typeParameterLink the link between a type parameters of a sub type and super
+   * type for example in typescript this is analogous to
+   * `class Foo<T, S> extends Bar<S, T>`where the map describes the ordering
    */
   public substitute(
     type: IGenericType,
-    typeArguments: Map<TypeParameter, IType>,
+    typeArguments: Map<string, IType>,
+    typeParameterLink?: Map<TypeParameter, TypeParameter>,
   ): IType {
     // check if type is actually a placeholder
     const typeParameter = this.placeHolders.get(type);
 
     if (!empty(typeParameter)) {
       // if found substitute the type parameter with type argument
-      const substitution = typeArguments.get(typeParameter);
+      const substitution = typeArguments.get(typeParameter.name);
       if (empty(substitution)) {
         throw new Error(
           `Did not provide a type parameter for ${typeParameter.name}.`,
@@ -78,6 +89,7 @@ export class TypeSubstitution {
       };
     }
 
+    // generate the new type
     const newType = new Type(
       type.name,
       type.access,
@@ -90,12 +102,20 @@ export class TypeSubstitution {
 
     // convert super
     if (!empty(superType)) {
-      newType.addSuper(superType.toConcreteType(typeArguments));
+      if (!empty(typeParameterLink)) {
+        const mappedTypeArguments = this.mapTypeArguments(
+          typeArguments,
+          typeParameterLink,
+        );
+        newType.addSuper(superType.toConcreteType(mappedTypeArguments));
+      } else {
+        newType.addSuper(superType.toConcreteType(typeArguments));
+      }
     }
 
     // convert suffixes
-    for (const [name, suffix] of type.getSuffixes()) {
-      newType.addSuffixes([name, suffix.toConcreteType(typeArguments)]);
+    for (const [, suffix] of type.getSuffixes()) {
+      newType.addSuffixes(suffix.toConcreteType(typeArguments));
     }
 
     // convert coercions
@@ -113,10 +133,9 @@ export class TypeSubstitution {
           ? undefined
           : operator.otherOperand.toConcreteType(typeArguments);
 
-        newType.addOperator([
-          kind,
+        newType.addOperators(
           new Operator<IType>(kind, returnType, otherOperand),
-        ]);
+        );
       }
     }
 
@@ -124,12 +143,39 @@ export class TypeSubstitution {
   }
 
   /**
-   *
-   * @param typeArguments
+   * Map type arguments from this generic class to the super class
+   * @param typeArguments type arguments for this substitution
+   * @param typeParameterLink the mapping of type parameters from this type to it's
+   * super type
+   */
+  private mapTypeArguments(
+    typeArguments: Map<string, IType>,
+    typeParameterLink: Map<TypeParameter, TypeParameter>,
+  ) {
+    const mappedTypeArguments = new Map<string, IType>();
+    for (const [name, type] of typeArguments) {
+      const typeParams = this.typeParameters.filter(
+        param => param.name === name,
+      );
+      if (typeParams.length !== 1) {
+        throw new Error(`Could not find type parameter ${name}.`);
+      }
+      const mappedTypeParam = typeParameterLink.get(typeParams[0]);
+      if (empty(mappedTypeParam)) {
+        throw new Error(`Could not find type parameter ${name}.`);
+      }
+      mappedTypeArguments.set(mappedTypeParam.name, type);
+    }
+    return mappedTypeArguments;
+  }
+
+  /**
+   * linear search for keys using value comparison for matches
+   * @param typeArguments type arguments for this substitution
    */
   private getCachedArguments(
-    typeArguments: Map<TypeParameter, IType>,
-  ): Map<TypeParameter, IType> {
+    typeArguments: Map<string, IType>,
+  ): Map<string, IType> {
     // see if we already have already have performed this substitution
     for (const cachedTypeArguments of this.substitutions.keys()) {
       let match = true;

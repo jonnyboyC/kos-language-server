@@ -1,17 +1,18 @@
-import { ArgumentType } from './types';
-import { createStructureType, createSuffixType, createArgSuffixType } from "../typeCreators";
-import { addPrototype, addSuffixes } from '../typeUtilities';
+import {
+  createStructureType,
+  createSuffixType,
+  createArgSuffixType,
+} from '../typeCreators';
 import { vectorType } from './collections/vector';
 import { orbitableVelocityType } from './orbitalVelocity';
 import { scalarType } from './primitives/scalar';
 import { serializableStructureType } from './primitives/serializeableStructure';
 import { bodyTargetType } from './orbital/bodyTarget';
 
-export const geoCoordinatesType: ArgumentType = createStructureType('geoCoordinates');
-addPrototype(geoCoordinatesType, serializableStructureType);
+export const geoCoordinatesType = createStructureType('geoCoordinates');
+geoCoordinatesType.addSuper(serializableStructureType);
 
-addSuffixes(
-  geoCoordinatesType,
+geoCoordinatesType.addSuffixes(
   createSuffixType('lat', scalarType),
   createSuffixType('lng', scalarType),
   createSuffixType('body', bodyTargetType),

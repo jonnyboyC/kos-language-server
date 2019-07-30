@@ -1,11 +1,9 @@
-import { ArgumentType } from './types';
 import {
   createStructureType,
   createArgSuffixType,
   createSuffixType,
   createSetSuffixType,
 } from '../typeCreators';
-import { addPrototype, addSuffixes } from '../typeUtilities';
 import { structureType } from './primitives/structure';
 import { uniqueSetType } from './collections/uniqueset';
 import { delegateType } from './primitives/delegate';
@@ -19,11 +17,10 @@ import { scalarType } from './primitives/scalar';
 import { vesselTargetType } from './orbital/vesselTarget';
 import { listType } from './collections/list';
 
-export const kUniverseType: ArgumentType = createStructureType('kuniverse');
-addPrototype(kUniverseType, structureType);
+export const kUniverseType = createStructureType('kuniverse');
+kUniverseType.addSuper(structureType);
 
-addSuffixes(
-  kUniverseType,
+kUniverseType.addSuffixes(
   createSuffixType('canRevert', booleanType),
   createSuffixType('canRevertToLaunch', booleanType),
   createSuffixType('canRevertToEditor', booleanType),

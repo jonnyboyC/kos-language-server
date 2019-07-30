@@ -1,7 +1,5 @@
-import { createStructureType } from "../../typeCreators";
-import { ArgumentType } from '../types';
-import { addPrototype } from '../../typeUtilities';
+import { createStructureType } from '../../typeCreators';
 import { partType } from './part';
 
-export const decouplerType: ArgumentType = createStructureType('decoupler');
-addPrototype(decouplerType, partType);
+export const decouplerType = createStructureType('decoupler');
+decouplerType.addSuper(partType);

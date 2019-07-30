@@ -1,11 +1,9 @@
-import { ArgumentType } from '../types';
 import {
   createStructureType,
   createArgSuffixType,
   createSuffixType,
   createSetSuffixType,
 } from '../../typeCreators';
-import { addPrototype, addSuffixes } from '../../typeUtilities';
 import { structureType } from '../primitives/structure';
 import { volumeDirectoryType } from './volumeDirectory';
 import { volumeFileType } from './volumneFile';
@@ -14,11 +12,10 @@ import { scalarType } from '../primitives/scalar';
 import { stringType } from '../primitives/string';
 import { booleanType } from '../primitives/boolean';
 
-export const volumeType: ArgumentType = createStructureType('volume');
-addPrototype(volumeType, structureType);
+export const volumeType = createStructureType('volume');
+volumeType.addSuper(structureType);
 
-addSuffixes(
-  volumeType,
+volumeType.addSuffixes(
   createSuffixType('freespace', scalarType),
   createSuffixType('capacity', scalarType),
   createSetSuffixType('name', stringType),

@@ -1,15 +1,19 @@
-import { ArgumentType } from '../types';
-import { createStructureType, createArgSuffixType, createSuffixType } from "../../typeCreators";
-import { addPrototype, addSuffixes } from '../../typeUtilities';
+import {
+  createStructureType,
+  createArgSuffixType,
+  createSuffixType,
+} from '../../typeCreators';
 import { volumeItemType } from './volumeItem';
 import { lexiconType } from '../collections/lexicon';
 import { enumeratorType } from '../collections/enumerator';
 
-export const volumeDirectoryType: ArgumentType = createStructureType('volumeDirectory');
-addPrototype(volumeDirectoryType, volumeItemType);
+export const volumeDirectoryType = createStructureType('volumeDirectory');
+volumeDirectoryType.addSuper(volumeItemType);
 
-addSuffixes(
-  volumeDirectoryType,
-  createArgSuffixType('iterator', enumeratorType.toConcreteType(volumeItemType)),
+volumeDirectoryType.addSuffixes(
+  createArgSuffixType(
+    'iterator',
+    enumeratorType.toConcreteType(volumeItemType),
+  ),
   createSuffixType('list', lexiconType),
 );

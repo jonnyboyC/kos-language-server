@@ -2,18 +2,15 @@ import {
   createStructureType,
   createSetSuffixType,
 } from '../../../typeCreators';
-import { ArgumentType } from '../../types';
-import { addPrototype, addSuffixes } from '../../../typeUtilities';
 import { widgetType } from '../widget';
 
 import { userDelegateType } from '../../userDelegate';
 import { stringType } from '../../primitives/string';
 
-export const labelType: ArgumentType = createStructureType('label');
-addPrototype(labelType, widgetType);
+export const labelType = createStructureType('label');
+labelType.addSuper(widgetType);
 
-addSuffixes(
-  labelType,
+labelType.addSuffixes(
   createSetSuffixType('text', stringType),
   createSetSuffixType('image', stringType),
   createSetSuffixType('textUpdater', userDelegateType),

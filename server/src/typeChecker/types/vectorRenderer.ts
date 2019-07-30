@@ -1,6 +1,4 @@
-import { ArgumentType } from './types';
 import { createStructureType, createSetSuffixType } from '../typeCreators';
-import { addPrototype, addSuffixes } from '../typeUtilities';
 import { structureType } from './primitives/structure';
 import { vectorType } from './collections/vector';
 import { userDelegateType } from './userDelegate';
@@ -9,11 +7,10 @@ import { booleanType } from './primitives/boolean';
 import { scalarType } from './primitives/scalar';
 import { stringType } from './primitives/string';
 
-export const vectorRendererType: ArgumentType = createStructureType('vecDraw');
-addPrototype(vectorRendererType, structureType);
+export const vectorRendererType = createStructureType('vecDraw');
+vectorRendererType.addSuper(structureType);
 
-addSuffixes(
-  vectorRendererType,
+vectorRendererType.addSuffixes(
   createSetSuffixType('vec', vectorType),
   createSetSuffixType('vector', vectorType),
   createSetSuffixType('vecUpdater', userDelegateType),

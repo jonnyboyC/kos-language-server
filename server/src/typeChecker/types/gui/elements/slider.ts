@@ -1,15 +1,15 @@
-import { createStructureType, createSetSuffixType } from "../../../typeCreators";
-import { ArgumentType } from '../../types';
-import { addPrototype, addSuffixes } from '../../../typeUtilities';
+import {
+  createStructureType,
+  createSetSuffixType,
+} from '../../../typeCreators';
 import { userDelegateType } from '../../userDelegate';
 import { widgetType } from '../widget';
 import { scalarType } from '../../primitives/scalar';
 
-export const sliderType: ArgumentType = createStructureType('slider');
-addPrototype(sliderType, widgetType);
+export const sliderType = createStructureType('slider');
+sliderType.addSuper(widgetType);
 
-addSuffixes(
-  sliderType,
+sliderType.addSuffixes(
   createSetSuffixType('value', scalarType),
   createSetSuffixType('min', scalarType),
   createSetSuffixType('max', scalarType),

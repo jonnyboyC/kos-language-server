@@ -2,17 +2,14 @@ import {
   createStructureType,
   createSetSuffixType,
 } from '../../../typeCreators';
-import { ArgumentType } from '../../types';
-import { addPrototype, addSuffixes } from '../../../typeUtilities';
 import { userDelegateType } from '../../userDelegate';
 import { labelType } from './label';
 import { booleanType } from '../../primitives/boolean';
 
-export const textFieldType: ArgumentType = createStructureType('textField');
-addPrototype(textFieldType, labelType);
+export const textFieldType = createStructureType('textField');
+textFieldType.addSuper(labelType);
 
-addSuffixes(
-  textFieldType,
+textFieldType.addSuffixes(
   createSetSuffixType('changed', booleanType),
   createSetSuffixType('confirmed', booleanType),
   createSetSuffixType('onChange', userDelegateType),

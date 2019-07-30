@@ -1,15 +1,17 @@
-import { ArgumentType } from './types';
-import { createStructureType, createArgSuffixType, createSuffixType, createSetSuffixType } from "../typeCreators";
-import { addPrototype, addSuffixes } from '../typeUtilities';
+import {
+  createStructureType,
+  createArgSuffixType,
+  createSuffixType,
+  createSetSuffixType,
+} from '../typeCreators';
 import { structureType } from './primitives/structure';
 import { voidType } from './primitives/void';
 import { scalarType } from './primitives/scalar';
 
-export const pidLoopType: ArgumentType = createStructureType('pidLoop');
-addPrototype(pidLoopType, structureType);
+export const pidLoopType = createStructureType('pidLoop');
+pidLoopType.addSuper(structureType);
 
-addSuffixes(
-  pidLoopType,
+pidLoopType.addSuffixes(
   createSuffixType('lastSampleTime', scalarType),
   createSetSuffixType('kp', scalarType),
   createSetSuffixType('ki', scalarType),

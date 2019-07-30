@@ -1,7 +1,7 @@
-import { ArgumentType } from '../types';
-import { createStructureType } from "../../typeCreators";
-import { addPrototype } from '../../typeUtilities';
+import { createStructureType } from '../../typeCreators';
 import { connectionType } from './connection';
 
-export const processorConnectionType: ArgumentType = createStructureType('processorConnection');
-addPrototype(processorConnectionType, connectionType);
+export const processorConnectionType = createStructureType(
+  'processorConnection',
+);
+processorConnectionType.addSuper(connectionType);

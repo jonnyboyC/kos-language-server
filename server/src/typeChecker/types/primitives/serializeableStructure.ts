@@ -1,3 +1,5 @@
-import { createStructureType } from "../../typeCreators";
+import { createStructureType } from '../../typeCreators';
 
-export const serializableStructureType = createStructureType('serializableStructure');
+export const serializableStructureType = createStructureType(
+  'serializableStructure',
+);

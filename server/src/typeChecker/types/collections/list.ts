@@ -1,21 +1,17 @@
-import { IGenericArgumentType } from '../types';
 import {
   createArgSuffixType,
-  createGenericBasicType,
-  tType,
+  createGenericStructureType,
   createGenericArgSuffixType,
 } from '../../typeCreators';
-import { addPrototype, addSuffixes } from '../../typeUtilities';
 import { voidType } from '../primitives/void';
 import { scalarType } from '../primitives/scalar';
 import { collectionType } from './enumerable';
 import { stringType } from '../primitives/string';
 
-export const listType: IGenericArgumentType = createGenericBasicType('list');
+export const listType = createGenericStructureType('list');
 
-addPrototype(listType, collectionType);
-addSuffixes(
-  listType,
+listType.addSuper(collectionType);
+listType.addSuffixes(
   createGenericArgSuffixType('copy', listType),
   createGenericArgSuffixType('add', voidType, tType),
   createGenericArgSuffixType('insert', voidType, scalarType, tType),

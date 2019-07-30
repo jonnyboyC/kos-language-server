@@ -1,6 +1,8 @@
-import { ArgumentType } from '../types';
-import { createStructureType, createArgSuffixType, createSuffixType } from "../../typeCreators";
-import { addPrototype, addSuffixes } from '../../typeUtilities';
+import {
+  createStructureType,
+  createArgSuffixType,
+  createSuffixType,
+} from '../../typeCreators';
 import { structureType } from '../primitives/structure';
 import { volumeItemType } from './volumeItem';
 import { fileContentType } from './fileContent';
@@ -8,11 +10,10 @@ import { voidType } from '../primitives/void';
 import { booleanType } from '../primitives/boolean';
 import { stringType } from '../primitives/string';
 
-export const volumeFileType: ArgumentType = createStructureType('volumefile');
-addPrototype(volumeFileType, volumeItemType);
+export const volumeFileType = createStructureType('volumefile');
+volumeFileType.addSuper(volumeItemType);
 
-addSuffixes(
-  volumeFileType,
+volumeFileType.addSuffixes(
   createSuffixType('readall', fileContentType),
   createArgSuffixType('write', booleanType, structureType),
   createArgSuffixType('writeln', booleanType, stringType),

@@ -1,11 +1,9 @@
-import { ArgumentType } from '../types';
 import {
   createSetSuffixType,
   createSuffixType,
   createArgSuffixType,
   createStructureType,
 } from '../../typeCreators';
-import { addPrototype, addSuffixes } from '../../typeUtilities';
 import { widgetType } from './widget';
 import { userDelegateType } from '../userDelegate';
 import { scrollBoxType } from './scrollBox';
@@ -21,11 +19,10 @@ import { booleanType } from '../primitives/boolean';
 import { doubleType, integerType } from '../primitives/scalar';
 import { listType } from '../collections/list';
 
-export const boxType: ArgumentType = createStructureType('box');
-addPrototype(boxType, widgetType);
+export const boxType = createStructureType('box');
+boxType.addSuper(widgetType);
 
-addSuffixes(
-  boxType,
+boxType.addSuffixes(
   createArgSuffixType('addLabel', labelType, stringType),
   createArgSuffixType('addTextField', textFieldType, stringType),
   createArgSuffixType('addButton', buttonType, stringType),

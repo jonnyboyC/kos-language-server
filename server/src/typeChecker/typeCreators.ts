@@ -1,55 +1,29 @@
-import {
-  IGenericArgumentType,
-  ArgumentType,
-  IGenericSuffixType,
-  IGenericBasicType,
-  IBasicType,
-  ISuffixType,
-  IVariadicType,
-  IFunctionType,
-} from './types/types';
-import { memoize } from '../utilities/memoize';
-import {
-  GenericBasicType,
-  BasicType,
-  GenericSuffixType,
-  SuffixType,
-  FunctionType,
-  VariadicType,
-} from './ksType';
-import { CallKind } from './types';
+import { GenericType, Type } from './ksType';
+import { IGenericType, IType, TypeKind } from './types';
 
 /**
  * Generate a new basic generic type
  * @param name name of the new generic type
+ * @param typeParameterNames names of the type parameters
  */
-export const createGenericBasicType = (
+export const createGenericStructureType = (
   name: string,
-): IGenericArgumentType => {
-  return new GenericBasicType(name);
+  typeParameterNames = ['T'],
+): IGenericType => {
+  return new GenericType(
+    name,
+    { get: true, set: true },
+    typeParameterNames,
+    TypeKind.basic,
+  );
 };
-
-/**
- * Generate a new type parameter
- * @param name naem of the type parameter
- */
-export const getTypeParameter = memoize(
-  (name: string): IGenericBasicType => {
-    return createGenericBasicType(name);
-  },
-);
-
-/**
- * The basic type parameter t
- */
-export const tType = getTypeParameter('T');
 
 /**
  * Generate a new basic type
  * @param name name of the new type
  */
-export const createStructureType = (name: string): IBasicType => {
-  return new BasicType(name, []);
+export const createStructureType = (name: string): IType => {
+  return new Type(name, { get: true, set: true }, new Map(), TypeKind.basic);
 };
 
 /**
@@ -60,11 +34,18 @@ export const createStructureType = (name: string): IBasicType => {
  */
 export const createGenericArgSuffixType = (
   name: string,
-  returns: IGenericArgumentType,
-  ...params: IGenericArgumentType[]
-): IGenericSuffixType => {
-  const callType = params.length > 0 ? CallKind.call : CallKind.optionalCall;
-  return new GenericSuffixType(name.toLowerCase(), callType, params, returns);
+  returns: IGenericType,
+  ...params: IGenericType[]
+): IGenericType => {
+  const get = params.length === 0;
+
+  return new GenericType(
+    name.toLowerCase(),
+    { get, set: false },
+    ['T'],
+    TypeKind.suffix,
+    { params, returns },
+  );
 };
 
 /**
@@ -75,11 +56,18 @@ export const createGenericArgSuffixType = (
  */
 export const createArgSuffixType = (
   name: string,
-  returns: ArgumentType,
-  ...params: ArgumentType[]
-): ISuffixType => {
-  const callType = params.length > 0 ? CallKind.call : CallKind.optionalCall;
-  return new SuffixType(name.toLowerCase(), callType, params, returns, []);
+  returns: IType,
+  ...params: IType[]
+): IType => {
+  const get = params.length === 0;
+
+  return new Type(
+    name.toLowerCase(),
+    { get, set: false },
+    new Map(),
+    TypeKind.suffix,
+    { params, returns },
+  );
 };
 
 /**
@@ -87,11 +75,14 @@ export const createArgSuffixType = (
  * @param name name of the suffix
  * @param returns return type of suffix
  */
-export const createSuffixType = (
-  name: string,
-  returns: ArgumentType,
-): ISuffixType => {
-  return new SuffixType(name.toLowerCase(), CallKind.get, [], returns, []);
+export const createSuffixType = (name: string, returns: IType): IType => {
+  return new Type(
+    name.toLowerCase(),
+    { get: true, set: false },
+    new Map(),
+    TypeKind.suffix,
+    { returns, params: [] },
+  );
 };
 
 /**
@@ -99,11 +90,14 @@ export const createSuffixType = (
  * @param name name of the suffix
  * @param returns return type of suffix
  */
-export const createSetSuffixType = (
-  name: string,
-  returns: ArgumentType,
-): ISuffixType => {
-  return new SuffixType(name.toLowerCase(), CallKind.set, [], returns, []);
+export const createSetSuffixType = (name: string, returns: IType): IType => {
+  return new Type(
+    name.toLowerCase(),
+    { get: true, set: true },
+    new Map(),
+    TypeKind.suffix,
+    { returns, params: [] },
+  );
 };
 
 /**
@@ -114,26 +108,30 @@ export const createSetSuffixType = (
  */
 export const createVarSuffixType = (
   name: string,
-  returns: ArgumentType,
-  params: IVariadicType,
-): ISuffixType => {
-  return new SuffixType(
+  returns: IType,
+  params: IType,
+): IType => {
+  if (params.kind !== TypeKind.variadic) {
+    throw new Error('Expected variadic type.');
+  }
+
+  return new Type(
     name.toLowerCase(),
-    CallKind.optionalCall,
-    params,
-    returns,
-    [],
+    { get: false, set: false },
+    new Map(),
+    TypeKind.suffix,
+    { returns, params: [params] },
   );
 };
 
 /**
  * Create variadic type
  */
-export const createVarType = memoize(
-  (type: ArgumentType): IVariadicType => {
-    return new VariadicType(type);
-  },
-);
+// export const createVarType = memoize(
+//   (type: ArgumentType): IVariadicType => {
+//     return new VariadicType(type);
+//   },
+// );
 
 /**
  * Generate a new function type
@@ -143,11 +141,16 @@ export const createVarType = memoize(
  */
 export const createFunctionType = (
   name: string,
-  returns: ArgumentType,
-  ...params: ArgumentType[]
-): IFunctionType => {
-  const callType = params.length > 0 ? CallKind.call : CallKind.optionalCall;
-  return new FunctionType(name.toLowerCase(), callType, params, returns);
+  returns: IType,
+  ...params: IType[]
+): IType => {
+  return new Type(
+    name.toLowerCase(),
+    { get: false, set: false },
+    new Map(),
+    TypeKind.function,
+    { returns, params },
+  );
 };
 
 /**
@@ -158,13 +161,18 @@ export const createFunctionType = (
  */
 export const createVarFunctionType = (
   name: string,
-  returns: ArgumentType,
-  params: IVariadicType,
-): IFunctionType => {
-  return new FunctionType(
+  returns: IType,
+  params: IType,
+): IType => {
+  if (params.kind !== TypeKind.variadic) {
+    throw new Error('Expected variadic type.');
+  }
+
+  return new Type(
     name.toLowerCase(),
-    CallKind.optionalCall,
-    params,
-    returns,
+    { get: false, set: false },
+    new Map(),
+    TypeKind.function,
+    { returns, params: [params] },
   );
 };

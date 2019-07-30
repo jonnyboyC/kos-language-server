@@ -1,7 +1,5 @@
-import { ArgumentType } from './types';
-import { createStructureType } from "../typeCreators";
-import { addPrototype } from '../typeUtilities';
+import { createStructureType } from '../typeCreators';
 import { delegateType } from './primitives/delegate';
 
-export const userDelegateType: ArgumentType = createStructureType('userDelegate');
-addPrototype(userDelegateType, delegateType);
+export const userDelegateType = createStructureType('userDelegate');
+userDelegateType.addSuper(delegateType);

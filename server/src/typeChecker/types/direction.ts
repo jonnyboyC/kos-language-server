@@ -1,17 +1,14 @@
-import { ArgumentType } from './types';
 import { createStructureType, createSuffixType } from '../typeCreators';
-import { addPrototype, addSuffixes, addOperators } from '../typeUtilities';
 import { vectorType } from './collections/vector';
 import { scalarType } from './primitives/scalar';
 import { serializableStructureType } from './primitives/serializeableStructure';
 import { OperatorKind } from '../types';
 import { booleanType } from './primitives/boolean';
 
-export const directionType: ArgumentType = createStructureType('direction');
-addPrototype(directionType, serializableStructureType);
+export const directionType = createStructureType('direction');
+directionType.addSuper(serializableStructureType);
 
-addSuffixes(
-  directionType,
+directionType.addSuffixes(
   createSuffixType('pitch', scalarType),
   createSuffixType('yaw', scalarType),
   createSuffixType('roll', scalarType),
@@ -24,8 +21,7 @@ addSuffixes(
   createSuffixType('inverse', directionType),
 );
 
-addOperators(
-  directionType,
+directionType.addOperators(
   {
     operator: OperatorKind.multiply,
     other: directionType,

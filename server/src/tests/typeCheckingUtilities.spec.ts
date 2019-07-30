@@ -82,8 +82,8 @@ describe('Type Utilities', () => {
     const bType = createStructureType('b');
     const cType = createStructureType('c');
 
-    addPrototype(bType, aType);
-    addPrototype(cType, aType);
+    bType.addSuper(aType);
+    cType.addSuper(aType);
 
     expect(isSubType(bType, aType)).toBe(true);
     expect(isSubType(cType, aType)).toBe(true);
@@ -101,15 +101,14 @@ describe('Type Utilities', () => {
     const cType = createStructureType('c');
     const dType = createStructureType('d');
 
-    addSuffixes(
-      aType,
+    aType.addSuffixes(
       createSuffixType('example1', cType),
       createSuffixType('example2', cType),
     );
 
     addSuffixes(bType, createSuffixType('example3', cType));
 
-    addPrototype(bType, aType);
+    bType.addSuper(aType);
 
     addSuffixes(cType, createArgSuffixType('example', dType, dType));
 

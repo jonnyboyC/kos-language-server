@@ -1,17 +1,14 @@
-import { ArgumentType } from './types';
 import { createStructureType, createArgSuffixType } from '../typeCreators';
-import { addPrototype, addSuffixes } from '../typeUtilities';
 import { partModuleType } from './parts/partModule';
 import { volumeType } from './io/volume';
 import { processorConnectionType } from './communication/processorConnection';
 import { voidType } from './primitives/void';
 import { stringType } from './primitives/string';
 
-export const kosProcessorFields: ArgumentType = createStructureType('kosProcessorFields');
-addPrototype(kosProcessorFields, partModuleType);
+export const kosProcessorFieldsType = createStructureType('kosProcessorFields');
+kosProcessorFieldsType.addSuper(partModuleType);
 
-addSuffixes(
-  kosProcessorFields,
+kosProcessorFieldsType.addSuffixes(
   createArgSuffixType('mode', stringType),
   createArgSuffixType('activate', voidType),
   createArgSuffixType('deactivate', voidType),

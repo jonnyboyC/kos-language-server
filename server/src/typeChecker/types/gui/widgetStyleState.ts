@@ -1,15 +1,12 @@
-import { ArgumentType } from '../types';
 import { structureType } from '../primitives/structure';
-import { createSetSuffixType, createStructureType } from "../../typeCreators";
-import { addPrototype, addSuffixes } from '../../typeUtilities';
+import { createSetSuffixType, createStructureType } from '../../typeCreators';
 import { rgbaType } from '../rgba';
 import { stringType } from '../primitives/string';
 
-export const widgetStyleStateType: ArgumentType = createStructureType('styleState');
-addPrototype(widgetStyleStateType, structureType);
+export const widgetStyleStateType = createStructureType('styleState');
+widgetStyleStateType.addSuper(structureType);
 
-addSuffixes(
-  widgetStyleStateType,
+widgetStyleStateType.addSuffixes(
   createSetSuffixType('bg', stringType),
   createSetSuffixType('textColor', rgbaType),
 );

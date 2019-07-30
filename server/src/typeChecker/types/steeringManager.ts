@@ -1,6 +1,10 @@
-import { ArgumentType } from './types';
-import { createStructureType, createArgSuffixType, createSetSuffixType, createSuffixType } from "../typeCreators";
-import { addPrototype, addSuffixes } from '../typeUtilities';
+import {
+  createStructureType,
+  createArgSuffixType,
+  createSetSuffixType,
+  createSuffixType,
+} from '../typeCreators';
+import { addPrototype } from '../typeUtilities';
 import { structureType } from './primitives/structure';
 import { pidLoopType } from './pidLoop';
 import { directionType } from './direction';
@@ -8,11 +12,11 @@ import { voidType } from './primitives/void';
 import { booleanType } from './primitives/boolean';
 import { scalarType } from './primitives/scalar';
 
-export const steeringManagerType: ArgumentType = createStructureType('steeringManager');
-addPrototype(steeringManagerType, structureType);
+export const steeringManagerType = createStructureType('steeringManager');
+steeringManagerType.addSuper(structureType);
+steeringManagerType.addSuper(structureType);
 
-addSuffixes(
-  steeringManagerType,
+steeringManagerType.addSuffixes(
   createSuffixType('pitchPid', pidLoopType),
   createSuffixType('yawPid', pidLoopType),
   createSuffixType('rollPid', pidLoopType),

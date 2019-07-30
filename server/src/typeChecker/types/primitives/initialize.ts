@@ -1,10 +1,5 @@
-import { addSuffixes, addPrototype, addOperators } from '../../typeUtilities';
 import { structureType } from './structure';
-import {
-  createArgSuffixType,
-  createVarSuffixType,
-  createVarType,
-} from '../../typeCreators';
+import { createArgSuffixType, createVarSuffixType } from '../../typeCreators';
 import { stringType } from './string';
 import { booleanType } from './boolean';
 import { voidType } from './void';
@@ -16,6 +11,7 @@ import { delegateType } from './delegate';
 import { OperatorKind } from '../../types';
 import { iterator } from '../../../utilities/constants';
 import { enumeratorType } from '../collections/enumerator';
+import { Operator } from '../../operator';
 
 let set = false;
 
@@ -26,8 +22,7 @@ export const primitiveInitializer = () => {
   set = true;
 
   // ------------------ structure ---------------------------
-  addSuffixes(
-    structureType,
+  structureType.addSuffixes(
     createArgSuffixType('tostring', stringType),
     createArgSuffixType('hassuffix', booleanType, stringType),
     createArgSuffixType('suffixnames', voidType),
@@ -38,53 +33,23 @@ export const primitiveInitializer = () => {
   );
 
   // ------------------ serializable structure ---------------------------
-  addPrototype(serializableStructureType, structureType);
+  serializableStructureType.addSuper(structureType);
 
   // ------------------ primitives ---------------------------
-  addPrototype(primitiveType, structureType);
+  primitiveType.addSuper(structureType);
 
   // ------------------ string ---------------------------
-  addOperators(
-    stringType,
-    {
-      operator: OperatorKind.plus,
-      other: structureType,
-      returnType: stringType,
-    },
-    {
-      operator: OperatorKind.greaterThan,
-      other: stringType,
-      returnType: booleanType,
-    },
-    {
-      operator: OperatorKind.lessThan,
-      other: stringType,
-      returnType: booleanType,
-    },
-    {
-      operator: OperatorKind.greaterThanEqual,
-      other: stringType,
-      returnType: booleanType,
-    },
-    {
-      operator: OperatorKind.lessThanEqual,
-      other: stringType,
-      returnType: booleanType,
-    },
-    {
-      operator: OperatorKind.equal,
-      other: stringType,
-      returnType: booleanType,
-    },
-    {
-      operator: OperatorKind.notEqual,
-      other: stringType,
-      returnType: booleanType,
-    },
+  stringType.addOperators(
+    new Operator(OperatorKind.plus, stringType, stringType),
+    new Operator(OperatorKind.greaterThan, booleanType, stringType),
+    new Operator(OperatorKind.lessThan, booleanType, stringType),
+    new Operator(OperatorKind.greaterThanEqual, booleanType, stringType),
+    new Operator(OperatorKind.lessThanEqual, booleanType, stringType),
+    new Operator(OperatorKind.equal, booleanType, stringType),
+    new Operator(OperatorKind.notEqual, booleanType, stringType),
   );
-  addPrototype(stringType, primitiveType);
-  addSuffixes(
-    stringType,
+  stringType.addSuper(primitiveType);
+  stringType.addSuffixes(
     createArgSuffixType('length', scalarType),
     createArgSuffixType('substring', stringType, scalarType, scalarType),
     createArgSuffixType('contains', booleanType, stringType),
@@ -119,109 +84,42 @@ export const primitiveInitializer = () => {
   );
 
   // ------------------ scalar ---------------------------
-  addOperators(
-    scalarType,
-    {
-      operator: OperatorKind.plus,
-      other: scalarType,
-      returnType: scalarType,
-    },
-    {
-      operator: OperatorKind.subtract,
-      other: scalarType,
-      returnType: scalarType,
-    },
-    {
-      operator: OperatorKind.multiply,
-      other: scalarType,
-      returnType: scalarType,
-    },
-    {
-      operator: OperatorKind.divide,
-      other: scalarType,
-      returnType: scalarType,
-    },
-    {
-      operator: OperatorKind.power,
-      other: scalarType,
-      returnType: scalarType,
-    },
-    {
-      operator: OperatorKind.greaterThan,
-      other: scalarType,
-      returnType: booleanType,
-    },
-    {
-      operator: OperatorKind.lessThan,
-      other: scalarType,
-      returnType: booleanType,
-    },
-    {
-      operator: OperatorKind.greaterThanEqual,
-      other: scalarType,
-      returnType: booleanType,
-    },
-    {
-      operator: OperatorKind.lessThanEqual,
-      other: scalarType,
-      returnType: booleanType,
-    },
-    {
-      operator: OperatorKind.notEqual,
-      other: scalarType,
-      returnType: booleanType,
-    },
-    {
-      operator: OperatorKind.equal,
-      other: scalarType,
-      returnType: booleanType,
-    },
-    {
-      operator: OperatorKind.negate,
-      returnType: scalarType,
-      other: undefined,
-    },
+  scalarType.addOperators(
+    new Operator(OperatorKind.plus, scalarType, scalarType),
+    new Operator(OperatorKind.subtract, scalarType, scalarType),
+    new Operator(OperatorKind.multiply, scalarType, scalarType),
+    new Operator(OperatorKind.divide, scalarType, scalarType),
+    new Operator(OperatorKind.power, scalarType, scalarType),
+    new Operator(OperatorKind.greaterThan, scalarType, booleanType),
+    new Operator(OperatorKind.lessThan, scalarType, booleanType),
+    new Operator(OperatorKind.greaterThanEqual, scalarType, booleanType),
+    new Operator(OperatorKind.lessThanEqual, scalarType, booleanType),
+    new Operator(OperatorKind.notEqual, scalarType, booleanType),
+    new Operator(OperatorKind.equal, scalarType, booleanType),
+    new Operator(OperatorKind.negate, scalarType),
   );
-  addPrototype(scalarType, primitiveType);
+  scalarType.addSuper(primitiveType);
 
   // ------------------ integer ---------------------------
-  addPrototype(integerType, scalarType);
+  integerType.addSuper(scalarType);
 
   // ------------------ double ---------------------------
-  addPrototype(doubleType, scalarType);
+  doubleType.addSuper(scalarType);
 
   // ------------------ delegate ---------------------------
-  addPrototype(delegateType, structureType);
-  addSuffixes(
-    delegateType,
-    createVarSuffixType('call', structureType, createVarType(structureType)),
-    createVarSuffixType('bind', delegateType, createVarType(structureType)),
+  delegateType.addSuper(structureType);
+  delegateType.addSuffixes(
+    createVarSuffixType('call', structureType, structureType),
+    createVarSuffixType('bind', delegateType, structureType),
     createArgSuffixType('isdead', booleanType),
   );
 
   // ------------------ boolean ---------------------------
-  addOperators(
-    booleanType,
-    {
-      operator: OperatorKind.notEqual,
-      other: booleanType,
-      returnType: booleanType,
-    },
-    {
-      operator: OperatorKind.equal,
-      other: booleanType,
-      returnType: booleanType,
-    },
-    {
-      operator: OperatorKind.and,
-      other: booleanType,
-      returnType: booleanType,
-    },
-    {
-      operator: OperatorKind.or,
-      other: booleanType,
-      returnType: booleanType,
-    },
+  booleanType.addOperators(
+    new Operator(OperatorKind.notEqual, booleanType, booleanType),
+    new Operator(OperatorKind.equal, booleanType, booleanType),
+    new Operator(OperatorKind.and, booleanType, booleanType),
+    new Operator(OperatorKind.or, booleanType, booleanType),
   );
-  addPrototype(booleanType, primitiveType);
+  booleanType.addSuper(primitiveType);
 };

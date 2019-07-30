@@ -1,15 +1,12 @@
-import { ArgumentType } from '../types';
-import { createSetSuffixType, createStructureType } from "../../typeCreators";
-import { addPrototype, addSuffixes } from '../../typeUtilities';
+import { createSetSuffixType, createStructureType } from '../../typeCreators';
 import { boxType } from './box';
 import { vectorType } from '../collections/vector';
 import { booleanType } from '../primitives/boolean';
 
-export const scrollBoxType: ArgumentType = createStructureType('scrollBox');
-addPrototype(scrollBoxType, boxType);
+export const scrollBoxType = createStructureType('scrollBox');
+scrollBoxType.addSuper(boxType);
 
-addSuffixes(
-  scrollBoxType,
+scrollBoxType.addSuffixes(
   createSetSuffixType('hAlways', booleanType),
   createSetSuffixType('vAlways', booleanType),
   createSetSuffixType('position', vectorType),

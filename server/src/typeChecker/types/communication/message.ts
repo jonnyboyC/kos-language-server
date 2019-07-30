@@ -1,16 +1,13 @@
-import { ArgumentType } from '../types';
-import { createStructureType, createSuffixType } from "../../typeCreators";
-import { addPrototype, addSuffixes } from '../../typeUtilities';
+import { createStructureType, createSuffixType } from '../../typeCreators';
 import { structureType } from '../primitives/structure';
 import { booleanType } from '../primitives/boolean';
 import { scalarType } from '../primitives/scalar';
 import { serializableStructureType } from '../primitives/serializeableStructure';
 
-export const messageType: ArgumentType = createStructureType('message');
-addPrototype(messageType, serializableStructureType);
+export const messageType = createStructureType('message');
+messageType.addSuper(serializableStructureType);
 
-addSuffixes(
-  messageType,
+messageType.addSuffixes(
   createSuffixType('sentAt', booleanType),
   createSuffixType('receivedAt', scalarType),
   createSuffixType('sender', structureType),

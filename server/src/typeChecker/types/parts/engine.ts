@@ -1,11 +1,9 @@
-import { ArgumentType } from '../types';
 import {
   createStructureType,
   createArgSuffixType,
   createSuffixType,
   createSetSuffixType,
 } from '../../typeCreators';
-import { addPrototype, addSuffixes } from '../../typeUtilities';
 import { listType } from '../collections/list';
 import { voidType } from '../primitives/void';
 import { stringType } from '../primitives/string';
@@ -14,11 +12,10 @@ import { booleanType } from '../primitives/boolean';
 import { partType } from './part';
 import { gimbalType } from './gimbal';
 
-export const engineType: ArgumentType = createStructureType('engine');
-addPrototype(engineType, partType);
+export const engineType = createStructureType('engine');
+engineType.addSuper(partType);
 
-addSuffixes(
-  engineType,
+engineType.addSuffixes(
   createArgSuffixType('activate', voidType),
   createArgSuffixType('deactivate', voidType),
   createSetSuffixType('thrustLimit', scalarType),

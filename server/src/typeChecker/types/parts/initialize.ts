@@ -1,4 +1,3 @@
-import { addPrototype, addSuffixes, addOperators } from '../../typeUtilities';
 import { partType } from './part';
 import { structureType } from '../primitives/structure';
 import {
@@ -29,10 +28,9 @@ export const partInitializer = () => {
 
   // -------------------- part ---------------------------
 
-  addPrototype(partType, structureType);
+  partType.addSuper(structureType);
 
-  addSuffixes(
-    partType,
+  partType.addSuffixes(
     createArgSuffixType('controlFrom', voidType),
     createSuffixType('name', stringType),
     createSuffixType('fuelCrossFeed', booleanType),
@@ -65,8 +63,7 @@ export const partInitializer = () => {
     createSuffixType('hasPhysics', booleanType),
   );
 
-  addOperators(
-    partType,
+  partType.addOperators(
     {
       operator: OperatorKind.equal,
       other: partType,
@@ -81,10 +78,9 @@ export const partInitializer = () => {
 
   // -------------------- partmodule ---------------------------
 
-  addPrototype(partModuleType, structureType);
+  partModuleType.addSuper(structureType);
 
-  addSuffixes(
-    partModuleType,
+  partModuleType.addSuffixes(
     createSuffixType('name', stringType),
     createSuffixType('part', partType),
     createSuffixType('allFields', listType.toConcreteType(stringType)),

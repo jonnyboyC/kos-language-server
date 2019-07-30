@@ -136,12 +136,15 @@ export interface IGenericType {
   readonly access: Access;
   readonly callSignature?: CallSignature<IGenericType>;
   readonly kind: TypeKind;
-  addSuper(type: IGenericType): void;
+  addSuper(
+    type: IGenericType,
+    typeParameterLink?: Map<TypeParameter, TypeParameter>,
+  ): void;
   addCoercion(...types: IGenericType[]): void;
-  addSuffixes(...suffixes: [string, IGenericType][]): void;
-  addOperator(...operators: [OperatorKind, Operator<IGenericType>][]): void;
-  isSubtype(type: IGenericType): boolean;
-  canCoerce(type: IGenericType): boolean;
+  addSuffixes(...suffixes: IGenericType[]): void;
+  addOperators(...operators: Operator<IGenericType>[]): void;
+  isSubtypeOf(type: IGenericType): boolean;
+  canCoerceFrom(type: IGenericType): boolean;
   getTypeParameters(): TypeParameter[];
   getSuperType(): Maybe<IGenericType>;
   getCoercions(): Set<IGenericType>;
@@ -153,17 +156,20 @@ export interface IGenericType {
   ): Maybe<Operator<IGenericType>>;
   getOperators(): Map<OperatorKind, Operator<IGenericType>[]>;
   toTypeString(): string;
-  toConcreteType(typeArguments: Map<TypeParameter, IType>): IType;
+  toConcreteType(typeArguments: Map<string, IType>): IType;
 }
 
 export interface IType extends IGenericType {
-  typeArguments: Map<TypeParameter, IType>;
-  addSuper(type: IType): void;
+  typeArguments: Map<string, IType>;
+  addSuper(
+    type: IType,
+    typeParameterLink?: Map<TypeParameter, TypeParameter>,
+  ): void;
   addCoercion(...types: IType[]): void;
-  addSuffixes(...suffixes: [string, IType][]): void;
-  addOperator(...operators: [OperatorKind, Operator<IType>][]): void;
-  isSubtype(type: IType): boolean;
-  canCoerce(type: IType): boolean;
+  addSuffixes(...suffixes: IType[]): void;
+  addOperators(...operators: Operator<IType>[]): void;
+  isSubtypeOf(type: IType): boolean;
+  canCoerceFrom(type: IType): boolean;
   getTypeParameters(): TypeParameter[];
   getSuperType(): Maybe<IType>;
   getCoercions(): Set<IType>;
@@ -172,7 +178,7 @@ export interface IType extends IGenericType {
   getOperator(kind: OperatorKind, other?: IType): Maybe<Operator<IType>>;
   getOperators(): Map<OperatorKind, Operator<IType>[]>;
   toTypeString(): string;
-  toConcreteType(typeArguments: Map<TypeParameter, IType>): IType;
+  toConcreteType(typeArguments: Map<string, IType>): IType;
 }
 
 export interface Access {

@@ -1,22 +1,17 @@
-import { ArgumentType } from './types';
 import {
   createStructureType,
   createArgSuffixType,
   createSuffixType,
 } from '../typeCreators';
-import { addPrototype, addSuffixes } from '../typeUtilities';
 import { structureType } from './primitives/structure';
 import { stringType } from './primitives/string';
 import { booleanType } from './primitives/boolean';
 import { scalarType } from './primitives/scalar';
 
-export const bodyAtmosphereType: ArgumentType = createStructureType(
-  'bodyAtmosphere',
-);
-addPrototype(bodyAtmosphereType, structureType);
+export const bodyAtmosphereType = createStructureType('bodyAtmosphere');
+bodyAtmosphereType.addSuper(structureType);
 
-addSuffixes(
-  bodyAtmosphereType,
+bodyAtmosphereType.addSuffixes(
   createSuffixType('body', stringType),
   createSuffixType('exists', booleanType),
   createSuffixType('oxygen', booleanType),

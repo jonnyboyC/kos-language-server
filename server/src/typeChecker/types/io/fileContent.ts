@@ -1,17 +1,14 @@
-import { ArgumentType } from '../types';
-import { createStructureType, createSuffixType } from "../../typeCreators";
-import { addPrototype, addSuffixes } from '../../typeUtilities';
+import { createStructureType, createSuffixType } from '../../typeCreators';
 import { enumeratorType } from '../collections/enumerator';
 import { scalarType } from '../primitives/scalar';
 import { booleanType } from '../primitives/boolean';
 import { stringType } from '../primitives/string';
 import { serializableStructureType } from '../primitives/serializeableStructure';
 
-export const fileContentType: ArgumentType = createStructureType('fileContent');
-addPrototype(fileContentType, serializableStructureType);
+export const fileContentType = createStructureType('fileContent');
+fileContentType.addSuper(serializableStructureType);
 
-addSuffixes(
-  fileContentType,
+fileContentType.addSuffixes(
   createSuffixType('length', scalarType),
   createSuffixType('empty', booleanType),
   createSuffixType('type', stringType),

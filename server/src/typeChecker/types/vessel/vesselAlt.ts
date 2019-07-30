@@ -1,14 +1,11 @@
-import { ArgumentType } from '../types';
-import { createStructureType, createArgSuffixType } from "../../typeCreators";
-import { addPrototype, addSuffixes } from '../../typeUtilities';
+import { createStructureType, createArgSuffixType } from '../../typeCreators';
 import { structureType } from '../primitives/structure';
 import { scalarType } from '../primitives/scalar';
 
-export const vesselAltType: ArgumentType = createStructureType('vesselAlt');
-addPrototype(vesselAltType, structureType);
+export const vesselAltType = createStructureType('vesselAlt');
+vesselAltType.addSuper(structureType);
 
-addSuffixes(
-  vesselAltType,
+vesselAltType.addSuffixes(
   createArgSuffixType('apoapsis', scalarType),
   createArgSuffixType('periapsis', scalarType),
   createArgSuffixType('radar', scalarType),

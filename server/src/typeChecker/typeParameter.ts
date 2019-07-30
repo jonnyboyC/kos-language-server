@@ -33,27 +33,18 @@ export class TypeParameter {
   }
 
   /**
-   * Generate a set of type parameters from a set of provided names
-   * @param names names of type parameters
+   * Generate a type parameters from a provided name
+   * @param name name of type parameter
    */
-  static toTypeParameters(names: Set<string>): Set<TypeParameter> {
-    const typeParameters = new Set<TypeParameter>();
-
-    // generate a type parameter from each name provided
-    for (const name of names) {
-      typeParameters.add(
-        new TypeParameter(
-          name,
-          new Type(
-            name,
-            { get: true, set: true },
-            new Map(),
-            TypeKind.typePlaceholder,
-          ),
-        ),
-      );
-    }
-
-    return typeParameters;
+  static create(name: string): TypeParameter {
+    return new TypeParameter(
+      name,
+      new Type(
+        name,
+        { get: true, set: true },
+        new Map(),
+        TypeKind.typePlaceholder,
+      ),
+    );
   }
 }

@@ -1,16 +1,17 @@
-import { ArgumentType } from './types';
-import { createStructureType, createSuffixType, createSetSuffixType } from '../typeCreators';
-import { addPrototype, addSuffixes } from '../typeUtilities';
+import {
+  createStructureType,
+  createSuffixType,
+  createSetSuffixType,
+} from '../typeCreators';
 import { structureType } from './primitives/structure';
 import { scalarType } from './primitives/scalar';
 import { stringType } from './primitives/string';
 import { booleanType } from './primitives/boolean';
 
-export const resourceTransferType: ArgumentType = createStructureType('transfer');
-addPrototype(resourceTransferType, structureType);
+export const resourceTransferType = createStructureType('transfer');
+resourceTransferType.addSuper(structureType);
 
-addSuffixes(
-  resourceTransferType,
+resourceTransferType.addSuffixes(
   createSuffixType('goal', scalarType),
   createSuffixType('transferred', scalarType),
   createSuffixType('status', stringType),

@@ -1,18 +1,16 @@
-import { ArgumentType } from '../types';
 import {
   createSetSuffixType,
   createStructureType,
   createArgSuffixType,
 } from '../../typeCreators';
-import { addPrototype, addSuffixes } from '../../typeUtilities';
 import { structureType } from '../primitives/structure';
 import { rgbaType } from '../rgba';
 import { widgetStyleType } from './widgetStyle';
 import { stringType } from '../primitives/string';
 import { booleanType } from '../primitives/boolean';
 
-export const widgetSkinType: ArgumentType = createStructureType('skin');
-addPrototype(widgetSkinType, structureType);
+export const widgetSkinType = createStructureType('skin');
+widgetSkinType.addSuper(structureType);
 
 const builtIns = [
   'box',
@@ -37,8 +35,7 @@ const builtIns = [
   'window',
 ];
 
-addSuffixes(
-  widgetSkinType,
+widgetSkinType.addSuffixes(
   createSetSuffixType('font', stringType),
   createSetSuffixType('selectionColor', rgbaType),
   createArgSuffixType('add', widgetStyleType, stringType, widgetStyleType),

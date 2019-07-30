@@ -1,11 +1,8 @@
-import { IGenericArgumentType } from '../types';
 import {
   createArgSuffixType,
-  createGenericBasicType,
-  tType,
+  createGenericStructureType,
   createGenericArgSuffixType,
 } from '../../typeCreators';
-import { addPrototype, addSuffixes } from '../../typeUtilities';
 import { enumeratorType } from './enumerator';
 import { iterator } from '../../../utilities/constants';
 import { integerType } from '../primitives/scalar';
@@ -14,24 +11,24 @@ import { stringType } from '../primitives/string';
 import { voidType } from '../primitives/void';
 import { serializableStructureType } from '../primitives/serializeableStructure';
 
-export const enumerableType: IGenericArgumentType = createGenericBasicType(
-  'enumerable',
-);
-addPrototype(enumerableType, serializableStructureType);
+export const enumerableType = createGenericStructureType('enumerable');
+enumerableType.addSuper(serializableStructureType);
+const typeParameters = enumerableType.getTypeParameters();
 
-addSuffixes(
-  enumerableType,
+enumerableType.addSuffixes(
   createGenericArgSuffixType(iterator, enumeratorType),
   createGenericArgSuffixType('reverseIterator', enumeratorType),
   createArgSuffixType('length', integerType),
-  createGenericArgSuffixType('contains', booleanType, tType),
+  createGenericArgSuffixType(
+    'contains',
+    booleanType,
+    typeParameters[0].placeHolder,
+  ),
   createArgSuffixType('empty', booleanType),
   createArgSuffixType('dump', stringType),
 );
 
-export const collectionType: IGenericArgumentType = createGenericBasicType(
-  'collection',
-);
-addPrototype(collectionType, enumerableType);
+export const collectionType = createGenericStructureType('collection');
+collectionType.addSuper(enumerableType);
 
-addSuffixes(collectionType, createArgSuffixType('clear', voidType));
+collectionType.addSuffixes(createArgSuffixType('clear', voidType));

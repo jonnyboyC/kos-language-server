@@ -1,6 +1,4 @@
-import { ArgumentType } from './types';
-import { createStructureType, createSuffixType } from "../typeCreators";
-import { addPrototype, addSuffixes } from '../typeUtilities';
+import { createStructureType, createSuffixType } from '../typeCreators';
 import { structureType } from './primitives/structure';
 import { vectorType } from './collections/vector';
 import { stringType } from './primitives/string';
@@ -8,11 +6,10 @@ import { scalarType } from './primitives/scalar';
 import { booleanType } from './primitives/boolean';
 import { bodyTargetType } from './orbital/bodyTarget';
 
-export const orbitInfoType: ArgumentType = createStructureType('orbitInfo');
-addPrototype(orbitInfoType, structureType);
+export const orbitInfoType = createStructureType('orbitInfo');
+orbitInfoType.addSuper(structureType);
 
-addSuffixes(
-  orbitInfoType,
+orbitInfoType.addSuffixes(
   createSuffixType('name', stringType),
   createSuffixType('apoapsis', scalarType),
   createSuffixType('periapsis', scalarType),
