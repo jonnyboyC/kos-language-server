@@ -1,10 +1,4 @@
-import {
-  isCorrectCallType,
-  isSubType,
-  addPrototype,
-  addSuffixes,
-  hasSuffix,
-} from '../typeChecker/typeUtilities';
+import { isCorrectCallType } from '../typeChecker/typeUtilities';
 import { stringType } from '../typeChecker/types/primitives/string';
 import { booleanType } from '../typeChecker/types/primitives/boolean';
 import { structureType } from '../typeChecker/types/primitives/structure';
@@ -46,35 +40,35 @@ describe('Type Utilities', () => {
   });
 
   test('Is Subtype 1', () => {
-    expect(isSubType(stringType, stringType)).toBe(true);
-    expect(isSubType(stringType, booleanType)).toBe(false);
-    expect(isSubType(stringType, structureType)).toBe(true);
-    expect(isSubType(stringType, partType)).toBe(false);
-    expect(isSubType(stringType, dockingPortType)).toBe(false);
+    expect(stringType.isSubtypeOf(stringType)).toBe(true);
+    expect(booleanType.isSubtypeOf(stringType)).toBe(false);
+    expect(structureType.isSubtypeOf(stringType)).toBe(true);
+    expect(partType.isSubtypeOf(stringType)).toBe(false);
+    expect(dockingPortType.isSubtypeOf(stringType)).toBe(false);
 
-    expect(isSubType(booleanType, stringType)).toBe(false);
-    expect(isSubType(booleanType, booleanType)).toBe(true);
-    expect(isSubType(booleanType, structureType)).toBe(true);
-    expect(isSubType(booleanType, partType)).toBe(false);
-    expect(isSubType(booleanType, dockingPortType)).toBe(false);
+    expect(stringType.isSubtypeOf(booleanType)).toBe(false);
+    expect(booleanType.isSubtypeOf(booleanType)).toBe(true);
+    expect(structureType.isSubtypeOf(booleanType)).toBe(true);
+    expect(partType.isSubtypeOf(booleanType)).toBe(false);
+    expect(dockingPortType.isSubtypeOf(booleanType)).toBe(false);
 
-    expect(isSubType(structureType, stringType)).toBe(false);
-    expect(isSubType(structureType, booleanType)).toBe(false);
-    expect(isSubType(structureType, structureType)).toBe(true);
-    expect(isSubType(structureType, partType)).toBe(false);
-    expect(isSubType(structureType, dockingPortType)).toBe(false);
+    expect(stringType.isSubtypeOf(structureType)).toBe(false);
+    expect(booleanType.isSubtypeOf(structureType)).toBe(false);
+    expect(structureType.isSubtypeOf(structureType)).toBe(true);
+    expect(partType.isSubtypeOf(structureType)).toBe(false);
+    expect(dockingPortType.isSubtypeOf(structureType)).toBe(false);
 
-    expect(isSubType(partType, stringType)).toBe(false);
-    expect(isSubType(partType, booleanType)).toBe(false);
-    expect(isSubType(partType, structureType)).toBe(true);
-    expect(isSubType(partType, partType)).toBe(true);
-    expect(isSubType(partType, dockingPortType)).toBe(false);
+    expect(stringType.isSubtypeOf(partType)).toBe(false);
+    expect(booleanType.isSubtypeOf(partType)).toBe(false);
+    expect(structureType.isSubtypeOf(partType)).toBe(true);
+    expect(partType.isSubtypeOf(partType)).toBe(true);
+    expect(dockingPortType.isSubtypeOf(partType)).toBe(false);
 
-    expect(isSubType(dockingPortType, stringType)).toBe(false);
-    expect(isSubType(dockingPortType, booleanType)).toBe(false);
-    expect(isSubType(dockingPortType, structureType)).toBe(true);
-    expect(isSubType(dockingPortType, partType)).toBe(true);
-    expect(isSubType(dockingPortType, dockingPortType)).toBe(true);
+    expect(stringType.isSubtypeOf(dockingPortType)).toBe(false);
+    expect(booleanType.isSubtypeOf(dockingPortType)).toBe(false);
+    expect(structureType.isSubtypeOf(dockingPortType)).toBe(true);
+    expect(partType.isSubtypeOf(dockingPortType)).toBe(true);
+    expect(dockingPortType.isSubtypeOf(dockingPortType)).toBe(true);
   });
 
   test('Is Subtype 2', () => {
@@ -85,14 +79,14 @@ describe('Type Utilities', () => {
     bType.addSuper(aType);
     cType.addSuper(aType);
 
-    expect(isSubType(bType, aType)).toBe(true);
-    expect(isSubType(cType, aType)).toBe(true);
+    expect(aType.isSubtypeOf(bType)).toBe(true);
+    expect(aType.isSubtypeOf(cType)).toBe(true);
 
-    expect(isSubType(aType, bType)).toBe(false);
-    expect(isSubType(cType, bType)).toBe(false);
+    expect(bType.isSubtypeOf(aType)).toBe(false);
+    expect(bType.isSubtypeOf(cType)).toBe(false);
 
-    expect(isSubType(bType, cType)).toBe(false);
-    expect(isSubType(aType, cType)).toBe(false);
+    expect(cType.isSubtypeOf(bType)).toBe(false);
+    expect(cType.isSubtypeOf(aType)).toBe(false);
   });
 
   test('Has Suffix', () => {
@@ -106,24 +100,24 @@ describe('Type Utilities', () => {
       createSuffixType('example2', cType),
     );
 
-    addSuffixes(bType, createSuffixType('example3', cType));
+    bType.addSuffixes(createSuffixType('example3', cType));
 
     bType.addSuper(aType);
 
-    addSuffixes(cType, createArgSuffixType('example', dType, dType));
+    cType.addSuffixes(createArgSuffixType('example', dType, dType));
 
-    expect(hasSuffix(aType, 'example1')).toBe(true);
-    expect(hasSuffix(aType, 'example2')).toBe(true);
-    expect(hasSuffix(aType, 'example3')).toBe(false);
+    expect(aType.getSuffix('example1')).toBeDefined();
+    expect(aType.getSuffix('example2')).toBeDefined();
+    expect(aType.getSuffix('example3')).toBeUndefined();
 
-    expect(hasSuffix(bType, 'example1')).toBe(true);
-    expect(hasSuffix(bType, 'example2')).toBe(true);
-    expect(hasSuffix(bType, 'example3')).toBe(true);
-    expect(hasSuffix(bType, 'other')).toBe(false);
+    expect(bType.getSuffix('example1')).toBeDefined();
+    expect(bType.getSuffix('example2')).toBeDefined();
+    expect(bType.getSuffix('example3')).toBeDefined();
+    expect(bType.getSuffix('other')).toBeUndefined();
 
-    expect(hasSuffix(cType, 'example')).toBe(true);
-    expect(hasSuffix(cType, 'other')).toBe(false);
+    expect(cType.getSuffix('example')).toBeDefined();
+    expect(cType.getSuffix('other')).toBeUndefined();
 
-    expect(hasSuffix(dType, 'any')).toBe(false);
+    expect(dType.getSuffix('any')).toBeUndefined();
   });
 });

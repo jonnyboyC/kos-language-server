@@ -12,7 +12,6 @@ import { TypeChecker } from '../typeChecker/typeChecker';
 import { KsBaseSymbol, KsSymbolKind } from '../analysis/types';
 import { unWrap, empty } from '../utilities/typeGuards';
 import { booleanType } from '../typeChecker/types/primitives/boolean';
-import { Type } from '../typeChecker/types/types';
 import {
   doubleType,
   integerType,
@@ -30,6 +29,7 @@ import { typeInitializer } from '../typeChecker/initialize';
 import { bodyAtmosphereType } from '../typeChecker/types/bodyatmosphere';
 import { listType } from '../typeChecker/types/collections/list';
 import { partType } from '../typeChecker/types/parts/part';
+import { IType } from '../typeChecker/types';
 
 const fakeUri = 'C:\\fake.ks';
 
@@ -202,7 +202,7 @@ const symbolTests = (
   symbols: Map<string, KsBaseSymbol>,
   name: string,
   symbolKind: KsSymbolKind,
-  targetType?: Type,
+  targetType?: IType,
 ) => {
   expect(symbols.has(name)).toBe(true);
   const nameWrap = symbols.get(name);

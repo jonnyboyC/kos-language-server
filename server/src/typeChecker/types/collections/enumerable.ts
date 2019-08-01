@@ -10,6 +10,7 @@ import { booleanType } from '../primitives/boolean';
 import { stringType } from '../primitives/string';
 import { voidType } from '../primitives/void';
 import { serializableStructureType } from '../primitives/serializeableStructure';
+import { passThroughTypeParameter } from '../../typeUtilities';
 
 export const enumerableType = createGenericStructureType('enumerable');
 enumerableType.addSuper(serializableStructureType);
@@ -29,6 +30,9 @@ enumerableType.addSuffixes(
 );
 
 export const collectionType = createGenericStructureType('collection');
-collectionType.addSuper(enumerableType);
+collectionType.addSuper(
+  enumerableType,
+  passThroughTypeParameter(collectionType, enumerableType),
+);
 
 collectionType.addSuffixes(createArgSuffixType('clear', voidType));

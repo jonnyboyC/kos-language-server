@@ -10,6 +10,8 @@ import {
 } from './types';
 import { Operator } from './operator';
 import { TypeParameter } from './typeParameter';
+import { TypeTracker } from '../analysis/typeTracker';
+import { KsSuffix } from '../entities/suffix';
 
 export class GenericType implements IGenericType {
   public readonly name: string;
@@ -271,23 +273,35 @@ export class GenericType implements IGenericType {
     return `${typeParameterStr}(${paramsStr}) => ${callSignature.returns.toTypeString()}`;
   }
 
-  public toConcreteType(typeArguments: Map<string, IType>): IType {
+  public toConcreteType(typeArguments: Map<string, IType> | IType): IType {
+    if (typeArguments instanceof Map) {
+      return this.substitution.substitute(
+        this,
+        typeArguments,
+        this.typeParameterLink,
+      );
+    }
+
+    const typeParameters = this.getTypeParameters();
+    if (typeParameters.length !== 1) {
+      throw new Error('TODO');
+    }
     return this.substitution.substitute(
       this,
-      typeArguments,
+      new Map([[typeParameters[0].name, typeArguments]]),
       this.typeParameterLink,
     );
   }
 }
 
 export class Type implements IType {
-  typeArguments: Map<string, IType>;
+  public readonly typeArguments: Map<string, IType>;
+  public readonly name: string;
+  public readonly access: Access;
+  public readonly callSignature?: CallSignature<IType>;
+  public readonly kind: TypeKind;
 
-  name: string;
-  access: Access;
-  callSignature?: CallSignature<IType>;
-  kind: TypeKind;
-
+  private tracker: TypeTracker;
   private superType?: IType;
   private typeTemplate?: IGenericType;
   private coercibleTypes: Set<IType>;
@@ -308,6 +322,9 @@ export class Type implements IType {
     this.kind = kind;
     this.callSignature = callSignature;
     this.typeTemplate = typeTemplate;
+
+    // TODO will need to actually be robust about this
+    this.tracker = new TypeTracker(new KsSuffix(name), this);
     this.coercibleTypes = new Set();
     this.suffixes = new Map();
     this.operators = new Map();
@@ -320,7 +337,7 @@ export class Type implements IType {
 
     this.superType = type;
   }
-  addCoercion(...types: IType[]): void {
+  public addCoercion(...types: IType[]): void {
     for (const type of types) {
       if (this.coercibleTypes.has(type)) {
         throw new Error(
@@ -331,7 +348,7 @@ export class Type implements IType {
       this.coercibleTypes.add(type);
     }
   }
-  addSuffixes(...suffixes: IType[]): void {
+  public addSuffixes(...suffixes: IType[]): void {
     for (const suffix of suffixes) {
       if (this.suffixes.has(suffix.name)) {
         throw new Error(
@@ -342,7 +359,7 @@ export class Type implements IType {
       this.suffixes.set(suffix.name, suffix);
     }
   }
-  addOperators(...operators: Operator<IType>[]): void {
+  public addOperators(...operators: Operator<IType>[]): void {
     for (const operator of operators) {
       if (!this.operators.has(operator.operator)) {
         this.operators.set(operator.operator, []);
@@ -384,7 +401,7 @@ export class Type implements IType {
       operatorsKind.push(operator);
     }
   }
-  isSubtypeOf(type: IType): boolean {
+  public isSubtypeOf(type: IType): boolean {
     if (type === this) {
       return true;
     }
@@ -407,7 +424,7 @@ export class Type implements IType {
 
     return false;
   }
-  canCoerceFrom(type: IType): boolean {
+  public canCoerceFrom(type: IType): boolean {
     // if type no coercion needed
     if (type === this) {
       return true;
@@ -427,16 +444,26 @@ export class Type implements IType {
 
     return false;
   }
-  getTypeParameters(): TypeParameter[] {
+  public getTypeParameters(): TypeParameter[] {
     return [];
   }
-  getSuperType(): Maybe<IType> {
+  public getSuperType(): Maybe<IType> {
     return this.superType;
   }
-  getCoercions(): Set<IType> {
+  public getTracker(): TypeTracker {
+    return this.tracker;
+  }
+  public getAssignmentType(): IType {
+    if (empty(this.callSignature)) {
+      return this;
+    }
+
+    return this.callSignature.returns;
+  }
+  public getCoercions(): Set<IType> {
     return this.coercibleTypes;
   }
-  getSuffix(name: string): Maybe<IType> {
+  public getSuffix(name: string): Maybe<IType> {
     const suffix = this.suffixes.get(name);
     if (!empty(suffix)) {
       return suffix;
@@ -444,7 +471,7 @@ export class Type implements IType {
 
     return empty(this.superType) ? undefined : this.superType.getSuffix(name);
   }
-  getSuffixes(): Map<string, IType> {
+  public getSuffixes(): Map<string, IType> {
     const suffixes = new Map(this.suffixes.entries());
 
     if (!empty(this.superType)) {
@@ -455,7 +482,7 @@ export class Type implements IType {
 
     return suffixes;
   }
-  getOperator(
+  public getOperator(
     kind: OperatorKind,
     other?: Maybe<IType>,
   ): Maybe<Operator<IType>> {
@@ -523,7 +550,7 @@ export class Type implements IType {
     return `${typeArgumentsStr}(${paramsStr}) => ${callSignature.returns.toTypeString()}`;
   }
 
-  toConcreteType(_: Map<string, IType>): IType {
+  toConcreteType(_: Map<string, IType> | IType): IType {
     return this;
   }
 }

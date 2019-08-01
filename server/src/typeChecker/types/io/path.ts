@@ -29,7 +29,7 @@ pathType.addSuffixes(
   createArgSuffixType('isParent', pathType, booleanType),
   createArgSuffixType('changeName', pathType, stringType),
   createArgSuffixType('changeExtension', pathType, stringType),
-  createVarSuffixType('combine', pathType, createVarType(structureType)),
+  createVarSuffixType('combine', pathType, structureType),
 );
 
 pathType.addOperators(

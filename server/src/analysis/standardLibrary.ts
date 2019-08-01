@@ -42,7 +42,6 @@ import {
   createVarFunctionType,
   createVarType,
 } from '../typeChecker/typeCreators';
-import { ArgumentType, IFunctionType } from '../typeChecker/types/types';
 import { delegateType } from '../typeChecker/types/primitives/delegate';
 import { kUniverseType } from '../typeChecker/types/kUniverse';
 import { homeConnectionType } from '../typeChecker/types/communication/homeConnection';
@@ -74,8 +73,10 @@ import { SymbolTable } from './symbolTable';
 import { toCase } from '../utilities/stringUtils';
 import { Marker } from '../entities/marker';
 import { boundsType } from '../typeChecker/types/parts/bounds';
+import { IType } from '../typeChecker/types';
+import { empty } from '../utilities/typeGuards';
 
-const functionTypes: [string[], IFunctionType][] = [
+const functionTypes: [string[], IType][] = [
   [['abs'], createFunctionType('abs', scalarType, scalarType)],
   [['add'], createFunctionType('add', voidType, nodeType)],
   [
@@ -516,7 +517,7 @@ const functionTypes: [string[], IFunctionType][] = [
 // createFunctionType('delete_deprecated', /* TODO */ scalarType),
 // createFunctionType('run', /* TODO */ scalarType),
 
-const locks: [string[], ArgumentType][] = [
+const locks: [string[], IType][] = [
   [['throttle'], scalarType],
   [['steering'], directionType],
   [['wheel', 'throttle'], scalarType],
@@ -525,7 +526,7 @@ const locks: [string[], ArgumentType][] = [
   [['nav', 'mode'], stringType],
 ];
 
-const variables: [string[], ArgumentType][] = [
+const variables: [string[], IType][] = [
   [['abort'], booleanType],
   [['active', 'ship'], vesselTargetType],
   [['addons'], addonListType],
@@ -628,7 +629,7 @@ const variables: [string[], ArgumentType][] = [
   [['yellow'], rgbaType],
 ];
 
-const bodies: [string, ArgumentType][] = [
+const bodies: [string, IType][] = [
   ['kerbol', bodyTargetType],
   ['moho', bodyTargetType],
   ['eve', bodyTargetType],
@@ -655,6 +656,10 @@ export const standardLibraryBuilder = (caseKind: CaseKind): SymbolTable => {
   const libraryBuilder = new SymbolTableBuilder(builtIn);
 
   for (const [segements, functionType] of functionTypes) {
+    const parameterCount = empty(functionType.callSignature)
+      ? -1
+      : functionType.callSignature.params.length;
+
     libraryBuilder.declareFunction(
       ScopeKind.global,
       new Token(
@@ -665,7 +670,7 @@ export const standardLibraryBuilder = (caseKind: CaseKind): SymbolTable => {
         new Marker(0, 0),
         builtIn,
       ),
-      Array.isArray(functionType.params) ? functionType.params.length : -1,
+      parameterCount,
       0,
       false,
       functionType,

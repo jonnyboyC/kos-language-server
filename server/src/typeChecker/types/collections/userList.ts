@@ -1,4 +1,3 @@
-import { ArgumentType } from '../types';
 import { listType } from './list';
 import { structureType } from '../primitives/structure';
 

@@ -1,5 +1,6 @@
 import { GenericType, Type } from './ksType';
 import { IGenericType, IType, TypeKind } from './types';
+import { memoize } from '../utilities/memoize';
 
 /**
  * Generate a new basic generic type
@@ -127,11 +128,21 @@ export const createVarSuffixType = (
 /**
  * Create variadic type
  */
-// export const createVarType = memoize(
-//   (type: ArgumentType): IVariadicType => {
-//     return new VariadicType(type);
-//   },
-// );
+export const createVarType = memoize(
+  (type: IType): IType => {
+    if (type.kind !== TypeKind.basic) {
+      throw new Error('Must provide a basic type for variadic types');
+    }
+
+    return new Type(
+      type.name,
+      type.access,
+      type.typeArguments,
+      TypeKind.variadic,
+      type.callSignature,
+    );
+  },
+);
 
 /**
  * Generate a new function type

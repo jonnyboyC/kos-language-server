@@ -33,7 +33,6 @@ import {
   KsSymbolKind,
   SymbolTracker,
   KsBaseSymbol,
-  TrackerKind,
 } from './analysis/types';
 import { mockLogger, mockTracer, logException } from './utilities/logger';
 import { empty } from './utilities/typeGuards';
@@ -407,10 +406,8 @@ export class KLS {
     if (!empty(tracker)) {
       symbolKind = KsSymbolKind[tracker.declared.symbol.tag];
 
-      label =
-        tracker.kind === TrackerKind.basic
-          ? tracker.declared.symbol.name.lexeme
-          : tracker.declared.symbol.name;
+      const { name } = tracker.declared.symbol;
+      label = typeof name === 'string' ? name : name.lexeme;
     } else {
       symbolKind = 'literal';
       label = token.lexeme;
@@ -481,41 +478,44 @@ export class KLS {
     switch (type.kind) {
       case TypeKind.function:
       case TypeKind.suffix:
+        if (empty(type.callSignature)) {
+          return defaultSignature();
+        }
+
         let start = label.length + 1;
-        const { params } = type;
+        const { params } = type.callSignature;
         const paramInfos: ParameterInformation[] = [];
 
         // check if normal or variadic type
-        if (Array.isArray(params)) {
-          // generate normal labels
-          if (params.length > 0) {
-            const labels: string[] = [];
-            for (let i = 0; i < params.length - 1; i += 1) {
-              const paramLabel = `${params[i].toTypeString()}, `;
-              paramInfos.push(
-                ParameterInformation.create([
-                  start,
-                  start + paramLabel.length - 2,
-                ]),
-              );
-              labels.push(paramLabel);
-              start = start + paramLabel.length;
-            }
-
-            const paramLabel = `${params[params.length - 1].toTypeString()}`;
-            paramInfos.push(
-              ParameterInformation.create([start, start + paramLabel.length]),
-            );
-            labels.push(paramLabel);
-            label = `${label}(${labels.join('')})`;
-          }
-        } else {
+        if (params.length === 1 && params[0].kind === TypeKind.variadic) {
           // generate variadic labels
-          const variadicLabel = params.toTypeString();
+          const variadicLabel = params[0].toTypeString();
           paramInfos.push(
             ParameterInformation.create([start, start + variadicLabel.length]),
           );
           label = `${label}(${variadicLabel})`;
+        } else if (params.length > 0) {
+          // generate normal labels
+
+          const labels: string[] = [];
+          for (let i = 0; i < params.length - 1; i += 1) {
+            const paramLabel = `${params[i].toTypeString()}, `;
+            paramInfos.push(
+              ParameterInformation.create([
+                start,
+                start + paramLabel.length - 2,
+              ]),
+            );
+            labels.push(paramLabel);
+            start = start + paramLabel.length;
+          }
+
+          const paramLabel = `${params[params.length - 1].toTypeString()}`;
+          paramInfos.push(
+            ParameterInformation.create([start, start + paramLabel.length]),
+          );
+          labels.push(paramLabel);
+          label = `${label}(${labels.join('')})`;
         }
 
         return {

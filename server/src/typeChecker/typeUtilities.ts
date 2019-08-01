@@ -4,7 +4,8 @@ import { TokenType } from '../entities/tokentypes';
 import { booleanType } from './types/primitives/boolean';
 import { integerType, doubleType } from './types/primitives/scalar';
 import { stringType } from './types/primitives/string';
-import { CallKind, OperatorKind, IType } from './types';
+import { CallKind, OperatorKind, IType, IGenericType } from './types';
+import { TypeParameter } from './typeParameter';
 
 /**
  * This map token types to binary operator kinds
@@ -60,6 +61,35 @@ export const tokenTrackedType = (token: Token): Maybe<IType> => {
 
       return tracker.getType({ uri: token.uri, range: token });
   }
+};
+
+/**
+ * Create a pass type parameter for generics with only one parameter
+ * @param type the type to create a pass through
+ * @param superType the super type to create a pass through
+ */
+export const passThroughTypeParameter = (
+  type: IGenericType,
+  superType: IGenericType,
+): Map<TypeParameter, TypeParameter> => {
+  const superTypeParams = superType.getTypeParameters();
+  const typeParams = type.getTypeParameters();
+
+  if (superTypeParams.length !== 1) {
+    throw new Error(
+      `Super type ${superType.name} does not have` +
+        ` one type parameter but instead has ${superTypeParams.join(', ')}.`,
+    );
+  }
+
+  if (typeParams.length !== 1) {
+    throw new Error(
+      `Type ${superType.name} does not have` +
+        ` one type parameter but instead has ${superTypeParams.join(', ')}.`,
+    );
+  }
+
+  return new Map([[typeParams[0], superTypeParams[0]]]);
 };
 
 /**

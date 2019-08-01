@@ -2,6 +2,7 @@ import { Diagnostic } from 'vscode-languageserver';
 import { SuffixTypeBuilder } from './suffixTypeNode';
 import { Operator } from './operator';
 import { TypeParameter } from './typeParameter';
+import { TypeTracker } from '../analysis/typeTracker';
 
 /**
  * type result for a kerboscript expression
@@ -156,11 +157,12 @@ export interface IGenericType {
   ): Maybe<Operator<IGenericType>>;
   getOperators(): Map<OperatorKind, Operator<IGenericType>[]>;
   toTypeString(): string;
-  toConcreteType(typeArguments: Map<string, IType>): IType;
+  toConcreteType(typeArguments: Map<string, IType> | IType): IType;
 }
 
 export interface IType extends IGenericType {
   typeArguments: Map<string, IType>;
+  readonly callSignature?: CallSignature<IType>;
   addSuper(
     type: IType,
     typeParameterLink?: Map<TypeParameter, TypeParameter>,
@@ -170,15 +172,17 @@ export interface IType extends IGenericType {
   addOperators(...operators: Operator<IType>[]): void;
   isSubtypeOf(type: IType): boolean;
   canCoerceFrom(type: IType): boolean;
+  getAssignmentType(): IType;
   getTypeParameters(): TypeParameter[];
   getSuperType(): Maybe<IType>;
+  getTracker(): TypeTracker;
   getCoercions(): Set<IType>;
   getSuffix(name: string): Maybe<IType>;
   getSuffixes(): Map<string, IType>;
   getOperator(kind: OperatorKind, other?: IType): Maybe<Operator<IType>>;
   getOperators(): Map<OperatorKind, Operator<IType>[]>;
   toTypeString(): string;
-  toConcreteType(typeArguments: Map<string, IType>): IType;
+  toConcreteType(typeArguments: Map<string, IType> | IType): IType;
 }
 
 export interface Access {

@@ -17,7 +17,7 @@ import {
   DiagnosticSeverity,
 } from 'vscode-languageserver';
 import { empty } from './typeGuards';
-import { allSuffixes, tokenTrackedType } from '../typeChecker/typeUtilities';
+import { tokenTrackedType } from '../typeChecker/typeUtilities';
 import { KsSymbolKind } from '../analysis/types';
 import { cleanLocation, cleanToken, cleanCompletion } from './clean';
 import { CallKind } from '../typeChecker/types';
@@ -201,11 +201,13 @@ export const suffixCompletionItems = async (
   }
 
   // get all suffixes on the predicted type
-  const suffixes = allSuffixes(type);
+  const suffixes = [...type.getSuffixes().values()];
 
   // generate completions
   return suffixes.map(suffix => ({
-    kind: callMapper(suffix.callType),
+    kind: empty(suffix.callSignature)
+      ? CompletionItemKind.Property
+      : CompletionItemKind.Method,
     label: suffix.name,
     detail: `${suffix.name}: ${suffix.toTypeString()}`,
   }));

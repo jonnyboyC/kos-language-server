@@ -4,7 +4,6 @@ import {
   createSetSuffixType,
   createSuffixType,
 } from '../typeCreators';
-import { addPrototype } from '../typeUtilities';
 import { structureType } from './primitives/structure';
 import { pidLoopType } from './pidLoop';
 import { directionType } from './direction';

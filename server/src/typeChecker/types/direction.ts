@@ -3,7 +3,7 @@ import { vectorType } from './collections/vector';
 import { scalarType } from './primitives/scalar';
 import { serializableStructureType } from './primitives/serializeableStructure';
 import { OperatorKind } from '../types';
-import { booleanType } from './primitives/boolean';
+import { Operator } from '../operator';
 
 export const directionType = createStructureType('direction');
 directionType.addSuper(serializableStructureType);
@@ -22,44 +22,12 @@ directionType.addSuffixes(
 );
 
 directionType.addOperators(
-  {
-    operator: OperatorKind.multiply,
-    other: directionType,
-    returnType: directionType,
-  },
-  {
-    operator: OperatorKind.multiply,
-    other: vectorType,
-    returnType: vectorType,
-  },
-  {
-    operator: OperatorKind.plus,
-    other: vectorType,
-    returnType: vectorType,
-  },
-  {
-    operator: OperatorKind.plus,
-    other: directionType,
-    returnType: directionType,
-  },
-  {
-    operator: OperatorKind.subtract,
-    other: directionType,
-    returnType: directionType,
-  },
-  {
-    operator: OperatorKind.equal,
-    other: directionType,
-    returnType: booleanType,
-  },
-  {
-    operator: OperatorKind.notEqual,
-    other: directionType,
-    returnType: booleanType,
-  },
-  {
-    operator: OperatorKind.negate,
-    returnType: directionType,
-    other: undefined,
-  },
+  new Operator(OperatorKind.multiply, directionType, directionType),
+  new Operator(OperatorKind.multiply, vectorType, vectorType),
+  new Operator(OperatorKind.plus, directionType, directionType),
+  new Operator(OperatorKind.plus, vectorType, vectorType),
+  new Operator(OperatorKind.subtract, directionType, directionType),
+  new Operator(OperatorKind.equal, vectorType, vectorType),
+  new Operator(OperatorKind.notEqual, vectorType, vectorType),
+  new Operator(OperatorKind.negate, directionType),
 );
