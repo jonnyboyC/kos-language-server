@@ -13,7 +13,6 @@ import { scalarType } from './primitives/scalar';
 
 export const steeringManagerType = createStructureType('steeringManager');
 steeringManagerType.addSuper(structureType);
-steeringManagerType.addSuper(structureType);
 
 steeringManagerType.addSuffixes(
   createSuffixType('pitchPid', pidLoopType),

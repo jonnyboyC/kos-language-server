@@ -3,6 +3,7 @@ import {
   createSuffixType,
   createArgSuffixType,
   createVarSuffixType,
+  createVarType,
 } from '../../typeCreators';
 import { structureType } from '../primitives/structure';
 import { volumeType } from './volume';
@@ -29,7 +30,7 @@ pathType.addSuffixes(
   createArgSuffixType('isParent', pathType, booleanType),
   createArgSuffixType('changeName', pathType, stringType),
   createArgSuffixType('changeExtension', pathType, stringType),
-  createVarSuffixType('combine', pathType, structureType),
+  createVarSuffixType('combine', pathType, createVarType(structureType)),
 );
 
 pathType.addOperators(

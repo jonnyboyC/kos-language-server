@@ -284,7 +284,9 @@ export class GenericType implements IGenericType {
 
     const typeParameters = this.getTypeParameters();
     if (typeParameters.length !== 1) {
-      throw new Error('TODO');
+      throw new Error(
+        'Must provide a type map if more than one parameter is present.',
+      );
     }
     return this.substitution.substitute(
       this,

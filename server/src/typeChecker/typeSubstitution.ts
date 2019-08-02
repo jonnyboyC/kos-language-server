@@ -58,7 +58,7 @@ export class TypeSubstitution {
     // check if type is actually a placeholder
     const typeParameter = this.placeHolders.get(type);
 
-    console.log(type.toTypeString());
+    console.log(`${type.name}: ${type.toTypeString()}`);
 
     if (!empty(typeParameter)) {
       // if found substitute the type parameter with type argument
@@ -98,7 +98,11 @@ export class TypeSubstitution {
       cachedTypeArguments,
       type.kind,
       callSignature,
+      type,
     );
+
+    // cache earlier in case of cycles list<T>:copy -> list<T>
+    this.substitutions.set(cachedTypeArguments, newType);
 
     const superType = type.getSuperType();
 

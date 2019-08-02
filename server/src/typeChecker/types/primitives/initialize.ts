@@ -1,5 +1,9 @@
 import { structureType } from './structure';
-import { createArgSuffixType, createVarSuffixType } from '../../typeCreators';
+import {
+  createArgSuffixType,
+  createVarSuffixType,
+  createVarType,
+} from '../../typeCreators';
 import { stringType } from './string';
 import { booleanType } from './boolean';
 import { voidType } from './void';
@@ -109,8 +113,8 @@ export const primitiveInitializer = () => {
   // ------------------ delegate ---------------------------
   delegateType.addSuper(structureType);
   delegateType.addSuffixes(
-    createVarSuffixType('call', structureType, structureType),
-    createVarSuffixType('bind', delegateType, structureType),
+    createVarSuffixType('call', structureType, createVarType(structureType)),
+    createVarSuffixType('bind', delegateType, createVarType(structureType)),
     createArgSuffixType('isdead', booleanType),
   );
 
