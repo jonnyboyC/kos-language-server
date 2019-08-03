@@ -31,5 +31,5 @@ vectorType.addOperators(
   new Operator(OperatorKind.divide, vectorType, scalarType),
   new Operator(OperatorKind.equal, booleanType, vectorType),
   new Operator(OperatorKind.notEqual, booleanType, vectorType),
-  new Operator(OperatorKind.negate, booleanType),
+  new Operator(OperatorKind.negate, vectorType),
 );

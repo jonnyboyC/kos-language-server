@@ -94,12 +94,12 @@ export const primitiveInitializer = () => {
     new Operator(OperatorKind.multiply, scalarType, scalarType),
     new Operator(OperatorKind.divide, scalarType, scalarType),
     new Operator(OperatorKind.power, scalarType, scalarType),
-    new Operator(OperatorKind.greaterThan, scalarType, booleanType),
-    new Operator(OperatorKind.lessThan, scalarType, booleanType),
-    new Operator(OperatorKind.greaterThanEqual, scalarType, booleanType),
-    new Operator(OperatorKind.lessThanEqual, scalarType, booleanType),
-    new Operator(OperatorKind.notEqual, scalarType, booleanType),
-    new Operator(OperatorKind.equal, scalarType, booleanType),
+    new Operator(OperatorKind.greaterThan, booleanType, scalarType),
+    new Operator(OperatorKind.lessThan, booleanType, scalarType),
+    new Operator(OperatorKind.greaterThanEqual, booleanType, scalarType),
+    new Operator(OperatorKind.lessThanEqual, booleanType, scalarType),
+    new Operator(OperatorKind.notEqual, booleanType, scalarType),
+    new Operator(OperatorKind.equal, booleanType, scalarType),
     new Operator(OperatorKind.negate, scalarType),
   );
   scalarType.addSuper(primitiveType);

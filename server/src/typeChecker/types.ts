@@ -162,6 +162,7 @@ export interface IGenericType {
 
 export interface IType extends IGenericType {
   typeArguments: Map<string, IType>;
+  readonly anyType: boolean;
   readonly callSignature?: CallSignature<IType>;
   addSuper(
     type: IType,

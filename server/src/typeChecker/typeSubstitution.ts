@@ -58,8 +58,6 @@ export class TypeSubstitution {
     // check if type is actually a placeholder
     const typeParameter = this.placeHolders.get(type);
 
-    console.log(`${type.name}: ${type.toTypeString()}`);
-
     if (!empty(typeParameter)) {
       // if found substitute the type parameter with type argument
       const substitution = typeArguments.get(typeParameter.name);
@@ -95,6 +93,7 @@ export class TypeSubstitution {
     const newType = new Type(
       type.name,
       type.access,
+      type.getTypeParameters().map(x => x.name),
       cachedTypeArguments,
       type.kind,
       callSignature,

@@ -431,7 +431,7 @@ const functionTypes: [string[], IType][] = [
   ],
   [
     ['v', 'ang'],
-    createFunctionType('vang', vectorType, vectorType, vectorType),
+    createFunctionType('vang', scalarType, vectorType, vectorType),
   ],
   [
     ['v', 'crs'],
@@ -439,7 +439,7 @@ const functionTypes: [string[], IType][] = [
   ],
   [
     ['v', 'dot'],
-    createFunctionType('vdot', vectorType, vectorType, vectorType),
+    createFunctionType('vdot', scalarType, vectorType, vectorType),
   ],
   [
     ['vec', 'draw'],

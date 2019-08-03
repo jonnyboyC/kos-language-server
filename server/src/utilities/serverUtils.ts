@@ -20,7 +20,6 @@ import { empty } from './typeGuards';
 import { tokenTrackedType } from '../typeChecker/typeUtilities';
 import { KsSymbolKind } from '../analysis/types';
 import { cleanLocation, cleanToken, cleanCompletion } from './clean';
-import { CallKind } from '../typeChecker/types';
 import { CommanderStatic } from 'commander';
 import { ClientConfiguration, DiagnosticUri } from '../types';
 import { mapper } from './mapper';
@@ -115,18 +114,6 @@ const symbolMap = new Map([
  * Map a ks symbol kind to a completion kind
  */
 export const symbolMapper = mapper(symbolMap, 'KsSymbolKind');
-
-const callMap = new Map([
-  [CallKind.call, CompletionItemKind.Method],
-  [CallKind.optionalCall, CompletionItemKind.Method],
-  [CallKind.get, CompletionItemKind.Property],
-  [CallKind.set, CompletionItemKind.Property],
-]);
-
-/**
- * Map a ks call kind to a completion kind
- */
-export const callMapper = mapper(callMap, 'CallKind');
 
 /**
  * Get a list of all symbols currently in scope at the given line

@@ -10,6 +10,7 @@ import { Location } from 'vscode-languageserver';
 import { binaryRightKey, locationEqual } from '../utilities/positionUtils';
 import { builtIn } from '../utilities/constants';
 import { IType } from '../typeChecker/types';
+import { empty } from '../utilities/typeGuards';
 
 export class BasicTracker<T extends KsBaseSymbol = KsBaseSymbol>
   implements SymbolTrackerBase {
@@ -56,31 +57,23 @@ export class BasicTracker<T extends KsBaseSymbol = KsBaseSymbol>
   }
 
   /**
-   * Get the type at a provided location
-   * @param loc location to check
+   * Get the type at a location
+   * @param loc query location
    */
-  private getLocation(loc: Location): KsSet | IKsDeclared<T, IType> {
+  public getType(loc: Location): Maybe<IType> {
     // if builtin type can't change so just return declared type
     if (this.declared.uri === builtIn) {
-      return this.declared;
+      return this.declared.type;
     }
 
-    // Will need ot do better this sort of handles the case of
+    // Will need to do better this sort of handles the case of
     // local x is 0. set x to x + 1.
     const ranges = this.sets.filter(
       set => set.uri === loc.uri && set.type !== structureType,
     );
     const found = binaryRightKey(ranges, loc.range.start, x => x.range);
 
-    return found || this.declared;
-  }
-
-  /**
-   * Get the type at a location
-   * @param loc query location
-   */
-  public getType(loc: Location): Maybe<IType> {
-    return this.getLocation(loc).type;
+    return (found && found.type) || this.declared.type;
   }
 
   /**
@@ -89,8 +82,15 @@ export class BasicTracker<T extends KsBaseSymbol = KsBaseSymbol>
    * @param type type to set
    */
   public setType(loc: Location, type: IType): void {
-    const nearestSet = this.getLocation(loc);
-    if (locationEqual(nearestSet, loc)) {
+    // if builtin type can't change so just return exit
+    if (this.declared.uri === builtIn) {
+      return;
+    }
+
+    const ranges = this.sets.filter(set => set.uri === loc.uri);
+    const nearestSet = binaryRightKey(ranges, loc.range.start, x => x.range);
+
+    if (!empty(nearestSet) && locationEqual(nearestSet, loc)) {
       nearestSet.type = type;
     }
   }

@@ -4,7 +4,7 @@ import { TokenType } from '../entities/tokentypes';
 import { booleanType } from './types/primitives/boolean';
 import { integerType, doubleType } from './types/primitives/scalar';
 import { stringType } from './types/primitives/string';
-import { CallKind, OperatorKind, IType, IGenericType } from './types';
+import { OperatorKind, IType, IGenericType } from './types';
 import { TypeParameter } from './typeParameter';
 
 /**
@@ -90,27 +90,4 @@ export const passThroughTypeParameter = (
   }
 
   return new Map([[typeParams[0], superTypeParams[0]]]);
-};
-
-/**
- * check if the target call type is compatable with real call type
- * @param queryCallType real call type
- * @param targetCallType query call type
- */
-export const isCorrectCallType = (
-  queryCallType: CallKind,
-  targetCallType: CallKind,
-): boolean => {
-  switch (queryCallType) {
-    case CallKind.optionalCall:
-      return (
-        targetCallType === CallKind.get ||
-        targetCallType === CallKind.call ||
-        targetCallType === CallKind.optionalCall
-      );
-    case CallKind.get:
-    case CallKind.set:
-    case CallKind.call:
-      return targetCallType === queryCallType;
-  }
 };

@@ -42,6 +42,7 @@ export class TypeParameter {
       new Type(
         name,
         { get: true, set: true },
+        [],
         new Map(),
         TypeKind.typePlaceholder,
       ),

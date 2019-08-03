@@ -57,6 +57,7 @@ import { kosProcessorFieldsType } from './types/kosProcessorFields';
 import { elementType } from './types/parts/element';
 import { aggregateResourceType } from './types/parts/aggregateResource';
 import { Operator } from './operator';
+import { VariadicType } from './ksType';
 
 type Diagnostics = Diagnostic[];
 
@@ -611,10 +612,7 @@ export class TypeChecker
       if (!empty(collectionIterator)) {
         const value = collectionIterator.getSuffix('value');
 
-        const setType =
-          (value && value.callSignature && value.callSignature.returns) ||
-          structureType;
-
+        const setType = (value && value.getAssignmentType()) || structureType;
         tracker.setType(stmt.element, setType);
       } else {
         tracker.setType(stmt.element, structureType);
@@ -1217,7 +1215,7 @@ export class TypeChecker
 
     // handle variadic
     if (params.length === 1 && params[0].kind === TypeKind.variadic) {
-      return this.visitVaradicCall(params[0], call);
+      return this.visitVariadicCall(params[0], call);
     }
 
     // handle normal functions
@@ -1262,8 +1260,8 @@ export class TypeChecker
     const { params } = type.callSignature;
 
     // handle normal or varadic calls
-    if (params.length === 0 && params[0].kind === TypeKind.variadic) {
-      errors.push(...this.visitVaradicCall(params[0], call));
+    if (params.length === 1 && params[0].kind === TypeKind.variadic) {
+      errors.push(...this.visitVariadicCall(params[0], call));
     } else {
       errors.push(...this.visitNormalCall(params, call));
     }
@@ -1276,8 +1274,11 @@ export class TypeChecker
    * @param params parameter types
    * @param call current call expression
    */
-  private visitVaradicCall(params: IType, call: SuffixTerm.Call): Diagnostics {
+  private visitVariadicCall(params: IType, call: SuffixTerm.Call): Diagnostics {
     const errors: Diagnostics = [];
+    if (!(params instanceof VariadicType)) {
+      throw new Error('Expected variadic type.');
+    }
 
     for (const arg of call.args) {
       // determine type of each argument
@@ -1285,7 +1286,7 @@ export class TypeChecker
       errors.push(...result.errors);
 
       // add diagnostic if argument cannot be matched to parameter type
-      if (!params.canCoerceFrom(result.type)) {
+      if (!params.base.canCoerceFrom(result.type)) {
         errors.push(
           createDiagnostic(
             arg,
@@ -1435,7 +1436,11 @@ export class TypeChecker
 
     // if we know the collection type is a list we need a scalar indexer
     if (listType.canCoerceFrom(type)) {
-      indexer = arrayBracketIndexer(type, scalarType, structureType);
+      indexer = arrayBracketIndexer(
+        type,
+        scalarType,
+        type.typeArguments.get('T') || structureType,
+      );
       builder.nodes.push(new TypeNode(indexer, suffixTerm));
 
       if (!scalarType.canCoerceFrom(indexResult.type)) {

@@ -175,6 +175,11 @@ export class GenericType implements IGenericType {
       return true;
     }
 
+    // if we're a subtype of this type
+    if (type.isSubtypeOf(this)) {
+      return true;
+    }
+
     // Are we a subtype of one of the coercible types
     for (const coercibleType of this.coercibleTypes) {
       if (type.isSubtypeOf(coercibleType)) {
@@ -255,9 +260,7 @@ export class GenericType implements IGenericType {
         : '';
 
     if (empty(this.callSignature)) {
-      return this.kind === TypeKind.variadic
-        ? `...${this.name}${typeParameterStr}`
-        : `${this.name}${typeParameterStr}`;
+      return `${this.name}${typeParameterStr}`;
     }
 
     return this.callToTypeString(this.callSignature, typeParameterStr);
@@ -302,8 +305,10 @@ export class Type implements IType {
   public readonly access: Access;
   public readonly callSignature?: CallSignature<IType>;
   public readonly kind: TypeKind;
+  public readonly anyType: boolean;
 
   private tracker: TypeTracker;
+  private substitution: TypeSubstitution;
   private superType?: IType;
   private typeTemplate?: IGenericType;
   private coercibleTypes: Set<IType>;
@@ -313,17 +318,25 @@ export class Type implements IType {
   constructor(
     name: string,
     access: Access,
+    typeParameters: string[],
     typeArguments: Map<string, IType>,
     kind: TypeKind,
     callSignature?: CallSignature,
     typeTemplate?: IGenericType,
+    anyType = false,
   ) {
+    if (kind === TypeKind.variadic) {
+      throw new Error('Cannot construct variadic type.');
+    }
+
     this.name = name;
     this.access = access;
+    this.substitution = new TypeSubstitution(typeParameters);
     this.typeArguments = typeArguments;
     this.kind = kind;
     this.callSignature = callSignature;
     this.typeTemplate = typeTemplate;
+    this.anyType = anyType;
 
     // TODO will need to actually be robust about this
     this.tracker = new TypeTracker(new KsSuffix(name), this);
@@ -432,8 +445,17 @@ export class Type implements IType {
       return true;
     }
 
+    if (type.anyType) {
+      return true;
+    }
+
     // Are we directly a type that can be coerced
     if (this.coercibleTypes.has(type)) {
+      return true;
+    }
+
+    // if we're a subtype of this type
+    if (type.isSubtypeOf(this)) {
       return true;
     }
 
@@ -447,7 +469,7 @@ export class Type implements IType {
     return false;
   }
   public getTypeParameters(): TypeParameter[] {
-    return [];
+    return [...this.substitution.typeParameters];
   }
   public getSuperType(): Maybe<IType> {
     return this.superType;
@@ -491,6 +513,10 @@ export class Type implements IType {
     const operators = this.operators.get(kind);
 
     if (empty(operators)) {
+      if (!empty(this.superType)) {
+        return this.superType.getOperator(kind, other);
+      }
+
       return operators;
     }
 
@@ -534,9 +560,7 @@ export class Type implements IType {
     }
 
     if (empty(this.callSignature)) {
-      return this.kind === TypeKind.variadic
-        ? `...${this.name}${typeArgumentsStr}`
-        : `${this.name}${typeArgumentsStr}`;
+      return `${this.name}${typeArgumentsStr}`;
     }
 
     return this.callToTypeString(this.callSignature, typeArgumentsStr);
@@ -557,6 +581,77 @@ export class Type implements IType {
   }
 }
 
+export class VariadicType implements IType {
+  typeArguments: Map<string, IType>;
+  anyType: boolean;
+  callSignature?: CallSignature<IType> | undefined;
+  base: IType;
+  name: string;
+  access: Access;
+  kind: TypeKind;
+
+  constructor(base: IType) {
+    this.base = base;
+    this.name = base.name;
+    this.access = { get: false, set: false };
+    this.kind = TypeKind.variadic;
+    this.anyType = false;
+    this.typeArguments = new Map();
+  }
+
+  addSuper(_: IType, __?: Map<TypeParameter, TypeParameter> | undefined): void {
+    throw new Error('Method not implemented.');
+  }
+  addCoercion(..._: IType[]): void {
+    throw new Error('Method not implemented.');
+  }
+  addSuffixes(..._: IType[]): void {
+    throw new Error('Method not implemented.');
+  }
+  addOperators(..._: Operator<IType>[]): void {
+    throw new Error('Method not implemented.');
+  }
+  isSubtypeOf(type: IType): boolean {
+    return this === type;
+  }
+  canCoerceFrom(type: IType): boolean {
+    return this === type;
+  }
+  getAssignmentType(): IType {
+    return this;
+  }
+  getTypeParameters(): TypeParameter[] {
+    return [];
+  }
+  getSuperType(): Maybe<IType> {
+    return undefined;
+  }
+  getTracker(): TypeTracker {
+    throw new Error('Method not implemented.');
+  }
+  getCoercions(): Set<IType> {
+    return new Set();
+  }
+  getSuffix(_: string): Maybe<IType> {
+    return undefined;
+  }
+  getSuffixes(): Map<string, IType> {
+    return new Map();
+  }
+  getOperator(_: OperatorKind, __?: Maybe<IType>): Maybe<Operator<IType>> {
+    return undefined;
+  }
+  getOperators(): Map<OperatorKind, Operator<IType>[]> {
+    return new Map();
+  }
+  toTypeString(): string {
+    return `...${this.base.toTypeString()}`;
+  }
+  toConcreteType(_: IType | Map<string, IType>): IType {
+    return this;
+  }
+}
+
 /**
  * Represents a constant type, or a type with a fixed value
  */
@@ -572,12 +667,21 @@ export class ConstantType<T> extends Type {
     name: string,
     value: T,
     access: Access,
+    typeParameters: string[],
     typeArguments: Map<string, IType>,
     kind: TypeKind,
     callSignature?: CallSignature,
     typeTemplate?: IGenericType,
   ) {
-    super(name, access, typeArguments, kind, callSignature, typeTemplate);
+    super(
+      name,
+      access,
+      typeParameters,
+      typeArguments,
+      kind,
+      callSignature,
+      typeTemplate,
+    );
     this.value = value;
   }
 

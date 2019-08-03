@@ -1,4 +1,4 @@
-import { GenericType, Type } from './ksType';
+import { GenericType, Type, VariadicType } from './ksType';
 import { IGenericType, IType, TypeKind } from './types';
 import { memoize } from '../utilities/memoize';
 
@@ -24,7 +24,13 @@ export const createGenericStructureType = (
  * @param name name of the new type
  */
 export const createStructureType = (name: string): IType => {
-  return new Type(name, { get: true, set: true }, new Map(), TypeKind.basic);
+  return new Type(
+    name,
+    { get: true, set: true },
+    [],
+    new Map(),
+    TypeKind.basic,
+  );
 };
 
 /**
@@ -65,6 +71,7 @@ export const createArgSuffixType = (
   return new Type(
     name.toLowerCase(),
     { get, set: false },
+    [],
     new Map(),
     TypeKind.suffix,
     { params, returns },
@@ -80,6 +87,7 @@ export const createSuffixType = (name: string, returns: IType): IType => {
   return new Type(
     name.toLowerCase(),
     { get: true, set: false },
+    [],
     new Map(),
     TypeKind.suffix,
     { returns, params: [] },
@@ -95,6 +103,7 @@ export const createSetSuffixType = (name: string, returns: IType): IType => {
   return new Type(
     name.toLowerCase(),
     { get: true, set: true },
+    [],
     new Map(),
     TypeKind.suffix,
     { returns, params: [] },
@@ -119,6 +128,7 @@ export const createVarSuffixType = (
   return new Type(
     name.toLowerCase(),
     { get: false, set: false },
+    [],
     new Map(),
     TypeKind.suffix,
     { returns, params: [params] },
@@ -134,13 +144,7 @@ export const createVarType = memoize(
       throw new Error('Must provide a basic type for variadic types');
     }
 
-    return new Type(
-      type.name,
-      type.access,
-      type.typeArguments,
-      TypeKind.variadic,
-      type.callSignature,
-    );
+    return new VariadicType(type);
   },
 );
 
@@ -158,6 +162,7 @@ export const createFunctionType = (
   return new Type(
     name.toLowerCase(),
     { get: false, set: false },
+    [],
     new Map(),
     TypeKind.function,
     { returns, params },
@@ -182,6 +187,7 @@ export const createVarFunctionType = (
   return new Type(
     name.toLowerCase(),
     { get: false, set: false },
+    [],
     new Map(),
     TypeKind.function,
     { returns, params: [params] },
