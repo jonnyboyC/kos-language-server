@@ -9,7 +9,7 @@ import { voidType } from '../primitives/void';
 import { stringType } from '../primitives/string';
 import { booleanType } from '../primitives/boolean';
 import { scalarType } from '../primitives/scalar';
-import { directionType } from '../direction';
+import { directionType } from '../collections/direction';
 import { vectorType } from '../collections/vector';
 import { listType } from '../collections/list';
 import { resourceType } from './resource';

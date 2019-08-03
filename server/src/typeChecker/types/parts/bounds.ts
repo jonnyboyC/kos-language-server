@@ -6,7 +6,7 @@ import {
 import { structureType } from '../primitives/structure';
 import { scalarType } from '../primitives/scalar';
 import { vectorType } from '../collections/vector';
-import { directionType } from '../direction';
+import { directionType } from '../collections/direction';
 
 export const boundsType = createStructureType('bounds');
 boundsType.addSuper(structureType);

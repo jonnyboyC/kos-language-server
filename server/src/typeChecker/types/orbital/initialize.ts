@@ -4,7 +4,7 @@ import { createSuffixType, createArgSuffixType } from '../../typeCreators';
 import { stringType } from '../primitives/string';
 import { scalarType } from '../primitives/scalar';
 import { booleanType } from '../primitives/boolean';
-import { directionType } from '../direction';
+import { directionType } from '../collections/direction';
 import { orbitInfoType } from '../orbitInfo';
 import { vectorType } from '../collections/vector';
 import { orbitableVelocityType } from '../orbitalVelocity';

@@ -52,6 +52,8 @@ export const primitiveInitializer = () => {
     new Operator(OperatorKind.equal, booleanType, stringType),
     new Operator(OperatorKind.notEqual, booleanType, stringType),
   );
+  stringType.addCoercion(structureType);
+
   stringType.addSuper(primitiveType);
   stringType.addSuffixes(
     createArgSuffixType('length', scalarType),
@@ -102,6 +104,7 @@ export const primitiveInitializer = () => {
     new Operator(OperatorKind.equal, booleanType, scalarType),
     new Operator(OperatorKind.negate, scalarType),
   );
+  scalarType.addCoercion(booleanType, stringType);
   scalarType.addSuper(primitiveType);
 
   // ------------------ integer ---------------------------
@@ -125,5 +128,6 @@ export const primitiveInitializer = () => {
     new Operator(OperatorKind.and, booleanType, booleanType),
     new Operator(OperatorKind.or, booleanType, booleanType),
   );
+  booleanType.addCoercion(scalarType, stringType);
   booleanType.addSuper(primitiveType);
 };

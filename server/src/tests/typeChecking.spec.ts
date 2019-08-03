@@ -21,7 +21,7 @@ import { stringType } from '../typeChecker/types/primitives/string';
 import { userListType } from '../typeChecker/types/collections/userList';
 import { structureType } from '../typeChecker/types/primitives/structure';
 import { vectorType } from '../typeChecker/types/collections/vector';
-import { directionType } from '../typeChecker/types/direction';
+import { directionType } from '../typeChecker/types/collections/direction';
 import { Marker } from '../entities/marker';
 import { zip } from '../utilities/arrayUtils';
 import { timeSpanType } from '../typeChecker/types/timespan';

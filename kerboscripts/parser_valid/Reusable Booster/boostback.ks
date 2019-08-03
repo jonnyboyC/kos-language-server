@@ -15,6 +15,16 @@ if debug {
 	}
 }
 
+print(10). 
+
+if choose 10 if true else false {
+	print(10).
+}
+
+local x is choose "boat"
+	if true
+	else false.
+
 print "Boostback script running.".
 
 local gloc is LATLNG(-0.056537521336225,-74.6246793127239). //KSC runway refueling area

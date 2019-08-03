@@ -8,7 +8,7 @@ import { scalarType } from '../primitives/scalar';
 import { stringType } from '../primitives/string';
 import { booleanType } from '../primitives/boolean';
 import { voidType } from '../primitives/void';
-import { directionType } from '../direction';
+import { directionType } from '../collections/direction';
 import { vectorType } from '../collections/vector';
 import { uniqueSetType } from '../collections/uniqueset';
 import { userDelegateType } from '../userDelegate';

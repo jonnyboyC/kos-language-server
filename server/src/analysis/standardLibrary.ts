@@ -13,7 +13,7 @@ import { pathType } from '../typeChecker/types/io/path';
 import { volumeType } from '../typeChecker/types/io/volume';
 import { vectorType } from '../typeChecker/types/collections/vector';
 import { rgbaType } from '../typeChecker/types/rgba';
-import { directionType } from '../typeChecker/types/direction';
+import { directionType } from '../typeChecker/types/collections/direction';
 import { kacAlarmType } from '../typeChecker/types/kacAlarmWrapper';
 import { geoCoordinatesType } from '../typeChecker/types/geoCoordinates';
 import { bodyAtmosphereType } from '../typeChecker/types/bodyatmosphere';
