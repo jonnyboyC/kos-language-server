@@ -15,18 +15,22 @@ import { ITypeResultExpr, TypeKind, OperatorKind, IType } from './types';
 import { mockLogger, mockTracer, logException } from '../utilities/logger';
 import { Script } from '../entities/script';
 import { empty } from '../utilities/typeGuards';
-import { structureType } from './types/primitives/structure';
+import { structureType } from './ksTypes/primitives/structure';
 import { iterator } from '../utilities/constants';
 import { TokenType } from '../entities/tokentypes';
-import { nodeType } from './types/node';
+import { nodeType } from './ksTypes/node';
 import { createFunctionType } from './typeCreators';
-import { lexiconType } from './types/collections/lexicon';
+import { lexiconType } from './ksTypes/collections/lexicon';
 import { zip } from '../utilities/arrayUtils';
 import { binaryOperatorMap, unaryOperatorMap } from './typeUtilities';
-import { voidType } from './types/primitives/void';
-import { booleanType } from './types/primitives/boolean';
-import { stringType } from './types/primitives/string';
-import { scalarType, integerType, doubleType } from './types/primitives/scalar';
+import { voidType } from './ksTypes/primitives/void';
+import { booleanType } from './ksTypes/primitives/boolean';
+import { stringType } from './ksTypes/primitives/string';
+import {
+  scalarType,
+  integerType,
+  doubleType,
+} from './ksTypes/primitives/scalar';
 import {
   suffixError,
   delegateCreation,
@@ -34,30 +38,30 @@ import {
   arrayIndexer,
   functionError,
 } from './typeHelpers';
-import { delegateType } from './types/primitives/delegate';
+import { delegateType } from './ksTypes/primitives/delegate';
 import { TypeNode } from './typeNode';
 import { KsSymbolKind, TrackerKind, SymbolTracker } from '../analysis/types';
 import { rangeToString } from '../utilities/positionUtils';
-import { listType } from './types/collections/list';
-import { bodyTargetType } from './types/orbital/bodyTarget';
-import { vesselTargetType } from './types/orbital/vesselTarget';
-import { volumeType } from './types/io/volume';
-import { volumeItemType } from './types/io/volumeItem';
-import { partType } from './types/parts/part';
-import { pathType } from './types/io/path';
+import { listType } from './ksTypes/collections/list';
+import { bodyTargetType } from './ksTypes/orbital/bodyTarget';
+import { vesselTargetType } from './ksTypes/orbital/vesselTarget';
+import { volumeType } from './ksTypes/io/volume';
+import { volumeItemType } from './ksTypes/io/volumeItem';
+import { partType } from './ksTypes/parts/part';
+import { pathType } from './ksTypes/io/path';
 import { NodeBase } from '../parser/base';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
 import { createDiagnostic } from '../utilities/diagnosticsUtils';
 import { BasicTracker } from '../analysis/tracker';
 import { SuffixTypeBuilder } from './suffixTypeNode';
-import { engineType } from './types/parts/engine';
-import { dockingPortType } from './types/parts/dockingPort';
-import { vesselSensorsType } from './types/vessel/vesselSensors';
-import { kosProcessorFieldsType } from './types/kosProcessorFields';
-import { elementType } from './types/parts/element';
-import { aggregateResourceType } from './types/parts/aggregateResource';
+import { engineType } from './ksTypes/parts/engine';
+import { dockingPortType } from './ksTypes/parts/dockingPort';
+import { vesselSensorsType } from './ksTypes/vessel/vesselSensors';
+import { kosProcessorFieldsType } from './ksTypes/kosProcessorFields';
+import { elementType } from './ksTypes/parts/element';
+import { aggregateResourceType } from './ksTypes/parts/aggregateResource';
 import { Operator } from './operator';
-import { VariadicType } from './ksType';
+import { VariadicType } from './types/variadicType';
 
 type Diagnostics = Diagnostic[];
 
@@ -610,7 +614,8 @@ export class TypeChecker
       const collectionIterator = type.getSuffix(iterator);
 
       if (!empty(collectionIterator)) {
-        const value = collectionIterator.getSuffix('value');
+        const enumerator = collectionIterator.getAssignmentType();
+        const value = enumerator.getSuffix('value');
 
         const setType = (value && value.getAssignmentType()) || structureType;
         tracker.setType(stmt.element, setType);
@@ -903,7 +908,7 @@ export class TypeChecker
         finalType = elementType;
         break;
       case 'resources':
-        finalType = listType.toConcreteType(aggregateResourceType);
+        finalType = listType.toConcrete(aggregateResourceType);
         break;
       case 'parts':
         finalType = partType;
@@ -942,7 +947,7 @@ export class TypeChecker
 
     const { tracker } = target;
     if (this.isBasicTracker(tracker)) {
-      tracker.setType(target, listType.toConcreteType(finalType));
+      tracker.setType(target, listType.toConcrete(finalType));
     }
 
     return errors;
@@ -1190,8 +1195,9 @@ export class TypeChecker
 
     const type = builder.current();
     const errors: Diagnostics = [];
+    const callSignature = type.getCallSignature();
 
-    if (empty(type.callSignature)) {
+    if (empty(callSignature)) {
       builder.nodes.push(new TypeNode(suffixError, call));
       call.open.tracker = suffixError.getTracker();
       call.close.tracker = suffixError.getTracker();
@@ -1211,7 +1217,7 @@ export class TypeChecker
     call.open.tracker = type.getTracker();
     call.close.tracker = type.getTracker();
 
-    const { params } = type.callSignature;
+    const params = callSignature.params();
 
     // handle variadic
     if (params.length === 1 && params[0].kind === TypeKind.variadic) {
@@ -1235,9 +1241,11 @@ export class TypeChecker
     const type = builder.current();
     const errors: Diagnostics = [];
 
+    const callSignature = type.getCallSignature();
+
     // check if previous identifier resolves to a function
     // TODO figure out function trackers
-    if (empty(type.callSignature)) {
+    if (empty(callSignature)) {
       builder.nodes.push(new TypeNode(functionError, call));
       call.open.tracker = functionError.getTracker();
       call.close.tracker = functionError.getTracker();
@@ -1257,9 +1265,9 @@ export class TypeChecker
     call.open.tracker = tracker;
     call.close.tracker = tracker;
 
-    const { params } = type.callSignature;
+    const params = callSignature.params();
 
-    // handle normal or varadic calls
+    // handle normal or variadic calls
     if (params.length === 1 && params[0].kind === TypeKind.variadic) {
       errors.push(...this.visitVariadicCall(params[0], call));
     } else {
@@ -1436,10 +1444,12 @@ export class TypeChecker
 
     // if we know the collection type is a list we need a scalar indexer
     if (listType.canCoerceFrom(type)) {
+      const parameters = type.getTypeParameters();
+
       indexer = arrayBracketIndexer(
         type,
         scalarType,
-        type.typeArguments.get('T') || structureType,
+        type.typeSubstitutions.get(parameters[0].placeHolder) || structureType,
       );
       builder.nodes.push(new TypeNode(indexer, suffixTerm));
 

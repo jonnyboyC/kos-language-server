@@ -1,5 +1,5 @@
-import { IType, TypeKind } from './types';
-import { Type } from './ksType';
+import { IType } from './types';
+import { PlaceholderType } from './types/placeholder';
 
 /**
  * A class to represent a type parameter in a generic type
@@ -37,15 +37,6 @@ export class TypeParameter {
    * @param name name of type parameter
    */
   static create(name: string): TypeParameter {
-    return new TypeParameter(
-      name,
-      new Type(
-        name,
-        { get: true, set: true },
-        [],
-        new Map(),
-        TypeKind.typePlaceholder,
-      ),
-    );
+    return new TypeParameter(name, new PlaceholderType(name));
   }
 }

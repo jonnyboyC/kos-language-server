@@ -192,7 +192,7 @@ export const suffixCompletionItems = async (
 
   // generate completions
   return suffixes.map(suffix => ({
-    kind: empty(suffix.callSignature)
+    kind: empty(suffix.getCallSignature())
       ? CompletionItemKind.Property
       : CompletionItemKind.Method,
     label: suffix.name,

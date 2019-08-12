@@ -1,9 +1,9 @@
 import { empty } from '../utilities/typeGuards';
 import { Token } from '../entities/token';
 import { TokenType } from '../entities/tokentypes';
-import { booleanType } from './types/primitives/boolean';
-import { integerType, doubleType } from './types/primitives/scalar';
-import { stringType } from './types/primitives/string';
+import { booleanType } from './ksTypes/primitives/boolean';
+import { integerType, doubleType } from './ksTypes/primitives/scalar';
+import { stringType } from './ksTypes/primitives/string';
 import { OperatorKind, IType, IGenericType } from './types';
 import { TypeParameter } from './typeParameter';
 

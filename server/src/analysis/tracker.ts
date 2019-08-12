@@ -5,7 +5,7 @@ import {
   TrackerKind,
   KsBaseSymbol,
 } from './types';
-import { structureType } from '../typeChecker/types/primitives/structure';
+import { structureType } from '../typeChecker/ksTypes/primitives/structure';
 import { Location } from 'vscode-languageserver';
 import { binaryRightKey, locationEqual } from '../utilities/positionUtils';
 import { builtIn } from '../utilities/constants';

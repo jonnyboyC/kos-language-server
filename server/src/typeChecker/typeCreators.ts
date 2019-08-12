@@ -1,6 +1,10 @@
-import { GenericType, Type, VariadicType } from './ksType';
-import { IGenericType, IType, TypeKind } from './types';
+import { IGenericType, IType, TypeKind, TypeMap, ITypeMappable } from './types';
 import { memoize } from '../utilities/memoize';
+import { GenericType } from './types/genericType';
+import { Type } from './types/type';
+import { VariadicType } from './types/variadicType';
+import { CallSignature } from './types/callSignature';
+import { GenericCallSignature } from './types/genericCallSignature';
 
 /**
  * Generate a new basic generic type
@@ -46,13 +50,18 @@ export const createGenericArgSuffixType = (
 ): IGenericType => {
   const get = params.length === 0;
 
-  return new GenericType(
+  const genericType = new GenericType(
     name.toLowerCase(),
     { get, set: false },
     ['T'],
     TypeKind.suffix,
-    { params, returns },
   );
+
+  const callSignature = new GenericCallSignature(['T']);
+  callSignature.addParams(...params.map(p => passThroughMap(genericType, p)));
+  callSignature.addReturn(passThroughMap(genericType, returns));
+
+  return genericType;
 };
 
 /**
@@ -74,7 +83,7 @@ export const createArgSuffixType = (
     [],
     new Map(),
     TypeKind.suffix,
-    { params, returns },
+    new CallSignature(params, returns),
   );
 };
 
@@ -90,7 +99,7 @@ export const createSuffixType = (name: string, returns: IType): IType => {
     [],
     new Map(),
     TypeKind.suffix,
-    { returns, params: [] },
+    new CallSignature([], returns),
   );
 };
 
@@ -106,7 +115,7 @@ export const createSetSuffixType = (name: string, returns: IType): IType => {
     [],
     new Map(),
     TypeKind.suffix,
-    { returns, params: [] },
+    new CallSignature([], returns),
   );
 };
 
@@ -131,22 +140,9 @@ export const createVarSuffixType = (
     [],
     new Map(),
     TypeKind.suffix,
-    { returns, params: [params] },
+    new CallSignature([params], returns),
   );
 };
-
-/**
- * Create variadic type
- */
-export const createVarType = memoize(
-  (type: IType): IType => {
-    if (type.kind !== TypeKind.basic) {
-      throw new Error('Must provide a basic type for variadic types');
-    }
-
-    return new VariadicType(type);
-  },
-);
 
 /**
  * Generate a new function type
@@ -165,7 +161,7 @@ export const createFunctionType = (
     [],
     new Map(),
     TypeKind.function,
-    { returns, params },
+    new CallSignature(params, returns),
   );
 };
 
@@ -190,6 +186,50 @@ export const createVarFunctionType = (
     [],
     new Map(),
     TypeKind.function,
-    { returns, params: [params] },
+    new CallSignature([params], returns),
   );
+};
+
+/**
+ * Create variadic type
+ */
+export const createVarType = memoize(
+  (type: IType): IType => {
+    if (type.kind !== TypeKind.basic) {
+      throw new Error('Must provide a basic type for variadic types');
+    }
+
+    return new VariadicType(type);
+  },
+);
+
+export const noMap = <T extends IGenericType>(type: T): TypeMap<T> => {
+  return {
+    type,
+    mapping: new Map(),
+  };
+};
+
+export const passThroughMap = <
+  T1 extends ITypeMappable,
+  T2 extends ITypeMappable
+>(
+  source: T1,
+  target: T2,
+): TypeMap<T2> => {
+  const sourceParameters = source.getTypeParameters();
+  const targetParameters = target.getTypeParameters();
+
+  if (sourceParameters.length !== 1) {
+    throw new Error(`Type ${source.name} has more than 1 type parameter`);
+  }
+
+  if (targetParameters.length !== 1) {
+    throw new Error(`Type ${target.name} has more than 1 type parameter`);
+  }
+
+  return {
+    type: target,
+    mapping: new Map([[sourceParameters[0], targetParameters[0]]]),
+  };
 };

@@ -132,23 +132,24 @@ export enum OperatorKind {
   equal,
 }
 
-export interface IGenericType {
+export interface ITypeMappable {
   readonly name: string;
+  getTypeParameters(): TypeParameter[];
+}
+
+export interface IGenericType extends ITypeMappable {
   readonly access: Access;
-  readonly callSignature?: CallSignature<IGenericType>;
+  readonly anyType: boolean;
   readonly kind: TypeKind;
-  addSuper(
-    type: IGenericType,
-    typeParameterLink?: Map<TypeParameter, TypeParameter>,
-  ): void;
+  addSuper(type: TypeMap<IGenericType>): void;
   addCoercion(...types: IGenericType[]): void;
-  addSuffixes(...suffixes: IGenericType[]): void;
+  addSuffixes(...suffixes: TypeMap<IGenericType>[]): void;
   addOperators(...operators: Operator<IGenericType>[]): void;
   isSubtypeOf(type: IGenericType): boolean;
   canCoerceFrom(type: IGenericType): boolean;
-  getTypeParameters(): TypeParameter[];
   getSuperType(): Maybe<IGenericType>;
   getCoercions(): Set<IGenericType>;
+  getCallSignature(): Maybe<IGenericCallSignature>;
   getSuffix(name: string): Maybe<IGenericType>;
   getSuffixes(): Map<string, IGenericType>;
   getOperator(
@@ -157,33 +158,31 @@ export interface IGenericType {
   ): Maybe<Operator<IGenericType>>;
   getOperators(): Map<OperatorKind, Operator<IGenericType>[]>;
   toTypeString(): string;
-  toConcreteType(typeArguments: Map<string, IType> | IType): IType;
+  toConcrete(typeSubstitutions: Map<IType, IType> | IType): IType;
 }
 
 export interface IType extends IGenericType {
-  typeArguments: Map<string, IType>;
-  readonly anyType: boolean;
-  readonly callSignature?: CallSignature<IType>;
-  addSuper(
-    type: IType,
-    typeParameterLink?: Map<TypeParameter, TypeParameter>,
-  ): void;
+  typeSubstitutions: Map<IType, IType>;
+  addSuper(type: TypeMap<IType>): void;
   addCoercion(...types: IType[]): void;
-  addSuffixes(...suffixes: IType[]): void;
+  addSuffixes(...suffixes: TypeMap<IType>[]): void;
   addOperators(...operators: Operator<IType>[]): void;
   isSubtypeOf(type: IType): boolean;
-  canCoerceFrom(type: IType): boolean;
   getAssignmentType(): IType;
-  getTypeParameters(): TypeParameter[];
   getSuperType(): Maybe<IType>;
   getTracker(): TypeTracker;
-  getCoercions(): Set<IType>;
+  getCallSignature(): Maybe<ICallSignature>;
   getSuffix(name: string): Maybe<IType>;
   getSuffixes(): Map<string, IType>;
   getOperator(kind: OperatorKind, other?: IType): Maybe<Operator<IType>>;
   getOperators(): Map<OperatorKind, Operator<IType>[]>;
   toTypeString(): string;
-  toConcreteType(typeArguments: Map<string, IType> | IType): IType;
+  toConcrete(typeSubstitutions: Map<IType, IType> | IType): IType;
+}
+
+export interface TypeMap<T> {
+  mapping: Map<TypeParameter, TypeParameter>;
+  type: T;
 }
 
 export interface Access {
@@ -191,7 +190,13 @@ export interface Access {
   set: boolean;
 }
 
-export interface CallSignature<T extends IGenericType = IType> {
-  params: T[];
-  returns: T;
+export interface IGenericCallSignature extends ITypeMappable {
+  params(): IGenericType[];
+  returns(): IGenericType;
+  toConcrete(typeSubstitutions: Map<IType, IType> | IType): ICallSignature;
+  toTypeString(): string;
+}
+export interface ICallSignature extends IGenericCallSignature {
+  params(): IType[];
+  returns(): IType;
 }

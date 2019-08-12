@@ -11,25 +11,26 @@ import { Resolver } from '../analysis/resolver';
 import { TypeChecker } from '../typeChecker/typeChecker';
 import { KsBaseSymbol, KsSymbolKind } from '../analysis/types';
 import { unWrap, empty } from '../utilities/typeGuards';
-import { booleanType } from '../typeChecker/types/primitives/boolean';
+import { booleanType } from '../typeChecker/ksTypes/primitives/boolean';
 import {
   doubleType,
   integerType,
   scalarType,
-} from '../typeChecker/types/primitives/scalar';
-import { stringType } from '../typeChecker/types/primitives/string';
-import { userListType } from '../typeChecker/types/collections/userList';
-import { structureType } from '../typeChecker/types/primitives/structure';
-import { vectorType } from '../typeChecker/types/collections/vector';
-import { directionType } from '../typeChecker/types/collections/direction';
+} from '../typeChecker/ksTypes/primitives/scalar';
+import { stringType } from '../typeChecker/ksTypes/primitives/string';
+import { userListType } from '../typeChecker/ksTypes/collections/userList';
+import { structureType } from '../typeChecker/ksTypes/primitives/structure';
+import { vectorType } from '../typeChecker/ksTypes/collections/vector';
+import { directionType } from '../typeChecker/ksTypes/collections/direction';
 import { Marker } from '../entities/marker';
 import { zip } from '../utilities/arrayUtils';
-import { timeSpanType } from '../typeChecker/types/timespan';
+import { timeSpanType } from '../typeChecker/ksTypes/timespan';
 import { typeInitializer } from '../typeChecker/initialize';
-import { bodyAtmosphereType } from '../typeChecker/types/bodyatmosphere';
-import { listType } from '../typeChecker/types/collections/list';
-import { partType } from '../typeChecker/types/parts/part';
+import { bodyAtmosphereType } from '../typeChecker/ksTypes/bodyatmosphere';
+import { listType } from '../typeChecker/ksTypes/collections/list';
+import { partType } from '../typeChecker/ksTypes/parts/part';
 import { IType } from '../typeChecker/types';
+import { pathType } from '../typeChecker/ksTypes/io/path';
 
 const fakeUri = 'C:\\fake.ks';
 
@@ -175,26 +176,26 @@ for i1 in l1 { print(i1). }
 for i2 in l2 { print(i2). }
 
 // need to have userlisttype subtype listtype
-// local p is path("example").
-// local segments is p:segments.
+local p is path("example").
+local segments is p:segments.
 
-// local x3 is segments[0].
-// print(x3).
+local x3 is segments[0].
+print(x3).
 
-// for i3 in segments { print(i3). }
+for i3 in segments { print(i3). }
 `;
 
 const suffixSource = `
 local atm is body:atm.
 local length is list():length.
 local parts is ship:parts.
-// local facing is ship:parts[0]:facing.
+local facing is ship:parts[0]:facing.
 local distance is body:geopositionlatlng(10, 10):distance.
 
 print(atm).
 print(length).
 print(parts).
-// print(facing).
+print(facing).
 print(distance).
 `;
 
@@ -289,11 +290,16 @@ describe('Basic inferring', () => {
     symbolTests(names, 'i1', KsSymbolKind.variable, structureType);
     symbolTests(names, 'i2', KsSymbolKind.variable, structureType);
 
-    // symbolTests(names, 'p', KsSymbolKind.variable, pathType);
-    // symbolTests(names, 'segments', KsSymbolKind.variable, listType.toConcreteType(stringType));
+    symbolTests(names, 'p', KsSymbolKind.variable, pathType);
+    symbolTests(
+      names,
+      'segments',
+      KsSymbolKind.variable,
+      listType.toConcrete(stringType),
+    );
 
-    // symbolTests(names, 'x3', KsSymbolKind.variable, stringType);
-    // symbolTests(names, 'i3', KsSymbolKind.variable, stringType);
+    symbolTests(names, 'x3', KsSymbolKind.variable, stringType);
+    symbolTests(names, 'i3', KsSymbolKind.variable, stringType);
   });
 
   test('suffix inferring', () => {
@@ -312,9 +318,9 @@ describe('Basic inferring', () => {
       names,
       'parts',
       KsSymbolKind.variable,
-      listType.toConcreteType(partType),
+      listType.toConcrete(partType),
     );
-    // symbolTests(names, 'facing', KsSymbolKind.variable, directionType);
+    symbolTests(names, 'facing', KsSymbolKind.variable, directionType);
     symbolTests(names, 'distance', KsSymbolKind.variable, scalarType);
   });
 });

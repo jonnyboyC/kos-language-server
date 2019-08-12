@@ -2,10 +2,11 @@ import {
   createSuffixType,
   createArgSuffixType,
   createFunctionType,
+  noMap,
 } from './typeCreators';
-import { structureType } from './types/primitives/structure';
-import { integerType } from './types/primitives/scalar';
-import { delegateType } from './types/primitives/delegate';
+import { structureType } from './ksTypes/primitives/structure';
+import { integerType } from './ksTypes/primitives/scalar';
+import { delegateType } from './ksTypes/primitives/delegate';
 import { empty } from '../utilities/typeGuards';
 import { IType } from './types';
 
@@ -47,4 +48,4 @@ export const functionError = createFunctionType(
 );
 
 export const defaultSuffix = (name: string) =>
-  createSuffixType(name, structureType);
+  noMap(createSuffixType(name, structureType));

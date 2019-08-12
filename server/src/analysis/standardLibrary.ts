@@ -1,78 +1,78 @@
 import { ScopeKind } from '../parser/types';
 import { Token } from '../entities/token';
 import { TokenType } from '../entities/tokentypes';
-import { queueType } from '../typeChecker/types/collections/queue';
-import { structureType } from '../typeChecker/types/primitives/structure';
-import { listType } from '../typeChecker/types/collections/list';
-import { stackType } from '../typeChecker/types/collections/stack';
-import { uniqueSetType } from '../typeChecker/types/collections/uniqueset';
-import { nodeType } from '../typeChecker/types/node';
-import { partType } from '../typeChecker/types/parts/part';
-import { constantType } from '../typeChecker/types/constant';
-import { pathType } from '../typeChecker/types/io/path';
-import { volumeType } from '../typeChecker/types/io/volume';
-import { vectorType } from '../typeChecker/types/collections/vector';
-import { rgbaType } from '../typeChecker/types/rgba';
-import { directionType } from '../typeChecker/types/collections/direction';
-import { kacAlarmType } from '../typeChecker/types/kacAlarmWrapper';
-import { geoCoordinatesType } from '../typeChecker/types/geoCoordinates';
-import { bodyAtmosphereType } from '../typeChecker/types/bodyatmosphere';
-import { noteType } from '../typeChecker/types/note';
-import { voiceType } from '../typeChecker/types/voice';
-import { hsvaType } from '../typeChecker/types/hsva';
-import { vectorRendererType } from '../typeChecker/types/vectorRenderer';
-import { guiWidgetType } from '../typeChecker/types/gui/guiWidget';
-import { orbitableType } from '../typeChecker/types/orbital/orbitable';
-import { timeSpanType } from '../typeChecker/types/timespan';
-import { highlightType } from '../typeChecker/types/highlight';
-import { orbitInfoType } from '../typeChecker/types/orbitInfo';
-import { careerType } from '../typeChecker/types/career';
-import { waypointType } from '../typeChecker/types/waypoint';
-import { resourceTransferType } from '../typeChecker/types/resourceTransfer';
+import { queueType } from '../typeChecker/ksTypes/collections/queue';
+import { structureType } from '../typeChecker/ksTypes/primitives/structure';
+import { listType } from '../typeChecker/ksTypes/collections/list';
+import { stackType } from '../typeChecker/ksTypes/collections/stack';
+import { uniqueSetType } from '../typeChecker/ksTypes/collections/uniqueset';
+import { nodeType } from '../typeChecker/ksTypes/node';
+import { partType } from '../typeChecker/ksTypes/parts/part';
+import { constantType } from '../typeChecker/ksTypes/constant';
+import { pathType } from '../typeChecker/ksTypes/io/path';
+import { volumeType } from '../typeChecker/ksTypes/io/volume';
+import { vectorType } from '../typeChecker/ksTypes/collections/vector';
+import { rgbaType } from '../typeChecker/ksTypes/rgba';
+import { directionType } from '../typeChecker/ksTypes/collections/direction';
+import { kacAlarmType } from '../typeChecker/ksTypes/kacAlarmWrapper';
+import { geoCoordinatesType } from '../typeChecker/ksTypes/geoCoordinates';
+import { bodyAtmosphereType } from '../typeChecker/ksTypes/bodyatmosphere';
+import { noteType } from '../typeChecker/ksTypes/note';
+import { voiceType } from '../typeChecker/ksTypes/voice';
+import { hsvaType } from '../typeChecker/ksTypes/hsva';
+import { vectorRendererType } from '../typeChecker/ksTypes/vectorRenderer';
+import { guiWidgetType } from '../typeChecker/ksTypes/gui/guiWidget';
+import { orbitableType } from '../typeChecker/ksTypes/orbital/orbitable';
+import { timeSpanType } from '../typeChecker/ksTypes/timespan';
+import { highlightType } from '../typeChecker/ksTypes/highlight';
+import { orbitInfoType } from '../typeChecker/ksTypes/orbitInfo';
+import { careerType } from '../typeChecker/ksTypes/career';
+import { waypointType } from '../typeChecker/ksTypes/waypoint';
+import { resourceTransferType } from '../typeChecker/ksTypes/resourceTransfer';
 import { builtIn } from '../utilities/constants';
-import { lexiconType } from '../typeChecker/types/collections/lexicon';
-import { rangeType } from '../typeChecker/types/collections/range';
+import { lexiconType } from '../typeChecker/ksTypes/collections/lexicon';
+import { rangeType } from '../typeChecker/ksTypes/collections/range';
 import { SymbolTableBuilder } from './symbolTableBuilder';
-import { volumeFileType } from '../typeChecker/types/io/volumneFile';
-import { pidLoopType } from '../typeChecker/types/pidLoop';
-import { volumeItemType } from '../typeChecker/types/io/volumeItem';
-import { volumeDirectoryType } from '../typeChecker/types/io/volumeDirectory';
+import { volumeFileType } from '../typeChecker/ksTypes/io/volumneFile';
+import { pidLoopType } from '../typeChecker/ksTypes/pidLoop';
+import { volumeItemType } from '../typeChecker/ksTypes/io/volumeItem';
+import { volumeDirectoryType } from '../typeChecker/ksTypes/io/volumeDirectory';
 import {
   createFunctionType,
   createVarFunctionType,
   createVarType,
 } from '../typeChecker/typeCreators';
-import { delegateType } from '../typeChecker/types/primitives/delegate';
-import { kUniverseType } from '../typeChecker/types/kUniverse';
-import { homeConnectionType } from '../typeChecker/types/communication/homeConnection';
-import { controlConnectionType } from '../typeChecker/types/communication/controlConnection';
-import { vesselAltType } from '../typeChecker/types/vessel/vesselAlt';
-import { vesselEtaType } from '../typeChecker/types/vessel/vesselEta';
-import { stageType } from '../typeChecker/types/vessel/stage';
-import { steeringManagerType } from '../typeChecker/types/steeringManager';
-import { terminalStructType } from '../typeChecker/types/terminalStruct';
-import { voidType } from '../typeChecker/types/primitives/void';
-import { userListType } from '../typeChecker/types/collections/userList';
+import { delegateType } from '../typeChecker/ksTypes/primitives/delegate';
+import { kUniverseType } from '../typeChecker/ksTypes/kUniverse';
+import { homeConnectionType } from '../typeChecker/ksTypes/communication/homeConnection';
+import { controlConnectionType } from '../typeChecker/ksTypes/communication/controlConnection';
+import { vesselAltType } from '../typeChecker/ksTypes/vessel/vesselAlt';
+import { vesselEtaType } from '../typeChecker/ksTypes/vessel/vesselEta';
+import { stageType } from '../typeChecker/ksTypes/vessel/stage';
+import { steeringManagerType } from '../typeChecker/ksTypes/steeringManager';
+import { terminalStructType } from '../typeChecker/ksTypes/terminalStruct';
+import { voidType } from '../typeChecker/ksTypes/primitives/void';
+import { userListType } from '../typeChecker/ksTypes/collections/userList';
 import {
   scalarType,
   doubleType,
   integerType,
-} from '../typeChecker/types/primitives/scalar';
-import { stringType } from '../typeChecker/types/primitives/string';
-import { booleanType } from '../typeChecker/types/primitives/boolean';
-import { coreType } from '../typeChecker/types/core';
-import { versionInfoType } from '../typeChecker/types/versionInfo';
-import { configType } from '../typeChecker/types/config';
-import { builtInDelegateType } from '../typeChecker/types/primitives/builtInDelegate';
-import { addonListType } from '../typeChecker/types/addon/addonList';
-import { vesselSensorsType } from '../typeChecker/types/vessel/vesselSensors';
-import { serializableStructureType } from '../typeChecker/types/primitives/serializeableStructure';
-import { bodyTargetType } from '../typeChecker/types/orbital/bodyTarget';
-import { vesselTargetType } from '../typeChecker/types/orbital/vesselTarget';
+} from '../typeChecker/ksTypes/primitives/scalar';
+import { stringType } from '../typeChecker/ksTypes/primitives/string';
+import { booleanType } from '../typeChecker/ksTypes/primitives/boolean';
+import { coreType } from '../typeChecker/ksTypes/core';
+import { versionInfoType } from '../typeChecker/ksTypes/versionInfo';
+import { configType } from '../typeChecker/ksTypes/config';
+import { builtInDelegateType } from '../typeChecker/ksTypes/primitives/builtInDelegate';
+import { addonListType } from '../typeChecker/ksTypes/addon/addonList';
+import { vesselSensorsType } from '../typeChecker/ksTypes/vessel/vesselSensors';
+import { serializableType } from '../typeChecker/ksTypes/primitives/serializeableStructure';
+import { bodyTargetType } from '../typeChecker/ksTypes/orbital/bodyTarget';
+import { vesselTargetType } from '../typeChecker/ksTypes/orbital/vesselTarget';
 import { SymbolTable } from './symbolTable';
 import { toCase } from '../utilities/stringUtils';
 import { Marker } from '../entities/marker';
-import { boundsType } from '../typeChecker/types/parts/bounds';
+import { boundsType } from '../typeChecker/ksTypes/parts/bounds';
 import { IType } from '../typeChecker/types';
 import { empty } from '../utilities/typeGuards';
 
@@ -92,7 +92,7 @@ const functionTypes: [string[], IType][] = [
   ],
   [
     ['all', 'waypoints'],
-    createFunctionType('allwaypoints', listType.toConcreteType(waypointType)),
+    createFunctionType('allwaypoints', listType.toConcrete(waypointType)),
   ],
   [
     ['angle', 'axis'],
@@ -219,7 +219,7 @@ const functionTypes: [string[], IType][] = [
     ['list', 'alarms'],
     createFunctionType(
       'listAlarms',
-      listType.toConcreteType(kacAlarmType),
+      listType.toConcrete(kacAlarmType),
       stringType,
     ),
   ],
@@ -314,7 +314,7 @@ const functionTypes: [string[], IType][] = [
     ['queue'],
     createVarFunctionType(
       'queue',
-      queueType.toConcreteType(structureType),
+      queueType.toConcrete(structureType),
       createVarType(structureType),
     ),
   ],
@@ -335,7 +335,7 @@ const functionTypes: [string[], IType][] = [
   ],
   [
     ['read', 'json'],
-    createFunctionType('readjson', serializableStructureType, stringType),
+    createFunctionType('readjson', serializableType, stringType),
   ], // TODO Union Types
   [['reboot'], createFunctionType('reboot', voidType)],
   [['remove'], createFunctionType('remove', voidType, nodeType)],
@@ -383,7 +383,7 @@ const functionTypes: [string[], IType][] = [
     ['stack'],
     createVarFunctionType(
       'stack',
-      stackType.toConcreteType(structureType),
+      stackType.toConcrete(structureType),
       createVarType(structureType),
     ),
   ],
@@ -421,7 +421,7 @@ const functionTypes: [string[], IType][] = [
     ['unique', 'set'],
     createVarFunctionType(
       'uniqueset',
-      uniqueSetType.toConcreteType(structureType),
+      uniqueSetType.toConcrete(structureType),
       createVarType(structureType),
     ),
   ],
@@ -505,7 +505,7 @@ const functionTypes: [string[], IType][] = [
     createFunctionType(
       'writejson',
       volumeFileType,
-      serializableStructureType,
+      serializableType,
       stringType,
     ),
   ],
@@ -541,7 +541,7 @@ const variables: [string[], IType][] = [
   [['ag8'], booleanType],
   [['ag9'], booleanType],
   [['airspeed'], scalarType],
-  [['all', 'nodes'], listType.toConcreteType(nodeType)],
+  [['all', 'nodes'], listType.toConcrete(nodeType)],
   [['alt'], vesselAltType],
   [['altitude'], scalarType],
   [['angular', 'momentum'], vectorType],
@@ -656,9 +656,11 @@ export const standardLibraryBuilder = (caseKind: CaseKind): SymbolTable => {
   const libraryBuilder = new SymbolTableBuilder(builtIn);
 
   for (const [segements, functionType] of functionTypes) {
-    const parameterCount = empty(functionType.callSignature)
+    const callSignature = functionType.getCallSignature();
+
+    const parameterCount = empty(callSignature)
       ? -1
-      : functionType.callSignature.params.length;
+      : callSignature.params.length;
 
     libraryBuilder.declareFunction(
       ScopeKind.global,

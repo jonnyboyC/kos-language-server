@@ -478,12 +478,14 @@ export class KLS {
     switch (type.kind) {
       case TypeKind.function:
       case TypeKind.suffix:
-        if (empty(type.callSignature)) {
+        const callSignature = type.getCallSignature();
+
+        if (empty(callSignature)) {
           return defaultSignature();
         }
 
         let start = label.length + 1;
-        const { params } = type.callSignature;
+        const params = callSignature.params();
         const paramInfos: ParameterInformation[] = [];
 
         // check if normal or variadic type

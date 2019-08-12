@@ -1,18 +1,64 @@
-import { stringType } from '../typeChecker/types/primitives/string';
-import { booleanType } from '../typeChecker/types/primitives/boolean';
-import { structureType } from '../typeChecker/types/primitives/structure';
-import { partType } from '../typeChecker/types/parts/part';
-import { dockingPortType } from '../typeChecker/types/parts/dockingPort';
+import { stringType } from '../typeChecker/ksTypes/primitives/string';
+import { booleanType } from '../typeChecker/ksTypes/primitives/boolean';
+import { structureType } from '../typeChecker/ksTypes/primitives/structure';
+import { partType } from '../typeChecker/ksTypes/parts/part';
+import { dockingPortType } from '../typeChecker/ksTypes/parts/dockingPort';
 import {
   createStructureType,
   createSuffixType,
   createArgSuffixType,
+  noMap,
 } from '../typeChecker/typeCreators';
 import { typeInitializer } from '../typeChecker/initialize';
+import { userListType } from '../typeChecker/ksTypes/collections/userList';
+import { listType } from '../typeChecker/ksTypes/collections/list';
+import { collectionType } from '../typeChecker/ksTypes/collections/enumerable';
+import { scalarType } from '../typeChecker/ksTypes/primitives/scalar';
+import { TypeKind } from '../typeChecker/types';
+import { GenericType } from '../typeChecker/types/genericType';
+import { Type } from '../typeChecker/types/type';
 
 typeInitializer();
 
 describe('Type Utilities', () => {
+  test('Basic Attributes', () => {
+    const genericExampleType = new GenericType(
+      'example',
+      { get: true, set: true },
+      ['T'],
+      TypeKind.basic,
+    );
+
+    expect(genericExampleType.name).toBe('example');
+    expect(genericExampleType.access.get).toBe(true);
+    expect(genericExampleType.access.set).toBe(true);
+    expect(genericExampleType.getCallSignature()).toBeUndefined();
+    expect(genericExampleType.anyType).toBe(false);
+    expect(genericExampleType.getSuperType()).toBeUndefined();
+
+    const genericTypeParameters = genericExampleType.getTypeParameters();
+    expect(genericTypeParameters.length).toBe(1);
+    expect(genericTypeParameters[0].name).toBe('T');
+
+    const exampleType = genericExampleType.toConcrete(stringType);
+    const parameters = exampleType.getTypeParameters();
+
+    expect(exampleType.name).toBe('example');
+    expect(exampleType.access.get).toBe(true);
+    expect(exampleType.access.set).toBe(true);
+    expect(exampleType.getCallSignature()).toBeUndefined();
+    expect(exampleType.getAssignmentType()).toBe(exampleType);
+    expect(exampleType.typeSubstitutions.get(parameters[0].placeHolder)).toBe(
+      stringType,
+    );
+    expect(exampleType.anyType).toBe(false);
+    expect(exampleType.getSuperType()).toBeUndefined();
+
+    const typeParameters = exampleType.getTypeParameters();
+    expect(typeParameters.length).toBe(1);
+    expect(typeParameters[0].name).toBe('T');
+  });
+
   test('Is Subtype 1', () => {
     expect(stringType.isSubtypeOf(stringType)).toBe(true);
     expect(stringType.isSubtypeOf(booleanType)).toBe(false);
@@ -50,8 +96,8 @@ describe('Type Utilities', () => {
     const bType = createStructureType('b');
     const cType = createStructureType('c');
 
-    bType.addSuper(aType);
-    cType.addSuper(aType);
+    bType.addSuper(noMap(aType));
+    cType.addSuper(noMap(aType));
 
     expect(bType.isSubtypeOf(aType)).toBe(true);
     expect(cType.isSubtypeOf(aType)).toBe(true);
@@ -70,15 +116,15 @@ describe('Type Utilities', () => {
     const dType = createStructureType('d');
 
     aType.addSuffixes(
-      createSuffixType('example1', cType),
-      createSuffixType('example2', cType),
+      noMap(createSuffixType('example1', cType)),
+      noMap(createSuffixType('example2', cType)),
     );
 
-    bType.addSuffixes(createSuffixType('example3', cType));
+    bType.addSuffixes(noMap(createSuffixType('example3', cType)));
 
-    bType.addSuper(aType);
+    bType.addSuper(noMap(aType));
 
-    cType.addSuffixes(createArgSuffixType('example', dType, dType));
+    cType.addSuffixes(noMap(createArgSuffixType('example', dType, dType)));
 
     expect(aType.getSuffix('example1')).toBeDefined();
     expect(aType.getSuffix('example2')).toBeDefined();
@@ -93,5 +139,87 @@ describe('Type Utilities', () => {
     expect(cType.getSuffix('other')).toBeUndefined();
 
     expect(dType.getSuffix('any')).toBeUndefined();
+  });
+
+  test('Can Coerce', () => {
+    expect(structureType.canCoerceFrom(scalarType)).toBe(true);
+    expect(structureType.canCoerceFrom(booleanType)).toBe(true);
+    expect(structureType.canCoerceFrom(stringType)).toBe(true);
+    expect(structureType.canCoerceFrom(collectionType)).toBe(true);
+    expect(structureType.canCoerceFrom(listType)).toBe(true);
+    expect(structureType.canCoerceFrom(userListType)).toBe(true);
+
+    expect(scalarType.canCoerceFrom(structureType)).toBe(true);
+    expect(scalarType.canCoerceFrom(booleanType)).toBe(true);
+    expect(scalarType.canCoerceFrom(stringType)).toBe(true);
+    expect(scalarType.canCoerceFrom(collectionType)).toBe(false);
+    expect(scalarType.canCoerceFrom(listType)).toBe(false);
+    expect(scalarType.canCoerceFrom(userListType)).toBe(false);
+
+    expect(booleanType.canCoerceFrom(structureType)).toBe(true);
+    expect(booleanType.canCoerceFrom(scalarType)).toBe(true);
+    expect(booleanType.canCoerceFrom(stringType)).toBe(true);
+    expect(booleanType.canCoerceFrom(collectionType)).toBe(false);
+    expect(booleanType.canCoerceFrom(listType)).toBe(false);
+    expect(booleanType.canCoerceFrom(userListType)).toBe(false);
+
+    expect(stringType.canCoerceFrom(structureType)).toBe(true);
+    expect(stringType.canCoerceFrom(scalarType)).toBe(true);
+    expect(stringType.canCoerceFrom(booleanType)).toBe(true);
+    expect(stringType.canCoerceFrom(collectionType)).toBe(true);
+    expect(stringType.canCoerceFrom(listType)).toBe(true);
+    expect(stringType.canCoerceFrom(userListType)).toBe(true);
+
+    expect(collectionType.canCoerceFrom(structureType)).toBe(true);
+    expect(collectionType.canCoerceFrom(scalarType)).toBe(false);
+    expect(collectionType.canCoerceFrom(booleanType)).toBe(false);
+    expect(collectionType.canCoerceFrom(stringType)).toBe(false);
+    expect(collectionType.canCoerceFrom(listType)).toBe(true);
+    expect(collectionType.canCoerceFrom(userListType)).toBe(true);
+
+    expect(listType.canCoerceFrom(structureType)).toBe(true);
+    expect(listType.canCoerceFrom(scalarType)).toBe(false);
+    expect(listType.canCoerceFrom(booleanType)).toBe(false);
+    expect(listType.canCoerceFrom(stringType)).toBe(false);
+    expect(listType.canCoerceFrom(collectionType)).toBe(false);
+    expect(listType.canCoerceFrom(userListType)).toBe(true);
+
+    expect(userListType.canCoerceFrom(structureType)).toBe(true);
+    expect(userListType.canCoerceFrom(scalarType)).toBe(false);
+    expect(userListType.canCoerceFrom(booleanType)).toBe(false);
+    expect(userListType.canCoerceFrom(stringType)).toBe(false);
+    expect(userListType.canCoerceFrom(collectionType)).toBe(false);
+    expect(userListType.canCoerceFrom(listType)).toBe(false);
+  });
+
+  test('Super', () => {
+    const example = new Type(
+      'example',
+      { get: true, set: true },
+      [],
+      new Map(),
+      TypeKind.basic,
+    );
+
+    example.addSuffixes(noMap(createSuffixType('suffix1', stringType)));
+
+    expect(example.getSuperType()).toBeUndefined();
+    expect(example.getSuffix('suffix1')).toBeDefined();
+    expect(example.getSuffix('suffix2')).toBeUndefined();
+
+    const superExample = new Type(
+      'superExample',
+      { get: true, set: true },
+      [],
+      new Map(),
+      TypeKind.basic,
+    );
+
+    superExample.addSuffixes(noMap(createSuffixType('suffix2', stringType)));
+    example.addSuper(noMap(superExample));
+
+    expect(example.getSuperType()).toBeDefined();
+    expect(example.getSuffix('suffix1')).toBeDefined();
+    expect(example.getSuffix('suffix2')).toBeDefined();
   });
 });
