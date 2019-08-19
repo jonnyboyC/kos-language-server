@@ -200,7 +200,6 @@ export class TypeReplacement {
       // if found substitute the type placeholder with a real type
       const substitution = typeReplacements.get(type);
       if (empty(substitution)) {
-        debugger;
         throw new Error(
           `Did not provide a type substitution for ${type.name}.`,
         );

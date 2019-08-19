@@ -66,7 +66,6 @@ export class GenericType implements IGenericType {
 
       // if we have parameters we need a mapping between them
       if (empty(mapping)) {
-        debugger;
         throw new Error(
           `Type ${type.name} was not passed a type parameter map`,
         );
@@ -83,14 +82,12 @@ export class GenericType implements IGenericType {
       // check matching
       for (const [key, value] of mapping) {
         if (!thisTypeParams.includes(key)) {
-          debugger;
           throw new Error(
             `Type ${this.name} does not have a type parameter ${key.name}`,
           );
         }
 
         if (!superTypeParams.includes(value)) {
-          debugger;
           throw new Error(
             `Type ${type.name} does not have a type parameter ${value.name}`,
           );

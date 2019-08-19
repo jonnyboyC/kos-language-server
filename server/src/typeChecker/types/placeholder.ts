@@ -46,7 +46,6 @@ export class PlaceholderType implements IType {
     throw new Error('Attempted to operate on type parameter placeholder.');
   }
   public getTypeParameters(): IGenericType[] {
-    debugger;
     throw new Error('Attempted to operate on type parameter placeholder.');
   }
   public getSuperType(): Maybe<IType> {

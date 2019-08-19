@@ -41,12 +41,7 @@ export const createGenericStructureType = (
  * @param name name of the new type
  */
 export const createStructureType = (name: string): IType => {
-  return new Type(
-    name,
-    { get: true, set: true },
-    new Map(),
-    TypeKind.basic,
-  );
+  return new Type(name, { get: true, set: true }, new Map(), TypeKind.basic);
 };
 
 /**
@@ -257,12 +252,10 @@ export const mapTypes = <T1 extends ITypeMappable, T2 extends ITypeMappable>(
   const targetParameters = target.getTypeParameters();
 
   if (sourceParameters.length !== 1) {
-    debugger;
     throw new Error(`Type ${source.name} has more than 1 type parameter`);
   }
 
   if (targetParameters.length !== 1) {
-    debugger;
     throw new Error(`Type ${target.name} has more than 1 type parameter`);
   }
 
@@ -280,7 +273,6 @@ export const mapType = <T1 extends ITypeMappable, T2 extends IGenericType>(
   const targetParameters = target.getTypeParameters();
 
   if (sourceParameters.length !== 1) {
-    debugger;
     throw new Error(`Type ${source.name} has more than 1 type parameter`);
   }
 
@@ -288,7 +280,6 @@ export const mapType = <T1 extends ITypeMappable, T2 extends IGenericType>(
     targetParameters.length !== 1 &&
     target.kind !== TypeKind.typePlaceholder
   ) {
-    debugger;
     throw new Error(`Type ${target.name} has more than 1 type parameter`);
   }
 
