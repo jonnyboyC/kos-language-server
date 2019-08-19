@@ -7,13 +7,26 @@ import { CallSignature } from './types/callSignature';
 import { GenericCallSignature } from './types/genericCallSignature';
 
 /**
+ * Create a placeholder generic type
+ * @param name name of the placeholder
+ */
+export const createPlaceholder = (name: string): IGenericType => {
+  return new GenericType(
+    name,
+    { get: false, set: false },
+    [],
+    TypeKind.typePlaceholder,
+  );
+};
+
+/**
  * Generate a new basic generic type
  * @param name name of the new generic type
  * @param typeParameterNames names of the type parameters
  */
 export const createGenericStructureType = (
   name: string,
-  typeParameterNames = ['T'],
+  typeParameterNames: string[],
 ): IGenericType => {
   return new GenericType(
     name,
@@ -31,7 +44,6 @@ export const createStructureType = (name: string): IType => {
   return new Type(
     name,
     { get: true, set: true },
-    [],
     new Map(),
     TypeKind.basic,
   );
@@ -45,23 +57,56 @@ export const createStructureType = (name: string): IType => {
  */
 export const createGenericArgSuffixType = (
   name: string,
-  returns: IGenericType,
-  ...params: IGenericType[]
+  typeParameters: string[],
+  returns: IGenericType | string,
+  ...params: (IGenericType | string)[]
 ): IGenericType => {
   const get = params.length === 0;
 
   const genericType = new GenericType(
     name.toLowerCase(),
     { get, set: false },
-    ['T'],
+    typeParameters,
     TypeKind.suffix,
   );
 
-  const callSignature = new GenericCallSignature(['T']);
-  callSignature.addParams(...params.map(p => passThroughMap(genericType, p)));
-  callSignature.addReturn(passThroughMap(genericType, returns));
+  const callSignature = new GenericCallSignature(typeParameters);
+  const typePlaceholders = callSignature.getTypeParameters();
 
+  callSignature.addParams(
+    ...params.map(p =>
+      mapTypeWithPlaceholder(callSignature, typePlaceholders, p),
+    ),
+  );
+
+  callSignature.addReturn(
+    mapTypeWithPlaceholder(callSignature, typePlaceholders, returns),
+  );
+
+  genericType.addCallSignature(mapTypes(genericType, callSignature));
   return genericType;
+};
+
+const mapTypeWithPlaceholder = (
+  parentType: ITypeMappable,
+  typePlaceholders: IGenericType[],
+  type: IGenericType | string,
+): TypeMap<IGenericType> => {
+  if (typeof type !== 'string') {
+    if (type.getTypeParameters().length === 0) {
+      return noMap(type);
+    }
+
+    return mapType(parentType, type);
+  }
+
+  for (const placeholder of typePlaceholders) {
+    if (type === placeholder.name) {
+      return noMap(placeholder);
+    }
+  }
+
+  throw new Error(`Unable to map ${type} to a type parameter`);
 };
 
 /**
@@ -80,7 +125,6 @@ export const createArgSuffixType = (
   return new Type(
     name.toLowerCase(),
     { get, set: false },
-    [],
     new Map(),
     TypeKind.suffix,
     new CallSignature(params, returns),
@@ -96,7 +140,6 @@ export const createSuffixType = (name: string, returns: IType): IType => {
   return new Type(
     name.toLowerCase(),
     { get: true, set: false },
-    [],
     new Map(),
     TypeKind.suffix,
     new CallSignature([], returns),
@@ -112,7 +155,6 @@ export const createSetSuffixType = (name: string, returns: IType): IType => {
   return new Type(
     name.toLowerCase(),
     { get: true, set: true },
-    [],
     new Map(),
     TypeKind.suffix,
     new CallSignature([], returns),
@@ -137,7 +179,6 @@ export const createVarSuffixType = (
   return new Type(
     name.toLowerCase(),
     { get: false, set: false },
-    [],
     new Map(),
     TypeKind.suffix,
     new CallSignature([params], returns),
@@ -158,7 +199,6 @@ export const createFunctionType = (
   return new Type(
     name.toLowerCase(),
     { get: false, set: false },
-    [],
     new Map(),
     TypeKind.function,
     new CallSignature(params, returns),
@@ -183,7 +223,6 @@ export const createVarFunctionType = (
   return new Type(
     name.toLowerCase(),
     { get: false, set: false },
-    [],
     new Map(),
     TypeKind.function,
     new CallSignature([params], returns),
@@ -210,10 +249,7 @@ export const noMap = <T extends IGenericType>(type: T): TypeMap<T> => {
   };
 };
 
-export const passThroughMap = <
-  T1 extends ITypeMappable,
-  T2 extends ITypeMappable
->(
+export const mapTypes = <T1 extends ITypeMappable, T2 extends ITypeMappable>(
   source: T1,
   target: T2,
 ): TypeMap<T2> => {
@@ -221,11 +257,46 @@ export const passThroughMap = <
   const targetParameters = target.getTypeParameters();
 
   if (sourceParameters.length !== 1) {
+    debugger;
     throw new Error(`Type ${source.name} has more than 1 type parameter`);
   }
 
   if (targetParameters.length !== 1) {
+    debugger;
     throw new Error(`Type ${target.name} has more than 1 type parameter`);
+  }
+
+  return {
+    type: target,
+    mapping: new Map([[sourceParameters[0], targetParameters[0]]]),
+  };
+};
+
+export const mapType = <T1 extends ITypeMappable, T2 extends IGenericType>(
+  source: T1,
+  target: T2,
+): TypeMap<T2> => {
+  const sourceParameters = source.getTypeParameters();
+  const targetParameters = target.getTypeParameters();
+
+  if (sourceParameters.length !== 1) {
+    debugger;
+    throw new Error(`Type ${source.name} has more than 1 type parameter`);
+  }
+
+  if (
+    targetParameters.length !== 1 &&
+    target.kind !== TypeKind.typePlaceholder
+  ) {
+    debugger;
+    throw new Error(`Type ${target.name} has more than 1 type parameter`);
+  }
+
+  if (target.kind === TypeKind.typePlaceholder) {
+    return {
+      type: target,
+      mapping: new Map([[sourceParameters[0], target]]),
+    };
   }
 
   return {

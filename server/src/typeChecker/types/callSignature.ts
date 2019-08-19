@@ -1,5 +1,4 @@
-import { ICallSignature, IType } from '../types';
-import { TypeParameter } from '../typeParameter';
+import { ICallSignature, IType, IGenericType } from '../types';
 
 export class CallSignature implements ICallSignature {
   public name: string;
@@ -20,7 +19,7 @@ export class CallSignature implements ICallSignature {
   public toConcrete(_: IType | Map<IType, IType>): ICallSignature {
     return this;
   }
-  public getTypeParameters(): TypeParameter[] {
+  public getTypeParameters(): IGenericType[] {
     return [];
   }
   public toTypeString(): string {

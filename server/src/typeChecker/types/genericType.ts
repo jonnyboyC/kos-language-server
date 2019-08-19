@@ -10,7 +10,6 @@ import {
 import { Operator } from '../operator';
 import { TypeReplacement } from '../typeReplacement';
 import { empty } from '../../utilities/typeGuards';
-import { TypeParameter } from '../typeParameter';
 
 export class GenericType implements IGenericType {
   public readonly name: string;
@@ -67,6 +66,7 @@ export class GenericType implements IGenericType {
 
       // if we have parameters we need a mapping between them
       if (empty(mapping)) {
+        debugger;
         throw new Error(
           `Type ${type.name} was not passed a type parameter map`,
         );
@@ -83,12 +83,14 @@ export class GenericType implements IGenericType {
       // check matching
       for (const [key, value] of mapping) {
         if (!thisTypeParams.includes(key)) {
+          debugger;
           throw new Error(
             `Type ${this.name} does not have a type parameter ${key.name}`,
           );
         }
 
         if (!superTypeParams.includes(value)) {
+          debugger;
           throw new Error(
             `Type ${type.name} does not have a type parameter ${value.name}`,
           );
@@ -207,7 +209,7 @@ export class GenericType implements IGenericType {
     return false;
   }
 
-  public getTypeParameters(): TypeParameter[] {
+  public getTypeParameters(): IGenericType[] {
     return [...this.substitution.typeParameters];
   }
 
@@ -298,7 +300,7 @@ export class GenericType implements IGenericType {
         this,
         typeSubstitutions,
         this.suffixes,
-        undefined,
+        this.callSignature,
         this.superType,
       );
     }
@@ -311,9 +313,9 @@ export class GenericType implements IGenericType {
     }
     return this.substitution.replace(
       this,
-      new Map([[typeParameters[0].placeHolder, typeSubstitutions]]),
+      new Map([[typeParameters[0], typeSubstitutions]]),
       this.suffixes,
-      undefined,
+      this.callSignature,
       this.superType,
     );
   }

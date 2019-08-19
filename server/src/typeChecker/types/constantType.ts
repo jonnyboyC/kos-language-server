@@ -1,4 +1,10 @@
-import { Access, IType, TypeKind, ICallSignature, IGenericType } from '../types';
+import {
+  Access,
+  IType,
+  TypeKind,
+  ICallSignature,
+  IGenericType,
+} from '../types';
 import { Type } from './type';
 
 /**
@@ -16,21 +22,12 @@ export class ConstantType<T> extends Type {
     name: string,
     value: T,
     access: Access,
-    typeParameters: string[],
     typeArguments: Map<IType, IType>,
     kind: TypeKind,
     callSignature?: ICallSignature,
     typeTemplate?: IGenericType,
   ) {
-    super(
-      name,
-      access,
-      typeParameters,
-      typeArguments,
-      kind,
-      callSignature,
-      typeTemplate,
-    );
+    super(name, access, typeArguments, kind, callSignature, typeTemplate);
     this.value = value;
   }
 

@@ -1,9 +1,9 @@
 import {
   createArgSuffixType,
   createGenericStructureType,
-  createGenericArgSuffixType,
   noMap,
-  passThroughMap,
+  mapTypes,
+  createGenericArgSuffixType,
 } from '../../typeCreators';
 import { enumeratorType } from './enumerator';
 import { iterator } from '../../../utilities/constants';
@@ -13,33 +13,36 @@ import { stringType } from '../primitives/string';
 import { voidType } from '../primitives/void';
 import { serializableType } from '../primitives/serializeableStructure';
 
-export const enumerableType = createGenericStructureType('enumerable');
+export const enumerableType = createGenericStructureType('enumerable', ['T']);
 enumerableType.addSuper(noMap(serializableType));
-const typeParameters = enumerableType.getTypeParameters();
+
+const containsSuffix = createGenericArgSuffixType(
+  'contains',
+  ['T'],
+  booleanType,
+  'T',
+);
+const enumeratorSuffix = createGenericArgSuffixType(
+  iterator,
+  ['T'],
+  enumeratorType,
+);
+const reverseEnumeratorSuffix = createGenericArgSuffixType(
+  'reverseIterator',
+  ['T'],
+  enumeratorType,
+);
 
 enumerableType.addSuffixes(
-  passThroughMap(
-    enumerableType,
-    createGenericArgSuffixType(
-      'contains',
-      booleanType,
-      typeParameters[0].placeHolder,
-    ),
-  ),
-  passThroughMap(
-    enumerableType,
-    createGenericArgSuffixType(iterator, enumeratorType),
-  ),
-  passThroughMap(
-    enumerableType,
-    createGenericArgSuffixType('reverseIterator', enumeratorType),
-  ),
+  mapTypes(enumerableType, containsSuffix),
+  mapTypes(enumerableType, enumeratorSuffix),
+  mapTypes(enumerableType, reverseEnumeratorSuffix),
   noMap(createArgSuffixType('length', integerType)),
   noMap(createArgSuffixType('empty', booleanType)),
   noMap(createArgSuffixType('dump', stringType)),
 );
 
-export const collectionType = createGenericStructureType('collection');
-collectionType.addSuper(passThroughMap(enumerableType, collectionType));
+export const collectionType = createGenericStructureType('collection', ['T']);
+collectionType.addSuper(mapTypes(collectionType, enumerableType));
 
 collectionType.addSuffixes(noMap(createArgSuffixType('clear', voidType)));

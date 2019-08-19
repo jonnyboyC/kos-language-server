@@ -1,28 +1,26 @@
 import {
   createGenericStructureType,
   createGenericArgSuffixType,
-  passThroughMap,
+  mapTypes,
 } from '../../typeCreators';
 import { voidType } from '../primitives/void';
-import { scalarType } from '../primitives/scalar';
 import { collectionType } from './enumerable';
+import { booleanType } from '../primitives/boolean';
 
-export const uniqueSetType = createGenericStructureType('uniqueSet');
-uniqueSetType.addSuper(passThroughMap(collectionType, uniqueSetType));
+export const uniqueSetType = createGenericStructureType('uniqueSet', ['T']);
+uniqueSetType.addSuper(mapTypes(uniqueSetType, collectionType));
 
-const [tType] = uniqueSetType.getTypeParameters();
+const copySuffix = createGenericArgSuffixType('copy', ['T'], uniqueSetType);
+const addSuffix = createGenericArgSuffixType('add', ['T'], voidType, 'T');
+const removeSuffix = createGenericArgSuffixType(
+  'remove',
+  ['T'],
+  booleanType,
+  'T',
+);
 
 uniqueSetType.addSuffixes(
-  passThroughMap(
-    uniqueSetType,
-    createGenericArgSuffixType('copy', uniqueSetType),
-  ),
-  passThroughMap(
-    uniqueSetType,
-    createGenericArgSuffixType('add', voidType, tType.placeHolder),
-  ),
-  passThroughMap(
-    uniqueSetType,
-    createGenericArgSuffixType('remove', tType.placeHolder, scalarType),
-  ),
+  mapTypes(uniqueSetType, copySuffix),
+  mapTypes(uniqueSetType, addSuffix),
+  mapTypes(uniqueSetType, removeSuffix),
 );

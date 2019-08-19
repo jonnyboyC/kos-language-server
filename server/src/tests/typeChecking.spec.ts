@@ -189,13 +189,13 @@ const suffixSource = `
 local atm is body:atm.
 local length is list():length.
 local parts is ship:parts.
-local facing is ship:parts[0]:facing.
+local partFacing is ship:parts[0]:facing.
 local distance is body:geopositionlatlng(10, 10):distance.
 
 print(atm).
 print(length).
 print(parts).
-print(facing).
+print(partFacing).
 print(distance).
 `;
 
@@ -320,7 +320,7 @@ describe('Basic inferring', () => {
       KsSymbolKind.variable,
       listType.toConcrete(partType),
     );
-    symbolTests(names, 'facing', KsSymbolKind.variable, directionType);
+    symbolTests(names, 'partFacing', KsSymbolKind.variable, directionType);
     symbolTests(names, 'distance', KsSymbolKind.variable, scalarType);
   });
 });

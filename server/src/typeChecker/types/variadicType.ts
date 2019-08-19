@@ -5,9 +5,9 @@ import {
   TypeMap,
   ICallSignature,
   OperatorKind,
+  IGenericType,
 } from '../types';
 import { Operator } from '../operator';
-import { TypeParameter } from '../typeParameter';
 import { TypeTracker } from '../../analysis/typeTracker';
 
 export class VariadicType implements IType {
@@ -51,7 +51,7 @@ export class VariadicType implements IType {
   public getCallSignature(): Maybe<ICallSignature> {
     return undefined;
   }
-  public getTypeParameters(): TypeParameter[] {
+  public getTypeParameters(): IGenericType[] {
     return [];
   }
   public getSuperType(): Maybe<IType> {

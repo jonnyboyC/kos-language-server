@@ -1,27 +1,26 @@
-import { TypeParameter } from './typeParameter';
-import { IGenericType, IType, ICallSignature, TypeMap } from './types';
+import {
+  IGenericType,
+  IType,
+  ICallSignature,
+  TypeMap,
+  IGenericCallSignature,
+} from './types';
 import { empty } from '../utilities/typeGuards';
 import { Operator } from './operator';
-import { noMap as noMapping } from './typeCreators';
+import { noMap as noMapping, createPlaceholder } from './typeCreators';
 import { GenericType } from './types/genericType';
 import { Type } from './types/type';
-import { GenericCallSignature } from './types/genericCallSignature';
 
 export class TypeReplacement {
   /**
    * A set of type parameters
    */
-  public readonly typeParameters: TypeParameter[];
-
-  /**
-   * Mappings from placeholder types to type parameters
-   */
-  public readonly placeHolders: Map<IGenericType, TypeParameter>;
+  public readonly typeParameters: Set<IGenericType>;
 
   /**
    * Cached substitutions
    */
-  public replacementCache: Map<Map<IType, IType>, IType>;
+  public replacementCache: Map<Map<IGenericType, IType>, IType>;
 
   /**
    * Construct a new type substitution
@@ -34,10 +33,7 @@ export class TypeReplacement {
       );
     }
 
-    this.typeParameters = names.map(name => TypeParameter.create(name));
-    this.placeHolders = new Map(
-      this.typeParameters.map(typeP => [typeP.placeHolder, typeP]),
-    );
+    this.typeParameters = new Set(names.map(name => createPlaceholder(name)));
     this.replacementCache = new Map();
   }
 
@@ -52,9 +48,9 @@ export class TypeReplacement {
    */
   public replace(
     type: GenericType,
-    typeReplacement: Map<IType, IType>,
+    typeReplacement: Map<IGenericType, IType>,
     suffixMap: Map<string, TypeMap<IGenericType>>,
-    callSignature?: TypeMap<GenericCallSignature>,
+    callSignature?: TypeMap<IGenericCallSignature>,
     superMap?: TypeMap<IGenericType>,
   ): IType {
     // check validity of the substitution
@@ -85,7 +81,6 @@ export class TypeReplacement {
     const newType = new Type(
       type.name,
       type.access,
-      type.getTypeParameters().map(x => x.name),
       cachedTypeReplacement,
       type.kind,
       newCallSignature,
@@ -149,9 +144,9 @@ export class TypeReplacement {
    * Check if the provided substitutions are valid
    * @param typeReplacement the requested type substitutions
    */
-  private isValidReplacement(typeReplacement: Map<IType, IType>): void {
-    for (const [placeholder, typeParameter] of this.placeHolders.entries()) {
-      if (!typeReplacement.has(placeholder as IType)) {
+  private isValidReplacement(typeReplacement: Map<IGenericType, IType>): void {
+    for (const typeParameter of this.typeParameters) {
+      if (!typeReplacement.has(typeParameter)) {
         throw new Error(
           `Provided replacements does not have a type for ${
             typeParameter.name
@@ -166,8 +161,8 @@ export class TypeReplacement {
    * @param typeReplacement placeholder for type subs
    */
   private getCachedTypeReplacements(
-    typeReplacement: Map<IType, IType>,
-  ): Map<IType, IType> {
+    typeReplacement: Map<IGenericType, IType>,
+  ): Map<IGenericType, IType> {
     for (const cachedReplacement of this.replacementCache.keys()) {
       if (cachedReplacement.size !== typeReplacement.size) {
         continue;
@@ -196,16 +191,18 @@ export class TypeReplacement {
    * @param type type to make concrete
    * @param typeReplacements type replacements
    */
-  private toConcrete(type: IGenericType, typeReplacements: Map<IType, IType>) {
+  private toConcrete(
+    type: IGenericType,
+    typeReplacements: Map<IGenericType, IType>,
+  ) {
     // check if type is actually a placeholder
-    const typeParameter = this.placeHolders.get(type);
-
-    if (!empty(typeParameter)) {
+    if (this.typeParameters.has(type)) {
       // if found substitute the type placeholder with a real type
-      const substitution = typeReplacements.get(typeParameter.placeHolder);
+      const substitution = typeReplacements.get(type);
       if (empty(substitution)) {
+        debugger;
         throw new Error(
-          `Did not provide a type substitution for ${typeParameter.name}.`,
+          `Did not provide a type substitution for ${type.name}.`,
         );
       }
 
@@ -222,33 +219,30 @@ export class TypeReplacement {
    * @param replacementMap mapping of type parameters from a source type to a target type
    */
   private mapSubstitution(
-    typeReplacements: Map<IType, IType>,
-    replacementMap?: Map<TypeParameter, TypeParameter>,
-  ): Map<IType, IType> {
-    const mappedTypeReplacements: Map<IType, IType> = new Map();
-    if (empty(replacementMap)) {
+    typeReplacements: Map<IGenericType, IType>,
+    replacementMap: Map<IGenericType, IGenericType>,
+  ): Map<IGenericType, IType> {
+    const mappedTypeReplacements: Map<IGenericType, IType> = new Map();
+    if (replacementMap.size === 0) {
       return mappedTypeReplacements;
     }
 
-    for (const [placeholder, type] of typeReplacements) {
+    for (const [generic, type] of typeReplacements) {
       // try to find type parameter from placeholders
-      const typeParameter = this.placeHolders.get(placeholder);
-      if (empty(typeParameter)) {
-        throw new Error(
-          `Could not find type parameter for ${placeholder.name}.`,
-        );
+      if (!this.typeParameters.has(generic)) {
+        throw new Error(`Could not find type parameter for ${generic.name}.`);
       }
 
       // look up this type's type parameter in the link
-      const mappedTypeParam = replacementMap.get(typeParameter);
+      const mappedTypeParam = replacementMap.get(generic);
       if (empty(mappedTypeParam)) {
         throw new Error(
-          `Could not find type parameter mapping of ${typeParameter.name}.`,
+          `Could not find type parameter mapping of ${generic.name}.`,
         );
       }
 
       // if found map super placeholder to the provided substitution
-      mappedTypeReplacements.set(mappedTypeParam.placeHolder, type);
+      mappedTypeReplacements.set(mappedTypeParam, type);
     }
     return mappedTypeReplacements;
   }

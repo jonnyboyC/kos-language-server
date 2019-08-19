@@ -618,9 +618,9 @@ export class TypeChecker
         const value = enumerator.getSuffix('value');
 
         const setType = (value && value.getAssignmentType()) || structureType;
-        tracker.setType(stmt.element, setType);
+        tracker.declareType(setType);
       } else {
-        tracker.setType(stmt.element, structureType);
+        tracker.declareType(structureType);
       }
     }
     return errors.concat(this.checkStmt(stmt.body));
@@ -1438,7 +1438,7 @@ export class TypeChecker
 
     const indexResult = this.checkExpr(suffixTerm.index);
     const errors = indexResult.errors;
-    const type = builder.current();
+    const type = builder.current().getAssignmentType();
 
     let indexer: Maybe<IType> = undefined;
 
@@ -1449,7 +1449,7 @@ export class TypeChecker
       indexer = arrayBracketIndexer(
         type,
         scalarType,
-        type.typeSubstitutions.get(parameters[0].placeHolder) || structureType,
+        type.typeSubstitutions.get(parameters[0]) || structureType,
       );
       builder.nodes.push(new TypeNode(indexer, suffixTerm));
 

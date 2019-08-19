@@ -8,14 +8,12 @@ import {
   TypeMap,
 } from '../types';
 import { TypeTracker } from '../../analysis/typeTracker';
-import { TypeReplacement } from '../typeReplacement';
 import { Operator } from '../operator';
 import { KsSuffix } from '../../entities/suffix';
 import { empty } from '../../utilities/typeGuards';
-import { TypeParameter } from '../typeParameter';
 
 export class Type implements IType {
-  public readonly typeSubstitutions: Map<IType, IType>;
+  public readonly typeSubstitutions: Map<IGenericType, IType>;
   public readonly name: string;
   public readonly access: Access;
   public readonly callSignature?: ICallSignature;
@@ -23,7 +21,6 @@ export class Type implements IType {
   public readonly anyType: boolean;
 
   private tracker: TypeTracker;
-  private substitution: TypeReplacement;
   private superType?: IType;
   private typeTemplate?: IGenericType;
   private coercibleTypes: Set<IGenericType>;
@@ -33,8 +30,7 @@ export class Type implements IType {
   constructor(
     name: string,
     access: Access,
-    typeParameters: string[],
-    typeSubstitutions: Map<IType, IType>,
+    typeSubstitutions: Map<IGenericType, IType>,
     kind: TypeKind,
     callSignature?: ICallSignature,
     typeTemplate?: IGenericType,
@@ -46,7 +42,6 @@ export class Type implements IType {
 
     this.name = name;
     this.access = access;
-    this.substitution = new TypeReplacement(typeParameters);
     this.typeSubstitutions = typeSubstitutions;
     this.kind = kind;
     this.callSignature = callSignature;
@@ -184,8 +179,8 @@ export class Type implements IType {
 
     return false;
   }
-  public getTypeParameters(): TypeParameter[] {
-    return [...this.substitution.typeParameters];
+  public getTypeParameters(): IGenericType[] {
+    return [...this.typeSubstitutions.keys()];
   }
   public getSuperType(): Maybe<IType> {
     return this.superType;
@@ -264,12 +259,10 @@ export class Type implements IType {
     } else {
       const typeArgumentStrs: string[] = [];
       for (const typeParameter of typeParameters) {
-        const typeArgument = this.typeSubstitutions.get(
-          typeParameter.placeHolder,
-        );
+        const typeArgument = this.typeSubstitutions.get(typeParameter);
         if (empty(typeArgument)) {
           throw new Error(
-            `Type argument not found for parameter ${typeParameter}` +
+            `Type argument not found for parameter ${typeParameter.toTypeString()}` +
               ` for type ${this.name}`,
           );
         }

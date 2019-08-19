@@ -5,9 +5,9 @@ import {
   TypeMap,
   ICallSignature,
   OperatorKind,
+  IGenericType,
 } from '../types';
 import { Operator } from '../operator';
-import { TypeParameter } from '../typeParameter';
 import { TypeTracker } from '../../analysis/typeTracker';
 
 export class PlaceholderType implements IType {
@@ -45,7 +45,8 @@ export class PlaceholderType implements IType {
   public getAssignmentType(): IType {
     throw new Error('Attempted to operate on type parameter placeholder.');
   }
-  public getTypeParameters(): TypeParameter[] {
+  public getTypeParameters(): IGenericType[] {
+    debugger;
     throw new Error('Attempted to operate on type parameter placeholder.');
   }
   public getSuperType(): Maybe<IType> {

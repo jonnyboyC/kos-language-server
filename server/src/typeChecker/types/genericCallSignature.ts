@@ -5,7 +5,6 @@ import {
   IGenericType,
   TypeMap,
 } from '../types';
-import { TypeParameter } from '../typeParameter';
 import { voidType } from '../ksTypes/primitives/void';
 import { CallReplacement } from '../callReplacement';
 import { noMap } from '../typeCreators';
@@ -46,6 +45,7 @@ export class GenericCallSignature implements IGenericCallSignature {
 
       // if we have parameters we need a mapping between them
       if (empty(mapping)) {
+        debugger;
         throw new Error(
           `Type ${type.name} was not passed a type parameter map`,
         );
@@ -53,6 +53,7 @@ export class GenericCallSignature implements IGenericCallSignature {
 
       // check length
       if (mapping.size !== superTypeParams.length) {
+        debugger;
         throw new Error(
           `Type has type parameters ${superTypeParams.join(', ')}` +
             ` but was only given ${mapping.size} arguments`,
@@ -62,12 +63,14 @@ export class GenericCallSignature implements IGenericCallSignature {
       // check matching
       for (const [key, value] of mapping) {
         if (!thisTypeParams.includes(key)) {
+          debugger;
           throw new Error(
             `Type ${this.name} does not have a type parameter ${key.name}`,
           );
         }
 
         if (!superTypeParams.includes(value)) {
+          debugger;
           throw new Error(
             `Type ${type.name} does not have a type parameter ${value.name}`,
           );
@@ -83,7 +86,7 @@ export class GenericCallSignature implements IGenericCallSignature {
     return this.returnMaps.type;
   }
   public toConcrete(
-    typeReplacement: IType | Map<IType, IType>,
+    typeReplacement: IType | Map<IGenericType, IType>,
   ): ICallSignature {
     if (typeReplacement instanceof Map) {
       return this.replacement.replace(
@@ -101,13 +104,13 @@ export class GenericCallSignature implements IGenericCallSignature {
     }
 
     return this.replacement.replace(
-      new Map([[typeParameters[0].placeHolder, typeReplacement]]),
+      new Map([[typeParameters[0], typeReplacement]]),
       this.paramMaps,
       this.returnMaps,
     );
   }
-  public getTypeParameters(): TypeParameter[] {
-    throw new Error('Method not implemented.');
+  public getTypeParameters(): IGenericType[] {
+    return [...this.replacement.typeParameters];
   }
   public toTypeString(): string {
     const paramsStr = this.paramMaps.map(p => p.type.toTypeString()).join(', ');

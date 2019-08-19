@@ -134,7 +134,7 @@ export enum OperatorKind {
 
 export interface ITypeMappable {
   readonly name: string;
-  getTypeParameters(): TypeParameter[];
+  getTypeParameters(): IGenericType[];
 }
 
 export interface IGenericType extends ITypeMappable {
@@ -158,11 +158,11 @@ export interface IGenericType extends ITypeMappable {
   ): Maybe<Operator<IGenericType>>;
   getOperators(): Map<OperatorKind, Operator<IGenericType>[]>;
   toTypeString(): string;
-  toConcrete(typeSubstitutions: Map<IType, IType> | IType): IType;
+  toConcrete(typeSubstitutions: Map<IGenericType, IType> | IType): IType;
 }
 
 export interface IType extends IGenericType {
-  typeSubstitutions: Map<IType, IType>;
+  typeSubstitutions: Map<TypeParameter, IType>;
   addSuper(type: TypeMap<IType>): void;
   addCoercion(...types: IType[]): void;
   addSuffixes(...suffixes: TypeMap<IType>[]): void;
@@ -176,12 +176,10 @@ export interface IType extends IGenericType {
   getSuffixes(): Map<string, IType>;
   getOperator(kind: OperatorKind, other?: IType): Maybe<Operator<IType>>;
   getOperators(): Map<OperatorKind, Operator<IType>[]>;
-  toTypeString(): string;
-  toConcrete(typeSubstitutions: Map<IType, IType> | IType): IType;
 }
 
 export interface TypeMap<T> {
-  mapping: Map<TypeParameter, TypeParameter>;
+  mapping: Map<IGenericType, IGenericType>;
   type: T;
 }
 
@@ -193,7 +191,9 @@ export interface Access {
 export interface IGenericCallSignature extends ITypeMappable {
   params(): IGenericType[];
   returns(): IGenericType;
-  toConcrete(typeSubstitutions: Map<IType, IType> | IType): ICallSignature;
+  toConcrete(
+    typeSubstitutions: Map<IGenericType, IType> | IType,
+  ): ICallSignature;
   toTypeString(): string;
 }
 export interface ICallSignature extends IGenericCallSignature {

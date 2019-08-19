@@ -48,9 +48,7 @@ describe('Type Utilities', () => {
     expect(exampleType.access.set).toBe(true);
     expect(exampleType.getCallSignature()).toBeUndefined();
     expect(exampleType.getAssignmentType()).toBe(exampleType);
-    expect(exampleType.typeSubstitutions.get(parameters[0].placeHolder)).toBe(
-      stringType,
-    );
+    expect(exampleType.typeSubstitutions.get(parameters[0])).toBe(stringType);
     expect(exampleType.anyType).toBe(false);
     expect(exampleType.getSuperType()).toBeUndefined();
 
@@ -196,7 +194,6 @@ describe('Type Utilities', () => {
     const example = new Type(
       'example',
       { get: true, set: true },
-      [],
       new Map(),
       TypeKind.basic,
     );
@@ -210,7 +207,6 @@ describe('Type Utilities', () => {
     const superExample = new Type(
       'superExample',
       { get: true, set: true },
-      [],
       new Map(),
       TypeKind.basic,
     );

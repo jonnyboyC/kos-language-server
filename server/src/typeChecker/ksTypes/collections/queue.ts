@@ -1,31 +1,25 @@
 import {
   createGenericStructureType,
   createGenericArgSuffixType,
-  passThroughMap,
+  mapTypes,
   createArgSuffixType,
   noMap,
 } from '../../typeCreators';
 import { enumerableType } from './enumerable';
 import { voidType } from '../primitives/void';
 
-export const queueType = createGenericStructureType('queue');
-queueType.addSuper(passThroughMap(enumerableType, queueType));
+export const queueType = createGenericStructureType('queue', ['T']);
+queueType.addSuper(mapTypes(queueType, enumerableType));
 
-const [tType] = queueType.getTypeParameters();
+const copySuffix = createGenericArgSuffixType('copy', ['T'], queueType);
+const pushSuffix = createGenericArgSuffixType('push', ['T'], voidType, 'T');
+const popSuffix = createGenericArgSuffixType('pop', ['T'], 'T');
+const peekSuffix = createGenericArgSuffixType('peek', ['T'], 'T');
 
 queueType.addSuffixes(
-  passThroughMap(queueType, createGenericArgSuffixType('copy', queueType)),
-  passThroughMap(
-    queueType,
-    createGenericArgSuffixType('push', voidType, tType.placeHolder),
-  ),
-  passThroughMap(
-    queueType,
-    createGenericArgSuffixType('pop', tType.placeHolder),
-  ),
-  passThroughMap(
-    queueType,
-    createGenericArgSuffixType('peek', tType.placeHolder),
-  ),
+  mapTypes(queueType, copySuffix),
+  mapTypes(queueType, pushSuffix),
+  mapTypes(queueType, popSuffix),
+  mapTypes(queueType, peekSuffix),
   noMap(createArgSuffixType('clear', voidType)),
 );
