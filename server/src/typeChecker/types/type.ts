@@ -13,7 +13,7 @@ import { KsSuffix } from '../../entities/suffix';
 import { empty } from '../../utilities/typeGuards';
 
 /**
- * A class representing a class in Kerboscript
+ * A class representing a type in Kerboscript
  */
 export class Type implements IType {
   /**

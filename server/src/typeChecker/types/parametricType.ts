@@ -8,21 +8,70 @@ import {
   IType,
 } from '../types';
 import { Operator } from '../operator';
-import { TypeBinding } from '../typeBinder';
+import { TypeBinding as TypeBinder } from '../typeBinder';
 import { empty } from '../../utilities/typeGuards';
 
+/**
+ * A class representing a parametric type in Kerboscript
+ */
 export class ParametricType implements IParametricType {
+  /**
+   * What is the name of this parametric type
+   */
   public readonly name: string;
+
+  /**
+   * What is the access of this type
+   */
   public readonly access: Access;
+
+  /**
+   * What is the kind of this type
+   */
   public readonly kind: TypeKind;
+
+  /**
+   * Is this the any type
+   */
   public readonly anyType: boolean;
+
+  /**
+   * What is the call signature of this type
+   */
   private callSignature?: TypeMap<IParametricCallSignature>;
+
+  /**
+   * What is the super type of this type
+   */
   private superType?: TypeMap<IParametricType>;
+
+  /**
+   * What are the suffixes of this type
+   */
   private suffixes: Map<string, TypeMap<IParametricType>>;
+
+  /**
+   * What are the operators of this type
+   */
   private operators: Map<OperatorKind, Operator<IParametricType>[]>;
-  private substitution: TypeBinding;
+
+  /**
+   * The type binder
+   */
+  private binder: TypeBinder;
+
+  /**
+   * What are the coercible type
+   */
   private coercibleTypes: Set<IParametricType>;
 
+  /**
+   * Construct a new parametric type
+   * @param name name of this type
+   * @param access what is the access of this type
+   * @param typeParameters what type parameters are present in type
+   * @param kind the type kind
+   */
   constructor(
     name: string,
     access: Access,
@@ -33,7 +82,7 @@ export class ParametricType implements IParametricType {
     this.access = access;
     this.kind = kind;
     this.anyType = false;
-    this.substitution = new TypeBinding(typeParameters);
+    this.binder = new TypeBinder(typeParameters);
 
     this.superType = undefined;
     this.suffixes = new Map();
@@ -41,21 +90,33 @@ export class ParametricType implements IParametricType {
     this.operators = new Map();
   }
 
+  /**
+   * Add a call signature to this type
+   * @param callSignature call signature
+   */
   public addCallSignature(callSignature: TypeMap<IParametricCallSignature>) {
     this.callSignature = callSignature;
   }
 
-  public addSuper(typeMap: TypeMap<IParametricType>): void {
+  /**
+   * Add a super type to this type
+   * @param type super type to add
+   */
+  public addSuper(type: TypeMap<IParametricType>): void {
     if (!empty(this.superType)) {
       throw new Error(`Super type for ${this.name} has already been set.`);
     }
 
     // check if super has type parameters
-    this.checkMapping(typeMap);
+    this.checkMapping(type);
 
-    this.superType = typeMap;
+    this.superType = type;
   }
 
+  /**
+   * Check that the type map is applicable to this type
+   * @param typeMap type map
+   */
   private checkMapping(typeMap: TypeMap<IParametricType>): void {
     const { type, mapping } = typeMap;
 
@@ -96,6 +157,10 @@ export class ParametricType implements IParametricType {
     }
   }
 
+  /**
+   * Add coercions to this type
+   * @param types coercions to add
+   */
   public addCoercion(...types: IParametricType[]): void {
     for (const type of types) {
       if (this.coercibleTypes.has(type)) {
@@ -108,6 +173,10 @@ export class ParametricType implements IParametricType {
     }
   }
 
+  /**
+   * Add suffixes to this type
+   * @param suffixes suffixes to add
+   */
   public addSuffixes(...suffixes: TypeMap<IParametricType>[]): void {
     for (const suffix of suffixes) {
       if (this.suffixes.has(suffix.type.name)) {
@@ -123,6 +192,10 @@ export class ParametricType implements IParametricType {
     }
   }
 
+  /**
+   * Add operators to this type
+   * @param operators operators to add
+   */
   public addOperators(...operators: Operator<IParametricType>[]): void {
     for (const operator of operators) {
       if (!this.operators.has(operator.operator)) {
@@ -166,6 +239,10 @@ export class ParametricType implements IParametricType {
     }
   }
 
+  /**
+   * Is this type a subtype of another type
+   * @param type type to check against
+   */
   public isSubtypeOf(type: IParametricType): boolean {
     if (type === this) {
       return true;
@@ -175,6 +252,11 @@ export class ParametricType implements IParametricType {
       ? false
       : this.superType.type.isSubtypeOf(type);
   }
+
+  /**
+   * Can this type be coerced from the provided type
+   * @param type to coerce from
+   */
   public canCoerceFrom(type: IParametricType): boolean {
     // if type no coercion needed
     if (type === this) {
@@ -206,22 +288,37 @@ export class ParametricType implements IParametricType {
     return false;
   }
 
+  /**
+   * Get the type parameters
+   */
   public getTypeParameters(): IParametricType[] {
-    return [...this.substitution.typeParameters];
+    return [...this.binder.typeParameters];
   }
 
+  /**
+   * Get the super type of this type
+   */
   public getSuperType(): IParametricType | undefined {
     return this.superType && this.superType.type;
   }
 
+  /**
+   * Get the call signature of this type
+   */
   public getCallSignature(): Maybe<IParametricCallSignature> {
     return this.callSignature && this.callSignature.type;
   }
 
+  /**
+   * Get the coercions of this type
+   */
   public getCoercions(): Set<IParametricType> {
     return this.coercibleTypes;
   }
 
+  /**
+   * Get the suffixes of this type
+   */
   public getSuffixes(): Map<string, IParametricType> {
     const suffixes = new Map<string, IParametricType>();
     for (const [name, typeMap] of this.suffixes) {
@@ -237,6 +334,11 @@ export class ParametricType implements IParametricType {
     return suffixes;
   }
 
+  /**
+   * Get an operator for the provided kind
+   * @param kind operator kind
+   * @param other other type if binary
+   */
   public getOperator(
     kind: OperatorKind,
     other?: IParametricType,
@@ -261,10 +363,16 @@ export class ParametricType implements IParametricType {
     return undefined;
   }
 
+  /**
+   * Get all operators
+   */
   public getOperators(): Map<OperatorKind, Operator<IParametricType>[]> {
     return this.operators;
   }
 
+  /**
+   * Get a string representing of this type
+   */
   public toString(): string {
     const typeParameters = this.getTypeParameters();
 
@@ -282,7 +390,7 @@ export class ParametricType implements IParametricType {
 
   public apply(typeSubstitutions: Map<IType, IType> | IType): IType {
     if (typeSubstitutions instanceof Map) {
-      return this.substitution.replace(
+      return this.binder.replace(
         this,
         typeSubstitutions,
         this.suffixes,
@@ -297,7 +405,7 @@ export class ParametricType implements IParametricType {
         'Must provide a type map if more than one parameter is present.',
       );
     }
-    return this.substitution.replace(
+    return this.binder.replace(
       this,
       new Map([[typeParameters[0], typeSubstitutions]]),
       this.suffixes,

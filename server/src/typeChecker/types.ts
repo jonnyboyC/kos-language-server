@@ -226,13 +226,47 @@ export interface IParametricType extends ITypeMappable {
 }
 
 export interface IType extends IParametricType {
+  /**
+   * Is this type a subtype of some other parametric type
+   * @param type parameter type to check
+   */
   isSubtypeOf(type: IType): boolean;
+
+  /**
+   * Get the assignment type of this type
+   */
   getAssignmentType(): IType;
+
+  /**
+   * Get the super type of this type
+   */
   getSuperType(): Maybe<IType>;
+
+  /**
+   * Get the tracker for this type
+   */
   getTracker(): TypeTracker;
+
+  /**
+   * Get the call signature of this type
+   */
   getCallSignature(): Maybe<ICallSignature>;
+
+  /**
+   * Get the suffixes for this type
+   */
   getSuffixes(): Map<string, IType>;
+
+  /**
+   * Get an operator of a specific kind for another type
+   * @param kind operator kind
+   * @param other other type if binary expression
+   */
   getOperator(kind: OperatorKind, other?: IType): Maybe<Operator<IType>>;
+
+  /**
+   * Get the operators associated with this type
+   */
   getOperators(): Map<OperatorKind, Operator<IType>[]>;
 }
 
