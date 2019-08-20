@@ -23,7 +23,7 @@ export const arrayBracketIndexer = (
   indexType: IType,
   returnType: IType,
 ) => {
-  const typeString = `${collectionType.toTypeString()}[${indexType.toTypeString()}]`;
+  const typeString = `${collectionType.toString()}[${indexType.toString()}]`;
 
   const hit = arrayBracketCache.get(typeString);
   if (!empty(hit)) {

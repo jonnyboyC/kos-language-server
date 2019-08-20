@@ -5,18 +5,17 @@ import {
   TypeMap,
   ICallSignature,
   OperatorKind,
-  IGenericType,
+  IParametricType,
 } from '../types';
 import { Operator } from '../operator';
 import { TypeTracker } from '../../analysis/typeTracker';
 
 export class VariadicType implements IType {
-  typeSubstitutions: Map<IType, IType>;
-  anyType: boolean;
-  base: IType;
-  name: string;
-  access: Access;
-  kind: TypeKind;
+  public readonly anyType: boolean;
+  public readonly name: string;
+  public readonly access: Access;
+  public readonly kind: TypeKind;
+  private readonly base: IType;
 
   constructor(base: IType) {
     this.base = base;
@@ -24,7 +23,6 @@ export class VariadicType implements IType {
     this.access = { get: false, set: false };
     this.kind = TypeKind.variadic;
     this.anyType = false;
-    this.typeSubstitutions = new Map();
   }
 
   public addSuper(_: TypeMap<IType>): void {
@@ -51,7 +49,7 @@ export class VariadicType implements IType {
   public getCallSignature(): Maybe<ICallSignature> {
     return undefined;
   }
-  public getTypeParameters(): IGenericType[] {
+  public getTypeParameters(): IParametricType[] {
     return [];
   }
   public getSuperType(): Maybe<IType> {
@@ -62,9 +60,6 @@ export class VariadicType implements IType {
   }
   public getCoercions(): Set<IType> {
     return new Set();
-  }
-  public getSuffix(_: string): Maybe<IType> {
-    return undefined;
   }
   public getSuffixes(): Map<string, IType> {
     return new Map();
@@ -78,10 +73,10 @@ export class VariadicType implements IType {
   public getOperators(): Map<OperatorKind, Operator<IType>[]> {
     return new Map();
   }
-  public toTypeString(): string {
-    return `...${this.base.toTypeString()}`;
+  public toString(): string {
+    return `...${this.base.toString()}`;
   }
-  public toConcrete(_: IType | Map<IType, IType>): IType {
+  public apply(_: IType | Map<IType, IType>): IType {
     return this;
   }
 }

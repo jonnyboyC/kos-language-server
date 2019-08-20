@@ -1,17 +1,23 @@
-import { IGenericType, IType, TypeKind, TypeMap, ITypeMappable } from './types';
+import {
+  IParametricType,
+  IType,
+  TypeKind,
+  TypeMap,
+  ITypeMappable,
+} from './types';
 import { memoize } from '../utilities/memoize';
-import { GenericType } from './types/genericType';
+import { ParametricType } from './types/parametricType';
 import { Type } from './types/type';
 import { VariadicType } from './types/variadicType';
 import { CallSignature } from './types/callSignature';
-import { GenericCallSignature } from './types/genericCallSignature';
+import { GenericCallSignature } from './types/parametricCallSignature';
 
 /**
  * Create a placeholder generic type
  * @param name name of the placeholder
  */
-export const createPlaceholder = (name: string): IGenericType => {
-  return new GenericType(
+export const createPlaceholder = (name: string): ParametricType => {
+  return new ParametricType(
     name,
     { get: false, set: false },
     [],
@@ -27,8 +33,8 @@ export const createPlaceholder = (name: string): IGenericType => {
 export const createGenericStructureType = (
   name: string,
   typeParameterNames: string[],
-): IGenericType => {
-  return new GenericType(
+): ParametricType => {
+  return new ParametricType(
     name,
     { get: true, set: true },
     typeParameterNames,
@@ -40,7 +46,7 @@ export const createGenericStructureType = (
  * Generate a new basic type
  * @param name name of the new type
  */
-export const createStructureType = (name: string): IType => {
+export const createStructureType = (name: string): Type => {
   return new Type(name, { get: true, set: true }, new Map(), TypeKind.basic);
 };
 
@@ -53,12 +59,12 @@ export const createStructureType = (name: string): IType => {
 export const createGenericArgSuffixType = (
   name: string,
   typeParameters: string[],
-  returns: IGenericType | string,
-  ...params: (IGenericType | string)[]
-): IGenericType => {
+  returns: IParametricType | string,
+  ...params: (IParametricType | string)[]
+): ParametricType => {
   const get = params.length === 0;
 
-  const genericType = new GenericType(
+  const genericType = new ParametricType(
     name.toLowerCase(),
     { get, set: false },
     typeParameters,
@@ -84,9 +90,9 @@ export const createGenericArgSuffixType = (
 
 const mapTypeWithPlaceholder = (
   parentType: ITypeMappable,
-  typePlaceholders: IGenericType[],
-  type: IGenericType | string,
-): TypeMap<IGenericType> => {
+  typePlaceholders: IParametricType[],
+  type: IParametricType | string,
+): TypeMap<IParametricType> => {
   if (typeof type !== 'string') {
     if (type.getTypeParameters().length === 0) {
       return noMap(type);
@@ -114,7 +120,7 @@ export const createArgSuffixType = (
   name: string,
   returns: IType,
   ...params: IType[]
-): IType => {
+): Type => {
   const get = params.length === 0;
 
   return new Type(
@@ -131,7 +137,7 @@ export const createArgSuffixType = (
  * @param name name of the suffix
  * @param returns return type of suffix
  */
-export const createSuffixType = (name: string, returns: IType): IType => {
+export const createSuffixType = (name: string, returns: IType): Type => {
   return new Type(
     name.toLowerCase(),
     { get: true, set: false },
@@ -146,7 +152,7 @@ export const createSuffixType = (name: string, returns: IType): IType => {
  * @param name name of the suffix
  * @param returns return type of suffix
  */
-export const createSetSuffixType = (name: string, returns: IType): IType => {
+export const createSetSuffixType = (name: string, returns: IType): Type => {
   return new Type(
     name.toLowerCase(),
     { get: true, set: true },
@@ -166,7 +172,7 @@ export const createVarSuffixType = (
   name: string,
   returns: IType,
   params: IType,
-): IType => {
+): Type => {
   if (params.kind !== TypeKind.variadic) {
     throw new Error('Expected variadic type.');
   }
@@ -190,7 +196,7 @@ export const createFunctionType = (
   name: string,
   returns: IType,
   ...params: IType[]
-): IType => {
+): Type => {
   return new Type(
     name.toLowerCase(),
     { get: false, set: false },
@@ -210,7 +216,7 @@ export const createVarFunctionType = (
   name: string,
   returns: IType,
   params: IType,
-): IType => {
+): Type => {
   if (params.kind !== TypeKind.variadic) {
     throw new Error('Expected variadic type.');
   }
@@ -228,7 +234,7 @@ export const createVarFunctionType = (
  * Create variadic type
  */
 export const createVarType = memoize(
-  (type: IType): IType => {
+  (type: IType): VariadicType => {
     if (type.kind !== TypeKind.basic) {
       throw new Error('Must provide a basic type for variadic types');
     }
@@ -237,7 +243,7 @@ export const createVarType = memoize(
   },
 );
 
-export const noMap = <T extends IGenericType>(type: T): TypeMap<T> => {
+export const noMap = <T extends IParametricType>(type: T): TypeMap<T> => {
   return {
     type,
     mapping: new Map(),
@@ -265,7 +271,7 @@ export const mapTypes = <T1 extends ITypeMappable, T2 extends ITypeMappable>(
   };
 };
 
-export const mapType = <T1 extends ITypeMappable, T2 extends IGenericType>(
+export const mapType = <T1 extends ITypeMappable, T2 extends IParametricType>(
   source: T1,
   target: T2,
 ): TypeMap<T2> => {

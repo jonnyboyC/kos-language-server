@@ -1,27 +1,27 @@
 import {
-  IGenericType,
+  IParametricType,
   Access,
   TypeKind,
   TypeMap,
-  IGenericCallSignature,
+  IParametricCallSignature,
   OperatorKind,
   IType,
 } from '../types';
 import { Operator } from '../operator';
-import { TypeReplacement } from '../typeReplacement';
+import { TypeBinding } from '../typeBinder';
 import { empty } from '../../utilities/typeGuards';
 
-export class GenericType implements IGenericType {
+export class ParametricType implements IParametricType {
   public readonly name: string;
   public readonly access: Access;
   public readonly kind: TypeKind;
   public readonly anyType: boolean;
-  private callSignature?: TypeMap<IGenericCallSignature>;
-  private superType?: TypeMap<IGenericType>;
-  private suffixes: Map<string, TypeMap<IGenericType>>;
-  private operators: Map<OperatorKind, Operator<IGenericType>[]>;
-  private substitution: TypeReplacement;
-  private coercibleTypes: Set<IGenericType>;
+  private callSignature?: TypeMap<IParametricCallSignature>;
+  private superType?: TypeMap<IParametricType>;
+  private suffixes: Map<string, TypeMap<IParametricType>>;
+  private operators: Map<OperatorKind, Operator<IParametricType>[]>;
+  private substitution: TypeBinding;
+  private coercibleTypes: Set<IParametricType>;
 
   constructor(
     name: string,
@@ -33,7 +33,7 @@ export class GenericType implements IGenericType {
     this.access = access;
     this.kind = kind;
     this.anyType = false;
-    this.substitution = new TypeReplacement(typeParameters);
+    this.substitution = new TypeBinding(typeParameters);
 
     this.superType = undefined;
     this.suffixes = new Map();
@@ -41,11 +41,11 @@ export class GenericType implements IGenericType {
     this.operators = new Map();
   }
 
-  public addCallSignature(callSignature: TypeMap<IGenericCallSignature>) {
+  public addCallSignature(callSignature: TypeMap<IParametricCallSignature>) {
     this.callSignature = callSignature;
   }
 
-  public addSuper(typeMap: TypeMap<IGenericType>): void {
+  public addSuper(typeMap: TypeMap<IParametricType>): void {
     if (!empty(this.superType)) {
       throw new Error(`Super type for ${this.name} has already been set.`);
     }
@@ -56,7 +56,7 @@ export class GenericType implements IGenericType {
     this.superType = typeMap;
   }
 
-  private checkMapping(typeMap: TypeMap<IGenericType>): void {
+  private checkMapping(typeMap: TypeMap<IParametricType>): void {
     const { type, mapping } = typeMap;
 
     // check if super has type parameters
@@ -96,7 +96,7 @@ export class GenericType implements IGenericType {
     }
   }
 
-  public addCoercion(...types: IGenericType[]): void {
+  public addCoercion(...types: IParametricType[]): void {
     for (const type of types) {
       if (this.coercibleTypes.has(type)) {
         throw new Error(
@@ -108,7 +108,7 @@ export class GenericType implements IGenericType {
     }
   }
 
-  public addSuffixes(...suffixes: TypeMap<IGenericType>[]): void {
+  public addSuffixes(...suffixes: TypeMap<IParametricType>[]): void {
     for (const suffix of suffixes) {
       if (this.suffixes.has(suffix.type.name)) {
         throw new Error(
@@ -123,7 +123,7 @@ export class GenericType implements IGenericType {
     }
   }
 
-  public addOperators(...operators: Operator<IGenericType>[]): void {
+  public addOperators(...operators: Operator<IParametricType>[]): void {
     for (const operator of operators) {
       if (!this.operators.has(operator.operator)) {
         this.operators.set(operator.operator, []);
@@ -166,7 +166,7 @@ export class GenericType implements IGenericType {
     }
   }
 
-  public isSubtypeOf(type: IGenericType): boolean {
+  public isSubtypeOf(type: IParametricType): boolean {
     if (type === this) {
       return true;
     }
@@ -175,7 +175,7 @@ export class GenericType implements IGenericType {
       ? false
       : this.superType.type.isSubtypeOf(type);
   }
-  public canCoerceFrom(type: IGenericType): boolean {
+  public canCoerceFrom(type: IParametricType): boolean {
     // if type no coercion needed
     if (type === this) {
       return true;
@@ -206,35 +206,24 @@ export class GenericType implements IGenericType {
     return false;
   }
 
-  public getTypeParameters(): IGenericType[] {
+  public getTypeParameters(): IParametricType[] {
     return [...this.substitution.typeParameters];
   }
 
-  public getSuperType(): IGenericType | undefined {
+  public getSuperType(): IParametricType | undefined {
     return this.superType && this.superType.type;
   }
 
-  public getCallSignature(): Maybe<IGenericCallSignature> {
+  public getCallSignature(): Maybe<IParametricCallSignature> {
     return this.callSignature && this.callSignature.type;
   }
 
-  public getCoercions(): Set<IGenericType> {
+  public getCoercions(): Set<IParametricType> {
     return this.coercibleTypes;
   }
 
-  public getSuffix(name: string): IGenericType | undefined {
-    const suffix = this.suffixes.get(name);
-    if (!empty(suffix)) {
-      return suffix.type;
-    }
-
-    return empty(this.superType)
-      ? undefined
-      : this.superType.type.getSuffix(name);
-  }
-
-  public getSuffixes(): Map<string, IGenericType> {
-    const suffixes = new Map<string, IGenericType>();
+  public getSuffixes(): Map<string, IParametricType> {
+    const suffixes = new Map<string, IParametricType>();
     for (const [name, typeMap] of this.suffixes) {
       suffixes.set(name, typeMap.type);
     }
@@ -250,8 +239,8 @@ export class GenericType implements IGenericType {
 
   public getOperator(
     kind: OperatorKind,
-    other?: IGenericType,
-  ): Maybe<Operator<IGenericType>> {
+    other?: IParametricType,
+  ): Maybe<Operator<IParametricType>> {
     const operators = this.operators.get(kind);
 
     if (empty(operators)) {
@@ -272,26 +261,26 @@ export class GenericType implements IGenericType {
     return undefined;
   }
 
-  public getOperators(): Map<OperatorKind, Operator<IGenericType>[]> {
+  public getOperators(): Map<OperatorKind, Operator<IParametricType>[]> {
     return this.operators;
   }
 
-  public toTypeString(): string {
+  public toString(): string {
     const typeParameters = this.getTypeParameters();
 
     const typeParameterStr =
       typeParameters.length > 0
-        ? `<${typeParameters.map(t => t.toTypeString()).join(', ')}>`
+        ? `<${typeParameters.map(t => t.toString()).join(', ')}>`
         : '';
 
     if (empty(this.callSignature)) {
       return `${this.name}${typeParameterStr}`;
     }
 
-    return `${typeParameterStr}${this.callSignature.type.toTypeString()}`;
+    return `${typeParameterStr}${this.callSignature.type.toString()}`;
   }
 
-  public toConcrete(typeSubstitutions: Map<IType, IType> | IType): IType {
+  public apply(typeSubstitutions: Map<IType, IType> | IType): IType {
     if (typeSubstitutions instanceof Map) {
       return this.substitution.replace(
         this,

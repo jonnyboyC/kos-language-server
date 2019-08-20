@@ -17,5 +17,5 @@ fileContentType.addSuffixes(
   noMap(createSuffixType('empty', booleanType)),
   noMap(createSuffixType('type', stringType)),
   noMap(createSuffixType('string', stringType)),
-  noMap(createSuffixType('iterator', enumeratorType.toConcrete(stringType))),
+  noMap(createSuffixType('iterator', enumeratorType.apply(stringType))),
 );

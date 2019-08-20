@@ -1,7 +1,6 @@
 import { Diagnostic } from 'vscode-languageserver';
 import { SuffixTypeBuilder } from './suffixTypeNode';
 import { Operator } from './operator';
-import { TypeParameter } from './typeParameter';
 import { TypeTracker } from '../analysis/typeTracker';
 
 /**
@@ -132,71 +131,180 @@ export enum OperatorKind {
   equal,
 }
 
+/**
+ * interface for an entity with type parameters that may need to be
+ * mapped to another entity
+ */
 export interface ITypeMappable {
+  /**
+   * name of this mappable type
+   */
   readonly name: string;
-  getTypeParameters(): IGenericType[];
+
+  /**
+   * Get type parameters
+   */
+  getTypeParameters(): IParametricType[];
 }
 
-export interface IGenericType extends ITypeMappable {
+/**
+ * A parameterized type. These are used by Kerboscript's collection types
+ */
+export interface IParametricType extends ITypeMappable {
+  /**
+   * What access does this type possess
+   */
   readonly access: Access;
+
+  /**
+   * Is this type an any type. i.e can it be used anywhere
+   */
   readonly anyType: boolean;
+
+  /**
+   * What is the kind of this type
+   */
   readonly kind: TypeKind;
-  addSuper(type: TypeMap<IGenericType>): void;
-  addCoercion(...types: IGenericType[]): void;
-  addSuffixes(...suffixes: TypeMap<IGenericType>[]): void;
-  addOperators(...operators: Operator<IGenericType>[]): void;
-  isSubtypeOf(type: IGenericType): boolean;
-  canCoerceFrom(type: IGenericType): boolean;
-  getSuperType(): Maybe<IGenericType>;
-  getCoercions(): Set<IGenericType>;
-  getCallSignature(): Maybe<IGenericCallSignature>;
-  getSuffix(name: string): Maybe<IGenericType>;
-  getSuffixes(): Map<string, IGenericType>;
+
+  /**
+   * Is this type a subtype of some other parametric type
+   * @param type parameter type to check
+   */
+  isSubtypeOf(type: IParametricType): boolean;
+
+  /**
+   * Can the this type be coerced from the provided type TODO invert this behavior
+   * @param type the type to attempt to coerce from
+   */
+  canCoerceFrom(type: IParametricType): boolean;
+
+  /**
+   * Get the super type of this type
+   */
+  getSuperType(): Maybe<IParametricType>;
+
+  /**
+   * Get the coercions of this type
+   */
+  getCoercions(): Set<IParametricType>;
+
+  /**
+   * Get the call signature of this type
+   */
+  getCallSignature(): Maybe<IParametricCallSignature>;
+
+  /**
+   * Get the suffixes for this type
+   */
+  getSuffixes(): Map<string, IParametricType>;
+
+  /**
+   * Get an operator of a specific kind for another type
+   * @param kind operator kind
+   * @param other other type if binary expression
+   */
   getOperator(
     kind: OperatorKind,
-    other?: IGenericType,
-  ): Maybe<Operator<IGenericType>>;
-  getOperators(): Map<OperatorKind, Operator<IGenericType>[]>;
-  toTypeString(): string;
-  toConcrete(typeSubstitutions: Map<IGenericType, IType> | IType): IType;
+    other?: IParametricType,
+  ): Maybe<Operator<IParametricType>>;
+
+  /**
+   * Get the operators associated with this type
+   */
+  getOperators(): Map<OperatorKind, Operator<IParametricType>[]>;
+
+  /**
+   * Apply type arguments to this parametric type to generate a new type
+   * @param typeArgument type arguments to apply
+   */
+  apply(typeArgument: Map<IParametricType, IType> | IType): IType;
+
+  /**
+   * Get a string representation of this type
+   */
+  toString(): string;
 }
 
-export interface IType extends IGenericType {
-  typeSubstitutions: Map<TypeParameter, IType>;
-  addSuper(type: TypeMap<IType>): void;
-  addCoercion(...types: IType[]): void;
-  addSuffixes(...suffixes: TypeMap<IType>[]): void;
-  addOperators(...operators: Operator<IType>[]): void;
+export interface IType extends IParametricType {
   isSubtypeOf(type: IType): boolean;
   getAssignmentType(): IType;
   getSuperType(): Maybe<IType>;
   getTracker(): TypeTracker;
   getCallSignature(): Maybe<ICallSignature>;
-  getSuffix(name: string): Maybe<IType>;
   getSuffixes(): Map<string, IType>;
   getOperator(kind: OperatorKind, other?: IType): Maybe<Operator<IType>>;
   getOperators(): Map<OperatorKind, Operator<IType>[]>;
 }
 
+/**
+ * A mapping of a provided type from one set of type parameters
+ * to another
+ */
 export interface TypeMap<T> {
-  mapping: Map<IGenericType, IGenericType>;
+  /**
+   * Mapping to handle the analogous case in js of
+   * `class Foo<T, K> extends Bar<K, T> {}`
+   */
+  mapping: Map<IParametricType, IParametricType>;
+
+  /**
+   * The type to have parameters mapped
+   */
   type: T;
 }
 
+/**
+ * Access level of a type
+ */
 export interface Access {
+  /**
+   * Is this type gettable
+   */
   get: boolean;
+
+  /**
+   * Is this type settable
+   */
   set: boolean;
 }
 
-export interface IGenericCallSignature extends ITypeMappable {
-  params(): IGenericType[];
-  returns(): IGenericType;
-  toConcrete(
-    typeSubstitutions: Map<IGenericType, IType> | IType,
-  ): ICallSignature;
-  toTypeString(): string;
+/**
+ * An interface representing a type's call signature with type parameters
+ */
+export interface IParametricCallSignature extends ITypeMappable {
+  /**
+   * The types of the parameters
+   */
+  params(): IParametricType[];
+
+  /**
+   * The type of the return
+   */
+  returns(): IParametricType;
+
+  /**
+   * Apply type arguments to this parametric call signature
+   * @param typeArguments type arguments
+   */
+  apply(typeArguments: Map<IParametricType, IType> | IType): ICallSignature;
+
+  /**
+   * A string representation of this call signature
+   */
+  toString(): string;
 }
-export interface ICallSignature extends IGenericCallSignature {
+
+/**
+ * An interface representing a type's call signature
+ */
+export interface ICallSignature extends IParametricCallSignature {
+  /**
+   * The types of the parameters
+   */
   params(): IType[];
+
+  /**
+   * The type of the return
+   */
   returns(): IType;
 }

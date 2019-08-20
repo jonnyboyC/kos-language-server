@@ -1,19 +1,22 @@
-import { TypeParameter } from './typeParameter';
-import { IGenericType, IType, ICallSignature, TypeMap } from './types';
+import { IParametricType, IType, ICallSignature, TypeMap } from './types';
 import { empty } from '../utilities/typeGuards';
 import { CallSignature } from './types/callSignature';
 import { createPlaceholder } from './typeCreators';
 
-export class CallReplacement {
+/**
+ * A class that's responsible for binding type arguments to type
+ * parameters of parametric call signatures
+ */
+export class CallTypeBinding {
   /**
    * A set of type parameters
    */
-  public readonly typeParameters: Set<IGenericType>;
+  public readonly typeParameters: Set<IParametricType>;
 
   /**
    * Cached substitutions
    */
-  public replacementCache: Map<Map<IGenericType, IType>, ICallSignature>;
+  public replacementCache: Map<Map<IParametricType, IType>, ICallSignature>;
 
   /**
    * Construct a new call substitution
@@ -38,9 +41,9 @@ export class CallReplacement {
    * @param returns the return of the generic call
    */
   public replace(
-    typeReplacements: Map<IGenericType, IType>,
-    params: TypeMap<IGenericType>[],
-    returns: TypeMap<IGenericType>,
+    typeReplacements: Map<IParametricType, IType>,
+    params: TypeMap<IParametricType>[],
+    returns: TypeMap<IParametricType>,
   ): ICallSignature {
     // check validity of the substitution
     this.isValidReplacement(typeReplacements);
@@ -88,7 +91,7 @@ export class CallReplacement {
    * Check if the provided replacement are valid
    * @param replacement the requested type substitutions
    */
-  private isValidReplacement(replacement: Map<TypeParameter, IType>): void {
+  private isValidReplacement(replacement: Map<IParametricType, IType>): void {
     for (const typeParameter of this.typeParameters) {
       if (!replacement.has(typeParameter)) {
         throw new Error(
@@ -105,8 +108,8 @@ export class CallReplacement {
    * @param typeReplacement placeholder for type subs
    */
   private getCachedReplacements(
-    typeReplacement: Map<IGenericType, IType>,
-  ): Map<IGenericType, IType> {
+    typeReplacement: Map<IParametricType, IType>,
+  ): Map<IParametricType, IType> {
     for (const cachedReplacement of this.replacementCache.keys()) {
       if (cachedReplacement.size !== typeReplacement.size) {
         continue;
@@ -136,8 +139,8 @@ export class CallReplacement {
    * @param typeReplacement type replacement
    */
   private toConcrete(
-    type: IGenericType,
-    typeReplacement: Map<IGenericType, IType>,
+    type: IParametricType,
+    typeReplacement: Map<IParametricType, IType>,
   ) {
     // check if type is actually a placeholder
 
@@ -152,7 +155,7 @@ export class CallReplacement {
     }
 
     // otherwise call the types to concrete method
-    return type.toConcrete(typeReplacement);
+    return type.apply(typeReplacement);
   }
 
   /**
@@ -161,13 +164,13 @@ export class CallReplacement {
    * @param replacementMap mapping of type parameters from a source type to a target type
    */
   private mapReplacement(
-    typeReplacement: Map<IGenericType, IType>,
-    replacementMap: Map<IGenericType, IGenericType>,
-  ): Map<IGenericType, IType> {
+    typeReplacement: Map<IParametricType, IType>,
+    replacementMap: Map<IParametricType, IParametricType>,
+  ): Map<IParametricType, IType> {
     if (replacementMap.size === 0) {
       return typeReplacement;
     }
-    const mappedTypeReplacement: Map<IGenericType, IType> = new Map();
+    const mappedTypeReplacement: Map<IParametricType, IType> = new Map();
 
     for (const [generic, type] of typeReplacement) {
       // try to find type parameter from placeholders

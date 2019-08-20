@@ -16,9 +16,9 @@ timeWarpType.addSuper(noMap(serializableType));
 
 timeWarpType.addSuffixes(
   noMap(createSuffixType('rate', scalarType)),
-  noMap(createSuffixType('rateList', listType.toConcrete(scalarType))),
-  noMap(createSuffixType('railRateList', listType.toConcrete(scalarType))),
-  noMap(createSuffixType('physicsRateList', listType.toConcrete(scalarType))),
+  noMap(createSuffixType('rateList', listType.apply(scalarType))),
+  noMap(createSuffixType('railRateList', listType.apply(scalarType))),
+  noMap(createSuffixType('physicsRateList', listType.apply(scalarType))),
   noMap(createSuffixType('mode', stringType)),
   noMap(createSuffixType('warp', integerType)),
   noMap(createArgSuffixType('warpTo', scalarType)),

@@ -1,7 +1,7 @@
-import { OperatorKind, IGenericType, IType } from './types';
+import { OperatorKind, IParametricType, IType } from './types';
 import { empty } from '../utilities/typeGuards';
 
-export class Operator<T extends IGenericType = IType> {
+export class Operator<T extends IParametricType = IType> {
   /**
    * What operator kind associated with this operator
    */

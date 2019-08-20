@@ -597,7 +597,7 @@ export class TypeChecker
 
     const { type } = result;
 
-    if (type.kind !== TypeKind.basic || empty(type.getSuffix(iterator))) {
+    if (type.kind !== TypeKind.basic || !type.getSuffixes().has(iterator)) {
       errors = errors.concat(
         createDiagnostic(
           stmt.collection,
@@ -611,7 +611,7 @@ export class TypeChecker
     const { tracker } = stmt.element;
 
     if (this.isBasicTracker(tracker)) {
-      const collectionIterator = type.getSuffix(iterator);
+      const collectionIterator = type.getSuffixes.get(iterator);
 
       if (!empty(collectionIterator)) {
         const enumerator = collectionIterator.getAssignmentType();
@@ -908,7 +908,7 @@ export class TypeChecker
         finalType = elementType;
         break;
       case 'resources':
-        finalType = listType.toConcrete(aggregateResourceType);
+        finalType = listType.apply(aggregateResourceType);
         break;
       case 'parts':
         finalType = partType;
@@ -947,7 +947,7 @@ export class TypeChecker
 
     const { tracker } = target;
     if (this.isBasicTracker(tracker)) {
-      tracker.setType(target, listType.toConcrete(finalType));
+      tracker.setType(target, listType.apply(finalType));
     }
 
     return errors;
@@ -1298,7 +1298,7 @@ export class TypeChecker
         errors.push(
           createDiagnostic(
             arg,
-            `Function argument could not be coerced into ${params.toTypeString()}`,
+            `Function argument could not be coerced into ${params.toString()}`,
             DiagnosticSeverity.Hint,
           ),
         );
@@ -1444,12 +1444,12 @@ export class TypeChecker
 
     // if we know the collection type is a list we need a scalar indexer
     if (listType.canCoerceFrom(type)) {
-      const parameters = type.getTypeParameters();
+      // const parameters = type.getTypeParameters();
 
       indexer = arrayBracketIndexer(
         type,
         scalarType,
-        type.typeSubstitutions.get(parameters[0]) || structureType,
+        structureType,
       );
       builder.nodes.push(new TypeNode(indexer, suffixTerm));
 
@@ -1600,7 +1600,7 @@ export class TypeChecker
     // if we're a trailer check for suffixes
     if (builder.isTrailer()) {
       const type = builder.current();
-      const suffix = this.builderResult(builder).getSuffix(
+      const suffix = this.builderResult(builder).getSuffixes().get(
         suffixTerm.token.lookup,
       );
 
@@ -1626,7 +1626,7 @@ export class TypeChecker
           suffixTerm,
           `Unable to find suffix ${
             suffixTerm.token.lookup
-          } on type ${type.toTypeString()}`,
+          } on type ${type.toString()}`,
           DiagnosticSeverity.Hint,
         ),
       ];

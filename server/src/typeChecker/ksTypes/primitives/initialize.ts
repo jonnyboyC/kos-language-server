@@ -71,7 +71,7 @@ export const primitiveInitializer = () => {
     noMap(createArgSuffixType('remove', stringType, scalarType, scalarType)),
     noMap(createArgSuffixType('replace', stringType, stringType, stringType)),
     noMap(
-      createArgSuffixType('split', listType.toConcrete(stringType), stringType),
+      createArgSuffixType('split', listType.apply(stringType), stringType),
     ),
     noMap(createArgSuffixType('startswith', booleanType, stringType)),
     noMap(createArgSuffixType('tolower', stringType)),
@@ -87,7 +87,7 @@ export const primitiveInitializer = () => {
     noMap(createArgSuffixType('find', stringType, structureType)),
     noMap(createArgSuffixType('lastindexof', scalarType, stringType)),
     noMap(createArgSuffixType('findlast', scalarType, stringType)),
-    noMap(createArgSuffixType(iterator, enumeratorType.toConcrete(stringType))),
+    noMap(createArgSuffixType(iterator, enumeratorType.apply(stringType))),
   );
 
   // ------------------ scalar ---------------------------

@@ -14,7 +14,7 @@ elementType.addSuffixes(
   noMap(createSuffixType('name', stringType)),
   noMap(createSuffixType('uid', stringType)),
   noMap(createSuffixType('vessel', vesselTargetType)),
-  noMap(createSuffixType('parts', listType.toConcrete(partType))),
-  noMap(createSuffixType('dockingPorts', listType.toConcrete(dockingPortType))),
-  noMap(createSuffixType('resources', listType.toConcrete(aggregateResourceType))),
+  noMap(createSuffixType('parts', listType.apply(partType))),
+  noMap(createSuffixType('dockingPorts', listType.apply(dockingPortType))),
+  noMap(createSuffixType('resources', listType.apply(aggregateResourceType))),
 );

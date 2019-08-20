@@ -3,7 +3,7 @@ import {
   IType,
   TypeKind,
   ICallSignature,
-  IGenericType,
+  IParametricType,
 } from '../types';
 import { Type } from './type';
 
@@ -25,7 +25,7 @@ export class ConstantType<T> extends Type {
     typeArguments: Map<IType, IType>,
     kind: TypeKind,
     callSignature?: ICallSignature,
-    typeTemplate?: IGenericType,
+    typeTemplate?: IParametricType,
   ) {
     super(name, access, typeArguments, kind, callSignature, typeTemplate);
     this.value = value;
@@ -34,7 +34,7 @@ export class ConstantType<T> extends Type {
   /**
    * Create a type string from this type
    */
-  public toTypeString(): string {
-    return `${super.toTypeString()} = ${this.value}`;
+  public toString(): string {
+    return `${super.toString()} = ${this.value}`;
   }
 }

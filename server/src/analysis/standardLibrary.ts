@@ -92,7 +92,7 @@ const functionTypes: [string[], IType][] = [
   ],
   [
     ['all', 'waypoints'],
-    createFunctionType('allwaypoints', listType.toConcrete(waypointType)),
+    createFunctionType('allwaypoints', listType.apply(waypointType)),
   ],
   [
     ['angle', 'axis'],
@@ -219,7 +219,7 @@ const functionTypes: [string[], IType][] = [
     ['list', 'alarms'],
     createFunctionType(
       'listAlarms',
-      listType.toConcrete(kacAlarmType),
+      listType.apply(kacAlarmType),
       stringType,
     ),
   ],
@@ -314,7 +314,7 @@ const functionTypes: [string[], IType][] = [
     ['queue'],
     createVarFunctionType(
       'queue',
-      queueType.toConcrete(structureType),
+      queueType.apply(structureType),
       createVarType(structureType),
     ),
   ],
@@ -383,7 +383,7 @@ const functionTypes: [string[], IType][] = [
     ['stack'],
     createVarFunctionType(
       'stack',
-      stackType.toConcrete(structureType),
+      stackType.apply(structureType),
       createVarType(structureType),
     ),
   ],
@@ -421,7 +421,7 @@ const functionTypes: [string[], IType][] = [
     ['unique', 'set'],
     createVarFunctionType(
       'uniqueset',
-      uniqueSetType.toConcrete(structureType),
+      uniqueSetType.apply(structureType),
       createVarType(structureType),
     ),
   ],
@@ -541,7 +541,7 @@ const variables: [string[], IType][] = [
   [['ag8'], booleanType],
   [['ag9'], booleanType],
   [['airspeed'], scalarType],
-  [['all', 'nodes'], listType.toConcrete(nodeType)],
+  [['all', 'nodes'], listType.apply(nodeType)],
   [['alt'], vesselAltType],
   [['altitude'], scalarType],
   [['angular', 'momentum'], vectorType],

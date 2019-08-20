@@ -295,7 +295,7 @@ describe('Basic inferring', () => {
       names,
       'segments',
       KsSymbolKind.variable,
-      listType.toConcrete(stringType),
+      listType.apply(stringType),
     );
 
     symbolTests(names, 'x3', KsSymbolKind.variable, stringType);
@@ -318,7 +318,7 @@ describe('Basic inferring', () => {
       names,
       'parts',
       KsSymbolKind.variable,
-      listType.toConcrete(partType),
+      listType.apply(partType),
     );
     symbolTests(names, 'partFacing', KsSymbolKind.variable, directionType);
     symbolTests(names, 'distance', KsSymbolKind.variable, scalarType);

@@ -21,7 +21,7 @@ pathType.addSuper(noMap(serializableType));
 
 pathType.addSuffixes(
   noMap(createSuffixType('volume', volumeType)),
-  noMap(createSuffixType('segments', listType.toConcrete(stringType))),
+  noMap(createSuffixType('segments', listType.apply(stringType))),
   noMap(createSuffixType('length', integerType)),
   noMap(createSuffixType('name', stringType)),
   noMap(createSuffixType('hasExtension', booleanType)),

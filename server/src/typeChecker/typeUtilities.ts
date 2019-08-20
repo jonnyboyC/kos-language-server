@@ -4,7 +4,7 @@ import { TokenType } from '../entities/tokentypes';
 import { booleanType } from './ksTypes/primitives/boolean';
 import { integerType, doubleType } from './ksTypes/primitives/scalar';
 import { stringType } from './ksTypes/primitives/string';
-import { OperatorKind, IType, IGenericType } from './types';
+import { OperatorKind, IType, IParametricType } from './types';
 import { TypeParameter } from './typeParameter';
 
 /**
@@ -69,8 +69,8 @@ export const tokenTrackedType = (token: Token): Maybe<IType> => {
  * @param superType the super type to create a pass through
  */
 export const passThroughTypeParameter = (
-  type: IGenericType,
-  superType: IGenericType,
+  type: IParametricType,
+  superType: IParametricType,
 ): Map<TypeParameter, TypeParameter> => {
   const superTypeParams = superType.getTypeParameters();
   const typeParams = type.getTypeParameters();

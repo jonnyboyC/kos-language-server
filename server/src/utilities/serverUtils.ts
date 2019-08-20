@@ -143,7 +143,7 @@ export const symbolCompletionItems = async (
         const type = tracker.getType({ uri, range: entity.name });
 
         if (!empty(type)) {
-          typeString = type.toTypeString();
+          typeString = type.toString();
         }
       }
 
@@ -196,7 +196,7 @@ export const suffixCompletionItems = async (
       ? CompletionItemKind.Property
       : CompletionItemKind.Method,
     label: suffix.name,
-    detail: `${suffix.name}: ${suffix.toTypeString()}`,
+    detail: `${suffix.name}: ${suffix.toString()}`,
   }));
 };
 

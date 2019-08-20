@@ -422,7 +422,7 @@ export class KLS {
         // Note doesn't does do much other than format it as code
         // may look into adding type def syntax highlighting
         language: 'kos',
-        value: `(${symbolKind}) ${label}: ${type.toTypeString()} `,
+        value: `(${symbolKind}) ${label}: ${type.toString()} `,
       },
       range: {
         start: cleanPosition(token.start),
@@ -491,7 +491,7 @@ export class KLS {
         // check if normal or variadic type
         if (params.length === 1 && params[0].kind === TypeKind.variadic) {
           // generate variadic labels
-          const variadicLabel = params[0].toTypeString();
+          const variadicLabel = params[0].toString();
           paramInfos.push(
             ParameterInformation.create([start, start + variadicLabel.length]),
           );
@@ -501,7 +501,7 @@ export class KLS {
 
           const labels: string[] = [];
           for (let i = 0; i < params.length - 1; i += 1) {
-            const paramLabel = `${params[i].toTypeString()}, `;
+            const paramLabel = `${params[i].toString()}, `;
             paramInfos.push(
               ParameterInformation.create([
                 start,
@@ -512,7 +512,7 @@ export class KLS {
             start = start + paramLabel.length;
           }
 
-          const paramLabel = `${params[params.length - 1].toTypeString()}`;
+          const paramLabel = `${params[params.length - 1].toString()}`;
           paramInfos.push(
             ParameterInformation.create([start, start + paramLabel.length]),
           );

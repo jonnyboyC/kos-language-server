@@ -69,7 +69,7 @@ export const orbitalInitializer = () => {
     noMap(createSuffixType('longitude', scalarType)),
     noMap(createSuffixType('altitude', scalarType)),
     noMap(createSuffixType('geoPosition', geoCoordinatesType)),
-    noMap(createSuffixType('patches', listType.toConcrete(orbitInfoType))),
+    noMap(createSuffixType('patches', listType.apply(orbitInfoType))),
   );
 
   bodyTargetType.addSuper(noMap(orbitableType));
@@ -80,7 +80,7 @@ export const orbitalInitializer = () => {
     noMap(createSuffixType('hasOcean', booleanType)),
     noMap(createSuffixType('hasSolidSurface', booleanType)),
     noMap(
-      createSuffixType('orbitingChildren', listType.toConcrete(bodyTargetType)),
+      createSuffixType('orbitingChildren', listType.apply(bodyTargetType)),
     ),
     noMap(createSuffixType('altitude', scalarType)),
     noMap(createSuffixType('radius', scalarType)),
@@ -112,90 +112,90 @@ export const orbitalInitializer = () => {
     noMap(
       createArgSuffixType(
         'partsNamed',
-        listType.toConcrete(partType),
+        listType.apply(partType),
         stringType,
       ),
     ),
     noMap(
       createArgSuffixType(
         'partsNamedPattern',
-        listType.toConcrete(partType),
+        listType.apply(partType),
         stringType,
       ),
     ),
     noMap(
       createArgSuffixType(
         'partsTitled',
-        listType.toConcrete(partType),
+        listType.apply(partType),
         stringType,
       ),
     ),
     noMap(
       createArgSuffixType(
         'partsTitledPattern',
-        listType.toConcrete(partType),
+        listType.apply(partType),
         stringType,
       ),
     ),
     noMap(
       createArgSuffixType(
         'partsDubbed',
-        listType.toConcrete(partType),
+        listType.apply(partType),
         stringType,
       ),
     ),
     noMap(
       createArgSuffixType(
         'partsDubbedPattern',
-        listType.toConcrete(partType),
+        listType.apply(partType),
         stringType,
       ),
     ),
     noMap(
       createArgSuffixType(
         'modulesNamed',
-        listType.toConcrete(partModuleType),
+        listType.apply(partModuleType),
         stringType,
       ),
     ),
     noMap(
       createArgSuffixType(
         'partsInGroup',
-        listType.toConcrete(partType),
+        listType.apply(partType),
         stringType,
       ),
     ),
     noMap(
       createArgSuffixType(
         'modulesInGroup',
-        listType.toConcrete(partModuleType),
+        listType.apply(partModuleType),
         stringType,
       ),
     ),
     noMap(
       createArgSuffixType(
         'partStagged',
-        listType.toConcrete(partType),
+        listType.apply(partType),
         stringType,
       ),
     ),
     noMap(
       createArgSuffixType(
         'partStaggedPattern',
-        listType.toConcrete(partType),
+        listType.apply(partType),
         stringType,
       ),
     ),
-    noMap(createArgSuffixType('allTaggedParts', listType.toConcrete(partType))),
-    noMap(createArgSuffixType('parts', listType.toConcrete(partType))),
+    noMap(createArgSuffixType('allTaggedParts', listType.apply(partType))),
+    noMap(createArgSuffixType('parts', listType.apply(partType))),
     noMap(
-      createArgSuffixType('dockingPorts', listType.toConcrete(dockingPortType)),
+      createArgSuffixType('dockingPorts', listType.apply(dockingPortType)),
     ),
     noMap(
-      createArgSuffixType('decouplers', listType.toConcrete(decouplerType)),
+      createArgSuffixType('decouplers', listType.apply(decouplerType)),
     ),
     noMap(
-      createArgSuffixType('separators', listType.toConcrete(decouplerType)),
+      createArgSuffixType('separators', listType.apply(decouplerType)),
     ),
     noMap(createArgSuffixType('elements', userListType)),
     noMap(createSuffixType('control', flightControlType)),
@@ -227,7 +227,7 @@ export const orbitalInitializer = () => {
     noMap(createSuffixType('dryMass', scalarType)),
     noMap(createSuffixType('wetMass', scalarType)),
     noMap(
-      createSuffixType('resources', listType.toConcrete(aggregateResourceType)),
+      createSuffixType('resources', listType.apply(aggregateResourceType)),
     ),
     noMap(createSuffixType('loadDistance', loadDistanceType)),
     noMap(createArgSuffixType('isDead', booleanType)),
@@ -235,7 +235,7 @@ export const orbitalInitializer = () => {
     noMap(createSuffixType('latitude', scalarType)),
     noMap(createSuffixType('longitude', scalarType)),
     noMap(createSuffixType('altitude', scalarType)),
-    noMap(createSuffixType('crew', listType.toConcrete(crewType))),
+    noMap(createSuffixType('crew', listType.apply(crewType))),
     noMap(createSuffixType('crewCapacity', scalarType)),
     noMap(createSuffixType('connection', vesselConnectionType)),
     noMap(createSuffixType('messages', messageQueueType)),
@@ -243,7 +243,7 @@ export const orbitalInitializer = () => {
     noMap(
       createArgSuffixType(
         'soiChangeWatchers',
-        uniqueSetType.toConcrete(userDelegateType),
+        uniqueSetType.apply(userDelegateType),
       ),
     ),
   );

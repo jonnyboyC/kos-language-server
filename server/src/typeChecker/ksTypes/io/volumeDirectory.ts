@@ -13,7 +13,7 @@ volumeDirectoryType.addSuper(noMap(volumeItemType));
 
 volumeDirectoryType.addSuffixes(
   noMap(
-    createArgSuffixType('iterator', enumeratorType.toConcrete(volumeItemType)),
+    createArgSuffixType('iterator', enumeratorType.apply(volumeItemType)),
   ),
   noMap(createSuffixType('list', lexiconType)),
 );

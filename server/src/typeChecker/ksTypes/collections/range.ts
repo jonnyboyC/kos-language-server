@@ -7,7 +7,7 @@ import { enumerableType } from './enumerable';
 import { scalarType } from '../primitives/scalar';
 
 export const rangeType = createStructureType('range');
-rangeType.addSuper(noMap(enumerableType.toConcrete(scalarType)));
+rangeType.addSuper(noMap(enumerableType.apply(scalarType)));
 
 rangeType.addSuffixes(
   noMap(createArgSuffixType('start', scalarType)),

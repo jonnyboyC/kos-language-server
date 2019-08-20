@@ -15,14 +15,14 @@ import { listType } from '../typeChecker/ksTypes/collections/list';
 import { collectionType } from '../typeChecker/ksTypes/collections/enumerable';
 import { scalarType } from '../typeChecker/ksTypes/primitives/scalar';
 import { TypeKind } from '../typeChecker/types';
-import { GenericType } from '../typeChecker/types/genericType';
+import { ParametricType } from '../typeChecker/types/parametricType';
 import { Type } from '../typeChecker/types/type';
 
 typeInitializer();
 
 describe('Type Utilities', () => {
   test('Basic Attributes', () => {
-    const genericExampleType = new GenericType(
+    const genericExampleType = new ParametricType(
       'example',
       { get: true, set: true },
       ['T'],
@@ -40,7 +40,7 @@ describe('Type Utilities', () => {
     expect(genericTypeParameters.length).toBe(1);
     expect(genericTypeParameters[0].name).toBe('T');
 
-    const exampleType = genericExampleType.toConcrete(stringType);
+    const exampleType = genericExampleType.apply(stringType);
     const parameters = exampleType.getTypeParameters();
 
     expect(exampleType.name).toBe('example');
@@ -48,7 +48,7 @@ describe('Type Utilities', () => {
     expect(exampleType.access.set).toBe(true);
     expect(exampleType.getCallSignature()).toBeUndefined();
     expect(exampleType.getAssignmentType()).toBe(exampleType);
-    expect(exampleType.typeSubstitutions.get(parameters[0])).toBe(stringType);
+    expect(exampleType.typeArguments.get(parameters[0])).toBe(stringType);
     expect(exampleType.anyType).toBe(false);
     expect(exampleType.getSuperType()).toBeUndefined();
 

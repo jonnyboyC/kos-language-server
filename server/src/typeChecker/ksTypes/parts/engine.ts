@@ -38,7 +38,7 @@ engineType.addSuffixes(
   noMap(createSuffixType('availableThrust', scalarType)),
   noMap(createArgSuffixType('availableThrustAt', scalarType, scalarType)),
   noMap(createSuffixType('multiMode', booleanType)),
-  noMap(createSuffixType('modes', listType.toConcrete(stringType))),
+  noMap(createSuffixType('modes', listType.apply(stringType))),
   noMap(createSuffixType('mode', stringType)),
   noMap(createArgSuffixType('toggleMode', voidType)),
   noMap(createSetSuffixType('primaryMode', booleanType)),

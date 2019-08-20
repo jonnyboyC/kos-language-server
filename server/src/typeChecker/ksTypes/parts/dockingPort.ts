@@ -33,13 +33,13 @@ dockingPortType.addSuffixes(
   noMap(
     createArgSuffixType(
       'dockWatchers',
-      uniqueSetType.toConcrete(userDelegateType),
+      uniqueSetType.apply(userDelegateType),
     ),
   ),
   noMap(
     createArgSuffixType(
       'undockWatchers',
-      uniqueSetType.toConcrete(userDelegateType),
+      uniqueSetType.apply(userDelegateType),
     ),
   ),
 );

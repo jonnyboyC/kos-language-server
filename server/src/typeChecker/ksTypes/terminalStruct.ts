@@ -25,7 +25,7 @@ terminalStructType.addSuffixes(
   noMap(createSetSuffixType('charHeight', scalarType)),
   noMap(createArgSuffixType(
     'resizeWatchers',
-    uniqueSetType.toConcrete(userDelegateType),
+    uniqueSetType.apply(userDelegateType),
   )),
   noMap(createSuffixType('input', terminalInputType)),
 );

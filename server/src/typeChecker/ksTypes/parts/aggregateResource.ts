@@ -13,5 +13,5 @@ aggregateResourceType.addSuffixes(
   noMap(createSuffixType('density', scalarType)),
   noMap(createSuffixType('amount', scalarType)),
   noMap(createSuffixType('capacity', scalarType)),
-  noMap(createSuffixType('parts', listType.toConcrete(partType))),
+  noMap(createSuffixType('parts', listType.apply(partType))),
 );

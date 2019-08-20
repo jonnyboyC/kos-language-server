@@ -11,7 +11,7 @@ stageType.addSuper(noMap(structureType));
 stageType.addSuffixes(
   noMap(createSuffixType('number', scalarType)),
   noMap(createSuffixType('ready', scalarType)),
-  noMap(createSuffixType('resources', listType.toConcrete(activeResourceType))),
+  noMap(createSuffixType('resources', listType.apply(activeResourceType))),
   noMap(createSuffixType('resourcesLex', lexiconType)),
   noMap(createSuffixType('nextDecoupler', structureType)),
   noMap(createSuffixType('nextSeparator', structureType)),

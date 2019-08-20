@@ -61,7 +61,7 @@ boxType.addSuffixes(
   noMap(createSuffixType('addScrollBox', scrollBoxType)),
   noMap(createSuffixType('addStack', scrollBoxType)),
   noMap(createArgSuffixType('addSpacing', spacingType, integerType)),
-  noMap(createSuffixType('widgets', listType.toConcrete(widgetType))),
+  noMap(createSuffixType('widgets', listType.apply(widgetType))),
   noMap(createSuffixType('radioValue', stringType)),
   noMap(createSetSuffixType('onRadioChange', userDelegateType)),
   noMap(createArgSuffixType('showOnly', voidType, widgetType)),

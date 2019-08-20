@@ -3,7 +3,7 @@ import {
   Access,
   ICallSignature,
   TypeKind,
-  IGenericType,
+  IParametricType,
   OperatorKind,
   TypeMap,
 } from '../types';
@@ -12,28 +12,87 @@ import { Operator } from '../operator';
 import { KsSuffix } from '../../entities/suffix';
 import { empty } from '../../utilities/typeGuards';
 
+/**
+ * A class representing a class in Kerboscript
+ */
 export class Type implements IType {
-  public readonly typeSubstitutions: Map<IGenericType, IType>;
+  /**
+   * Name of the type
+   */
   public readonly name: string;
+
+  /**
+   * What is the access level of this type
+   */
   public readonly access: Access;
+
+  /**
+   * What is the call signature if there is one
+   */
   public readonly callSignature?: ICallSignature;
+
+  /**
+   * What is the type kind
+   */
   public readonly kind: TypeKind;
+
+  /**
+   * Is this type the any type
+   */
   public readonly anyType: boolean;
 
-  private tracker: TypeTracker;
-  private superType?: IType;
-  private typeTemplate?: IGenericType;
-  private coercibleTypes: Set<IGenericType>;
-  private suffixes: Map<string, IType>;
-  private operators: Map<OperatorKind, Operator<IType>[]>;
+  /**
+   * The type arguments for this type if any
+   */
+  private readonly typeArguments: Map<IParametricType, IType>;
 
+  /**
+   * The tracker for this type. Should only occur if this is a suffix
+   */
+  private readonly tracker: TypeTracker;
+
+  /**
+   * The super type if any for this type
+   */
+  private superType?: IType;
+
+  /**
+   * The parametric type this type derives from
+   */
+  private readonly typeTemplate?: IParametricType;
+
+  /**
+   * The types that can be coerced into this type
+   */
+  private readonly coercibleTypes: Set<IParametricType>;
+
+  /**
+   * The suffixes on this type
+   */
+  private readonly suffixes: Map<string, IType>;
+
+  /**
+   * The operators on this type
+   */
+  private readonly operators: Map<OperatorKind, Operator<IType>[]>;
+
+  /**
+   * Construct a new kerboscript type
+   * @param name name of the type
+   * @param access what access does this type have
+   * @param typeArguments what are the type arguments of this type
+   * @param kind what is the kind of this type
+   * @param callSignature what is the call signature of this type
+   * @param typeTemplate what is the type template of this type
+   * @param anyType is this the any type
+   */
   constructor(
     name: string,
     access: Access,
-    typeSubstitutions: Map<IGenericType, IType>,
+    typeArguments: Map<IParametricType, IType>,
     kind: TypeKind,
     callSignature?: ICallSignature,
-    typeTemplate?: IGenericType,
+    typeTemplate?: IParametricType,
     anyType = false,
   ) {
     if (kind === TypeKind.variadic) {
@@ -42,7 +101,7 @@ export class Type implements IType {
 
     this.name = name;
     this.access = access;
-    this.typeSubstitutions = typeSubstitutions;
+    this.typeArguments = typeArguments;
     this.kind = kind;
     this.callSignature = callSignature;
     this.typeTemplate = typeTemplate;
@@ -55,6 +114,10 @@ export class Type implements IType {
     this.operators = new Map();
   }
 
+  /**
+   * Add a super type to this type
+   * @param typeMap type map
+   */
   public addSuper(typeMap: TypeMap<IType>): void {
     if (!empty(this.superType)) {
       throw new Error(`Super type for ${this.name} has already been set.`);
@@ -62,6 +125,11 @@ export class Type implements IType {
 
     this.superType = typeMap.type;
   }
+
+  /**
+   * Add new coercions to this type
+   * @param types type to new coercions
+   */
   public addCoercion(...types: IType[]): void {
     for (const type of types) {
       if (this.coercibleTypes.has(type)) {
@@ -73,6 +141,11 @@ export class Type implements IType {
       this.coercibleTypes.add(type);
     }
   }
+
+  /**
+   * Add new suffix to this type
+   * @param suffixes suffixes to add
+   */
   public addSuffixes(...suffixes: TypeMap<IType>[]): void {
     for (const { type } of suffixes) {
       if (this.suffixes.has(type.name)) {
@@ -84,6 +157,11 @@ export class Type implements IType {
       this.suffixes.set(type.name, type);
     }
   }
+
+  /**
+   * Add new operators to this type
+   * @param operators operators to add
+   */
   public addOperators(...operators: Operator<IType>[]): void {
     for (const operator of operators) {
       if (!this.operators.has(operator.operator)) {
@@ -126,6 +204,11 @@ export class Type implements IType {
       operatorsKind.push(operator);
     }
   }
+
+  /**
+   * Is this type a subtype for another type
+   * @param type the type check against
+   */
   public isSubtypeOf(type: IType): boolean {
     if (type === this) {
       return true;
@@ -149,7 +232,12 @@ export class Type implements IType {
 
     return false;
   }
-  public canCoerceFrom(type: IGenericType): boolean {
+
+  /**
+   * Can this type be coerced from
+   * @param type
+   */
+  public canCoerceFrom(type: IParametricType): boolean {
     // if type no coercion needed
     if (type === this) {
       return true;
@@ -179,18 +267,38 @@ export class Type implements IType {
 
     return false;
   }
-  public getTypeParameters(): IGenericType[] {
-    return [...this.typeSubstitutions.keys()];
+
+  /**
+   * What are the type parameters of this type
+   */
+  public getTypeParameters(): IParametricType[] {
+    return [...this.typeArguments.keys()];
   }
+
+  /**
+   * Get the super type of this type
+   */
   public getSuperType(): Maybe<IType> {
     return this.superType;
   }
+
+  /**
+   * Get the call signature of this type
+   */
   public getCallSignature(): Maybe<ICallSignature> {
     return this.callSignature;
   }
+
+  /**
+   * Get the tracker of this type
+   */
   public getTracker(): TypeTracker {
     return this.tracker;
   }
+
+  /**
+   * Get the assignment type of this type
+   */
   public getAssignmentType(): IType {
     if (empty(this.callSignature)) {
       return this;
@@ -198,17 +306,17 @@ export class Type implements IType {
 
     return this.callSignature.returns();
   }
-  public getCoercions(): Set<IGenericType> {
+
+  /**
+   * Get all available coercions
+   */
+  public getCoercions(): Set<IParametricType> {
     return this.coercibleTypes;
   }
-  public getSuffix(name: string): Maybe<IType> {
-    const suffix = this.suffixes.get(name);
-    if (!empty(suffix)) {
-      return suffix;
-    }
 
-    return empty(this.superType) ? undefined : this.superType.getSuffix(name);
-  }
+  /**
+   * Get all available suffixes
+   */
   public getSuffixes(): Map<string, IType> {
     const suffixes = new Map(this.suffixes.entries());
 
@@ -220,6 +328,12 @@ export class Type implements IType {
 
     return suffixes;
   }
+
+  /**
+   * Get the appropriate operator for this kind if it exists
+   * @param kind the operator kind
+   * @param other the other type if binary
+   */
   public getOperator(
     kind: OperatorKind,
     other?: Maybe<IType>,
@@ -247,10 +361,18 @@ export class Type implements IType {
 
     return undefined;
   }
+
+  /**
+   * Get all operators of this type
+   */
   getOperators(): Map<OperatorKind, Operator<IType>[]> {
     return this.operators;
   }
-  toTypeString(): string {
+
+  /**
+   * Get a string representation of this type
+   */
+  toString(): string {
     const typeParameters = this.getTypeParameters();
 
     let typeArgumentsStr: string;
@@ -259,15 +381,15 @@ export class Type implements IType {
     } else {
       const typeArgumentStrs: string[] = [];
       for (const typeParameter of typeParameters) {
-        const typeArgument = this.typeSubstitutions.get(typeParameter);
+        const typeArgument = this.typeArguments.get(typeParameter);
         if (empty(typeArgument)) {
           throw new Error(
-            `Type argument not found for parameter ${typeParameter.toTypeString()}` +
+            `Type argument not found for parameter ${typeParameter.toString()}` +
               ` for type ${this.name}`,
           );
         }
 
-        typeArgumentStrs.push(typeArgument.toTypeString());
+        typeArgumentStrs.push(typeArgument.toString());
       }
 
       typeArgumentsStr = `<${typeArgumentStrs.join(', ')}>`;
@@ -277,10 +399,14 @@ export class Type implements IType {
       return `${this.name}${typeArgumentsStr}`;
     }
 
-    return `${typeArgumentsStr}${this.callSignature.toTypeString()}`;
+    return `${typeArgumentsStr}${this.callSignature.toString()}`;
   }
 
-  public toConcrete(_: Map<IType, IType> | IType): IType {
+  /**
+   * Apply type arguments to this type
+   * @param _ type arguments
+   */
+  public apply(_: Map<IType, IType> | IType): IType {
     return this;
   }
 }
