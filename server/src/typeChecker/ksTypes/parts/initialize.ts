@@ -38,6 +38,7 @@ export const partInitializer = () => {
     noMap(createSuffixType('fuelCrossFeed', booleanType)),
     noMap(createSuffixType('title', stringType)),
     noMap(createSuffixType('stage', scalarType)),
+    noMap(createSuffixType('cid', stringType)),
     noMap(createSuffixType('uid', stringType)),
     noMap(createSuffixType('rotation', directionType)),
     noMap(createSuffixType('position', vectorType)),
@@ -52,9 +53,9 @@ export const partInitializer = () => {
     noMap(createArgSuffixType('getModulesByIndex', partModuleType, scalarType)),
     noMap(createSuffixType('modules', listType.apply(stringType))),
     noMap(createSuffixType('allModules', listType.apply(stringType))),
-    noMap(createSuffixType('parent', structureType)),
-    noMap(createSuffixType('decoupler', structureType)),
-    noMap(createSuffixType('separator', structureType)),
+    noMap(createSuffixType('parent', structureType)), // TODO part | string
+    noMap(createSuffixType('decoupler', structureType)), // TODO part | string
+    noMap(createSuffixType('separator', structureType)), // TODO part | string
     noMap(createSuffixType('decoupledIn', scalarType)),
     noMap(createSuffixType('separatedIn', scalarType)),
     noMap(createSuffixType('hasParent', booleanType)),
@@ -79,7 +80,7 @@ export const partInitializer = () => {
     noMap(createSuffixType('part', partType)),
     noMap(createSuffixType('allFields', listType.apply(stringType))),
     noMap(createSuffixType('allFieldNames', listType.apply(stringType))),
-    noMap(createSuffixType('hasField', booleanType)),
+    noMap(createArgSuffixType('hasField', booleanType, stringType)),
     noMap(createSuffixType('allEvents', listType.apply(stringType))),
     noMap(createSuffixType('allEventNames', listType.apply(stringType))),
     noMap(createArgSuffixType('hasEvent', booleanType, stringType)),

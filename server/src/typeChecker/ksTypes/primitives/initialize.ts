@@ -7,7 +7,6 @@ import {
 } from '../../typeCreators';
 import { stringType } from './string';
 import { booleanType } from './boolean';
-import { voidType } from './void';
 import { serializableType } from './serializeableStructure';
 import { primitiveType } from './primitives';
 import { scalarType, integerType, doubleType } from './scalar';
@@ -30,12 +29,12 @@ export const primitiveInitializer = () => {
 
   // ------------------ structure ---------------------------
   structureType.addSuffixes(
-    noMap(createArgSuffixType('tostring', stringType)),
-    noMap(createArgSuffixType('hassuffix', booleanType, stringType)),
-    noMap(createArgSuffixType('suffixnames', voidType)),
-    noMap(createArgSuffixType('isserializable', booleanType)),
-    noMap(createArgSuffixType('typename', stringType)),
-    noMap(createArgSuffixType('istype', booleanType, stringType)),
+    noMap(createArgSuffixType('toString', stringType)),
+    noMap(createArgSuffixType('hasSuffix', booleanType, stringType)),
+    noMap(createArgSuffixType('suffixNames', listType.apply(stringType))),
+    noMap(createArgSuffixType('isSerializable', booleanType)),
+    noMap(createArgSuffixType('typeName', stringType)),
+    noMap(createArgSuffixType('isType', booleanType, stringType)),
     noMap(createArgSuffixType('inheritance', stringType)),
   );
 
@@ -75,31 +74,37 @@ export const primitiveInitializer = () => {
     noMap(createArgSuffixType('length', scalarType)),
     noMap(createArgSuffixType('substring', stringType, scalarType, scalarType)),
     noMap(createArgSuffixType('contains', booleanType, stringType)),
-    noMap(createArgSuffixType('endswith', booleanType, stringType)),
-    noMap(createArgSuffixType('findat', scalarType, stringType, scalarType)),
+    noMap(createArgSuffixType('endsWith', booleanType, stringType)),
+    noMap(createArgSuffixType('findAt', scalarType, stringType, scalarType)),
     noMap(createArgSuffixType('insert', stringType, scalarType, stringType)),
     noMap(
-      createArgSuffixType('findlastat', scalarType, stringType, scalarType),
+      createArgSuffixType('findLastAt', scalarType, stringType, scalarType),
     ),
-    noMap(createArgSuffixType('padleft', stringType, scalarType)),
-    noMap(createArgSuffixType('padright', stringType, scalarType)),
+    noMap(createArgSuffixType('padLeft', stringType, scalarType)),
+    noMap(createArgSuffixType('padRight', stringType, scalarType)),
     noMap(createArgSuffixType('remove', stringType, scalarType, scalarType)),
     noMap(createArgSuffixType('replace', stringType, stringType, stringType)),
     noMap(createArgSuffixType('split', listType.apply(stringType), stringType)),
-    noMap(createArgSuffixType('startswith', booleanType, stringType)),
-    noMap(createArgSuffixType('tolower', stringType)),
-    noMap(createArgSuffixType('toupper', stringType)),
+    noMap(createArgSuffixType('startsWith', booleanType, stringType)),
+    noMap(createArgSuffixType('toLower', stringType)),
+    noMap(createArgSuffixType('toUpper', stringType)),
     noMap(createArgSuffixType('trim', stringType)),
-    noMap(createArgSuffixType('trimend', stringType)),
-    noMap(createArgSuffixType('trimstart', stringType)),
-    noMap(createArgSuffixType('matchespattern', booleanType, stringType)),
-    noMap(createArgSuffixType('tonumber', scalarType, structureType)),
-    noMap(createArgSuffixType('toscalar', scalarType, structureType)),
-    noMap(createArgSuffixType('format', stringType, structureType)),
-    noMap(createArgSuffixType('indexof', stringType, structureType)),
-    noMap(createArgSuffixType('find', stringType, structureType)),
-    noMap(createArgSuffixType('lastindexof', scalarType, stringType)),
-    noMap(createArgSuffixType('findlast', scalarType, stringType)),
+    noMap(createArgSuffixType('trimEnd', stringType)),
+    noMap(createArgSuffixType('trimStart', stringType)),
+    noMap(createArgSuffixType('matchesPattern', booleanType, stringType)),
+    noMap(
+      createVarSuffixType('toNumber', scalarType, createVarType(structureType)),
+    ),
+    noMap(
+      createVarSuffixType('toScalar', scalarType, createVarType(structureType)),
+    ),
+    noMap(
+      createVarSuffixType('format', stringType, createVarType(structureType)),
+    ),
+    noMap(createArgSuffixType('indexOf', scalarType, stringType)),
+    noMap(createArgSuffixType('find', scalarType, stringType)),
+    noMap(createArgSuffixType('lastIndexOf', scalarType, stringType)),
+    noMap(createArgSuffixType('findLast', scalarType, stringType)),
     noMap(createArgSuffixType(iterator, enumeratorType.apply(stringType))),
   );
 

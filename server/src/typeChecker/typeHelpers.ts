@@ -3,6 +3,7 @@ import {
   createArgSuffixType,
   createFunctionType,
   noMap,
+  createIndexer,
 } from './typeCreators';
 import { structureType } from './ksTypes/primitives/structure';
 import { integerType } from './ksTypes/primitives/scalar';
@@ -18,6 +19,7 @@ export const delegateCreation = createArgSuffixType(
   'delegate creation',
   delegateType,
 );
+export const indexerError = createIndexer(structureType, structureType);
 export const suffixError = createSuffixType('Unknown suffix', structureType);
 
 export const functionError = createFunctionType(

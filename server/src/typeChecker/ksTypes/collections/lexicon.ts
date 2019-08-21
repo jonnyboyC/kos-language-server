@@ -26,13 +26,13 @@ lexiconType.addIndexer(
 lexiconType.addSuffixes(
   noMap(createArgSuffixType('clear', voidType)),
   noMap(createSuffixType('keys', userListType)),
-  noMap(createArgSuffixType('haskey', booleanType, structureType)),
-  noMap(createArgSuffixType('hasvalue', booleanType, structureType)),
+  noMap(createArgSuffixType('hasKey', booleanType, structureType)),
+  noMap(createArgSuffixType('hasValue', booleanType, structureType)),
   noMap(createSuffixType('values', userListType)),
   noMap(createArgSuffixType('copy', lexiconType)),
   noMap(createArgSuffixType('length', scalarType)),
-  noMap(createArgSuffixType('remove', structureType, booleanType)),
+  noMap(createArgSuffixType('remove', booleanType, structureType)),
   noMap(createArgSuffixType('add', voidType, structureType, structureType)),
-  noMap(createSetSuffixType('casesensitive', booleanType)),
+  noMap(createSetSuffixType('caseSensitive', booleanType)),
   noMap(createSetSuffixType('case', booleanType)),
 );

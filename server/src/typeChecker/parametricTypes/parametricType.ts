@@ -398,10 +398,19 @@ export class ParametricType implements IParametricType {
         ? `<${typeParameters.map(t => t.toString()).join(', ')}>`
         : '';
 
+    // no call signature just return type name
     if (empty(this.callSignature)) {
       return `${this.name}${typeParameterStr}`;
     }
 
+    // if it's gettable or settable then show return type
+    if (this.access.get || this.access.set) {
+      return `${typeParameterStr}${this.callSignature.type
+        .returns()
+        .toString()}`;
+    }
+
+    // else full call signature
     return `${typeParameterStr}${this.callSignature.type.toString()}`;
   }
 

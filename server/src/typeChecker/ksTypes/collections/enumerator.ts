@@ -16,7 +16,7 @@ const valueSuffix = createParametricArgSuffixType('value', ['T'], 'T');
 
 enumeratorType.addSuffixes(
   noMap(createArgSuffixType('next', booleanType)),
-  noMap(createArgSuffixType('atend', booleanType)),
+  noMap(createArgSuffixType('atEnd', booleanType)),
   noMap(createArgSuffixType('index', scalarType)),
   mapTypes(enumeratorType, valueSuffix),
 );

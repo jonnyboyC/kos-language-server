@@ -5,6 +5,7 @@ import {
   TypeMap,
   ITypeMappable,
   IParametricIndexer,
+  IIndexer,
 } from './types';
 import { memoize } from '../utilities/memoize';
 import { ParametricType } from './parametricTypes/parametricType';
@@ -13,6 +14,7 @@ import { VariadicType } from './types/variadicType';
 import { CallSignature } from './types/callSignature';
 import { GenericCallSignature } from './parametricTypes/parametricCallSignature';
 import { ParametricIndexer } from './parametricTypes/parametricIndexer';
+import { Indexer } from './types/indexer';
 
 /**
  * Create a type parameter type
@@ -46,11 +48,20 @@ export const createParametricType = (
 
 /**
  * Create an indexer
+ * @param index the index type
+ * @param returns the return type
+ */
+export const createIndexer = (index: IType, returns: IType): IIndexer => {
+  return new Indexer(new CallSignature([index], returns), new Map());
+};
+
+/**
+ * Create an parametric indexer
  * @param typeParameters type parameters for the indexer
  * @param index the index type
  * @param returns the return type
  */
-export const createIndexer = (
+export const createParametricIndexer = (
   typeParameters: string[],
   index: IParametricType | string,
   returns: IParametricType | string,

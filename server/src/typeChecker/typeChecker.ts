@@ -35,6 +35,7 @@ import {
   delegateCreation,
   arrayIndexer,
   functionError,
+  indexerError,
 } from './typeHelpers';
 import { delegateType } from './ksTypes/primitives/delegate';
 import { TypeNode } from './typeNode';
@@ -500,7 +501,7 @@ export class TypeChecker
     const conditionResult = this.checkExpr(stmt.condition);
     const errors = conditionResult.errors;
 
-    if (booleanType.canCoerceFrom(conditionResult.type)) {
+    if (!booleanType.canCoerceFrom(conditionResult.type)) {
       errors.push(
         createDiagnostic(
           stmt.condition,
@@ -572,7 +573,7 @@ export class TypeChecker
     const result = this.checkExpr(stmt.target);
     let errors = result.errors;
 
-    if (stringType.canCoerceFrom(result.type)) {
+    if (!stringType.canCoerceFrom(result.type)) {
       errors = errors.concat(
         createDiagnostic(
           stmt.target,
@@ -1250,7 +1251,7 @@ export class TypeChecker
       errors.push(
         createDiagnostic(
           call,
-          `Type ${type.name} does not have a call signature`,
+          `Type ${type.name} may not have a call signature`,
           DiagnosticSeverity.Hint,
         ),
       );
@@ -1438,19 +1439,21 @@ export class TypeChecker
     const type = builder.current().getAssignmentType();
 
     const indexer = type.getIndexer();
+
+    // we either need to have an indexer or be the any type
     if (empty(indexer)) {
-      builder.nodes.push(new TypeNode(suffixError, suffixTerm));
+      builder.nodes.push(new TypeNode(indexerError, suffixTerm));
 
       errors.push(
         createDiagnostic(
           suffixTerm,
-          `${type.toString()} does not have indexer`,
+          `${type.toString()} may not have indexer`,
           DiagnosticSeverity.Hint,
         ),
       );
 
-      suffixTerm.open.tracker = suffixError.getTracker();
-      suffixTerm.close.tracker = suffixError.getTracker();
+      suffixTerm.open.tracker = indexerError.getTracker();
+      suffixTerm.close.tracker = indexerError.getTracker();
       return errors;
     }
 
@@ -1826,7 +1829,7 @@ export class TypeChecker
     if (empty(rightType)) {
       return createDiagnostic(
         expr,
-        `${leftType.name} does not support the ${
+        `${leftType.name} may not support the ${
           OperatorKind[operatorKind]
         } operator`,
         DiagnosticSeverity.Hint,

@@ -424,8 +424,14 @@ export class Type implements IType {
       typeArgumentsStr = `<${typeArgumentStrs.join(', ')}>`;
     }
 
+    // no call signature just return type name
     if (empty(this.callSignature)) {
       return `${this.name}${typeArgumentsStr}`;
+    }
+
+    // if it's gettable or settable then show return type
+    if (this.access.get || this.access.set) {
+      return `${typeArgumentsStr}${this.callSignature.returns().toString()}`;
     }
 
     return `${typeArgumentsStr}${this.callSignature.toString()}`;
