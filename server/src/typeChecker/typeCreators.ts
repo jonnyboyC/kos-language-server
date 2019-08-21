@@ -1,70 +1,149 @@
 import {
-  IGenericArgumentType,
-  ArgumentType,
-  IGenericSuffixType,
-  IGenericBasicType,
-  IBasicType,
-  ISuffixType,
-  IVariadicType,
-  IFunctionType,
-} from './types/types';
+  IParametricType,
+  IType,
+  TypeKind,
+  TypeMap,
+  ITypeMappable,
+  IParametricIndexer,
+} from './types';
 import { memoize } from '../utilities/memoize';
-import {
-  GenericBasicType,
-  BasicType,
-  GenericSuffixType,
-  SuffixType,
-  FunctionType,
-  VariadicType,
-} from './ksType';
-import { CallKind } from './types';
+import { ParametricType } from './parametricTypes/parametricType';
+import { Type } from './types/type';
+import { VariadicType } from './types/variadicType';
+import { CallSignature } from './types/callSignature';
+import { GenericCallSignature } from './parametricTypes/parametricCallSignature';
+import { ParametricIndexer } from './parametricTypes/parametricIndexer';
 
 /**
- * Generate a new basic generic type
- * @param name name of the new generic type
+ * Create a type parameter type
+ * @param name name of the placeholder
  */
-export const createGenericBasicType = (
-  name: string,
-): IGenericArgumentType => {
-  return new GenericBasicType(name);
+export const createTypeParameter = (name: string): ParametricType => {
+  return new ParametricType(
+    name,
+    { get: false, set: false },
+    [],
+    TypeKind.typeSlot,
+  );
 };
 
 /**
- * Generate a new type parameter
- * @param name naem of the type parameter
+ * Generate a new basic parametric type
+ * @param name name of the new parametric type
+ * @param typeParameterNames names of the type parameters
  */
-export const getTypeParameter = memoize(
-  (name: string): IGenericBasicType => {
-    return createGenericBasicType(name);
-  },
-);
+export const createParametricType = (
+  name: string,
+  typeParameterNames: string[],
+): ParametricType => {
+  return new ParametricType(
+    name,
+    { get: true, set: true },
+    typeParameterNames,
+    TypeKind.basic,
+  );
+};
 
 /**
- * The basic type parameter t
+ * Create an indexer
+ * @param typeParameters type parameters for the indexer
+ * @param index the index type
+ * @param returns the return type
  */
-export const tType = getTypeParameter('T');
+export const createIndexer = (
+  typeParameters: string[],
+  index: IParametricType | string,
+  returns: IParametricType | string,
+): IParametricIndexer => {
+  const indexer = new ParametricIndexer(typeParameters);
+
+  const callSignature = new GenericCallSignature(typeParameters);
+  const typePlaceholders = callSignature.getTypeParameters();
+
+  callSignature.addParams(
+    mapTypeWithParameters(callSignature, typePlaceholders, index),
+  );
+
+  callSignature.addReturn(
+    mapTypeWithParameters(callSignature, typePlaceholders, returns),
+  );
+
+  indexer.addCallSignature(mapTypes(indexer, callSignature));
+  return indexer;
+};
 
 /**
  * Generate a new basic type
  * @param name name of the new type
  */
-export const createStructureType = (name: string): IBasicType => {
-  return new BasicType(name, []);
+export const createType = (name: string): Type => {
+  return new Type(name, { get: true, set: true }, new Map(), TypeKind.basic);
 };
 
 /**
- * Generate a new generic callable suffix type
+ * Generate a new parametric callable suffix type
  * @param name name of the suffix
  * @param returns return type of suffix call
  * @param params parameters of suffix call
  */
-export const createGenericArgSuffixType = (
+export const createParametricArgSuffixType = (
   name: string,
-  returns: IGenericArgumentType,
-  ...params: IGenericArgumentType[]
-): IGenericSuffixType => {
-  const callType = params.length > 0 ? CallKind.call : CallKind.optionalCall;
-  return new GenericSuffixType(name.toLowerCase(), callType, params, returns);
+  typeParameters: string[],
+  returns: IParametricType | string,
+  ...params: (IParametricType | string)[]
+): ParametricType => {
+  const get = params.length === 0;
+
+  const parametricType = new ParametricType(
+    name.toLowerCase(),
+    { get, set: false },
+    typeParameters,
+    TypeKind.suffix,
+  );
+
+  const callSignature = new GenericCallSignature(typeParameters);
+  const typePlaceholders = callSignature.getTypeParameters();
+
+  callSignature.addParams(
+    ...params.map(p =>
+      mapTypeWithParameters(callSignature, typePlaceholders, p),
+    ),
+  );
+
+  callSignature.addReturn(
+    mapTypeWithParameters(callSignature, typePlaceholders, returns),
+  );
+
+  parametricType.addCallSignature(mapTypes(parametricType, callSignature));
+  return parametricType;
+};
+
+/**
+ * Type map with string as parameter slot placeholder
+ * @param parentType parent type
+ * @param typeParameters the type parameters
+ * @param type the type to map
+ */
+const mapTypeWithParameters = <T>(
+  parentType: ITypeMappable<T>,
+  typeParameters: IParametricType[],
+  type: IParametricType | string,
+): TypeMap<IParametricType> => {
+  if (typeof type !== 'string') {
+    if (type.getTypeParameters().length === 0) {
+      return noMap(type);
+    }
+
+    return mapType(parentType, type);
+  }
+
+  for (const placeholder of typeParameters) {
+    if (type === placeholder.name) {
+      return noMap(placeholder);
+    }
+  }
+
+  throw new Error(`Unable to map ${type} to a type parameter`);
 };
 
 /**
@@ -75,11 +154,18 @@ export const createGenericArgSuffixType = (
  */
 export const createArgSuffixType = (
   name: string,
-  returns: ArgumentType,
-  ...params: ArgumentType[]
-): ISuffixType => {
-  const callType = params.length > 0 ? CallKind.call : CallKind.optionalCall;
-  return new SuffixType(name.toLowerCase(), callType, params, returns, []);
+  returns: IType,
+  ...params: IType[]
+): Type => {
+  const get = params.length === 0;
+
+  return new Type(
+    name.toLowerCase(),
+    { get, set: false },
+    new Map(),
+    TypeKind.suffix,
+    new CallSignature(params, returns),
+  );
 };
 
 /**
@@ -87,11 +173,14 @@ export const createArgSuffixType = (
  * @param name name of the suffix
  * @param returns return type of suffix
  */
-export const createSuffixType = (
-  name: string,
-  returns: ArgumentType,
-): ISuffixType => {
-  return new SuffixType(name.toLowerCase(), CallKind.get, [], returns, []);
+export const createSuffixType = (name: string, returns: IType): Type => {
+  return new Type(
+    name.toLowerCase(),
+    { get: true, set: false },
+    new Map(),
+    TypeKind.suffix,
+    new CallSignature([], returns),
+  );
 };
 
 /**
@@ -99,11 +188,14 @@ export const createSuffixType = (
  * @param name name of the suffix
  * @param returns return type of suffix
  */
-export const createSetSuffixType = (
-  name: string,
-  returns: ArgumentType,
-): ISuffixType => {
-  return new SuffixType(name.toLowerCase(), CallKind.set, [], returns, []);
+export const createSetSuffixType = (name: string, returns: IType): Type => {
+  return new Type(
+    name.toLowerCase(),
+    { get: true, set: true },
+    new Map(),
+    TypeKind.suffix,
+    new CallSignature([], returns),
+  );
 };
 
 /**
@@ -114,26 +206,21 @@ export const createSetSuffixType = (
  */
 export const createVarSuffixType = (
   name: string,
-  returns: ArgumentType,
-  params: IVariadicType,
-): ISuffixType => {
-  return new SuffixType(
+  returns: IType,
+  params: IType,
+): Type => {
+  if (params.kind !== TypeKind.variadic) {
+    throw new Error('Expected variadic type.');
+  }
+
+  return new Type(
     name.toLowerCase(),
-    CallKind.optionalCall,
-    params,
-    returns,
-    [],
+    { get: false, set: false },
+    new Map(),
+    TypeKind.suffix,
+    new CallSignature([params], returns),
   );
 };
-
-/**
- * Create variadic type
- */
-export const createVarType = memoize(
-  (type: ArgumentType): IVariadicType => {
-    return new VariadicType(type);
-  },
-);
 
 /**
  * Generate a new function type
@@ -143,11 +230,16 @@ export const createVarType = memoize(
  */
 export const createFunctionType = (
   name: string,
-  returns: ArgumentType,
-  ...params: ArgumentType[]
-): IFunctionType => {
-  const callType = params.length > 0 ? CallKind.call : CallKind.optionalCall;
-  return new FunctionType(name.toLowerCase(), callType, params, returns);
+  returns: IType,
+  ...params: IType[]
+): Type => {
+  return new Type(
+    name.toLowerCase(),
+    { get: false, set: false },
+    new Map(),
+    TypeKind.function,
+    new CallSignature(params, returns),
+  );
 };
 
 /**
@@ -158,13 +250,101 @@ export const createFunctionType = (
  */
 export const createVarFunctionType = (
   name: string,
-  returns: ArgumentType,
-  params: IVariadicType,
-): IFunctionType => {
-  return new FunctionType(
+  returns: IType,
+  params: IType,
+): Type => {
+  if (params.kind !== TypeKind.variadic) {
+    throw new Error('Expected variadic type.');
+  }
+
+  return new Type(
     name.toLowerCase(),
-    CallKind.optionalCall,
-    params,
-    returns,
+    { get: false, set: false },
+    new Map(),
+    TypeKind.function,
+    new CallSignature([params], returns),
   );
+};
+
+/**
+ * Create variadic type
+ */
+export const createVarType = memoize(
+  (type: IType): VariadicType => {
+    if (type.kind !== TypeKind.basic) {
+      throw new Error('Must provide a basic type for variadic types');
+    }
+
+    return new VariadicType(type);
+  },
+);
+
+/**
+ * Create a type map with no parameter mapping
+ * @param type type to map
+ */
+export const noMap = <T extends ITypeMappable>(type: T): TypeMap<T> => {
+  return {
+    type,
+    mapping: new Map(),
+  };
+};
+
+/**
+ * Map a types parameters from a source to a target, assumes only one parameter
+ * @param source source type
+ * @param target target type
+ */
+export const mapTypes = <T1 extends ITypeMappable, T2 extends ITypeMappable>(
+  source: T1,
+  target: T2,
+): TypeMap<T2> => {
+  const sourceParameters = source.getTypeParameters();
+  const targetParameters = target.getTypeParameters();
+
+  if (sourceParameters.length !== 1) {
+    throw new Error(`Type ${source.name} has more than 1 type parameter`);
+  }
+
+  if (targetParameters.length !== 1) {
+    throw new Error(`Type ${target.name} has more than 1 type parameter`);
+  }
+
+  return {
+    type: target,
+    mapping: new Map([[sourceParameters[0], targetParameters[0]]]),
+  };
+};
+
+/**
+ * Map type parameters from a source to a target or a target type to the source's type parameters
+ * @param source source type
+ * @param target target type
+ */
+const mapType = <T1 extends ITypeMappable, T2 extends IParametricType>(
+  source: T1,
+  target: T2,
+): TypeMap<T2> => {
+  const sourceParameters = source.getTypeParameters();
+  const targetParameters = target.getTypeParameters();
+
+  if (sourceParameters.length !== 1) {
+    throw new Error(`Type ${source.name} has more than 1 type parameter`);
+  }
+
+  if (targetParameters.length !== 1 && target.kind !== TypeKind.typeSlot) {
+    throw new Error(`Type ${target.name} has more than 1 type parameter`);
+  }
+
+  if (target.kind === TypeKind.typeSlot) {
+    return {
+      type: target,
+      mapping: new Map([[sourceParameters[0], target]]),
+    };
+  }
+
+  return {
+    type: target,
+    mapping: new Map([[sourceParameters[0], targetParameters[0]]]),
+  };
 };

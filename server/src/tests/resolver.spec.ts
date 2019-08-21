@@ -9,7 +9,7 @@ import {
   DiagnosticSeverity,
   Position,
 } from 'vscode-languageserver';
-import { structureType } from '../typeChecker/types/primitives/structure';
+import { structureType } from '../typeChecker/ksTypes/primitives/structure';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { zip } from '../utilities/arrayUtils';

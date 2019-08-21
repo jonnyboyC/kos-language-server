@@ -1,5 +1,5 @@
 import { TypeNode } from './typeNode';
-import { Type } from './types/types';
+import { IType } from './types';
 
 export class SuffixTypeBuilder {
   public nodes: TypeNode[];
@@ -12,7 +12,7 @@ export class SuffixTypeBuilder {
     return this.nodes.length > 0;
   }
 
-  public current(): Type {
+  public current(): IType {
     if (this.nodes.length > 0) {
       return this.nodes[this.nodes.length - 1].type;
     }

@@ -11,25 +11,26 @@ import { Resolver } from '../analysis/resolver';
 import { TypeChecker } from '../typeChecker/typeChecker';
 import { KsBaseSymbol, KsSymbolKind } from '../analysis/types';
 import { unWrap, empty } from '../utilities/typeGuards';
-import { booleanType } from '../typeChecker/types/primitives/boolean';
-import { Type } from '../typeChecker/types/types';
+import { booleanType } from '../typeChecker/ksTypes/primitives/boolean';
 import {
   doubleType,
   integerType,
   scalarType,
-} from '../typeChecker/types/primitives/scalar';
-import { stringType } from '../typeChecker/types/primitives/string';
-import { userListType } from '../typeChecker/types/collections/userList';
-import { structureType } from '../typeChecker/types/primitives/structure';
-import { vectorType } from '../typeChecker/types/collections/vector';
-import { directionType } from '../typeChecker/types/direction';
+} from '../typeChecker/ksTypes/primitives/scalar';
+import { stringType } from '../typeChecker/ksTypes/primitives/string';
+import { userListType } from '../typeChecker/ksTypes/collections/userList';
+import { structureType } from '../typeChecker/ksTypes/primitives/structure';
+import { vectorType } from '../typeChecker/ksTypes/collections/vector';
+import { directionType } from '../typeChecker/ksTypes/collections/direction';
 import { Marker } from '../entities/marker';
 import { zip } from '../utilities/arrayUtils';
-import { timeSpanType } from '../typeChecker/types/timespan';
+import { timeSpanType } from '../typeChecker/ksTypes/timespan';
 import { typeInitializer } from '../typeChecker/initialize';
-import { bodyAtmosphereType } from '../typeChecker/types/bodyatmosphere';
-import { listType } from '../typeChecker/types/collections/list';
-import { partType } from '../typeChecker/types/parts/part';
+import { bodyAtmosphereType } from '../typeChecker/ksTypes/bodyatmosphere';
+import { listType } from '../typeChecker/ksTypes/collections/list';
+import { partType } from '../typeChecker/ksTypes/parts/part';
+import { IType } from '../typeChecker/types';
+import { pathType } from '../typeChecker/ksTypes/io/path';
 
 const fakeUri = 'C:\\fake.ks';
 
@@ -92,16 +93,16 @@ const checkSource = (
 };
 
 const noResolverErrors = (result: ITypeCheckResults): void => {
-  expect(result.scan.scanErrors.length).toBe(0);
-  expect(result.parse.parseErrors.length).toBe(0);
-  expect(result.resolveDiagnostics.length).toBe(0);
+  expect(result.scan.scanErrors.map(e => e.message)).toEqual([]);
+  expect(result.parse.parseErrors.map(e => e.message)).toEqual([]);
+  expect(result.resolveDiagnostics.map(e => e.message)).toEqual([]);
 };
 
 const noErrors = (result: ITypeCheckResults): void => {
-  expect(result.scan.scanErrors.length).toBe(0);
-  expect(result.parse.parseErrors.length).toBe(0);
-  expect(result.resolveDiagnostics.length).toBe(0);
-  expect(result.typeCheckDiagnostics.length).toBe(0);
+  expect(result.scan.scanErrors.map(e => e.message)).toEqual([]);
+  expect(result.parse.parseErrors.map(e => e.message)).toEqual([]);
+  expect(result.resolveDiagnostics.map(e => e.message)).toEqual([]);
+  expect(result.typeCheckDiagnostics.map(e => e.message)).toEqual([]);
 };
 
 const literalSource = `
@@ -175,26 +176,26 @@ for i1 in l1 { print(i1). }
 for i2 in l2 { print(i2). }
 
 // need to have userlisttype subtype listtype
-// local p is path("example").
-// local segments is p:segments.
+local p is path("example").
+local segments is p:segments.
 
-// local x3 is segments[0].
-// print(x3).
+local x3 is segments[0].
+print(x3).
 
-// for i3 in segments { print(i3). }
+for i3 in segments { print(i3). }
 `;
 
 const suffixSource = `
 local atm is body:atm.
 local length is list():length.
 local parts is ship:parts.
-// local facing is ship:parts[0]:facing.
+local partFacing is ship:parts[0]:facing.
 local distance is body:geopositionlatlng(10, 10):distance.
 
 print(atm).
 print(length).
 print(parts).
-// print(facing).
+print(partFacing).
 print(distance).
 `;
 
@@ -202,7 +203,7 @@ const symbolTests = (
   symbols: Map<string, KsBaseSymbol>,
   name: string,
   symbolKind: KsSymbolKind,
-  targetType?: Type,
+  targetType?: IType,
 ) => {
   expect(symbols.has(name)).toBe(true);
   const nameWrap = symbols.get(name);
@@ -289,11 +290,16 @@ describe('Basic inferring', () => {
     symbolTests(names, 'i1', KsSymbolKind.variable, structureType);
     symbolTests(names, 'i2', KsSymbolKind.variable, structureType);
 
-    // symbolTests(names, 'p', KsSymbolKind.variable, pathType);
-    // symbolTests(names, 'segments', KsSymbolKind.variable, listType.toConcreteType(stringType));
+    symbolTests(names, 'p', KsSymbolKind.variable, pathType);
+    symbolTests(
+      names,
+      'segments',
+      KsSymbolKind.variable,
+      listType.apply(stringType),
+    );
 
-    // symbolTests(names, 'x3', KsSymbolKind.variable, stringType);
-    // symbolTests(names, 'i3', KsSymbolKind.variable, stringType);
+    symbolTests(names, 'x3', KsSymbolKind.variable, stringType);
+    symbolTests(names, 'i3', KsSymbolKind.variable, stringType);
   });
 
   test('suffix inferring', () => {
@@ -312,9 +318,9 @@ describe('Basic inferring', () => {
       names,
       'parts',
       KsSymbolKind.variable,
-      listType.toConcreteType(partType),
+      listType.apply(partType),
     );
-    // symbolTests(names, 'facing', KsSymbolKind.variable, directionType);
+    symbolTests(names, 'partFacing', KsSymbolKind.variable, directionType);
     symbolTests(names, 'distance', KsSymbolKind.variable, scalarType);
   });
 });
@@ -407,6 +413,46 @@ print(d2).
 
 print(t1).
 print(t2).
+`;
+
+const binaryLogicalSource = `
+local l1 is true and true.
+local l2 is true or true.
+local l3 is ship or true.
+local l4 is 10 and 20.
+local l5 is "true" or "false".
+
+
+print(l1).
+print(l2).
+print(l3).
+print(l4).
+print(l5).
+`;
+
+const factorSource = `
+local l1 is 10 ^ 10.
+local l2 is 10 ^ 10.0.
+local l3 is 10.0 ^ 10.
+local l4 is 10.0 ^ 10.0.
+
+local i is 10.
+local d is 10.0.
+
+local e1 is i ^ i.
+local e2 is i ^ d.
+local e3 is d ^ i.
+local e4 is d ^ d.
+
+print(l1).
+print(l2).
+print(l3).
+print(l4).
+
+print(e1).
+print(e2).
+print(e3).
+print(e4).
 `;
 
 describe('Operators', () => {
@@ -510,5 +556,46 @@ describe('Operators', () => {
 
     symbolTests(names, 't1', KsSymbolKind.variable, timeSpanType);
     symbolTests(names, 't2', KsSymbolKind.variable, timeSpanType);
+  });
+
+  test('binary and operators', () => {
+    const results = checkSource(binaryLogicalSource, true);
+    noErrors(results);
+
+    const { table } = results;
+    const symbols = table.allSymbols();
+    const names = new Map(
+      symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
+    );
+
+    symbolTests(names, 'l1', KsSymbolKind.variable, booleanType);
+    symbolTests(names, 'l2', KsSymbolKind.variable, booleanType);
+    symbolTests(names, 'l3', KsSymbolKind.variable, booleanType);
+    symbolTests(names, 'l4', KsSymbolKind.variable, booleanType);
+    symbolTests(names, 'l5', KsSymbolKind.variable, booleanType);
+  });
+
+  test('factor operator', () => {
+    const results = checkSource(factorSource, true);
+    noErrors(results);
+
+    const { table } = results;
+    const symbols = table.allSymbols();
+    const names = new Map(
+      symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
+    );
+
+    symbolTests(names, 'i', KsSymbolKind.variable, integerType);
+    symbolTests(names, 'd', KsSymbolKind.variable, doubleType);
+
+    symbolTests(names, 'l1', KsSymbolKind.variable, scalarType);
+    symbolTests(names, 'l2', KsSymbolKind.variable, scalarType);
+    symbolTests(names, 'l3', KsSymbolKind.variable, scalarType);
+    symbolTests(names, 'l4', KsSymbolKind.variable, scalarType);
+
+    symbolTests(names, 'e1', KsSymbolKind.variable, scalarType);
+    symbolTests(names, 'e2', KsSymbolKind.variable, scalarType);
+    symbolTests(names, 'e3', KsSymbolKind.variable, scalarType);
+    symbolTests(names, 'e4', KsSymbolKind.variable, scalarType);
   });
 });
