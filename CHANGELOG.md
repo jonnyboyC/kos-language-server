@@ -1,3 +1,20 @@
+# [0.10.0] (2019-8-21)
+
+## Features
+- **Search Documentation** Documentation can more directly be searched in the vscode extension. Using the command palette with `cntr + shift + p` search `kOS Search Documentation` and type in the search term. This will open your default web browser to the kos documentation with your search in place. Search can also be used via the right click context menu.
+- **Improved Type System** The type system can no handle some cases of type coercion where one type is converted to another. Some typical examples are converting structures to strings, or converting vectors into directions. Additional the type check better understands collections. As an example
+
+    local p is path("example/file.ks").
+
+    // instead of structure first segment is now a string
+    local firstSegment is p:segments[0]
+    for segment in p:segments {
+
+        // is also aware segment is a string
+        print(segment)
+    }
+
+
 # [0.9.1] (2019-7-24)
 
 ## Bug Fixes

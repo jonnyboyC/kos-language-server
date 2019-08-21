@@ -3,7 +3,7 @@
   "description": "Vscode client for the KOS-language-server",
   "author": "John Chabot",
   "license": "MIT",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "publisher": "JohnChabot",
   "repository": {
     "type": "git",
@@ -22,14 +22,14 @@
     "postinstall": "vscode-install"
   },
   "dependencies": {
-    "semver": "^6.2.0",
-    "vscode": "^1.1.35",
+    "semver": "^6.3.0",
+    "vscode": "^1.1.36",
     "vscode-languageclient": "^5.2.1",
-    "ws": "^7.1.1"
+    "ws": "^7.1.2"
   },
   "devDependencies": {
-    "@types/node": "^12.6.8",
+    "@types/node": "^12.7.2",
     "@types/semver": "^6.0.1",
-    "@types/ws": "^6.0.1"
+    "@types/ws": "^6.0.2"
   }
 }
