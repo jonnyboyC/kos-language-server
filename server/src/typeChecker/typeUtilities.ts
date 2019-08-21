@@ -14,6 +14,7 @@ export const binaryOperatorMap: Map<TokenType, OperatorKind> = new Map([
   [TokenType.multi, OperatorKind.multiply],
   [TokenType.div, OperatorKind.divide],
   [TokenType.plus, OperatorKind.plus],
+  [TokenType.power, OperatorKind.power],
   [TokenType.less, OperatorKind.lessThan],
   [TokenType.lessEqual, OperatorKind.lessThanEqual],
   [TokenType.greater, OperatorKind.greaterThan],

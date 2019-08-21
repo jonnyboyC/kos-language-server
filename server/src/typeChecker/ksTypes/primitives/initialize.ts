@@ -128,7 +128,6 @@ export const primitiveInitializer = () => {
     new Operator(scalarType, OperatorKind.equal, booleanType, scalarType),
     new Operator(scalarType, OperatorKind.negate, scalarType),
   );
-  scalarType.addCoercion(booleanType, stringType);
   scalarType.addSuper(noMap(primitiveType));
 
   // ------------------ integer ---------------------------
@@ -156,6 +155,6 @@ export const primitiveInitializer = () => {
     new Operator(booleanType, OperatorKind.and, booleanType, booleanType),
     new Operator(booleanType, OperatorKind.or, booleanType, booleanType),
   );
-  booleanType.addCoercion(scalarType, stringType);
+  booleanType.addCoercion(structureType);
   booleanType.addSuper(noMap(primitiveType));
 };

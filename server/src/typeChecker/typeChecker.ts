@@ -1007,6 +1007,10 @@ export class TypeChecker
     return { errors, type: trueResult.type };
   }
 
+  /**
+   * Visit binary expression of form `a op b`
+   * @param expr binary expression
+   */
   public visitBinary(expr: Expr.Binary): ITypeResultExpr<IType> {
     const rightResult = this.checkExpr(expr.right);
     const leftResult = this.checkExpr(expr.left);
@@ -1029,6 +1033,10 @@ export class TypeChecker
     );
   }
 
+  /**
+   * Visit unary expression of form `op a`
+   * @param expr unary expression
+   */
   public visitUnary(expr: Expr.Unary): ITypeResultExpr<IType> {
     const result = this.checkExpr(expr.factor);
     const errors = result.errors;
@@ -1068,34 +1076,25 @@ export class TypeChecker
       `Invalid Token ${expr.operator.typeString} for unary operator.`,
     );
   }
+
+  /**
+   * Visit a factor expression of form `a ^ b`.
+   * @param expr factor expression
+   */
   public visitFactor(expr: Expr.Factor): ITypeResultExpr<IType> {
     const suffixResult = this.checkExpr(expr.suffix);
     const exponentResult = this.checkExpr(expr.exponent);
-    const errors = suffixResult.errors.concat(exponentResult.errors);
 
-    if (!scalarType.canCoerceFrom(suffixResult.type)) {
-      errors.push(
-        createDiagnostic(
-          expr.suffix,
-          'Can only use scalars as base of power' +
-            'This may not able to be coerced into scalar type',
-          DiagnosticSeverity.Hint,
-        ),
-      );
+    if (expr.power.type !== TokenType.power) {
+      throw new Error('Factor does not contain power operator');
     }
 
-    if (!scalarType.canCoerceFrom(exponentResult.type)) {
-      errors.push(
-        createDiagnostic(
-          expr.exponent,
-          'Can only use scalars as exponent of power' +
-            'This may not able to be coerced into scalar type',
-          DiagnosticSeverity.Hint,
-        ),
-      );
-    }
-
-    return { errors, type: scalarType };
+    return this.checkBinary(
+      expr,
+      suffixResult,
+      exponentResult,
+      OperatorKind.power,
+    );
   }
 
   /**
@@ -1742,7 +1741,7 @@ export class TypeChecker
    * @param operator the operator to consider
    */
   private checkBinary(
-    expr: Expr.Binary,
+    expr: Expr.Binary | Expr.Factor,
     leftResult: ITypeResultExpr<IType>,
     rightResult: ITypeResultExpr<IType>,
     operator: OperatorKind,
@@ -1752,7 +1751,7 @@ export class TypeChecker
     const errors = leftResult.errors.concat(rightResult.errors);
     let calcType: Maybe<IType> = undefined;
 
-    // TODO could be more efficient
+    // determine the type to perform the operation on
     if (leftType.isSubtypeOf(scalarType) && rightType.isSubtypeOf(scalarType)) {
       calcType = scalarType;
     } else if (
@@ -1765,38 +1764,48 @@ export class TypeChecker
       rightType.isSubtypeOf(booleanType)
     ) {
       calcType = booleanType;
-    } else {
-      const leftOps = leftType.getOperator(operator, rightType);
-      const rightOps = rightType.getOperator(operator, leftType);
+    }
 
-      if (empty(leftOps) && empty(rightOps)) {
-        errors.push(this.operatorError(operator, expr, leftType, rightType));
+    // we found a primitive type to perform the operation on
+    if (!empty(calcType)) {
+      // get all operators for the given kind for the calc type
+      const calcOps = calcType.getOperators().get(operator);
 
-        return {
-          errors,
-          type: structureType,
-        };
-      }
-
-      if (!empty(leftOps) && !leftOps.isUnary()) {
-        return { errors, type: leftOps.returnType };
-      }
-      if (!empty(rightOps) && !rightOps.isUnary()) {
-        return { errors, type: rightOps.returnType };
+      // if no operators present return error
+      if (!empty(calcOps)) {
+        const result = this.tryBinaryOperators(calcOps, rightType, errors);
+        if (!empty(result)) {
+          return result;
+        }
       }
 
       errors.push(this.operatorError(operator, expr, leftType, rightType));
       return { errors, type: structureType };
     }
 
-    const calcOps = calcType.getOperators().get(operator);
-    if (!empty(calcOps) && calcType.canCoerceFrom(leftType)) {
-      const result = this.tryBinaryOperators(calcOps, rightType, errors);
-      if (!empty(result)) {
-        return result;
-      }
+    // try to get an operator between the two types
+    const leftOps = leftType.getOperator(operator, rightType);
+    const rightOps = rightType.getOperator(operator, leftType);
+
+    // no operator found return error
+    if (empty(leftOps) && empty(rightOps)) {
+      errors.push(this.operatorError(operator, expr, leftType, rightType));
+
+      return {
+        errors,
+        type: structureType,
+      };
     }
 
+    // return results if found
+    if (!empty(leftOps)) {
+      return { errors, type: leftOps.returnType };
+    }
+    if (!empty(rightOps)) {
+      return { errors, type: rightOps.returnType };
+    }
+
+    // else error
     errors.push(this.operatorError(operator, expr, leftType, rightType));
     return { errors, type: structureType };
   }

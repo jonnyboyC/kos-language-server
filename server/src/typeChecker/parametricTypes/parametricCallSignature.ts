@@ -87,13 +87,6 @@ export class GenericCallSignature implements IParametricCallSignature {
       const superTypeParams = type.getTypeParameters();
       const thisTypeParams = this.getTypeParameters();
 
-      // if we have parameters we need a mapping between them
-      if (empty(mapping)) {
-        throw new Error(
-          `Type ${type.name} was not passed a type parameter map`,
-        );
-      }
-
       // check length
       if (mapping.size !== superTypeParams.length) {
         throw new Error(

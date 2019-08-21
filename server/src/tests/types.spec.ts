@@ -195,8 +195,8 @@ describe('Type Utilities', () => {
     expect(structureType.canCoerceFrom(userListType)).toBe(true);
 
     expect(scalarType.canCoerceFrom(structureType)).toBe(true);
-    expect(scalarType.canCoerceFrom(booleanType)).toBe(true);
-    expect(scalarType.canCoerceFrom(stringType)).toBe(true);
+    expect(scalarType.canCoerceFrom(booleanType)).toBe(false);
+    expect(scalarType.canCoerceFrom(stringType)).toBe(false);
     expect(scalarType.canCoerceFrom(collectionType)).toBe(false);
     expect(scalarType.canCoerceFrom(listType)).toBe(false);
     expect(scalarType.canCoerceFrom(userListType)).toBe(false);
@@ -204,9 +204,9 @@ describe('Type Utilities', () => {
     expect(booleanType.canCoerceFrom(structureType)).toBe(true);
     expect(booleanType.canCoerceFrom(scalarType)).toBe(true);
     expect(booleanType.canCoerceFrom(stringType)).toBe(true);
-    expect(booleanType.canCoerceFrom(collectionType)).toBe(false);
-    expect(booleanType.canCoerceFrom(listType)).toBe(false);
-    expect(booleanType.canCoerceFrom(userListType)).toBe(false);
+    expect(booleanType.canCoerceFrom(collectionType)).toBe(true);
+    expect(booleanType.canCoerceFrom(listType)).toBe(true);
+    expect(booleanType.canCoerceFrom(userListType)).toBe(true);
 
     expect(stringType.canCoerceFrom(structureType)).toBe(true);
     expect(stringType.canCoerceFrom(scalarType)).toBe(true);

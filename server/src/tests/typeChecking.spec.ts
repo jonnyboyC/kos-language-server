@@ -93,16 +93,16 @@ const checkSource = (
 };
 
 const noResolverErrors = (result: ITypeCheckResults): void => {
-  expect(result.scan.scanErrors.length).toBe(0);
-  expect(result.parse.parseErrors.length).toBe(0);
-  expect(result.resolveDiagnostics.length).toBe(0);
+  expect(result.scan.scanErrors.map(e => e.message)).toEqual([]);
+  expect(result.parse.parseErrors.map(e => e.message)).toEqual([]);
+  expect(result.resolveDiagnostics.map(e => e.message)).toEqual([]);
 };
 
 const noErrors = (result: ITypeCheckResults): void => {
-  expect(result.scan.scanErrors.length).toBe(0);
-  expect(result.parse.parseErrors.length).toBe(0);
-  expect(result.resolveDiagnostics.length).toBe(0);
-  expect(result.typeCheckDiagnostics.length).toBe(0);
+  expect(result.scan.scanErrors.map(e => e.message)).toEqual([]);
+  expect(result.parse.parseErrors.map(e => e.message)).toEqual([]);
+  expect(result.resolveDiagnostics.map(e => e.message)).toEqual([]);
+  expect(result.typeCheckDiagnostics.map(e => e.message)).toEqual([]);
 };
 
 const literalSource = `
@@ -415,6 +415,46 @@ print(t1).
 print(t2).
 `;
 
+const binaryLogicalSource = `
+local l1 is true and true.
+local l2 is true or true.
+local l3 is ship or true.
+local l4 is 10 and 20.
+local l5 is "true" or "false".
+
+
+print(l1).
+print(l2).
+print(l3).
+print(l4).
+print(l5).
+`;
+
+const factorSource = `
+local l1 is 10 ^ 10.
+local l2 is 10 ^ 10.0.
+local l3 is 10.0 ^ 10.
+local l4 is 10.0 ^ 10.0.
+
+local i is 10.
+local d is 10.0.
+
+local e1 is i ^ i.
+local e2 is i ^ d.
+local e3 is d ^ i.
+local e4 is d ^ d.
+
+print(l1).
+print(l2).
+print(l3).
+print(l4).
+
+print(e1).
+print(e2).
+print(e3).
+print(e4).
+`;
+
 describe('Operators', () => {
   test('unary operators', () => {
     const results = checkSource(unarySource, true);
@@ -516,5 +556,46 @@ describe('Operators', () => {
 
     symbolTests(names, 't1', KsSymbolKind.variable, timeSpanType);
     symbolTests(names, 't2', KsSymbolKind.variable, timeSpanType);
+  });
+
+  test('binary and operators', () => {
+    const results = checkSource(binaryLogicalSource, true);
+    noErrors(results);
+
+    const { table } = results;
+    const symbols = table.allSymbols();
+    const names = new Map(
+      symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
+    );
+
+    symbolTests(names, 'l1', KsSymbolKind.variable, booleanType);
+    symbolTests(names, 'l2', KsSymbolKind.variable, booleanType);
+    symbolTests(names, 'l3', KsSymbolKind.variable, booleanType);
+    symbolTests(names, 'l4', KsSymbolKind.variable, booleanType);
+    symbolTests(names, 'l5', KsSymbolKind.variable, booleanType);
+  });
+
+  test('factor operator', () => {
+    const results = checkSource(factorSource, true);
+    noErrors(results);
+
+    const { table } = results;
+    const symbols = table.allSymbols();
+    const names = new Map(
+      symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
+    );
+
+    symbolTests(names, 'i', KsSymbolKind.variable, integerType);
+    symbolTests(names, 'd', KsSymbolKind.variable, doubleType);
+
+    symbolTests(names, 'l1', KsSymbolKind.variable, scalarType);
+    symbolTests(names, 'l2', KsSymbolKind.variable, scalarType);
+    symbolTests(names, 'l3', KsSymbolKind.variable, scalarType);
+    symbolTests(names, 'l4', KsSymbolKind.variable, scalarType);
+
+    symbolTests(names, 'e1', KsSymbolKind.variable, scalarType);
+    symbolTests(names, 'e2', KsSymbolKind.variable, scalarType);
+    symbolTests(names, 'e3', KsSymbolKind.variable, scalarType);
+    symbolTests(names, 'e4', KsSymbolKind.variable, scalarType);
   });
 });
