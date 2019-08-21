@@ -1,5 +1,5 @@
-import { createStructureType, noMap } from '../../typeCreators';
+import { createType, noMap } from '../../typeCreators';
 import { connectionType } from './connection';
 
-export const homeConnectionType = createStructureType('homeConnection');
+export const homeConnectionType = createType('homeConnection');
 homeConnectionType.addSuper(noMap(connectionType));

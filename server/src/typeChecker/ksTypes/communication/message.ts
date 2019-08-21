@@ -1,5 +1,5 @@
 import {
-  createStructureType,
+  createType,
   createSuffixType,
   noMap,
 } from '../../typeCreators';
@@ -8,7 +8,7 @@ import { booleanType } from '../primitives/boolean';
 import { scalarType } from '../primitives/scalar';
 import { serializableType } from '../primitives/serializeableStructure';
 
-export const messageType = createStructureType('message');
+export const messageType = createType('message');
 messageType.addSuper(noMap(serializableType));
 
 messageType.addSuffixes(

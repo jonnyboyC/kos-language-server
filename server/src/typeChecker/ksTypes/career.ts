@@ -1,9 +1,9 @@
-import { createStructureType, createSuffixType, noMap } from '../typeCreators';
+import { createType, createSuffixType, noMap } from '../typeCreators';
 import { structureType } from './primitives/structure';
 import { booleanType } from './primitives/boolean';
 import { scalarType } from './primitives/scalar';
 
-export const careerType = createStructureType('career');
+export const careerType = createType('career');
 careerType.addSuper(noMap(structureType));
 
 careerType.addSuffixes(

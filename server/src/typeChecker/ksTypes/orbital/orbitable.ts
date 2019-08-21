@@ -1,3 +1,3 @@
-import { createStructureType } from '../../typeCreators';
+import { createType } from '../../typeCreators';
 
-export const orbitableType = createStructureType('orbitable');
+export const orbitableType = createType('orbitable');

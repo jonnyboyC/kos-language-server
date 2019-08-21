@@ -1,9 +1,9 @@
-import { createStructureType, createSuffixType, noMap } from '../typeCreators';
+import { createType, createSuffixType, noMap } from '../typeCreators';
 import { structureType } from './primitives/structure';
 import { stringType } from './primitives/string';
 import { scalarType } from './primitives/scalar';
 
-export const craftTemplateType = createStructureType('craftTemplate');
+export const craftTemplateType = createType('craftTemplate');
 craftTemplateType.addSuper(noMap(structureType));
 
 craftTemplateType.addSuffixes(

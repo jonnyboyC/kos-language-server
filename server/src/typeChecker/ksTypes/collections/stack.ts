@@ -1,6 +1,6 @@
 import {
-  createGenericStructureType,
-  createGenericArgSuffixType,
+  createParametricType,
+  createParametricArgSuffixType,
   mapTypes,
   noMap,
   createArgSuffixType,
@@ -8,13 +8,13 @@ import {
 import { enumerableType } from './enumerable';
 import { voidType } from '../primitives/void';
 
-export const stackType = createGenericStructureType('stack', ['T']);
+export const stackType = createParametricType('stack', ['T']);
 stackType.addSuper(mapTypes(stackType, enumerableType));
 
-const copySuffix = createGenericArgSuffixType('copy', ['T'], stackType);
-const pushSuffix = createGenericArgSuffixType('push', ['T'], voidType, 'T');
-const popSuffix = createGenericArgSuffixType('pop', ['T'], 'T');
-const peekSuffix = createGenericArgSuffixType('peek', ['T'], 'T');
+const copySuffix = createParametricArgSuffixType('copy', ['T'], stackType);
+const pushSuffix = createParametricArgSuffixType('push', ['T'], voidType, 'T');
+const popSuffix = createParametricArgSuffixType('pop', ['T'], 'T');
+const peekSuffix = createParametricArgSuffixType('peek', ['T'], 'T');
 
 stackType.addSuffixes(
   mapTypes(stackType, copySuffix),

@@ -1,5 +1,5 @@
 import {
-  createStructureType,
+  createType,
   createArgSuffixType,
   createSuffixType,
   createSetSuffixType,
@@ -13,7 +13,7 @@ import { scalarType } from '../primitives/scalar';
 import { stringType } from '../primitives/string';
 import { booleanType } from '../primitives/boolean';
 
-export const volumeType = createStructureType('volume');
+export const volumeType = createType('volume');
 volumeType.addSuper(noMap(structureType));
 
 volumeType.addSuffixes(

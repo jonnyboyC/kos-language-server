@@ -1,12 +1,12 @@
 import {
-  createStructureType,
+  createType,
   createSetSuffixType,
   noMap,
 } from '../typeCreators';
 import { rgbaType } from './rgba';
 import { scalarType } from './primitives/scalar';
 
-export const hsvaType = createStructureType('hsva');
+export const hsvaType = createType('hsva');
 hsvaType.addSuper(noMap(rgbaType));
 
 hsvaType.addSuffixes(

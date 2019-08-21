@@ -1,5 +1,5 @@
 import {
-  createStructureType,
+  createType,
   createSuffixType,
   createArgSuffixType,
   noMap,
@@ -10,7 +10,7 @@ import { scalarType } from './primitives/scalar';
 import { serializableType } from './primitives/serializeableStructure';
 import { bodyTargetType } from './orbital/bodyTarget';
 
-export const geoCoordinatesType = createStructureType('geoCoordinates');
+export const geoCoordinatesType = createType('geoCoordinates');
 geoCoordinatesType.addSuper(noMap(serializableType));
 
 geoCoordinatesType.addSuffixes(

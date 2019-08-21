@@ -242,7 +242,7 @@ export interface IType extends IParametricType {
    * Is this type a subtype of some other parametric type
    * @param type parameter type to check
    */
-  isSubtypeOf(type: IType): boolean;
+  isSubtypeOf(type: IParametricType): boolean;
 
   /**
    * Get the assignment type of this type

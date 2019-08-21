@@ -1,5 +1,5 @@
-import { createStructureType, noMap } from '../../typeCreators';
+import { createType, noMap } from '../../typeCreators';
 import { delegateType } from './delegate';
 
-export const builtInDelegateType = createStructureType('builtInDelegate');
+export const builtInDelegateType = createType('builtInDelegate');
 builtInDelegateType.addSuper(noMap(delegateType));

@@ -2,7 +2,7 @@ import {
   createSetSuffixType,
   createSuffixType,
   createArgSuffixType,
-  createStructureType,
+  createType,
   noMap,
 } from '../../typeCreators';
 import { widgetType } from './widget';
@@ -20,7 +20,7 @@ import { booleanType } from '../primitives/boolean';
 import { doubleType, integerType } from '../primitives/scalar';
 import { listType } from '../collections/list';
 
-export const boxType = createStructureType('box');
+export const boxType = createType('box');
 boxType.addSuper(noMap(widgetType));
 
 boxType.addSuffixes(

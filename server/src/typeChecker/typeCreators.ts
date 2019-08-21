@@ -15,10 +15,10 @@ import { GenericCallSignature } from './parametricTypes/parametricCallSignature'
 import { ParametricIndexer } from './parametricTypes/parametricIndexer';
 
 /**
- * Create a placeholder generic type
+ * Create a type parameter type
  * @param name name of the placeholder
  */
-export const createPlaceholder = (name: string): ParametricType => {
+export const createTypeParameter = (name: string): ParametricType => {
   return new ParametricType(
     name,
     { get: false, set: false },
@@ -28,11 +28,11 @@ export const createPlaceholder = (name: string): ParametricType => {
 };
 
 /**
- * Generate a new basic generic type
- * @param name name of the new generic type
+ * Generate a new basic parametric type
+ * @param name name of the new parametric type
  * @param typeParameterNames names of the type parameters
  */
-export const createGenericStructureType = (
+export const createParametricType = (
   name: string,
   typeParameterNames: string[],
 ): ParametricType => {
@@ -61,11 +61,11 @@ export const createIndexer = (
   const typePlaceholders = callSignature.getTypeParameters();
 
   callSignature.addParams(
-    mapTypeWithPlaceholder(callSignature, typePlaceholders, index),
+    mapTypeWithParameters(callSignature, typePlaceholders, index),
   );
 
   callSignature.addReturn(
-    mapTypeWithPlaceholder(callSignature, typePlaceholders, returns),
+    mapTypeWithParameters(callSignature, typePlaceholders, returns),
   );
 
   indexer.addCallSignature(mapTypes(indexer, callSignature));
@@ -76,17 +76,17 @@ export const createIndexer = (
  * Generate a new basic type
  * @param name name of the new type
  */
-export const createStructureType = (name: string): Type => {
+export const createType = (name: string): Type => {
   return new Type(name, { get: true, set: true }, new Map(), TypeKind.basic);
 };
 
 /**
- * Generate a new generic callable suffix type
+ * Generate a new parametric callable suffix type
  * @param name name of the suffix
  * @param returns return type of suffix call
  * @param params parameters of suffix call
  */
-export const createGenericArgSuffixType = (
+export const createParametricArgSuffixType = (
   name: string,
   typeParameters: string[],
   returns: IParametricType | string,
@@ -94,7 +94,7 @@ export const createGenericArgSuffixType = (
 ): ParametricType => {
   const get = params.length === 0;
 
-  const genericType = new ParametricType(
+  const parametricType = new ParametricType(
     name.toLowerCase(),
     { get, set: false },
     typeParameters,
@@ -106,21 +106,27 @@ export const createGenericArgSuffixType = (
 
   callSignature.addParams(
     ...params.map(p =>
-      mapTypeWithPlaceholder(callSignature, typePlaceholders, p),
+      mapTypeWithParameters(callSignature, typePlaceholders, p),
     ),
   );
 
   callSignature.addReturn(
-    mapTypeWithPlaceholder(callSignature, typePlaceholders, returns),
+    mapTypeWithParameters(callSignature, typePlaceholders, returns),
   );
 
-  genericType.addCallSignature(mapTypes(genericType, callSignature));
-  return genericType;
+  parametricType.addCallSignature(mapTypes(parametricType, callSignature));
+  return parametricType;
 };
 
-const mapTypeWithPlaceholder = <T>(
+/**
+ * Type map with string as parameter slot placeholder
+ * @param parentType parent type
+ * @param typeParameters the type parameters
+ * @param type the type to map
+ */
+const mapTypeWithParameters = <T>(
   parentType: ITypeMappable<T>,
-  typePlaceholders: IParametricType[],
+  typeParameters: IParametricType[],
   type: IParametricType | string,
 ): TypeMap<IParametricType> => {
   if (typeof type !== 'string') {
@@ -131,7 +137,7 @@ const mapTypeWithPlaceholder = <T>(
     return mapType(parentType, type);
   }
 
-  for (const placeholder of typePlaceholders) {
+  for (const placeholder of typeParameters) {
     if (type === placeholder.name) {
       return noMap(placeholder);
     }
@@ -273,6 +279,10 @@ export const createVarType = memoize(
   },
 );
 
+/**
+ * Create a type map with no parameter mapping
+ * @param type type to map
+ */
 export const noMap = <T extends ITypeMappable>(type: T): TypeMap<T> => {
   return {
     type,
@@ -280,6 +290,11 @@ export const noMap = <T extends ITypeMappable>(type: T): TypeMap<T> => {
   };
 };
 
+/**
+ * Map a types parameters from a source to a target, assumes only one parameter
+ * @param source source type
+ * @param target target type
+ */
 export const mapTypes = <T1 extends ITypeMappable, T2 extends ITypeMappable>(
   source: T1,
   target: T2,
@@ -301,7 +316,12 @@ export const mapTypes = <T1 extends ITypeMappable, T2 extends ITypeMappable>(
   };
 };
 
-export const mapType = <T1 extends ITypeMappable, T2 extends IParametricType>(
+/**
+ * Map type parameters from a source to a target or a target type to the source's type parameters
+ * @param source source type
+ * @param target target type
+ */
+const mapType = <T1 extends ITypeMappable, T2 extends IParametricType>(
   source: T1,
   target: T2,
 ): TypeMap<T2> => {

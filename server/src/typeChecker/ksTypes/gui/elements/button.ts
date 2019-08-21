@@ -1,5 +1,5 @@
 import {
-  createStructureType,
+  createType,
   createSetSuffixType,
   noMap,
 } from '../../../typeCreators';
@@ -7,7 +7,7 @@ import { userDelegateType } from '../../userDelegate';
 import { labelType } from './label';
 import { booleanType } from '../../primitives/boolean';
 
-export const buttonType = createStructureType('button');
+export const buttonType = createType('button');
 buttonType.addSuper(noMap(labelType));
 
 buttonType.addSuffixes(

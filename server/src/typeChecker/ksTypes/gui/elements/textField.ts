@@ -1,5 +1,5 @@
 import {
-  createStructureType,
+  createType,
   createSetSuffixType,
   noMap,
 } from '../../../typeCreators';
@@ -7,7 +7,7 @@ import { userDelegateType } from '../../userDelegate';
 import { labelType } from './label';
 import { booleanType } from '../../primitives/boolean';
 
-export const textFieldType = createStructureType('textField');
+export const textFieldType = createType('textField');
 textFieldType.addSuper(noMap(labelType));
 
 textFieldType.addSuffixes(

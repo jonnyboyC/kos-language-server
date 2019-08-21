@@ -1,7 +1,7 @@
 import {
   createArgSuffixType,
-  createGenericStructureType,
-  createGenericArgSuffixType,
+  createParametricType,
+  createParametricArgSuffixType,
   noMap,
   mapTypes,
   createIndexer,
@@ -11,47 +11,47 @@ import { scalarType, integerType } from '../primitives/scalar';
 import { collectionType } from './enumerable';
 import { stringType } from '../primitives/string';
 
-export const listType = createGenericStructureType('list', ['T']);
+export const listType = createParametricType('list', ['T']);
 listType.addSuper(mapTypes(listType, collectionType));
 
 const indexer = createIndexer(['T'], scalarType, 'T');
 listType.addIndexer(mapTypes(listType, indexer));
 
-const addSuffix = createGenericArgSuffixType('add', ['T'], voidType, 'T');
-const insertSuffix = createGenericArgSuffixType(
+const addSuffix = createParametricArgSuffixType('add', ['T'], voidType, 'T');
+const insertSuffix = createParametricArgSuffixType(
   'insert',
   ['T'],
   voidType,
   scalarType,
   'T',
 );
-const indexOfSuffix = createGenericArgSuffixType(
+const indexOfSuffix = createParametricArgSuffixType(
   'indexOf',
   ['T'],
   integerType,
   'T',
 );
-const findSuffix = createGenericArgSuffixType('find', ['T'], integerType, 'T');
-const lastIndexOfSuffix = createGenericArgSuffixType(
+const findSuffix = createParametricArgSuffixType('find', ['T'], integerType, 'T');
+const lastIndexOfSuffix = createParametricArgSuffixType(
   'lastIndexOf',
   ['T'],
   integerType,
   'T',
 );
-const findLastSuffix = createGenericArgSuffixType(
+const findLastSuffix = createParametricArgSuffixType(
   'findLast',
   ['T'],
   integerType,
   'T',
 );
-const subListSuffix = createGenericArgSuffixType(
+const subListSuffix = createParametricArgSuffixType(
   'sublist',
   ['T'],
   listType,
   scalarType,
   scalarType,
 );
-const copySuffix = createGenericArgSuffixType('copy', ['T'], listType);
+const copySuffix = createParametricArgSuffixType('copy', ['T'], listType);
 
 listType.addSuffixes(
   mapTypes(listType, copySuffix),

@@ -1,5 +1,5 @@
 import {
-  createStructureType,
+  createType,
   createArgSuffixType,
   createSuffixType,
   createSetSuffixType,
@@ -12,7 +12,7 @@ import { scalarType } from './primitives/scalar';
 import { booleanType } from './primitives/boolean';
 import { userDelegateType } from './userDelegate';
 
-export const terminalStructType = createStructureType('terminalStruct');
+export const terminalStructType = createType('terminalStruct');
 terminalStructType.addSuper(noMap(structureType));
 
 terminalStructType.addSuffixes(

@@ -1,9 +1,9 @@
-import { createStructureType, createArgSuffixType, noMap } from '../../typeCreators';
+import { createType, createArgSuffixType, noMap } from '../../typeCreators';
 import { structureType } from '../primitives/structure';
 import { booleanType } from '../primitives/boolean';
 import { stringType } from '../primitives/string';
 
-export const addonListType = createStructureType('addonList');
+export const addonListType = createType('addonList');
 addonListType.addSuper(noMap(structureType));
 
 addonListType.addSuffixes(

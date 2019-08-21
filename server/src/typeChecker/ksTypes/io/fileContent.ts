@@ -1,5 +1,5 @@
 import {
-  createStructureType,
+  createType,
   createSuffixType,
   noMap,
 } from '../../typeCreators';
@@ -9,7 +9,7 @@ import { booleanType } from '../primitives/boolean';
 import { stringType } from '../primitives/string';
 import { serializableType } from '../primitives/serializeableStructure';
 
-export const fileContentType = createStructureType('fileContent');
+export const fileContentType = createType('fileContent');
 fileContentType.addSuper(noMap(serializableType));
 
 fileContentType.addSuffixes(

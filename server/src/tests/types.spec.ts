@@ -4,10 +4,12 @@ import { structureType } from '../typeChecker/ksTypes/primitives/structure';
 import { partType } from '../typeChecker/ksTypes/parts/part';
 import { dockingPortType } from '../typeChecker/ksTypes/parts/dockingPort';
 import {
-  createStructureType,
+  createType,
   createSuffixType,
   createArgSuffixType,
   noMap,
+  createParametricType,
+  mapTypes,
 } from '../typeChecker/typeCreators';
 import { typeInitializer } from '../typeChecker/initialize';
 import { userListType } from '../typeChecker/ksTypes/collections/userList';
@@ -21,28 +23,31 @@ import { Type } from '../typeChecker/types/type';
 typeInitializer();
 
 describe('Type Utilities', () => {
-  test('Basic Attributes', () => {
-    const genericExampleType = new ParametricType(
+  test('Basic Attributes Parametric Type', () => {
+    const parametricType = new ParametricType(
       'example',
       { get: true, set: true },
       ['T'],
       TypeKind.basic,
     );
 
-    expect(genericExampleType.name).toBe('example');
-    expect(genericExampleType.access.get).toBe(true);
-    expect(genericExampleType.access.set).toBe(true);
-    expect(genericExampleType.getCallSignature()).toBeUndefined();
-    expect(genericExampleType.anyType).toBe(false);
-    expect(genericExampleType.getSuperType()).toBeUndefined();
+    expect(parametricType.kind).toBe(TypeKind.basic);
+    expect(parametricType.name).toBe('example');
+    expect(parametricType.access.get).toBe(true);
+    expect(parametricType.access.set).toBe(true);
+    expect(parametricType.getCallSignature()).toBeUndefined();
+    expect(parametricType.anyType).toBe(false);
+    expect(parametricType.getSuperType()).toBeUndefined();
+    expect(parametricType.toString()).toBe('example<T>');
 
-    const genericTypeParameters = genericExampleType.getTypeParameters();
+    const genericTypeParameters = parametricType.getTypeParameters();
     expect(genericTypeParameters.length).toBe(1);
     expect(genericTypeParameters[0].name).toBe('T');
 
-    const exampleType = genericExampleType.apply(stringType);
+    const exampleType = parametricType.apply(stringType);
     const parameters = exampleType.getTypeParameters();
 
+    expect(exampleType.kind).toBe(TypeKind.basic);
     expect(exampleType.name).toBe('example');
     expect(exampleType.access.get).toBe(true);
     expect(exampleType.access.set).toBe(true);
@@ -51,10 +56,52 @@ describe('Type Utilities', () => {
     expect(parameters[0].name).toBe('T');
     expect(exampleType.anyType).toBe(false);
     expect(exampleType.getSuperType()).toBeUndefined();
+    expect(exampleType.toString()).toBe('example<string>');
 
     const typeParameters = exampleType.getTypeParameters();
     expect(typeParameters.length).toBe(1);
     expect(typeParameters[0].name).toBe('T');
+  });
+
+  test('Basic Attributes Type', () => {
+    const templateType = createParametricType('Template', ['T']);
+
+    const type = new Type(
+      'example',
+      { get: true, set: true },
+      new Map([
+        [
+          templateType.getTypeParameters()[0],
+          new Type(
+            'integer',
+            { get: true, set: true },
+            new Map(),
+            TypeKind.basic,
+          ),
+        ],
+      ]),
+      TypeKind.basic,
+      undefined,
+      templateType,
+      false,
+    );
+
+    expect(type.kind).toBe(TypeKind.basic);
+    expect(type.name).toBe('example');
+    expect(type.access.get).toBe(true);
+    expect(type.access.set).toBe(true);
+    expect(type.getCallSignature()).toBeUndefined();
+    expect(type.anyType).toBe(false);
+    expect(type.getSuperType()).toBeUndefined();
+    expect(type.toString()).toBe('example<integer>');
+
+    const genericTypeParameters = type.getTypeParameters();
+    expect(genericTypeParameters.length).toBe(1);
+    expect(genericTypeParameters[0].name).toBe('T');
+
+    const exampleType = type.apply(stringType);
+    expect(exampleType).toBe(type);
+    expect(type.isSubtypeOf(templateType)).toBe(true);
   });
 
   test('Is Subtype 1', () => {
@@ -90,9 +137,9 @@ describe('Type Utilities', () => {
   });
 
   test('Is Subtype 2', () => {
-    const aType = createStructureType('a');
-    const bType = createStructureType('b');
-    const cType = createStructureType('c');
+    const aType = createType('a');
+    const bType = createType('b');
+    const cType = createType('c');
 
     bType.addSuper(noMap(aType));
     cType.addSuper(noMap(aType));
@@ -108,10 +155,10 @@ describe('Type Utilities', () => {
   });
 
   test('Has Suffix', () => {
-    const aType = createStructureType('a');
-    const bType = createStructureType('b');
-    const cType = createStructureType('c');
-    const dType = createStructureType('d');
+    const aType = createType('a');
+    const bType = createType('b');
+    const cType = createType('c');
+    const dType = createType('d');
 
     aType.addSuffixes(
       noMap(createSuffixType('example1', cType)),
@@ -190,7 +237,7 @@ describe('Type Utilities', () => {
     expect(userListType.canCoerceFrom(listType)).toBe(false);
   });
 
-  test('Super', () => {
+  test('Type Super', () => {
     const example = new Type(
       'example',
       { get: true, set: true },
@@ -217,5 +264,38 @@ describe('Type Utilities', () => {
     expect(example.getSuperType()).toBeDefined();
     expect(example.getSuffixes().get('suffix1')).toBeDefined();
     expect(example.getSuffixes().get('suffix2')).toBeDefined();
+
+    expect(() => example.addSuper(noMap(superExample))).toThrow();
+  });
+
+  test('Parametric Super', () => {
+    const example = new ParametricType(
+      'example',
+      { get: true, set: true },
+      ['T'],
+      TypeKind.basic,
+    );
+
+    example.addSuffixes(noMap(createSuffixType('suffix1', stringType)));
+
+    expect(example.getSuperType()).toBeUndefined();
+    expect(example.getSuffixes().get('suffix1')).toBeDefined();
+    expect(example.getSuffixes().get('suffix2')).toBeUndefined();
+
+    const superExample = new ParametricType(
+      'superExample',
+      { get: true, set: true },
+      ['T'],
+      TypeKind.basic,
+    );
+
+    superExample.addSuffixes(noMap(createSuffixType('suffix2', stringType)));
+    example.addSuper(mapTypes(example, superExample));
+
+    expect(example.getSuperType()).toBeDefined();
+    expect(example.getSuffixes().get('suffix1')).toBeDefined();
+    expect(example.getSuffixes().get('suffix2')).toBeDefined();
+
+    expect(() => example.addSuper(noMap(superExample))).toThrow();
   });
 });

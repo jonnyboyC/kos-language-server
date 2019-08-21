@@ -1,6 +1,6 @@
 import {
-  createGenericStructureType,
-  createGenericArgSuffixType,
+  createParametricType,
+  createParametricArgSuffixType,
   mapTypes,
   createArgSuffixType,
   noMap,
@@ -8,13 +8,13 @@ import {
 import { enumerableType } from './enumerable';
 import { voidType } from '../primitives/void';
 
-export const queueType = createGenericStructureType('queue', ['T']);
+export const queueType = createParametricType('queue', ['T']);
 queueType.addSuper(mapTypes(queueType, enumerableType));
 
-const copySuffix = createGenericArgSuffixType('copy', ['T'], queueType);
-const pushSuffix = createGenericArgSuffixType('push', ['T'], voidType, 'T');
-const popSuffix = createGenericArgSuffixType('pop', ['T'], 'T');
-const peekSuffix = createGenericArgSuffixType('peek', ['T'], 'T');
+const copySuffix = createParametricArgSuffixType('copy', ['T'], queueType);
+const pushSuffix = createParametricArgSuffixType('push', ['T'], voidType, 'T');
+const popSuffix = createParametricArgSuffixType('pop', ['T'], 'T');
+const peekSuffix = createParametricArgSuffixType('peek', ['T'], 'T');
 
 queueType.addSuffixes(
   mapTypes(queueType, copySuffix),

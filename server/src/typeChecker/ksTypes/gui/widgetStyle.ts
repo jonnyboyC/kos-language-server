@@ -2,7 +2,7 @@ import { structureType } from '../primitives/structure';
 import {
   createSetSuffixType,
   createSuffixType,
-  createStructureType,
+  createType,
   noMap,
 } from '../../typeCreators';
 import { rgbaType } from '../rgba';
@@ -11,7 +11,7 @@ import { scalarType, integerType } from '../primitives/scalar';
 import { booleanType } from '../primitives/boolean';
 import { stringType } from '../primitives/string';
 
-export const widgetStyleType = createStructureType('widgetStyle');
+export const widgetStyleType = createType('widgetStyle');
 widgetStyleType.addSuper(noMap(structureType));
 
 widgetStyleType.addSuffixes(

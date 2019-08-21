@@ -1,5 +1,5 @@
-import { createStructureType, noMap } from '../../typeCreators';
+import { createType, noMap } from '../../typeCreators';
 import { aggregateResourceType } from './aggregateResource';
 
-export const activeResourceType = createStructureType('activeResource');
+export const activeResourceType = createType('activeResource');
 activeResourceType.addSuper(noMap(aggregateResourceType));

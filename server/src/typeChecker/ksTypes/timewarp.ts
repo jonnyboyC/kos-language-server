@@ -1,5 +1,5 @@
 import {
-  createStructureType,
+  createType,
   createSuffixType,
   createArgSuffixType,
   noMap,
@@ -11,7 +11,7 @@ import { stringType } from './primitives/string';
 import { booleanType } from './primitives/boolean';
 import { serializableType } from './primitives/serializeableStructure';
 
-export const timeWarpType = createStructureType('timeWarp');
+export const timeWarpType = createType('timeWarp');
 timeWarpType.addSuper(noMap(serializableType));
 
 timeWarpType.addSuffixes(

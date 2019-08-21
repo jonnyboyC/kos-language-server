@@ -1,4 +1,4 @@
-import { createStructureType, createSetSuffixType, noMap } from '../typeCreators';
+import { createType, createSetSuffixType, noMap } from '../typeCreators';
 import { structureType } from './primitives/structure';
 import { vectorType } from './collections/vector';
 import { userDelegateType } from './userDelegate';
@@ -7,7 +7,7 @@ import { booleanType } from './primitives/boolean';
 import { scalarType } from './primitives/scalar';
 import { stringType } from './primitives/string';
 
-export const vectorRendererType = createStructureType('vecDraw');
+export const vectorRendererType = createType('vecDraw');
 vectorRendererType.addSuper(noMap(structureType));
 
 vectorRendererType.addSuffixes(

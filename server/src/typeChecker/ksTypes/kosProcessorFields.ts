@@ -1,5 +1,5 @@
 import {
-  createStructureType,
+  createType,
   createArgSuffixType,
   noMap,
 } from '../typeCreators';
@@ -9,7 +9,7 @@ import { processorConnectionType } from './communication/processorConnection';
 import { voidType } from './primitives/void';
 import { stringType } from './primitives/string';
 
-export const kosProcessorFieldsType = createStructureType('kosProcessorFields');
+export const kosProcessorFieldsType = createType('kosProcessorFields');
 kosProcessorFieldsType.addSuper(noMap(partModuleType));
 
 kosProcessorFieldsType.addSuffixes(

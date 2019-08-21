@@ -1,6 +1,6 @@
 import { IParametricType, IType, ITypeMappable } from '../types';
 import { empty } from '../../utilities/typeGuards';
-import { createPlaceholder } from '../typeCreators';
+import { createTypeParameter } from '../typeCreators';
 
 /**
  * A class that's responsible for binding type arguments to type
@@ -28,7 +28,7 @@ export class Binder<T extends ITypeMappable> {
       );
     }
 
-    this.typeParameters = new Set(names.map(name => createPlaceholder(name)));
+    this.typeParameters = new Set(names.map(name => createTypeParameter(name)));
     this.applicationCache = new Map();
   }
 

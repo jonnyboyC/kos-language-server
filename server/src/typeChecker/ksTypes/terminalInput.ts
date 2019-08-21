@@ -1,5 +1,5 @@
 import {
-  createStructureType,
+  createType,
   createArgSuffixType,
   createSuffixType,
   noMap,
@@ -9,7 +9,7 @@ import { voidType } from './primitives/void';
 import { stringType } from './primitives/string';
 import { booleanType } from './primitives/boolean';
 
-export const terminalInputType = createStructureType('terminalInput');
+export const terminalInputType = createType('terminalInput');
 terminalInputType.addSuper(noMap(structureType));
 
 terminalInputType.addSuffixes(

@@ -1,5 +1,5 @@
 import {
-  createStructureType,
+  createType,
   createArgSuffixType,
   createSetSuffixType,
   noMap,
@@ -7,7 +7,7 @@ import {
 import { scalarType } from './primitives/scalar';
 import { serializableType } from './primitives/serializeableStructure';
 
-export const rgbaType = createStructureType('rgba');
+export const rgbaType = createType('rgba');
 rgbaType.addSuper(noMap(serializableType));
 
 rgbaType.addSuffixes(

@@ -1,8 +1,8 @@
-import { createStructureType, createSetSuffixType, noMap } from '../typeCreators';
+import { createType, createSetSuffixType, noMap } from '../typeCreators';
 import { structureType } from './primitives/structure';
 import { scalarType } from './primitives/scalar';
 
-export const situationLoadDistanceType = createStructureType(
+export const situationLoadDistanceType = createType(
   'situationLoadDistance',
 );
 situationLoadDistanceType.addSuper(noMap(structureType));

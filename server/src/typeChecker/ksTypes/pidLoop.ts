@@ -1,5 +1,5 @@
 import {
-  createStructureType,
+  createType,
   createArgSuffixType,
   createSuffixType,
   createSetSuffixType,
@@ -9,7 +9,7 @@ import { structureType } from './primitives/structure';
 import { voidType } from './primitives/void';
 import { scalarType } from './primitives/scalar';
 
-export const pidLoopType = createStructureType('pidLoop');
+export const pidLoopType = createType('pidLoop');
 pidLoopType.addSuper(noMap(structureType));
 
 pidLoopType.addSuffixes(

@@ -1,4 +1,4 @@
-import { createStructureType, createSuffixType, noMap } from '../typeCreators';
+import { createType, createSuffixType, noMap } from '../typeCreators';
 import { structureType } from './primitives/structure';
 import { vectorType } from './collections/vector';
 import { stringType } from './primitives/string';
@@ -6,7 +6,7 @@ import { scalarType } from './primitives/scalar';
 import { booleanType } from './primitives/boolean';
 import { bodyTargetType } from './orbital/bodyTarget';
 
-export const orbitInfoType = createStructureType('orbitInfo');
+export const orbitInfoType = createType('orbitInfo');
 orbitInfoType.addSuper(noMap(structureType));
 
 orbitInfoType.addSuffixes(

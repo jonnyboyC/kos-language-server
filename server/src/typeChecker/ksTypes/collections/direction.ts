@@ -1,3 +1,3 @@
-import { createStructureType } from '../../typeCreators';
+import { createType } from '../../typeCreators';
 
-export const directionType = createStructureType('direction');
+export const directionType = createType('direction');

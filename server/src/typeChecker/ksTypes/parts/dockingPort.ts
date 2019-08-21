@@ -1,5 +1,5 @@
 import {
-  createStructureType,
+  createType,
   createSuffixType,
   createArgSuffixType,
   noMap,
@@ -14,7 +14,7 @@ import { vectorType } from '../collections/vector';
 import { uniqueSetType } from '../collections/uniqueset';
 import { userDelegateType } from '../userDelegate';
 
-export const dockingPortType = createStructureType('dockingPort');
+export const dockingPortType = createType('dockingPort');
 dockingPortType.addSuper(noMap(decouplerType));
 
 dockingPortType.addSuffixes(

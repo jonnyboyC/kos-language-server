@@ -1,5 +1,5 @@
 import {
-  createStructureType,
+  createType,
   createArgSuffixType,
   createSuffixType,
   noMap,
@@ -11,7 +11,7 @@ import { voidType } from '../primitives/void';
 import { booleanType } from '../primitives/boolean';
 import { stringType } from '../primitives/string';
 
-export const volumeFileType = createStructureType('volumefile');
+export const volumeFileType = createType('volumefile');
 volumeFileType.addSuper(noMap(volumeItemType));
 
 volumeFileType.addSuffixes(

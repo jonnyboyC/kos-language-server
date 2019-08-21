@@ -1,8 +1,8 @@
-import { createStructureType, createArgSuffixType, noMap } from '../../typeCreators';
+import { createType, createArgSuffixType, noMap } from '../../typeCreators';
 import { structureType } from '../primitives/structure';
 import { scalarType } from '../primitives/scalar';
 
-export const vesselAltType = createStructureType('vesselAlt');
+export const vesselAltType = createType('vesselAlt');
 vesselAltType.addSuper(noMap(structureType));
 
 vesselAltType.addSuffixes(

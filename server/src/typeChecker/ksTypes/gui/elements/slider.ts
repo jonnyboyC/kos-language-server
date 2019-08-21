@@ -1,5 +1,5 @@
 import {
-  createStructureType,
+  createType,
   createSetSuffixType,
   noMap,
 } from '../../../typeCreators';
@@ -7,7 +7,7 @@ import { userDelegateType } from '../../userDelegate';
 import { widgetType } from '../widget';
 import { scalarType } from '../../primitives/scalar';
 
-export const sliderType = createStructureType('slider');
+export const sliderType = createType('slider');
 sliderType.addSuper(noMap(widgetType));
 
 sliderType.addSuffixes(

@@ -1,8 +1,8 @@
-import { createStructureType, createSuffixType, noMap } from '../typeCreators';
+import { createType, createSuffixType, noMap } from '../typeCreators';
 import { structureType } from './primitives/structure';
 import { situationLoadDistanceType } from './situtationLoadDistance';
 
-export const loadDistanceType = createStructureType('loadDistance');
+export const loadDistanceType = createType('loadDistance');
 loadDistanceType.addSuper(noMap(structureType));
 
 loadDistanceType.addSuffixes(

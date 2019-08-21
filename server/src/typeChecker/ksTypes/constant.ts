@@ -1,4 +1,4 @@
-import { createStructureType, createSuffixType, noMap } from '../typeCreators';
+import { createType, createSuffixType, noMap } from '../typeCreators';
 import { structureType } from './primitives/structure';
 import { doubleType } from './primitives/scalar';
 import { TypeKind } from '../types';
@@ -103,7 +103,7 @@ export const idealGasType = new ConstantType(
 );
 idealGasType.addSuper(noMap(structureType));
 
-export const constantType = createStructureType('constant');
+export const constantType = createType('constant');
 constantType.addSuper(noMap(structureType));
 
 constantType.addSuffixes(

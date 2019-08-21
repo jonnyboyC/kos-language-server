@@ -227,7 +227,7 @@ export class Type implements IType {
    * Is this type a subtype for another type
    * @param type the type check against
    */
-  public isSubtypeOf(type: IType): boolean {
+  public isSubtypeOf(type: IParametricType): boolean {
     if (type === this) {
       return true;
     }

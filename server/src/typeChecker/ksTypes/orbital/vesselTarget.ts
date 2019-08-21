@@ -1,3 +1,3 @@
-import { createStructureType } from '../../typeCreators';
+import { createType } from '../../typeCreators';
 
-export const vesselTargetType = createStructureType('vesselTarget');
+export const vesselTargetType = createType('vesselTarget');

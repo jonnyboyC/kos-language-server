@@ -1,4 +1,4 @@
-import { createStructureType, createSuffixType, noMap } from '../../typeCreators';
+import { createType, createSuffixType, noMap } from '../../typeCreators';
 import { structureType } from '../primitives/structure';
 import { listType } from '../collections/list';
 import { stringType } from '../primitives/string';
@@ -7,7 +7,7 @@ import { partType } from './part';
 import { dockingPortType } from './dockingPort';
 import { aggregateResourceType } from './aggregateResource';
 
-export const elementType = createStructureType('element');
+export const elementType = createType('element');
 elementType.addSuper(noMap(structureType));
 
 elementType.addSuffixes(

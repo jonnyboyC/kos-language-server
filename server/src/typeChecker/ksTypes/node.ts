@@ -1,5 +1,5 @@
 import {
-  createStructureType,
+  createType,
   createSuffixType,
   createSetSuffixType,
   noMap,
@@ -9,7 +9,7 @@ import { vectorType } from './collections/vector';
 import { orbitInfoType } from './orbitInfo';
 import { scalarType } from './primitives/scalar';
 
-export const nodeType = createStructureType('node');
+export const nodeType = createType('node');
 nodeType.addSuper(noMap(structureType));
 
 nodeType.addSuffixes(

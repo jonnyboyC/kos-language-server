@@ -1,5 +1,5 @@
 import {
-  createStructureType,
+  createType,
   createArgSuffixType,
   createSuffixType,
   createSetSuffixType,
@@ -13,7 +13,7 @@ import { booleanType } from '../primitives/boolean';
 import { partType } from './part';
 import { gimbalType } from './gimbal';
 
-export const engineType = createStructureType('engine');
+export const engineType = createType('engine');
 engineType.addSuper(noMap(partType));
 
 engineType.addSuffixes(

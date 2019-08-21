@@ -1,5 +1,5 @@
 import {
-  createStructureType,
+  createType,
   createArgSuffixType,
   createSuffixType,
   noMap,
@@ -8,7 +8,7 @@ import { structureType } from '../primitives/structure';
 import { booleanType } from '../primitives/boolean';
 import { scalarType } from '../primitives/scalar';
 
-export const connectionType = createStructureType('connection');
+export const connectionType = createType('connection');
 connectionType.addSuper(noMap(structureType));
 
 connectionType.addSuffixes(

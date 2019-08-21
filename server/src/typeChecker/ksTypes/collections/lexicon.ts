@@ -1,5 +1,5 @@
 import {
-  createStructureType,
+  createType,
   createArgSuffixType,
   createSuffixType,
   createSetSuffixType,
@@ -14,7 +14,7 @@ import { serializableType } from '../primitives/serializeableStructure';
 import { Indexer } from '../../types/indexer';
 import { CallSignature } from '../../types/callSignature';
 
-export const lexiconType = createStructureType('lexicon');
+export const lexiconType = createType('lexicon');
 lexiconType.addSuper(noMap(serializableType));
 
 lexiconType.addIndexer(

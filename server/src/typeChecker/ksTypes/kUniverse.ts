@@ -1,5 +1,5 @@
 import {
-  createStructureType,
+  createType,
   createArgSuffixType,
   createSuffixType,
   createSetSuffixType,
@@ -18,7 +18,7 @@ import { scalarType } from './primitives/scalar';
 import { vesselTargetType } from './orbital/vesselTarget';
 import { listType } from './collections/list';
 
-export const kUniverseType = createStructureType('kuniverse');
+export const kUniverseType = createType('kuniverse');
 kUniverseType.addSuper(noMap(structureType));
 
 kUniverseType.addSuffixes(

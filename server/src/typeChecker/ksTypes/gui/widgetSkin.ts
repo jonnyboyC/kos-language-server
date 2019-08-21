@@ -1,6 +1,6 @@
 import {
   createSetSuffixType,
-  createStructureType,
+  createType,
   createArgSuffixType,
   noMap,
 } from '../../typeCreators';
@@ -10,7 +10,7 @@ import { widgetStyleType } from './widgetStyle';
 import { stringType } from '../primitives/string';
 import { booleanType } from '../primitives/boolean';
 
-export const widgetSkinType = createStructureType('skin');
+export const widgetSkinType = createType('skin');
 widgetSkinType.addSuper(noMap(structureType));
 
 const builtIns = [

@@ -1,9 +1,9 @@
 import {
   createArgSuffixType,
-  createGenericStructureType,
+  createParametricType,
   noMap,
   mapTypes,
-  createGenericArgSuffixType,
+  createParametricArgSuffixType,
 } from '../../typeCreators';
 import { enumeratorType } from './enumerator';
 import { iterator } from '../../../utilities/constants';
@@ -13,21 +13,21 @@ import { stringType } from '../primitives/string';
 import { voidType } from '../primitives/void';
 import { serializableType } from '../primitives/serializeableStructure';
 
-export const enumerableType = createGenericStructureType('enumerable', ['T']);
+export const enumerableType = createParametricType('enumerable', ['T']);
 enumerableType.addSuper(noMap(serializableType));
 
-const containsSuffix = createGenericArgSuffixType(
+const containsSuffix = createParametricArgSuffixType(
   'contains',
   ['T'],
   booleanType,
   'T',
 );
-const enumeratorSuffix = createGenericArgSuffixType(
+const enumeratorSuffix = createParametricArgSuffixType(
   iterator,
   ['T'],
   enumeratorType,
 );
-const reverseEnumeratorSuffix = createGenericArgSuffixType(
+const reverseEnumeratorSuffix = createParametricArgSuffixType(
   'reverseIterator',
   ['T'],
   enumeratorType,
@@ -42,7 +42,7 @@ enumerableType.addSuffixes(
   noMap(createArgSuffixType('dump', stringType)),
 );
 
-export const collectionType = createGenericStructureType('collection', ['T']);
+export const collectionType = createParametricType('collection', ['T']);
 collectionType.addSuper(mapTypes(collectionType, enumerableType));
 
 collectionType.addSuffixes(noMap(createArgSuffixType('clear', voidType)));

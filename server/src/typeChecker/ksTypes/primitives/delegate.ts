@@ -1,3 +1,3 @@
-import { createStructureType } from '../../typeCreators';
+import { createType } from '../../typeCreators';
 
-export const delegateType = createStructureType('delegate');
+export const delegateType = createType('delegate');

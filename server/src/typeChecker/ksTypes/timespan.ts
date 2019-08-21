@@ -1,4 +1,4 @@
-import { createStructureType, createSuffixType, noMap } from '../typeCreators';
+import { createType, createSuffixType, noMap } from '../typeCreators';
 import { scalarType } from './primitives/scalar';
 import { stringType } from './primitives/string';
 import { serializableType } from './primitives/serializeableStructure';
@@ -6,7 +6,7 @@ import { OperatorKind } from '../types';
 import { booleanType } from './primitives/boolean';
 import { Operator } from '../types/operator';
 
-export const timeSpanType = createStructureType('timeSpan');
+export const timeSpanType = createType('timeSpan');
 timeSpanType.addSuper(noMap(serializableType));
 
 timeSpanType.addSuffixes(

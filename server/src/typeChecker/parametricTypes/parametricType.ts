@@ -139,20 +139,13 @@ export class ParametricType implements IParametricType {
 
     // check if super has type parameters
     if (type.getTypeParameters().length > 0) {
-      const superTypeParams = type.getTypeParameters();
+      const targetTypeParams = type.getTypeParameters();
       const thisTypeParams = this.getTypeParameters();
 
-      // if we have parameters we need a mapping between them
-      if (empty(mapping)) {
-        throw new Error(
-          `Type ${type.name} was not passed a type parameter map`,
-        );
-      }
-
       // check length
-      if (mapping.size !== superTypeParams.length) {
+      if (mapping.size !== targetTypeParams.length) {
         throw new Error(
-          `Type has type parameters ${superTypeParams.join(', ')}` +
+          `Type has type parameters ${targetTypeParams.join(', ')}` +
             ` but was only given ${mapping.size} arguments`,
         );
       }
@@ -165,7 +158,7 @@ export class ParametricType implements IParametricType {
           );
         }
 
-        if (!superTypeParams.includes(value)) {
+        if (!targetTypeParams.includes(value)) {
           throw new Error(
             `Type ${type.name} does not have a type parameter ${value.name}`,
           );

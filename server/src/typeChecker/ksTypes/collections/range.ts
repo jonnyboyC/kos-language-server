@@ -1,12 +1,12 @@
 import {
   createArgSuffixType,
-  createStructureType,
+  createType,
   noMap,
 } from '../../typeCreators';
 import { enumerableType } from './enumerable';
 import { scalarType } from '../primitives/scalar';
 
-export const rangeType = createStructureType('range');
+export const rangeType = createType('range');
 rangeType.addSuper(noMap(enumerableType.apply(scalarType)));
 
 rangeType.addSuffixes(

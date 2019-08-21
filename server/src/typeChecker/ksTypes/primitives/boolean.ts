@@ -1,4 +1,4 @@
-import { createStructureType } from '../../typeCreators';
+import { createType } from '../../typeCreators';
 
 // ---------- base of boolean types --------------------
-export const booleanType = createStructureType('boolean');
+export const booleanType = createType('boolean');

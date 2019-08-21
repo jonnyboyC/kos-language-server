@@ -1,5 +1,5 @@
 import {
-  createStructureType,
+  createType,
   createSuffixType,
   createSetSuffixType,
   noMap,
@@ -9,7 +9,7 @@ import { vectorType } from './collections/vector';
 import { scalarType } from './primitives/scalar';
 import { booleanType } from './primitives/boolean';
 
-export const flightControlType = createStructureType('flightControl');
+export const flightControlType = createType('flightControl');
 flightControlType.addSuper(noMap(structureType));
 
 flightControlType.addSuffixes(

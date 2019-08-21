@@ -3,7 +3,7 @@ import {
   createSetSuffixType,
   createSuffixType,
   createArgSuffixType,
-  createStructureType,
+  createType,
   noMap,
 } from '../../typeCreators';
 import { widgetStyleType } from './widgetStyle';
@@ -11,7 +11,7 @@ import { guiWidgetType } from './guiWidget';
 import { voidType } from '../primitives/void';
 import { booleanType } from '../primitives/boolean';
 
-export const widgetType = createStructureType('widget');
+export const widgetType = createType('widget');
 widgetType.addSuper(noMap(structureType));
 
 widgetType.addSuffixes(

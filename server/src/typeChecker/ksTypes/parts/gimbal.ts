@@ -1,5 +1,5 @@
 import {
-  createStructureType,
+  createType,
   createSuffixType,
   createSetSuffixType,
   noMap,
@@ -8,7 +8,7 @@ import { booleanType } from '../primitives/boolean';
 import { partModuleType } from './partModule';
 import { scalarType } from '../primitives/scalar';
 
-export const gimbalType = createStructureType('gimbal');
+export const gimbalType = createType('gimbal');
 gimbalType.addSuper(noMap(partModuleType));
 
 gimbalType.addSuffixes(

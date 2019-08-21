@@ -1,3 +1,3 @@
-import { createStructureType } from '../../typeCreators';
+import { createType } from '../../typeCreators';
 
-export const bodyTargetType = createStructureType('bodyTarget');
+export const bodyTargetType = createType('bodyTarget');

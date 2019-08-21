@@ -1,9 +1,9 @@
-import { createStructureType, createSuffixType, noMap } from '../../typeCreators';
+import { createType, createSuffixType, noMap } from '../../typeCreators';
 import { structureType } from '../primitives/structure';
 import { vectorType } from '../collections/vector';
 import { scalarType } from '../primitives/scalar';
 
-export const vesselSensorsType = createStructureType('vesselSensors');
+export const vesselSensorsType = createType('vesselSensors');
 vesselSensorsType.addSuper(noMap(structureType));
 
 vesselSensorsType.addSuffixes(

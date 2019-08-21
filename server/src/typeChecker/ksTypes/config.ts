@@ -1,9 +1,9 @@
-import { createStructureType, createSetSuffixType, noMap } from '../typeCreators';
+import { createType, createSetSuffixType, noMap } from '../typeCreators';
 import { structureType } from './primitives/structure';
 import { scalarType } from './primitives/scalar';
 import { booleanType } from './primitives/boolean';
 
-export const configType = createStructureType('config');
+export const configType = createType('config');
 configType.addSuper(noMap(structureType));
 
 configType.addSuffixes(

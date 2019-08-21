@@ -1,11 +1,11 @@
-import { createStructureType, createSuffixType, noMap } from '../../typeCreators';
+import { createType, createSuffixType, noMap } from '../../typeCreators';
 import { structureType } from '../primitives/structure';
 import { listType } from '../collections/list';
 import { lexiconType } from '../collections/lexicon';
 import { activeResourceType } from '../parts/activeResource';
 import { scalarType } from '../primitives/scalar';
 
-export const stageType = createStructureType('stage');
+export const stageType = createType('stage');
 stageType.addSuper(noMap(structureType));
 
 stageType.addSuffixes(

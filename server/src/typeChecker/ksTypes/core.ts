@@ -1,5 +1,5 @@
 import {
-  createStructureType,
+  createType,
   createArgSuffixType,
   createSuffixType,
   noMap,
@@ -11,7 +11,7 @@ import { vesselTargetType } from './orbital/vesselTarget';
 import { elementType } from './parts/element';
 import { messageQueueType } from './communication/messageQueue';
 
-export const coreType = createStructureType('core');
+export const coreType = createType('core');
 coreType.addSuper(noMap(kosProcessorFieldsType));
 
 coreType.addSuffixes(

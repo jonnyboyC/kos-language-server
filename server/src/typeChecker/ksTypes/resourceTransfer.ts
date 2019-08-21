@@ -1,5 +1,5 @@
 import {
-  createStructureType,
+  createType,
   createSuffixType,
   createSetSuffixType,
   noMap,
@@ -9,7 +9,7 @@ import { scalarType } from './primitives/scalar';
 import { stringType } from './primitives/string';
 import { booleanType } from './primitives/boolean';
 
-export const resourceTransferType = createStructureType('transfer');
+export const resourceTransferType = createType('transfer');
 resourceTransferType.addSuper(noMap(structureType));
 
 resourceTransferType.addSuffixes(

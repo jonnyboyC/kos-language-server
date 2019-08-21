@@ -1,8 +1,8 @@
-import { createStructureType, createSuffixType, noMap } from '../typeCreators';
+import { createType, createSuffixType, noMap } from '../typeCreators';
 import { structureType } from './primitives/structure';
 import { scalarType } from './primitives/scalar';
 
-export const versionInfoType = createStructureType('versioninfo');
+export const versionInfoType = createType('versioninfo');
 versionInfoType.addSuper(noMap(structureType));
 
 versionInfoType.addSuffixes(

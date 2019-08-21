@@ -1,18 +1,18 @@
 import {
   createArgSuffixType,
-  createGenericStructureType,
+  createParametricType,
   noMap,
   mapTypes,
-  createGenericArgSuffixType,
+  createParametricArgSuffixType,
 } from '../../typeCreators';
 import { structureType } from '../primitives/structure';
 import { booleanType } from '../primitives/boolean';
 import { scalarType } from '../primitives/scalar';
 
-export const enumeratorType = createGenericStructureType('enumerator', ['T']);
+export const enumeratorType = createParametricType('enumerator', ['T']);
 enumeratorType.addSuper(noMap(structureType));
 
-const valueSuffix = createGenericArgSuffixType('value', ['T'], 'T');
+const valueSuffix = createParametricArgSuffixType('value', ['T'], 'T');
 
 enumeratorType.addSuffixes(
   noMap(createArgSuffixType('next', booleanType)),

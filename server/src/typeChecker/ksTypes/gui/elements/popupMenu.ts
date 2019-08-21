@@ -1,5 +1,5 @@
 import {
-  createStructureType,
+  createType,
   createSetSuffixType,
   createArgSuffixType,
   noMap,
@@ -13,7 +13,7 @@ import { integerType } from '../../primitives/scalar';
 import { booleanType } from '../../primitives/boolean';
 import { stringType } from '../../primitives/string';
 
-export const popupMenuType = createStructureType('popupMenu');
+export const popupMenuType = createType('popupMenu');
 popupMenuType.addSuper(noMap(buttonType));
 
 popupMenuType.addSuffixes(

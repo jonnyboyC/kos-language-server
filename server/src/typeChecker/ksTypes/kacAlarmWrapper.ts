@@ -1,5 +1,5 @@
 import {
-  createStructureType,
+  createType,
   createSuffixType,
   createSetSuffixType,
   noMap,
@@ -9,7 +9,7 @@ import { stringType } from './primitives/string';
 import { scalarType } from './primitives/scalar';
 import { booleanType } from './primitives/boolean';
 
-export const kacAlarmType = createStructureType('kacAlarm');
+export const kacAlarmType = createType('kacAlarm');
 kacAlarmType.addSuper(noMap(structureType));
 
 kacAlarmType.addSuffixes(

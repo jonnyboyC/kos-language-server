@@ -1,3 +1,3 @@
-import { createStructureType } from '../../typeCreators';
+import { createType } from '../../typeCreators';
 
-export const stringType = createStructureType('string');
+export const stringType = createType('string');

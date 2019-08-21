@@ -1,5 +1,5 @@
 import {
-  createStructureType,
+  createType,
   createArgSuffixType,
   createSuffixType,
   noMap,
@@ -9,7 +9,7 @@ import { stringType } from './primitives/string';
 import { booleanType } from './primitives/boolean';
 import { scalarType } from './primitives/scalar';
 
-export const bodyAtmosphereType = createStructureType('bodyAtmosphere');
+export const bodyAtmosphereType = createType('bodyAtmosphere');
 bodyAtmosphereType.addSuper(noMap(structureType));
 
 bodyAtmosphereType.addSuffixes(

@@ -1,5 +1,5 @@
-import { createStructureType, noMap } from '../../typeCreators';
+import { createType, noMap } from '../../typeCreators';
 import { partType } from './part';
 
-export const decouplerType = createStructureType('decoupler');
+export const decouplerType = createType('decoupler');
 decouplerType.addSuper(noMap(partType));

@@ -1,5 +1,5 @@
 import {
-  createStructureType,
+  createType,
   createSuffixType,
   createArgSuffixType,
   createVarSuffixType,
@@ -16,7 +16,7 @@ import { listType } from '../collections/list';
 import { OperatorKind } from '../../types';
 import { Operator } from '../../types/operator';
 
-export const pathType = createStructureType('path');
+export const pathType = createType('path');
 pathType.addSuper(noMap(serializableType));
 
 pathType.addSuffixes(

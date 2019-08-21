@@ -1,8 +1,8 @@
 import { structureType } from '../primitives/structure';
-import { createSetSuffixType, createStructureType, noMap } from '../../typeCreators';
+import { createSetSuffixType, createType, noMap } from '../../typeCreators';
 import { integerType } from '../primitives/scalar';
 
-export const widgetStyleRectOffsetType = createStructureType('styleRectOffset');
+export const widgetStyleRectOffsetType = createType('styleRectOffset');
 widgetStyleRectOffsetType.addSuper(noMap(structureType));
 
 widgetStyleRectOffsetType.addSuffixes(

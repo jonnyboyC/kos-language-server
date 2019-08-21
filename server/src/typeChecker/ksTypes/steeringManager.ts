@@ -1,5 +1,5 @@
 import {
-  createStructureType,
+  createType,
   createArgSuffixType,
   createSetSuffixType,
   createSuffixType,
@@ -12,7 +12,7 @@ import { voidType } from './primitives/void';
 import { booleanType } from './primitives/boolean';
 import { scalarType } from './primitives/scalar';
 
-export const steeringManagerType = createStructureType('steeringManager');
+export const steeringManagerType = createType('steeringManager');
 steeringManagerType.addSuper(noMap(structureType));
 
 steeringManagerType.addSuffixes(

@@ -1,5 +1,5 @@
 import {
-  createStructureType,
+  createType,
   createArgSuffixType,
   createSuffixType,
   noMap,
@@ -8,7 +8,7 @@ import { volumeItemType } from './volumeItem';
 import { lexiconType } from '../collections/lexicon';
 import { enumeratorType } from '../collections/enumerator';
 
-export const volumeDirectoryType = createStructureType('volumeDirectory');
+export const volumeDirectoryType = createType('volumeDirectory');
 volumeDirectoryType.addSuper(noMap(volumeItemType));
 
 volumeDirectoryType.addSuffixes(

@@ -1,5 +1,5 @@
-import { createStructureType } from '../../typeCreators';
+import { createType } from '../../typeCreators';
 
-export const scalarType = createStructureType('scalar');
-export const integerType = createStructureType('int');
-export const doubleType = createStructureType('double');
+export const scalarType = createType('scalar');
+export const integerType = createType('int');
+export const doubleType = createType('double');

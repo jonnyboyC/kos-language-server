@@ -1,6 +1,6 @@
 import {
   createSetSuffixType,
-  createStructureType,
+  createType,
   noMap,
 } from '../../typeCreators';
 import { boxType } from './box';
@@ -8,7 +8,7 @@ import { widgetSkinType } from './widgetSkin';
 import { scalarType } from '../primitives/scalar';
 import { booleanType } from '../primitives/boolean';
 
-export const guiWidgetType = createStructureType('gui');
+export const guiWidgetType = createType('gui');
 guiWidgetType.addSuper(noMap(boxType));
 
 guiWidgetType.addSuffixes(

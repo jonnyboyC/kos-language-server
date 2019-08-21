@@ -1,8 +1,8 @@
-import { createStructureType, createSuffixType, noMap } from '../typeCreators';
+import { createType, createSuffixType, noMap } from '../typeCreators';
 import { doubleType } from './primitives/scalar';
 import { serializableType } from './primitives/serializeableStructure';
 
-export const noteType = createStructureType('note');
+export const noteType = createType('note');
 noteType.addSuper(noMap(serializableType));
 
 noteType.addSuffixes(

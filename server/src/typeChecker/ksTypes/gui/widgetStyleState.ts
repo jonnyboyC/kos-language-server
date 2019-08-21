@@ -1,9 +1,9 @@
 import { structureType } from '../primitives/structure';
-import { createSetSuffixType, createStructureType, noMap } from '../../typeCreators';
+import { createSetSuffixType, createType, noMap } from '../../typeCreators';
 import { rgbaType } from '../rgba';
 import { stringType } from '../primitives/string';
 
-export const widgetStyleStateType = createStructureType('styleState');
+export const widgetStyleStateType = createType('styleState');
 widgetStyleStateType.addSuper(noMap(structureType));
 
 widgetStyleStateType.addSuffixes(

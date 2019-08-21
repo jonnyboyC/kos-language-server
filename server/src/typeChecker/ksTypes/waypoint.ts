@@ -1,4 +1,4 @@
-import { createStructureType, createArgSuffixType, noMap } from '../typeCreators';
+import { createType, createArgSuffixType, noMap } from '../typeCreators';
 import { structureType } from './primitives/structure';
 import { vectorType } from './collections/vector';
 import { stringType } from './primitives/string';
@@ -7,7 +7,7 @@ import { booleanType } from './primitives/boolean';
 import { geoCoordinatesType } from './geoCoordinates';
 import { bodyTargetType } from './orbital/bodyTarget';
 
-export const waypointType = createStructureType('waypoint');
+export const waypointType = createType('waypoint');
 waypointType.addSuper(noMap(structureType));
 
 waypointType.addSuffixes(

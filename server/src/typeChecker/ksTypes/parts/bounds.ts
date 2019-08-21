@@ -1,5 +1,5 @@
 import {
-  createStructureType,
+  createType,
   createSetSuffixType,
   createArgSuffixType,
   noMap,
@@ -9,7 +9,7 @@ import { scalarType } from '../primitives/scalar';
 import { vectorType } from '../collections/vector';
 import { directionType } from '../collections/direction';
 
-export const boundsType = createStructureType('bounds');
+export const boundsType = createType('bounds');
 boundsType.addSuper(noMap(structureType));
 
 boundsType.addSuffixes(

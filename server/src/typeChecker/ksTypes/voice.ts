@@ -1,5 +1,5 @@
 import {
-  createStructureType,
+  createType,
   createArgSuffixType,
   createSetSuffixType,
   noMap,
@@ -10,7 +10,7 @@ import { scalarType } from './primitives/scalar';
 import { stringType } from './primitives/string';
 import { booleanType } from './primitives/boolean';
 
-export const voiceType = createStructureType('voice');
+export const voiceType = createType('voice');
 voiceType.addSuper(noMap(structureType));
 
 voiceType.addSuffixes(
