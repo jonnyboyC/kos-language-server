@@ -4,7 +4,7 @@ import { stringType } from './primitives/string';
 import { serializableType } from './primitives/serializeableStructure';
 import { OperatorKind } from '../types';
 import { booleanType } from './primitives/boolean';
-import { Operator } from '../operator';
+import { Operator } from '../types/operator';
 
 export const timeSpanType = createStructureType('timeSpan');
 timeSpanType.addSuper(noMap(serializableType));
@@ -22,30 +22,30 @@ timeSpanType.addSuffixes(
 
 timeSpanType.addOperators(
   // +
-  new Operator(OperatorKind.plus, timeSpanType, timeSpanType),
-  new Operator(OperatorKind.plus, timeSpanType, scalarType),
+  new Operator(timeSpanType, OperatorKind.plus, timeSpanType, timeSpanType),
+  new Operator(timeSpanType, OperatorKind.plus, timeSpanType, scalarType),
   // -
-  new Operator(OperatorKind.subtract, timeSpanType, timeSpanType),
-  new Operator(OperatorKind.subtract, timeSpanType, scalarType),
+  new Operator(timeSpanType, OperatorKind.subtract, timeSpanType, timeSpanType),
+  new Operator(timeSpanType, OperatorKind.subtract, timeSpanType, scalarType),
   // *
-  new Operator(OperatorKind.multiply, timeSpanType, scalarType),
+  new Operator(timeSpanType, OperatorKind.multiply, timeSpanType, scalarType),
   // /
-  new Operator(OperatorKind.divide, timeSpanType, timeSpanType),
-  new Operator(OperatorKind.divide, timeSpanType, scalarType),
+  new Operator(timeSpanType, OperatorKind.divide, timeSpanType, timeSpanType),
+  new Operator(timeSpanType, OperatorKind.divide, timeSpanType, scalarType),
   // <
-  new Operator(OperatorKind.lessThan, booleanType, timeSpanType),
-  new Operator(OperatorKind.lessThan, booleanType, scalarType),
+  new Operator(timeSpanType, OperatorKind.lessThan, booleanType, timeSpanType),
+  new Operator(timeSpanType, OperatorKind.lessThan, booleanType, scalarType),
   // >
-  new Operator(OperatorKind.greaterThan, booleanType, timeSpanType),
-  new Operator(OperatorKind.greaterThan, booleanType, scalarType),
+  new Operator(timeSpanType, OperatorKind.greaterThan, booleanType, timeSpanType),
+  new Operator(timeSpanType, OperatorKind.greaterThan, booleanType, scalarType),
   // >=
-  new Operator(OperatorKind.greaterThanEqual, booleanType, timeSpanType),
-  new Operator(OperatorKind.greaterThanEqual, booleanType, scalarType),
+  new Operator(timeSpanType, OperatorKind.greaterThanEqual, booleanType, timeSpanType),
+  new Operator(timeSpanType, OperatorKind.greaterThanEqual, booleanType, scalarType),
   // <=
-  new Operator(OperatorKind.lessThanEqual, booleanType, timeSpanType),
-  new Operator(OperatorKind.lessThanEqual, booleanType, scalarType),
+  new Operator(timeSpanType, OperatorKind.lessThanEqual, booleanType, timeSpanType),
+  new Operator(timeSpanType, OperatorKind.lessThanEqual, booleanType, scalarType),
   // <>
-  new Operator(OperatorKind.notEqual, booleanType, timeSpanType),
+  new Operator(timeSpanType, OperatorKind.notEqual, booleanType, timeSpanType),
   // =
-  new Operator(OperatorKind.equal, booleanType, timeSpanType),
+  new Operator(timeSpanType, OperatorKind.equal, booleanType, timeSpanType),
 );

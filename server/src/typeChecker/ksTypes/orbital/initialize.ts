@@ -34,7 +34,7 @@ import { crewType } from '../crew';
 import { vesselSensorsType } from '../vessel/vesselSensors';
 import { OperatorKind } from '../../types';
 import { boundsType } from '../parts/bounds';
-import { Operator } from '../../operator';
+import { Operator } from '../../types/operator';
 
 let set = false;
 
@@ -103,8 +103,8 @@ export const orbitalInitializer = () => {
   );
 
   bodyTargetType.addOperators(
-    new Operator(OperatorKind.equal, booleanType, bodyTargetType),
-    new Operator(OperatorKind.notEqual, booleanType, bodyTargetType),
+    new Operator(bodyTargetType, OperatorKind.equal, booleanType, bodyTargetType),
+    new Operator(bodyTargetType, OperatorKind.notEqual, booleanType, bodyTargetType),
   );
 
   vesselTargetType.addSuper(noMap(orbitableType));
@@ -249,7 +249,7 @@ export const orbitalInitializer = () => {
   );
 
   vesselTargetType.addOperators(
-    new Operator(OperatorKind.equal, booleanType, vesselTargetType),
-    new Operator(OperatorKind.notEqual, booleanType, vesselTargetType),
+    new Operator(vesselTargetType, OperatorKind.equal, booleanType, vesselTargetType),
+    new Operator(vesselTargetType, OperatorKind.notEqual, booleanType, vesselTargetType),
   );
 };

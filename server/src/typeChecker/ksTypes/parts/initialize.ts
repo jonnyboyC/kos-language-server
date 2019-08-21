@@ -18,7 +18,7 @@ import { vesselTargetType } from '../orbital/vesselTarget';
 import { partModuleType } from './partModule';
 import { OperatorKind } from '../../types';
 import { boundsType } from './bounds';
-import { Operator } from '../../operator';
+import { Operator } from '../../types/operator';
 
 let set = false;
 
@@ -66,8 +66,8 @@ export const partInitializer = () => {
   );
 
   partType.addOperators(
-    new Operator(OperatorKind.equal, booleanType, partType),
-    new Operator(OperatorKind.notEqual, booleanType, partType),
+    new Operator(partType, OperatorKind.equal, booleanType, partType),
+    new Operator(partType, OperatorKind.notEqual, booleanType, partType),
   );
 
   // -------------------- partmodule ---------------------------

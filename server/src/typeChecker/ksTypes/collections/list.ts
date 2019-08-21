@@ -4,6 +4,7 @@ import {
   createGenericArgSuffixType,
   noMap,
   mapTypes,
+  createIndexer,
 } from '../../typeCreators';
 import { voidType } from '../primitives/void';
 import { scalarType, integerType } from '../primitives/scalar';
@@ -12,6 +13,9 @@ import { stringType } from '../primitives/string';
 
 export const listType = createGenericStructureType('list', ['T']);
 listType.addSuper(mapTypes(listType, collectionType));
+
+const indexer = createIndexer(['T'], scalarType, 'T');
+listType.addIndexer(mapTypes(listType, indexer));
 
 const addSuffix = createGenericArgSuffixType('add', ['T'], voidType, 'T');
 const insertSuffix = createGenericArgSuffixType(

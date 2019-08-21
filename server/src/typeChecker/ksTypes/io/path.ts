@@ -14,7 +14,7 @@ import { booleanType } from '../primitives/boolean';
 import { serializableType } from '../primitives/serializeableStructure';
 import { listType } from '../collections/list';
 import { OperatorKind } from '../../types';
-import { Operator } from '../../operator';
+import { Operator } from '../../types/operator';
 
 export const pathType = createStructureType('path');
 pathType.addSuper(noMap(serializableType));
@@ -35,6 +35,6 @@ pathType.addSuffixes(
 );
 
 pathType.addOperators(
-  new Operator(OperatorKind.equal, booleanType, pathType),
-  new Operator(OperatorKind.notEqual, booleanType, pathType),
+  new Operator(pathType, OperatorKind.equal, booleanType, pathType),
+  new Operator(pathType, OperatorKind.notEqual, booleanType, pathType),
 );

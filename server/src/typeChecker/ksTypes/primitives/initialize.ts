@@ -16,7 +16,9 @@ import { delegateType } from './delegate';
 import { OperatorKind } from '../../types';
 import { iterator } from '../../../utilities/constants';
 import { enumeratorType } from '../collections/enumerator';
-import { Operator } from '../../operator';
+import { Operator } from '../../types/operator';
+import { Indexer } from '../../types/indexer';
+import { CallSignature } from '../../types/callSignature';
 
 let set = false;
 
@@ -45,17 +47,30 @@ export const primitiveInitializer = () => {
 
   // ------------------ string ---------------------------
   stringType.addOperators(
-    new Operator(OperatorKind.plus, stringType, stringType),
-    new Operator(OperatorKind.greaterThan, booleanType, stringType),
-    new Operator(OperatorKind.lessThan, booleanType, stringType),
-    new Operator(OperatorKind.greaterThanEqual, booleanType, stringType),
-    new Operator(OperatorKind.lessThanEqual, booleanType, stringType),
-    new Operator(OperatorKind.equal, booleanType, stringType),
-    new Operator(OperatorKind.notEqual, booleanType, stringType),
+    new Operator(stringType, OperatorKind.plus, stringType, stringType),
+    new Operator(stringType, OperatorKind.greaterThan, booleanType, stringType),
+    new Operator(stringType, OperatorKind.lessThan, booleanType, stringType),
+    new Operator(
+      stringType,
+      OperatorKind.greaterThanEqual,
+      booleanType,
+      stringType,
+    ),
+    new Operator(
+      stringType,
+      OperatorKind.lessThanEqual,
+      booleanType,
+      stringType,
+    ),
+    new Operator(stringType, OperatorKind.equal, booleanType, stringType),
+    new Operator(stringType, OperatorKind.notEqual, booleanType, stringType),
   );
   stringType.addCoercion(structureType);
-
   stringType.addSuper(noMap(primitiveType));
+  stringType.addIndexer(
+    noMap(new Indexer(new CallSignature([scalarType], stringType), new Map())),
+  );
+
   stringType.addSuffixes(
     noMap(createArgSuffixType('length', scalarType)),
     noMap(createArgSuffixType('substring', stringType, scalarType, scalarType)),
@@ -70,9 +85,7 @@ export const primitiveInitializer = () => {
     noMap(createArgSuffixType('padright', stringType, scalarType)),
     noMap(createArgSuffixType('remove', stringType, scalarType, scalarType)),
     noMap(createArgSuffixType('replace', stringType, stringType, stringType)),
-    noMap(
-      createArgSuffixType('split', listType.apply(stringType), stringType),
-    ),
+    noMap(createArgSuffixType('split', listType.apply(stringType), stringType)),
     noMap(createArgSuffixType('startswith', booleanType, stringType)),
     noMap(createArgSuffixType('tolower', stringType)),
     noMap(createArgSuffixType('toupper', stringType)),
@@ -92,18 +105,28 @@ export const primitiveInitializer = () => {
 
   // ------------------ scalar ---------------------------
   scalarType.addOperators(
-    new Operator(OperatorKind.plus, scalarType, scalarType),
-    new Operator(OperatorKind.subtract, scalarType, scalarType),
-    new Operator(OperatorKind.multiply, scalarType, scalarType),
-    new Operator(OperatorKind.divide, scalarType, scalarType),
-    new Operator(OperatorKind.power, scalarType, scalarType),
-    new Operator(OperatorKind.greaterThan, booleanType, scalarType),
-    new Operator(OperatorKind.lessThan, booleanType, scalarType),
-    new Operator(OperatorKind.greaterThanEqual, booleanType, scalarType),
-    new Operator(OperatorKind.lessThanEqual, booleanType, scalarType),
-    new Operator(OperatorKind.notEqual, booleanType, scalarType),
-    new Operator(OperatorKind.equal, booleanType, scalarType),
-    new Operator(OperatorKind.negate, scalarType),
+    new Operator(scalarType, OperatorKind.plus, scalarType, scalarType),
+    new Operator(scalarType, OperatorKind.subtract, scalarType, scalarType),
+    new Operator(scalarType, OperatorKind.multiply, scalarType, scalarType),
+    new Operator(scalarType, OperatorKind.divide, scalarType, scalarType),
+    new Operator(scalarType, OperatorKind.power, scalarType, scalarType),
+    new Operator(scalarType, OperatorKind.greaterThan, booleanType, scalarType),
+    new Operator(scalarType, OperatorKind.lessThan, booleanType, scalarType),
+    new Operator(
+      scalarType,
+      OperatorKind.greaterThanEqual,
+      booleanType,
+      scalarType,
+    ),
+    new Operator(
+      scalarType,
+      OperatorKind.lessThanEqual,
+      booleanType,
+      scalarType,
+    ),
+    new Operator(scalarType, OperatorKind.notEqual, booleanType, scalarType),
+    new Operator(scalarType, OperatorKind.equal, booleanType, scalarType),
+    new Operator(scalarType, OperatorKind.negate, scalarType),
   );
   scalarType.addCoercion(booleanType, stringType);
   scalarType.addSuper(noMap(primitiveType));
@@ -128,10 +151,10 @@ export const primitiveInitializer = () => {
 
   // ------------------ boolean ---------------------------
   booleanType.addOperators(
-    new Operator(OperatorKind.notEqual, booleanType, booleanType),
-    new Operator(OperatorKind.equal, booleanType, booleanType),
-    new Operator(OperatorKind.and, booleanType, booleanType),
-    new Operator(OperatorKind.or, booleanType, booleanType),
+    new Operator(booleanType, OperatorKind.notEqual, booleanType, booleanType),
+    new Operator(booleanType, OperatorKind.equal, booleanType, booleanType),
+    new Operator(booleanType, OperatorKind.and, booleanType, booleanType),
+    new Operator(booleanType, OperatorKind.or, booleanType, booleanType),
   );
   booleanType.addCoercion(scalarType, stringType);
   booleanType.addSuper(noMap(primitiveType));

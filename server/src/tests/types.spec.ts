@@ -15,7 +15,7 @@ import { listType } from '../typeChecker/ksTypes/collections/list';
 import { collectionType } from '../typeChecker/ksTypes/collections/enumerable';
 import { scalarType } from '../typeChecker/ksTypes/primitives/scalar';
 import { TypeKind } from '../typeChecker/types';
-import { ParametricType } from '../typeChecker/types/parametricType';
+import { ParametricType } from '../typeChecker/parametricTypes/parametricType';
 import { Type } from '../typeChecker/types/type';
 
 typeInitializer();
@@ -48,7 +48,7 @@ describe('Type Utilities', () => {
     expect(exampleType.access.set).toBe(true);
     expect(exampleType.getCallSignature()).toBeUndefined();
     expect(exampleType.getAssignmentType()).toBe(exampleType);
-    expect(exampleType.typeArguments.get(parameters[0])).toBe(stringType);
+    expect(parameters[0].name).toBe('T');
     expect(exampleType.anyType).toBe(false);
     expect(exampleType.getSuperType()).toBeUndefined();
 
@@ -124,19 +124,19 @@ describe('Type Utilities', () => {
 
     cType.addSuffixes(noMap(createArgSuffixType('example', dType, dType)));
 
-    expect(aType.getSuffix('example1')).toBeDefined();
-    expect(aType.getSuffix('example2')).toBeDefined();
-    expect(aType.getSuffix('example3')).toBeUndefined();
+    expect(aType.getSuffixes().get('example1')).toBeDefined();
+    expect(aType.getSuffixes().get('example2')).toBeDefined();
+    expect(aType.getSuffixes().get('example3')).toBeUndefined();
 
-    expect(bType.getSuffix('example1')).toBeDefined();
-    expect(bType.getSuffix('example2')).toBeDefined();
-    expect(bType.getSuffix('example3')).toBeDefined();
-    expect(bType.getSuffix('other')).toBeUndefined();
+    expect(bType.getSuffixes().get('example1')).toBeDefined();
+    expect(bType.getSuffixes().get('example2')).toBeDefined();
+    expect(bType.getSuffixes().get('example3')).toBeDefined();
+    expect(bType.getSuffixes().get('other')).toBeUndefined();
 
-    expect(cType.getSuffix('example')).toBeDefined();
-    expect(cType.getSuffix('other')).toBeUndefined();
+    expect(cType.getSuffixes().get('example')).toBeDefined();
+    expect(cType.getSuffixes().get('other')).toBeUndefined();
 
-    expect(dType.getSuffix('any')).toBeUndefined();
+    expect(dType.getSuffixes().get('any')).toBeUndefined();
   });
 
   test('Can Coerce', () => {
@@ -201,8 +201,8 @@ describe('Type Utilities', () => {
     example.addSuffixes(noMap(createSuffixType('suffix1', stringType)));
 
     expect(example.getSuperType()).toBeUndefined();
-    expect(example.getSuffix('suffix1')).toBeDefined();
-    expect(example.getSuffix('suffix2')).toBeUndefined();
+    expect(example.getSuffixes().get('suffix1')).toBeDefined();
+    expect(example.getSuffixes().get('suffix2')).toBeUndefined();
 
     const superExample = new Type(
       'superExample',
@@ -215,7 +215,7 @@ describe('Type Utilities', () => {
     example.addSuper(noMap(superExample));
 
     expect(example.getSuperType()).toBeDefined();
-    expect(example.getSuffix('suffix1')).toBeDefined();
-    expect(example.getSuffix('suffix2')).toBeDefined();
+    expect(example.getSuffixes().get('suffix1')).toBeDefined();
+    expect(example.getSuffixes().get('suffix2')).toBeDefined();
   });
 });

@@ -2,12 +2,12 @@ import {
   IType,
   Access,
   TypeKind,
-  TypeMap,
   ICallSignature,
   OperatorKind,
   IParametricType,
+  IIndexer,
 } from '../types';
-import { Operator } from '../operator';
+import { Operator } from './operator';
 import { TypeTracker } from '../../analysis/typeTracker';
 
 export class VariadicType implements IType {
@@ -15,7 +15,7 @@ export class VariadicType implements IType {
   public readonly name: string;
   public readonly access: Access;
   public readonly kind: TypeKind;
-  private readonly base: IType;
+  public readonly base: IType;
 
   constructor(base: IType) {
     this.base = base;
@@ -25,18 +25,6 @@ export class VariadicType implements IType {
     this.anyType = false;
   }
 
-  public addSuper(_: TypeMap<IType>): void {
-    throw new Error('Method not implemented.');
-  }
-  public addCoercion(..._: IType[]): void {
-    throw new Error('Method not implemented.');
-  }
-  public addSuffixes(..._: TypeMap<IType>[]): void {
-    throw new Error('Method not implemented.');
-  }
-  public addOperators(..._: Operator<IType>[]): void {
-    throw new Error('Method not implemented.');
-  }
   public isSubtypeOf(type: IType): boolean {
     return this === type;
   }
@@ -48,6 +36,9 @@ export class VariadicType implements IType {
   }
   public getCallSignature(): Maybe<ICallSignature> {
     return undefined;
+  }
+  public getIndexer(): Maybe<IIndexer> {
+    throw undefined;
   }
   public getTypeParameters(): IParametricType[] {
     return [];

@@ -6,9 +6,11 @@ import {
   IParametricCallSignature,
   OperatorKind,
   IType,
+  IParametricIndexer,
+  ITypeMappable,
 } from '../types';
-import { Operator } from '../operator';
-import { TypeBinding as TypeBinder } from '../typeBinder';
+import { Operator } from '../types/operator';
+import { TypeBinder } from '../binders/typeBinder';
 import { empty } from '../../utilities/typeGuards';
 
 /**
@@ -38,32 +40,37 @@ export class ParametricType implements IParametricType {
   /**
    * What is the call signature of this type
    */
-  private callSignature?: TypeMap<IParametricCallSignature>;
+  protected callSignature?: TypeMap<IParametricCallSignature>;
 
   /**
    * What is the super type of this type
    */
-  private superType?: TypeMap<IParametricType>;
+  protected superType?: TypeMap<IParametricType>;
+
+  /**
+   * What is the indexer of this type
+   */
+  protected indexer?: TypeMap<IParametricIndexer>;
 
   /**
    * What are the suffixes of this type
    */
-  private suffixes: Map<string, TypeMap<IParametricType>>;
+  protected suffixes: Map<string, TypeMap<IParametricType>>;
 
   /**
    * What are the operators of this type
    */
-  private operators: Map<OperatorKind, Operator<IParametricType>[]>;
+  protected operators: Map<OperatorKind, Operator<IParametricType>[]>;
 
   /**
    * The type binder
    */
-  private binder: TypeBinder;
+  protected binder: TypeBinder;
 
   /**
    * What are the coercible type
    */
-  private coercibleTypes: Set<IParametricType>;
+  protected coercibleTypes: Set<IParametricType>;
 
   /**
    * Construct a new parametric type
@@ -85,6 +92,7 @@ export class ParametricType implements IParametricType {
     this.binder = new TypeBinder(typeParameters);
 
     this.superType = undefined;
+    this.indexer = undefined;
     this.suffixes = new Map();
     this.coercibleTypes = new Set();
     this.operators = new Map();
@@ -95,6 +103,7 @@ export class ParametricType implements IParametricType {
    * @param callSignature call signature
    */
   public addCallSignature(callSignature: TypeMap<IParametricCallSignature>) {
+    this.checkMapping(callSignature);
     this.callSignature = callSignature;
   }
 
@@ -109,15 +118,23 @@ export class ParametricType implements IParametricType {
 
     // check if super has type parameters
     this.checkMapping(type);
-
     this.superType = type;
+  }
+
+  public addIndexer(indexer: TypeMap<IParametricIndexer>): void {
+    if (!empty(this.indexer)) {
+      throw new Error(`Indexer for ${this.name} has already been set.`);
+    }
+
+    this.checkMapping(indexer);
+    this.indexer = indexer;
   }
 
   /**
    * Check that the type map is applicable to this type
    * @param typeMap type map
    */
-  private checkMapping(typeMap: TypeMap<IParametricType>): void {
+  private checkMapping(typeMap: TypeMap<ITypeMappable>): void {
     const { type, mapping } = typeMap;
 
     // check if super has type parameters
@@ -216,9 +233,9 @@ export class ParametricType implements IParametricType {
       // check to make sure we didn't add two operators with the same
       // other operand
       for (const existingOperator of operatorsKind) {
-        if (existingOperator.otherOperand === operator.otherOperand) {
+        if (existingOperator.secondOperand === operator.secondOperand) {
           let message: string;
-          const { otherOperand } = existingOperator;
+          const { secondOperand: otherOperand } = existingOperator;
           if (empty(otherOperand)) {
             message =
               `Operator of kind ${OperatorKind[operator.operator]}` +
@@ -310,6 +327,13 @@ export class ParametricType implements IParametricType {
   }
 
   /**
+   * Get the indexer of this type
+   */
+  public getIndexer(): Maybe<IParametricIndexer> {
+    return this.indexer && this.indexer.type;
+  }
+
+  /**
    * Get the coercions of this type
    */
   public getCoercions(): Set<IParametricType> {
@@ -351,11 +375,11 @@ export class ParametricType implements IParametricType {
 
     for (const operator of operators) {
       // check if operator is unary other see if it can coerced into other operand
-      if (empty(operator.otherOperand)) {
+      if (empty(operator.secondOperand)) {
         if (empty(other)) {
           return operator;
         }
-      } else if (!empty(other) && operator.otherOperand.canCoerceFrom(other)) {
+      } else if (!empty(other) && operator.secondOperand.canCoerceFrom(other)) {
         return operator;
       }
     }
@@ -388,14 +412,15 @@ export class ParametricType implements IParametricType {
     return `${typeParameterStr}${this.callSignature.type.toString()}`;
   }
 
-  public apply(typeSubstitutions: Map<IType, IType> | IType): IType {
-    if (typeSubstitutions instanceof Map) {
-      return this.binder.replace(
+  public apply(typeArguments: Map<IParametricType, IType> | IType): IType {
+    if (typeArguments instanceof Map) {
+      return this.binder.apply(
         this,
-        typeSubstitutions,
+        typeArguments,
         this.suffixes,
         this.callSignature,
         this.superType,
+        this.indexer,
       );
     }
 
@@ -405,12 +430,13 @@ export class ParametricType implements IParametricType {
         'Must provide a type map if more than one parameter is present.',
       );
     }
-    return this.binder.replace(
+    return this.binder.apply(
       this,
-      new Map([[typeParameters[0], typeSubstitutions]]),
+      new Map([[typeParameters[0], typeArguments]]),
       this.suffixes,
       this.callSignature,
       this.superType,
+      this.indexer,
     );
   }
 }

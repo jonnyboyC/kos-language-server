@@ -6,7 +6,7 @@ import {
   noMap,
 } from '../../typeCreators';
 import { scalarType } from '../primitives/scalar';
-import { Operator } from '../../operator';
+import { Operator } from '../../types/operator';
 import { OperatorKind } from '../../types';
 import { booleanType } from '../primitives/boolean';
 import { directionType } from './direction';
@@ -33,14 +33,14 @@ export const collectionInitializer = () => {
   );
 
   vectorType.addOperators(
-    new Operator(OperatorKind.plus, vectorType, vectorType),
-    new Operator(OperatorKind.subtract, vectorType, vectorType),
-    new Operator(OperatorKind.multiply, scalarType, vectorType),
-    new Operator(OperatorKind.multiply, vectorType, scalarType),
-    new Operator(OperatorKind.divide, vectorType, scalarType),
-    new Operator(OperatorKind.equal, booleanType, vectorType),
-    new Operator(OperatorKind.notEqual, booleanType, vectorType),
-    new Operator(OperatorKind.negate, vectorType),
+    new Operator(vectorType, OperatorKind.plus, vectorType, vectorType),
+    new Operator(vectorType, OperatorKind.subtract, vectorType, vectorType),
+    new Operator(vectorType, OperatorKind.multiply, scalarType, vectorType),
+    new Operator(vectorType, OperatorKind.multiply, vectorType, scalarType),
+    new Operator(vectorType, OperatorKind.divide, vectorType, scalarType),
+    new Operator(vectorType, OperatorKind.equal, booleanType, vectorType),
+    new Operator(vectorType, OperatorKind.notEqual, booleanType, vectorType),
+    new Operator(vectorType, OperatorKind.negate, vectorType),
   );
   vectorType.addCoercion(directionType);
 
@@ -59,13 +59,13 @@ export const collectionInitializer = () => {
   );
 
   directionType.addOperators(
-    new Operator(OperatorKind.multiply, directionType, directionType),
-    new Operator(OperatorKind.multiply, vectorType, vectorType),
-    new Operator(OperatorKind.plus, directionType, directionType),
-    new Operator(OperatorKind.plus, vectorType, vectorType),
-    new Operator(OperatorKind.subtract, directionType, directionType),
-    new Operator(OperatorKind.equal, vectorType, vectorType),
-    new Operator(OperatorKind.notEqual, vectorType, vectorType),
-    new Operator(OperatorKind.negate, directionType),
+    new Operator(directionType, OperatorKind.multiply, directionType, directionType),
+    new Operator(directionType, OperatorKind.multiply, vectorType, vectorType),
+    new Operator(directionType, OperatorKind.plus, directionType, directionType),
+    new Operator(directionType, OperatorKind.plus, vectorType, vectorType),
+    new Operator(directionType, OperatorKind.subtract, directionType, directionType),
+    new Operator(directionType, OperatorKind.equal, vectorType, vectorType),
+    new Operator(directionType, OperatorKind.notEqual, vectorType, vectorType),
+    new Operator(directionType, OperatorKind.negate, directionType),
   );
 };

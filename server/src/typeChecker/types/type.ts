@@ -6,9 +6,10 @@ import {
   IParametricType,
   OperatorKind,
   TypeMap,
+  IIndexer,
 } from '../types';
 import { TypeTracker } from '../../analysis/typeTracker';
-import { Operator } from '../operator';
+import { Operator } from './operator';
 import { KsSuffix } from '../../entities/suffix';
 import { empty } from '../../utilities/typeGuards';
 
@@ -55,6 +56,11 @@ export class Type implements IType {
    * The super type if any for this type
    */
   private superType?: IType;
+
+  /**
+   * The indexer of this type if any
+   */
+  private indexer?: IIndexer;
 
   /**
    * The parametric type this type derives from
@@ -127,6 +133,18 @@ export class Type implements IType {
   }
 
   /**
+   * Add an indexer to this type
+   * @param indexer indexer to add
+   */
+  public addIndexer(indexer: TypeMap<IIndexer>): void {
+    if (!empty(this.indexer)) {
+      throw new Error(`Indexer type for ${this.name} has already been set.`);
+    }
+
+    this.indexer = indexer.type;
+  }
+
+  /**
    * Add new coercions to this type
    * @param types type to new coercions
    */
@@ -182,9 +200,9 @@ export class Type implements IType {
       // check to make sure we didn't add two operators with the same
       // other operand
       for (const existingOperator of operatorsKind) {
-        if (existingOperator.otherOperand === operator.otherOperand) {
+        if (existingOperator.secondOperand === operator.secondOperand) {
           let message: string;
-          const { otherOperand } = existingOperator;
+          const { secondOperand: otherOperand } = existingOperator;
           if (empty(otherOperand)) {
             message =
               `Operator of kind ${OperatorKind[operator.operator]}` +
@@ -290,6 +308,17 @@ export class Type implements IType {
   }
 
   /**
+   * Get the indexer of this type
+   */
+  public getIndexer(): Maybe<IIndexer> {
+    if (!empty(this.indexer)) {
+      return this.indexer;
+    }
+
+    return this.superType && this.superType.getIndexer();
+  }
+
+  /**
    * Get the tracker of this type
    */
   public getTracker(): TypeTracker {
@@ -350,11 +379,11 @@ export class Type implements IType {
 
     for (const operator of operators) {
       // check if operator is unary other see if it can coerced into other operand
-      if (empty(operator.otherOperand)) {
+      if (empty(operator.secondOperand)) {
         if (empty(other)) {
           return operator;
         }
-      } else if (!empty(other) && operator.otherOperand.canCoerceFrom(other)) {
+      } else if (!empty(other) && operator.secondOperand.canCoerceFrom(other)) {
         return operator;
       }
     }

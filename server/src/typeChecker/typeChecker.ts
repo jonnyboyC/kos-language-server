@@ -20,7 +20,6 @@ import { iterator } from '../utilities/constants';
 import { TokenType } from '../entities/tokentypes';
 import { nodeType } from './ksTypes/node';
 import { createFunctionType } from './typeCreators';
-import { lexiconType } from './ksTypes/collections/lexicon';
 import { zip } from '../utilities/arrayUtils';
 import { binaryOperatorMap, unaryOperatorMap } from './typeUtilities';
 import { voidType } from './ksTypes/primitives/void';
@@ -34,7 +33,6 @@ import {
 import {
   suffixError,
   delegateCreation,
-  arrayBracketIndexer,
   arrayIndexer,
   functionError,
 } from './typeHelpers';
@@ -60,7 +58,7 @@ import { vesselSensorsType } from './ksTypes/vessel/vesselSensors';
 import { kosProcessorFieldsType } from './ksTypes/kosProcessorFields';
 import { elementType } from './ksTypes/parts/element';
 import { aggregateResourceType } from './ksTypes/parts/aggregateResource';
-import { Operator } from './operator';
+import { Operator } from './types/operator';
 import { VariadicType } from './types/variadicType';
 
 type Diagnostics = Diagnostic[];
@@ -611,11 +609,11 @@ export class TypeChecker
     const { tracker } = stmt.element;
 
     if (this.isBasicTracker(tracker)) {
-      const collectionIterator = type.getSuffixes.get(iterator);
+      const collectionIterator = type.getSuffixes().get(iterator);
 
       if (!empty(collectionIterator)) {
         const enumerator = collectionIterator.getAssignmentType();
-        const value = enumerator.getSuffix('value');
+        const value = enumerator.getSuffixes().get('value');
 
         const setType = (value && value.getAssignmentType()) || structureType;
         tracker.declareType(setType);
@@ -1440,84 +1438,46 @@ export class TypeChecker
     const errors = indexResult.errors;
     const type = builder.current().getAssignmentType();
 
-    let indexer: Maybe<IType> = undefined;
-
-    // if we know the collection type is a list we need a scalar indexer
-    if (listType.canCoerceFrom(type)) {
-      // const parameters = type.getTypeParameters();
-
-      indexer = arrayBracketIndexer(
-        type,
-        scalarType,
-        structureType,
-      );
-      builder.nodes.push(new TypeNode(indexer, suffixTerm));
-
-      if (!scalarType.canCoerceFrom(indexResult.type)) {
-        errors.push(
-          createDiagnostic(
-            suffixTerm.index,
-            'Can only use scalars as list index' +
-              'This may not able to be coerced into scalar type',
-            DiagnosticSeverity.Hint,
-          ),
-        );
-      }
-    }
-
-    // if we know the collection type is a lexicon we need a string indexer
-    if (lexiconType.canCoerceFrom(type)) {
-      indexer = arrayBracketIndexer(type, stringType, structureType);
-      builder.nodes.push(new TypeNode(indexer, suffixTerm));
-
-      if (!stringType.canCoerceFrom(indexResult.type)) {
-        errors.push(
-          createDiagnostic(
-            suffixTerm.index,
-            'Can only use a string as a lexicon index.' +
-              'This may not able to be coerced into string type',
-            DiagnosticSeverity.Hint,
-          ),
-        );
-      }
-    }
-
-    // if we know the collection type is a string we need a scalar indexer
-    if (stringType.canCoerceFrom(type)) {
-      indexer = arrayBracketIndexer(type, scalarType, stringType);
-      builder.nodes.push(new TypeNode(indexer, suffixTerm));
-
-      if (!scalarType.canCoerceFrom(indexResult.type)) {
-        errors.push(
-          createDiagnostic(
-            suffixTerm.index,
-            'Can only use a scalar as a string index.' +
-              'This may not able to be coerced into scalar type',
-            DiagnosticSeverity.Hint,
-          ),
-        );
-      }
-    }
-
-    // if couldn't coerce into one of our collection types
-    // insert error node
+    const indexer = type.getIndexer();
     if (empty(indexer)) {
       builder.nodes.push(new TypeNode(suffixError, suffixTerm));
 
       errors.push(
         createDiagnostic(
           suffixTerm,
-          'Can only index a list, lexicon or string',
+          `${type.toString()} does not have indexer`,
           DiagnosticSeverity.Hint,
         ),
       );
 
       suffixTerm.open.tracker = suffixError.getTracker();
       suffixTerm.close.tracker = suffixError.getTracker();
-    } else {
-      suffixTerm.open.tracker = indexer.getTracker();
-      suffixTerm.close.tracker = indexer.getTracker();
+      return errors;
     }
+
+    const callSignature = indexer.getCallSignature();
+    if (empty(callSignature)) {
+      throw new Error('Indexer should have filled call signature');
+    }
+
+    builder.nodes.push(new TypeNode(indexer, suffixTerm));
+
+    // check that index can be coerced into requested type
+    if (!callSignature.params()[0].canCoerceFrom(indexResult.type)) {
+      errors.push(
+        createDiagnostic(
+          suffixTerm.index,
+          `${indexer.toString()} may indexed with of type ${
+            callSignature.params()[0]
+          }` + ` ${suffixTerm.toString()} is of type ${indexResult.type}`,
+          DiagnosticSeverity.Hint,
+        ),
+      );
+    }
+
+    // assign trackers
+    suffixTerm.open.tracker = indexer.getTracker();
+    suffixTerm.close.tracker = indexer.getTracker();
 
     return errors;
   }
@@ -1600,9 +1560,9 @@ export class TypeChecker
     // if we're a trailer check for suffixes
     if (builder.isTrailer()) {
       const type = builder.current();
-      const suffix = this.builderResult(builder).getSuffixes().get(
-        suffixTerm.token.lookup,
-      );
+      const suffix = this.builderResult(builder)
+        .getSuffixes()
+        .get(suffixTerm.token.lookup);
 
       // may need to pass something in about if we're in get set context
       if (!empty(suffix)) {
@@ -1889,7 +1849,7 @@ export class TypeChecker
         continue;
       }
 
-      const { otherOperand, returnType } = operator;
+      const { secondOperand: otherOperand, returnType } = operator;
       if (!empty(otherOperand) && otherOperand.canCoerceFrom(rightType)) {
         return { errors, type: returnType };
       }

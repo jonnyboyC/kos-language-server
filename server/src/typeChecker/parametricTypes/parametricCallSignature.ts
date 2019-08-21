@@ -5,9 +5,7 @@ import {
   IParametricType,
   TypeMap,
 } from '../types';
-import { voidType } from '../ksTypes/primitives/void';
-import { CallTypeBinding as CallTypeBinder } from '../calltypeBinder';
-import { noMap } from '../typeCreators';
+import { CallBinder } from '../binders/callBinder';
 import { empty } from '../../utilities/typeGuards';
 
 /**
@@ -24,17 +22,17 @@ export class GenericCallSignature implements IParametricCallSignature {
   /**
    * type parameters mappings to parameters
    */
-  private paramMaps: TypeMap<IParametricType>[];
+  private paramMaps?: TypeMap<IParametricType>[];
 
   /**
    * type paramter mapping to return
    */
-  private returnMaps: TypeMap<IParametricType>;
+  private returnMaps?: TypeMap<IParametricType>;
 
   /**
    * The call type binder
    */
-  private readonly binder: CallTypeBinder;
+  private readonly binder: CallBinder;
 
   /**
    * Construct a new parametric call signature
@@ -42,9 +40,9 @@ export class GenericCallSignature implements IParametricCallSignature {
    */
   constructor(typeParameters: string[]) {
     this.name = 'Call Signature';
-    this.binder = new CallTypeBinder(typeParameters);
-    this.paramMaps = [];
-    this.returnMaps = noMap(voidType);
+    this.binder = new CallBinder(typeParameters);
+    this.paramMaps = undefined;
+    this.returnMaps = undefined;
   }
 
   /**
@@ -52,6 +50,10 @@ export class GenericCallSignature implements IParametricCallSignature {
    * @param paramMaps parameters to add
    */
   public addParams(...paramMaps: TypeMap<IParametricType>[]) {
+    if (!empty(this.paramMaps)) {
+      throw new Error('Parameters already set');
+    }
+
     for (const paramMap of paramMaps) {
       this.checkMapping(paramMap);
     }
@@ -64,6 +66,10 @@ export class GenericCallSignature implements IParametricCallSignature {
    * @param returnMaps return to add
    */
   public addReturn(returnMaps: TypeMap<IParametricType>) {
+    if (!empty(this.returnMaps)) {
+      throw new Error('Return already set');
+    }
+
     this.checkMapping(returnMaps);
 
     this.returnMaps = returnMaps;
@@ -117,6 +123,10 @@ export class GenericCallSignature implements IParametricCallSignature {
    * Call signature parameters
    */
   public params() {
+    if (empty(this.paramMaps)) {
+      throw new Error('Parameters not set');
+    }
+
     return this.paramMaps.map(p => p.type);
   }
 
@@ -124,6 +134,10 @@ export class GenericCallSignature implements IParametricCallSignature {
    * Call signature return
    */
   public returns() {
+    if (empty(this.returnMaps)) {
+      throw new Error('Return not set');
+    }
+
     return this.returnMaps.type;
   }
 
@@ -134,14 +148,13 @@ export class GenericCallSignature implements IParametricCallSignature {
   public apply(
     typeArguments: IType | Map<IParametricType, IType>,
   ): ICallSignature {
+    if (empty(this.returnMaps) || empty(this.paramMaps)) {
+      throw new Error('Call signature not set cannot apply arguments');
+    }
 
     // if we're an actual mapping just begin the binding
     if (typeArguments instanceof Map) {
-      return this.binder.replace(
-        typeArguments,
-        this.paramMaps,
-        this.returnMaps,
-      );
+      return this.binder.apply(typeArguments, this.paramMaps, this.returnMaps);
     }
 
     // use short hand check that only one type parameter exists
@@ -152,7 +165,7 @@ export class GenericCallSignature implements IParametricCallSignature {
       );
     }
 
-    return this.binder.replace(
+    return this.binder.apply(
       new Map([[typeParameters[0], typeArguments]]),
       this.paramMaps,
       this.returnMaps,
@@ -170,8 +183,13 @@ export class GenericCallSignature implements IParametricCallSignature {
    * Get a string representation of this call signature
    */
   public toString(): string {
-    const paramsStr = this.paramMaps.map(p => p.type.toString()).join(', ');
+    if (empty(this.returnMaps) || empty(this.paramMaps)) {
+      throw new Error(
+        'Call signature not set cannot get string representation',
+      );
+    }
 
+    const paramsStr = this.paramMaps.map(p => p.type.toString()).join(', ');
     return `(${paramsStr}) => ${this.returnMaps.type.toString()}`;
   }
 }

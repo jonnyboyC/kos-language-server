@@ -5,7 +5,6 @@ import { booleanType } from './ksTypes/primitives/boolean';
 import { integerType, doubleType } from './ksTypes/primitives/scalar';
 import { stringType } from './ksTypes/primitives/string';
 import { OperatorKind, IType, IParametricType } from './types';
-import { TypeParameter } from './typeParameter';
 
 /**
  * This map token types to binary operator kinds
@@ -71,7 +70,7 @@ export const tokenTrackedType = (token: Token): Maybe<IType> => {
 export const passThroughTypeParameter = (
   type: IParametricType,
   superType: IParametricType,
-): Map<TypeParameter, TypeParameter> => {
+): Map<IParametricType, IParametricType> => {
   const superTypeParams = superType.getTypeParameters();
   const typeParams = type.getTypeParameters();
 

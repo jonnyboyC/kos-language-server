@@ -11,9 +11,17 @@ import { userListType } from './userList';
 import { booleanType } from '../primitives/boolean';
 import { scalarType } from '../primitives/scalar';
 import { serializableType } from '../primitives/serializeableStructure';
+import { Indexer } from '../../types/indexer';
+import { CallSignature } from '../../types/callSignature';
 
 export const lexiconType = createStructureType('lexicon');
 lexiconType.addSuper(noMap(serializableType));
+
+lexiconType.addIndexer(
+  noMap(
+    new Indexer(new CallSignature([structureType], structureType), new Map()),
+  ),
+);
 
 lexiconType.addSuffixes(
   noMap(createArgSuffixType('clear', voidType)),

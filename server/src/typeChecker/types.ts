@@ -1,6 +1,6 @@
 import { Diagnostic } from 'vscode-languageserver';
 import { SuffixTypeBuilder } from './suffixTypeNode';
-import { Operator } from './operator';
+import { Operator } from './types/operator';
 import { TypeTracker } from '../analysis/typeTracker';
 
 /**
@@ -42,8 +42,9 @@ export const enum TypeKind {
   basic,
   variadic,
   suffix,
+  indexer,
   function,
-  typePlaceholder,
+  typeSlot,
 }
 
 /**
@@ -135,7 +136,7 @@ export enum OperatorKind {
  * interface for an entity with type parameters that may need to be
  * mapped to another entity
  */
-export interface ITypeMappable {
+export interface ITypeMappable<T = {}> {
   /**
    * name of this mappable type
    */
@@ -145,12 +146,18 @@ export interface ITypeMappable {
    * Get type parameters
    */
   getTypeParameters(): IParametricType[];
+
+  /**
+   * Apply type arguments to this parametric type to generate a new type
+   * @param typeArgument type arguments to apply
+   */
+  apply(typeArgument: Map<IParametricType, IType> | IType): T;
 }
 
 /**
  * A parameterized type. These are used by Kerboscript's collection types
  */
-export interface IParametricType extends ITypeMappable {
+export interface IParametricType extends ITypeMappable<IType> {
   /**
    * What access does this type possess
    */
@@ -192,6 +199,11 @@ export interface IParametricType extends ITypeMappable {
    * Get the call signature of this type
    */
   getCallSignature(): Maybe<IParametricCallSignature>;
+
+  /**
+   * Get the indexer for this type
+   */
+  getIndexer(): Maybe<IParametricIndexer>;
 
   /**
    * Get the suffixes for this type
@@ -253,6 +265,11 @@ export interface IType extends IParametricType {
   getCallSignature(): Maybe<ICallSignature>;
 
   /**
+   * Get the indexer for this type
+   */
+  getIndexer(): Maybe<IIndexer>;
+
+  /**
    * Get the suffixes for this type
    */
   getSuffixes(): Map<string, IType>;
@@ -274,7 +291,7 @@ export interface IType extends IParametricType {
  * A mapping of a provided type from one set of type parameters
  * to another
  */
-export interface TypeMap<T> {
+export interface TypeMap<T extends ITypeMappable> {
   /**
    * Mapping to handle the analogous case in js of
    * `class Foo<T, K> extends Bar<K, T> {}`
@@ -305,7 +322,8 @@ export interface Access {
 /**
  * An interface representing a type's call signature with type parameters
  */
-export interface IParametricCallSignature extends ITypeMappable {
+export interface IParametricCallSignature
+  extends ITypeMappable<ICallSignature> {
   /**
    * The types of the parameters
    */
@@ -341,4 +359,36 @@ export interface ICallSignature extends IParametricCallSignature {
    * The type of the return
    */
   returns(): IType;
+}
+
+/**
+ * An interface representing a type's indexer
+ */
+export interface IParametricIndexer extends IParametricType {
+  /**
+   * What is the kind of this type
+   */
+  readonly kind: TypeKind.indexer;
+
+  /**
+   * Apply type arguments to this parametric type to generate a new type
+   * @param typeArgument type arguments to apply
+   */
+  apply(typeArgument: Map<IParametricType, IType> | IType): IIndexer;
+}
+
+/**
+ * An interface representing a type's indexer
+ */
+export interface IIndexer extends IType {
+  /**
+   * What is the kind of this type
+   */
+  readonly kind: TypeKind.indexer;
+
+  /**
+   * Apply type arguments to this parametric type to generate a new type
+   * @param typeArgument type arguments to apply
+   */
+  apply(typeArgument: Map<IParametricType, IType> | IType): IIndexer;
 }

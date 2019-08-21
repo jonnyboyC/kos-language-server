@@ -4,13 +4,15 @@ import {
   TypeKind,
   TypeMap,
   ITypeMappable,
+  IParametricIndexer,
 } from './types';
 import { memoize } from '../utilities/memoize';
-import { ParametricType } from './types/parametricType';
+import { ParametricType } from './parametricTypes/parametricType';
 import { Type } from './types/type';
 import { VariadicType } from './types/variadicType';
 import { CallSignature } from './types/callSignature';
-import { GenericCallSignature } from './types/parametricCallSignature';
+import { GenericCallSignature } from './parametricTypes/parametricCallSignature';
+import { ParametricIndexer } from './parametricTypes/parametricIndexer';
 
 /**
  * Create a placeholder generic type
@@ -21,7 +23,7 @@ export const createPlaceholder = (name: string): ParametricType => {
     name,
     { get: false, set: false },
     [],
-    TypeKind.typePlaceholder,
+    TypeKind.typeSlot,
   );
 };
 
@@ -40,6 +42,34 @@ export const createGenericStructureType = (
     typeParameterNames,
     TypeKind.basic,
   );
+};
+
+/**
+ * Create an indexer
+ * @param typeParameters type parameters for the indexer
+ * @param index the index type
+ * @param returns the return type
+ */
+export const createIndexer = (
+  typeParameters: string[],
+  index: IParametricType | string,
+  returns: IParametricType | string,
+): IParametricIndexer => {
+  const indexer = new ParametricIndexer(typeParameters);
+
+  const callSignature = new GenericCallSignature(typeParameters);
+  const typePlaceholders = callSignature.getTypeParameters();
+
+  callSignature.addParams(
+    mapTypeWithPlaceholder(callSignature, typePlaceholders, index),
+  );
+
+  callSignature.addReturn(
+    mapTypeWithPlaceholder(callSignature, typePlaceholders, returns),
+  );
+
+  indexer.addCallSignature(mapTypes(indexer, callSignature));
+  return indexer;
 };
 
 /**
@@ -88,8 +118,8 @@ export const createGenericArgSuffixType = (
   return genericType;
 };
 
-const mapTypeWithPlaceholder = (
-  parentType: ITypeMappable,
+const mapTypeWithPlaceholder = <T>(
+  parentType: ITypeMappable<T>,
   typePlaceholders: IParametricType[],
   type: IParametricType | string,
 ): TypeMap<IParametricType> => {
@@ -243,7 +273,7 @@ export const createVarType = memoize(
   },
 );
 
-export const noMap = <T extends IParametricType>(type: T): TypeMap<T> => {
+export const noMap = <T extends ITypeMappable>(type: T): TypeMap<T> => {
   return {
     type,
     mapping: new Map(),
@@ -282,14 +312,11 @@ export const mapType = <T1 extends ITypeMappable, T2 extends IParametricType>(
     throw new Error(`Type ${source.name} has more than 1 type parameter`);
   }
 
-  if (
-    targetParameters.length !== 1 &&
-    target.kind !== TypeKind.typePlaceholder
-  ) {
+  if (targetParameters.length !== 1 && target.kind !== TypeKind.typeSlot) {
     throw new Error(`Type ${target.name} has more than 1 type parameter`);
   }
 
-  if (target.kind === TypeKind.typePlaceholder) {
+  if (target.kind === TypeKind.typeSlot) {
     return {
       type: target,
       mapping: new Map([[sourceParameters[0], target]]),
