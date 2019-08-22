@@ -7,7 +7,6 @@ import { listType } from '../typeChecker/ksTypes/collections/list';
 import { stackType } from '../typeChecker/ksTypes/collections/stack';
 import { uniqueSetType } from '../typeChecker/ksTypes/collections/uniqueset';
 import { nodeType } from '../typeChecker/ksTypes/node';
-import { partType } from '../typeChecker/ksTypes/parts/part';
 import { constantType } from '../typeChecker/ksTypes/constant';
 import { pathType } from '../typeChecker/ksTypes/io/path';
 import { volumeType } from '../typeChecker/ksTypes/io/volume';
@@ -75,6 +74,7 @@ import { Marker } from '../entities/marker';
 import { boundsType } from '../typeChecker/ksTypes/parts/bounds';
 import { IType } from '../typeChecker/types';
 import { empty } from '../utilities/typeGuards';
+import { partModuleType } from '../typeChecker/ksTypes/parts/partModule';
 
 const functionTypes: [string[], IType][] = [
   [['abs'], createFunctionType('abs', scalarType, scalarType)],
@@ -217,11 +217,7 @@ const functionTypes: [string[], IType][] = [
   ],
   [
     ['list', 'alarms'],
-    createFunctionType(
-      'listAlarms',
-      listType.apply(kacAlarmType),
-      stringType,
-    ),
+    createFunctionType('listAlarms', listType.apply(kacAlarmType), stringType),
   ],
   [['ln'], createFunctionType('ln', scalarType, scalarType)],
   [['log10'], createFunctionType('log10', scalarType, scalarType)],
@@ -296,7 +292,11 @@ const functionTypes: [string[], IType][] = [
   [['print', 'list'], createFunctionType('printlist', voidType, stringType)],
   [
     ['processor'],
-    createFunctionType('processor', partType, /* TODO Union Type */ stringType),
+    createFunctionType(
+      'processor',
+      partModuleType,
+      stringType /* TODO Union Type  string and volume */,
+    ),
   ],
   [['profile', 'result'], createFunctionType('profileresult', voidType)],
   [
@@ -499,7 +499,7 @@ const functionTypes: [string[], IType][] = [
   [['vxcl'], createFunctionType('vxcl', vectorType, vectorType, vectorType)],
   [['warp', 'to'], createFunctionType('warpto', voidType, scalarType)],
   [['waypoint'], createFunctionType('waypoint', waypointType, stringType)],
-  // TODO Union Types
+  // TODO Union Types string | path
   [
     ['write', 'json'],
     createFunctionType(
@@ -510,12 +510,6 @@ const functionTypes: [string[], IType][] = [
     ),
   ],
 ];
-
-// createFunctionType('rename_file_deprecated', /* TODO */ scalarType),
-// createFunctionType('rename_volume_deprecated', /* TODO */ scalarType),
-// createFunctionType('copy_deprecated', /* TODO */ scalarType),
-// createFunctionType('delete_deprecated', /* TODO */ scalarType),
-// createFunctionType('run', /* TODO */ scalarType),
 
 const locks: [string[], IType][] = [
   [['throttle'], scalarType],
@@ -557,7 +551,7 @@ const variables: [string[], IType][] = [
   [['brakes'], booleanType],
   [['chutes'], booleanType],
   [['chutes', 'safe'], booleanType],
-  [['config'], configType], // TODO
+  [['config'], configType],
   [['constant'], constantType],
   [['control', 'connection'], controlConnectionType],
   [['core'], coreType],
@@ -565,7 +559,7 @@ const variables: [string[], IType][] = [
   [['deploy', 'drills'], booleanType],
   [['donothing'], delegateType],
   [['drills'], booleanType],
-  [['encounter'], orbitInfoType], // TODO Union
+  [['encounter'], orbitInfoType], // TODO Union orbitInfo | string
   [['eta'], vesselEtaType],
   [['facing'], directionType],
   [['fuel', 'cells'], booleanType],
@@ -587,10 +581,10 @@ const variables: [string[], IType][] = [
   [['lights'], booleanType],
   [['longitude'], scalarType],
   [['magenta'], rgbaType],
-  [['map', 'view'], booleanType], // TODO
+  [['map', 'view'], booleanType],
   [['mass'], scalarType],
   [['max', 'thrust'], scalarType],
-  [['mission', 'time'], scalarType], // TODO
+  [['mission', 'time'], scalarType],
   [['next', 'node'], nodeType],
   [['north'], directionType],
   [['obt'], orbitInfoType],
@@ -615,7 +609,7 @@ const variables: [string[], IType][] = [
   [['status'], stringType],
   [['steering', 'manager'], steeringManagerType],
   [['surface', 'speed'], scalarType],
-  [['target'], orbitableType], // TODO Union
+  [['target'], orbitableType], // TODO Union bodyTarget | vesselTarget | part
   [['terminal'], terminalStructType],
   [['time'], timeSpanType],
   [['up'], directionType],
