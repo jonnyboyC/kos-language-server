@@ -9,6 +9,7 @@ function dummy {
 
 
 
+
 function initializeTrigger { //called once by quad.ks right before flightcontroller()
 	
 	

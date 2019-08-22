@@ -17,10 +17,9 @@ import {
   DiagnosticSeverity,
 } from 'vscode-languageserver';
 import { empty } from './typeGuards';
-import { allSuffixes, tokenTrackedType } from '../typeChecker/typeUtilities';
+import { tokenTrackedType } from '../typeChecker/typeUtilities';
 import { KsSymbolKind } from '../analysis/types';
 import { cleanLocation, cleanToken, cleanCompletion } from './clean';
-import { CallKind } from '../typeChecker/types';
 import { CommanderStatic } from 'commander';
 import { ClientConfiguration, DiagnosticUri } from '../types';
 import { mapper } from './mapper';
@@ -116,18 +115,6 @@ const symbolMap = new Map([
  */
 export const symbolMapper = mapper(symbolMap, 'KsSymbolKind');
 
-const callMap = new Map([
-  [CallKind.call, CompletionItemKind.Method],
-  [CallKind.optionalCall, CompletionItemKind.Method],
-  [CallKind.get, CompletionItemKind.Property],
-  [CallKind.set, CompletionItemKind.Property],
-]);
-
-/**
- * Map a ks call kind to a completion kind
- */
-export const callMapper = mapper(callMap, 'CallKind');
-
 /**
  * Get a list of all symbols currently in scope at the given line
  * @param analyzer analyzer instance
@@ -156,7 +143,7 @@ export const symbolCompletionItems = async (
         const type = tracker.getType({ uri, range: entity.name });
 
         if (!empty(type)) {
-          typeString = type.toTypeString();
+          typeString = type.toString();
         }
       }
 
@@ -201,13 +188,15 @@ export const suffixCompletionItems = async (
   }
 
   // get all suffixes on the predicted type
-  const suffixes = allSuffixes(type);
+  const suffixes = [...type.getSuffixes().values()];
 
   // generate completions
   return suffixes.map(suffix => ({
-    kind: callMapper(suffix.callType),
+    kind: empty(suffix.getCallSignature())
+      ? CompletionItemKind.Property
+      : CompletionItemKind.Method,
     label: suffix.name,
-    detail: `${suffix.name}: ${suffix.toTypeString()}`,
+    detail: `${suffix.name}: ${suffix.toString()}`,
   }));
 };
 

@@ -3,13 +3,13 @@ import { KsFunction } from '../entities/function';
 import { KsLock } from '../entities/lock';
 import { KsParameter } from '../entities/parameter';
 import { Range, Location, Diagnostic } from 'vscode-languageserver';
-import { ArgumentType, Type } from '../typeChecker/types/types';
 import { IExpr, IStmt, ScopeKind } from '../parser/types';
 import { BasicTracker } from './tracker';
 import { Token } from '../entities/token';
 import { KsSuffix } from '../entities/suffix';
 import { Environment } from './environment';
-import { SuffixTracker } from './suffixTracker';
+import { TypeTracker } from './typeTracker';
+import { IType } from '../typeChecker/types';
 
 /**
  * The result of a function scan
@@ -48,13 +48,13 @@ export interface UseResult<T extends KsBaseSymbol = KsBaseSymbol> {
 
 export const enum TrackerKind {
   basic,
-  suffix,
+  type,
 }
 
 /**
  * A union of basic and suffix trackers that a token may be attached too
  */
-export type SymbolTracker = BasicTracker | SuffixTracker;
+export type SymbolTracker = BasicTracker | TypeTracker;
 
 /**
  * Interface for tracking symbols throughout a kerboscript
@@ -88,7 +88,7 @@ export interface KsSet extends Location {
   /**
    * What is the type of the set
    */
-  type: ArgumentType;
+  type: IType;
 }
 
 /**
@@ -96,7 +96,7 @@ export interface KsSet extends Location {
  */
 export interface IKsDeclared<
   TSymbol extends KsSymbol = KsSymbol,
-  TType extends Type = Type
+  TType extends IType = IType
 > extends Location {
   /**
    * The underlying symbol declared

@@ -21,7 +21,6 @@ import { ScopePosition } from './scopePosition';
 import { mockLogger } from '../utilities/logger';
 import { Environment } from './environment';
 import { BasicTracker, createSymbolSet } from './tracker';
-import { ArgumentType, IFunctionType } from '../typeChecker/types/types';
 import { SymbolTable } from './symbolTable';
 import {
   isVariable,
@@ -40,6 +39,7 @@ import { toCase } from '../utilities/stringUtils';
 import { cleanLocation } from '../utilities/clean';
 import { Token } from '../entities/token';
 import { KsParameter } from '../entities/parameter';
+import { IType } from '../typeChecker/types';
 
 /**
  * The Symbol table builder is used to declare new symbols and track new symbols
@@ -328,7 +328,7 @@ export class SymbolTableBuilder {
   public declareVariable(
     scopeType: ScopeKind,
     token: Token,
-    type?: ArgumentType,
+    type?: IType,
   ): Maybe<Diagnostic> {
     const conflictTracker = this.lookupKind(
       token.lookup,
@@ -395,7 +395,7 @@ export class SymbolTableBuilder {
     requiredParameters: number,
     optionalParameters: number,
     returnValue: boolean,
-    type?: IFunctionType,
+    type?: IType,
   ): Maybe<Diagnostic> {
     const conflictTracker = this.lookupKind(
       token.lookup,
@@ -462,7 +462,7 @@ export class SymbolTableBuilder {
   public declareLock(
     scopeType: ScopeKind,
     token: Token,
-    type?: ArgumentType,
+    type?: IType,
   ): Maybe<Diagnostic> {
     const conflictTracker = this.lookupKind(
       token.lookup,
