@@ -22,7 +22,7 @@ dockingPortType.addSuffixes(
   noMap(createSuffixType('acquireForce', scalarType)),
   noMap(createSuffixType('acquireTorque', scalarType)),
   noMap(createSuffixType('reengagedDistance', scalarType)),
-  noMap(createSuffixType('dockedShipName', scalarType)),
+  noMap(createSuffixType('dockedShipName', stringType)),
   noMap(createSuffixType('state', stringType)),
   noMap(createSuffixType('targetTable', booleanType)),
   noMap(createArgSuffixType('undock', voidType)),
@@ -31,10 +31,7 @@ dockingPortType.addSuffixes(
   noMap(createArgSuffixType('nodePosition', vectorType)),
   noMap(createArgSuffixType('nodeType', stringType)),
   noMap(
-    createArgSuffixType(
-      'dockWatchers',
-      uniqueSetType.apply(userDelegateType),
-    ),
+    createArgSuffixType('dockWatchers', uniqueSetType.apply(userDelegateType)),
   ),
   noMap(
     createArgSuffixType(

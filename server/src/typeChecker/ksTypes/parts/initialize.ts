@@ -19,6 +19,8 @@ import { partModuleType } from './partModule';
 import { OperatorKind } from '../../types';
 import { boundsType } from './bounds';
 import { Operator } from '../../types/operator';
+import { scienceExperimentType } from './scienceExperimentModule';
+import { scienceDataType } from '../scienceData';
 
 let set = false;
 
@@ -91,5 +93,21 @@ export const partInitializer = () => {
     noMap(createArgSuffixType('setField', voidType, structureType, stringType)),
     noMap(createArgSuffixType('doEvent', voidType, stringType)),
     noMap(createArgSuffixType('doAction', voidType, stringType, booleanType)),
+  );
+
+  // -------------------- scienceExperimentModule ---------------------------
+
+  scienceExperimentType.addSuper(noMap(partModuleType));
+
+  scienceExperimentType.addSuffixes(
+    noMap(createArgSuffixType('deploy', voidType)),
+    noMap(createArgSuffixType('reset', voidType)),
+    noMap(createArgSuffixType('transmit', voidType)),
+    noMap(createArgSuffixType('dump', voidType)),
+    noMap(createSuffixType('inoperable', booleanType)),
+    noMap(createSuffixType('deployed', booleanType)),
+    noMap(createSuffixType('reRunnable', booleanType)),
+    noMap(createSuffixType('hasData', booleanType)),
+    noMap(createSuffixType('data', listType.apply(scienceDataType))),
   );
 };
