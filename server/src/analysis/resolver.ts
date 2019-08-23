@@ -1019,8 +1019,8 @@ export class Resolver
 
   public visitTernary(expr: Expr.Ternary): Diagnostic[] {
     const errors = this.resolveExpr(expr.condition);
-    errors.push(...this.resolveExpr(expr.trueBranch));
-    errors.push(...this.resolveExpr(expr.falseBranch));
+    errors.push(...this.resolveExpr(expr.trueExpr));
+    errors.push(...this.resolveExpr(expr.falseExpr));
     return errors;
   }
 

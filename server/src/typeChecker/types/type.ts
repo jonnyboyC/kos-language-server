@@ -12,6 +12,7 @@ import { TypeTracker } from '../../analysis/typeTracker';
 import { Operator } from './operator';
 import { KsSuffix } from '../../entities/suffix';
 import { empty } from '../../utilities/typeGuards';
+import { KsGrouping } from '../../entities/grouping';
 
 /**
  * A class representing a type in Kerboscript
@@ -114,7 +115,11 @@ export class Type implements IType {
     this.anyType = anyType;
 
     // TODO will need to actually be robust about this
-    this.tracker = new TypeTracker(new KsSuffix(name), this);
+    this.tracker =
+      kind === TypeKind.grouping
+        ? new TypeTracker(new KsGrouping(name), this)
+        : new TypeTracker(new KsSuffix(name), this);
+
     this.coercibleTypes = new Set();
     this.suffixes = new Map();
     this.operators = new Map();

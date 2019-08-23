@@ -353,7 +353,7 @@ export class Parser {
       TokenType.to,
       builder,
     );
-    const valueResult = this.expression(Decl.Lock);
+    const valueResult = this.expression(Decl.Lock, builder, 'value');
     builder.value = valueResult.value;
 
     this.terminal(Decl.Lock, builder);
@@ -381,7 +381,7 @@ export class Parser {
       [TokenType.to, TokenType.is],
       builder,
     );
-    const valueResult = this.expression(Decl.Var);
+    const valueResult = this.expression(Decl.Var, builder, 'value');
     builder.value = valueResult.value;
 
     this.terminal(Decl.Var, builder);
@@ -548,7 +548,7 @@ export class Parser {
       suffix: undefined,
     };
 
-    const suffix = this.suffixCatch(Stmt.ExprStmt);
+    const suffix = this.suffixCatch(Stmt.ExprStmt, builder, 'suffix');
     builder.suffix = suffix.value;
 
     if (this.matchTokens([TokenType.on, TokenType.off])) {
@@ -597,7 +597,7 @@ export class Parser {
       expr: undefined,
     };
 
-    const expr = this.expression(Stmt.CommandExpr);
+    const expr = this.expression(Stmt.CommandExpr, builder, 'expr');
     builder.expr = expr.value;
 
     this.terminal(Stmt.CommandExpr, builder);
@@ -656,7 +656,7 @@ export class Parser {
     };
 
     builder.set = this.previous();
-    const suffix = this.suffixCatch(Stmt.Set);
+    const suffix = this.suffixCatch(Stmt.Set, builder, 'set');
 
     builder.suffix = suffix.value;
     builder.to = this.consumeTokenThrow(
@@ -665,7 +665,7 @@ export class Parser {
       TokenType.to,
       builder,
     );
-    const valueResult = this.expression(Stmt.Set);
+    const valueResult = this.expression(Stmt.Set, builder, 'value');
 
     builder.value = valueResult.value;
     this.terminal(Stmt.Set, builder);
@@ -716,7 +716,7 @@ export class Parser {
     };
 
     builder.ifToken = this.previous();
-    const conditionResult = this.expression(Stmt.If);
+    const conditionResult = this.expression(Stmt.If, builder, 'condition');
     builder.condition = conditionResult.value;
 
     const declare = this.declaration();
@@ -751,7 +751,9 @@ export class Parser {
     );
   }
 
-  // parse until statement
+  /**
+   * Parse until statement
+   */
   private until(): INodeResult<Stmt.Until> {
     const builder: NodeDataBuilder<Stmt.Until> = {
       until: this.previous(),
@@ -759,7 +761,7 @@ export class Parser {
       body: undefined,
     };
 
-    const conditionResult = this.expression(Stmt.Until);
+    const conditionResult = this.expression(Stmt.Until, builder, 'condition');
     builder.condition = conditionResult.value;
 
     const declare = this.declaration();
@@ -773,7 +775,9 @@ export class Parser {
     );
   }
 
-  // parse from statement
+  /**
+   * Parse from statement
+   */
   private from(): INodeResult<Stmt.From> {
     const builder: NodeDataBuilder<Stmt.From> = {
       from: this.previous(),
@@ -796,7 +800,7 @@ export class Parser {
         TokenType.until,
         builder,
       );
-      const conditionResult = this.expression(Stmt.From);
+      const conditionResult = this.expression(Stmt.From, builder, 'condition');
       builder.condition = conditionResult.value;
 
       builder.step = this.consumeTokenThrow(
@@ -843,7 +847,9 @@ export class Parser {
     );
   }
 
-  // parse when statement
+  /**
+   * Parse when statement
+   */
   private when(): INodeResult<Stmt.When> {
     const builder: NodeDataBuilder<Stmt.When> = {
       when: this.previous(),
@@ -852,7 +858,7 @@ export class Parser {
       body: undefined,
     };
 
-    const conditionResult = this.expression(Stmt.When);
+    const conditionResult = this.expression(Stmt.When, builder, 'condition');
     builder.condition = conditionResult.value;
 
     builder.then = this.consumeTokenThrow(
@@ -872,7 +878,9 @@ export class Parser {
     );
   }
 
-  // parse return statement
+  /**
+   * Parse return statement
+   */
   private returnStmt(): INodeResult<Stmt.Return> {
     const builder: NodeDataBuilder<Stmt.Return> = {
       returnToken: this.previous(),
@@ -880,7 +888,7 @@ export class Parser {
     };
 
     const valueResult = !this.check(TokenType.period)
-      ? this.expression(Stmt.Return)
+      ? this.expression(Stmt.Return, builder, 'value')
       : undefined;
     let errors: IParseError[] = [];
 
@@ -894,7 +902,9 @@ export class Parser {
     return nodeResult(new Stmt.Return(builder), errors);
   }
 
-  // parse return statement
+  /**
+   * Parse break statement
+   */
   private breakStmt(): INodeResult<Stmt.Break> {
     const breakToken = this.previous();
     this.terminal(Stmt.Break);
@@ -902,7 +912,9 @@ export class Parser {
     return nodeResult(new Stmt.Break(breakToken), []);
   }
 
-  // parse switch statement
+  /**
+   * Parse switch statement
+   */
   private switchStmt(): INodeResult<Stmt.Switch> {
     const builder: NodeDataBuilder<Stmt.Switch> = {
       switchToken: this.previous(),
@@ -916,7 +928,7 @@ export class Parser {
       TokenType.to,
       builder,
     );
-    const targetResult = this.expression(Stmt.Switch);
+    const targetResult = this.expression(Stmt.Switch, builder, 'target');
     builder.target = targetResult.value;
 
     this.terminal(Stmt.Switch, builder);
@@ -924,7 +936,9 @@ export class Parser {
     return nodeResult(new Stmt.Switch(builder), targetResult.errors);
   }
 
-  // parse for statement
+  /**
+   * Parse for statement
+   */
   private forStmt(): INodeResult<Stmt.For> {
     const builder: NodeDataBuilder<Stmt.For> = {
       forToken: undefined,
@@ -946,7 +960,7 @@ export class Parser {
       TokenType.in,
       builder,
     );
-    const collection = this.suffixCatch(Stmt.For);
+    const collection = this.suffixCatch(Stmt.For, builder, 'collection');
     builder.collection = collection.value;
 
     const declare = this.declaration();
@@ -960,7 +974,9 @@ export class Parser {
     );
   }
 
-  // parse on statement
+  /**
+   * Parse on statement
+   */
   private on(): INodeResult<Stmt.On> {
     const builder: NodeDataBuilder<Stmt.On> = {
       on: this.previous(),
@@ -968,7 +984,7 @@ export class Parser {
       body: undefined,
     };
 
-    const suffix = this.suffixCatch(Stmt.On);
+    const suffix = this.suffixCatch(Stmt.On, builder, 'suffix');
     builder.suffix = suffix.value;
 
     const declare = this.declaration();
@@ -980,14 +996,16 @@ export class Parser {
     );
   }
 
-  // parse toggle statement
+  /**
+   * Parse toggle statement
+   */
   private toggle(): INodeResult<Stmt.Toggle> {
     const builder: NodeDataBuilder<Stmt.Toggle> = {
       toggle: this.previous(),
       suffix: undefined,
     };
 
-    const suffix = this.suffixCatch(Stmt.Toggle);
+    const suffix = this.suffixCatch(Stmt.Toggle, builder, 'suffix');
     builder.suffix = suffix.value;
 
     this.terminal(Stmt.Toggle, builder);
@@ -995,7 +1013,9 @@ export class Parser {
     return nodeResult(new Stmt.Toggle(builder), suffix.errors);
   }
 
-  // parse wait statement
+  /**
+   * Parse wait statement
+   */
   private wait(): INodeResult<Stmt.Wait> {
     const builder: NodeDataBuilder<Stmt.Wait> = {
       wait: this.previous(),
@@ -1007,14 +1027,16 @@ export class Parser {
       ? this.previous()
       : undefined;
 
-    const expr = this.expression(Stmt.Wait);
+    const expr = this.expression(Stmt.Wait, builder, 'expr');
     builder.expr = expr.value;
 
     this.terminal(Stmt.Wait, builder);
     return nodeResult(new Stmt.Wait(builder), expr.errors);
   }
 
-  // parse log statement
+  /**
+   * Parse log statement
+   */
   private log(): INodeResult<Stmt.Log> {
     const builder: NodeDataBuilder<Stmt.Log> = {
       log: this.previous(),
@@ -1023,7 +1045,7 @@ export class Parser {
       target: undefined,
     };
 
-    const expr = this.expression(Stmt.Log);
+    const expr = this.expression(Stmt.Log, builder, 'expr');
     builder.expr = expr.value;
 
     builder.to = this.consumeTokenThrow(
@@ -1033,7 +1055,7 @@ export class Parser {
       builder,
     );
 
-    const targetResult = this.expression(Stmt.Log);
+    const targetResult = this.expression(Stmt.Log, builder, 'target');
     builder.target = targetResult.value;
 
     this.terminal(Stmt.Log, builder);
@@ -1044,7 +1066,9 @@ export class Parser {
     );
   }
 
-  // parse copy statement
+  /**
+   * Parse copy statement
+   */
   private copy(): INodeResult<Stmt.Copy> {
     const builder: NodeDataBuilder<Stmt.Copy> = {
       copy: this.previous(),
@@ -1054,7 +1078,7 @@ export class Parser {
     };
 
     builder.copy = this.previous();
-    const targetResult = this.expression(Stmt.Copy);
+    const targetResult = this.expression(Stmt.Copy, builder, 'target');
     builder.target = targetResult.value;
 
     builder.toFrom = this.consumeTokensThrow(
@@ -1064,7 +1088,11 @@ export class Parser {
       builder,
     );
 
-    const destinationResult = this.expression(Stmt.Copy);
+    const destinationResult = this.expression(
+      Stmt.Copy,
+      builder,
+      'destination',
+    );
     builder.destination = destinationResult.value;
 
     this.terminal(Stmt.Copy, builder);
@@ -1075,7 +1103,9 @@ export class Parser {
     );
   }
 
-  // parse rename statement
+  /**
+   * Parse rename statement
+   */
   private rename(): INodeResult<Stmt.Rename> {
     const builder: NodeDataBuilder<Stmt.Rename> = {
       rename: this.previous(),
@@ -1100,7 +1130,7 @@ export class Parser {
       builder,
     );
 
-    const targetResult = this.expression(Stmt.Rename);
+    const targetResult = this.expression(Stmt.Rename, builder, 'target');
     builder.target = targetResult.value;
 
     builder.to = this.consumeTokenThrow(
@@ -1110,7 +1140,11 @@ export class Parser {
       builder,
     );
 
-    const alternativeResult = this.expression(Stmt.Rename);
+    const alternativeResult = this.expression(
+      Stmt.Rename,
+      builder,
+      'alternative',
+    );
     builder.alternative = alternativeResult.value;
 
     this.terminal(Stmt.Rename, builder);
@@ -1121,7 +1155,9 @@ export class Parser {
     );
   }
 
-  // parse delete statement
+  /**
+   * Parse delete statement
+   */
   private delete(): INodeResult<Stmt.Delete> {
     const builder: NodeDataBuilder<Stmt.Delete> = {
       deleteToken: this.previous(),
@@ -1135,7 +1171,7 @@ export class Parser {
 
     if (this.matchToken(TokenType.from)) {
       builder.from = this.previous();
-      const volumeResult = this.expression(Stmt.Delete);
+      const volumeResult = this.expression(Stmt.Delete, builder, 'volume');
       builder.volume = volumeResult.value;
 
       this.terminal(Stmt.Delete, builder);
@@ -1194,7 +1230,7 @@ export class Parser {
     // parse arguments if found
     if (this.matchToken(TokenType.on)) {
       builder.on = this.previous();
-      const expr = this.expression(Stmt.Run);
+      const expr = this.expression(Stmt.Run, builder, 'expr');
       errors.push(...expr.errors);
       builder.expr = expr.value;
     }
@@ -1222,7 +1258,7 @@ export class Parser {
       Stmt.RunPath,
       TokenType.bracketOpen,
     );
-    const exprResult = this.expression(Stmt.RunPath);
+    const exprResult = this.expression(Stmt.RunPath, builder, 'expr');
     builder.expr = exprResult.value;
 
     const args = this.matchToken(TokenType.comma)
@@ -1265,7 +1301,7 @@ export class Parser {
       Stmt.RunOncePath,
       TokenType.bracketOpen,
     );
-    const exprResult = this.expression(Stmt.RunOncePath);
+    const exprResult = this.expression(Stmt.RunOncePath, builder, 'expr');
     builder.expr = exprResult.value;
 
     const args = this.matchToken(TokenType.comma)
@@ -1301,14 +1337,18 @@ export class Parser {
       destination: undefined,
     };
 
-    const targetResult = this.expression(Stmt.Compile);
+    const targetResult = this.expression(Stmt.Compile, builder, 'target');
     builder.target = targetResult.value;
     const errors: IParseError[] = targetResult.errors;
 
     if (this.matchToken(TokenType.to)) {
       builder.to = this.previous();
 
-      const destinationResult = this.expression(Stmt.Compile);
+      const destinationResult = this.expression(
+        Stmt.Compile,
+        builder,
+        'destination',
+      );
       builder.destination = destinationResult.value;
       errors.push(...destinationResult.errors);
     }
@@ -1366,7 +1406,7 @@ export class Parser {
       return this.identifierLedStatement();
     }
 
-    const expr = this.expression(Stmt.Print);
+    const expr = this.expression(Stmt.Print, builder, 'expr');
     builder.expr = expr.value;
 
     if (this.matchToken(TokenType.at)) {
@@ -1378,7 +1418,7 @@ export class Parser {
         builder,
       );
 
-      const xResult = this.expression(Stmt.Print);
+      const xResult = this.expression(Stmt.Print, builder, 'x');
       builder.x = xResult.value;
 
       this.consumeTokenThrow(
@@ -1388,7 +1428,7 @@ export class Parser {
         builder,
       );
 
-      const yResult = this.expression(Stmt.Print);
+      const yResult = this.expression(Stmt.Print, builder, 'y');
       builder.y = yResult.value;
 
       builder.close = this.consumeTokenThrow(
@@ -1413,7 +1453,11 @@ export class Parser {
    * Parse an expression
    * @param stmt the statement context
    */
-  private expression(stmt?: Constructor<Stmt.Stmt>): INodeResult<IExpr> {
+  private expression<T, K extends keyof NodeDataBuilder<T>>(
+    stmt?: Constructor<Stmt.Stmt>,
+    builder?: NodeDataBuilder<T>,
+    key?: K,
+  ): INodeResult<IExpr> {
     try {
       switch (this.peek().type) {
         // open curly is a lambda
@@ -1431,6 +1475,11 @@ export class Parser {
     } catch (error) {
       if (error instanceof ParseError) {
         error.failed.stmt = stmt;
+        if (!empty(builder) && !empty(key)) {
+          this.attachPartial<T, K>(builder, key, error.partial);
+          error.partial = builder as PartialNode;
+        }
+
         throw error;
       }
 
@@ -1442,30 +1491,39 @@ export class Parser {
    * Parse ternary expression
    */
   private ternary(): INodeResult<IExpr> {
-    const choose = this.previous();
-    const trueBranch = this.expression();
-    const ifToken = this.consumeTokenThrow(
+    const builder: NodeDataBuilder<Expr.Ternary> = {
+      choose: this.previous(),
+      trueExpr: undefined,
+      ifToken: undefined,
+      condition: undefined,
+      elseToken: undefined,
+      falseExpr: undefined,
+    };
+
+    const trueExpr = this.expression(undefined, builder, 'trueExpr');
+    builder.trueExpr = trueExpr.value;
+
+    builder.ifToken = this.consumeTokenThrow(
       'Expected if following true option',
       Expr.Ternary,
       TokenType.if,
+      builder,
     );
-    const condition = this.expression();
-    const elseToken = this.consumeTokenThrow(
+    const condition = this.expression(undefined, builder, 'condition');
+    builder.condition = condition.value;
+
+    builder.elseToken = this.consumeTokenThrow(
       'Expected else following condition',
       Expr.Ternary,
       TokenType.else,
+      builder,
     );
-    const falseBranch = this.expression();
+    const falseExpr = this.expression(undefined, builder, 'falseExpr');
+    builder.falseExpr = falseExpr.value;
+
     return nodeResult(
-      new Expr.Ternary(
-        choose,
-        trueBranch.value,
-        ifToken,
-        condition.value,
-        elseToken,
-        falseBranch.value,
-      ),
-      flatten([condition.errors, trueBranch.errors, falseBranch.errors]),
+      new Expr.Ternary(builder),
+      flatten([condition.errors, trueExpr.errors, falseExpr.errors]),
     );
   }
 
@@ -1515,22 +1573,26 @@ export class Parser {
 
   // binary expression parser
   private binaryExpression = (
-    recurse: () => INodeResult<IExpr>,
+    subExpression: () => INodeResult<IExpr>,
     types: TokenType[],
   ): INodeResult<IExpr> => {
-    let expr = recurse();
+    let expr = subExpression();
 
     while (this.matchTokens(types)) {
-      const operator = this.previous();
-      const right = recurse();
-      expr = nodeResult(
-        new Expr.Binary(expr.value, operator, right.value),
-        flatten([expr.errors, right.errors]),
-      );
+      const builder: NodeDataBuilder<Expr.Binary> = {
+        left: expr.value,
+        operator: this.previous(),
+      };
+
+      const right = subExpression();
+      builder.right = right.value;
+
+      expr.errors.push(...right.errors);
+      expr = nodeResult(new Expr.Binary(builder), expr.errors);
     }
 
     return expr;
-  }
+  };
 
   // parse unary expression
   private unary(): INodeResult<IExpr> {
@@ -1571,12 +1633,22 @@ export class Parser {
   }
 
   // parse suffix for use in stmt directly, will catch
-  private suffixCatch(stmt: Constructor<Stmt.Stmt>): INodeResult<Expr.Suffix> {
+  private suffixCatch<T, K extends keyof NodeDataBuilder<T>>(
+    stmt: Constructor<Stmt.Stmt>,
+    builder?: NodeDataBuilder<T>,
+    key?: K,
+  ): INodeResult<Expr.Suffix> {
     try {
       return this.suffix();
     } catch (error) {
       if (error instanceof ParseError) {
         error.failed.stmt = stmt;
+
+        if (!empty(builder) && !empty(key)) {
+          this.attachPartial<T, K>(builder, key, error.partial);
+          error.partial = builder as PartialNode;
+        }
+
         throw error;
       }
 
@@ -1609,7 +1681,7 @@ export class Parser {
         suffixTerm = this.suffixTerm(true);
         const suffixTrailer = new SuffixTerm.SuffixTrailer(suffixTerm.value);
 
-        // patch curren trailer with trailer update current
+        // patch current trailer with trailer update current
         current.colon = colon;
         current.trailer = suffixTrailer;
         current = suffixTrailer;
@@ -2024,6 +2096,20 @@ export class Parser {
       moreInfo,
       partialNode,
     );
+  }
+
+  /**
+   * Attach some partial value to a builder
+   * @param builder builder
+   * @param key key of builder to attach to
+   * @param partial partial value
+   */
+  private attachPartial<T, K extends keyof NodeDataBuilder<T>>(
+    builder: NodeDataBuilder<T>,
+    key: K,
+    partial: any,
+  ): void {
+    builder[key] = partial;
   }
 
   // attempt to synchronize parser

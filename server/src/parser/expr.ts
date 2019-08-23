@@ -7,6 +7,7 @@ import {
   Distribution,
   IExprPasser,
   SyntaxKind,
+  NodeDataBuilder,
 } from './types';
 import * as SuffixTerm from './suffixTerm';
 import * as Stmt from './stmt';
@@ -19,7 +20,7 @@ import {
   createConstant,
   createExponential,
 } from './grammarNodes';
-import { empty } from '../utilities/typeGuards';
+import { empty, unWrap } from '../utilities/typeGuards';
 import { NodeBase } from './base';
 import { joinLines } from './toStringUtils';
 import { Token } from '../entities/token';
@@ -102,23 +103,47 @@ export class Ternary extends Expr {
   public static grammar: GrammarNode[];
 
   /**
-   * Constructor for all ternary expressions
-   * @param choose the choose token
-   * @param trueBranch the true branch
-   * @param ifToken the if token
-   * @param condition ternary condition expression
-   * @param elseToken the else token
-   * @param falseBranch the false branch
+   * The choose token
    */
-  constructor(
-    public readonly choose: Token,
-    public readonly trueBranch: IExpr,
-    public readonly ifToken: Token,
-    public readonly condition: IExpr,
-    public readonly elseToken: Token,
-    public readonly falseBranch: IExpr,
-  ) {
+  public readonly choose: Token;
+
+  /**
+   * the true expression
+   */
+  public readonly trueExpr: IExpr;
+
+  /**
+   * The if token
+   */
+  public readonly ifToken: Token;
+
+  /**
+   * ternary condition expression
+   */
+  public readonly condition: IExpr;
+
+  /**
+   * The else token
+   */
+  public readonly elseToken: Token;
+
+  /**
+   * the false expression
+   */
+  public readonly falseExpr: IExpr;
+
+  /**
+   * Constructor for all ternary expressions
+   * @param builder the ternary builder
+   */
+  constructor(builder: NodeDataBuilder<Ternary>) {
     super();
+    this.choose = unWrap(builder.choose);
+    this.trueExpr = unWrap(builder.trueExpr);
+    this.ifToken = unWrap(builder.ifToken);
+    this.condition = unWrap(builder.condition);
+    this.elseToken = unWrap(builder.elseToken);
+    this.falseExpr = unWrap(builder.falseExpr);
   }
 
   public get start(): Position {
@@ -126,24 +151,24 @@ export class Ternary extends Expr {
   }
 
   public get end(): Position {
-    return this.falseBranch.end;
+    return this.falseExpr.end;
   }
 
   public get ranges(): Range[] {
     return [
       this.choose,
-      this.trueBranch,
+      this.trueExpr,
       this.ifToken,
       this.condition,
       this.elseToken,
-      this.falseBranch,
+      this.falseExpr,
     ];
   }
 
   public toLines(): string[] {
-    const trueLines = this.trueBranch.toLines();
+    const trueLines = this.trueExpr.toLines();
     const conditionLines = this.condition.toLines();
-    const falseLines = this.falseBranch.toLines();
+    const falseLines = this.falseExpr.toLines();
 
     trueLines[0] = `${this.choose.lexeme} ${trueLines[0]}`;
 
@@ -178,17 +203,29 @@ export class Binary extends Expr {
   public static grammar: GrammarNode[];
 
   /**
-   * Constructor for all binary expressions
-   * @param left left expression of the operation
-   * @param operator the operator
-   * @param right right expression of the operation
+   * left expression of the operator
    */
-  constructor(
-    public readonly left: IExpr,
-    public readonly operator: Token,
-    public readonly right: IExpr,
-  ) {
+  public readonly left: IExpr;
+
+  /**
+   * The operator
+   */
+  public readonly operator: Token;
+
+  /**
+   * right expression of the operator
+   */
+  public readonly right: IExpr;
+
+  /**
+   * Constructor for all binary expressions
+   * @param builder the binary expression builder
+   */
+  constructor(builder: NodeDataBuilder<Binary>) {
     super();
+    this.left = unWrap(builder.left);
+    this.operator = unWrap(builder.operator);
+    this.right = unWrap(builder.right);
   }
 
   public get start(): Position {

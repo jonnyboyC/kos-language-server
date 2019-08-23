@@ -43,6 +43,7 @@ export const enum TypeKind {
   variadic,
   suffix,
   indexer,
+  grouping,
   function,
   typeSlot,
 }

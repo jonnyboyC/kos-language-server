@@ -61,6 +61,8 @@ import { elementType } from './ksTypes/parts/element';
 import { aggregateResourceType } from './ksTypes/parts/aggregateResource';
 import { Operator } from './types/operator';
 import { VariadicType } from './types/variadicType';
+import { Type } from './types/type';
+import { CallSignature } from './types/callSignature';
 
 type Diagnostics = Diagnostic[];
 
@@ -988,8 +990,8 @@ export class TypeChecker
    */
   public visitTernary(expr: Expr.Ternary): ITypeResultExpr<IType> {
     const conditionResult = this.checkExpr(expr.condition);
-    const trueResult = this.checkExpr(expr.trueBranch);
-    const falseResult = this.checkExpr(expr.falseBranch);
+    const trueResult = this.checkExpr(expr.trueExpr);
+    const falseResult = this.checkExpr(expr.falseExpr);
 
     const errors: Diagnostics = conditionResult.errors;
 
@@ -1638,6 +1640,17 @@ export class TypeChecker
     }
 
     const { type, errors } = this.checkExpr(suffixTerm.expr);
+
+    const groupingType = new Type(
+      suffixTerm.toString(),
+      { get: true, set: false },
+      new Map(),
+      TypeKind.grouping,
+      new CallSignature([], type),
+    );
+
+    suffixTerm.open.tracker = groupingType.getTracker();
+    suffixTerm.close.tracker = groupingType.getTracker();
 
     // push result of grouping onto builder
     builder.nodes.push(new TypeNode(type, suffixTerm));

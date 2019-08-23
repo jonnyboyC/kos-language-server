@@ -3,7 +3,7 @@ import {
   TextDocumentPositionParams,
   CompletionItemKind,
   CompletionItem,
-  DocumentSymbolParams,
+  // DocumentSymbolParams,
   SymbolInformation,
   SymbolKind,
   IPCMessageReader,
@@ -15,15 +15,22 @@ import {
   SignatureHelp,
   Diagnostic,
   DiagnosticSeverity,
+  Position,
 } from 'vscode-languageserver';
 import { empty } from './typeGuards';
-import { tokenTrackedType } from '../typeChecker/typeUtilities';
-import { KsSymbolKind } from '../analysis/types';
+// import { tokenTrackedType } from '../typeChecker/typeUtilities';
+import { KsSymbolKind, KsSymbol } from '../analysis/types';
 import { cleanLocation, cleanToken, cleanCompletion } from './clean';
 import { CommanderStatic } from 'commander';
 import { ClientConfiguration, DiagnosticUri } from '../types';
 import { mapper } from './mapper';
 import { IParseError } from '../parser/types';
+import * as Expr from '../parser/expr';
+import { rangeContainsPos, rangeAfter } from './positionUtils';
+import * as SuffixTerm from '../parser/suffixTerm';
+import { IType } from '../typeChecker/types';
+import { tokenTrackedType } from '../typeChecker/typeUtilities';
+import { structureType } from '../typeChecker/ksTypes/primitives/structure';
 
 /**
  * The default client configuration if none are available
@@ -103,7 +110,7 @@ const logMap = new Map([
  */
 export const logMapper = mapper(logMap, 'LogLevel');
 
-const symbolMap = new Map([
+const symbolCompletionMap = new Map([
   [KsSymbolKind.function, CompletionItemKind.Function],
   [KsSymbolKind.parameter, CompletionItemKind.Variable],
   [KsSymbolKind.lock, CompletionItemKind.Property],
@@ -113,7 +120,19 @@ const symbolMap = new Map([
 /**
  * Map a ks symbol kind to a completion kind
  */
-export const symbolMapper = mapper(symbolMap, 'KsSymbolKind');
+const symbolCompletionMapper = mapper(symbolCompletionMap, 'KsSymbolKind');
+
+const symbolSymbolMap = new Map([
+  [KsSymbolKind.function, SymbolKind.Function],
+  [KsSymbolKind.parameter, SymbolKind.Variable],
+  [KsSymbolKind.lock, SymbolKind.Object],
+  [KsSymbolKind.variable, SymbolKind.Variable],
+]);
+
+/**
+ * Map a ks symbol kind to a lang-server symbol kind
+ */
+const symbolSymbolMapper = mapper(symbolSymbolMap, 'KsSymbolKind');
 
 /**
  * Get a list of all symbols currently in scope at the given line
@@ -135,7 +154,7 @@ export const symbolCompletionItems = async (
   // generate completions
   return entities
     .map(entity => {
-      const kind = symbolMapper(entity.tag);
+      const kind = symbolCompletionMapper(entity.tag);
 
       let typeString = 'structure';
       const { tracker } = entity.name;
@@ -171,16 +190,18 @@ export const suffixCompletionItems = async (
   const { uri } = documentPosition.textDocument;
 
   // TODO more robust method
-  const token = await analyzer.getToken(
-    { line: position.line, character: position.character - 2 },
-    uri,
-  );
+  const findResult = await analyzer.findToken(position, uri, Expr.Suffix);
 
-  if (empty(token)) {
+  if (empty(findResult) || !(findResult.node instanceof Expr.Suffix)) {
     return [];
   }
 
-  const type = tokenTrackedType(token);
+  const suffixResult = findContainingSuffixTerm(findResult.node, position);
+  if (empty(suffixResult)) {
+    return [];
+  }
+
+  const type = resolveSuffixTermType(suffixResult.parentSuffixTerm);
 
   // if type not found exit
   if (empty(type)) {
@@ -188,7 +209,12 @@ export const suffixCompletionItems = async (
   }
 
   // get all suffixes on the predicted type
-  const suffixes = [...type.getSuffixes().values()];
+  const suffixes = [
+    ...type
+      .getAssignmentType()
+      .getSuffixes()
+      .values(),
+  ];
 
   // generate completions
   return suffixes.map(suffix => ({
@@ -200,35 +226,81 @@ export const suffixCompletionItems = async (
   }));
 };
 
+const resolveSuffixTermType = (
+  suffixTerm: SuffixTerm.SuffixTerm,
+): Maybe<IType> => {
+  const { atom } = suffixTerm;
+  let type: Maybe<IType>;
+
+  if (atom instanceof SuffixTerm.Literal) {
+    type = tokenTrackedType(atom.token);
+  } else if (atom instanceof SuffixTerm.Identifier) {
+    type = tokenTrackedType(atom.token);
+  } else if (atom instanceof SuffixTerm.Grouping) {
+    type = tokenTrackedType(atom.open);
+  } else {
+    type = structureType;
+  }
+
+  return type;
+};
+
+const findContainingSuffixTerm = (
+  suffix: Expr.Suffix,
+  pos: Position,
+): Maybe<FindSuffixTerm> => {
+  if (empty(suffix.trailer) || rangeContainsPos(suffix.suffixTerm, pos)) {
+    return undefined;
+  }
+
+  return findContainingSuffixTermTrailer(suffix, suffix.trailer, pos);
+};
+
+interface FindSuffixTerm {
+  parentSuffixTerm: SuffixTerm.SuffixTerm;
+  suffixTerm: SuffixTerm.SuffixTerm;
+}
+
+const findContainingSuffixTermTrailer = (
+  parent: Expr.Suffix | SuffixTerm.SuffixTrailer,
+  suffixTrailer: SuffixTerm.SuffixTrailer,
+  pos: Position,
+): Maybe<FindSuffixTerm> => {
+  if (
+    rangeContainsPos(suffixTrailer.suffixTerm, pos) ||
+    rangeAfter(suffixTrailer.suffixTerm, pos)
+  ) {
+    return {
+      parentSuffixTerm: parent.suffixTerm,
+      suffixTerm: suffixTrailer.suffixTerm,
+    };
+  }
+
+  if (!empty(suffixTrailer.trailer)) {
+    return findContainingSuffixTermTrailer(
+      suffixTrailer,
+      suffixTrailer.trailer,
+      pos,
+    );
+  }
+
+  return undefined;
+};
+
 /**
- * Get all symbols in the current document
+ * Create lang server document symbols from ks symbols
  * @param analyzer analyzer instance
  * @param documentSymbol document identifier
  */
-export const documentSymbols = async (
-  analyzer: KLS,
-  documentSymbol: DocumentSymbolParams,
-): Promise<Maybe<SymbolInformation[]>> => {
-  const { uri } = documentSymbol.textDocument;
-
-  const entities = await analyzer.getAllFileSymbols(uri);
+export const toDocumentSymbols = (
+  entities: KsSymbol[],
+  uri: string,
+): Maybe<SymbolInformation[]> => {
   return entities.map(entity => {
-    let kind: Maybe<SymbolKind> = undefined;
-    switch (entity.tag) {
-      case KsSymbolKind.function:
-        kind = SymbolKind.Function;
-        break;
-      case KsSymbolKind.parameter:
-        kind = SymbolKind.Variable;
-        break;
-      case KsSymbolKind.lock:
-        kind = SymbolKind.Object;
-        break;
-      case KsSymbolKind.variable:
-        kind = SymbolKind.Variable;
-        break;
-      default:
-        throw new Error('Unknown symbol type');
+    const kind: Maybe<SymbolKind> = symbolSymbolMapper(entity.tag);
+
+    if (typeof entity.name === 'string') {
+      throw new Error('Expected symbol tracker not type tracker');
     }
 
     return {

@@ -79,9 +79,7 @@ export const orbitalInitializer = () => {
     noMap(createSuffixType('mass', scalarType)),
     noMap(createSuffixType('hasOcean', booleanType)),
     noMap(createSuffixType('hasSolidSurface', booleanType)),
-    noMap(
-      createSuffixType('orbitingChildren', listType.apply(bodyTargetType)),
-    ),
+    noMap(createSuffixType('orbitingChildren', listType.apply(bodyTargetType))),
     noMap(createSuffixType('altitude', scalarType)),
     noMap(createSuffixType('radius', scalarType)),
     noMap(createSuffixType('mu', scalarType)),
@@ -103,18 +101,24 @@ export const orbitalInitializer = () => {
   );
 
   bodyTargetType.addOperators(
-    new Operator(bodyTargetType, OperatorKind.equal, booleanType, bodyTargetType),
-    new Operator(bodyTargetType, OperatorKind.notEqual, booleanType, bodyTargetType),
+    new Operator(
+      bodyTargetType,
+      OperatorKind.equal,
+      booleanType,
+      bodyTargetType,
+    ),
+    new Operator(
+      bodyTargetType,
+      OperatorKind.notEqual,
+      booleanType,
+      bodyTargetType,
+    ),
   );
 
   vesselTargetType.addSuper(noMap(orbitableType));
   vesselTargetType.addSuffixes(
     noMap(
-      createArgSuffixType(
-        'partsNamed',
-        listType.apply(partType),
-        stringType,
-      ),
+      createArgSuffixType('partsNamed', listType.apply(partType), stringType),
     ),
     noMap(
       createArgSuffixType(
@@ -124,11 +128,7 @@ export const orbitalInitializer = () => {
       ),
     ),
     noMap(
-      createArgSuffixType(
-        'partsTitled',
-        listType.apply(partType),
-        stringType,
-      ),
+      createArgSuffixType('partsTitled', listType.apply(partType), stringType),
     ),
     noMap(
       createArgSuffixType(
@@ -138,11 +138,7 @@ export const orbitalInitializer = () => {
       ),
     ),
     noMap(
-      createArgSuffixType(
-        'partsDubbed',
-        listType.apply(partType),
-        stringType,
-      ),
+      createArgSuffixType('partsDubbed', listType.apply(partType), stringType),
     ),
     noMap(
       createArgSuffixType(
@@ -159,11 +155,7 @@ export const orbitalInitializer = () => {
       ),
     ),
     noMap(
-      createArgSuffixType(
-        'partsInGroup',
-        listType.apply(partType),
-        stringType,
-      ),
+      createArgSuffixType('partsInGroup', listType.apply(partType), stringType),
     ),
     noMap(
       createArgSuffixType(
@@ -173,11 +165,7 @@ export const orbitalInitializer = () => {
       ),
     ),
     noMap(
-      createArgSuffixType(
-        'partStagged',
-        listType.apply(partType),
-        stringType,
-      ),
+      createArgSuffixType('partStagged', listType.apply(partType), stringType),
     ),
     noMap(
       createArgSuffixType(
@@ -188,15 +176,9 @@ export const orbitalInitializer = () => {
     ),
     noMap(createArgSuffixType('allTaggedParts', listType.apply(partType))),
     noMap(createArgSuffixType('parts', listType.apply(partType))),
-    noMap(
-      createArgSuffixType('dockingPorts', listType.apply(dockingPortType)),
-    ),
-    noMap(
-      createArgSuffixType('decouplers', listType.apply(decouplerType)),
-    ),
-    noMap(
-      createArgSuffixType('separators', listType.apply(decouplerType)),
-    ),
+    noMap(createArgSuffixType('dockingPorts', listType.apply(dockingPortType))),
+    noMap(createArgSuffixType('decouplers', listType.apply(decouplerType))),
+    noMap(createArgSuffixType('separators', listType.apply(decouplerType))),
     noMap(createArgSuffixType('elements', userListType)),
     noMap(createSuffixType('control', flightControlType)),
     noMap(createSuffixType('bearing', scalarType)),
@@ -226,9 +208,7 @@ export const orbitalInitializer = () => {
     noMap(createSuffixType('controlPart', partType)),
     noMap(createSuffixType('dryMass', scalarType)),
     noMap(createSuffixType('wetMass', scalarType)),
-    noMap(
-      createSuffixType('resources', listType.apply(aggregateResourceType)),
-    ),
+    noMap(createSuffixType('resources', listType.apply(aggregateResourceType))),
     noMap(createSuffixType('loadDistance', loadDistanceType)),
     noMap(createArgSuffixType('isDead', booleanType)),
     noMap(createSuffixType('status', stringType)),
@@ -249,7 +229,17 @@ export const orbitalInitializer = () => {
   );
 
   vesselTargetType.addOperators(
-    new Operator(vesselTargetType, OperatorKind.equal, booleanType, vesselTargetType),
-    new Operator(vesselTargetType, OperatorKind.notEqual, booleanType, vesselTargetType),
+    new Operator(
+      vesselTargetType,
+      OperatorKind.equal,
+      booleanType,
+      vesselTargetType,
+    ),
+    new Operator(
+      vesselTargetType,
+      OperatorKind.notEqual,
+      booleanType,
+      vesselTargetType,
+    ),
   );
 };

@@ -36,13 +36,13 @@ import {
 } from './analysis/types';
 import { mockLogger, mockTracer, logException } from './utilities/logger';
 import { empty } from './utilities/typeGuards';
-import { ScriptFind } from './parser/scriptFind';
+import { ScriptFind, AstContext } from './parser/scriptFind';
 import * as Expr from './parser/expr';
 import * as Stmt from './parser/stmt';
 import * as SuffixTerm from './parser/suffixTerm';
 import { builtIn, serverName, keywordCompletions } from './utilities/constants';
 import { Token } from './entities/token';
-import { binarySearchIndex } from './utilities/positionUtils';
+import { binarySearchIndex, rangeContains } from './utilities/positionUtils';
 import { URI } from 'vscode-uri';
 import { DocumentService } from './services/documentService';
 import {
@@ -52,7 +52,7 @@ import {
   suffixCompletionItems,
   symbolCompletionItems,
   defaultSignature,
-  documentSymbols,
+  toDocumentSymbols as toLangServerSymbols,
 } from './utilities/serverUtils';
 import {
   cleanDiagnostic,
@@ -72,6 +72,7 @@ import {
   normalizeExtensions,
 } from './utilities/pathResolver';
 import { existsSync } from 'fs';
+import { IFindResult } from './parser/types';
 
 export class KLS {
   /**
@@ -282,24 +283,43 @@ export class KLS {
   private async onCompletion(
     completion: CompletionParams,
   ): Promise<Maybe<CompletionItem[]>> {
-    const { context } = completion;
+    const { textDocument, position } = completion;
 
     try {
-      // check if suffix completion
-      if (!empty(context) && !empty(context.triggerCharacter)) {
-        const { triggerCharacter } = context;
+      // determine if we're inside a suffix of some kind
+      const result = await this.findToken(
+        position,
+        textDocument.uri,
+        Expr.Suffix,
+      );
 
-        if (triggerCharacter === ':') {
-          return suffixCompletionItems(this, completion);
-        }
+      // if we're not in a suffix just do symbol completion
+      if (empty(result) || empty(result.node)) {
+        return await symbolCompletionItems(
+          this,
+          completion,
+          this.configuration.keywords,
+        );
       }
 
-      // complete base symbols
-      return await symbolCompletionItems(
-        this,
-        completion,
-        this.configuration.keywords,
-      );
+      const { token, node } = result;
+
+      // check what shouldn't happen
+      if (!(node instanceof Expr.Suffix)) {
+        throw new Error('Unable to find suffix');
+      }
+
+      // if we're in the atom also do symbol completion
+      if (rangeContains(node.suffixTerm.atom, token)) {
+        return await symbolCompletionItems(
+          this,
+          completion,
+          this.configuration.keywords,
+        );
+      }
+
+      // if we're not in the atom then we need to complete with suffixes
+      return suffixCompletionItems(this, completion);
 
       // catch any errors
     } catch (err) {
@@ -391,12 +411,13 @@ export class KLS {
     const { position } = positionParams;
     const { uri } = positionParams.textDocument;
 
-    const token = await this.getToken(position, uri);
+    const result = await this.findToken(position, uri);
 
-    if (empty(token)) {
+    if (empty(result)) {
       return undefined;
     }
 
+    const { token } = result;
     const type = tokenTrackedType(token);
 
     const { tracker } = token;
@@ -540,7 +561,9 @@ export class KLS {
   private async onDocumentSymbol(
     documentSymbol: DocumentSymbolParams,
   ): Promise<Maybe<SymbolInformation[]>> {
-    return await documentSymbols(this, documentSymbol);
+    const { uri } = documentSymbol.textDocument;
+    const entities = await this.getAllFileSymbols(uri);
+    return toLangServerSymbols(entities, uri);
   }
 
   /**
@@ -678,7 +701,11 @@ export class KLS {
    * @param pos position in the text document
    * @param uri uri of the text document
    */
-  public async getToken(pos: Position, uri: string): Promise<Maybe<Token>> {
+  public async findToken(
+    pos: Position,
+    uri: string,
+    ...contexts: AstContext[]
+  ): Promise<Maybe<IFindResult>> {
     const documentInfo = await this.analysisService.getInfo(uri);
     if (empty(documentInfo)) {
       return undefined;
@@ -687,9 +714,7 @@ export class KLS {
     // try to find an symbol at the position
     const { script } = documentInfo;
     const finder = new ScriptFind();
-    const result = finder.find(script, pos);
-
-    return result && result.token;
+    return finder.find(script, pos, ...contexts);
   }
 
   /**
