@@ -17,16 +17,16 @@ export const volumeType = createType('volume');
 volumeType.addSuper(noMap(structureType));
 
 volumeType.addSuffixes(
-  noMap(createSuffixType('freespace', scalarType)),
+  noMap(createSuffixType('freeSpace', scalarType)),
   noMap(createSuffixType('capacity', scalarType)),
   noMap(createSetSuffixType('name', stringType)),
   noMap(createSuffixType('renameable', booleanType)),
-  noMap(createSuffixType('powerrequirement', scalarType)),
+  noMap(createSuffixType('powerRequirement', scalarType)),
   noMap(createSuffixType('root', volumeDirectoryType)),
   noMap(createArgSuffixType('exists', booleanType, stringType)),
   noMap(createSuffixType('files', lexiconType)),
-  noMap(createArgSuffixType('create', stringType, volumeFileType)),
-  noMap(createArgSuffixType('createDir', stringType, volumeDirectoryType)),
-  noMap(createArgSuffixType('open', stringType, structureType)),
-  noMap(createArgSuffixType('delete', stringType, booleanType)),
+  noMap(createArgSuffixType('create', volumeFileType, stringType)),
+  noMap(createArgSuffixType('createDir', volumeDirectoryType, stringType)),
+  noMap(createArgSuffixType('open', structureType, stringType)),
+  noMap(createArgSuffixType('delete', booleanType, stringType)),
 );

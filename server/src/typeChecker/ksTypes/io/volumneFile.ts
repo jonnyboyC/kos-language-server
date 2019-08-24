@@ -15,7 +15,7 @@ export const volumeFileType = createType('volumefile');
 volumeFileType.addSuper(noMap(volumeItemType));
 
 volumeFileType.addSuffixes(
-  noMap(createSuffixType('readall', fileContentType)),
+  noMap(createSuffixType('readAll', fileContentType)),
   noMap(createArgSuffixType('write', booleanType, structureType)),
   noMap(createArgSuffixType('writeln', booleanType, stringType)),
   noMap(createArgSuffixType('clear', voidType)),
