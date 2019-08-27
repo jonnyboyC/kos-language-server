@@ -75,8 +75,9 @@ import { Marker } from '../entities/marker';
 import { boundsType } from '../typeChecker/ksTypes/parts/bounds';
 import { IType } from '../typeChecker/types';
 import { empty } from '../utilities/typeGuards';
-import { partModuleType } from '../typeChecker/ksTypes/parts/partModule';
 import { partType } from '../typeChecker/ksTypes/parts/part';
+import { kosProcessorFieldsType } from '../typeChecker/ksTypes/kosProcessorFields';
+import { orbitableVelocityType } from '../typeChecker/ksTypes/orbitalVelocity';
 
 const functionTypes: [string[], IType][] = [
   [['abs'], createFunctionType('abs', scalarType, scalarType)],
@@ -102,12 +103,15 @@ const functionTypes: [string[], IType][] = [
   ],
   [
     ['angle', 'diff'],
-    createFunctionType('anglediff', scalarType, scalarType, scalarType),
+    createFunctionType('anglediff', doubleType, scalarType, scalarType),
   ],
-  [['arc', 'cos'], createFunctionType('arccos', scalarType)],
-  [['arc', 'sin'], createFunctionType('arcsin', scalarType)],
-  [['arc', 'tan'], createFunctionType('arctan', scalarType)],
-  [['arc', 'tan2'], createFunctionType('arctan2', scalarType)],
+  [['arc', 'cos'], createFunctionType('arccos', doubleType, scalarType)],
+  [['arc', 'sin'], createFunctionType('arcsin', doubleType, scalarType)],
+  [['arc', 'tan'], createFunctionType('arctan', doubleType, scalarType)],
+  [
+    ['arc', 'tan2'],
+    createFunctionType('arctan2', doubleType, scalarType, scalarType),
+  ],
   // TODO need to figure out name collision for scope manager
   // createFunctionType('body', bodyTargetType, stringType)],
   [
@@ -127,31 +131,61 @@ const functionTypes: [string[], IType][] = [
   ],
   [
     ['build', 'list'],
-    createFunctionType('buildlist', /* TODO Union */ scalarType, stringType),
+    createFunctionType('buildlist', listType.apply(structureType), stringType),
   ],
   [['career'], createFunctionType('career', careerType)],
-  [['cd'], createFunctionType('cd', noneType, stringType)],
+  [
+    ['cd'],
+    createFunctionType(
+      'cd',
+      noneType,
+      createUnion(true, stringType, pathType, noneType),
+    ),
+  ],
   [['ceiling'], createFunctionType('ceiling', scalarType, scalarType)],
   [['char'], createFunctionType('char', stringType, scalarType)],
-  [['chdir'], createFunctionType('chdir', noneType, stringType)],
+  [
+    ['chdir'],
+    createFunctionType(
+      'chdir',
+      noneType,
+      createUnion(true, stringType, pathType, noneType),
+    ),
+  ],
   [['clear', 'guis'], createFunctionType('clearguis', noneType)],
   [['clear', 'screen'], createFunctionType('clearscreen', noneType)],
   [['clear', 'vec', 'draws'], createFunctionType('clearvecdraws', noneType)],
   [['constant'], createFunctionType('constant', constantType)],
   [
     ['copy', 'path'],
-    createFunctionType('copypath', noneType, stringType, stringType),
+    createFunctionType(
+      'copypath',
+      noneType,
+      createUnion(true, stringType, pathType),
+      createUnion(true, stringType, pathType),
+    ),
   ],
-  [['cos'], createFunctionType('cos', scalarType)],
-  [['create'], createFunctionType('create', volumeFileType, stringType)],
+  [['cos'], createFunctionType('cos', doubleType, scalarType)],
+  [
+    ['create'],
+    createFunctionType(
+      'create',
+      volumeFileType,
+      createUnion(true, stringType, pathType),
+    ),
+  ],
   [
     ['create', 'dir'],
-    createFunctionType('createdir', volumeDirectoryType, stringType),
+    createFunctionType(
+      'createdir',
+      volumeDirectoryType,
+      createUnion(true, stringType, pathType),
+    ),
   ],
-  [['debug', 'dump'], createFunctionType('debugdump', noneType)],
+  [['debug', 'dump'], createFunctionType('debugdump', stringType)],
   [
     ['debug', 'freeze', 'game'],
-    createFunctionType('debugfreezegame', scalarType),
+    createFunctionType('debugfreezegame', noneType, scalarType),
   ],
   [
     ['delete', 'alarm'],
@@ -159,13 +193,39 @@ const functionTypes: [string[], IType][] = [
   ],
   [
     ['delete', 'path'],
-    createFunctionType('deletepath', noneType, stringType, stringType),
+    createFunctionType(
+      'deletepath',
+      booleanType,
+      createUnion(true, stringType, pathType),
+    ),
   ],
-  [['edit'], createFunctionType('edit', noneType, pathType)],
-  [['exists'], createFunctionType('exists', booleanType, stringType)],
+  [
+    ['edit'],
+    createFunctionType(
+      'edit',
+      noneType,
+      createUnion(true, stringType, pathType),
+    ),
+  ],
+  [
+    ['exists'],
+    createFunctionType(
+      'exists',
+      booleanType,
+      createUnion(true, stringType, pathType),
+    ),
+  ],
   [['floor'], createFunctionType('floor', scalarType, scalarType)],
   [['get', 'voice'], createFunctionType('getvoice', voiceType, integerType)],
-  [['gui'], createFunctionType('gui', guiWidgetType, integerType, integerType)],
+  [
+    ['gui'],
+    createFunctionType(
+      'gui',
+      guiWidgetType,
+      integerType,
+      createUnion(true, integerType, noneType),
+    ),
+  ],
   [
     ['heading'],
     createFunctionType('heading', directionType, scalarType, scalarType),
@@ -195,8 +255,9 @@ const functionTypes: [string[], IType][] = [
       'hudtext',
       noneType,
       stringType,
-      integerType,
-      integerType,
+      scalarType,
+      scalarType,
+      scalarType,
       rgbaType,
       booleanType,
     ),
@@ -221,8 +282,8 @@ const functionTypes: [string[], IType][] = [
     ['list', 'alarms'],
     createFunctionType('listAlarms', listType.apply(kacAlarmType), stringType),
   ],
-  [['ln'], createFunctionType('ln', scalarType, scalarType)],
-  [['log10'], createFunctionType('log10', scalarType, scalarType)],
+  [['ln'], createFunctionType('ln', doubleType, scalarType)],
+  [['log10'], createFunctionType('log10', doubleType, scalarType)],
   [
     ['log', 'file'],
     createFunctionType('logfile', noneType, stringType, stringType),
@@ -240,7 +301,12 @@ const functionTypes: [string[], IType][] = [
   [['mod'], createFunctionType('mod', scalarType, scalarType, scalarType)],
   [
     ['move', 'path'],
-    createFunctionType('movepath', noneType, stringType, stringType),
+    createFunctionType(
+      'movepath',
+      noneType,
+      createUnion(true, integerType, noneType),
+      createUnion(true, integerType, noneType),
+    ),
   ],
   [
     ['node'],
@@ -260,8 +326,8 @@ const functionTypes: [string[], IType][] = [
       noteType,
       scalarType,
       scalarType,
-      scalarType,
-      scalarType,
+      createUnion(true, scalarType, noneType),
+      createUnion(true, scalarType, noneType),
     ),
   ],
   [['open'], createFunctionType('open', volumeItemType, stringType)],
@@ -269,17 +335,24 @@ const functionTypes: [string[], IType][] = [
     ['orbit', 'at'],
     createFunctionType('orbitat', orbitInfoType, orbitableType, timeSpanType),
   ],
-  [['path'], createFunctionType('path', pathType, stringType)],
+  [
+    ['path'],
+    createFunctionType(
+      'path',
+      pathType,
+      createUnion(true, stringType, pathType),
+    ),
+  ],
   [
     ['pid', 'loop'],
     createFunctionType(
       'pidloop',
       pidLoopType,
-      scalarType,
-      scalarType,
-      scalarType,
-      scalarType,
-      scalarType,
+      createUnion(true, scalarType, noneType),
+      createUnion(true, scalarType, noneType),
+      createUnion(true, scalarType, noneType),
+      createUnion(true, scalarType, noneType),
+      createUnion(true, scalarType, noneType),
     ),
   ],
   [
@@ -296,11 +369,11 @@ const functionTypes: [string[], IType][] = [
     ['processor'],
     createFunctionType(
       'processor',
-      partModuleType,
+      kosProcessorFieldsType,
       createUnion(true, stringType, volumeType),
     ),
   ],
-  [['profile', 'result'], createFunctionType('profileresult', noneType)],
+  [['profile', 'result'], createFunctionType('profileresult', stringType)],
   [
     ['q'],
     createFunctionType(
@@ -331,8 +404,8 @@ const functionTypes: [string[], IType][] = [
       'range',
       rangeType,
       integerType,
-      integerType,
-      integerType,
+      createUnion(true, integerType, noneType),
+      createUnion(true, integerType, noneType),
     ),
   ],
   [
@@ -364,14 +437,22 @@ const functionTypes: [string[], IType][] = [
     ['rotate', 'from', 'to'],
     createFunctionType('rotatefromto', directionType, vectorType, vectorType),
   ],
-  [['round'], createFunctionType('round', scalarType, scalarType)],
+  [
+    ['round'],
+    createFunctionType(
+      'round',
+      scalarType,
+      scalarType,
+      createUnion(true, scalarType, noneType),
+    ),
+  ],
   [['script', 'path'], createFunctionType('scriptpath', pathType)],
   [
     ['select', 'auto', 'pilot', 'mode'],
     createFunctionType('selectautopilotmode', noneType, stringType),
   ],
   [['shutdown'], createFunctionType('shutdown', noneType)],
-  [['sin'], createFunctionType('sin', scalarType)],
+  [['sin'], createFunctionType('sin', doubleType, scalarType)],
   [
     ['slide', 'note'],
     createFunctionType(
@@ -380,8 +461,8 @@ const functionTypes: [string[], IType][] = [
       scalarType,
       scalarType,
       scalarType,
-      scalarType,
-      scalarType,
+      createUnion(true, scalarType, noneType),
+      createUnion(true, scalarType, noneType),
     ),
   ],
   [['sqrt'], createFunctionType('sqrt', scalarType, scalarType)],
@@ -395,8 +476,15 @@ const functionTypes: [string[], IType][] = [
   ],
   [['stage'], createFunctionType('stage', noneType)],
   [['stop', 'all', 'voices'], createFunctionType('stopallvoices', noneType)],
-  [['switch'], createFunctionType('switch', stringType)],
-  [['tan'], createFunctionType('tan', scalarType)],
+  [
+    ['switch'],
+    createFunctionType(
+      'switch',
+      noneType,
+      createUnion(true, volumeType, stringType),
+    ),
+  ],
+  [['tan'], createFunctionType('tan', scalarType, scalarType)],
   [
     ['toggle', 'fly', 'by', 'wire'],
     createFunctionType('toggleflybywire', noneType, stringType, booleanType),
@@ -452,9 +540,9 @@ const functionTypes: [string[], IType][] = [
     createFunctionType(
       'vecdraw',
       vectorRendererType,
-      createUnion(true, vectorType, noneType),
-      createUnion(true, vectorType, noneType),
-      createUnion(true, rgbaType, noneType),
+      createUnion(true, vectorType, delegateType, noneType),
+      createUnion(true, vectorType, delegateType, noneType),
+      createUnion(true, rgbaType, delegateType, noneType),
       createUnion(true, stringType, noneType),
       createUnion(true, scalarType, noneType),
       createUnion(true, booleanType, noneType),
@@ -468,9 +556,9 @@ const functionTypes: [string[], IType][] = [
     createFunctionType(
       'vecdrawargs',
       vectorRendererType,
-      createUnion(true, vectorType, noneType),
-      createUnion(true, vectorType, noneType),
-      createUnion(true, rgbaType, noneType),
+      createUnion(true, vectorType, delegateType, noneType),
+      createUnion(true, vectorType, delegateType, noneType),
+      createUnion(true, rgbaType, delegateType, noneType),
       createUnion(true, stringType, noneType),
       createUnion(true, scalarType, noneType),
       createUnion(true, booleanType, noneType),
@@ -502,10 +590,22 @@ const functionTypes: [string[], IType][] = [
   ],
   [
     ['velocity', 'at'],
-    createFunctionType('velocityat', vectorType, orbitableType, timeSpanType),
+    createFunctionType(
+      'velocityat',
+      orbitableVelocityType,
+      orbitableType,
+      timeSpanType,
+    ),
   ],
   [['vessel'], createFunctionType('vessel', vesselTargetType, stringType)],
-  [['volume'], createFunctionType('volume', volumeType, stringType)],
+  [
+    ['volume'],
+    createFunctionType(
+      'volume',
+      volumeType,
+      createUnion(true, pathType, stringType),
+    ),
+  ],
   [['vxcl'], createFunctionType('vxcl', vectorType, vectorType, vectorType)],
   [['warp', 'to'], createFunctionType('warpto', noneType, scalarType)],
   [['waypoint'], createFunctionType('waypoint', waypointType, stringType)],
