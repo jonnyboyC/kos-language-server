@@ -5,7 +5,7 @@ import {
   noMap,
 } from '../typeCreators';
 import { listType } from './collections/list';
-import { voidType } from './primitives/void';
+import { noneType } from './primitives/none';
 import { scalarType, integerType } from './primitives/scalar';
 import { stringType } from './primitives/string';
 import { booleanType } from './primitives/boolean';
@@ -22,7 +22,7 @@ timeWarpType.addSuffixes(
   noMap(createSuffixType('mode', stringType)),
   noMap(createSuffixType('warp', integerType)),
   noMap(createArgSuffixType('warpTo', scalarType)),
-  noMap(createArgSuffixType('cancelWarp', voidType)),
+  noMap(createArgSuffixType('cancelWarp', noneType)),
   noMap(createArgSuffixType('physicsDeltaT', scalarType)),
   noMap(createArgSuffixType('isSettled', booleanType)),
 );

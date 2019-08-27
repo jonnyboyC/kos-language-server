@@ -5,7 +5,6 @@ import {
   TypeMap,
   ITypeMappable,
   IParametricIndexer,
-  IIndexer,
 } from './types';
 import { memoize } from '../utilities/memoize';
 import { ParametricType } from './parametricTypes/parametricType';
@@ -15,6 +14,8 @@ import { CallSignature } from './types/callSignature';
 import { GenericCallSignature } from './parametricTypes/parametricCallSignature';
 import { ParametricIndexer } from './parametricTypes/parametricIndexer';
 import { Indexer } from './types/indexer';
+import { empty } from '../utilities/typeGuards';
+import { UnionType } from './types/unionType';
 
 /**
  * Create a type parameter type
@@ -46,13 +47,59 @@ export const createParametricType = (
   );
 };
 
+const unionCache = new Map<string, IType>();
+
 /**
  * Create an indexer
  * @param index the index type
  * @param returns the return type
  */
-export const createIndexer = (index: IType, returns: IType): IIndexer => {
-  return new Indexer(new CallSignature([index], returns), new Map());
+export const createUnion = (...types: IType[]): IType => {
+  // deduplicate and sort
+  const sortedTypes = [...new Set(types)].sort((a, b) => {
+    if (a.name < b.name) {
+      return -1;
+    }
+
+    if (a.name > b.name) {
+      return 1;
+    }
+
+    return 0;
+  });
+
+  if (sortedTypes.length === 1) {
+    return sortedTypes[0];
+  }
+
+  const unionString = sortedTypes.map(type => type.toString()).join(' or ');
+  const cacheHit = unionCache.get(unionString);
+  if (!empty(cacheHit)) {
+    return cacheHit;
+  }
+
+  const unionType = new UnionType(...sortedTypes);
+  unionCache.set(unionString, unionType);
+  return unionType;
+};
+
+const indexerCache = new Map<string, Indexer>();
+
+/**
+ * Create an indexer
+ * @param index the index type
+ * @param returns the return type
+ */
+export const createIndexer = (index: IType, returns: IType): Indexer => {
+  const indexerString = `[${index.toString()}]: ${returns.toString()}`;
+  const cacheHit = indexerCache.get(indexerString);
+  if (!empty(cacheHit)) {
+    return cacheHit;
+  }
+
+  const indexer = new Indexer(new CallSignature([index], returns), new Map());
+  indexerCache.set(indexerString, indexer);
+  return indexer;
 };
 
 /**

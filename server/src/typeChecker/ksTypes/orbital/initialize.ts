@@ -24,7 +24,7 @@ import { aggregateResourceType } from '../parts/aggregateResource';
 import { loadDistanceType } from '../loadDistance';
 import { vesselConnectionType } from '../communication/vesselConnection';
 import { messageQueueType } from '../communication/messageQueue';
-import { voidType } from '../primitives/void';
+import { noneType } from '../primitives/none';
 import { uniqueSetType } from '../collections/uniqueset';
 import { userDelegateType } from '../userDelegate';
 import { bodyTargetType } from './bodyTarget';
@@ -219,7 +219,7 @@ export const orbitalInitializer = () => {
     noMap(createSuffixType('crewCapacity', scalarType)),
     noMap(createSuffixType('connection', vesselConnectionType)),
     noMap(createSuffixType('messages', messageQueueType)),
-    noMap(createArgSuffixType('startTracking', voidType)),
+    noMap(createArgSuffixType('startTracking', noneType)),
     noMap(
       createArgSuffixType(
         'soiChangeWatchers',

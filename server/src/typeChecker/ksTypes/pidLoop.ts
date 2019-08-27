@@ -6,7 +6,7 @@ import {
   noMap,
 } from '../typeCreators';
 import { structureType } from './primitives/structure';
-import { voidType } from './primitives/void';
+import { noneType } from './primitives/none';
 import { scalarType } from './primitives/scalar';
 
 export const pidLoopType = createType('pidLoop');
@@ -28,6 +28,6 @@ pidLoopType.addSuffixes(
   noMap(createSuffixType('iTerm', scalarType)),
   noMap(createSuffixType('dTerm', scalarType)),
   noMap(createSuffixType('changeRate', scalarType)),
-  noMap(createArgSuffixType('reset', voidType)),
+  noMap(createArgSuffixType('reset', noneType)),
   noMap(createArgSuffixType('update', scalarType, scalarType, scalarType)),
 );

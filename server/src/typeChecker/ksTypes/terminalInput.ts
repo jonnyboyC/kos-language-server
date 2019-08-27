@@ -5,7 +5,7 @@ import {
   noMap,
 } from '../typeCreators';
 import { structureType } from './primitives/structure';
-import { voidType } from './primitives/void';
+import { noneType } from './primitives/none';
 import { stringType } from './primitives/string';
 import { booleanType } from './primitives/boolean';
 
@@ -15,7 +15,7 @@ terminalInputType.addSuper(noMap(structureType));
 terminalInputType.addSuffixes(
   noMap(createSuffixType('getChar', stringType)),
   noMap(createSuffixType('hasChar', booleanType)),
-  noMap(createArgSuffixType('clear', voidType)),
+  noMap(createArgSuffixType('clear', noneType)),
   noMap(createSuffixType('backspace', stringType)),
   noMap(createSuffixType('return', stringType)),
   noMap(createSuffixType('enter', stringType)),

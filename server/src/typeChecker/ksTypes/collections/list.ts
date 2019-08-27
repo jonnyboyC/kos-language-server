@@ -6,7 +6,7 @@ import {
   mapTypes,
   createParametricIndexer,
 } from '../../typeCreators';
-import { voidType } from '../primitives/void';
+import { noneType } from '../primitives/none';
 import { scalarType, integerType } from '../primitives/scalar';
 import { collectionType } from './enumerable';
 import { stringType } from '../primitives/string';
@@ -17,11 +17,11 @@ listType.addSuper(mapTypes(listType, collectionType));
 const indexer = createParametricIndexer(['T'], scalarType, 'T');
 listType.addIndexer(mapTypes(listType, indexer));
 
-const addSuffix = createParametricArgSuffixType('add', ['T'], voidType, 'T');
+const addSuffix = createParametricArgSuffixType('add', ['T'], noneType, 'T');
 const insertSuffix = createParametricArgSuffixType(
   'insert',
   ['T'],
-  voidType,
+  noneType,
   scalarType,
   'T',
 );
@@ -62,7 +62,7 @@ listType.addSuffixes(
   mapTypes(listType, copySuffix),
   mapTypes(listType, addSuffix),
   mapTypes(listType, insertSuffix),
-  noMap(createArgSuffixType('remove', voidType, scalarType)),
+  noMap(createArgSuffixType('remove', noneType, scalarType)),
   mapTypes(listType, subListSuffix),
   noMap(createArgSuffixType('join', stringType, stringType)),
   mapTypes(listType, indexOfSuffix),

@@ -2,7 +2,7 @@ import { createType, createArgSuffixType, noMap } from '../../typeCreators';
 import { structureType } from '../primitives/structure';
 
 import { messageType } from './message';
-import { voidType } from '../primitives/void';
+import { noneType } from '../primitives/none';
 import { booleanType } from '../primitives/boolean';
 import { scalarType } from '../primitives/scalar';
 
@@ -14,6 +14,6 @@ messageQueueType.addSuffixes(
   noMap(createArgSuffixType('length', scalarType)),
   noMap(createArgSuffixType('pop', messageType)),
   noMap(createArgSuffixType('peek', messageType)),
-  noMap(createArgSuffixType('clear', voidType)),
-  noMap(createArgSuffixType('push', voidType, structureType)),
+  noMap(createArgSuffixType('clear', noneType)),
+  noMap(createArgSuffixType('push', noneType, structureType)),
 );

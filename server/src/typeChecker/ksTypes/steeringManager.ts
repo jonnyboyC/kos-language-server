@@ -8,7 +8,7 @@ import {
 import { structureType } from './primitives/structure';
 import { pidLoopType } from './pidLoop';
 import { directionType } from './collections/direction';
-import { voidType } from './primitives/void';
+import { noneType } from './primitives/none';
 import { booleanType } from './primitives/boolean';
 import { scalarType } from './primitives/scalar';
 
@@ -21,8 +21,8 @@ steeringManagerType.addSuffixes(
   noMap(createSuffixType('rollPid', pidLoopType)),
   noMap(createSuffixType('enabled', booleanType)),
   noMap(createSuffixType('target', directionType)),
-  noMap(createArgSuffixType('resetPids', voidType)),
-  noMap(createArgSuffixType('resetToDefault', voidType)),
+  noMap(createArgSuffixType('resetPids', noneType)),
+  noMap(createArgSuffixType('resetToDefault', noneType)),
   noMap(createSetSuffixType('showFacingVectors', booleanType)),
   noMap(createSetSuffixType('showAngularVectors', booleanType)),
   noMap(createSetSuffixType('showSteeringStats', booleanType)),

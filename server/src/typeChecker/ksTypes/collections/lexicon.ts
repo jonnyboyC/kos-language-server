@@ -6,7 +6,7 @@ import {
   noMap,
 } from '../../typeCreators';
 import { structureType } from '../primitives/structure';
-import { voidType } from '../primitives/void';
+import { noneType } from '../primitives/none';
 import { userListType } from './userList';
 import { booleanType } from '../primitives/boolean';
 import { scalarType } from '../primitives/scalar';
@@ -24,7 +24,7 @@ lexiconType.addIndexer(
 );
 
 lexiconType.addSuffixes(
-  noMap(createArgSuffixType('clear', voidType)),
+  noMap(createArgSuffixType('clear', noneType)),
   noMap(createSuffixType('keys', userListType)),
   noMap(createArgSuffixType('hasKey', booleanType, structureType)),
   noMap(createArgSuffixType('hasValue', booleanType, structureType)),
@@ -32,7 +32,7 @@ lexiconType.addSuffixes(
   noMap(createArgSuffixType('copy', lexiconType)),
   noMap(createArgSuffixType('length', scalarType)),
   noMap(createArgSuffixType('remove', booleanType, structureType)),
-  noMap(createArgSuffixType('add', voidType, structureType, structureType)),
+  noMap(createArgSuffixType('add', noneType, structureType, structureType)),
   noMap(createSetSuffixType('caseSensitive', booleanType)),
   noMap(createSetSuffixType('case', booleanType)),
 );

@@ -7,7 +7,7 @@ import {
 import { structureType } from '../primitives/structure';
 import { volumeItemType } from './volumeItem';
 import { fileContentType } from './fileContent';
-import { voidType } from '../primitives/void';
+import { noneType } from '../primitives/none';
 import { booleanType } from '../primitives/boolean';
 import { stringType } from '../primitives/string';
 
@@ -18,5 +18,5 @@ volumeFileType.addSuffixes(
   noMap(createSuffixType('readall', fileContentType)),
   noMap(createArgSuffixType('write', booleanType, structureType)),
   noMap(createArgSuffixType('writeln', booleanType, stringType)),
-  noMap(createArgSuffixType('clear', voidType)),
+  noMap(createArgSuffixType('clear', noneType)),
 );

@@ -14,7 +14,7 @@ import { textFieldType } from './elements/textField';
 import { buttonType } from './elements/button';
 import { popupMenuType } from './elements/popupMenu';
 import { sliderType } from './elements/slider';
-import { voidType } from '../primitives/void';
+import { noneType } from '../primitives/none';
 import { stringType } from '../primitives/string';
 import { booleanType } from '../primitives/boolean';
 import { doubleType, integerType } from '../primitives/scalar';
@@ -64,6 +64,6 @@ boxType.addSuffixes(
   noMap(createSuffixType('widgets', listType.apply(widgetType))),
   noMap(createSuffixType('radioValue', stringType)),
   noMap(createSetSuffixType('onRadioChange', userDelegateType)),
-  noMap(createArgSuffixType('showOnly', voidType, widgetType)),
-  noMap(createArgSuffixType('clear', voidType)),
+  noMap(createArgSuffixType('showOnly', noneType, widgetType)),
+  noMap(createArgSuffixType('clear', noneType)),
 );

@@ -148,44 +148,6 @@ export class SuffixTrailer extends SuffixTermBase {
   }
 
   /**
-   * Method indicating if the suffix ends with a settable trailer
-   */
-  public isSettable(): boolean {
-    // if no trailer check suffix term
-    if (empty(this.trailer)) {
-      const { atom, trailers } = this.suffixTerm;
-
-      // check for suffix term trailers
-      if (trailers.length > 0) {
-        const lastTrailer = trailers[trailers.length - 1];
-        if (lastTrailer instanceof Identifier) {
-          return true;
-        }
-
-        if (lastTrailer instanceof ArrayBracket) {
-          return true;
-        }
-
-        if (lastTrailer instanceof ArrayIndex) {
-          return true;
-        }
-      }
-
-      if (atom instanceof Identifier) {
-        return true;
-      }
-      return false;
-    }
-
-    // check nested trailers
-    if (this.trailer instanceof SuffixTrailer) {
-      return this.trailer.isSettable();
-    }
-
-    return false;
-  }
-
-  /**
    * Get the most resolved type on this suffix
    */
   public mostResolveTracker(): Maybe<SymbolTracker> {

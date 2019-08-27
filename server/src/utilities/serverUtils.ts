@@ -3,7 +3,6 @@ import {
   TextDocumentPositionParams,
   CompletionItemKind,
   CompletionItem,
-  // DocumentSymbolParams,
   SymbolInformation,
   SymbolKind,
   IPCMessageReader,
@@ -12,13 +11,11 @@ import {
   StreamMessageWriter,
   MessageReader,
   MessageWriter,
-  SignatureHelp,
   Diagnostic,
   DiagnosticSeverity,
   Position,
 } from 'vscode-languageserver';
 import { empty } from './typeGuards';
-// import { tokenTrackedType } from '../typeChecker/typeUtilities';
 import { KsSymbolKind, KsSymbol } from '../analysis/types';
 import { cleanLocation, cleanToken, cleanCompletion } from './clean';
 import { CommanderStatic } from 'commander';
@@ -314,15 +311,6 @@ export const toDocumentSymbols = (
     } as SymbolInformation;
   });
 };
-
-/**
- * The default signature if non can be provided
- */
-export const defaultSignature = (): SignatureHelp => ({
-  signatures: [],
-  activeParameter: null,
-  activeSignature: null,
-});
 
 /**
  * Convert parser error to diagnostic

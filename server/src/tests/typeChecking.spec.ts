@@ -199,7 +199,7 @@ print(partFacing).
 print(distance).
 `;
 
-const symbolTests = (
+const declaredTests = (
   symbols: Map<string, KsBaseSymbol>,
   name: string,
   symbolKind: KsSymbolKind,
@@ -233,16 +233,16 @@ describe('Basic inferring', () => {
       symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
     );
 
-    symbolTests(names, 'b1', KsSymbolKind.variable, booleanType);
-    symbolTests(names, 'b2', KsSymbolKind.variable, booleanType);
+    declaredTests(names, 'b1', KsSymbolKind.variable, booleanType);
+    declaredTests(names, 'b2', KsSymbolKind.variable, booleanType);
 
-    symbolTests(names, 'd1', KsSymbolKind.variable, doubleType);
-    symbolTests(names, 'd2', KsSymbolKind.variable, doubleType);
+    declaredTests(names, 'd1', KsSymbolKind.variable, doubleType);
+    declaredTests(names, 'd2', KsSymbolKind.variable, doubleType);
 
-    symbolTests(names, 'i', KsSymbolKind.variable, integerType);
+    declaredTests(names, 'i', KsSymbolKind.variable, integerType);
 
-    symbolTests(names, 's', KsSymbolKind.variable, stringType);
-    symbolTests(names, 'fi', KsSymbolKind.variable, stringType);
+    declaredTests(names, 's', KsSymbolKind.variable, stringType);
+    declaredTests(names, 'fi', KsSymbolKind.variable, stringType);
   });
 
   test('Identifier inferring', () => {
@@ -255,16 +255,16 @@ describe('Basic inferring', () => {
       symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
     );
 
-    symbolTests(names, 'b3', KsSymbolKind.variable, booleanType);
-    symbolTests(names, 'b4', KsSymbolKind.variable, booleanType);
+    declaredTests(names, 'b3', KsSymbolKind.variable, booleanType);
+    declaredTests(names, 'b4', KsSymbolKind.variable, booleanType);
 
-    symbolTests(names, 'd3', KsSymbolKind.variable, doubleType);
-    symbolTests(names, 'd4', KsSymbolKind.variable, doubleType);
+    declaredTests(names, 'd3', KsSymbolKind.variable, doubleType);
+    declaredTests(names, 'd4', KsSymbolKind.variable, doubleType);
 
-    symbolTests(names, 'i2', KsSymbolKind.variable, integerType);
+    declaredTests(names, 'i2', KsSymbolKind.variable, integerType);
 
-    symbolTests(names, 's2', KsSymbolKind.variable, stringType);
-    symbolTests(names, 'fi2', KsSymbolKind.variable, stringType);
+    declaredTests(names, 's2', KsSymbolKind.variable, stringType);
+    declaredTests(names, 'fi2', KsSymbolKind.variable, stringType);
   });
 
   test('collection inferring', () => {
@@ -277,29 +277,29 @@ describe('Basic inferring', () => {
       symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
     );
 
-    symbolTests(names, 'a', KsSymbolKind.variable, integerType);
-    symbolTests(names, 'b', KsSymbolKind.variable, stringType);
-    symbolTests(names, 'c', KsSymbolKind.variable, booleanType);
+    declaredTests(names, 'a', KsSymbolKind.variable, integerType);
+    declaredTests(names, 'b', KsSymbolKind.variable, stringType);
+    declaredTests(names, 'c', KsSymbolKind.variable, booleanType);
 
-    symbolTests(names, 'l1', KsSymbolKind.variable, userListType);
-    symbolTests(names, 'l2', KsSymbolKind.variable, userListType);
+    declaredTests(names, 'l1', KsSymbolKind.variable, userListType);
+    declaredTests(names, 'l2', KsSymbolKind.variable, userListType);
 
-    symbolTests(names, 'x1', KsSymbolKind.variable, structureType);
-    symbolTests(names, 'x2', KsSymbolKind.variable, structureType);
+    declaredTests(names, 'x1', KsSymbolKind.variable, structureType);
+    declaredTests(names, 'x2', KsSymbolKind.variable, structureType);
 
-    symbolTests(names, 'i1', KsSymbolKind.variable, structureType);
-    symbolTests(names, 'i2', KsSymbolKind.variable, structureType);
+    declaredTests(names, 'i1', KsSymbolKind.variable, structureType);
+    declaredTests(names, 'i2', KsSymbolKind.variable, structureType);
 
-    symbolTests(names, 'p', KsSymbolKind.variable, pathType);
-    symbolTests(
+    declaredTests(names, 'p', KsSymbolKind.variable, pathType);
+    declaredTests(
       names,
       'segments',
       KsSymbolKind.variable,
       listType.apply(stringType),
     );
 
-    symbolTests(names, 'x3', KsSymbolKind.variable, stringType);
-    symbolTests(names, 'i3', KsSymbolKind.variable, stringType);
+    declaredTests(names, 'x3', KsSymbolKind.variable, stringType);
+    declaredTests(names, 'i3', KsSymbolKind.variable, stringType);
   });
 
   test('suffix inferring', () => {
@@ -312,16 +312,16 @@ describe('Basic inferring', () => {
       symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
     );
 
-    symbolTests(names, 'atm', KsSymbolKind.variable, bodyAtmosphereType);
-    symbolTests(names, 'length', KsSymbolKind.variable, integerType);
-    symbolTests(
+    declaredTests(names, 'atm', KsSymbolKind.variable, bodyAtmosphereType);
+    declaredTests(names, 'length', KsSymbolKind.variable, integerType);
+    declaredTests(
       names,
       'parts',
       KsSymbolKind.variable,
       listType.apply(partType),
     );
-    symbolTests(names, 'partFacing', KsSymbolKind.variable, directionType);
-    symbolTests(names, 'distance', KsSymbolKind.variable, scalarType);
+    declaredTests(names, 'partFacing', KsSymbolKind.variable, directionType);
+    declaredTests(names, 'distance', KsSymbolKind.variable, scalarType);
   });
 });
 
@@ -466,23 +466,23 @@ describe('Operators', () => {
       symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
     );
 
-    symbolTests(names, 'f', KsSymbolKind.function);
-    symbolTests(names, 'x', KsSymbolKind.variable, integerType);
-    symbolTests(names, 'l', KsSymbolKind.lock, integerType);
+    declaredTests(names, 'f', KsSymbolKind.function);
+    declaredTests(names, 'x', KsSymbolKind.variable, integerType);
+    declaredTests(names, 'l', KsSymbolKind.lock, integerType);
 
-    symbolTests(names, 'd1', KsSymbolKind.variable, booleanType);
-    symbolTests(names, 'd2', KsSymbolKind.variable, booleanType);
-    symbolTests(names, 'd3', KsSymbolKind.variable, booleanType);
+    declaredTests(names, 'd1', KsSymbolKind.variable, booleanType);
+    declaredTests(names, 'd2', KsSymbolKind.variable, booleanType);
+    declaredTests(names, 'd3', KsSymbolKind.variable, booleanType);
 
-    symbolTests(names, 'b1', KsSymbolKind.variable, booleanType);
-    symbolTests(names, 'b2', KsSymbolKind.variable, booleanType);
-    symbolTests(names, 'b3', KsSymbolKind.variable, booleanType);
+    declaredTests(names, 'b1', KsSymbolKind.variable, booleanType);
+    declaredTests(names, 'b2', KsSymbolKind.variable, booleanType);
+    declaredTests(names, 'b3', KsSymbolKind.variable, booleanType);
 
-    symbolTests(names, 'n1', KsSymbolKind.variable, scalarType);
-    symbolTests(names, 'n2', KsSymbolKind.variable, scalarType);
-    symbolTests(names, 'n3', KsSymbolKind.variable, scalarType);
-    symbolTests(names, 'n4', KsSymbolKind.lock, vectorType);
-    symbolTests(names, 'n5', KsSymbolKind.variable, directionType);
+    declaredTests(names, 'n1', KsSymbolKind.variable, scalarType);
+    declaredTests(names, 'n2', KsSymbolKind.variable, scalarType);
+    declaredTests(names, 'n3', KsSymbolKind.variable, scalarType);
+    declaredTests(names, 'n4', KsSymbolKind.lock, vectorType);
+    declaredTests(names, 'n5', KsSymbolKind.variable, directionType);
   });
 
   const unaryLocations: Range[] = [
@@ -500,8 +500,8 @@ describe('Operators', () => {
       symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
     );
 
-    symbolTests(names, 'b1', KsSymbolKind.variable, booleanType);
-    symbolTests(names, 'n1', KsSymbolKind.variable, structureType);
+    declaredTests(names, 'b1', KsSymbolKind.variable, booleanType);
+    declaredTests(names, 'n1', KsSymbolKind.variable, structureType);
 
     const sortedErrors = results.typeCheckDiagnostics.sort(
       (a, b) => a.range.start.line - b.range.start.line,
@@ -524,15 +524,15 @@ describe('Operators', () => {
       symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
     );
 
-    symbolTests(names, 's1', KsSymbolKind.variable, scalarType);
+    declaredTests(names, 's1', KsSymbolKind.variable, scalarType);
 
-    symbolTests(names, 'v1', KsSymbolKind.variable, scalarType);
-    symbolTests(names, 'v2', KsSymbolKind.variable, vectorType);
+    declaredTests(names, 'v1', KsSymbolKind.variable, scalarType);
+    declaredTests(names, 'v2', KsSymbolKind.variable, vectorType);
 
-    symbolTests(names, 'd1', KsSymbolKind.variable, vectorType);
-    symbolTests(names, 'd2', KsSymbolKind.variable, directionType);
+    declaredTests(names, 'd1', KsSymbolKind.variable, vectorType);
+    declaredTests(names, 'd2', KsSymbolKind.variable, directionType);
 
-    symbolTests(names, 't1', KsSymbolKind.variable, timeSpanType);
+    declaredTests(names, 't1', KsSymbolKind.variable, timeSpanType);
   });
 
   test('binary plus operators', () => {
@@ -545,17 +545,17 @@ describe('Operators', () => {
       symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
     );
 
-    symbolTests(names, 's1', KsSymbolKind.variable, scalarType);
+    declaredTests(names, 's1', KsSymbolKind.variable, scalarType);
 
-    symbolTests(names, 'str1', KsSymbolKind.variable, stringType);
+    declaredTests(names, 'str1', KsSymbolKind.variable, stringType);
 
-    symbolTests(names, 'v1', KsSymbolKind.variable, vectorType);
+    declaredTests(names, 'v1', KsSymbolKind.variable, vectorType);
 
-    symbolTests(names, 'd1', KsSymbolKind.variable, vectorType);
-    symbolTests(names, 'd2', KsSymbolKind.variable, directionType);
+    declaredTests(names, 'd1', KsSymbolKind.variable, vectorType);
+    declaredTests(names, 'd2', KsSymbolKind.variable, directionType);
 
-    symbolTests(names, 't1', KsSymbolKind.variable, timeSpanType);
-    symbolTests(names, 't2', KsSymbolKind.variable, timeSpanType);
+    declaredTests(names, 't1', KsSymbolKind.variable, timeSpanType);
+    declaredTests(names, 't2', KsSymbolKind.variable, timeSpanType);
   });
 
   test('binary and operators', () => {
@@ -568,11 +568,11 @@ describe('Operators', () => {
       symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
     );
 
-    symbolTests(names, 'l1', KsSymbolKind.variable, booleanType);
-    symbolTests(names, 'l2', KsSymbolKind.variable, booleanType);
-    symbolTests(names, 'l3', KsSymbolKind.variable, booleanType);
-    symbolTests(names, 'l4', KsSymbolKind.variable, booleanType);
-    symbolTests(names, 'l5', KsSymbolKind.variable, booleanType);
+    declaredTests(names, 'l1', KsSymbolKind.variable, booleanType);
+    declaredTests(names, 'l2', KsSymbolKind.variable, booleanType);
+    declaredTests(names, 'l3', KsSymbolKind.variable, booleanType);
+    declaredTests(names, 'l4', KsSymbolKind.variable, booleanType);
+    declaredTests(names, 'l5', KsSymbolKind.variable, booleanType);
   });
 
   test('factor operator', () => {
@@ -585,17 +585,178 @@ describe('Operators', () => {
       symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
     );
 
-    symbolTests(names, 'i', KsSymbolKind.variable, integerType);
-    symbolTests(names, 'd', KsSymbolKind.variable, doubleType);
+    declaredTests(names, 'i', KsSymbolKind.variable, integerType);
+    declaredTests(names, 'd', KsSymbolKind.variable, doubleType);
 
-    symbolTests(names, 'l1', KsSymbolKind.variable, scalarType);
-    symbolTests(names, 'l2', KsSymbolKind.variable, scalarType);
-    symbolTests(names, 'l3', KsSymbolKind.variable, scalarType);
-    symbolTests(names, 'l4', KsSymbolKind.variable, scalarType);
+    declaredTests(names, 'l1', KsSymbolKind.variable, scalarType);
+    declaredTests(names, 'l2', KsSymbolKind.variable, scalarType);
+    declaredTests(names, 'l3', KsSymbolKind.variable, scalarType);
+    declaredTests(names, 'l4', KsSymbolKind.variable, scalarType);
 
-    symbolTests(names, 'e1', KsSymbolKind.variable, scalarType);
-    symbolTests(names, 'e2', KsSymbolKind.variable, scalarType);
-    symbolTests(names, 'e3', KsSymbolKind.variable, scalarType);
-    symbolTests(names, 'e4', KsSymbolKind.variable, scalarType);
+    declaredTests(names, 'e1', KsSymbolKind.variable, scalarType);
+    declaredTests(names, 'e2', KsSymbolKind.variable, scalarType);
+    declaredTests(names, 'e3', KsSymbolKind.variable, scalarType);
+    declaredTests(names, 'e4', KsSymbolKind.variable, scalarType);
+  });
+});
+
+const forValidSource = `
+for x in list() {
+  print(x).
+}
+
+for part in ship:parts {
+  print(part).
+}
+
+for name in 10:suffixnames {
+  print(name).
+}
+`;
+
+const forInValidSource = `
+for r in ship:rootpart {
+  print(r).
+}
+
+for b in body {
+  print(b).
+}
+`;
+
+const setValidSource = `
+local declareFirst to 10.
+set declareFirst to "cat".
+
+set setFirst to 10.
+local l is setFirst:suffixnames.
+set l[0] to "example".
+
+print(declareFirst).
+print(setFirst).
+print(l).
+`;
+
+const setInValidSource = `@lazyglobal off.
+set ship:rootPart to ship:rootPart.
+local parts is ship:parts.
+set parts[0] to 10.
+print(parts).
+`;
+
+describe('Statements', () => {
+  test('for loop valid', () => {
+    const results = checkSource(forValidSource, true);
+    noErrors(results);
+
+    const { table } = results;
+    const symbols = table.allSymbols();
+    const names = new Map(
+      symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
+    );
+
+    declaredTests(names, 'x', KsSymbolKind.variable, structureType);
+    declaredTests(names, 'part', KsSymbolKind.variable, partType);
+    declaredTests(names, 'name', KsSymbolKind.variable, stringType);
+  });
+
+  const iteratorErrorsLocation: Range[] = [
+    {
+      start: { line: 1, character: 9 },
+      end: { line: 1, character: 22 },
+    },
+    {
+      start: { line: 5, character: 9 },
+      end: { line: 5, character: 13 },
+    },
+  ];
+
+  test('for loop invalid', () => {
+    const results = checkSource(forInValidSource, true);
+    noResolverErrors(results);
+
+    const { table } = results;
+    const symbols = table.allSymbols();
+    const names = new Map(
+      symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
+    );
+
+    declaredTests(names, 'r', KsSymbolKind.variable, structureType);
+    declaredTests(names, 'b', KsSymbolKind.variable, structureType);
+    expect(results.typeCheckDiagnostics.length).toBe(
+      iteratorErrorsLocation.length,
+    );
+
+    for (const [error, location] of zip(
+      results.typeCheckDiagnostics,
+      iteratorErrorsLocation,
+    )) {
+      expect(error.severity).toBe(DiagnosticSeverity.Hint);
+      expect(error.range.start).toEqual(location.start);
+      expect(error.range.end).toEqual(location.end);
+    }
+  });
+
+  test('set valid', () => {
+    const results = checkSource(setValidSource, true);
+    noErrors(results);
+
+    const { table } = results;
+    const symbols = table.allSymbols();
+    const names = new Map(
+      symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
+    );
+
+    declaredTests(names, 'declareFirst', KsSymbolKind.variable, integerType);
+    declaredTests(names, 'setFirst', KsSymbolKind.variable, integerType);
+
+    // TODO
+    // const setFirst = table.scopedNamedTracker(
+    //   { line: 0, character: 0 },
+    //   'setfirst',
+    // )!;
+    // expect(setFirst).toBeDefined();
+    // const loc = Location.create(
+    //   fakeUri,
+    //   Range.create(Position.create(2, 4), Position.create(2, 16)),
+    // );
+
+    // const setType = setFirst.getType(loc);
+    // expect(setType).toBeDefined();
+    // expect(setType!.name).toBe(stringType.name);
+
+    declaredTests(
+      names,
+      'l',
+      KsSymbolKind.variable,
+      listType.apply(stringType),
+    );
+  });
+
+  const setErrorsLocation: Range[] = [
+    {
+      start: { line: 1, character: 4 },
+      end: { line: 1, character: 17 },
+    },
+    {
+      start: { line: 3, character: 4 },
+      end: { line: 3, character: 12 },
+    },
+  ];
+
+  test('set invalid', () => {
+    const results = checkSource(setInValidSource, true);
+    noResolverErrors(results);
+
+    expect(results.typeCheckDiagnostics.length).toBe(setErrorsLocation.length);
+
+    for (const [error, location] of zip(
+      results.typeCheckDiagnostics,
+      setErrorsLocation,
+    )) {
+      expect(error.severity).toBe(DiagnosticSeverity.Hint);
+      expect(error.range.start).toEqual(location.start);
+      expect(error.range.end).toEqual(location.end);
+    }
   });
 });

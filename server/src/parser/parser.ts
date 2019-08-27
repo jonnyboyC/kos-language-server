@@ -121,18 +121,17 @@ export class Parser {
 
         return {
           errors: [error],
-          value: new Expr.Invalid(this.tokens.slice(0, this.current)),
+          value: new Expr.Invalid(
+            this.tokens[0].start,
+            this.tokens.slice(0, this.current),
+          ),
         };
       }
       throw error;
     }
   }
 
-  public parseArgCount(): INodeResult<number> {
-    return this.partialArgumentsCount();
-  }
-
-  // generate a placholder token as a fake end of file
+  // generate a place holder token as a fake end of file
   private eof(tokens: Token[]): Token {
     if (tokens.length === 0) {
       return new Token(
@@ -353,14 +352,14 @@ export class Parser {
       TokenType.to,
       builder,
     );
-    const valueResult = this.expression(Decl.Lock, builder, 'value');
+    const valueResult = this.expression();
     builder.value = valueResult.value;
 
     this.terminal(Decl.Lock, builder);
     return nodeResult(new Decl.Lock(builder), valueResult.errors);
   }
 
-  // parse a variable declaration, scoping occurs elseware
+  // parse a variable declaration, scoping occurs elsewhere
   private declareVariable(scope: Decl.Scope): INodeResult<Decl.Var> {
     const builder: NodeDataBuilder<Decl.Var> = {
       scope,
@@ -381,7 +380,7 @@ export class Parser {
       [TokenType.to, TokenType.is],
       builder,
     );
-    const valueResult = this.expression(Decl.Var, builder, 'value');
+    const valueResult = this.expression();
     builder.value = valueResult.value;
 
     this.terminal(Decl.Var, builder);
@@ -597,7 +596,7 @@ export class Parser {
       expr: undefined,
     };
 
-    const expr = this.expression(Stmt.CommandExpr, builder, 'expr');
+    const expr = this.expression();
     builder.expr = expr.value;
 
     this.terminal(Stmt.CommandExpr, builder);
@@ -614,7 +613,7 @@ export class Parser {
     };
 
     builder.identifier = this.consumeTokensThrow(
-      'Excpeted identifier or "all" following keyword "unset".',
+      'Excepted identifier or "all" following keyword "unset".',
       Stmt.Unset,
       [TokenType.identifier, TokenType.all],
       builder,
@@ -665,7 +664,7 @@ export class Parser {
       TokenType.to,
       builder,
     );
-    const valueResult = this.expression(Stmt.Set, builder, 'value');
+    const valueResult = this.expression();
 
     builder.value = valueResult.value;
     this.terminal(Stmt.Set, builder);
@@ -716,7 +715,7 @@ export class Parser {
     };
 
     builder.ifToken = this.previous();
-    const conditionResult = this.expression(Stmt.If, builder, 'condition');
+    const conditionResult = this.expression();
     builder.condition = conditionResult.value;
 
     const declare = this.declaration();
@@ -761,7 +760,7 @@ export class Parser {
       body: undefined,
     };
 
-    const conditionResult = this.expression(Stmt.Until, builder, 'condition');
+    const conditionResult = this.expression();
     builder.condition = conditionResult.value;
 
     const declare = this.declaration();
@@ -800,7 +799,7 @@ export class Parser {
         TokenType.until,
         builder,
       );
-      const conditionResult = this.expression(Stmt.From, builder, 'condition');
+      const conditionResult = this.expression();
       builder.condition = conditionResult.value;
 
       builder.step = this.consumeTokenThrow(
@@ -858,7 +857,7 @@ export class Parser {
       body: undefined,
     };
 
-    const conditionResult = this.expression(Stmt.When, builder, 'condition');
+    const conditionResult = this.expression();
     builder.condition = conditionResult.value;
 
     builder.then = this.consumeTokenThrow(
@@ -888,7 +887,7 @@ export class Parser {
     };
 
     const valueResult = !this.check(TokenType.period)
-      ? this.expression(Stmt.Return, builder, 'value')
+      ? this.expression()
       : undefined;
     let errors: IParseError[] = [];
 
@@ -928,7 +927,7 @@ export class Parser {
       TokenType.to,
       builder,
     );
-    const targetResult = this.expression(Stmt.Switch, builder, 'target');
+    const targetResult = this.expression();
     builder.target = targetResult.value;
 
     this.terminal(Stmt.Switch, builder);
@@ -1027,7 +1026,7 @@ export class Parser {
       ? this.previous()
       : undefined;
 
-    const expr = this.expression(Stmt.Wait, builder, 'expr');
+    const expr = this.expression();
     builder.expr = expr.value;
 
     this.terminal(Stmt.Wait, builder);
@@ -1045,7 +1044,7 @@ export class Parser {
       target: undefined,
     };
 
-    const expr = this.expression(Stmt.Log, builder, 'expr');
+    const expr = this.expression();
     builder.expr = expr.value;
 
     builder.to = this.consumeTokenThrow(
@@ -1055,7 +1054,7 @@ export class Parser {
       builder,
     );
 
-    const targetResult = this.expression(Stmt.Log, builder, 'target');
+    const targetResult = this.expression();
     builder.target = targetResult.value;
 
     this.terminal(Stmt.Log, builder);
@@ -1078,7 +1077,7 @@ export class Parser {
     };
 
     builder.copy = this.previous();
-    const targetResult = this.expression(Stmt.Copy, builder, 'target');
+    const targetResult = this.expression();
     builder.target = targetResult.value;
 
     builder.toFrom = this.consumeTokensThrow(
@@ -1088,11 +1087,7 @@ export class Parser {
       builder,
     );
 
-    const destinationResult = this.expression(
-      Stmt.Copy,
-      builder,
-      'destination',
-    );
+    const destinationResult = this.expression();
     builder.destination = destinationResult.value;
 
     this.terminal(Stmt.Copy, builder);
@@ -1130,7 +1125,7 @@ export class Parser {
       builder,
     );
 
-    const targetResult = this.expression(Stmt.Rename, builder, 'target');
+    const targetResult = this.expression();
     builder.target = targetResult.value;
 
     builder.to = this.consumeTokenThrow(
@@ -1140,11 +1135,7 @@ export class Parser {
       builder,
     );
 
-    const alternativeResult = this.expression(
-      Stmt.Rename,
-      builder,
-      'alternative',
-    );
+    const alternativeResult = this.expression();
     builder.alternative = alternativeResult.value;
 
     this.terminal(Stmt.Rename, builder);
@@ -1166,12 +1157,12 @@ export class Parser {
       volume: undefined,
     };
 
-    const targetResult = this.expression(Stmt.Delete);
+    const targetResult = this.expression();
     builder.target = targetResult.value;
 
     if (this.matchToken(TokenType.from)) {
       builder.from = this.previous();
-      const volumeResult = this.expression(Stmt.Delete, builder, 'volume');
+      const volumeResult = this.expression();
       builder.volume = volumeResult.value;
 
       this.terminal(Stmt.Delete, builder);
@@ -1230,7 +1221,7 @@ export class Parser {
     // parse arguments if found
     if (this.matchToken(TokenType.on)) {
       builder.on = this.previous();
-      const expr = this.expression(Stmt.Run, builder, 'expr');
+      const expr = this.expression();
       errors.push(...expr.errors);
       builder.expr = expr.value;
     }
@@ -1258,7 +1249,7 @@ export class Parser {
       Stmt.RunPath,
       TokenType.bracketOpen,
     );
-    const exprResult = this.expression(Stmt.RunPath, builder, 'expr');
+    const exprResult = this.expression();
     builder.expr = exprResult.value;
 
     const args = this.matchToken(TokenType.comma)
@@ -1301,7 +1292,7 @@ export class Parser {
       Stmt.RunOncePath,
       TokenType.bracketOpen,
     );
-    const exprResult = this.expression(Stmt.RunOncePath, builder, 'expr');
+    const exprResult = this.expression();
     builder.expr = exprResult.value;
 
     const args = this.matchToken(TokenType.comma)
@@ -1309,7 +1300,7 @@ export class Parser {
       : undefined;
 
     builder.close = this.consumeTokenThrow(
-      'Expected ")" after runPathOnce arugments.',
+      'Expected ")" after runPathOnce arguments.',
       Stmt.RunOncePath,
       TokenType.bracketClose,
     );
@@ -1337,18 +1328,14 @@ export class Parser {
       destination: undefined,
     };
 
-    const targetResult = this.expression(Stmt.Compile, builder, 'target');
+    const targetResult = this.expression();
     builder.target = targetResult.value;
     const errors: IParseError[] = targetResult.errors;
 
     if (this.matchToken(TokenType.to)) {
       builder.to = this.previous();
 
-      const destinationResult = this.expression(
-        Stmt.Compile,
-        builder,
-        'destination',
-      );
+      const destinationResult = this.expression();
       builder.destination = destinationResult.value;
       errors.push(...destinationResult.errors);
     }
@@ -1406,7 +1393,7 @@ export class Parser {
       return this.identifierLedStatement();
     }
 
-    const expr = this.expression(Stmt.Print, builder, 'expr');
+    const expr = this.expression();
     builder.expr = expr.value;
 
     if (this.matchToken(TokenType.at)) {
@@ -1418,7 +1405,7 @@ export class Parser {
         builder,
       );
 
-      const xResult = this.expression(Stmt.Print, builder, 'x');
+      const xResult = this.expression();
       builder.x = xResult.value;
 
       this.consumeTokenThrow(
@@ -1428,7 +1415,7 @@ export class Parser {
         builder,
       );
 
-      const yResult = this.expression(Stmt.Print, builder, 'y');
+      const yResult = this.expression();
       builder.y = yResult.value;
 
       builder.close = this.consumeTokenThrow(
@@ -1451,13 +1438,10 @@ export class Parser {
 
   /**
    * Parse an expression
-   * @param stmt the statement context
    */
-  private expression<T, K extends keyof NodeDataBuilder<T>>(
-    stmt?: Constructor<Stmt.Stmt>,
-    builder?: NodeDataBuilder<T>,
-    key?: K,
-  ): INodeResult<IExpr> {
+  private expression(): INodeResult<IExpr> {
+    const start = this.current;
+
     try {
       switch (this.peek().type) {
         // open curly is a lambda
@@ -1474,13 +1458,19 @@ export class Parser {
       }
     } catch (error) {
       if (error instanceof ParseError) {
-        error.failed.stmt = stmt;
-        if (!empty(builder) && !empty(key)) {
-          this.attachPartial<T, K>(builder, key, error.partial);
-          error.partial = builder as PartialNode;
-        }
+        this.logger.verbose(JSON.stringify(error.partial));
+        this.synchronize(error.failed);
 
-        throw error;
+        const tokens = this.tokens.slice(start, this.current);
+
+        return {
+          errors: [error],
+          value: new Expr.Invalid(
+            start === this.current ? this.peek().end : tokens[0].start,
+            tokens,
+            error.partial,
+          ),
+        };
       }
 
       throw error;
@@ -1500,7 +1490,7 @@ export class Parser {
       falseExpr: undefined,
     };
 
-    const trueExpr = this.expression(undefined, builder, 'trueExpr');
+    const trueExpr = this.expression();
     builder.trueExpr = trueExpr.value;
 
     builder.ifToken = this.consumeTokenThrow(
@@ -1509,7 +1499,7 @@ export class Parser {
       TokenType.if,
       builder,
     );
-    const condition = this.expression(undefined, builder, 'condition');
+    const condition = this.expression();
     builder.condition = condition.value;
 
     builder.elseToken = this.consumeTokenThrow(
@@ -1518,7 +1508,7 @@ export class Parser {
       TokenType.else,
       builder,
     );
-    const falseExpr = this.expression(undefined, builder, 'falseExpr');
+    const falseExpr = this.expression();
     builder.falseExpr = falseExpr.value;
 
     return nodeResult(
@@ -1619,13 +1609,13 @@ export class Parser {
     // parse suffix
     let expr: INodeResult<IExpr> = this.suffix();
 
-    // parse seqeunce of factors if they exist
+    // parse sequence of factors if they exist
     while (this.matchToken(TokenType.power)) {
       const power = this.previous();
-      const exponenent = this.suffix();
+      const exponent = this.suffix();
       expr = nodeResult(
-        new Expr.Factor(expr.value, power, exponenent.value),
-        exponenent.errors,
+        new Expr.Factor(expr.value, power, exponent.value),
+        exponent.errors,
       );
     }
 
@@ -1745,21 +1735,6 @@ export class Parser {
   }
 
   // get an argument list
-  private partialArgumentsCount(): INodeResult<number> {
-    let count = -1;
-
-    if (!this.check(TokenType.bracketClose)) {
-      do {
-        count += 1;
-        if (this.isAtEnd()) break;
-        this.expression();
-      } while (this.matchToken(TokenType.comma));
-    }
-
-    return nodeResult(count < 0 ? 0 : count, []);
-  }
-
-  // get an argument list
   private arguments(context: NodeConstructor): INodeResult<IExpr[]> {
     const args: IExpr[] = [];
     const errors: IParseError[][] = [];
@@ -1767,9 +1742,9 @@ export class Parser {
     if (!this.isAtEnd() && !this.check(TokenType.bracketClose)) {
       do {
         // if we are expecting an argument but find a closing
-        // braket we report an error and stop arguments
+        // bracket we report an error and stop arguments
         if (this.check(TokenType.bracketClose)) {
-          args.push(new Expr.Invalid([this.previous()]));
+          args.push(new Expr.Invalid(this.previous().end, [this.previous()]));
           errors.push([
             this.error(this.previous(), context, 'Expected another argument.'),
           ]);

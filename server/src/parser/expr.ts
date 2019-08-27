@@ -8,6 +8,7 @@ import {
   IExprPasser,
   SyntaxKind,
   NodeDataBuilder,
+  PartialNode,
 } from './types';
 import * as SuffixTerm from './suffixTerm';
 import * as Stmt from './stmt';
@@ -20,11 +21,12 @@ import {
   createConstant,
   createExponential,
 } from './grammarNodes';
-import { empty, unWrap } from '../utilities/typeGuards';
+import { empty, unWrap, notEmpty } from '../utilities/typeGuards';
 import { NodeBase } from './base';
 import { joinLines } from './toStringUtils';
 import { Token } from '../entities/token';
 import { SymbolTracker } from '../analysis/types';
+import { rangeOrder, rangeContains } from '../utilities/positionUtils';
 
 /**
  * Expression base class
@@ -58,26 +60,63 @@ export abstract class Expr extends NodeBase implements IExpr {
 export class Invalid extends Expr {
   /**
    * Invalid expression constructor
+   * @param pos start position of the invalid expression
    * @param tokens all tokens in the invalid range
+   * @param partial the partial if any found in the invalid range
    */
-  constructor(public readonly tokens: Token[]) {
+  constructor(
+    public readonly pos: Position,
+    public readonly tokens: Token[],
+    public readonly partial?: PartialNode,
+  ) {
     super();
   }
 
   public get start(): Position {
-    return this.tokens[0].start;
+    return this.tokens.length > 0 ? this.tokens[0].start : this.pos;
   }
 
   public get end(): Position {
-    return this.tokens[this.tokens.length - 1].end;
+    return this.tokens.length > 0
+      ? this.tokens[this.tokens.length - 1].end
+      : this.pos;
   }
 
   public get ranges(): Range[] {
-    return [...this.tokens];
+    if (empty(this.partial)) {
+      return this.tokens;
+    }
+
+    // order each piece of the partial by it's range
+    let segments = Object.values(this.partial)
+      .filter(notEmpty)
+      .sort(rangeOrder);
+
+    // attempt to add tokens to segments
+    for (const token of this.tokens) {
+      let overlap = false;
+
+      // check for overlap
+      for (const segment of segments) {
+        if (rangeContains(segment, token)) {
+          overlap = true;
+          break;
+        }
+      }
+
+      // if no overall add to segments
+      if (!overlap) {
+        segments.push(token);
+      }
+    }
+
+    // reorder segments
+    segments = segments.sort(rangeOrder);
+    return segments;
   }
 
   public toLines(): string[] {
-    return [this.tokens.map(t => t.lexeme).join('')];
+    return [this.tokens.map(t => t.lexeme).join(' ')];
   }
 
   public accept<T>(visitor: IExprVisitor<T>): T {
@@ -456,45 +495,6 @@ export class Suffix extends Expr {
     }
 
     return [this.suffixTerm];
-  }
-
-  /**
-   * Method indicating if the suffix ends with a settable trailer
-   */
-  public isSettable(): boolean {
-    // if no trailer check suffix term
-    if (empty(this.trailer)) {
-      const { atom, trailers } = this.suffixTerm;
-
-      // check for suffix term trailers
-      if (trailers.length > 0) {
-        const lastTrailer = trailers[trailers.length - 1];
-        if (lastTrailer instanceof SuffixTerm.Identifier) {
-          return true;
-        }
-
-        if (lastTrailer instanceof SuffixTerm.ArrayBracket) {
-          return true;
-        }
-
-        if (lastTrailer instanceof SuffixTerm.ArrayIndex) {
-          return true;
-        }
-      }
-
-      if (atom instanceof SuffixTerm.Identifier) {
-        return true;
-      }
-
-      return false;
-    }
-
-    // check nested trailers
-    if (this.trailer instanceof SuffixTerm.SuffixTrailer) {
-      return this.trailer.isSettable();
-    }
-
-    return false;
   }
 
   /**

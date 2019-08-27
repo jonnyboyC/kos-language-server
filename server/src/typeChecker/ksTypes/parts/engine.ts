@@ -6,7 +6,7 @@ import {
   noMap,
 } from '../../typeCreators';
 import { listType } from '../collections/list';
-import { voidType } from '../primitives/void';
+import { noneType } from '../primitives/none';
 import { stringType } from '../primitives/string';
 import { scalarType } from '../primitives/scalar';
 import { booleanType } from '../primitives/boolean';
@@ -17,8 +17,8 @@ export const engineType = createType('engine');
 engineType.addSuper(noMap(partType));
 
 engineType.addSuffixes(
-  noMap(createArgSuffixType('activate', voidType)),
-  noMap(createArgSuffixType('deactivate', voidType)),
+  noMap(createArgSuffixType('activate', noneType)),
+  noMap(createArgSuffixType('deactivate', noneType)),
   noMap(createSetSuffixType('thrustLimit', scalarType)),
   noMap(createSuffixType('maxThrust', scalarType)),
   noMap(createSuffixType('thrust', scalarType)),
@@ -40,7 +40,7 @@ engineType.addSuffixes(
   noMap(createSuffixType('multiMode', booleanType)),
   noMap(createSuffixType('modes', listType.apply(stringType))),
   noMap(createSuffixType('mode', stringType)),
-  noMap(createArgSuffixType('toggleMode', voidType)),
+  noMap(createArgSuffixType('toggleMode', noneType)),
   noMap(createSetSuffixType('primaryMode', booleanType)),
   noMap(createSetSuffixType('autoSwitch', booleanType)),
   noMap(createSuffixType('hasGimbal', booleanType)),

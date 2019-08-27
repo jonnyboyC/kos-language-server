@@ -6,13 +6,13 @@ import {
   createArgSuffixType,
 } from '../../typeCreators';
 import { enumerableType } from './enumerable';
-import { voidType } from '../primitives/void';
+import { noneType } from '../primitives/none';
 
 export const stackType = createParametricType('stack', ['T']);
 stackType.addSuper(mapTypes(stackType, enumerableType));
 
 const copySuffix = createParametricArgSuffixType('copy', ['T'], stackType);
-const pushSuffix = createParametricArgSuffixType('push', ['T'], voidType, 'T');
+const pushSuffix = createParametricArgSuffixType('push', ['T'], noneType, 'T');
 const popSuffix = createParametricArgSuffixType('pop', ['T'], 'T');
 const peekSuffix = createParametricArgSuffixType('peek', ['T'], 'T');
 
@@ -21,5 +21,5 @@ stackType.addSuffixes(
   mapTypes(stackType, pushSuffix),
   mapTypes(stackType, popSuffix),
   mapTypes(stackType, peekSuffix),
-  noMap(createArgSuffixType('clear', voidType)),
+  noMap(createArgSuffixType('clear', noneType)),
 );
