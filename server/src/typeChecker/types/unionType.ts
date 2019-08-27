@@ -49,10 +49,16 @@ export class UnionType implements IType {
   private readonly types: IType[];
 
   /**
+   * Is this type parameter for a boolean
+   */
+  private readonly param: boolean;
+
+  /**
    * Construct a new union type
+   * @param param Is this for a call parameter
    * @param types types of the union
    */
-  constructor(...types: IType[]) {
+  constructor(param: boolean, ...types: IType[]) {
     if (types.length < 2) {
       throw new Error('Union must be at least two types');
     }
@@ -73,6 +79,7 @@ export class UnionType implements IType {
       return 0;
     });
 
+    this.param = param;
     this.types = sortedTypes;
     this.name = 'Union';
     this.anyType = sortedTypes.every(type => type.anyType);
@@ -104,7 +111,7 @@ export class UnionType implements IType {
       this.types.map(type => type.getAssignmentType()),
     );
     if (assignmentTypes.size > 1) {
-      return new UnionType(...assignmentTypes);
+      return new UnionType(false, ...assignmentTypes);
     }
 
     return [...assignmentTypes][0];
@@ -170,7 +177,10 @@ export class UnionType implements IType {
       return indexer;
     }
 
-    return createIndexer(callSignature.params()[0], new UnionType(...returns));
+    return createIndexer(
+      callSignature.params()[0],
+      new UnionType(false, ...returns),
+    );
   }
 
   /**
@@ -257,6 +267,14 @@ export class UnionType implements IType {
    * Get a string representation of this type
    */
   public toString(): string {
+    if (this.param) {
+      const optional = this.types.some(type => type.name === 'none');
+      return this.types
+        .filter(type => type.name !== 'none')
+        .map(type => `${type.toString()}${optional ? '?' : ''}`)
+        .join(' or ');
+    }
+
     return this.types.map(type => type.toString()).join(' or ');
   }
 

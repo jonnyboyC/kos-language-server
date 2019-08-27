@@ -56,9 +56,13 @@ export const partInitializer = () => {
     noMap(createArgSuffixType('getModulesByIndex', partModuleType, scalarType)),
     noMap(createSuffixType('modules', listType.apply(stringType))),
     noMap(createSuffixType('allModules', listType.apply(stringType))),
-    noMap(createSuffixType('parent', createUnion(partType, stringType))),
-    noMap(createSuffixType('decoupler', createUnion(partType, stringType))),
-    noMap(createSuffixType('separator', createUnion(partType, stringType))),
+    noMap(createSuffixType('parent', createUnion(false, partType, stringType))),
+    noMap(
+      createSuffixType('decoupler', createUnion(false, partType, stringType)),
+    ),
+    noMap(
+      createSuffixType('separator', createUnion(false, partType, stringType)),
+    ),
     noMap(createSuffixType('decoupledIn', scalarType)),
     noMap(createSuffixType('separatedIn', scalarType)),
     noMap(createSuffixType('hasParent', booleanType)),

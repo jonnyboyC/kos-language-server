@@ -20,7 +20,7 @@ import { iterator } from '../utilities/constants';
 import { TokenType } from '../entities/tokentypes';
 import { nodeType } from './ksTypes/node';
 import { createFunctionType, createUnion } from './typeCreators';
-import { zip } from '../utilities/arrayUtils';
+import { zip, zipLong } from '../utilities/arrayUtils';
 import { binaryOperatorMap, unaryOperatorMap } from './typeUtilities';
 import { noneType } from './ksTypes/primitives/none';
 import { booleanType } from './ksTypes/primitives/boolean';
@@ -218,7 +218,7 @@ export class TypeChecker
           paramsTypes.push(structureType);
         }
         for (let i = 0; i < symbol.optionalParameters; i += 1) {
-          paramsTypes.push(createUnion(structureType, noneType));
+          paramsTypes.push(createUnion(true, structureType, noneType));
         }
 
         const returnType = symbol.returnValue ? structureType : noneType;
@@ -1021,6 +1021,7 @@ export class TypeChecker
     return {
       errors,
       type: createUnion(
+        false,
         trueResult.type.getAssignmentType(),
         falseResult.type.getAssignmentType(),
       ),
@@ -1309,7 +1310,7 @@ export class TypeChecker
       errors.push(...result.errors);
 
       // add diagnostic if argument cannot be matched to parameter type
-      if (!params.base.canCoerceFrom(result.type)) {
+      if (!params.base.canCoerceFrom(result.type.getAssignmentType())) {
         errors.push(
           createDiagnostic(
             arg,
@@ -1331,25 +1332,67 @@ export class TypeChecker
   private visitNormalCall(params: IType[], call: SuffixTerm.Call): Diagnostics {
     const errors: Diagnostics = [];
 
-    for (const [arg, param] of zip(call.args, params)) {
-      // determine type of each argument
-      const result = this.checkExpr(arg);
-      errors.push(...result.errors);
+    // check if we have provided too many arguments
+    if (call.args.length > params.length) {
+      errors.push(
+        createDiagnostic(
+          call.close,
+          `Call expected ${params.length} parameters but was called with ${call.args.length} arguments`,
+          DiagnosticSeverity.Hint,
+        ),
+      );
+    }
 
-      // add diagnostic if argument cannot be matched to parameter type
-      if (!param.canCoerceFrom(result.type)) {
-        errors.push(
-          createDiagnostic(
-            arg,
-            `Function argument could not be coerced into ${param.name}`,
-            DiagnosticSeverity.Hint,
-          ),
-        );
+    let checkShort = false;
+
+    if (call.args.length >= params.length) {
+      // if we have the same or more arguments check they can coerce
+      for (const [arg, param] of zip(call.args, params)) {
+        // determine type of each argument
+        const result = this.checkExpr(arg);
+        errors.push(...result.errors);
+
+        // add diagnostic if argument cannot be coerced to parameter type
+        if (!param.canCoerceFrom(result.type.getAssignmentType())) {
+          errors.push(
+            createDiagnostic(
+              arg,
+              `Argument could not be coerced into ${param.toString()}`,
+              DiagnosticSeverity.Hint,
+            ),
+          );
+        }
+      }
+    } else {
+      for (const [arg, param] of zipLong(call.args, params)) {
+        // determine type of each argument fill in none for those not found
+        let argType: IType;
+        if (!empty(arg)) {
+          const result = this.checkExpr(arg);
+          errors.push(...result.errors);
+          argType = result.type;
+        } else {
+          argType = noneType;
+        }
+
+        // add diagnostic if argument cannot be matched to parameter type
+        if (!param!.canCoerceFrom(argType.getAssignmentType())) {
+          errors.push(
+            createDiagnostic(
+              empty(arg) ? call.close : arg,
+              `Function argument could not be coerced into ${param!.toString()}`,
+              DiagnosticSeverity.Hint,
+            ),
+          );
+
+          // if we have a type mismatch check short
+          checkShort = true;
+        }
       }
     }
 
-    // check argument length
-    if (call.args.length !== params.length) {
+    // check argument less than parameters
+    if (checkShort && call.args.length <= params.length) {
       errors.push(
         createDiagnostic(
           call.close,

@@ -54,7 +54,7 @@ const unionCache = new Map<string, IType>();
  * @param index the index type
  * @param returns the return type
  */
-export const createUnion = (...types: IType[]): IType => {
+export const createUnion = (param: boolean, ...types: IType[]): IType => {
   // deduplicate and sort
   const sortedTypes = [...new Set(types)].sort((a, b) => {
     if (a.name < b.name) {
@@ -78,7 +78,7 @@ export const createUnion = (...types: IType[]): IType => {
     return cacheHit;
   }
 
-  const unionType = new UnionType(...sortedTypes);
+  const unionType = new UnionType(param, ...sortedTypes);
   unionCache.set(unionString, unionType);
   return unionType;
 };

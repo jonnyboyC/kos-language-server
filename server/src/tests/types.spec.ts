@@ -20,6 +20,7 @@ import { TypeKind } from '../typeChecker/types';
 import { ParametricType } from '../typeChecker/parametricTypes/parametricType';
 import { Type } from '../typeChecker/types/type';
 import { UnionType } from '../typeChecker/types/unionType';
+import { noneType } from '../typeChecker/ksTypes/primitives/none';
 
 typeInitializer();
 
@@ -305,7 +306,7 @@ describe('Parametric Type', () => {
 
 describe('Union Type', () => {
   test('Basic Attributes', () => {
-    const unionType = new UnionType(stringType, partType);
+    const unionType = new UnionType(false, stringType, partType);
 
     expect(unionType.kind).toBe(TypeKind.basic);
     expect(unionType.name).toBe('Union');
@@ -314,22 +315,30 @@ describe('Union Type', () => {
     expect(unionType.getCallSignature()).toBeUndefined();
     expect(unionType.anyType).toBe(false);
     expect(unionType.getSuperType()).toBeUndefined();
+
     expect(unionType.toString()).toBe('part or string');
+    expect(new UnionType(true, stringType, noneType).toString()).toBe(
+      'string?',
+    );
 
     const exampleType = unionType.apply(stringType);
     expect(exampleType).toBe(unionType);
   });
 
   test('Invalid constructors', () => {
-    expect(() => new UnionType(stringType)).toThrow();
+    expect(() => new UnionType(false, stringType)).toThrow();
     expect(
       () =>
-        new UnionType(stringType, stringType.getSuffixes().get('contains')!),
+        new UnionType(
+          false,
+          stringType,
+          stringType.getSuffixes().get('contains')!,
+        ),
     );
   });
 
   test('Has Suffix', () => {
-    const unionType = new UnionType(stringType, partType);
+    const unionType = new UnionType(false, stringType, partType);
     const unionSuffixes = unionType.getSuffixes();
 
     for (const [name, suffix] of structureType.getSuffixes()) {
