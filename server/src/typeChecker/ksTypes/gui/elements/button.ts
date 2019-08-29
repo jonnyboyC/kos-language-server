@@ -2,7 +2,7 @@ import {
   createType,
   createSetSuffixType,
   noMap,
-} from '../../../typeCreators';
+} from '../../../utilities/typeCreators';
 import { userDelegateType } from '../../userDelegate';
 import { labelType } from './label';
 import { booleanType } from '../../primitives/boolean';

@@ -12,7 +12,7 @@ import { Operator } from './operator';
 import { KsSymbol } from '../../analysis/types';
 import { KsSuffix } from '../../entities/suffix';
 import { empty } from '../../utilities/typeGuards';
-import { createIndexer } from '../typeCreators';
+import { createIndexer } from '../utilities/typeCreators';
 
 /**
  * A class representing a type in Kerboscript
@@ -41,12 +41,12 @@ export class UnionType implements IType {
   /**
    * The tracker for this type. Should only occur if this is a suffix
    */
-  private readonly tracker: TypeTracker;
+  private readonly typeTracker: TypeTracker;
 
   /**
    * What are the internal type of this union
    */
-  private readonly types: IType[];
+  public readonly types: IType[];
 
   /**
    * Is this type parameter for a boolean
@@ -88,7 +88,7 @@ export class UnionType implements IType {
       set: sortedTypes.every(type => type.access.set),
     };
     this.kind = sortedTypes[0].kind;
-    this.tracker = new TypeTracker(new KsSuffix(this.name), this);
+    this.typeTracker = new TypeTracker(new KsSuffix(this.name), this);
   }
 
   /**
@@ -100,15 +100,30 @@ export class UnionType implements IType {
       return true;
     }
 
-    return this.types.some(unionType => unionType.isSubtypeOf(type));
+    if (type instanceof UnionType) {
+      // if every member has a subtype then we're a subtype
+      for (const unionType of type.types) {
+        if (
+          !this.types.some(thisUnionType =>
+            thisUnionType.isSubtypeOf(unionType),
+          )
+        ) {
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+    return false;
   }
 
   /**
    * What is the assignment type of this type
    */
-  public getAssignmentType(): IType {
+  public assignmentType(): IType {
     const assignmentTypes = new Set(
-      this.types.map(type => type.getAssignmentType()),
+      this.types.map(type => type.assignmentType()),
     );
     if (assignmentTypes.size > 1) {
       return new UnionType(false, ...assignmentTypes);
@@ -120,34 +135,41 @@ export class UnionType implements IType {
   /**
    * Get the super type
    */
-  public getSuperType(): Maybe<IType> {
+  public super(): Maybe<IType> {
     return undefined;
+  }
+
+  /**
+   * The sub types of this type
+   */
+  public subTypes(): IType[] {
+    return this.types;
   }
 
   /**
    * Get the type tracker
    */
-  public getTracker(): TypeTracker<KsSymbol> {
-    return this.tracker;
+  public tracker(): TypeTracker<KsSymbol> {
+    return this.typeTracker;
   }
 
   /**
    * Get call signature. TODO could attempt to see if the call signatures could be merged
    * somehow
    */
-  public getCallSignature(): Maybe<ICallSignature> {
+  public callSignature(): Maybe<ICallSignature> {
     return undefined;
   }
 
   /**
    * Get indexer of this union type. If all types have an indexer with the same index type
    */
-  public getIndexer(): Maybe<IIndexer> {
-    const indexer = this.types[0].getIndexer();
+  public indexer(): Maybe<IIndexer> {
+    const indexer = this.types[0].indexer();
     if (empty(indexer)) {
       return undefined;
     }
-    const callSignature = indexer.getCallSignature();
+    const callSignature = indexer.callSignature();
     if (empty(callSignature)) {
       return undefined;
     }
@@ -155,12 +177,12 @@ export class UnionType implements IType {
     const returns = new Set<IType>();
 
     const same = this.types.every(type => {
-      const typeIndexer = type.getIndexer();
+      const typeIndexer = type.indexer();
       if (empty(typeIndexer)) {
         return false;
       }
 
-      const typeCallSignature = typeIndexer.getCallSignature();
+      const typeCallSignature = typeIndexer.callSignature();
       if (empty(typeCallSignature)) {
         return false;
       }
@@ -186,13 +208,13 @@ export class UnionType implements IType {
   /**
    * Get all suffixes present in all members of the union type
    */
-  public getSuffixes(): Map<string, IType> {
+  public suffixes(): Map<string, IType> {
     const suffixes = new Map<string, IType>();
-    for (const [name, suffix] of this.types[0].getSuffixes()) {
+    for (const [name, suffix] of this.types[0].suffixes()) {
       let allContain = true;
 
       for (const type of this.types) {
-        const unionSuffix = type.getSuffixes().get(name);
+        const unionSuffix = type.suffixes().get(name);
         if (empty(unionSuffix) || unionSuffix !== suffix) {
           allContain = false;
           break;
@@ -223,7 +245,7 @@ export class UnionType implements IType {
   /**
    * Get all operators. TODO attempt to merge operators
    */
-  public getOperators(): Map<OperatorKind, Operator<IType>[]> {
+  public operators(): Map<OperatorKind, Operator<IType>[]> {
     return new Map();
   }
 
@@ -244,10 +266,10 @@ export class UnionType implements IType {
   /**
    * Get all available coercions
    */
-  public getCoercions(): Set<IParametricType> {
+  public coercions(): Set<IParametricType> {
     const coercions = new Set<IParametricType>();
     for (const type of this.types) {
-      for (const coercion of type.getCoercions()) {
+      for (const coercion of type.coercions()) {
         coercions.add(coercion);
       }
     }

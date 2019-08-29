@@ -3,7 +3,7 @@ import {
   createArgSuffixType,
   createSuffixType,
   noMap,
-} from '../../typeCreators';
+} from '../../utilities/typeCreators';
 import { structureType } from '../primitives/structure';
 import { volumeItemType } from './volumeItem';
 import { fileContentType } from './fileContent';

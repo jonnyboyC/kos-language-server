@@ -4,7 +4,7 @@ import {
   createSuffixType,
   createSetSuffixType,
   noMap,
-} from '../typeCreators';
+} from '../utilities/typeCreators';
 import { structureType } from './primitives/structure';
 import { uniqueSetType } from './collections/uniqueset';
 import { delegateType } from './primitives/delegate';

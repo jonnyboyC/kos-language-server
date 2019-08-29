@@ -31,7 +31,7 @@ export class Type implements IType {
   /**
    * What is the call signature if there is one
    */
-  public readonly callSignature?: ICallSignature;
+  public readonly typeCallSignature?: ICallSignature;
 
   /**
    * What is the type kind
@@ -51,7 +51,7 @@ export class Type implements IType {
   /**
    * The tracker for this type. Should only occur if this is a suffix
    */
-  private readonly tracker: TypeTracker;
+  private readonly typeTracker: TypeTracker;
 
   /**
    * The super type if any for this type
@@ -61,7 +61,7 @@ export class Type implements IType {
   /**
    * The indexer of this type if any
    */
-  private indexer?: IIndexer;
+  private indexerSignature?: IIndexer;
 
   /**
    * The parametric type this type derives from
@@ -76,12 +76,12 @@ export class Type implements IType {
   /**
    * The suffixes on this type
    */
-  private readonly suffixes: Map<string, IType>;
+  private readonly suffixMap: Map<string, IType>;
 
   /**
    * The operators on this type
    */
-  private readonly operators: Map<OperatorKind, Operator<IType>[]>;
+  private readonly operatorMap: Map<OperatorKind, Operator<IType>[]>;
 
   /**
    * Construct a new kerboscript type
@@ -110,19 +110,19 @@ export class Type implements IType {
     this.access = access;
     this.typeArguments = typeArguments;
     this.kind = kind;
-    this.callSignature = callSignature;
+    this.typeCallSignature = callSignature;
     this.typeTemplate = typeTemplate;
     this.anyType = anyType;
 
     // TODO will need to actually be robust about this
-    this.tracker =
+    this.typeTracker =
       kind === TypeKind.grouping
         ? new TypeTracker(new KsGrouping(name), this)
         : new TypeTracker(new KsSuffix(name), this);
 
     this.coercibleTypes = new Set();
-    this.suffixes = new Map();
-    this.operators = new Map();
+    this.suffixMap = new Map();
+    this.operatorMap = new Map();
   }
 
   /**
@@ -142,11 +142,11 @@ export class Type implements IType {
    * @param indexer indexer to add
    */
   public addIndexer(indexer: TypeMap<IIndexer>): void {
-    if (!empty(this.indexer)) {
+    if (!empty(this.indexerSignature)) {
       throw new Error(`Indexer type for ${this.name} has already been set.`);
     }
 
-    this.indexer = indexer.type;
+    this.indexerSignature = indexer.type;
   }
 
   /**
@@ -171,13 +171,13 @@ export class Type implements IType {
    */
   public addSuffixes(...suffixes: TypeMap<IType>[]): void {
     for (const { type } of suffixes) {
-      if (this.suffixes.has(type.name)) {
+      if (this.suffixMap.has(type.name)) {
         throw new Error(
           `Duplicate suffix of ${type.name} added to ${this.name}`,
         );
       }
 
-      this.suffixes.set(type.name, type);
+      this.suffixMap.set(type.name, type);
     }
   }
 
@@ -187,11 +187,11 @@ export class Type implements IType {
    */
   public addOperators(...operators: Operator<IType>[]): void {
     for (const operator of operators) {
-      if (!this.operators.has(operator.operator)) {
-        this.operators.set(operator.operator, []);
+      if (!this.operatorMap.has(operator.operator)) {
+        this.operatorMap.set(operator.operator, []);
       }
 
-      const operatorsKind = this.operators.get(operator.operator);
+      const operatorsKind = this.operatorMap.get(operator.operator);
 
       // should never happen
       if (empty(operatorsKind)) {
@@ -233,6 +233,24 @@ export class Type implements IType {
    * @param type the type check against
    */
   public isSubtypeOf(type: IParametricType): boolean {
+    if (this.subtypeCheck(type)) {
+      return true;
+    }
+
+    for (const subType of type.subTypes()) {
+      if (this.subtypeCheck(subType)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Individual type check for sub type ness
+   * @param type the type to check against
+   */
+  private subtypeCheck(type: IParametricType): boolean {
     if (type === this) {
       return true;
     }
@@ -301,61 +319,68 @@ export class Type implements IType {
   /**
    * Get the super type of this type
    */
-  public getSuperType(): Maybe<IType> {
+  public super(): Maybe<IType> {
     return this.superType;
+  }
+
+  /**
+   * Sub types of this type
+   */
+  public subTypes(): IType[] {
+    return [];
   }
 
   /**
    * Get the call signature of this type
    */
-  public getCallSignature(): Maybe<ICallSignature> {
-    return this.callSignature;
+  public callSignature(): Maybe<ICallSignature> {
+    return this.typeCallSignature;
   }
 
   /**
    * Get the indexer of this type
    */
-  public getIndexer(): Maybe<IIndexer> {
-    if (!empty(this.indexer)) {
-      return this.indexer;
+  public indexer(): Maybe<IIndexer> {
+    if (!empty(this.indexerSignature)) {
+      return this.indexerSignature;
     }
 
-    return this.superType && this.superType.getIndexer();
+    return this.superType && this.superType.indexer();
   }
 
   /**
    * Get the tracker of this type
    */
-  public getTracker(): TypeTracker {
-    return this.tracker;
+  public tracker(): TypeTracker {
+    return this.typeTracker;
   }
 
   /**
    * Get the assignment type of this type
    */
-  public getAssignmentType(): IType {
-    if (empty(this.callSignature)) {
+  public assignmentType(): IType {
+    if (empty(this.typeCallSignature)) {
       return this;
     }
 
-    return this.callSignature.returns();
+    return this.typeCallSignature.returns();
   }
 
   /**
    * Get all available coercions
    */
-  public getCoercions(): Set<IParametricType> {
+  public coercions(): Set<IParametricType> {
     return this.coercibleTypes;
   }
 
   /**
    * Get all available suffixes
    */
-  public getSuffixes(): Map<string, IType> {
-    const suffixes = new Map(this.suffixes.entries());
+  public suffixes(): Map<string, IType> {
+    const suffixes = new Map(this.suffixMap.entries());
 
     if (!empty(this.superType)) {
-      for (const [key, value] of this.superType.getSuffixes()) {
+      for (const [key, value] of this.superType.suffixes()) {
         suffixes.set(key, value);
       }
     }
@@ -372,7 +397,7 @@ export class Type implements IType {
     kind: OperatorKind,
     other?: Maybe<IType>,
   ): Maybe<Operator<IType>> {
-    const operators = this.operators.get(kind);
+    const operators = this.operatorMap.get(kind);
 
     if (empty(operators)) {
       if (!empty(this.superType)) {
@@ -399,8 +424,8 @@ export class Type implements IType {
   /**
    * Get all operators of this type
    */
-  getOperators(): Map<OperatorKind, Operator<IType>[]> {
-    return this.operators;
+  operators(): Map<OperatorKind, Operator<IType>[]> {
+    return this.operatorMap;
   }
 
   /**
@@ -430,16 +455,18 @@ export class Type implements IType {
     }
 
     // no call signature just return type name
-    if (empty(this.callSignature)) {
+    if (empty(this.typeCallSignature)) {
       return `${this.name}${typeArgumentsStr}`;
     }
 
     // if it's gettable or settable then show return type
     if (this.access.get || this.access.set) {
-      return `${typeArgumentsStr}${this.callSignature.returns().toString()}`;
+      return `${typeArgumentsStr}${this.typeCallSignature
+        .returns()
+        .toString()}`;
     }
 
-    return `${typeArgumentsStr}${this.callSignature.toString()}`;
+    return `${typeArgumentsStr}${this.typeCallSignature.toString()}`;
   }
 
   /**

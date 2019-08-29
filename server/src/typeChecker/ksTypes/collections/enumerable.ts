@@ -4,7 +4,7 @@ import {
   noMap,
   mapTypes,
   createParametricArgSuffixType,
-} from '../../typeCreators';
+} from '../../utilities/typeCreators';
 import { enumeratorType } from './enumerator';
 import { iterator } from '../../../utilities/constants';
 import { integerType } from '../primitives/scalar';

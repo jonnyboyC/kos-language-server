@@ -5,7 +5,7 @@ import {
   createVarSuffixType,
   createVarType,
   noMap,
-} from '../../typeCreators';
+} from '../../utilities/typeCreators';
 import { structureType } from '../primitives/structure';
 import { volumeType } from './volume';
 import { integerType } from '../primitives/scalar';

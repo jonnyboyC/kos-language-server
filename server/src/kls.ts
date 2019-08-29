@@ -61,7 +61,7 @@ import {
   cleanLocation,
 } from './utilities/clean';
 import { isValidIdentifier } from './entities/tokentypes';
-import { tokenTrackedType } from './typeChecker/typeUtilities';
+import { tokenTrackedType } from './typeChecker/utilities/typeUtilities';
 import { TypeKind } from './typeChecker/types';
 import { DocumentLoader, Document } from './utilities/documentLoader';
 import { FoldableService } from './services/foldableService';
@@ -557,7 +557,7 @@ export class KLS {
     switch (type.kind) {
       case TypeKind.function:
       case TypeKind.suffix:
-        const callSignature = type.getCallSignature();
+        const callSignature = type.callSignature();
 
         if (empty(callSignature)) {
           return undefined;

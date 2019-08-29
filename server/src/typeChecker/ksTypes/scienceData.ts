@@ -1,4 +1,4 @@
-import { createType, createArgSuffixType, noMap } from '../typeCreators';
+import { createType, createArgSuffixType, noMap } from '../utilities/typeCreators';
 import { scalarType } from './primitives/scalar';
 import { structureType } from './primitives/structure';
 import { stringType } from './primitives/string';

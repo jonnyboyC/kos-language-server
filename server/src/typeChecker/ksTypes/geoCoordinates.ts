@@ -3,7 +3,7 @@ import {
   createSuffixType,
   createArgSuffixType,
   noMap,
-} from '../typeCreators';
+} from '../utilities/typeCreators';
 import { vectorType } from './collections/vector';
 import { orbitableVelocityType } from './orbitalVelocity';
 import { scalarType } from './primitives/scalar';

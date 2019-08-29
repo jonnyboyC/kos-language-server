@@ -3,7 +3,7 @@ import {
   createSuffixType,
   createArgSuffixType,
   noMap,
-} from '../typeCreators';
+} from '../utilities/typeCreators';
 import { listType } from './collections/list';
 import { noneType } from './primitives/none';
 import { scalarType, integerType } from './primitives/scalar';

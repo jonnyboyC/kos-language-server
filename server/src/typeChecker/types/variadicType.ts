@@ -31,28 +31,31 @@ export class VariadicType implements IType {
   public canCoerceFrom(type: IType): boolean {
     return this === type;
   }
-  public getAssignmentType(): IType {
+  public assignmentType(): IType {
     return this;
   }
-  public getCallSignature(): Maybe<ICallSignature> {
+  public callSignature(): Maybe<ICallSignature> {
     return undefined;
   }
-  public getIndexer(): Maybe<IIndexer> {
+  public indexer(): Maybe<IIndexer> {
     throw undefined;
   }
   public getTypeParameters(): IParametricType[] {
     return [];
   }
-  public getSuperType(): Maybe<IType> {
+  public super(): Maybe<IType> {
     return undefined;
   }
-  public getTracker(): TypeTracker {
+  public subTypes(): IType[] {
+    return [];
+  }
+  public tracker(): TypeTracker {
     throw new Error('Method not implemented.');
   }
-  public getCoercions(): Set<IType> {
+  public coercions(): Set<IType> {
     return new Set();
   }
-  public getSuffixes(): Map<string, IType> {
+  public suffixes(): Map<string, IType> {
     return new Map();
   }
   public getOperator(
@@ -61,7 +64,7 @@ export class VariadicType implements IType {
   ): Maybe<Operator<IType>> {
     return undefined;
   }
-  public getOperators(): Map<OperatorKind, Operator<IType>[]> {
+  public operators(): Map<OperatorKind, Operator<IType>[]> {
     return new Map();
   }
   public toString(): string {

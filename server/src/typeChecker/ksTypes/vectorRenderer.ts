@@ -1,4 +1,4 @@
-import { createType, createSetSuffixType, noMap } from '../typeCreators';
+import { createType, createSetSuffixType, noMap } from '../utilities/typeCreators';
 import { structureType } from './primitives/structure';
 import { vectorType } from './collections/vector';
 import { userDelegateType } from './userDelegate';

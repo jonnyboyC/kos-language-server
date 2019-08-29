@@ -48,12 +48,12 @@ export class ParametricIndexer extends ParametricType
   }
 
   public apply(typeArguments: Map<IType, IType> | IType): IIndexer {
-    if (empty(this.callSignature)) {
+    if (empty(this.typeCallSignature)) {
       throw new Error('Indexer call signature must be set');
     }
 
     if (typeArguments instanceof Map) {
-      return this.indexBinder.apply(typeArguments, this.callSignature);
+      return this.indexBinder.apply(typeArguments, this.typeCallSignature);
     }
 
     const typeParameters = this.getTypeParameters();
@@ -64,7 +64,7 @@ export class ParametricIndexer extends ParametricType
     }
     return this.indexBinder.apply(
       new Map([[typeParameters[0], typeArguments]]),
-      this.callSignature,
+      this.typeCallSignature,
     );
   }
 }

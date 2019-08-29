@@ -29,7 +29,7 @@ export class Indexer extends Type implements IIndexer {
   }
 
   public toString(): string {
-    const callSignature = this.getCallSignature();
+    const callSignature = this.callSignature();
     if (empty(callSignature)) {
       throw new Error('Indexer somehow has empty call signature');
     }

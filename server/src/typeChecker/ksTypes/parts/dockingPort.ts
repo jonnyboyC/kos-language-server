@@ -3,7 +3,7 @@ import {
   createSuffixType,
   createArgSuffixType,
   noMap,
-} from '../../typeCreators';
+} from '../../utilities/typeCreators';
 import { decouplerType } from './decoupler';
 import { scalarType } from '../primitives/scalar';
 import { stringType } from '../primitives/string';

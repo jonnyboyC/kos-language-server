@@ -4,7 +4,7 @@ import {
   createSuffixType,
   createSetSuffixType,
   noMap,
-} from '../../typeCreators';
+} from '../../utilities/typeCreators';
 import { listType } from '../collections/list';
 import { noneType } from '../primitives/none';
 import { stringType } from '../primitives/string';

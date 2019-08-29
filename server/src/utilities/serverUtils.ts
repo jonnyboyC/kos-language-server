@@ -26,7 +26,7 @@ import * as Expr from '../parser/expr';
 import { rangeContainsPos, rangeAfter } from './positionUtils';
 import * as SuffixTerm from '../parser/suffixTerm';
 import { IType } from '../typeChecker/types';
-import { tokenTrackedType } from '../typeChecker/typeUtilities';
+import { tokenTrackedType } from '../typeChecker/utilities/typeUtilities';
 import { structureType } from '../typeChecker/ksTypes/primitives/structure';
 
 /**
@@ -208,14 +208,14 @@ export const suffixCompletionItems = async (
   // get all suffixes on the predicted type
   const suffixes = [
     ...type
-      .getAssignmentType()
-      .getSuffixes()
+      .assignmentType()
+      .suffixes()
       .values(),
   ];
 
   // generate completions
   return suffixes.map(suffix => ({
-    kind: empty(suffix.getCallSignature())
+    kind: empty(suffix.callSignature())
       ? CompletionItemKind.Property
       : CompletionItemKind.Method,
     label: suffix.name,

@@ -4,7 +4,7 @@ import {
   mapTypes,
   noMap,
   createArgSuffixType,
-} from '../../typeCreators';
+} from '../../utilities/typeCreators';
 import { enumerableType } from './enumerable';
 import { noneType } from '../primitives/none';
 

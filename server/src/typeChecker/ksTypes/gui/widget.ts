@@ -5,7 +5,7 @@ import {
   createArgSuffixType,
   createType,
   noMap,
-} from '../../typeCreators';
+} from '../../utilities/typeCreators';
 import { widgetStyleType } from './widgetStyle';
 import { guiWidgetType } from './guiWidget';
 import { noneType } from '../primitives/none';

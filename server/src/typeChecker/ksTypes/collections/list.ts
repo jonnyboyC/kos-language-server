@@ -5,7 +5,7 @@ import {
   noMap,
   mapTypes,
   createParametricIndexer,
-} from '../../typeCreators';
+} from '../../utilities/typeCreators';
 import { noneType } from '../primitives/none';
 import { scalarType, integerType } from '../primitives/scalar';
 import { collectionType } from './enumerable';

@@ -4,7 +4,7 @@ import {
   createSuffixType,
   createType,
   noMap,
-} from '../../typeCreators';
+} from '../../utilities/typeCreators';
 import { rgbaType } from '../rgba';
 import { widgetStyleStateType } from './widgetStyleState';
 import { scalarType, integerType } from '../primitives/scalar';

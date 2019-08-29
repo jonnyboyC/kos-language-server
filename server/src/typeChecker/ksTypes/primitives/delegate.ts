@@ -1,4 +1,4 @@
-import { createVarType } from '../../typeCreators';
+import { createVarType } from '../../utilities/typeCreators';
 import { Type } from '../../types/type';
 import { TypeKind } from '../../types';
 import { CallSignature } from '../../types/callSignature';

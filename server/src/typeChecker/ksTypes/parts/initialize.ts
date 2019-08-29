@@ -6,7 +6,7 @@ import {
   createSetSuffixType,
   noMap,
   createUnion,
-} from '../../typeCreators';
+} from '../../utilities/typeCreators';
 import { noneType } from '../primitives/none';
 import { stringType } from '../primitives/string';
 import { booleanType } from '../primitives/boolean';

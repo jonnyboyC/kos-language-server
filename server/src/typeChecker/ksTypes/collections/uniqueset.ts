@@ -2,7 +2,7 @@ import {
   createParametricType,
   createParametricArgSuffixType,
   mapTypes,
-} from '../../typeCreators';
+} from '../../utilities/typeCreators';
 import { noneType } from '../primitives/none';
 import { collectionType } from './enumerable';
 import { booleanType } from '../primitives/boolean';

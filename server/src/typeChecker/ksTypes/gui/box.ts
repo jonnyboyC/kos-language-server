@@ -4,7 +4,7 @@ import {
   createArgSuffixType,
   createType,
   noMap,
-} from '../../typeCreators';
+} from '../../utilities/typeCreators';
 import { widgetType } from './widget';
 import { userDelegateType } from '../userDelegate';
 import { scrollBoxType } from './scrollBox';

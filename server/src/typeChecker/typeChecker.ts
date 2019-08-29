@@ -19,9 +19,9 @@ import { structureType } from './ksTypes/primitives/structure';
 import { iterator } from '../utilities/constants';
 import { TokenType } from '../entities/tokentypes';
 import { nodeType } from './ksTypes/node';
-import { createFunctionType, createUnion } from './typeCreators';
+import { createFunctionType, createUnion } from './utilities/typeCreators';
 import { zip, zipLong } from '../utilities/arrayUtils';
-import { binaryOperatorMap, unaryOperatorMap } from './typeUtilities';
+import { binaryOperatorMap, unaryOperatorMap } from './utilities/typeUtilities';
 import { noneType } from './ksTypes/primitives/none';
 import { booleanType } from './ksTypes/primitives/boolean';
 import { stringType } from './ksTypes/primitives/string';
@@ -179,7 +179,7 @@ export class TypeChecker
     const { tracker } = decl.identifier;
 
     if (this.isBasicTracker(tracker)) {
-      tracker.declareType(result.type.getAssignmentType());
+      tracker.declareType(result.type.assignmentType());
     }
 
     return result.errors;
@@ -194,7 +194,7 @@ export class TypeChecker
     const { tracker } = decl.identifier;
 
     if (this.isBasicTracker(tracker)) {
-      tracker.declareType(result.type.getAssignmentType());
+      tracker.declareType(result.type.assignmentType());
     }
 
     return result.errors;
@@ -320,7 +320,7 @@ export class TypeChecker
     const result = this.checkExpr(stmt.suffix);
     const errors = result.errors;
 
-    if (!booleanType.canCoerceFrom(result.type.getAssignmentType())) {
+    if (!booleanType.canCoerceFrom(result.type.assignmentType())) {
       errors.push(
         createDiagnostic(
           stmt.suffix,
@@ -354,7 +354,7 @@ export class TypeChecker
       case TokenType.add:
       case TokenType.remove:
         // expression must be a node type for node commands
-        if (!nodeType.canCoerceFrom(result.type.getAssignmentType())) {
+        if (!nodeType.canCoerceFrom(result.type.assignmentType())) {
           const command =
             stmt.command.type === TokenType.add ? 'add' : 'remove';
 
@@ -370,7 +370,7 @@ export class TypeChecker
         break;
       // command to edit a file
       case TokenType.edit:
-        if (!nodeType.canCoerceFrom(result.type.getAssignmentType())) {
+        if (!nodeType.canCoerceFrom(result.type.assignmentType())) {
           errors.push(
             createDiagnostic(
               stmt.expr,
@@ -433,8 +433,8 @@ export class TypeChecker
     if (!empty(stmt.suffix.trailer) || trailers.length > 0) {
       if (
         !suffixResult.type
-          .getAssignmentType()
-          .canCoerceFrom(exprResult.type.getAssignmentType())
+          .assignmentType()
+          .canCoerceFrom(exprResult.type.assignmentType())
       ) {
         errors.push(
           createDiagnostic(
@@ -455,7 +455,7 @@ export class TypeChecker
       if (this.isBasicTracker(tracker)) {
         // update declare or set type
         if (tracker.declared.symbol.name === atom.token) {
-          tracker.declareType(exprResult.type.getAssignmentType());
+          tracker.declareType(exprResult.type.assignmentType());
         } else {
           tracker.setType(atom.token, exprResult.type);
         }
@@ -488,7 +488,7 @@ export class TypeChecker
     const conditionResult = this.checkExpr(stmt.condition);
     const errors: Diagnostics = conditionResult.errors;
 
-    if (!booleanType.canCoerceFrom(conditionResult.type.getAssignmentType())) {
+    if (!booleanType.canCoerceFrom(conditionResult.type.assignmentType())) {
       errors.push(
         createDiagnostic(
           stmt.condition,
@@ -513,7 +513,7 @@ export class TypeChecker
     const conditionResult = this.checkExpr(stmt.condition);
     const errors = conditionResult.errors;
 
-    if (!booleanType.canCoerceFrom(conditionResult.type.getAssignmentType())) {
+    if (!booleanType.canCoerceFrom(conditionResult.type.assignmentType())) {
       errors.push(
         createDiagnostic(
           stmt.condition,
@@ -532,7 +532,7 @@ export class TypeChecker
     const conditionResult = this.checkExpr(stmt.condition);
     errors = errors.concat(conditionResult.errors);
 
-    if (!booleanType.canCoerceFrom(conditionResult.type.getAssignmentType())) {
+    if (!booleanType.canCoerceFrom(conditionResult.type.assignmentType())) {
       errors.push(
         createDiagnostic(
           stmt.condition,
@@ -552,7 +552,7 @@ export class TypeChecker
     const conditionResult = this.checkExpr(stmt.condition);
     const errors = conditionResult.errors;
 
-    if (!booleanType.canCoerceFrom(conditionResult.type.getAssignmentType())) {
+    if (!booleanType.canCoerceFrom(conditionResult.type.assignmentType())) {
       errors.push(
         createDiagnostic(
           stmt.condition,
@@ -585,7 +585,7 @@ export class TypeChecker
     const result = this.checkExpr(stmt.target);
     let errors = result.errors;
 
-    if (!stringType.canCoerceFrom(result.type.getAssignmentType())) {
+    if (!stringType.canCoerceFrom(result.type.assignmentType())) {
       errors = errors.concat(
         createDiagnostic(
           stmt.target,
@@ -606,12 +606,9 @@ export class TypeChecker
     const result = this.checkExpr(stmt.collection);
     let errors: Diagnostics = [];
 
-    const iterable = result.type.getAssignmentType();
+    const iterable = result.type.assignmentType();
 
-    if (
-      iterable.kind !== TypeKind.basic ||
-      !iterable.getSuffixes().has(iterator)
-    ) {
+    if (!iterable.suffixes().has(iterator)) {
       errors = errors.concat(
         createDiagnostic(
           stmt.collection,
@@ -624,13 +621,13 @@ export class TypeChecker
     const { tracker } = stmt.element;
 
     if (this.isBasicTracker(tracker)) {
-      const collectionIterator = iterable.getSuffixes().get(iterator);
+      const collectionIterator = iterable.suffixes().get(iterator);
 
       if (!empty(collectionIterator)) {
-        const enumerator = collectionIterator.getAssignmentType();
-        const value = enumerator.getSuffixes().get('value');
+        const enumerator = collectionIterator.assignmentType();
+        const value = enumerator.suffixes().get('value');
 
-        const setType = (value && value.getAssignmentType()) || structureType;
+        const setType = (value && value.assignmentType()) || structureType;
         tracker.declareType(setType);
       } else {
         tracker.declareType(structureType);
@@ -647,7 +644,7 @@ export class TypeChecker
     const result = this.checkExpr(stmt.suffix);
     const errors: Diagnostics = [];
 
-    if (!booleanType.canCoerceFrom(result.type.getAssignmentType())) {
+    if (!booleanType.canCoerceFrom(result.type.assignmentType())) {
       errors.push(
         createDiagnostic(
           stmt.suffix,
@@ -668,7 +665,7 @@ export class TypeChecker
     const result = this.checkExpr(stmt.suffix);
     const errors: Diagnostics = result.errors;
 
-    if (!booleanType.canCoerceFrom(result.type.getAssignmentType())) {
+    if (!booleanType.canCoerceFrom(result.type.assignmentType())) {
       // can only toggle boolean values
       errors.push(
         createDiagnostic(
@@ -693,7 +690,7 @@ export class TypeChecker
 
     if (empty(stmt.until)) {
       // no until wait a set amount of time
-      if (!scalarType.canCoerceFrom(result.type.getAssignmentType())) {
+      if (!scalarType.canCoerceFrom(result.type.assignmentType())) {
         errors.push(
           createDiagnostic(
             stmt.expr,
@@ -705,7 +702,7 @@ export class TypeChecker
       }
     } else {
       // wait until condition
-      if (!booleanType.canCoerceFrom(result.type.getAssignmentType())) {
+      if (!booleanType.canCoerceFrom(result.type.assignmentType())) {
         errors.push(
           createDiagnostic(
             stmt.expr,
@@ -729,7 +726,7 @@ export class TypeChecker
     const logResult = this.checkExpr(stmt.target);
     const errors: Diagnostics = exprResult.errors.concat(logResult.errors);
 
-    if (!stringType.canCoerceFrom(exprResult.type.getAssignmentType())) {
+    if (!stringType.canCoerceFrom(exprResult.type.assignmentType())) {
       errors.push(
         createDiagnostic(
           stmt.expr,
@@ -740,7 +737,7 @@ export class TypeChecker
       );
     }
 
-    if (!stringType.canCoerceFrom(exprResult.type.getAssignmentType())) {
+    if (!stringType.canCoerceFrom(exprResult.type.assignmentType())) {
       errors.push(
         createDiagnostic(
           stmt.expr,
@@ -759,7 +756,7 @@ export class TypeChecker
     const targetResult = this.checkExpr(stmt.destination);
     const errors: Diagnostics = sourceResult.errors.concat(targetResult.errors);
 
-    if (!stringType.canCoerceFrom(sourceResult.type.getAssignmentType())) {
+    if (!stringType.canCoerceFrom(sourceResult.type.assignmentType())) {
       errors.push(
         createDiagnostic(
           stmt.target,
@@ -770,7 +767,7 @@ export class TypeChecker
       );
     }
 
-    if (!stringType.canCoerceFrom(sourceResult.type.getAssignmentType())) {
+    if (!stringType.canCoerceFrom(sourceResult.type.assignmentType())) {
       errors.push(
         createDiagnostic(
           stmt.destination,
@@ -792,7 +789,7 @@ export class TypeChecker
       alternativeResult.errors,
     );
 
-    if (!stringType.canCoerceFrom(targetResult.type.getAssignmentType())) {
+    if (!stringType.canCoerceFrom(targetResult.type.assignmentType())) {
       errors.push(
         createDiagnostic(
           stmt.target,
@@ -803,7 +800,7 @@ export class TypeChecker
       );
     }
 
-    if (!stringType.canCoerceFrom(targetResult.type.getAssignmentType())) {
+    if (!stringType.canCoerceFrom(targetResult.type.assignmentType())) {
       errors.push(
         createDiagnostic(
           stmt.alternative,
@@ -820,7 +817,7 @@ export class TypeChecker
     const targetResult = this.checkExpr(stmt.target);
     const errors: Diagnostics = targetResult.errors;
 
-    if (!stringType.canCoerceFrom(targetResult.type.getAssignmentType())) {
+    if (!stringType.canCoerceFrom(targetResult.type.assignmentType())) {
       errors.push(
         createDiagnostic(
           stmt.target,
@@ -837,8 +834,8 @@ export class TypeChecker
 
     const volumeResult = this.checkExpr(stmt.volume);
     if (
-      !stringType.canCoerceFrom(volumeResult.type.getAssignmentType()) &&
-      !pathType.canCoerceFrom(volumeResult.type.getAssignmentType())
+      !stringType.canCoerceFrom(volumeResult.type.assignmentType()) &&
+      !pathType.canCoerceFrom(volumeResult.type.assignmentType())
     ) {
       errors.push(
         createDiagnostic(
@@ -865,7 +862,7 @@ export class TypeChecker
     const targetResult = this.checkExpr(stmt.target);
     const errors: Diagnostics = targetResult.errors;
 
-    if (!stringType.canCoerceFrom(targetResult.type.getAssignmentType())) {
+    if (!stringType.canCoerceFrom(targetResult.type.assignmentType())) {
       errors.push(
         createDiagnostic(
           stmt.target,
@@ -881,7 +878,7 @@ export class TypeChecker
     }
 
     const destinationResult = this.checkExpr(stmt.destination);
-    if (!stringType.canCoerceFrom(destinationResult.type.getAssignmentType())) {
+    if (!stringType.canCoerceFrom(destinationResult.type.assignmentType())) {
       errors.push(
         createDiagnostic(
           stmt.destination,
@@ -975,7 +972,7 @@ export class TypeChecker
     const result = this.checkExpr(stmt.expr);
     const errors = result.errors;
 
-    if (!structureType.canCoerceFrom(result.type.getAssignmentType())) {
+    if (!structureType.canCoerceFrom(result.type.assignmentType())) {
       errors.push(
         createDiagnostic(
           stmt.expr,
@@ -1008,7 +1005,7 @@ export class TypeChecker
 
     errors.push(...trueResult.errors, ...falseResult.errors);
 
-    if (!booleanType.canCoerceFrom(conditionResult.type.getAssignmentType())) {
+    if (!booleanType.canCoerceFrom(conditionResult.type.assignmentType())) {
       errors.push(
         createDiagnostic(
           expr.condition,
@@ -1022,8 +1019,8 @@ export class TypeChecker
       errors,
       type: createUnion(
         false,
-        trueResult.type.getAssignmentType(),
-        falseResult.type.getAssignmentType(),
+        trueResult.type.assignmentType(),
+        falseResult.type.assignmentType(),
       ),
     };
   }
@@ -1068,7 +1065,7 @@ export class TypeChecker
         };
 
       case TokenType.not:
-        if (!booleanType.canCoerceFrom(result.type.getAssignmentType())) {
+        if (!booleanType.canCoerceFrom(result.type.assignmentType())) {
           errors.push(
             createDiagnostic(
               expr.factor,
@@ -1211,12 +1208,12 @@ export class TypeChecker
 
     const type = builder.current();
     const errors: Diagnostics = [];
-    const callSignature = type.getCallSignature();
+    const callSignature = type.callSignature();
 
     if (empty(callSignature)) {
       builder.nodes.push(new TypeNode(suffixError, call));
-      call.open.tracker = suffixError.getTracker();
-      call.close.tracker = suffixError.getTracker();
+      call.open.tracker = suffixError.tracker();
+      call.close.tracker = suffixError.tracker();
 
       errors.push(
         createDiagnostic(
@@ -1230,8 +1227,8 @@ export class TypeChecker
     }
 
     builder.nodes.push(new TypeNode(type, call));
-    call.open.tracker = type.getTracker();
-    call.close.tracker = type.getTracker();
+    call.open.tracker = type.tracker();
+    call.close.tracker = type.tracker();
 
     const params = callSignature.params();
 
@@ -1257,14 +1254,14 @@ export class TypeChecker
     const type = builder.current();
     const errors: Diagnostics = [];
 
-    const callSignature = type.getCallSignature();
+    const callSignature = type.callSignature();
 
     // check if previous identifier resolves to a function
     // TODO figure out function trackers
     if (empty(callSignature)) {
       builder.nodes.push(new TypeNode(functionError, call));
-      call.open.tracker = functionError.getTracker();
-      call.close.tracker = functionError.getTracker();
+      call.open.tracker = functionError.tracker();
+      call.close.tracker = functionError.tracker();
 
       errors.push(
         createDiagnostic(
@@ -1310,7 +1307,7 @@ export class TypeChecker
       errors.push(...result.errors);
 
       // add diagnostic if argument cannot be matched to parameter type
-      if (!params.base.canCoerceFrom(result.type.getAssignmentType())) {
+      if (!params.base.canCoerceFrom(result.type.assignmentType())) {
         errors.push(
           createDiagnostic(
             arg,
@@ -1353,7 +1350,7 @@ export class TypeChecker
         errors.push(...result.errors);
 
         // add diagnostic if argument cannot be coerced to parameter type
-        if (!param.canCoerceFrom(result.type.getAssignmentType())) {
+        if (!param.canCoerceFrom(result.type.assignmentType())) {
           errors.push(
             createDiagnostic(
               arg,
@@ -1376,7 +1373,7 @@ export class TypeChecker
         }
 
         // add diagnostic if argument cannot be matched to parameter type
-        if (!param!.canCoerceFrom(argType.getAssignmentType())) {
+        if (!param!.canCoerceFrom(argType.assignmentType())) {
           errors.push(
             createDiagnostic(
               empty(arg) ? call.close : arg,
@@ -1494,9 +1491,9 @@ export class TypeChecker
 
     const indexResult = this.checkExpr(suffixTerm.index);
     const errors = indexResult.errors;
-    const type = builder.current().getAssignmentType();
+    const type = builder.current().assignmentType();
 
-    const indexer = type.getIndexer();
+    const indexer = type.indexer();
 
     // we either need to have an indexer or be the any type
     if (empty(indexer)) {
@@ -1510,12 +1507,12 @@ export class TypeChecker
         ),
       );
 
-      suffixTerm.open.tracker = indexerError.getTracker();
-      suffixTerm.close.tracker = indexerError.getTracker();
+      suffixTerm.open.tracker = indexerError.tracker();
+      suffixTerm.close.tracker = indexerError.tracker();
       return errors;
     }
 
-    const callSignature = indexer.getCallSignature();
+    const callSignature = indexer.callSignature();
     if (empty(callSignature)) {
       throw new Error('Indexer should have filled call signature');
     }
@@ -1536,8 +1533,8 @@ export class TypeChecker
     }
 
     // assign trackers
-    suffixTerm.open.tracker = indexer.getTracker();
-    suffixTerm.close.tracker = indexer.getTracker();
+    suffixTerm.open.tracker = indexer.tracker();
+    suffixTerm.close.tracker = indexer.tracker();
 
     return errors;
   }
@@ -1568,8 +1565,9 @@ export class TypeChecker
       );
     }
 
-    builder.nodes.push(new TypeNode(delegateCreation, suffixTerm));
-    suffixTerm.atSign.tracker = delegateCreation.getTracker();
+    const creation = delegateCreation(type);
+    builder.nodes.push(new TypeNode(creation, suffixTerm));
+    suffixTerm.atSign.tracker = creation.tracker();
 
     return errors;
   }
@@ -1621,14 +1619,14 @@ export class TypeChecker
     if (builder.isTrailer()) {
       const type = builder.current();
       const suffix = type
-        .getAssignmentType()
-        .getSuffixes()
+        .assignmentType()
+        .suffixes()
         .get(suffixTerm.token.lookup);
 
       // may need to pass something in about if we're in get set context
       if (!empty(suffix)) {
         // assign type tracker
-        suffixTerm.token.tracker = suffix.getTracker();
+        suffixTerm.token.tracker = suffix.tracker();
 
         // push new node onto builder
         builder.nodes.push(new TypeNode(suffix, suffixTerm));
@@ -1636,7 +1634,7 @@ export class TypeChecker
       }
 
       // assign error suffix type
-      suffixTerm.token.tracker = suffixError.getTracker();
+      suffixTerm.token.tracker = suffixError.tracker();
 
       // add suffix error to builder
       builder.nodes.push(new TypeNode(suffixError, suffixTerm));
@@ -1703,11 +1701,11 @@ export class TypeChecker
       { get: true, set: false },
       new Map(),
       TypeKind.grouping,
-      new CallSignature([], type.getAssignmentType()),
+      new CallSignature([], type.assignmentType()),
     );
 
-    suffixTerm.open.tracker = groupingType.getTracker();
-    suffixTerm.close.tracker = groupingType.getTracker();
+    suffixTerm.open.tracker = groupingType.tracker();
+    suffixTerm.close.tracker = groupingType.tracker();
 
     // push result of grouping onto builder
     builder.nodes.push(new TypeNode(type, suffixTerm));
@@ -1749,7 +1747,7 @@ export class TypeChecker
     subExpression: ITypeResultExpr<IType>,
     operatorKind: OperatorKind,
   ): ITypeResultExpr<IType> {
-    const subType = subExpression.type.getAssignmentType();
+    const subType = subExpression.type.assignmentType();
     const subOp = subType.getOperator(operatorKind);
     const errors = subExpression.errors;
 
@@ -1775,8 +1773,8 @@ export class TypeChecker
     leftResult: ITypeResultExpr<IType>,
     rightResult: ITypeResultExpr<IType>,
   ): ITypeResultExpr<IType> {
-    const leftType = leftResult.type.getAssignmentType();
-    const rightType = rightResult.type.getAssignmentType();
+    const leftType = leftResult.type.assignmentType();
+    const rightType = rightResult.type.assignmentType();
     const errors = leftResult.errors.concat(rightResult.errors);
 
     // check if left can be converted to a boolean
@@ -1819,8 +1817,8 @@ export class TypeChecker
     rightResult: ITypeResultExpr<IType>,
     operator: OperatorKind,
   ): ITypeResultExpr<IType> {
-    const leftType = leftResult.type.getAssignmentType();
-    const rightType = rightResult.type.getAssignmentType();
+    const leftType = leftResult.type.assignmentType();
+    const rightType = rightResult.type.assignmentType();
     const errors = leftResult.errors.concat(rightResult.errors);
     let calcType: Maybe<IType> = undefined;
 
@@ -1842,7 +1840,7 @@ export class TypeChecker
     // we found a primitive type to perform the operation on
     if (!empty(calcType)) {
       // get all operators for the given kind for the calc type
-      const calcOps = calcType.getOperators().get(operator);
+      const calcOps = calcType.operators().get(operator);
 
       // if no operators present return error
       if (!empty(calcOps)) {

@@ -3,7 +3,7 @@ import {
   createSetSuffixType,
   createArgSuffixType,
   noMap,
-} from '../../../typeCreators';
+} from '../../../utilities/typeCreators';
 import { userDelegateType } from '../../userDelegate';
 import { buttonType } from './button';
 import { structureType } from '../../primitives/structure';

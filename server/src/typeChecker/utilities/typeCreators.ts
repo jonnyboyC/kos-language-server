@@ -5,17 +5,17 @@ import {
   TypeMap,
   ITypeMappable,
   IParametricIndexer,
-} from './types';
-import { memoize } from '../utilities/memoize';
-import { ParametricType } from './parametricTypes/parametricType';
-import { Type } from './types/type';
-import { VariadicType } from './types/variadicType';
-import { CallSignature } from './types/callSignature';
-import { GenericCallSignature } from './parametricTypes/parametricCallSignature';
-import { ParametricIndexer } from './parametricTypes/parametricIndexer';
-import { Indexer } from './types/indexer';
-import { empty } from '../utilities/typeGuards';
-import { UnionType } from './types/unionType';
+} from '../types';
+import { memoize } from '../../utilities/memoize';
+import { ParametricType } from '../parametricTypes/parametricType';
+import { Type } from '../types/type';
+import { VariadicType } from '../types/variadicType';
+import { CallSignature } from '../types/callSignature';
+import { GenericCallSignature } from '../parametricTypes/parametricCallSignature';
+import { ParametricIndexer } from '../parametricTypes/parametricIndexer';
+import { Indexer } from '../types/indexer';
+import { empty } from '../../utilities/typeGuards';
+import { UnionType } from '../types/unionType';
 
 /**
  * Create a type parameter type
@@ -68,17 +68,37 @@ export const createUnion = (param: boolean, ...types: IType[]): IType => {
     return 0;
   });
 
-  if (sortedTypes.length === 1) {
-    return sortedTypes[0];
+  const reducedTypes: IType[] = [];
+  for (const type of sortedTypes) {
+    let add = true;
+
+    for (const checkType of sortedTypes) {
+      if (type === checkType) {
+        continue;
+      }
+
+      if (type.isSubtypeOf(checkType)) {
+        add = false;
+        break;
+      }
+    }
+
+    if (add) {
+      reducedTypes.push(type);
+    }
   }
 
-  const unionString = sortedTypes.map(type => type.toString()).join(' or ');
+  if (reducedTypes.length === 1) {
+    return reducedTypes[0];
+  }
+
+  const unionString = reducedTypes.map(type => type.toString()).join(' or ');
   const cacheHit = unionCache.get(unionString);
   if (!empty(cacheHit)) {
     return cacheHit;
   }
 
-  const unionType = new UnionType(param, ...sortedTypes);
+  const unionType = new UnionType(param, ...reducedTypes);
   unionCache.set(unionString, unionType);
   return unionType;
 };

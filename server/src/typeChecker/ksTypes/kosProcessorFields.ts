@@ -1,4 +1,4 @@
-import { createType, createArgSuffixType, noMap } from '../typeCreators';
+import { createType, createArgSuffixType, noMap } from '../utilities/typeCreators';
 import { partModuleType } from './parts/partModule';
 import { volumeType } from './io/volume';
 import { processorConnectionType } from './communication/processorConnection';

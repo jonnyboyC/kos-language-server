@@ -41,7 +41,7 @@ import {
   createVarFunctionType,
   createVarType,
   createUnion,
-} from '../typeChecker/typeCreators';
+} from '../typeChecker/utilities/typeCreators';
 import { delegateType } from '../typeChecker/ksTypes/primitives/delegate';
 import { kUniverseType } from '../typeChecker/ksTypes/kUniverse';
 import { homeConnectionType } from '../typeChecker/ksTypes/communication/homeConnection';
@@ -759,7 +759,7 @@ export const standardLibraryBuilder = (caseKind: CaseKind): SymbolTable => {
   const libraryBuilder = new SymbolTableBuilder(builtIn);
 
   for (const [segements, functionType] of functionTypes) {
-    const callSignature = functionType.getCallSignature();
+    const callSignature = functionType.callSignature();
 
     const parameterCount = empty(callSignature)
       ? -1
