@@ -31,6 +31,9 @@ import { listType } from '../typeChecker/ksTypes/collections/list';
 import { partType } from '../typeChecker/ksTypes/parts/part';
 import { IType } from '../typeChecker/types';
 import { pathType } from '../typeChecker/ksTypes/io/path';
+import { KsFunction } from '../entities/function';
+import { createUnion } from '../typeChecker/utilities/typeCreators';
+import { noneType } from '../typeChecker/ksTypes/primitives/none';
 
 const fakeUri = 'C:\\fake.ks';
 
@@ -624,6 +627,16 @@ for b in body {
 }
 `;
 
+const declareFuncSource = `
+function example {
+  parameter x, y is 10.
+
+  print(x).
+  print(y).
+  return 10.
+}
+`;
+
 const setValidSource = `
 local declareFirst to 10.
 set declareFirst to "cat".
@@ -670,7 +683,6 @@ describe('Statements', () => {
       end: { line: 5, character: 13 },
     },
   ];
-
   test('for loop invalid', () => {
     const results = checkSource(forInValidSource, true);
     noResolverErrors(results);
@@ -695,6 +707,38 @@ describe('Statements', () => {
       expect(error.range.start).toEqual(location.start);
       expect(error.range.end).toEqual(location.end);
     }
+  });
+
+  test('declare function single exit', () => {
+    const results = checkSource(declareFuncSource, true);
+    noErrors(results);
+
+    const { table } = results;
+    const symbols = table.allSymbols();
+    const names = new Map(
+      symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
+    );
+
+    declaredTests(names, 'x', KsSymbolKind.parameter, structureType);
+    declaredTests(names, 'y', KsSymbolKind.parameter, integerType);
+    declaredTests(names, 'example', KsSymbolKind.function);
+
+    const func = names.get('example')! as KsFunction;
+    const tracker = func.name.tracker!;
+    const type = tracker.declared.type;
+
+    const callSignature = type.callSignature();
+    expect(callSignature).toBeDefined();
+
+    const params = callSignature!.params();
+    const returns = callSignature!.returns();
+
+    expect(params.length).toBe(2);
+    const [first, second] = params;
+
+    expect(first).toBe(structureType);
+    expect(second).toBe(createUnion(true, structureType, noneType));
+    expect(returns).toBe(structureType);
   });
 
   test('set valid', () => {

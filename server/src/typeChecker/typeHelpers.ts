@@ -7,7 +7,7 @@ import {
 } from './utilities/typeCreators';
 import { structureType } from './ksTypes/primitives/structure';
 import { integerType } from './ksTypes/primitives/scalar';
-import { IType } from './types';
+import { IType, TypeKind } from './types';
 import { DelegateType } from './types/delegateType';
 
 export const arrayIndexer = createArgSuffixType(
@@ -16,8 +16,15 @@ export const arrayIndexer = createArgSuffixType(
   integerType,
 );
 
+export const delegateError = createFunctionType(
+  'Unknown function',
+  structureType,
+);
+
 export const delegateCreation = (type: IType) => {
-  return createArgSuffixType('delegate creation', new DelegateType(type));
+  const delegate = type.kind === TypeKind.function ? type : delegateError;
+
+  return createArgSuffixType('delegate creation', new DelegateType(delegate));
 };
 
 export const indexerError = createIndexer(structureType, structureType);
