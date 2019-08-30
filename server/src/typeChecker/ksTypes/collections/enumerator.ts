@@ -4,7 +4,7 @@ import {
   noMap,
   mapTypes,
   createParametricArgSuffixType,
-} from '../../typeCreators';
+} from '../../utilities/typeCreators';
 import { structureType } from '../primitives/structure';
 import { booleanType } from '../primitives/boolean';
 import { scalarType } from '../primitives/scalar';

@@ -3,7 +3,7 @@ import {
   createType,
   createArgSuffixType,
   noMap,
-} from '../../typeCreators';
+} from '../../utilities/typeCreators';
 import { structureType } from '../primitives/structure';
 import { rgbaType } from '../rgba';
 import { widgetStyleType } from './widgetStyle';

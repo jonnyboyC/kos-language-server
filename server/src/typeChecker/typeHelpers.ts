@@ -4,10 +4,11 @@ import {
   createFunctionType,
   noMap,
   createIndexer,
-} from './typeCreators';
+} from './utilities/typeCreators';
 import { structureType } from './ksTypes/primitives/structure';
 import { integerType } from './ksTypes/primitives/scalar';
-import { delegateType } from './ksTypes/primitives/delegate';
+import { IType, TypeKind } from './types';
+import { DelegateType } from './types/delegateType';
 
 export const arrayIndexer = createArgSuffixType(
   'list#Indexer',
@@ -15,10 +16,17 @@ export const arrayIndexer = createArgSuffixType(
   integerType,
 );
 
-export const delegateCreation = createArgSuffixType(
-  'delegate creation',
-  delegateType,
+export const delegateError = createFunctionType(
+  'Unknown function',
+  structureType,
 );
+
+export const delegateCreation = (type: IType) => {
+  const delegate = type.kind === TypeKind.function ? type : delegateError;
+
+  return createArgSuffixType('delegate creation', new DelegateType(delegate));
+};
+
 export const indexerError = createIndexer(structureType, structureType);
 export const suffixError = createSuffixType('Unknown suffix', structureType);
 

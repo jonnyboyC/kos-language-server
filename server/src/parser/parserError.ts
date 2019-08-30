@@ -11,15 +11,15 @@ export class ParseError implements IParseError {
   public readonly failed: FailedConstructor;
   public readonly message: string;
   public readonly moreInfo?: string;
-  public readonly partial?: PartialNode;
+  public partial?: PartialNode;
 
   constructor(
     token: Token,
     failed: FailedConstructor,
     message: string,
     moreInfo?: string,
-    partial?: PartialNode) {
-
+    partial?: PartialNode,
+  ) {
     this.token = token;
     this.failed = failed;
     this.message = message;
@@ -46,15 +46,19 @@ export class ParseError implements IParseError {
 export class FailedConstructor {
   constructor(
     public stmt: Maybe<Constructor<Stmt>>,
-    public expr: Maybe<Constructor<Expr>>) {
-  }
+    public expr: Maybe<Constructor<Expr>>,
+  ) {}
 }
 
-export const failedExpr = (expr: Maybe<Constructor<Expr>>): FailedConstructor => {
+export const failedExpr = (
+  expr: Maybe<Constructor<Expr>>,
+): FailedConstructor => {
   return new FailedConstructor(undefined, expr);
 };
 
-export const failedStmt = (stmt: Maybe<Constructor<Stmt>>): FailedConstructor => {
+export const failedStmt = (
+  stmt: Maybe<Constructor<Stmt>>,
+): FailedConstructor => {
   return new FailedConstructor(stmt, undefined);
 };
 

@@ -2,7 +2,7 @@ import {
   createArgSuffixType,
   createType,
   noMap,
-} from '../../typeCreators';
+} from '../../utilities/typeCreators';
 import { enumerableType } from './enumerable';
 import { scalarType } from '../primitives/scalar';
 

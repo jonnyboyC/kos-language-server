@@ -2,7 +2,7 @@ import {
   createType,
   createSuffixType,
   noMap,
-} from '../../typeCreators';
+} from '../../utilities/typeCreators';
 import { enumeratorType } from '../collections/enumerator';
 import { scalarType } from '../primitives/scalar';
 import { booleanType } from '../primitives/boolean';

@@ -58,8 +58,8 @@ export class LocalResolver
   public visitTernary(expr: Expr.Ternary): Token[] {
     const tokens = this.resolveExpr(expr.condition);
     tokens.push(
-      ...this.resolveExpr(expr.trueBranch),
-      ...this.resolveExpr(expr.falseBranch));
+      ...this.resolveExpr(expr.trueExpr),
+      ...this.resolveExpr(expr.falseExpr));
     return tokens;
   }
 

@@ -4,7 +4,7 @@ import {
   createVarSuffixType,
   createVarType,
   noMap,
-} from '../../typeCreators';
+} from '../../utilities/typeCreators';
 import { stringType } from './string';
 import { booleanType } from './boolean';
 import { serializableType } from './serializeableStructure';

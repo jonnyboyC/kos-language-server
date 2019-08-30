@@ -9,15 +9,15 @@ import { empty } from '../utilities/typeGuards';
 import { Token } from '../entities/token';
 import { TreeExecute } from './treeExecute';
 
-type Contexts = Constructor<Expr.Expr>
+export type AstContext =
+  | Constructor<Expr.Expr>
   | Constructor<Stmt.Stmt>
   | Constructor<SuffixTerm.SuffixTermBase>
   | Constructor<Decl.Parameter>;
 
 export class ScriptFind extends TreeExecute<Maybe<IFindResult>> {
-
   private pos: Position;
-  private contexts: Contexts[];
+  private contexts: AstContext[];
 
   constructor() {
     super();
@@ -34,7 +34,11 @@ export class ScriptFind extends TreeExecute<Maybe<IFindResult>> {
    * @param pos position to find
    * @param contexts list of contexts to captures
    */
-  public find(syntaxNode: TreeNode, pos: Position, ...contexts: Contexts[]): Maybe<IFindResult> {
+  public find(
+    syntaxNode: TreeNode,
+    pos: Position,
+    ...contexts: AstContext[]
+  ): Maybe<IFindResult> {
     this.pos = pos;
     this.contexts = contexts;
     return this.nodeAction(syntaxNode);
@@ -90,8 +94,8 @@ export class ScriptFind extends TreeExecute<Maybe<IFindResult>> {
           node: this.isContext(node)
             ? node
             : this.isContext(searchResult)
-              ? searchResult
-              : undefined,
+            ? searchResult
+            : undefined,
         };
       }
       if (rangeContainsPos(searchResult.value, this.pos)) {
@@ -107,8 +111,8 @@ export class ScriptFind extends TreeExecute<Maybe<IFindResult>> {
         node: this.isContext(node)
           ? node
           : this.isContext(searchResult)
-            ? searchResult
-            : undefined,
+          ? searchResult
+          : undefined,
         token: searchResult.identifier,
       };
     }
@@ -116,23 +120,27 @@ export class ScriptFind extends TreeExecute<Maybe<IFindResult>> {
     // return result if token found
     if (searchResult instanceof Token) {
       return {
-        node: this.isContext(node)
-          ? node
-          : undefined,
+        node: this.isContext(node) ? node : undefined,
         token: searchResult,
       };
     }
 
     // return result if token found
     if (searchResult instanceof Decl.Scope) {
-      if (!empty(searchResult.scope) && rangeContainsPos(searchResult.scope, this.pos)) {
+      if (
+        !empty(searchResult.scope) &&
+        rangeContainsPos(searchResult.scope, this.pos)
+      ) {
         return {
           node: undefined,
           token: searchResult.scope,
         };
       }
 
-      if (!empty(searchResult.declare) && rangeContainsPos(searchResult.declare, this.pos)) {
+      if (
+        !empty(searchResult.declare) &&
+        rangeContainsPos(searchResult.declare, this.pos)
+      ) {
         return {
           node: undefined,
           token: searchResult.declare,

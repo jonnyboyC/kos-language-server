@@ -4,7 +4,7 @@ import {
   createSetSuffixType,
   createSuffixType,
   noMap,
-} from '../../typeCreators';
+} from '../../utilities/typeCreators';
 import { scalarType } from '../primitives/scalar';
 import { Operator } from '../../types/operator';
 import { OperatorKind } from '../../types';

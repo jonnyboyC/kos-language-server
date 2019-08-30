@@ -2,7 +2,7 @@ import {
   createSetSuffixType,
   createType,
   noMap,
-} from '../../typeCreators';
+} from '../../utilities/typeCreators';
 import { boxType } from './box';
 import { vectorType } from '../collections/vector';
 import { booleanType } from '../primitives/boolean';

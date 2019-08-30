@@ -183,8 +183,8 @@ export abstract class TreeTraverse
   public visitExprInvalid(_: Expr.Invalid): void {}
   public visitTernary(expr: Expr.Ternary): void {
     this.exprAction(expr.condition);
-    this.exprAction(expr.trueBranch);
-    this.exprAction(expr.falseBranch);
+    this.exprAction(expr.trueExpr);
+    this.exprAction(expr.falseExpr);
   }
 
   public visitBinary(expr: Expr.Binary): void {

@@ -1,10 +1,10 @@
-import { empty } from '../utilities/typeGuards';
-import { Token } from '../entities/token';
-import { TokenType } from '../entities/tokentypes';
-import { booleanType } from './ksTypes/primitives/boolean';
-import { integerType, doubleType } from './ksTypes/primitives/scalar';
-import { stringType } from './ksTypes/primitives/string';
-import { OperatorKind, IType, IParametricType } from './types';
+import { empty } from '../../utilities/typeGuards';
+import { Token } from '../../entities/token';
+import { TokenType } from '../../entities/tokentypes';
+import { booleanType } from '../ksTypes/primitives/boolean';
+import { integerType, doubleType } from '../ksTypes/primitives/scalar';
+import { stringType } from '../ksTypes/primitives/string';
+import { OperatorKind, IType, IParametricType } from '../types';
 
 /**
  * This map token types to binary operator kinds

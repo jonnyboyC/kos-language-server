@@ -1,4 +1,4 @@
-import { createType } from '../../typeCreators';
+import { createType } from '../../utilities/typeCreators';
 
 export const scalarType = createType('scalar');
 export const integerType = createType('int');

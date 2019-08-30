@@ -1,4 +1,4 @@
-import { createType, createSetSuffixType, noMap } from '../typeCreators';
+import { createType, createSetSuffixType, noMap } from '../utilities/typeCreators';
 import { structureType } from './primitives/structure';
 import { rgbaType } from './rgba';
 import { booleanType } from './primitives/boolean';

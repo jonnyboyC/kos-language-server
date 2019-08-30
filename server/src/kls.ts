@@ -25,6 +25,8 @@ import {
   SymbolInformation,
   FoldingRangeParams,
   FoldingRange,
+  CancellationToken,
+  Hover,
 } from 'vscode-languageserver';
 import { KLSConfiguration, ClientConfiguration } from './types';
 import { Scanner } from './scanner/scanner';
@@ -36,13 +38,12 @@ import {
 } from './analysis/types';
 import { mockLogger, mockTracer, logException } from './utilities/logger';
 import { empty } from './utilities/typeGuards';
-import { ScriptFind } from './parser/scriptFind';
+import { ScriptFind, AstContext } from './parser/scriptFind';
 import * as Expr from './parser/expr';
 import * as Stmt from './parser/stmt';
 import * as SuffixTerm from './parser/suffixTerm';
 import { builtIn, serverName, keywordCompletions } from './utilities/constants';
-import { Token } from './entities/token';
-import { binarySearchIndex } from './utilities/positionUtils';
+import { binarySearchIndex, rangeContains } from './utilities/positionUtils';
 import { URI } from 'vscode-uri';
 import { DocumentService } from './services/documentService';
 import {
@@ -51,8 +52,7 @@ import {
   logMapper,
   suffixCompletionItems,
   symbolCompletionItems,
-  defaultSignature,
-  documentSymbols,
+  toDocumentSymbols as toLangServerSymbols,
 } from './utilities/serverUtils';
 import {
   cleanDiagnostic,
@@ -61,7 +61,7 @@ import {
   cleanLocation,
 } from './utilities/clean';
 import { isValidIdentifier } from './entities/tokentypes';
-import { tokenTrackedType } from './typeChecker/typeUtilities';
+import { tokenTrackedType } from './typeChecker/utilities/typeUtilities';
 import { TypeKind } from './typeChecker/types';
 import { DocumentLoader, Document } from './utilities/documentLoader';
 import { FoldableService } from './services/foldableService';
@@ -72,6 +72,7 @@ import {
   normalizeExtensions,
 } from './utilities/pathResolver';
 import { existsSync } from 'fs';
+import { IFindResult } from './parser/types';
 
 export class KLS {
   /**
@@ -278,28 +279,59 @@ export class KLS {
    * Respond to completion requests from the client. This handler currently provides
    * both symbol completion as well as suffix completion.
    * @param completion the parameters describing the completion request
+   * @param cancellation request cancellation token
    */
   private async onCompletion(
     completion: CompletionParams,
+    cancellation: CancellationToken,
   ): Promise<Maybe<CompletionItem[]>> {
-    const { context } = completion;
+    const { textDocument, position } = completion;
 
     try {
-      // check if suffix completion
-      if (!empty(context) && !empty(context.triggerCharacter)) {
-        const { triggerCharacter } = context;
-
-        if (triggerCharacter === ':') {
-          return suffixCompletionItems(this, completion);
-        }
+      // exit if cancel requested
+      if (cancellation.isCancellationRequested) {
+        return undefined;
       }
 
-      // complete base symbols
-      return await symbolCompletionItems(
-        this,
-        completion,
-        this.configuration.keywords,
+      // determine if we're inside a suffix of some kind
+      const result = await this.findToken(
+        position,
+        textDocument.uri,
+        Expr.Suffix,
       );
+
+      // exit if cancel requested
+      if (cancellation.isCancellationRequested) {
+        return undefined;
+      }
+
+      // if we're not in a suffix just do symbol completion
+      if (empty(result) || empty(result.node)) {
+        return await symbolCompletionItems(
+          this,
+          completion,
+          this.configuration.keywords,
+        );
+      }
+
+      const { token, node } = result;
+
+      // check what shouldn't happen
+      if (!(node instanceof Expr.Suffix)) {
+        throw new Error('Unable to find suffix');
+      }
+
+      // if we're in the atom also do symbol completion
+      if (rangeContains(node.suffixTerm.atom, token)) {
+        return await symbolCompletionItems(
+          this,
+          completion,
+          this.configuration.keywords,
+        );
+      }
+
+      // if we're not in the atom then we need to complete with suffixes
+      return suffixCompletionItems(this, completion);
 
       // catch any errors
     } catch (err) {
@@ -315,11 +347,6 @@ export class KLS {
    */
   private onCompletionResolve(completionItem: CompletionItem): CompletionItem {
     try {
-      const token = completionItem.data as Maybe<Token>;
-
-      if (!empty(token)) {
-      }
-
       return completionItem;
     } catch (err) {
       logException(this.logger, this.tracer, err, LogLevel.error);
@@ -331,12 +358,20 @@ export class KLS {
    * This handler provider rename capabilities. This allows a client to highlight
    * as symbol and provide a new name that will change for all known symbols
    * @param rename information describing what and where a rename should occur
+   * @param cancellation request cancellation token
    */
   private async onRenameRequest(
     rename: RenameParams,
+    cancellation: CancellationToken,
   ): Promise<Maybe<WorkspaceEdit>> {
     const { newName, position, textDocument } = rename;
     const scanner = new Scanner(newName);
+
+    // exit if cancel requested
+    if (cancellation.isCancellationRequested) {
+      return undefined;
+    }
+
     const { tokens, scanErrors } = scanner.scanTokens();
 
     // check if rename is valid
@@ -348,11 +383,21 @@ export class KLS {
       return undefined;
     }
 
+    // exit if cancel requested
+    if (cancellation.isCancellationRequested) {
+      return undefined;
+    }
+
     const locations = await this.getUsageLocations(position, textDocument.uri);
     if (empty(locations)) {
       return undefined;
     }
     const changes: PropType<WorkspaceEdit, 'changes'> = {};
+
+    // exit if cancel requested
+    if (cancellation.isCancellationRequested) {
+      return undefined;
+    }
 
     for (const location of locations) {
       if (!changes.hasOwnProperty(location.uri)) {
@@ -369,12 +414,19 @@ export class KLS {
    * This handler provides highlight within a requested document. This allows the client
    * to highlight and symbol and other instances of that symbol to also highlight.
    * @param positionParams the position of the highlight request
+   * @param cancellation request cancellation token
    */
   private async onDocumentHighlight(
     positionParams: TextDocumentPositionParams,
+    cancellation: CancellationToken,
   ): Promise<DocumentHighlight[]> {
     const { position } = positionParams;
     const { uri } = positionParams.textDocument;
+
+    // exit if cancel requested
+    if (cancellation.isCancellationRequested) {
+      return [];
+    }
 
     const locations = await this.getFileUsageRanges(position, uri);
     return empty(locations)
@@ -386,17 +438,27 @@ export class KLS {
    * This handler provides on hover capability for symbols in a document. This allows additional
    * information to be displayed to the user about symbols throughout the document
    * @param positionParams the position of the hover request
+   * @param cancellation request cancellation token
    */
-  private async onHover(positionParams: TextDocumentPositionParams) {
+  private async onHover(
+    positionParams: TextDocumentPositionParams,
+    cancellation: CancellationToken,
+  ): Promise<Maybe<Hover>> {
     const { position } = positionParams;
     const { uri } = positionParams.textDocument;
 
-    const token = await this.getToken(position, uri);
-
-    if (empty(token)) {
+    // exit if cancel requested
+    if (cancellation.isCancellationRequested) {
       return undefined;
     }
 
+    const result = await this.findToken(position, uri);
+
+    if (empty(result)) {
+      return undefined;
+    }
+
+    const { token } = result;
     const type = tokenTrackedType(token);
 
     const { tracker } = token;
@@ -435,12 +497,19 @@ export class KLS {
    * This handler provides reference capabilities to symbols in a document. This allows a client
    * to identify all positions that a symbol is used in the document or attached documents
    * @param reference parameters describing the reference request
+   * @param cancellation request cancellation token
    */
   private async onReference(
     reference: ReferenceParams,
+    cancellation: CancellationToken,
   ): Promise<Maybe<Location[]>> {
     const { position } = reference;
     const { uri } = reference.textDocument;
+
+    // exit if cancel requested
+    if (cancellation.isCancellationRequested) {
+      return undefined;
+    }
 
     const locations = await this.getUsageLocations(position, uri);
     return locations && locations.map(loc => cleanLocation(loc));
@@ -450,15 +519,25 @@ export class KLS {
    * This handler provides signature help suffixes and function within the document. This
    * provides extra context to the client such as the current parameter
    * @param positionParams the position of the signature request
+   * @param cancellation request cancellation token
    */
   private async onSignatureHelp(
     positionParams: TextDocumentPositionParams,
-  ): Promise<SignatureHelp> {
+    cancellation: CancellationToken,
+  ): Promise<Maybe<SignatureHelp>> {
     const { position } = positionParams;
     const { uri } = positionParams.textDocument;
 
+    // exit if cancel requested
+    if (cancellation.isCancellationRequested) {
+      return undefined;
+    }
+
     const result = await this.getFunctionAtPosition(position, uri);
-    if (empty(result)) return defaultSignature();
+    if (empty(result)) {
+      return undefined;
+    }
+
     const { tracker, index } = result;
 
     let label =
@@ -472,16 +551,16 @@ export class KLS {
     });
 
     if (empty(type)) {
-      return defaultSignature();
+      return undefined;
     }
 
     switch (type.kind) {
       case TypeKind.function:
       case TypeKind.suffix:
-        const callSignature = type.getCallSignature();
+        const callSignature = type.callSignature();
 
         if (empty(callSignature)) {
-          return defaultSignature();
+          return undefined;
         }
 
         let start = label.length + 1;
@@ -528,7 +607,7 @@ export class KLS {
           activeSignature: null,
         };
       default:
-        return defaultSignature();
+        return undefined;
     }
   }
 
@@ -536,23 +615,40 @@ export class KLS {
    * This handler provides document symbol capabilities. This provides a list of all
    * symbols that are located within a given document
    * @param documentSymbol the document to provide symbols for
+   * @param cancellation request cancellation token
    */
   private async onDocumentSymbol(
     documentSymbol: DocumentSymbolParams,
+    cancellation: CancellationToken,
   ): Promise<Maybe<SymbolInformation[]>> {
-    return await documentSymbols(this, documentSymbol);
+    const { uri } = documentSymbol.textDocument;
+
+    // exit if cancel requested
+    if (cancellation.isCancellationRequested) {
+      return undefined;
+    }
+
+    const entities = await this.getAllFileSymbols(uri);
+    return toLangServerSymbols(entities, uri);
   }
 
   /**
    * This handler provides go to definition capabilities. When a client requests a symbol
    * go to definition this provides the location if it exists
    * @param positionParams the position of the definition request
+   * @param cancellation request cancellation token
    */
   private async onDefinition(
     positionParams: TextDocumentPositionParams,
+    cancellation: CancellationToken,
   ): Promise<Maybe<Location>> {
     const { position } = positionParams;
     const { uri } = positionParams.textDocument;
+
+    // exit if cancel requested
+    if (cancellation.isCancellationRequested) {
+      return undefined;
+    }
 
     const location = await this.getDeclarationLocation(position, uri);
     return location && cleanLocation(location);
@@ -565,12 +661,20 @@ export class KLS {
    */
   private async onFoldingRange(
     foldingParams: FoldingRangeParams,
-  ): Promise<FoldingRange[]> {
+    cancellation: CancellationToken,
+  ): Promise<Maybe<FoldingRange[]>> {
     const { uri } = foldingParams.textDocument;
+
+    // exit if cancel requested
+    if (cancellation.isCancellationRequested) {
+      return undefined;
+    }
+
     const documentInfo = await this.analysisService.getInfo(uri);
 
-    if (empty(documentInfo)) {
-      return [];
+    // exit if cancel requested or no document found
+    if (cancellation.isCancellationRequested || empty(documentInfo)) {
+      return undefined;
     }
 
     const { script, regions } = documentInfo;
@@ -678,7 +782,11 @@ export class KLS {
    * @param pos position in the text document
    * @param uri uri of the text document
    */
-  public async getToken(pos: Position, uri: string): Promise<Maybe<Token>> {
+  public async findToken(
+    pos: Position,
+    uri: string,
+    ...contexts: AstContext[]
+  ): Promise<Maybe<IFindResult>> {
     const documentInfo = await this.analysisService.getInfo(uri);
     if (empty(documentInfo)) {
       return undefined;
@@ -687,9 +795,7 @@ export class KLS {
     // try to find an symbol at the position
     const { script } = documentInfo;
     const finder = new ScriptFind();
-    const result = finder.find(script, pos);
-
-    return result && result.token;
+    return finder.find(script, pos, ...contexts);
   }
 
   /**

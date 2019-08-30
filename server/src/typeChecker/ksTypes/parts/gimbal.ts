@@ -3,7 +3,7 @@ import {
   createSuffixType,
   createSetSuffixType,
   noMap,
-} from '../../typeCreators';
+} from '../../utilities/typeCreators';
 import { booleanType } from '../primitives/boolean';
 import { partModuleType } from './partModule';
 import { scalarType } from '../primitives/scalar';

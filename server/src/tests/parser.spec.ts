@@ -558,14 +558,14 @@ describe('Parse expressions', () => {
         if (
           expression.trueArm.expr.prototype instanceof SuffixTerm.SuffixTermBase
         ) {
-          testSuffixTerm(value.trueBranch, atom => {
+          testSuffixTerm(value.trueExpr, atom => {
             expect(atom instanceof expression.trueArm.expr).toBe(true);
             if (atom instanceof SuffixTerm.Literal) {
               expect(expression.trueArm.literal).toBe(atom.token.literal);
             }
           });
         } else {
-          expect(value.trueBranch instanceof expression.trueArm.expr).toBe(
+          expect(value.trueExpr instanceof expression.trueArm.expr).toBe(
             true,
           );
         }
@@ -590,14 +590,14 @@ describe('Parse expressions', () => {
           expression.falseArm.expr.prototype instanceof
           SuffixTerm.SuffixTermBase
         ) {
-          testSuffixTerm(value.falseBranch, atom => {
+          testSuffixTerm(value.falseExpr, atom => {
             expect(atom instanceof expression.falseArm.expr).toBe(true);
             if (atom instanceof SuffixTerm.Literal) {
               expect(expression.falseArm.literal).toBe(atom.token.literal);
             }
           });
         } else {
-          expect(value.falseBranch instanceof expression.falseArm.expr).toBe(
+          expect(value.falseExpr instanceof expression.falseArm.expr).toBe(
             true,
           );
         }

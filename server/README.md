@@ -22,11 +22,12 @@ the server can then be started by
 
 
 ## Features
-Currently the kos-language-server 0.10.0 implements the follow features
+Currently the kos-language-server 0.10.1 implements the follow features
 - Code completion
     - Built in symbols and keywords
     - local in scope symbols
     - suffixes where the type can be resolved
+    - can be manually triggered
 - Document Symbols for quick navigation to properties in the document.
 - Diagnostics (Validation) are pushed for all open documents
   - syntax errors
@@ -41,7 +42,10 @@ Currently the kos-language-server 0.10.0 implements the follow features
 - Go to definition for symbols and run statements. Currently for clashing globals the first found will be shown
 - Refactoring
   - Rename symbol
-- On hover with type inference support
+- Type Checking
+  - prototype type checker
+  - can in certain scenarios correctly identify the types of symbols and expressions
+- On hover symbol information with type info
 - Signature help for functions that can be correctly resolved
 - Caching of all documents in the workspace
 - Foldable regions using `\\#region` and `\\#endregion`

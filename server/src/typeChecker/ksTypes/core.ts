@@ -3,7 +3,7 @@ import {
   createArgSuffixType,
   createSuffixType,
   noMap,
-} from '../typeCreators';
+} from '../utilities/typeCreators';
 import { kosProcessorFieldsType } from './kosProcessorFields';
 import { volumeType } from './io/volume';
 import { versionInfoType } from './versionInfo';

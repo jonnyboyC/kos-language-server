@@ -3,7 +3,7 @@ import {
   createSuffixType,
   createSetSuffixType,
   noMap,
-} from '../typeCreators';
+} from '../utilities/typeCreators';
 import { structureType } from './primitives/structure';
 import { vectorType } from './collections/vector';
 import { orbitInfoType } from './orbitInfo';

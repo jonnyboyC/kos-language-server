@@ -5,8 +5,9 @@ import {
   createSuffixType,
   createSetSuffixType,
   noMap,
-} from '../../typeCreators';
-import { voidType } from '../primitives/void';
+  createUnion,
+} from '../../utilities/typeCreators';
+import { noneType } from '../primitives/none';
 import { stringType } from '../primitives/string';
 import { booleanType } from '../primitives/boolean';
 import { scalarType } from '../primitives/scalar';
@@ -19,6 +20,8 @@ import { partModuleType } from './partModule';
 import { OperatorKind } from '../../types';
 import { boundsType } from './bounds';
 import { Operator } from '../../types/operator';
+import { scienceExperimentType } from './scienceExperimentModule';
+import { scienceDataType } from '../scienceData';
 
 let set = false;
 
@@ -33,7 +36,7 @@ export const partInitializer = () => {
   partType.addSuper(noMap(structureType));
 
   partType.addSuffixes(
-    noMap(createArgSuffixType('controlFrom', voidType)),
+    noMap(createArgSuffixType('controlFrom', noneType)),
     noMap(createSuffixType('name', stringType)),
     noMap(createSuffixType('fuelCrossFeed', booleanType)),
     noMap(createSuffixType('title', stringType)),
@@ -53,9 +56,13 @@ export const partInitializer = () => {
     noMap(createArgSuffixType('getModulesByIndex', partModuleType, scalarType)),
     noMap(createSuffixType('modules', listType.apply(stringType))),
     noMap(createSuffixType('allModules', listType.apply(stringType))),
-    noMap(createSuffixType('parent', structureType)), // TODO part | string
-    noMap(createSuffixType('decoupler', structureType)), // TODO part | string
-    noMap(createSuffixType('separator', structureType)), // TODO part | string
+    noMap(createSuffixType('parent', createUnion(false, partType, stringType))),
+    noMap(
+      createSuffixType('decoupler', createUnion(false, partType, stringType)),
+    ),
+    noMap(
+      createSuffixType('separator', createUnion(false, partType, stringType)),
+    ),
     noMap(createSuffixType('decoupledIn', scalarType)),
     noMap(createSuffixType('separatedIn', scalarType)),
     noMap(createSuffixType('hasParent', booleanType)),
@@ -88,8 +95,24 @@ export const partInitializer = () => {
     noMap(createSuffixType('allActionNames', listType.apply(stringType))),
     noMap(createArgSuffixType('hasAction', booleanType, stringType)),
     noMap(createArgSuffixType('getField', structureType, stringType)),
-    noMap(createArgSuffixType('setField', voidType, structureType, stringType)),
-    noMap(createArgSuffixType('doEvent', voidType, stringType)),
-    noMap(createArgSuffixType('doAction', voidType, stringType, booleanType)),
+    noMap(createArgSuffixType('setField', noneType, structureType, stringType)),
+    noMap(createArgSuffixType('doEvent', noneType, stringType)),
+    noMap(createArgSuffixType('doAction', noneType, stringType, booleanType)),
+  );
+
+  // -------------------- scienceExperimentModule ---------------------------
+
+  scienceExperimentType.addSuper(noMap(partModuleType));
+
+  scienceExperimentType.addSuffixes(
+    noMap(createArgSuffixType('deploy', noneType)),
+    noMap(createArgSuffixType('reset', noneType)),
+    noMap(createArgSuffixType('transmit', noneType)),
+    noMap(createArgSuffixType('dump', noneType)),
+    noMap(createSuffixType('inoperable', booleanType)),
+    noMap(createSuffixType('deployed', booleanType)),
+    noMap(createSuffixType('reRunnable', booleanType)),
+    noMap(createSuffixType('hasData', booleanType)),
+    noMap(createSuffixType('data', listType.apply(scienceDataType))),
   );
 };
