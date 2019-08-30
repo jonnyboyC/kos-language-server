@@ -69,7 +69,7 @@ export interface IStmt extends IStmtVisitable, IStmtPassable, RangeSequence {
   tag: SyntaxKind.stmt;
 }
 
-export interface IExpr extends IExprVisitable, IExprPassable, RangeSequence {
+export interface IExpr extends IExprVisitable, RangeSequence {
   toLocation(uri: string): Location;
   toLines(): string[];
   toString(): string;
@@ -77,8 +77,7 @@ export interface IExpr extends IExprVisitable, IExprPassable, RangeSequence {
 }
 
 export interface ISuffixTerm
-  extends ISuffixTermPassable,
-    ISuffixTermVisitable,
+  extends ISuffixTermVisitable,
     ISuffixTermParamVisitable,
     RangeSequence {
   toLocation(uri: string): Location;
@@ -226,20 +225,6 @@ export interface IExprVisitor<T> {
   visitLambda(expr: Expr.Lambda): T;
 }
 
-export interface IExprPassable {
-  pass<T>(visitor: IExprPasser<T>): T;
-}
-
-export interface IExprPasser<T> {
-  passExprInvalid(expr: Expr.Invalid): T;
-  passTernary(expr: Expr.Ternary): T;
-  passBinary(expr: Expr.Binary): T;
-  passUnary(expr: Expr.Unary): T;
-  passFactor(expr: Expr.Factor): T;
-  passSuffix(expr: Expr.Suffix): T;
-  passAnonymousFunction(expr: Expr.Lambda): T;
-}
-
 export interface ISuffixTermVisitable {
   accept<T>(visitor: ISuffixTermVisitor<T>): T;
 }
@@ -255,23 +240,6 @@ export interface ISuffixTermVisitor<T> {
   visitLiteral(suffixTerm: SuffixTerm.Literal): T;
   visitIdentifier(suffixTerm: SuffixTerm.Identifier): T;
   visitGrouping(suffixTerm: SuffixTerm.Grouping): T;
-}
-
-export interface ISuffixTermPassable {
-  pass<T>(visitor: ISuffixTermPasser<T>): T;
-}
-
-export interface ISuffixTermPasser<T> {
-  passSuffixTermInvalid(suffixTerm: SuffixTerm.Invalid): T;
-  passSuffixTrailer(suffixTerm: SuffixTerm.SuffixTrailer): T;
-  passSuffixTerm(suffixTerm: SuffixTerm.SuffixTerm): T;
-  passCall(suffixTerm: SuffixTerm.Call): T;
-  passArrayIndex(suffixTerm: SuffixTerm.ArrayIndex): T;
-  passArrayBracket(suffixTerm: SuffixTerm.ArrayBracket): T;
-  passDelegate(suffixTerm: SuffixTerm.Delegate): T;
-  passLiteral(suffixTerm: SuffixTerm.Literal): T;
-  passIdentifier(suffixTerm: SuffixTerm.Identifier): T;
-  passGrouping(suffixTerm: SuffixTerm.Grouping): T;
 }
 
 export interface ISuffixTermParamVisitable {
