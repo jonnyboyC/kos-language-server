@@ -3,9 +3,9 @@ import {
   createArgSuffixType,
   createSetSuffixType,
   noMap,
-} from '../typeCreators';
+} from '../utilities/typeCreators';
 import { structureType } from './primitives/structure';
-import { voidType } from './primitives/void';
+import { noneType } from './primitives/none';
 import { scalarType } from './primitives/scalar';
 import { stringType } from './primitives/string';
 import { booleanType } from './primitives/boolean';
@@ -20,8 +20,8 @@ voiceType.addSuffixes(
   noMap(createSetSuffixType('release', scalarType)),
   noMap(createSetSuffixType('volume', scalarType)),
   noMap(createSetSuffixType('wave', stringType)),
-  noMap(createArgSuffixType('play', voidType, structureType)),
-  noMap(createArgSuffixType('stop', voidType)),
+  noMap(createArgSuffixType('play', noneType, structureType)),
+  noMap(createArgSuffixType('stop', noneType)),
   noMap(createSetSuffixType('loop', booleanType)),
   noMap(createSetSuffixType('isPlaying', booleanType)),
   noMap(createSetSuffixType('tempo', scalarType)),

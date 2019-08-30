@@ -444,8 +444,8 @@ export class PreResolver
   public visitTernary(expr: Expr.Ternary): Diagnostic[] {
     const errors = this.resolveExpr(expr.condition);
     errors.push(
-      ...this.resolveExpr(expr.trueBranch),
-      ...this.resolveExpr(expr.falseBranch),
+      ...this.resolveExpr(expr.trueExpr),
+      ...this.resolveExpr(expr.falseExpr),
     );
 
     return errors;

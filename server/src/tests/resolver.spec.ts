@@ -159,20 +159,17 @@ describe('Resolver tracking', () => {
     expect(names.has('x')).toBe(true);
     expect(names.has('y')).toBe(true);
 
-    const xWrap = names.get('x');
-    const yWrap = names.get('y');
+    const x = names.get('x');
+    const y = names.get('y');
 
-    expect(empty(xWrap)).toBe(false);
-    expect(empty(yWrap)).toBe(false);
+    expect(x).toBeDefined();
+    expect(y).toBeDefined();
 
-    const x = unWrap(xWrap);
-    const y = unWrap(yWrap);
+    expect(x!.name.lexeme).toBe('x');
+    expect(y!.name.lexeme).toBe('y');
 
-    expect(x.name.lexeme).toBe('x');
-    expect(y.name.lexeme).toBe('y');
-
-    expect(x.tag).toBe(KsSymbolKind.variable);
-    expect(y.tag).toBe(KsSymbolKind.variable);
+    expect(x!.tag).toBe(KsSymbolKind.variable);
+    expect(y!.tag).toBe(KsSymbolKind.variable);
   });
 
   // test basic identifier

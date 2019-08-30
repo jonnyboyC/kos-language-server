@@ -1,5 +1,5 @@
 import { structureType } from '../primitives/structure';
-import { createSetSuffixType, createType, noMap } from '../../typeCreators';
+import { createSetSuffixType, createType, noMap } from '../../utilities/typeCreators';
 import { rgbaType } from '../rgba';
 import { stringType } from '../primitives/string';
 

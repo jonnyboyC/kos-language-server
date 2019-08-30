@@ -3,7 +3,7 @@ import {
   createArgSuffixType,
   createSetSuffixType,
   noMap,
-} from '../typeCreators';
+} from '../utilities/typeCreators';
 import { scalarType } from './primitives/scalar';
 import { serializableType } from './primitives/serializeableStructure';
 

@@ -36,13 +36,23 @@ export abstract class Stmt extends NodeBase implements IStmt {
 
   /**
    * All statement implement the accept method
-   * Called whent he node should execute the visitors methods
+   * Called when he node should execute the visitors methods
    * @param visitor visitor object
    */
   public abstract accept<T>(visitor: IStmtVisitor<T>): T;
 }
 
+/**
+ * Represents a malformed statement in kerboscript
+ */
 export class Invalid extends Stmt {
+
+  /**
+   * Construct a new invalid statement
+   * @param pos Provides the start position of this statement
+   * @param tokens tokens involved in this invalid statement
+   * @param partial any partial node that was recovered
+   */
   constructor(
     public readonly pos: Position,
     public readonly tokens: Token[],
@@ -51,22 +61,34 @@ export class Invalid extends Stmt {
     super();
   }
 
+  /**
+   * Convert this invalid statement into a set of line
+   */
   public toLines(): string[] {
     return [this.tokens.map(t => t.lexeme).join(' ')];
   }
 
+  /**
+   * What is the start position of this statement
+   */
   public get start(): Position {
     return this.tokens.length > 0
       ? this.tokens[0].start
       : this.pos;
   }
 
+  /**
+   * What is the end position of this statement
+   */
   public get end(): Position {
     return this.tokens.length > 0
       ? this.tokens[this.tokens.length - 1].end
       : this.pos;
   }
 
+  /**
+   * What are the ranges of this statement
+   */
   public get ranges(): Range[] {
     if (empty(this.partial)) {
       return this.tokens;

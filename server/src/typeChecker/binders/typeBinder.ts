@@ -8,7 +8,7 @@ import {
 } from '../types';
 import { empty } from '../../utilities/typeGuards';
 import { Operator } from '../types/operator';
-import { noMap } from '../typeCreators';
+import { noMap } from '../utilities/typeCreators';
 import { ParametricType } from '../parametricTypes/parametricType';
 import { Type } from '../types/type';
 import { Binder } from './binder';
@@ -114,13 +114,13 @@ export class TypeBinder extends Binder<Type> {
 
     // convert coercions
     newType.addCoercion(
-      ...Array.from(type.getCoercions()).map(c =>
+      ...Array.from(type.coercions()).map(c =>
         this.applyToType(c, typeArguments),
       ),
     );
 
     // convert operators
-    for (const [kind, operators] of type.getOperators()) {
+    for (const [kind, operators] of type.operators()) {
       for (const operator of operators) {
         const returnType = this.applyToType(operator.returnType, typeArguments);
 

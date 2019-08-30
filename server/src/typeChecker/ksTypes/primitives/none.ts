@@ -1,8 +1,8 @@
 import { TypeKind } from '../../types';
 import { Type } from '../../types/type';
 
-export const voidType = new Type(
-  'void',
+export const noneType = new Type(
+  'none',
   { get: false, set: false },
   new Map(),
   TypeKind.basic,

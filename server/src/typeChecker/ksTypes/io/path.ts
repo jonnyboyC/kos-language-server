@@ -5,7 +5,7 @@ import {
   createVarSuffixType,
   createVarType,
   noMap,
-} from '../../typeCreators';
+} from '../../utilities/typeCreators';
 import { structureType } from '../primitives/structure';
 import { volumeType } from './volume';
 import { integerType } from '../primitives/scalar';
@@ -28,7 +28,7 @@ pathType.addSuffixes(
   noMap(createSuffixType('extension', stringType)),
   noMap(createSuffixType('root', pathType)),
   noMap(createSuffixType('parent', pathType)),
-  noMap(createArgSuffixType('isParent', pathType, booleanType)),
+  noMap(createArgSuffixType('isParent', booleanType, pathType)),
   noMap(createArgSuffixType('changeName', pathType, stringType)),
   noMap(createArgSuffixType('changeExtension', pathType, stringType)),
   noMap(createVarSuffixType('combine', pathType, createVarType(structureType))),

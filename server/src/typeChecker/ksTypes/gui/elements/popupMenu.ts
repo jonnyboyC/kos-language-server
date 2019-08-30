@@ -3,11 +3,11 @@ import {
   createSetSuffixType,
   createArgSuffixType,
   noMap,
-} from '../../../typeCreators';
+} from '../../../utilities/typeCreators';
 import { userDelegateType } from '../../userDelegate';
 import { buttonType } from './button';
 import { structureType } from '../../primitives/structure';
-import { voidType } from '../../primitives/void';
+import { noneType } from '../../primitives/none';
 import { userListType } from '../../collections/userList';
 import { integerType } from '../../primitives/scalar';
 import { booleanType } from '../../primitives/boolean';
@@ -18,10 +18,10 @@ popupMenuType.addSuper(noMap(buttonType));
 
 popupMenuType.addSuffixes(
   noMap(createSetSuffixType('option', userListType)),
-  noMap(createArgSuffixType('addOption', voidType, structureType)),
+  noMap(createArgSuffixType('addOption', noneType, structureType)),
   noMap(createSetSuffixType('value', structureType)),
   noMap(createSetSuffixType('index', integerType)),
-  noMap(createArgSuffixType('clear', voidType)),
+  noMap(createArgSuffixType('clear', noneType)),
   noMap(createSetSuffixType('changed', booleanType)),
   noMap(createSetSuffixType('maxVisible', integerType)),
   noMap(createSetSuffixType('onChange', userDelegateType)),

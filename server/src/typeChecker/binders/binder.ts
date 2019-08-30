@@ -1,6 +1,6 @@
 import { IParametricType, IType, ITypeMappable } from '../types';
 import { empty } from '../../utilities/typeGuards';
-import { createTypeParameter } from '../typeCreators';
+import { createTypeParameter } from '../utilities/typeCreators';
 
 /**
  * A class that's responsible for binding type arguments to type

@@ -40,7 +40,7 @@ export class ParametricType implements IParametricType {
   /**
    * What is the call signature of this type
    */
-  protected callSignature?: TypeMap<IParametricCallSignature>;
+  protected typeCallSignature?: TypeMap<IParametricCallSignature>;
 
   /**
    * What is the super type of this type
@@ -50,17 +50,17 @@ export class ParametricType implements IParametricType {
   /**
    * What is the indexer of this type
    */
-  protected indexer?: TypeMap<IParametricIndexer>;
+  protected indexSignature?: TypeMap<IParametricIndexer>;
 
   /**
    * What are the suffixes of this type
    */
-  protected suffixes: Map<string, TypeMap<IParametricType>>;
+  protected suffixMap: Map<string, TypeMap<IParametricType>>;
 
   /**
    * What are the operators of this type
    */
-  protected operators: Map<OperatorKind, Operator<IParametricType>[]>;
+  protected operatorMap: Map<OperatorKind, Operator<IParametricType>[]>;
 
   /**
    * The type binder
@@ -92,10 +92,10 @@ export class ParametricType implements IParametricType {
     this.binder = new TypeBinder(typeParameters);
 
     this.superType = undefined;
-    this.indexer = undefined;
-    this.suffixes = new Map();
+    this.indexSignature = undefined;
+    this.suffixMap = new Map();
     this.coercibleTypes = new Set();
-    this.operators = new Map();
+    this.operatorMap = new Map();
   }
 
   /**
@@ -104,7 +104,7 @@ export class ParametricType implements IParametricType {
    */
   public addCallSignature(callSignature: TypeMap<IParametricCallSignature>) {
     this.checkMapping(callSignature);
-    this.callSignature = callSignature;
+    this.typeCallSignature = callSignature;
   }
 
   /**
@@ -122,12 +122,12 @@ export class ParametricType implements IParametricType {
   }
 
   public addIndexer(indexer: TypeMap<IParametricIndexer>): void {
-    if (!empty(this.indexer)) {
+    if (!empty(this.indexSignature)) {
       throw new Error(`Indexer for ${this.name} has already been set.`);
     }
 
     this.checkMapping(indexer);
-    this.indexer = indexer;
+    this.indexSignature = indexer;
   }
 
   /**
@@ -189,7 +189,7 @@ export class ParametricType implements IParametricType {
    */
   public addSuffixes(...suffixes: TypeMap<IParametricType>[]): void {
     for (const suffix of suffixes) {
-      if (this.suffixes.has(suffix.type.name)) {
+      if (this.suffixMap.has(suffix.type.name)) {
         throw new Error(
           `Duplicate suffix of ${suffix.type.name} added to ${this.name}`,
         );
@@ -198,7 +198,7 @@ export class ParametricType implements IParametricType {
       // check mapping
       this.checkMapping(suffix);
 
-      this.suffixes.set(suffix.type.name, suffix);
+      this.suffixMap.set(suffix.type.name, suffix);
     }
   }
 
@@ -208,11 +208,11 @@ export class ParametricType implements IParametricType {
    */
   public addOperators(...operators: Operator<IParametricType>[]): void {
     for (const operator of operators) {
-      if (!this.operators.has(operator.operator)) {
-        this.operators.set(operator.operator, []);
+      if (!this.operatorMap.has(operator.operator)) {
+        this.operatorMap.set(operator.operator, []);
       }
 
-      const operatorsKind = this.operators.get(operator.operator);
+      const operatorsKind = this.operatorMap.get(operator.operator);
 
       // should never happen
       if (empty(operatorsKind)) {
@@ -308,42 +308,49 @@ export class ParametricType implements IParametricType {
   /**
    * Get the super type of this type
    */
-  public getSuperType(): IParametricType | undefined {
+  public super(): IParametricType | undefined {
     return this.superType && this.superType.type;
+  }
+
+  /**
+   * Get the sub types of this type
+   */
+  public subTypes(): IType[] {
+    return [];
   }
 
   /**
    * Get the call signature of this type
    */
-  public getCallSignature(): Maybe<IParametricCallSignature> {
-    return this.callSignature && this.callSignature.type;
+  public callSignature(): Maybe<IParametricCallSignature> {
+    return this.typeCallSignature && this.typeCallSignature.type;
   }
 
   /**
    * Get the indexer of this type
    */
-  public getIndexer(): Maybe<IParametricIndexer> {
-    return this.indexer && this.indexer.type;
+  public indexer(): Maybe<IParametricIndexer> {
+    return this.indexSignature && this.indexSignature.type;
   }
 
   /**
    * Get the coercions of this type
    */
-  public getCoercions(): Set<IParametricType> {
+  public coercions(): Set<IParametricType> {
     return this.coercibleTypes;
   }
 
   /**
    * Get the suffixes of this type
    */
-  public getSuffixes(): Map<string, IParametricType> {
+  public suffixes(): Map<string, IParametricType> {
     const suffixes = new Map<string, IParametricType>();
-    for (const [name, typeMap] of this.suffixes) {
+    for (const [name, typeMap] of this.suffixMap) {
       suffixes.set(name, typeMap.type);
     }
 
     if (!empty(this.superType)) {
-      for (const [name, value] of this.superType.type.getSuffixes()) {
+      for (const [name, value] of this.superType.type.suffixes()) {
         suffixes.set(name, value);
       }
     }
@@ -360,7 +367,7 @@ export class ParametricType implements IParametricType {
     kind: OperatorKind,
     other?: IParametricType,
   ): Maybe<Operator<IParametricType>> {
-    const operators = this.operators.get(kind);
+    const operators = this.operatorMap.get(kind);
 
     if (empty(operators)) {
       return operators;
@@ -383,8 +390,8 @@ export class ParametricType implements IParametricType {
   /**
    * Get all operators
    */
-  public getOperators(): Map<OperatorKind, Operator<IParametricType>[]> {
-    return this.operators;
+  public operators(): Map<OperatorKind, Operator<IParametricType>[]> {
+    return this.operatorMap;
   }
 
   /**
@@ -398,11 +405,20 @@ export class ParametricType implements IParametricType {
         ? `<${typeParameters.map(t => t.toString()).join(', ')}>`
         : '';
 
-    if (empty(this.callSignature)) {
+    // no call signature just return type name
+    if (empty(this.typeCallSignature)) {
       return `${this.name}${typeParameterStr}`;
     }
 
-    return `${typeParameterStr}${this.callSignature.type.toString()}`;
+    // if it's gettable or settable then show return type
+    if (this.access.get || this.access.set) {
+      return `${typeParameterStr}${this.typeCallSignature.type
+        .returns()
+        .toString()}`;
+    }
+
+    // else full call signature
+    return `${typeParameterStr}${this.typeCallSignature.type.toString()}`;
   }
 
   public apply(typeArguments: Map<IParametricType, IType> | IType): IType {
@@ -410,10 +426,10 @@ export class ParametricType implements IParametricType {
       return this.binder.apply(
         this,
         typeArguments,
-        this.suffixes,
-        this.callSignature,
+        this.suffixMap,
+        this.typeCallSignature,
         this.superType,
-        this.indexer,
+        this.indexSignature,
       );
     }
 
@@ -426,10 +442,10 @@ export class ParametricType implements IParametricType {
     return this.binder.apply(
       this,
       new Map([[typeParameters[0], typeArguments]]),
-      this.suffixes,
-      this.callSignature,
+      this.suffixMap,
+      this.typeCallSignature,
       this.superType,
-      this.indexer,
+      this.indexSignature,
     );
   }
 }

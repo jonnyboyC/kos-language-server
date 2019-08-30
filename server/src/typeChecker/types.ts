@@ -43,6 +43,8 @@ export const enum TypeKind {
   variadic,
   suffix,
   indexer,
+  delegate,
+  grouping,
   function,
   typeSlot,
 }
@@ -188,27 +190,32 @@ export interface IParametricType extends ITypeMappable<IType> {
   /**
    * Get the super type of this type
    */
-  getSuperType(): Maybe<IParametricType>;
+  super(): Maybe<IParametricType>;
+
+  /**
+   * Sub types of this type
+   */
+  subTypes(): IParametricType[];
 
   /**
    * Get the coercions of this type
    */
-  getCoercions(): Set<IParametricType>;
+  coercions(): Set<IParametricType>;
 
   /**
    * Get the call signature of this type
    */
-  getCallSignature(): Maybe<IParametricCallSignature>;
+  callSignature(): Maybe<IParametricCallSignature>;
 
   /**
    * Get the indexer for this type
    */
-  getIndexer(): Maybe<IParametricIndexer>;
+  indexer(): Maybe<IParametricIndexer>;
 
   /**
    * Get the suffixes for this type
    */
-  getSuffixes(): Map<string, IParametricType>;
+  suffixes(): Map<string, IParametricType>;
 
   /**
    * Get an operator of a specific kind for another type
@@ -223,7 +230,7 @@ export interface IParametricType extends ITypeMappable<IType> {
   /**
    * Get the operators associated with this type
    */
-  getOperators(): Map<OperatorKind, Operator<IParametricType>[]>;
+  operators(): Map<OperatorKind, Operator<IParametricType>[]>;
 
   /**
    * Apply type arguments to this parametric type to generate a new type
@@ -247,32 +254,37 @@ export interface IType extends IParametricType {
   /**
    * Get the assignment type of this type
    */
-  getAssignmentType(): IType;
+  assignmentType(): IType;
 
   /**
    * Get the super type of this type
    */
-  getSuperType(): Maybe<IType>;
+  super(): Maybe<IType>;
+
+  /**
+   * Sub types of this type
+   */
+  subTypes(): IType[];
 
   /**
    * Get the tracker for this type
    */
-  getTracker(): TypeTracker;
+  tracker(): TypeTracker;
 
   /**
    * Get the call signature of this type
    */
-  getCallSignature(): Maybe<ICallSignature>;
+  callSignature(): Maybe<ICallSignature>;
 
   /**
    * Get the indexer for this type
    */
-  getIndexer(): Maybe<IIndexer>;
+  indexer(): Maybe<IIndexer>;
 
   /**
    * Get the suffixes for this type
    */
-  getSuffixes(): Map<string, IType>;
+  suffixes(): Map<string, IType>;
 
   /**
    * Get an operator of a specific kind for another type
@@ -284,7 +296,7 @@ export interface IType extends IParametricType {
   /**
    * Get the operators associated with this type
    */
-  getOperators(): Map<OperatorKind, Operator<IType>[]>;
+  operators(): Map<OperatorKind, Operator<IType>[]>;
 }
 
 /**

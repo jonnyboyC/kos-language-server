@@ -4,13 +4,13 @@ import {
   noMap,
   mapTypes,
   createParametricArgSuffixType,
-} from '../../typeCreators';
+} from '../../utilities/typeCreators';
 import { enumeratorType } from './enumerator';
 import { iterator } from '../../../utilities/constants';
 import { integerType } from '../primitives/scalar';
 import { booleanType } from '../primitives/boolean';
 import { stringType } from '../primitives/string';
-import { voidType } from '../primitives/void';
+import { noneType } from '../primitives/none';
 import { serializableType } from '../primitives/serializeableStructure';
 
 export const enumerableType = createParametricType('enumerable', ['T']);
@@ -45,4 +45,4 @@ enumerableType.addSuffixes(
 export const collectionType = createParametricType('collection', ['T']);
 collectionType.addSuper(mapTypes(collectionType, enumerableType));
 
-collectionType.addSuffixes(noMap(createArgSuffixType('clear', voidType)));
+collectionType.addSuffixes(noMap(createArgSuffixType('clear', noneType)));

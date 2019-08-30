@@ -13,7 +13,7 @@ The project currently has client support for [Visual Studio Code](https://code.v
 
 ## Features
 
-Currently the vscode client 0.9.1 implements the follow features
+Currently the vscode client 0.10.1 implements the follow features
 - syntax highlighting
 - brace detection
 - code snippets
@@ -21,6 +21,7 @@ Currently the vscode client 0.9.1 implements the follow features
 - go to definition and symbols and run statements
 - symbol auto complete
 - suffix auto complete
+- manual completion triggering
 - rename symbol
 - function signature help
 - file symbol lookup
@@ -30,6 +31,7 @@ Currently the vscode client 0.9.1 implements the follow features
 - identify symbols that may not exist at runtime
 - on hover type definitions (experimental)
 - foldable regions with `\\ #region` and `\\ #endregion`
+- documentation searching
 
 
 ## Commands
@@ -38,6 +40,7 @@ All commands can be launched with `ctrl+shift+p`
 - launch telnet client using `kOS: Connect Telnet Client`
 - Route server logging to LSP inspector `kOS: Route Logging to LSP inspector`
 - Route server logging to Vscode `kOS: Route Logging to Vscode`
+- Search kOS Documentation `kOS: Search Documentation`
 
 ## Settings
 These settings are currently included with the tool

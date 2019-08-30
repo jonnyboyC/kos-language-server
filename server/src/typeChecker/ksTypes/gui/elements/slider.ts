@@ -2,7 +2,7 @@ import {
   createType,
   createSetSuffixType,
   noMap,
-} from '../../../typeCreators';
+} from '../../../utilities/typeCreators';
 import { userDelegateType } from '../../userDelegate';
 import { widgetType } from '../widget';
 import { scalarType } from '../../primitives/scalar';

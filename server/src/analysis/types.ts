@@ -10,6 +10,7 @@ import { KsSuffix } from '../entities/suffix';
 import { Environment } from './environment';
 import { TypeTracker } from './typeTracker';
 import { IType } from '../typeChecker/types';
+import { KsGrouping } from '../entities/grouping';
 
 /**
  * The result of a function scan
@@ -156,7 +157,7 @@ export interface ISetResolverResult {
   readonly used: Token[];
 }
 
-export type KsSymbol = KsBaseSymbol | KsSuffix;
+export type KsSymbol = KsBaseSymbol | KsSuffix | KsGrouping;
 export type KsBaseSymbol = KsVariable | KsFunction | KsLock | KsParameter;
 
 export enum KsSymbolKind {
@@ -165,6 +166,7 @@ export enum KsSymbolKind {
   lock,
   parameter,
   suffix,
+  grouping,
 }
 
 /**

@@ -4,7 +4,7 @@ import {
   createSetSuffixType,
   createSuffixType,
   noMap,
-} from '../../typeCreators';
+} from '../../utilities/typeCreators';
 import { scalarType } from '../primitives/scalar';
 import { Operator } from '../../types/operator';
 import { OperatorKind } from '../../types';
@@ -49,7 +49,7 @@ export const collectionInitializer = () => {
     noMap(createSuffixType('pitch', scalarType)),
     noMap(createSuffixType('yaw', scalarType)),
     noMap(createSuffixType('roll', scalarType)),
-    noMap(createSuffixType('forVector', vectorType)),
+    noMap(createSuffixType('foreVector', vectorType)),
     noMap(createSuffixType('vector', vectorType)),
     noMap(createSuffixType('topVector', vectorType)),
     noMap(createSuffixType('upVector', vectorType)),
@@ -59,11 +59,26 @@ export const collectionInitializer = () => {
   );
 
   directionType.addOperators(
-    new Operator(directionType, OperatorKind.multiply, directionType, directionType),
+    new Operator(
+      directionType,
+      OperatorKind.multiply,
+      directionType,
+      directionType,
+    ),
     new Operator(directionType, OperatorKind.multiply, vectorType, vectorType),
-    new Operator(directionType, OperatorKind.plus, directionType, directionType),
+    new Operator(
+      directionType,
+      OperatorKind.plus,
+      directionType,
+      directionType,
+    ),
     new Operator(directionType, OperatorKind.plus, vectorType, vectorType),
-    new Operator(directionType, OperatorKind.subtract, directionType, directionType),
+    new Operator(
+      directionType,
+      OperatorKind.subtract,
+      directionType,
+      directionType,
+    ),
     new Operator(directionType, OperatorKind.equal, vectorType, vectorType),
     new Operator(directionType, OperatorKind.notEqual, vectorType, vectorType),
     new Operator(directionType, OperatorKind.negate, directionType),

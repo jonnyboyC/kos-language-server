@@ -4,9 +4,9 @@ import {
   createParametricArgSuffixType,
   noMap,
   mapTypes,
-  createIndexer,
-} from '../../typeCreators';
-import { voidType } from '../primitives/void';
+  createParametricIndexer,
+} from '../../utilities/typeCreators';
+import { noneType } from '../primitives/none';
 import { scalarType, integerType } from '../primitives/scalar';
 import { collectionType } from './enumerable';
 import { stringType } from '../primitives/string';
@@ -14,14 +14,14 @@ import { stringType } from '../primitives/string';
 export const listType = createParametricType('list', ['T']);
 listType.addSuper(mapTypes(listType, collectionType));
 
-const indexer = createIndexer(['T'], scalarType, 'T');
+const indexer = createParametricIndexer(['T'], scalarType, 'T');
 listType.addIndexer(mapTypes(listType, indexer));
 
-const addSuffix = createParametricArgSuffixType('add', ['T'], voidType, 'T');
+const addSuffix = createParametricArgSuffixType('add', ['T'], noneType, 'T');
 const insertSuffix = createParametricArgSuffixType(
   'insert',
   ['T'],
-  voidType,
+  noneType,
   scalarType,
   'T',
 );
@@ -31,7 +31,12 @@ const indexOfSuffix = createParametricArgSuffixType(
   integerType,
   'T',
 );
-const findSuffix = createParametricArgSuffixType('find', ['T'], integerType, 'T');
+const findSuffix = createParametricArgSuffixType(
+  'find',
+  ['T'],
+  integerType,
+  'T',
+);
 const lastIndexOfSuffix = createParametricArgSuffixType(
   'lastIndexOf',
   ['T'],
@@ -57,7 +62,7 @@ listType.addSuffixes(
   mapTypes(listType, copySuffix),
   mapTypes(listType, addSuffix),
   mapTypes(listType, insertSuffix),
-  noMap(createArgSuffixType('remove', voidType, scalarType)),
+  noMap(createArgSuffixType('remove', noneType, scalarType)),
   mapTypes(listType, subListSuffix),
   noMap(createArgSuffixType('join', stringType, stringType)),
   mapTypes(listType, indexOfSuffix),

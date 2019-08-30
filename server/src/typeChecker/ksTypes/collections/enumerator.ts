@@ -4,7 +4,7 @@ import {
   noMap,
   mapTypes,
   createParametricArgSuffixType,
-} from '../../typeCreators';
+} from '../../utilities/typeCreators';
 import { structureType } from '../primitives/structure';
 import { booleanType } from '../primitives/boolean';
 import { scalarType } from '../primitives/scalar';
@@ -16,7 +16,7 @@ const valueSuffix = createParametricArgSuffixType('value', ['T'], 'T');
 
 enumeratorType.addSuffixes(
   noMap(createArgSuffixType('next', booleanType)),
-  noMap(createArgSuffixType('atend', booleanType)),
+  noMap(createArgSuffixType('atEnd', booleanType)),
   noMap(createArgSuffixType('index', scalarType)),
   mapTypes(enumeratorType, valueSuffix),
 );

@@ -2,7 +2,7 @@ import {
   createType,
   createSetSuffixType,
   noMap,
-} from '../typeCreators';
+} from '../utilities/typeCreators';
 import { rgbaType } from './rgba';
 import { scalarType } from './primitives/scalar';
 
