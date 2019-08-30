@@ -26,7 +26,7 @@ interface IBenchResult {
   filePath: string;
 }
 
-const standardLibrary = standardLibraryBuilder(CaseKind.lowercase);
+const standardLibrary = standardLibraryBuilder(CaseKind.lowerCase);
 
 const scriptSources: { kosFile: string, filePath: string, size: number}[] = [];
 

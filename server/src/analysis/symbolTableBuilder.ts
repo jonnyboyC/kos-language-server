@@ -589,7 +589,7 @@ export class SymbolTableBuilder {
     if (empty(tracker)) {
       return createDiagnostic(
         token,
-        `${toCase(CaseKind.pascalcase, KsSymbolKind[symbolType])} ${
+        `${toCase(CaseKind.pascalCase, KsSymbolKind[symbolType])} ${
           token.lexeme
         } may not exist.`,
         DiagnosticSeverity.Warning,
@@ -600,7 +600,7 @@ export class SymbolTableBuilder {
     token.tracker = tracker;
     tracker.usages.push(cleanLocation(token));
     this.logger.verbose(
-      `Use ${toCase(CaseKind.pascalcase, KsSymbolKind[symbolType])} ` +
+      `Use ${toCase(CaseKind.pascalCase, KsSymbolKind[symbolType])} ` +
         `${token.lexeme} at ${rangeToString(token)}`,
     );
 
@@ -788,7 +788,7 @@ export class SymbolTableBuilder {
     expected: string,
   ): Diagnostic {
     const foundKind = toCase(
-      CaseKind.pascalcase,
+      CaseKind.pascalCase,
       KsSymbolKind[tracker.declared.symbol.tag],
     );
 
@@ -879,7 +879,7 @@ export class SymbolTableBuilder {
       }
     }
 
-    const kindString = toCase(CaseKind.lowercase, KsSymbolKind[tag]);
+    const kindString = toCase(CaseKind.lowerCase, KsSymbolKind[tag]);
 
     return createDiagnostic(
       name,
@@ -1015,7 +1015,7 @@ export class SymbolTableBuilder {
   ): Diagnostic {
     return createDiagnostic(
       name,
-      `${toCase(CaseKind.pascalcase, KsSymbolKind[symbol.tag])} ${
+      `${toCase(CaseKind.pascalCase, KsSymbolKind[symbol.tag])} ${
         symbol.name.lexeme
       } ` + `already exists here. This ${KsSymbolKind[kind]} shadows it.`,
       DiagnosticSeverity.Hint,
@@ -1039,7 +1039,7 @@ export class SymbolTableBuilder {
   private localConflictError(name: Token, symbol: KsBaseSymbol): Diagnostic {
     return createDiagnostic(
       name,
-      `${toCase(CaseKind.pascalcase, KsSymbolKind[symbol.tag])} ${
+      `${toCase(CaseKind.pascalCase, KsSymbolKind[symbol.tag])} ${
         symbol.name.lexeme
       } already exists.`,
       DiagnosticSeverity.Warning,

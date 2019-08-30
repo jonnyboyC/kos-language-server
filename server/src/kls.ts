@@ -116,7 +116,7 @@ export class KLS {
   private readonly analysisService: AnalysisService;
 
   constructor(
-    caseKind: CaseKind = CaseKind.camelcase,
+    caseKind: CaseKind = CaseKind.camelCase,
     logger: ILogger = mockLogger,
     tracer: ITracer = mockTracer,
     connection: Connection,

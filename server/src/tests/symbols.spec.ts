@@ -55,7 +55,7 @@ describe('Symbol Table', () => {
     );
 
     const analysisService = new AnalysisService(
-      CaseKind.camelcase,
+      CaseKind.camelCase,
       mockLogger,
       mockTracer,
       docService,

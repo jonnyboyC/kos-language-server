@@ -467,7 +467,7 @@ describe('analysisService', () => {
     );
 
     const analysisService = new AnalysisService(
-      CaseKind.camelcase,
+      CaseKind.camelCase,
       mockLogger,
       mockTracer,
       docService,
@@ -504,7 +504,7 @@ describe('analysisService', () => {
     );
 
     const analysisService = new AnalysisService(
-      CaseKind.camelcase,
+      CaseKind.camelCase,
       mockLogger,
       mockTracer,
       docService,
@@ -550,7 +550,7 @@ describe('analysisService', () => {
     );
 
     const analysisService = new AnalysisService(
-      CaseKind.lowercase,
+      CaseKind.lowerCase,
       mockLogger,
       mockTracer,
       docService,
@@ -567,7 +567,7 @@ describe('analysisService', () => {
       expect(stdSymbol.name.lexeme).toBe(stdSymbol.name.lexeme.toLowerCase());
     }
 
-    analysisService.setCase(CaseKind.uppercase);
+    analysisService.setCase(CaseKind.upperCase);
 
     bodyLib = analysisService['bodyLibrary'];
     stdLib = analysisService['bodyLibrary'];
@@ -604,7 +604,7 @@ describe('analysisService', () => {
     const docService = createMockDocumentService(documents, baseUri);
 
     const analysisService = new AnalysisService(
-      CaseKind.camelcase,
+      CaseKind.camelCase,
       mockLogger,
       mockTracer,
       docService,
@@ -664,7 +664,7 @@ describe('analysisService', () => {
     const docService = createMockDocumentService(documents, baseUri);
 
     const analysisService = new AnalysisService(
-      CaseKind.camelcase,
+      CaseKind.camelCase,
       mockLogger,
       mockTracer,
       docService,

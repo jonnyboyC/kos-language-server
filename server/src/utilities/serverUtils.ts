@@ -82,10 +82,10 @@ export const getConnectionPrimitives = (
 };
 
 const caseMap = new Map([
-  ['lowercase', CaseKind.lowercase],
-  ['uppercase', CaseKind.uppercase],
-  ['camelcase', CaseKind.camelcase],
-  ['pascalcase', CaseKind.pascalcase],
+  ['lowercase', CaseKind.lowerCase],
+  ['uppercase', CaseKind.upperCase],
+  ['camelcase', CaseKind.camelCase],
+  ['pascalcase', CaseKind.pascalCase],
 ]);
 
 /**
