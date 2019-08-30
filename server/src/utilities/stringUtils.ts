@@ -5,13 +5,13 @@
  */
 export const toCase = (caseKind: CaseKind, ...segments: string[]): string => {
   switch (caseKind) {
-    case CaseKind.lowercase:
+    case CaseKind.lowerCase:
       return segments.map(s => s.toLowerCase()).join('');
-    case CaseKind.uppercase:
+    case CaseKind.upperCase:
       return segments.map(s => s.toUpperCase()).join('');
-    case CaseKind.camelcase:
+    case CaseKind.camelCase:
       return toCamelCase(...segments);
-    case CaseKind.pascalcase:
+    case CaseKind.pascalCase:
       return toPascalCase(...segments);
   }
 };
@@ -27,7 +27,7 @@ const toPascalCase = (...segments: string[]): string => {
 };
 
 /**
- * Convert a set of string segemtns to camel case
+ * Convert a set of string segments to camel case
  * @param segments string segments
  */
 const toCamelCase = (...segments: string[]): string => {
@@ -36,8 +36,5 @@ const toCamelCase = (...segments: string[]): string => {
   }
 
   const [first, ...rest] = segments;
-  return [
-    first.toLowerCase(),
-    ...rest.map(s => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()),
-  ].join('');
+  return [first.toLowerCase(), toPascalCase(...rest)].join('');
 };

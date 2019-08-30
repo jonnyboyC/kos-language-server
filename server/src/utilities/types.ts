@@ -87,8 +87,8 @@ interface ITracer {
  * to decide how they should be cased
  */
 const enum CaseKind {
-  lowercase,
-  uppercase,
-  camelcase,
-  pascalcase,
+  lowerCase,
+  upperCase,
+  camelCase,
+  pascalCase,
 }

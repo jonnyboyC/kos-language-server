@@ -63,7 +63,7 @@ const resolveSource = (
 
   if (standardLib) {
     symbolTableBuilder.linkDependency(
-      standardLibraryBuilder(CaseKind.lowercase),
+      standardLibraryBuilder(CaseKind.lowerCase),
     );
   }
 
