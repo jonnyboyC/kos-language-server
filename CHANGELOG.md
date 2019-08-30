@@ -1,4 +1,7 @@
-# [0.10.0] (2019-8-21)
+# [0.10.1] (2019-8-30)
+
+## Bug Fixes
+- **Manual Auto Complete Trigger** Previously the auto complete required a trigger character of `:` for suffix completions. This was not idea if the user manually triggered auto complete or was editing a suffix in the middle of some suffix chain. Auto complete no longer requires the trigger character to more frequently correctly identify a suffix context.
 
 ## Features
 - **Search Documentation** Documentation can more directly be searched in the vscode extension. Using the command palette with `cntr + shift + p` search `kOS Search Documentation` and type in the search term. This will open your default web browser to the kos documentation with your search in place. Search can also be used via the right click context menu.
