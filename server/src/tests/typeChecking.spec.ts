@@ -425,7 +425,6 @@ local l3 is ship or true.
 local l4 is 10 and 20.
 local l5 is "true" or "false".
 
-
 print(l1).
 print(l2).
 print(l3).

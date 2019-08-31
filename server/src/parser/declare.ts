@@ -1,11 +1,5 @@
 import { Stmt, Block } from './stmt';
-import {
-  IExpr,
-  IStmtVisitor,
-  ScopeKind,
-  IStmtPasser,
-  NodeDataBuilder,
-} from './types';
+import { IExpr, IStmtVisitor, ScopeKind, NodeDataBuilder } from './types';
 import { TokenType } from '../entities/tokentypes';
 import { empty, unWrap } from '../utilities/typeGuards';
 import { Range, Position } from 'vscode-languageserver';
@@ -20,10 +14,7 @@ export abstract class Decl extends Stmt {
 }
 
 export class Scope extends NodeBase {
-  constructor(
-    public readonly scope?: Token,
-    public readonly declare?: Token,
-  ) {
+  constructor(public readonly scope?: Token, public readonly declare?: Token) {
     super();
   }
 
@@ -143,12 +134,11 @@ export class Var extends Decl {
     return [this.scope, this.identifier, this.toIs, this.value];
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passDeclVariable(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitDeclVariable(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitDeclVariable(this, parameters);
   }
 }
 
@@ -202,12 +192,11 @@ export class Lock extends Decl {
     return [this.lock, this.identifier, this.to, this.value];
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passDeclLock(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitDeclLock(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitDeclLock(this, parameters);
   }
 }
 
@@ -252,12 +241,11 @@ export class Func extends Decl {
     return [this.functionToken, this.identifier, this.block];
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passDeclFunction(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitDeclFunction(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitDeclFunction(this, parameters);
   }
 }
 
@@ -333,12 +321,11 @@ export class Param extends Decl {
     ];
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passDeclParameter(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitDeclParameter(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitDeclParameter(this, parameters);
   }
 }
 

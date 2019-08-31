@@ -4,7 +4,7 @@ import {
   IStmt,
   IExpr,
   ISuffixTerm,
-  ISuffixTermParamVisitor,
+  ISuffixTermVisitor,
   Atom,
 } from '../parser/types';
 import * as SuffixTerm from '../parser/suffixTerm';
@@ -70,9 +70,9 @@ type Diagnostics = Diagnostic[];
  */
 export class TypeChecker
   implements
-    IStmtVisitor<Diagnostics>,
-    IExprVisitor<ITypeResultExpr<IType>>,
-    ISuffixTermParamVisitor<SuffixTypeBuilder, Diagnostics> {
+    IStmtVisitor<() => Diagnostics>,
+    IExprVisitor<() => ITypeResultExpr<IType>>,
+    ISuffixTermVisitor<(builder: SuffixTypeBuilder) => Diagnostics> {
   /**
    * the logger to logging information
    */
@@ -145,7 +145,7 @@ export class TypeChecker
    * @param stmt statement to check
    */
   private checkStmt(stmt: IStmt): Diagnostics {
-    return stmt.accept(this);
+    return stmt.accept(this, []);
   }
 
   /**
@@ -153,7 +153,7 @@ export class TypeChecker
    * @param expr expression to check
    */
   private checkExpr(expr: IExpr): ITypeResultExpr<IType> {
-    return expr.accept(this);
+    return expr.accept(this, []);
   }
 
   /**
@@ -165,7 +165,7 @@ export class TypeChecker
     suffixTerm: ISuffixTerm,
     builder: SuffixTypeBuilder,
   ): Diagnostics {
-    return suffixTerm.acceptParam(this, builder);
+    return suffixTerm.accept(this, [builder]);
   }
 
   // ----------------------------- Declaration -----------------------------------------
@@ -1156,7 +1156,7 @@ export class TypeChecker
 
   public visitSuffixTrailer(
     suffixTerm: SuffixTerm.SuffixTrailer,
-    builder: SuffixTypeBuilder,
+    [builder]: [SuffixTypeBuilder],
   ): Diagnostics {
     // check suffix term and trailers
     const errors = this.checkSuffixTerm(suffixTerm.suffixTerm, builder);
@@ -1171,7 +1171,7 @@ export class TypeChecker
 
   public visitSuffixTermInvalid(
     suffixTerm: SuffixTerm.Invalid,
-    builder: SuffixTypeBuilder,
+    [builder]: [SuffixTypeBuilder],
   ): Diagnostics {
     builder.nodes.push(new TypeNode(suffixError, suffixTerm));
 
@@ -1180,7 +1180,7 @@ export class TypeChecker
 
   public visitSuffixTerm(
     suffixTerm: SuffixTerm.SuffixTerm,
-    builder: SuffixTypeBuilder,
+    [builder]: [SuffixTypeBuilder],
   ): Diagnostics {
     // check the atom
     const errors = this.checkSuffixTerm(suffixTerm.atom, builder);
@@ -1200,7 +1200,7 @@ export class TypeChecker
    */
   public visitCall(
     call: SuffixTerm.Call,
-    builder: SuffixTypeBuilder,
+    [builder]: [SuffixTypeBuilder],
   ): Diagnostics {
     if (!builder.isTrailer()) {
       throw new Error('Builder must be a trailer to be in visitCall');
@@ -1409,7 +1409,7 @@ export class TypeChecker
    */
   public visitArrayIndex(
     suffixTerm: SuffixTerm.ArrayIndex,
-    builder: SuffixTypeBuilder,
+    [builder]: [SuffixTypeBuilder],
   ): Diagnostics {
     if (!builder.isTrailer()) {
       throw new Error("TODO shouldn't be able to get here visitArrayIndex");
@@ -1483,7 +1483,7 @@ export class TypeChecker
    */
   public visitArrayBracket(
     suffixTerm: SuffixTerm.ArrayBracket,
-    builder: SuffixTypeBuilder,
+    [builder]: [SuffixTypeBuilder],
   ): Diagnostics {
     if (!builder.isTrailer()) {
       throw new Error("TODO shouldn't be able to get here visitArrayBracket");
@@ -1546,7 +1546,7 @@ export class TypeChecker
    */
   public visitDelegate(
     suffixTerm: SuffixTerm.Delegate,
-    builder: SuffixTypeBuilder,
+    [builder]: [SuffixTypeBuilder],
   ): Diagnostics {
     if (!builder.isTrailer()) {
       throw new Error("TODO shouldn't be able to get here visitDelegate");
@@ -1579,7 +1579,7 @@ export class TypeChecker
    */
   public visitLiteral(
     suffixTerm: SuffixTerm.Literal,
-    builder: SuffixTypeBuilder,
+    [builder]: [SuffixTypeBuilder],
   ): Diagnostics {
     if (builder.isTrailer()) {
       throw new Error("TODO shouldn't be able to get here visitLiteral");
@@ -1613,7 +1613,7 @@ export class TypeChecker
    */
   public visitIdentifier(
     suffixTerm: SuffixTerm.Identifier,
-    builder: SuffixTypeBuilder,
+    [builder]: [SuffixTypeBuilder],
   ): Diagnostics {
     // if we're a trailer check for suffixes
     if (builder.isTrailer()) {
@@ -1688,7 +1688,7 @@ export class TypeChecker
    */
   public visitGrouping(
     suffixTerm: SuffixTerm.Grouping,
-    builder: SuffixTypeBuilder,
+    [builder]: [SuffixTypeBuilder],
   ): Diagnostics {
     if (builder.isTrailer()) {
       throw new Error("TODO shouldn't be able to get here visitGrouping");

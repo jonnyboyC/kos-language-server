@@ -43,7 +43,10 @@ export abstract class Expr extends NodeBase implements IExpr {
    * Called when the node should execute the visitors methods
    * @param visitor visitor object
    */
-  public abstract accept<T>(visitor: IExprVisitor<T>): T;
+  public abstract accept<T extends (...args: any) => any>(
+    visitor: IExprVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T>;
 }
 
 /**
@@ -111,8 +114,11 @@ export class Invalid extends Expr {
     return [this.tokens.map(t => t.lexeme).join(' ')];
   }
 
-  public accept<T>(visitor: IExprVisitor<T>): T {
-    return visitor.visitExprInvalid(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IExprVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitExprInvalid(this, parameters);
   }
 
   public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
@@ -207,8 +213,11 @@ export class Ternary extends Expr {
     return joinLines(` ${this.elseToken.lexeme} `, lines, falseLines);
   }
 
-  public accept<T>(visitor: IExprVisitor<T>): T {
-    return visitor.visitTernary(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IExprVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitTernary(this, parameters);
   }
 
   public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
@@ -270,8 +279,11 @@ export class Binary extends Expr {
     return joinLines(` ${this.operator.lexeme} `, leftLines, rightLines);
   }
 
-  public accept<T>(visitor: IExprVisitor<T>): T {
-    return visitor.visitBinary(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IExprVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitBinary(this, parameters);
   }
 
   public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
@@ -323,8 +335,11 @@ export class Unary extends Expr {
     }
   }
 
-  public accept<T>(visitor: IExprVisitor<T>): T {
-    return visitor.visitUnary(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IExprVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitUnary(this, parameters);
   }
 
   public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
@@ -375,8 +390,11 @@ export class Factor extends Expr {
     );
   }
 
-  public accept<T>(visitor: IExprVisitor<T>): T {
-    return visitor.visitFactor(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IExprVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitFactor(this, parameters);
   }
 
   public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
@@ -417,8 +435,11 @@ export class Lambda extends Expr {
     return this.block.toLines();
   }
 
-  public accept<T>(visitor: IExprVisitor<T>): T {
-    return visitor.visitLambda(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IExprVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitLambda(this, parameters);
   }
 
   public static classAccept<T>(visitor: IExprClassVisitor<T>): T {
@@ -519,8 +540,11 @@ export class Suffix extends Expr {
     return suffixTermLines;
   }
 
-  public accept<T>(visitor: IExprVisitor<T>): T {
-    return visitor.visitSuffix(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IExprVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitSuffix(this, parameters);
   }
 
   public static classAccept<T>(visitor: IExprClassVisitor<T>): T {

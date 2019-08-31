@@ -32,9 +32,9 @@ type Diagnostics = Diagnostic[];
 
 export class Resolver
   implements
-    IStmtVisitor<Diagnostics>,
-    IExprVisitor<Diagnostics>,
-    ISuffixTermVisitor<Diagnostics> {
+    IStmtVisitor<() => Diagnostics>,
+    IExprVisitor<() => Diagnostics>,
+    ISuffixTermVisitor<() => Diagnostics> {
   /**
    * Script the resolver executes on
    */
@@ -228,7 +228,7 @@ export class Resolver
    * @param stmt resolve statement
    */
   private resolveStmt(stmt: IStmt): Diagnostics {
-    return stmt.accept(this);
+    return stmt.accept(this, []);
   }
 
   /**
@@ -236,7 +236,7 @@ export class Resolver
    * @param expr expression to skip
    */
   private resolveExpr(expr: IExpr): Diagnostics {
-    return expr.accept(this);
+    return expr.accept(this, []);
   }
 
   /**
@@ -244,7 +244,7 @@ export class Resolver
    * @param suffixTerm suffix term to skip
    */
   private resolveSuffixTerm(suffixTerm: ISuffixTerm): Diagnostics {
-    return suffixTerm.accept(this);
+    return suffixTerm.accept(this, []);
   }
 
   /**

@@ -1,4 +1,9 @@
-import { IExprVisitor, IExpr, ISuffixTerm, ISuffixTermVisitor } from '../parser/types';
+import {
+  IExprVisitor,
+  IExpr,
+  ISuffixTerm,
+  ISuffixTermVisitor,
+} from '../parser/types';
 import * as Expr from '../parser/expr';
 import * as SuffixTerm from '../parser/suffixTerm';
 import { LocalResolver } from './localResolver';
@@ -10,22 +15,21 @@ import { Token } from '../entities/token';
 /**
  * Identify all local symbols used and all used symbols
  */
-export class SetResolver implements
-  IExprVisitor<ISetResolverResult>,
-  ISuffixTermVisitor<ISetResolverResult> {
-
+export class SetResolver
+  implements
+    IExprVisitor<() => ISetResolverResult>,
+    ISuffixTermVisitor<() => ISetResolverResult> {
   /**
    * Set resolver constructor
    */
-  public constructor(public readonly localResolver: LocalResolver) {
-  }
+  public constructor(public readonly localResolver: LocalResolver) {}
 
   /**
    * Resolve expression
    * @param expr expression to resolve
    */
   public resolveExpr(expr: IExpr): ISetResolverResult {
-    return expr.accept(this);
+    return expr.accept(this, []);
   }
 
   /**
@@ -33,7 +37,7 @@ export class SetResolver implements
    * @param suffixTerm suffix term to resolve
    */
   public resolveSuffixTerm(suffixTerm: ISuffixTerm): ISetResolverResult {
-    return suffixTerm.accept(this);
+    return suffixTerm.accept(this, []);
   }
 
   /**
@@ -86,7 +90,11 @@ export class SetResolver implements
       return setResult(result.set, result.used);
     }
 
-    return setResult(result.set, result.used, this.localResolver.resolveSuffixTerm(expr.trailer));
+    return setResult(
+      result.set,
+      result.used,
+      this.localResolver.resolveSuffixTerm(expr.trailer),
+    );
   }
 
   /**
@@ -109,13 +117,19 @@ export class SetResolver implements
    * Resolve suffix term trailer
    * @param expr suffix term trailer
    */
-  public visitSuffixTrailer(expr: SuffixTerm.SuffixTrailer): ISetResolverResult {
+  public visitSuffixTrailer(
+    expr: SuffixTerm.SuffixTrailer,
+  ): ISetResolverResult {
     const result = this.resolveSuffixTerm(expr.suffixTerm);
     if (empty(expr.trailer)) {
       return setResult(result.set, result.used);
     }
 
-    return setResult(result.set, result.used, this.localResolver.resolveSuffixTerm(expr.trailer));
+    return setResult(
+      result.set,
+      result.used,
+      this.localResolver.resolveSuffixTerm(expr.trailer),
+    );
   }
 
   /**
@@ -128,9 +142,14 @@ export class SetResolver implements
       return setResult(result.set, result.used);
     }
 
-    return setResult(result.set, result.used, expr.trailers.reduce(
-      (acc, curr) => acc.concat(this.localResolver.resolveSuffixTerm(curr)),
-      [] as Token[]));
+    return setResult(
+      result.set,
+      result.used,
+      expr.trailers.reduce(
+        (acc, curr) => acc.concat(this.localResolver.resolveSuffixTerm(curr)),
+        [] as Token[],
+      ),
+    );
   }
 
   /**

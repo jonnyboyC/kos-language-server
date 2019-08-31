@@ -13,22 +13,25 @@ import * as SuffixTerm from './suffixTerm';
 import { empty } from '../utilities/typeGuards';
 
 export abstract class TreeTraverse
-  implements IExprVisitor<void>, IStmtVisitor<void>, ISuffixTermVisitor<void> {
+  implements
+    IExprVisitor<() => void>,
+    IStmtVisitor<() => void>,
+    ISuffixTermVisitor<() => void> {
   constructor() {}
 
   // find an statement
   protected stmtAction(stmt: IStmt): void {
-    return stmt.accept(this);
+    return stmt.accept(this, []);
   }
 
   // find an expression
   protected exprAction(expr: IExpr): void {
-    return expr.accept(this);
+    return expr.accept(this, []);
   }
 
   // find an expression
   protected suffixTermAction(suffixTerm: ISuffixTerm): void {
-    return suffixTerm.accept(this);
+    return suffixTerm.accept(this, []);
   }
 
   public visitDeclVariable(decl: Decl.Var): void {

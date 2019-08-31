@@ -3,7 +3,6 @@ import {
   IExpr,
   IStmtVisitor,
   SyntaxKind,
-  IStmtPasser,
   NodeDataBuilder,
   PartialNode,
 } from './types';
@@ -28,25 +27,20 @@ export abstract class Stmt extends NodeBase implements IStmt {
   }
 
   /**
-   * All statement implement the pass method
-   * Called when the node should be passed through
-   * @param visitor visitor object
-   */
-  public abstract pass<T>(visitor: IStmtPasser<T>): T;
-
-  /**
    * All statement implement the accept method
    * Called when he node should execute the visitors methods
    * @param visitor visitor object
    */
-  public abstract accept<T>(visitor: IStmtVisitor<T>): T;
+  public abstract accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T>;
 }
 
 /**
  * Represents a malformed statement in kerboscript
  */
 export class Invalid extends Stmt {
-
   /**
    * Construct a new invalid statement
    * @param pos Provides the start position of this statement
@@ -72,9 +66,7 @@ export class Invalid extends Stmt {
    * What is the start position of this statement
    */
   public get start(): Position {
-    return this.tokens.length > 0
-      ? this.tokens[0].start
-      : this.pos;
+    return this.tokens.length > 0 ? this.tokens[0].start : this.pos;
   }
 
   /**
@@ -122,12 +114,11 @@ export class Invalid extends Stmt {
     return segments;
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passStmtInvalid(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitStmtInvalid(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitStmtInvalid(this, parameters);
   }
 }
 
@@ -173,12 +164,11 @@ export class Block extends Stmt {
     return [this.open, ...this.stmts, this.close];
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passBlock(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitBlock(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitBlock(this, parameters);
   }
 }
 
@@ -208,12 +198,11 @@ export class ExprStmt extends Stmt {
     return [this.suffix];
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passExpr(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitExpr(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitExpr(this, parameters);
   }
 }
 
@@ -248,12 +237,11 @@ export class OnOff extends Stmt {
     return [this.suffix, this.onOff];
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passOnOff(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitOnOff(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitOnOff(this, parameters);
   }
 }
 export class Command extends Stmt {
@@ -277,12 +265,11 @@ export class Command extends Stmt {
     return [this.command];
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passCommand(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitCommand(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitCommand(this, parameters);
   }
 }
 export class CommandExpr extends Stmt {
@@ -316,12 +303,11 @@ export class CommandExpr extends Stmt {
     return [this.command, this.expr];
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passCommandExpr(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitCommandExpr(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitCommandExpr(this, parameters);
   }
 }
 
@@ -352,12 +338,11 @@ export class Unset extends Stmt {
     return [this.unset, this.identifier];
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passUnset(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitUnset(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitUnset(this, parameters);
   }
 }
 
@@ -388,12 +373,11 @@ export class Unlock extends Stmt {
     return [this.unlock, this.identifier];
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passUnlock(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitUnlock(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitUnlock(this, parameters);
   }
 }
 
@@ -433,12 +417,11 @@ export class Set extends Stmt {
     return [this.set, this.suffix, this.to, this.value];
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passSet(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitSet(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitSet(this, parameters);
   }
 }
 
@@ -473,12 +456,11 @@ export class LazyGlobal extends Stmt {
     return [this.atSign, this.lazyGlobal, this.onOff];
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passLazyGlobal(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitLazyGlobal(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitLazyGlobal(this, parameters);
   }
 }
 
@@ -528,12 +510,11 @@ export class If extends Stmt {
     return ranges;
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passIf(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitIf(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitIf(this, parameters);
   }
 }
 
@@ -566,12 +547,11 @@ export class Else extends Stmt {
     return [this.elseToken, this.body];
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passElse(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitElse(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitElse(this, parameters);
   }
 }
 
@@ -608,12 +588,11 @@ export class Until extends Stmt {
     return [this.until, this.condition, this.body];
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passUntil(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitUntil(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitUntil(this, parameters);
   }
 }
 
@@ -680,12 +659,11 @@ export class From extends Stmt {
     ];
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passFrom(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitFrom(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitFrom(this, parameters);
   }
 }
 
@@ -725,12 +703,11 @@ export class When extends Stmt {
     return [this.when, this.condition, this.then, this.body];
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passWhen(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitWhen(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitWhen(this, parameters);
   }
 }
 
@@ -774,12 +751,11 @@ export class Return extends Stmt {
     return ranges;
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passReturn(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitReturn(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitReturn(this, parameters);
   }
 }
 
@@ -804,12 +780,11 @@ export class Break extends Stmt {
     return [this.breakToken];
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passBreak(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitBreak(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitBreak(this, parameters);
   }
 }
 
@@ -829,9 +804,7 @@ export class Switch extends Stmt {
   public toLines(): string[] {
     const targetLines = this.target.toLines();
 
-    targetLines[0] = `${this.switchToken.lexeme} ${this.to.lexeme} ${
-      targetLines[0]
-    }`;
+    targetLines[0] = `${this.switchToken.lexeme} ${this.to.lexeme} ${targetLines[0]}`;
     targetLines[targetLines.length - 1] = `${
       targetLines[targetLines.length - 1]
     }.`;
@@ -851,12 +824,11 @@ export class Switch extends Stmt {
     return [this.switchToken, this.to, this.target];
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passSwitch(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitSwitch(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitSwitch(this, parameters);
   }
 }
 
@@ -905,12 +877,11 @@ export class For extends Stmt {
     ];
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passFor(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitFor(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitFor(this, parameters);
   }
 }
 
@@ -947,12 +918,11 @@ export class On extends Stmt {
     return [this.on, this.suffix, this.body];
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passOn(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitOn(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitOn(this, parameters);
   }
 }
 
@@ -989,12 +959,11 @@ export class Toggle extends Stmt {
     return [this.toggle, this.suffix];
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passToggle(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitToggle(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitToggle(this, parameters);
   }
 }
 
@@ -1037,12 +1006,11 @@ export class Wait extends Stmt {
     return [this.wait, this.until, this.expr];
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passWait(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitWait(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitWait(this, parameters);
   }
 }
 
@@ -1086,12 +1054,11 @@ export class Log extends Stmt {
     return [this.log, this.expr, this.to, this.target];
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passLog(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitLog(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitLog(this, parameters);
   }
 }
 
@@ -1132,12 +1099,11 @@ export class Copy extends Stmt {
     return [this.copy, this.target, this.toFrom, this.destination];
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passCopy(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitCopy(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitCopy(this, parameters);
   }
 }
 
@@ -1190,12 +1156,11 @@ export class Rename extends Stmt {
     ];
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passRename(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitRename(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitRename(this, parameters);
   }
 }
 
@@ -1252,12 +1217,11 @@ export class Delete extends Stmt {
     return ranges;
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passDelete(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitDelete(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitDelete(this, parameters);
   }
 }
 
@@ -1345,12 +1309,11 @@ export class Run extends Stmt {
     return ranges;
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passRun(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitRun(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitRun(this, parameters);
   }
 }
 
@@ -1403,12 +1366,11 @@ export class RunPath extends Stmt {
     return ranges;
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passRunPath(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitRunPath(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitRunPath(this, parameters);
   }
 }
 
@@ -1461,12 +1423,11 @@ export class RunOncePath extends Stmt {
     return ranges;
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passRunPathOnce(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitRunPathOnce(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitRunPathOnce(this, parameters);
   }
 }
 
@@ -1515,12 +1476,11 @@ export class Compile extends Stmt {
     return ranges;
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passCompile(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitCompile(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitCompile(this, parameters);
   }
 }
 
@@ -1585,12 +1545,11 @@ export class List extends Stmt {
     return ranges;
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passList(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitList(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitList(this, parameters);
   }
 }
 
@@ -1615,12 +1574,11 @@ export class Empty extends Stmt {
     return [this.empty];
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passEmpty(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitEmpty(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitEmpty(this, parameters);
   }
 }
 
@@ -1699,12 +1657,11 @@ export class Print extends Stmt {
     return ranges;
   }
 
-  public pass<T>(visitor: IStmtPasser<T>): T {
-    return visitor.passPrint(this);
-  }
-
-  public accept<T>(visitor: IStmtVisitor<T>): T {
-    return visitor.visitPrint(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitPrint(this, parameters);
   }
 }
 

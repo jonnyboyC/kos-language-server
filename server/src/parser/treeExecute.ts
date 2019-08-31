@@ -1,6 +1,9 @@
 import {
-  IExprVisitor, IStmtVisitor, IStmt,
-  IExpr, ScriptNode,
+  IExprVisitor,
+  IStmtVisitor,
+  IStmt,
+  IExpr,
+  ScriptNode,
   ISuffixTermVisitor,
   ISuffixTerm,
 } from './types';
@@ -9,28 +12,28 @@ import * as Stmt from './stmt';
 import * as Expr from './expr';
 import * as SuffixTerm from './suffixTerm';
 
-export abstract class TreeExecute<T> implements
-  IExprVisitor<T>,
-  IStmtVisitor<T>,
-  ISuffixTermVisitor<T> {
-
-  constructor() { }
+export abstract class TreeExecute<T>
+  implements
+    IExprVisitor<() => T>,
+    IStmtVisitor<() => T>,
+    ISuffixTermVisitor<() => T> {
+  constructor() {}
 
   protected abstract nodeAction(node: ScriptNode): T;
 
   // find an statement
   protected stmtAction(stmt: IStmt): T {
-    return stmt.accept(this);
+    return stmt.accept(this, []);
   }
 
   // find an expression
   protected exprAction(expr: IExpr): T {
-    return expr.accept(this);
+    return expr.accept(this, []);
   }
 
   // find an expression
   protected suffixTermAction(suffixTerm: ISuffixTerm): T {
-    return suffixTerm.accept(this);
+    return suffixTerm.accept(this, []);
   }
 
   public visitDeclVariable(decl: Decl.Var): T {
