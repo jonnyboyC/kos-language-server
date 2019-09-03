@@ -19,7 +19,7 @@ import { basename } from 'path';
 import { Scanner } from '../scanner/scanner';
 import { Parser } from '../parser/parser';
 import { Tokenized } from '../scanner/types';
-import { ParseResult } from '../parser/types';
+import { Ast } from '../parser/types';
 import { FoldableService } from '../services/foldableService';
 import {
   createMockDocConnection,
@@ -771,7 +771,7 @@ const fakeUri = 'file:///fake.ks';
 
 interface ScanParseResult {
   scan: Tokenized;
-  parse: ParseResult;
+  parse: Ast;
 }
 
 // parse source
@@ -786,8 +786,8 @@ const parseSource = (source: string): ScanParseResult => {
 };
 
 const noParseErrors = (result: ScanParseResult): void => {
-  expect(result.scan.scanErrors.length).toBe(0);
-  expect(result.parse.parseErrors.length).toBe(0);
+  expect(result.scan.scanDiagnostics.length).toBe(0);
+  expect(result.parse.parseDiagnostics.length).toBe(0);
 };
 
 describe('foldableService', () => {

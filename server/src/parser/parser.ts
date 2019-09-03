@@ -5,7 +5,7 @@ import {
   IStmt,
   INodeResult,
   RunStmtType,
-  ParseResult,
+  Ast,
   Atom,
   SuffixTermTrailer,
   PartialNode,
@@ -29,6 +29,8 @@ import { Token } from '../entities/token';
 import { mockLogger, mockTracer, logException } from '../utilities/logger';
 import { flatten } from '../utilities/arrayUtils';
 import { Marker } from '../entities/marker';
+import { Diagnostic } from 'vscode-languageserver';
+import { parseToDiagnostics } from '../utilities/serverUtils';
 
 type NodeConstructor =
   | Constructor<Expr.Expr>
@@ -65,7 +67,7 @@ export class Parser {
   }
 
   // parse tokens
-  public parse(): ParseResult {
+  public parse(): Ast {
     try {
       const splits = this.uri.split('/');
       const file = splits[splits.length - 1];
@@ -75,24 +77,34 @@ export class Parser {
       );
 
       const statements: Stmt.Stmt[] = [];
-      const parseErrors: IParseError[] = [];
+      const parseDiagnostics: Diagnostic[] = [];
 
       while (!this.isAtEnd()) {
         const { value, errors } = this.declaration();
+        const diagnostics =
+          errors.length === 0
+            ? []
+            : errors
+                .map(error => error.inner.concat(error))
+                .reduce((acc, current) => acc.concat(current))
+                .map(error => parseToDiagnostics(error));
+
         statements.push(value);
-        parseErrors.push(...errors);
+        parseDiagnostics.push(...diagnostics);
       }
 
       this.logger.info(
         `Parsing finished for ${file} with ` +
           `${this.runStmts.length} run statements`,
       );
-      if (parseErrors.length > 0) {
-        this.logger.warn(`Parser encountered ${parseErrors.length} errors`);
+      if (parseDiagnostics.length > 0) {
+        this.logger.warn(
+          `Parser encountered ${parseDiagnostics.length} errors`,
+        );
       }
 
       return {
-        parseErrors,
+        parseDiagnostics,
         script: new Script(this.uri, statements, this.runStmts),
       };
     } catch (err) {
@@ -100,7 +112,7 @@ export class Parser {
       logException(this.logger, this.tracer, err, LogLevel.error);
 
       return {
-        parseErrors: [],
+        parseDiagnostics: [],
         script: new Script(this.uri, [], []),
       };
     }
@@ -1582,7 +1594,7 @@ export class Parser {
     }
 
     return expr;
-  };
+  }
 
   // parse unary expression
   private unary(): INodeResult<IExpr> {

@@ -150,7 +150,7 @@ export class Scanner {
     try {
       // create arrays for valid tokens and encountered errors
       const tokens: Token[] = [];
-      const scanErrors: Diagnostic[] = [];
+      const scanDiagnostics: Diagnostic[] = [];
       const regions: Token[] = [];
 
       const splits = this.uri.split('/');
@@ -172,7 +172,7 @@ export class Scanner {
             tokens.push(result.result);
             break;
           case ScanKind.Diagnostic:
-            scanErrors.push(result.result);
+            scanDiagnostics.push(result.result);
             break;
           case ScanKind.Region:
             regions.push(result.result);
@@ -185,18 +185,18 @@ export class Scanner {
       this.logger.info(
         `Scanning finished for ${file} with ${tokens.length} tokens.`,
       );
-      if (scanErrors.length > 0) {
-        this.logger.warn(`Scanning encounter ${scanErrors.length} errors`);
+      if (scanDiagnostics.length > 0) {
+        this.logger.warn(`Scanning encounter ${scanDiagnostics.length} errors`);
       }
 
-      return { tokens, scanErrors, regions };
+      return { tokens, scanDiagnostics, regions };
     } catch (err) {
       this.logger.error('Error occurred in scanner');
       logException(this.logger, this.tracer, err, LogLevel.error);
 
       return {
         tokens: [],
-        scanErrors: [],
+        scanDiagnostics: [],
         regions: [],
       };
     }

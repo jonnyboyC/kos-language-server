@@ -2,7 +2,7 @@ import * as Expr from './expr';
 import * as Stmt from './stmt';
 import * as SuffixTerm from './suffixTerm';
 import { Var, Lock, Func, Param } from './declare';
-import { Range, Location } from 'vscode-languageserver';
+import { Range, Location, Diagnostic } from 'vscode-languageserver';
 import { TokenType } from '../entities/tokentypes';
 import { NodeBase } from './base';
 import { Token } from '../entities/token';
@@ -152,9 +152,9 @@ export interface IParseError extends Range {
   inner: IParseError[];
 }
 
-export interface ParseResult {
+export interface Ast {
   script: IScript;
-  parseErrors: IParseError[];
+  parseDiagnostics: Diagnostic[];
 }
 
 export interface LexicalResult {
@@ -166,6 +166,7 @@ export interface LexicalResult {
 
 export interface SemanticResult {
   resolverDiagnostics: DiagnosticUri[];
+  flowDiagnostics: DiagnosticUri[];
   typeDiagnostics: DiagnosticUri[];
   symbolTable: SymbolTable;
 }

@@ -186,7 +186,7 @@ export const suffixCompletionItems = async (
   const { position } = documentPosition;
   const { uri } = documentPosition.textDocument;
 
-  // TODO more robust method
+  // find suffix context
   const findResult = await analyzer.findToken(position, uri, Expr.Suffix);
 
   if (empty(findResult) || !(findResult.node instanceof Expr.Suffix)) {
@@ -317,12 +317,8 @@ export const toDocumentSymbols = (
  * @param error parser error
  * @param uri uri string
  */
-export const parseToDiagnostics = (
-  error: IParseError,
-  uri: string,
-): DiagnosticUri => {
+export const parseToDiagnostics = (error: IParseError): Diagnostic => {
   return {
-    uri,
     severity: DiagnosticSeverity.Error,
     range: { start: error.start, end: error.end },
     message: error.message,

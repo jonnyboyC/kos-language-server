@@ -21,17 +21,17 @@ export abstract class TreeTraverse
 
   // find an statement
   protected stmtAction(stmt: IStmt): void {
-    return stmt.accept(this, []);
+    stmt.accept(this, []);
   }
 
   // find an expression
   protected exprAction(expr: IExpr): void {
-    return expr.accept(this, []);
+    expr.accept(this, []);
   }
 
   // find an expression
   protected suffixTermAction(suffixTerm: ISuffixTerm): void {
-    return suffixTerm.accept(this, []);
+    suffixTerm.accept(this, []);
   }
 
   public visitDeclVariable(decl: Decl.Var): void {

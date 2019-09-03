@@ -372,7 +372,7 @@ export class KLS {
       return undefined;
     }
 
-    const { tokens, scanErrors } = scanner.scanTokens();
+    const { tokens, scanDiagnostics: scanErrors } = scanner.scanTokens();
 
     // check if rename is valid
     if (

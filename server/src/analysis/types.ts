@@ -135,11 +135,6 @@ export interface GlobalEnvironmentRange {
  */
 export type EnvironmentRange = RealEnvironmentRange | GlobalEnvironmentRange;
 
-export interface GraphNode<T> {
-  value: T;
-  adjacentNodes: GraphNode<T>[];
-}
-
 export const enum SearchState {
   dependents,
   dependencies,

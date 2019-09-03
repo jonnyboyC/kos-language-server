@@ -22,11 +22,7 @@ export interface Document {
  * A small set of functionality for loading files and directory of files
  */
 export class DocumentLoader {
-  // private loadDirectoryBound: (path: string) => AsyncIterableIterator<Document>;
-
-  constructor() {
-    // this.loadDirectoryBound = this.loadDirectory.bind(this);
-  }
+  constructor() {}
 
   /**
    * Load a file from a given path

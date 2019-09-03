@@ -362,7 +362,13 @@ const functionTypes: [string[], IType][] = [
   [['print'], createFunctionType('print', noneType, structureType)],
   [
     ['print', 'at'],
-    createFunctionType('printat', structureType, scalarType, scalarType),
+    createFunctionType(
+      'printat',
+      noneType,
+      structureType,
+      scalarType,
+      scalarType,
+    ),
   ],
   [['print', 'list'], createFunctionType('printlist', noneType, stringType)],
   [

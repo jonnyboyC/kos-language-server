@@ -7,7 +7,12 @@ export const flatten = <T>(arrays: T[][]): T[] => {
     return [];
   }
 
-  return arrays[0].concat(...arrays.slice(1));
+  const final: T[] = [];
+  for (const array of arrays) {
+    final.push(...array);
+  }
+
+  return final;
 };
 
 /**

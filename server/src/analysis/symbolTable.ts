@@ -1,4 +1,4 @@
-import { EnvironmentNode, GraphNode, KsBaseSymbol, SearchState } from './types';
+import { EnvironmentNode, KsBaseSymbol, SearchState } from './types';
 import { Position } from 'vscode-languageserver';
 import { rangeContainsPos } from '../utilities/positionUtils';
 import { mockLogger } from '../utilities/logger';
@@ -66,14 +66,14 @@ export class SymbolTable implements GraphNode<SymbolTable> {
   /**
    * return itself for the graph interface
    */
-  public get value(): SymbolTable {
+  public value(): SymbolTable {
     return this;
   }
 
   /**
    * get all adjacent nodes to this symbol table
    */
-  public get adjacentNodes(): GraphNode<SymbolTable>[] {
+  public adjacentNodes(): GraphNode<SymbolTable>[] {
     return Array.from(this.dependencyTables);
   }
 

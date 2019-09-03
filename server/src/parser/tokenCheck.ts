@@ -1,67 +1,61 @@
-import { TreeNode } from './types';
-import * as Decl from './declare';
-import * as Stmt from './stmt';
-import * as Expr from './expr';
-import * as SuffixTerm from './suffixTerm';
+import { IScript, IStmt, IExpr, ISuffixTerm } from './types';
 import { Token } from '../entities/token';
-import { TreeExecute } from './treeExecute';
-import { flatten } from '../utilities/arrayUtils';
+import { TreeTraverse } from './treeTraverse';
 
 /**
  * Check all tokens in a given tree node
  */
-export class TokenCheck extends TreeExecute<Token[]> {
+export class TokenCheck extends TreeTraverse {
+  private tokens: Token[];
 
   /**
    * Construct token check
    */
   constructor() {
     super();
+    this.tokens = [];
   }
 
   /**
    * Get all tokens in the syntax tree from this node down
    * @param syntaxNode syntax node to begin
    */
-  public orderedTokens(syntaxNode: TreeNode): Token[] {
-    return this.nodeAction(syntaxNode);
-  }
-
-  /**
-   * Add tokens from each internal node
-   * @param node syntax node to begin
-   */
-  protected nodeAction(node: TreeNode): Token[] {
-    // return result if token found
-    if (node instanceof Token) {
-      return [node];
+  public orderedTokens(script: IScript): Token[] {
+    this.tokens = [];
+    for (const stmt of script.stmts) {
+      this.stmtAction(stmt);
     }
 
-    const tokens: Token[][] = [];
+    return this.tokens;
+  }
 
-    for (const childNode of node.ranges) {
-      if (childNode instanceof SuffixTerm.SuffixTermBase) {
-        tokens.push(this.suffixTermAction(childNode));
-      } else if (childNode instanceof Expr.Expr) {
-        tokens.push(this.exprAction(childNode));
-      } else if (childNode instanceof Stmt.Stmt) {
-        tokens.push(this.stmtAction(childNode));
-      } else if (childNode instanceof Decl.Param) {
-        const params = [];
-        for (const param of childNode.requiredParameters) {
-          params.push(param.identifier);
-        }
-
-        for (const param of childNode.optionalParameters) {
-          params.push(param.identifier);
-          params.push(param.toIs);
-          params.push(...this.exprAction(param.value));
-        }
-
-        tokens.push(params);
+  public stmtAction(stmt: IStmt) {
+    for (const range of stmt.ranges) {
+      if (range instanceof Token) {
+        this.tokens.push(range);
       }
     }
 
-    return flatten(tokens);
+    stmt.accept(this, []);
+  }
+
+  public exprAction(expr: IExpr) {
+    for (const range of expr.ranges) {
+      if (range instanceof Token) {
+        this.tokens.push(range);
+      }
+    }
+
+    expr.accept(this, []);
+  }
+
+  public suffixTermAction(suffixTerm: ISuffixTerm) {
+    for (const range of suffixTerm.ranges) {
+      if (range instanceof Token) {
+        this.tokens.push(range);
+      }
+    }
+
+    suffixTerm.accept(this, []);
   }
 }

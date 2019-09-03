@@ -1147,6 +1147,11 @@ export class TypeChecker
     return this.resultExpr(builder.current(), errors);
   }
 
+  /**
+   * Visit a lambda expression. TODO need to generate an appropriate type for the
+   * function body
+   * @param expr the lambda expression
+   */
   public visitLambda(expr: Expr.Lambda): ITypeResultExpr<IType> {
     const errors = this.checkStmt(expr.block);
     return this.resultExpr(delegateType, errors);
@@ -1434,7 +1439,7 @@ export class TypeChecker
       return errors;
     }
 
-    switch (suffixTerm.indexer.type) {
+    switch (suffixTerm.index.type) {
       // If index is integer we're already in good shape
       case TokenType.integer:
         return errors;
@@ -1467,7 +1472,7 @@ export class TypeChecker
         errors.push(
           createDiagnostic(
             suffixTerm.indexer,
-            'Can only index an array with # scalars or variables',
+            'Can only index a list with # using scalars or variables',
             DiagnosticSeverity.Hint,
           ),
         );

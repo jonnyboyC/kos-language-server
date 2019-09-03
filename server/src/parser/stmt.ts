@@ -1079,7 +1079,7 @@ export class Copy extends Stmt {
 
   public toLines(): string[] {
     const targetLines = this.target.toLines();
-    const destinationLines = this.target.toLines();
+    const destinationLines = this.destination.toLines();
 
     targetLines[0] = `${this.copy.lexeme} ${targetLines[0]}`;
     destinationLines[0] = `${this.toFrom.lexeme} ${destinationLines[0]}.`;
@@ -1450,7 +1450,11 @@ export class Compile extends Stmt {
     let lines = this.target.toLines();
 
     if (!empty(this.destination) && !empty(this.to)) {
-      lines = joinLines(` ${this.to.lexeme} `, this.destination.toLines());
+      lines = joinLines(
+        ` ${this.to.lexeme} `,
+        lines,
+        this.destination.toLines(),
+      );
     }
 
     lines[0] = `${this.compile.lexeme} ${lines[0]}`;

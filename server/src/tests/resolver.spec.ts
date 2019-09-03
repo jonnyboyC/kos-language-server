@@ -1,6 +1,6 @@
 import { Parser } from '../parser/parser';
 import { Scanner } from '../scanner/scanner';
-import { ParseResult } from '../parser/types';
+import { Ast } from '../parser/types';
 import { empty, unWrap, unWrapMany } from '../utilities/typeGuards';
 import { rangeEqual, rangeOrder } from '../utilities/positionUtils';
 import {
@@ -35,7 +35,7 @@ const fakeUri = 'C:\\fake.ks';
 
 interface IResolveResults {
   scan: Tokenized;
-  parse: ParseResult;
+  parse: Ast;
   table: SymbolTable;
   resolveDiagnostics: Diagnostic[];
 }
@@ -105,14 +105,14 @@ const makeRange = (
 const noParseErrors = (
   result: Pick<IResolveResults, 'scan' | 'parse'>,
 ): void => {
-  expect(result.scan.scanErrors.length).toBe(0);
-  expect(result.parse.parseErrors.length).toBe(0);
+  expect(result.scan.scanDiagnostics.map(e => e.message)).toEqual([]);
+  expect(result.parse.parseDiagnostics.map(e => e.message)).toEqual([]);
 };
 
 const noErrors = (result: IResolveResults): void => {
-  expect(result.scan.scanErrors.length).toBe(0);
-  expect(result.parse.parseErrors.length).toBe(0);
-  expect(result.resolveDiagnostics.length).toBe(0);
+  expect(result.scan.scanDiagnostics.map(e => e.message)).toEqual([]);
+  expect(result.parse.parseDiagnostics.map(e => e.message)).toEqual([]);
+  expect(result.resolveDiagnostics.map(e => e.message)).toEqual([]);
 };
 
 const setSource = `
@@ -405,8 +405,7 @@ describe('Resolver tracking', () => {
   test('all tree nodes', () => {
     const symbolKindSource = readFileSync(allNodePath, 'utf8');
     const results = resolveSource(symbolKindSource, true);
-    expect(results.scan.scanErrors.length).toBe(0);
-    expect(results.parse.parseErrors.length).toBe(0);
+    noParseErrors(results);
     expect(results.resolveDiagnostics.length).toBe(allNodeLocations.length);
 
     // spot each deprecated error
@@ -565,8 +564,8 @@ describe('Resolver errors', () => {
   test('list command', () => {
     const results = resolveSource(listSource);
 
-    expect(results.scan.scanErrors.length).toBe(0);
-    expect(results.parse.parseErrors.length).toBe(0);
+    expect(results.scan.scanDiagnostics.length).toBe(0);
+    expect(results.parse.parseDiagnostics.length).toBe(0);
     expect(results.resolveDiagnostics.length).toBe(listLocations.length);
 
     for (const [error, location] of zip(
@@ -600,8 +599,8 @@ describe('Resolver errors', () => {
     const defineSource = readFileSync(definedPath, 'utf8');
     const results = resolveSource(defineSource);
 
-    expect(results.scan.scanErrors.length).toBe(0);
-    expect(results.parse.parseErrors.length).toBe(0);
+    expect(results.scan.scanDiagnostics.length).toBe(0);
+    expect(results.parse.parseDiagnostics.length).toBe(0);
     expect(results.resolveDiagnostics.length).toBe(definedLocations.length);
 
     const sortedErrors = results.resolveDiagnostics.sort(
@@ -630,8 +629,8 @@ describe('Resolver errors', () => {
     const usedSource = readFileSync(usedPath, 'utf8');
     const results = resolveSource(usedSource);
 
-    expect(results.scan.scanErrors.length).toBe(0);
-    expect(results.parse.parseErrors.length).toBe(0);
+    expect(results.scan.scanDiagnostics.length).toBe(0);
+    expect(results.parse.parseDiagnostics.length).toBe(0);
     expect(results.resolveDiagnostics.length > 0).toBe(true);
 
     for (const [error, location] of zip(
@@ -658,8 +657,8 @@ describe('Resolver errors', () => {
     const shadowedSource = readFileSync(shadowPath, 'utf8');
     const results = resolveSource(shadowedSource);
 
-    expect(results.scan.scanErrors.length).toBe(0);
-    expect(results.parse.parseErrors.length).toBe(0);
+    expect(results.scan.scanDiagnostics.length).toBe(0);
+    expect(results.parse.parseDiagnostics.length).toBe(0);
     expect(results.resolveDiagnostics.length > 0).toBe(true);
 
     for (const [error, location] of zip(
@@ -690,8 +689,8 @@ describe('Resolver errors', () => {
     const deferredSource = readFileSync(deferredPath, 'utf8');
     const results = resolveSource(deferredSource);
 
-    expect(results.scan.scanErrors.length).toBe(0);
-    expect(results.parse.parseErrors.length).toBe(0);
+    expect(results.scan.scanDiagnostics.length).toBe(0);
+    expect(results.parse.parseDiagnostics.length).toBe(0);
     expect(results.resolveDiagnostics.length > 0).toBe(true);
 
     for (const [error, location] of zip(
@@ -719,8 +718,8 @@ describe('Resolver errors', () => {
     const deferredSource = readFileSync(breakPath, 'utf8');
     const results = resolveSource(deferredSource);
 
-    expect(results.scan.scanErrors.length).toBe(0);
-    expect(results.parse.parseErrors.length).toBe(0);
+    expect(results.scan.scanDiagnostics.length).toBe(0);
+    expect(results.parse.parseDiagnostics.length).toBe(0);
     expect(results.resolveDiagnostics.length > 0).toBe(true);
 
     for (const [error, location] of zip(
@@ -748,8 +747,8 @@ describe('Resolver errors', () => {
     const returnSource = readFileSync(returnPath, 'utf8');
     const results = resolveSource(returnSource);
 
-    expect(results.scan.scanErrors.length).toBe(0);
-    expect(results.parse.parseErrors.length).toBe(0);
+    expect(results.scan.scanDiagnostics.length).toBe(0);
+    expect(results.parse.parseDiagnostics.length).toBe(0);
     expect(results.resolveDiagnostics.length > 0).toBe(true);
 
     for (const [error, location] of zip(
@@ -779,8 +778,8 @@ describe('Resolver errors', () => {
     const preserveSource = readFileSync(preservePath, 'utf8');
     const results = resolveSource(preserveSource, true);
 
-    expect(results.scan.scanErrors.length).toBe(0);
-    expect(results.parse.parseErrors.length).toBe(0);
+    expect(results.scan.scanDiagnostics.length).toBe(0);
+    expect(results.parse.parseDiagnostics.length).toBe(0);
     expect(results.resolveDiagnostics.length > 0).toBe(true);
 
     const sorted = results.resolveDiagnostics.sort((a, b) =>
