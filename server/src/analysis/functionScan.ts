@@ -51,7 +51,7 @@ export class FunctionScan extends TreeTraverse {
   }
 
   /**
-   * Don't proceed further in if enter another have a function
+   * Don't proceed further in if enter another function
    * @param _ function declaration
    */
   public visitDeclFunction(_: Decl.Func): void {}
@@ -66,7 +66,7 @@ export class FunctionScan extends TreeTraverse {
   }
 
   /**
-   * DOn't proceed further if another lambda is encountered
+   * Don't proceed further if another lambda is encountered
    * @param expr lambda expression
    */
   public visitLambda(_: Expr.Lambda): void {}

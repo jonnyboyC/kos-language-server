@@ -188,7 +188,7 @@ export class LocalResolver
 
   /**
    * Visit a delegate
-   * @param _ delgate trailer
+   * @param _ delegate trailer
    */
   public visitDelegate(_: SuffixTerm.Delegate): Token[] {
     return [];

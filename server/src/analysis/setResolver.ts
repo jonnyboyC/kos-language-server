@@ -45,7 +45,7 @@ export class SetResolver
    * @param _ invalid expression
    */
   public visitExprInvalid(_: Expr.Invalid): ISetResolverResult {
-    return setResult();
+    return { set: undefined, used: [] };
   }
 
   /**
@@ -53,7 +53,7 @@ export class SetResolver
    * @param _ ternary expression
    */
   public visitTernary(_: Expr.Ternary): ISetResolverResult {
-    return setResult();
+    return { set: undefined, used: [] };
   }
 
   /**
@@ -61,7 +61,7 @@ export class SetResolver
    * @param _ binary expression
    */
   public visitBinary(_: Expr.Binary): ISetResolverResult {
-    return setResult();
+    return { set: undefined, used: [] };
   }
 
   /**
@@ -69,7 +69,7 @@ export class SetResolver
    * @param _ unary expression
    */
   public visitUnary(_: Expr.Unary): ISetResolverResult {
-    return setResult();
+    return { set: undefined, used: [] };
   }
 
   /**
@@ -77,7 +77,7 @@ export class SetResolver
    * @param _ factor expression
    */
   public visitFactor(_: Expr.Factor): ISetResolverResult {
-    return setResult();
+    return { set: undefined, used: [] };
   }
 
   /**
@@ -102,7 +102,7 @@ export class SetResolver
    * @param _ lambda expression
    */
   public visitLambda(_: Expr.Lambda): ISetResolverResult {
-    return setResult();
+    return { set: undefined, used: [] };
   }
 
   /**
@@ -110,7 +110,7 @@ export class SetResolver
    * @param _ invalid suffix term
    */
   public visitSuffixTermInvalid(_: SuffixTerm.Invalid): ISetResolverResult {
-    throw setResult();
+    throw { set: undefined, used: [] };
   }
 
   /**
@@ -142,14 +142,12 @@ export class SetResolver
       return setResult(result.set, result.used);
     }
 
-    return setResult(
-      result.set,
-      result.used,
-      expr.trailers.reduce(
-        (acc, curr) => acc.concat(this.localResolver.resolveSuffixTerm(curr)),
-        [] as Token[],
-      ),
-    );
+    const used: Token[] = [];
+    for (const trailer of expr.trailers) {
+      used.push(...this.localResolver.resolveSuffixTerm(trailer));
+    }
+
+    return setResult(result.set, result.used, used);
   }
 
   /**
@@ -157,7 +155,7 @@ export class SetResolver
    * @param _ suffix term call trailer
    */
   public visitCall(_: SuffixTerm.Call): ISetResolverResult {
-    return setResult();
+    return { set: undefined, used: [] };
   }
 
   /**
@@ -165,7 +163,7 @@ export class SetResolver
    * @param _ suffix term array index trailer
    */
   public visitArrayIndex(_: SuffixTerm.ArrayIndex): ISetResolverResult {
-    return setResult();
+    return { set: undefined, used: [] };
   }
 
   /**
@@ -173,7 +171,7 @@ export class SetResolver
    * @param _ suffix term array bracket trailer
    */
   public visitArrayBracket(_: SuffixTerm.ArrayBracket): ISetResolverResult {
-    return setResult();
+    return { set: undefined, used: [] };
   }
 
   /**
@@ -181,7 +179,7 @@ export class SetResolver
    * @param _ suffix term delegate
    */
   public visitDelegate(_: SuffixTerm.Delegate): ISetResolverResult {
-    return setResult();
+    return { set: undefined, used: [] };
   }
 
   /**
@@ -189,7 +187,7 @@ export class SetResolver
    * @param _ literal
    */
   public visitLiteral(_: SuffixTerm.Literal): ISetResolverResult {
-    return setResult();
+    return { set: undefined, used: [] };
   }
 
   /**
@@ -205,6 +203,6 @@ export class SetResolver
    * @param _ grouping suffix term
    */
   public visitGrouping(_: SuffixTerm.Grouping): ISetResolverResult {
-    return setResult();
+    return { set: undefined, used: [] };
   }
 }
