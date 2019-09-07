@@ -372,10 +372,13 @@ export class AnalysisService {
 
     performance.mark('control-flow-start');
 
-    const flow = controlFlow.flow();
-    const flowDiagnostics = flow.flowDiagnostics.map(diagnostic =>
-      addDiagnosticsUri(diagnostic, uri),
-    );
+    const flowGraph = controlFlow.flow();
+
+    const flowDiagnostics = empty(flowGraph)
+      ? []
+      : flowGraph
+          .reachable()
+          .map(diagnostic => addDiagnosticsUri(diagnostic, uri));
 
     performance.mark('control-flow-end');
 

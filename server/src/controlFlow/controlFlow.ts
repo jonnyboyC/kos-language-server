@@ -6,14 +6,11 @@ import * as Stmt from '../parser/stmt';
 import { mockLogger, mockTracer, logException } from '../utilities/logger';
 import { Script } from '../entities/script';
 import { empty } from '../utilities/typeGuards';
-import { BlockKind, Boundary, ReturnContext, Flow } from './types';
+import { BlockKind, Boundary, ReturnContext } from './types';
 import { IStack } from '../analysis/types';
 import { BranchJump } from './branchJump';
 import { GenerateBlocks } from './generateBlocks';
-import { dfs } from '../utilities/graphUtils';
-import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
-import { createDiagnostic } from '../utilities/diagnosticsUtils';
-import { rangeContains } from '../utilities/positionUtils';
+import { FlowGraph } from './flowGraph';
 
 export class ControlFlow
   implements
@@ -55,10 +52,18 @@ export class ControlFlow
   private readonly returnContext: IStack<ReturnContext>;
 
   /**
-   * Blocks that are detached from the script
+   * Boundaries of functions through this script
    */
-  private readonly detachedBlocks: BasicBlock[];
+  private readonly functionBoundaries: Boundary[];
 
+  /**
+   * Boundaries of triggers throughout this script
+   */
+  private readonly triggerBoundaries: Boundary[];
+
+  /**
+   * Map from each statement to it's basic block
+   */
   private stmtBlocks: Map<IStmt, BasicBlock>;
 
   constructor(
@@ -75,22 +80,24 @@ export class ControlFlow
     this.triggerContexts = [];
     this.returnContext = [];
 
-    this.detachedBlocks = [];
+    this.functionBoundaries = [];
+    this.triggerBoundaries = [];
     this.stmtBlocks = new Map();
   }
 
   /**
    * Generate a control flow diagram
    */
-  public flow(): Flow {
+  public flow(): Maybe<FlowGraph> {
     const gen = new GenerateBlocks(this.script);
     this.stmtBlocks = gen.generate();
 
     // resolve the sequence of statements
-    const scriptEntry = new BasicBlock(BlockKind.scriptEntry);
+    const entry = new BasicBlock(BlockKind.scriptEntry);
+    const exit = new BasicBlock(BlockKind.scriptEntry);
 
     try {
-      let block: Maybe<BasicBlock> = scriptEntry;
+      let block: Maybe<BasicBlock> = entry;
       for (const stmt of this.script.stmts) {
         block = this.stmtFlow(stmt, block);
 
@@ -99,38 +106,20 @@ export class ControlFlow
         }
       }
 
-      const reachableBlock = dfs(scriptEntry);
-      for (const entry of this.detachedBlocks) {
-        for (const block of dfs(entry)) {
-          reachableBlock.add(block);
-        }
-      }
+      // last blocks jumps to script exit
+      block.addJump(exit);
 
-      const flowDiagnostics: Diagnostic[] = [];
-      let lastStmt: Maybe<IStmt> = undefined;
-
-      for (const [stmt, block] of this.stmtBlocks) {
-        if (!reachableBlock.has(block)) {
-          if (!empty(lastStmt) && rangeContains(lastStmt, stmt)) {
-            continue;
-          }
-
-          flowDiagnostics.push(
-            createDiagnostic(
-              stmt,
-              'Unreachable code',
-              DiagnosticSeverity.Information,
-            ),
-          );
-          lastStmt = stmt;
-        }
-      }
-
-      return { scriptEntry, flowDiagnostics };
+      // return flow graph
+      return new FlowGraph(
+        { entry, exit },
+        this.funcContexts as Boundary[],
+        this.triggerContexts as Boundary[],
+        this.stmtBlocks,
+      );
     } catch (err) {
       this.logger.error('Error occurred in control flow');
       logException(this.logger, this.tracer, err, LogLevel.error);
-      return { scriptEntry, flowDiagnostics: [] };
+      return undefined;
     }
   }
 
@@ -195,7 +184,7 @@ export class ControlFlow
 
     const entry = new BasicBlock(BlockKind.unknownEntry);
     const exit = new BasicBlock(BlockKind.unknownExit);
-    this.detachedBlocks.push(entry);
+    this.functionBoundaries.push({ entry, exit });
 
     this.trackFunc(entry, exit, () => {
       const finalBlock = this.stmtFlow(decl.block, entry);
@@ -518,7 +507,7 @@ export class ControlFlow
     const entry = new BasicBlock(BlockKind.unknownEntry);
     const exit = new BasicBlock(BlockKind.unknownExit);
 
-    this.detachedBlocks.push(entry);
+    this.triggerBoundaries.push({ entry, exit });
 
     this.trackTrigger(entry, exit, () => {
       // process the body block
@@ -642,7 +631,7 @@ export class ControlFlow
     const entry = new BasicBlock(BlockKind.unknownEntry);
     const exit = new BasicBlock(BlockKind.unknownExit);
 
-    this.detachedBlocks.push(entry);
+    this.triggerBoundaries.push({ entry, exit });
 
     this.trackTrigger(entry, exit, () => {
       // process the body block
@@ -941,7 +930,7 @@ export class ControlFlow
 
     const entry = new BasicBlock(BlockKind.unknownEntry);
     const exit = new BasicBlock(BlockKind.unknownExit);
-    this.detachedBlocks.push(entry);
+    this.functionBoundaries.push({ entry, exit });
 
     this.trackFunc(entry, exit, () => {
       const finalBlock = this.stmtFlow(expr.block, entry);

@@ -1,6 +1,5 @@
 import { Tokenized } from '../scanner/types';
 import { Ast } from '../parser/types';
-import { Flow } from '../controlFlow/types';
 import { Scanner } from '../scanner/scanner';
 import { Parser } from '../parser/parser';
 import { ControlFlow } from '../controlFlow/controlFlow';
@@ -9,13 +8,14 @@ import { zip } from '../utilities/arrayUtils';
 import { DiagnosticSeverity, Range } from 'vscode-languageserver';
 import { join } from 'path';
 import { readFileSync } from 'fs';
+import { FlowGraph } from '../controlFlow/flowGraph';
 
 const fakeUri = 'C:\\fake.ks';
 
 interface IFlowResults {
   scan: Tokenized;
   parse: Ast;
-  flow: Flow;
+  flow?: FlowGraph;
 }
 
 // parse source
@@ -49,7 +49,8 @@ const noParseErrors = (result: IFlowResults): void => {
 const noErrors = (result: IFlowResults): void => {
   expect(result.scan.scanDiagnostics.map(e => e.message)).toEqual([]);
   expect(result.parse.parseDiagnostics.map(e => e.message)).toEqual([]);
-  expect(result.flow.flowDiagnostics.map(e => e.message)).toEqual([]);
+  expect(result.flow).toBeDefined();
+  expect(result.flow!.reachable().map(e => e.message)).toEqual([]);
 };
 
 const postReturnSource = `
@@ -111,10 +112,12 @@ describe('Unreachable code', () => {
     noParseErrors(result);
 
     const { flow } = result;
+    expect(flow).toBeDefined();
 
-    expect(flow.flowDiagnostics.length).toBe(returnLocations.length);
+    const flowDiagnostics = flow!.reachable();
+    expect(flowDiagnostics.length).toBe(returnLocations.length);
     for (const [diagnostic, location] of zip(
-      flow.flowDiagnostics,
+      flowDiagnostics,
       returnLocations,
     )) {
       expect(diagnostic.severity).toBe(DiagnosticSeverity.Information);
@@ -136,12 +139,11 @@ describe('Unreachable code', () => {
     noParseErrors(result);
 
     const { flow } = result;
+    expect(flow).toBeDefined();
 
-    expect(flow.flowDiagnostics.length).toBe(breakLocations.length);
-    for (const [diagnostic, location] of zip(
-      flow.flowDiagnostics,
-      breakLocations,
-    )) {
+    const flowDiagnostics = flow!.reachable();
+    expect(flowDiagnostics.length).toBe(breakLocations.length);
+    for (const [diagnostic, location] of zip(flowDiagnostics, breakLocations)) {
       expect(diagnostic.severity).toBe(DiagnosticSeverity.Information);
       expect(diagnostic.range.start).toEqual(location.start);
       expect(diagnostic.range.end).toEqual(location.end);
