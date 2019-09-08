@@ -39,6 +39,7 @@ Currently the kos-language-server 0.10.1 implements the follow features
     - potentially undefined symbols
     - symbols that are shadowed by other symbols
     - potentially unused symbols
+    - unreachable code
 - Go to definition for symbols and run statements. Currently for clashing globals the first found will be shown
 - Refactoring
   - Rename symbol
