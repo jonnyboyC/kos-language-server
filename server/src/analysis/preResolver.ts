@@ -514,11 +514,11 @@ export class PreResolver
     return accumulateErrors(expr.args, this.resolveExpr.bind(this));
   }
 
-  public visitArrayIndex(_: SuffixTerm.ArrayIndex): Diagnostics {
+  public visitHashIndex(_: SuffixTerm.HashIndex): Diagnostics {
     return [];
   }
 
-  public visitArrayBracket(expr: SuffixTerm.ArrayBracket): Diagnostics {
+  public visitBracketIndex(expr: SuffixTerm.BracketIndex): Diagnostics {
     return this.resolveExpr(expr.index);
   }
 

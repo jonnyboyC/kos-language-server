@@ -141,11 +141,11 @@ export class SuffixTrailer extends SuffixTermBase {
       if (trailers.length > 0) {
         const lastTrailer = trailers[trailers.length - 1];
 
-        if (lastTrailer instanceof ArrayBracket) {
+        if (lastTrailer instanceof BracketIndex) {
           return lastTrailer.open.tracker;
         }
 
-        if (lastTrailer instanceof ArrayIndex) {
+        if (lastTrailer instanceof HashIndex) {
           return undefined;
         }
 
@@ -324,7 +324,7 @@ export class Call extends SuffixTermBase {
 /**
  * Class containing all array index suffix term trailers
  */
-export class ArrayIndex extends SuffixTermBase {
+export class HashIndex extends SuffixTermBase {
   /**
    * Grammar for the array index suffix term trailers
    */
@@ -359,18 +359,18 @@ export class ArrayIndex extends SuffixTermBase {
     visitor: ISuffixTermVisitor<T>,
     parameters: Parameters<T>,
   ): ReturnType<T> {
-    return visitor.visitArrayIndex(this, parameters);
+    return visitor.visitHashIndex(this, parameters);
   }
 
   public static classAccept<T>(visitor: ISuffixTermClassVisitor<T>): T {
-    return visitor.visitArrayIndex(this);
+    return visitor.visitHashIndex(this);
   }
 }
 
 /**
  * Class containing all valid array bracket suffix term trailers
  */
-export class ArrayBracket extends SuffixTermBase {
+export class BracketIndex extends SuffixTermBase {
   /**
    * Grammar for the array bracket suffix term
    */
@@ -414,11 +414,11 @@ export class ArrayBracket extends SuffixTermBase {
     visitor: ISuffixTermVisitor<T>,
     parameters: Parameters<T>,
   ): ReturnType<T> {
-    return visitor.visitArrayBracket(this, parameters);
+    return visitor.visitBracketIndex(this, parameters);
   }
 
   public static classAccept<T>(visitor: ISuffixTermClassVisitor<T>): T {
-    return visitor.visitArrayBracket(this);
+    return visitor.visitBracketIndex(this);
   }
 }
 
@@ -630,8 +630,8 @@ export const validSuffixTerms: Constructor<SuffixTermBase>[] = [
   SuffixTrailer,
   SuffixTerm,
   Call,
-  ArrayIndex,
-  ArrayBracket,
+  HashIndex,
+  BracketIndex,
   Delegate,
   Literal,
   Identifier,
@@ -646,8 +646,8 @@ const atomTypes: [ISuffixTermClass, Distribution][] = [
 
 const suffixTermTrailers: [ISuffixTermClass, Distribution][] = [
   [Call, createConstant(0.8)],
-  [ArrayBracket, createConstant(1)],
-  [ArrayIndex, createConstant(0.3)],
+  [BracketIndex, createConstant(1)],
+  [HashIndex, createConstant(0.3)],
 ];
 
 const atom = createGrammarUnion(...atomTypes);
@@ -668,7 +668,7 @@ Call.grammar = [
   TokenType.bracketClose,
 ];
 
-ArrayIndex.grammar = [
+HashIndex.grammar = [
   TokenType.arrayIndex,
   createGrammarUnion(
     [TokenType.integer, createNormal(3, 1)],
@@ -676,7 +676,7 @@ ArrayIndex.grammar = [
   ),
 ];
 
-ArrayBracket.grammar = [TokenType.bracketOpen, expr, TokenType.bracketClose];
+BracketIndex.grammar = [TokenType.bracketOpen, expr, TokenType.bracketClose];
 
 Delegate.grammar = [TokenType.atSign];
 

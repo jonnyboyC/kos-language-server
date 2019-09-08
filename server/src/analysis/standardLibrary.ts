@@ -340,7 +340,7 @@ const functionTypes: [string[], IType][] = [
     createFunctionType(
       'path',
       pathType,
-      createUnion(true, stringType, pathType),
+      createUnion(true, stringType, pathType, noneType),
     ),
   ],
   [

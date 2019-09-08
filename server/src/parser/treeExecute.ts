@@ -177,10 +177,10 @@ export abstract class TreeExecute<T>
   public visitCall(suffixTerm: SuffixTerm.Call): T {
     return this.nodeAction(suffixTerm);
   }
-  public visitArrayIndex(suffixTerm: SuffixTerm.ArrayIndex): T {
+  public visitHashIndex(suffixTerm: SuffixTerm.HashIndex): T {
     return this.nodeAction(suffixTerm);
   }
-  public visitArrayBracket(suffixTerm: SuffixTerm.ArrayBracket): T {
+  public visitBracketIndex(suffixTerm: SuffixTerm.BracketIndex): T {
     return this.nodeAction(suffixTerm);
   }
   public visitDelegate(suffixTerm: SuffixTerm.Delegate): T {

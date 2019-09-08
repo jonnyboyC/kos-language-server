@@ -1089,11 +1089,11 @@ export class Resolver
     return accumulateErrors(suffixTerm.args, this.resolveExprBind);
   }
 
-  public visitArrayIndex(_: SuffixTerm.ArrayIndex): Diagnostics {
+  public visitHashIndex(_: SuffixTerm.HashIndex): Diagnostics {
     return [];
   }
 
-  public visitArrayBracket(suffixTerm: SuffixTerm.ArrayBracket): Diagnostics {
+  public visitBracketIndex(suffixTerm: SuffixTerm.BracketIndex): Diagnostics {
     return this.resolveExpr(suffixTerm.index);
   }
 

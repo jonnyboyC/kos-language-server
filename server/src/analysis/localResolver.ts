@@ -174,7 +174,7 @@ export class LocalResolver
    * Visit an array index
    * @param _ array index trailer
    */
-  public visitArrayIndex(_: SuffixTerm.ArrayIndex): Token[] {
+  public visitHashIndex(_: SuffixTerm.HashIndex): Token[] {
     return [];
   }
 
@@ -182,7 +182,7 @@ export class LocalResolver
    * Visit an array bracket
    * @param suffixTerm array bracket trailer
    */
-  public visitArrayBracket(suffixTerm: SuffixTerm.ArrayBracket): Token[] {
+  public visitBracketIndex(suffixTerm: SuffixTerm.BracketIndex): Token[] {
     return this.executeAs(false, () => this.resolveExpr(suffixTerm.index));
   }
 

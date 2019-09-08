@@ -230,8 +230,8 @@ export abstract class TreeTraverse
       this.exprAction(arg);
     }
   }
-  public visitArrayIndex(_: SuffixTerm.ArrayIndex): void {}
-  public visitArrayBracket(suffixTerm: SuffixTerm.ArrayBracket): void {
+  public visitHashIndex(_: SuffixTerm.HashIndex): void {}
+  public visitBracketIndex(suffixTerm: SuffixTerm.BracketIndex): void {
     this.exprAction(suffixTerm.index);
   }
   public visitDelegate(_: SuffixTerm.Delegate): void {}

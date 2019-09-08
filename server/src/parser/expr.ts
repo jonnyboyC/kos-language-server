@@ -498,11 +498,11 @@ export class Suffix extends Expr {
       if (trailers.length > 0) {
         const lastTrailer = trailers[trailers.length - 1];
 
-        if (lastTrailer instanceof SuffixTerm.ArrayBracket) {
+        if (lastTrailer instanceof SuffixTerm.BracketIndex) {
           return lastTrailer.open.tracker;
         }
 
-        if (lastTrailer instanceof SuffixTerm.ArrayIndex) {
+        if (lastTrailer instanceof SuffixTerm.HashIndex) {
           return undefined;
         }
 

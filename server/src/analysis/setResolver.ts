@@ -162,7 +162,7 @@ export class SetResolver
    * Resolve array index trailer
    * @param _ suffix term array index trailer
    */
-  public visitArrayIndex(_: SuffixTerm.ArrayIndex): ISetResolverResult {
+  public visitHashIndex(_: SuffixTerm.HashIndex): ISetResolverResult {
     return { set: undefined, used: [] };
   }
 
@@ -170,7 +170,7 @@ export class SetResolver
    * Resolve array bracket trailer
    * @param _ suffix term array bracket trailer
    */
-  public visitArrayBracket(_: SuffixTerm.ArrayBracket): ISetResolverResult {
+  public visitBracketIndex(_: SuffixTerm.BracketIndex): ISetResolverResult {
     return { set: undefined, used: [] };
   }
 

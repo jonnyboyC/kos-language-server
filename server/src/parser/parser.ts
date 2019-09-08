@@ -1773,34 +1773,34 @@ export class Parser {
   }
 
   // generate array bracket expression
-  private arrayBracket(): INodeResult<SuffixTerm.ArrayBracket> {
+  private arrayBracket(): INodeResult<SuffixTerm.BracketIndex> {
     const open = this.previous();
     const index = this.expression();
 
     const close = this.consumeTokenThrow(
       'Expected "]" at end of array index.',
-      SuffixTerm.ArrayBracket,
+      SuffixTerm.BracketIndex,
       TokenType.squareClose,
     );
 
     return nodeResult(
-      new SuffixTerm.ArrayBracket(open, index.value, close),
+      new SuffixTerm.BracketIndex(open, index.value, close),
       index.errors,
     );
   }
 
   // generate array index expression
-  private arrayIndex(): INodeResult<SuffixTerm.ArrayIndex> {
+  private arrayIndex(): INodeResult<SuffixTerm.HashIndex> {
     const indexer = this.previous();
 
     // check for integer or identifier
     const index = this.consumeTokensThrow(
       'Expected integer or identifer.',
-      SuffixTerm.ArrayIndex,
+      SuffixTerm.HashIndex,
       [TokenType.integer, TokenType.identifier],
     );
 
-    return nodeResult(new SuffixTerm.ArrayIndex(indexer, index), []);
+    return nodeResult(new SuffixTerm.HashIndex(indexer, index), []);
   }
 
   // parse lambda expression

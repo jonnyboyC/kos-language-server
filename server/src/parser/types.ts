@@ -29,8 +29,8 @@ export type NodeData<T> = Properties<
 
 export type SuffixTermTrailer =
   | SuffixTerm.Call
-  | SuffixTerm.ArrayBracket
-  | SuffixTerm.ArrayIndex
+  | SuffixTerm.BracketIndex
+  | SuffixTerm.HashIndex
   | SuffixTerm.Delegate;
 
 export type Atom =
@@ -253,12 +253,12 @@ export interface ISuffixTermVisitor<T extends (...args: any) => any> {
     suffixTerm: SuffixTerm.Call,
     parameters: Parameters<T>,
   ): ReturnType<T>;
-  visitArrayIndex(
-    suffixTerm: SuffixTerm.ArrayIndex,
+  visitHashIndex(
+    suffixTerm: SuffixTerm.HashIndex,
     parameters: Parameters<T>,
   ): ReturnType<T>;
-  visitArrayBracket(
-    suffixTerm: SuffixTerm.ArrayBracket,
+  visitBracketIndex(
+    suffixTerm: SuffixTerm.BracketIndex,
     parameters: Parameters<T>,
   ): ReturnType<T>;
   visitDelegate(
@@ -302,8 +302,8 @@ export interface ISuffixTermClassVisitor<T> {
   visitSuffixTrailer(termClass: Constructor<SuffixTerm.SuffixTrailer>): T;
   visitSuffixTerm(termClass: Constructor<SuffixTerm.SuffixTerm>): T;
   visitCall(termClass: Constructor<SuffixTerm.Call>): T;
-  visitArrayIndex(termClass: Constructor<SuffixTerm.ArrayIndex>): T;
-  visitArrayBracket(termClass: Constructor<SuffixTerm.ArrayBracket>): T;
+  visitHashIndex(termClass: Constructor<SuffixTerm.HashIndex>): T;
+  visitBracketIndex(termClass: Constructor<SuffixTerm.BracketIndex>): T;
   visitDelegate(termClass: Constructor<SuffixTerm.Delegate>): T;
   visitLiteral(termClass: Constructor<SuffixTerm.Literal>): T;
   visitIdentifier(termClass: Constructor<SuffixTerm.Identifier>): T;

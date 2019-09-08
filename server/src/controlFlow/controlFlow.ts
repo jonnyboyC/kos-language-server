@@ -1,5 +1,13 @@
-import { IExprVisitor, IStmtVisitor, IStmt, IExpr } from '../parser/types';
+import {
+  IExprVisitor,
+  IStmtVisitor,
+  IStmt,
+  IExpr,
+  ISuffixTermVisitor,
+  ISuffixTerm,
+} from '../parser/types';
 import { BasicBlock } from './basicBlock';
+import * as SuffixTerm from '../parser/suffixTerm';
 import * as Expr from '../parser/expr';
 import * as Decl from '../parser/declare';
 import * as Stmt from '../parser/stmt';
@@ -14,6 +22,7 @@ import { FlowGraph } from './flowGraph';
 
 export class ControlFlow
   implements
+    ISuffixTermVisitor<(basicBlock: BasicBlock) => void>,
     IExprVisitor<(basicBlock: BasicBlock) => void>,
     IStmtVisitor<(basicBlock: BasicBlock) => Maybe<BasicBlock>> {
   /**
@@ -112,8 +121,8 @@ export class ControlFlow
       // return flow graph
       return new FlowGraph(
         { entry, exit },
-        this.funcContexts as Boundary[],
-        this.triggerContexts as Boundary[],
+        this.functionBoundaries,
+        this.triggerBoundaries,
         this.stmtBlocks,
       );
     } catch (err) {
@@ -135,10 +144,19 @@ export class ControlFlow
   /**
    * Check the flow of this expression
    * @param expr expression to check
-   * @param prevBlock the previous basic block
+   * @param block the current basic block
    */
-  private exprFlow(expr: IExpr, prevBlock: BasicBlock): void {
-    return expr.accept(this, [prevBlock]);
+  private exprFlow(expr: IExpr, block: BasicBlock): void {
+    return expr.accept(this, [block]);
+  }
+
+  /**
+   * Check the flow of this suffix term
+   * @param suffixTerm suffix term to check
+   * @param block the current basic block
+   */
+  private suffixTermFlow(suffixTerm: ISuffixTerm, block: BasicBlock): void {
+    return suffixTerm.accept(this, [block]);
   }
 
   /**
@@ -840,7 +858,7 @@ export class ControlFlow
   /**
    * Visit a empty statement
    * @param stmt the empty statement
-   * @param prevBlock the current block
+   * @param prevBlock the previous block
    */
   public visitEmpty(stmt: Stmt.Empty, [prevBlock]: [BasicBlock]): BasicBlock {
     const block = this.getBlock(stmt);
@@ -865,7 +883,7 @@ export class ControlFlow
   /**
    * Visit a invalid expression
    * @param expr the invalid expression
-   * @param subBlock the current subBlock
+   * @param block the current subBlock
    */
   public visitExprInvalid(expr: Expr.Invalid, [block]: [BasicBlock]): void {
     block.exprs.push(expr);
@@ -874,7 +892,7 @@ export class ControlFlow
   /**
    * Visit a ternary expression
    * @param expr the ternary expression
-   * @param subBlock the current subBlock
+   * @param block the current subBlock
    */
   public visitTernary(expr: Expr.Ternary, [block]: [BasicBlock]): void {
     this.exprFlow(expr.condition, block);
@@ -885,7 +903,7 @@ export class ControlFlow
   /**
    * Visit a binary expression
    * @param expr the binary expression
-   * @param subBlock the current subBlock
+   * @param block the current subBlock
    */
   public visitBinary(expr: Expr.Binary, [block]: [BasicBlock]): void {
     this.exprFlow(expr.left, block);
@@ -895,7 +913,7 @@ export class ControlFlow
   /**
    * Visit a unary expression
    * @param expr the unary expression
-   * @param subBlock the current subBlock
+   * @param block the current subBlock
    */
   public visitUnary(expr: Expr.Unary, [block]: [BasicBlock]): void {
     this.exprFlow(expr.factor, block);
@@ -904,7 +922,7 @@ export class ControlFlow
   /**
    * Visit a factor expression
    * @param expr the factor expression
-   * @param subBlock the current subBlock
+   * @param block the current subBlock
    */
   public visitFactor(expr: Expr.Factor, [block]: [BasicBlock]): void {
     this.exprFlow(expr.suffix, block);
@@ -914,16 +932,21 @@ export class ControlFlow
   /**
    * Visit a factor expression
    * @param expr the factor expression
-   * @param subBlock the current subBlock
+   * @param block the current subBlock
    */
   public visitSuffix(expr: Expr.Suffix, [block]: [BasicBlock]): void {
+    this.suffixTermFlow(expr.suffixTerm, block);
+
+    if (!empty(expr.trailer)) {
+      this.suffixTermFlow(expr.trailer, block);
+    }
     block.exprs.push(expr);
   }
 
   /**
    * Visit a lambda expression
    * @param expr the lambda expression
-   * @param subBlock the current subBlock
+   * @param block the current subBlock
    */
   public visitLambda(expr: Expr.Lambda, [block]: [BasicBlock]): void {
     block.exprs.push(expr);
@@ -940,6 +963,111 @@ export class ControlFlow
         finalBlock.addJump(exit);
       }
     });
+  }
+
+  /**
+   * Visit an invalid suffix term
+   * @param _ invalid suffix term
+   * @param __ current block
+   */
+  public visitSuffixTermInvalid(
+    _: SuffixTerm.Invalid,
+    __: [BasicBlock],
+  ): void {}
+
+  /**
+   * Visit a suffix trailer
+   * @param suffixTerm suffix term trailer
+   * @param block current block
+   */
+  public visitSuffixTrailer(
+    suffixTerm: SuffixTerm.SuffixTrailer,
+    [block]: [BasicBlock],
+  ): void {
+    this.suffixTermFlow(suffixTerm.suffixTerm, block);
+
+    if (!empty(suffixTerm.trailer)) {
+      this.suffixTermFlow(suffixTerm.trailer, block);
+    }
+  }
+
+  /**
+   * Visit a suffix term
+   * @param suffixTerm suffix term
+   * @param block current block
+   */
+  public visitSuffixTerm(
+    suffixTerm: SuffixTerm.SuffixTerm,
+    [block]: [BasicBlock],
+  ): void {
+    this.suffixTermFlow(suffixTerm.atom, block);
+
+    for (const trailer of suffixTerm.trailers) {
+      this.suffixTermFlow(trailer, block);
+    }
+  }
+
+  /**
+   * Visit a call trailer
+   * @param suffixTerm suffix term call
+   * @param block current block
+   */
+  public visitCall(suffixTerm: SuffixTerm.Call, [block]: [BasicBlock]): void {
+    for (const arg of suffixTerm.args) {
+      this.exprFlow(arg, block);
+    }
+  }
+
+  /**
+   * Visit a hash index
+   * @param _ suffix term hash index
+   * @param __ current block
+   */
+  public visitHashIndex(_: SuffixTerm.HashIndex, __: [BasicBlock]): void {}
+
+  /**
+   * Visit a bracket index
+   * @param suffixTerm suffix term bracket index
+   * @param block current block
+   */
+  public visitBracketIndex(
+    suffixTerm: SuffixTerm.BracketIndex,
+    [block]: [BasicBlock],
+  ): void {
+    this.exprFlow(suffixTerm.index, block);
+  }
+
+  /**
+   * Visit a delegate trailer
+   * @param _ suffix term delegate
+   * @param __ current block
+   */
+  public visitDelegate(_: SuffixTerm.Delegate, __: [BasicBlock]): void {}
+
+  /**
+   * Visit a literal
+   * @param _ suffix term literal
+   * @param __ current block
+   */
+  public visitLiteral(_: SuffixTerm.Literal, __: [BasicBlock]): void {}
+
+  /**
+   * Visit a identifier
+   * @param _ suffix term identifier
+   * @param __ current block
+   */
+  public visitIdentifier(_: SuffixTerm.Identifier, __: [BasicBlock]): void {}
+
+  /**
+   * Visit a grouping
+   * @param suffixTerm suffix term grouping
+   * @param block current block
+   */
+  public visitGrouping(
+    suffixTerm: SuffixTerm.Grouping,
+    [block]: [BasicBlock],
+  ): void {
+    this.exprFlow(suffixTerm.expr, block);
   }
 
   /**

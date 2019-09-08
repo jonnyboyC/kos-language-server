@@ -291,10 +291,24 @@ export class UnionType implements IType {
   public toString(): string {
     if (this.param) {
       const optional = this.types.some(type => type.name === 'none');
-      return this.types
-        .filter(type => type.name !== 'none')
-        .map(type => `${type.toString()}${optional ? '?' : ''}`)
-        .join(' or ');
+
+      if (optional) {
+        if (this.types.length <= 2) {
+          return this.types
+            .filter(type => type.name !== 'none')
+            .map(type => `${type.toString()}?`)
+            .join(' or ');
+        }
+
+        const typeString = this.types
+          .filter(type => type.name !== 'none')
+          .map(type => type.toString())
+          .join(' or ');
+
+        return `(${typeString})?`;
+      }
+
+      return this.types.map(type => type.toString()).join(' or ');
     }
 
     return this.types.map(type => type.toString()).join(' or ');

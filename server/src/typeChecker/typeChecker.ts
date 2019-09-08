@@ -1412,8 +1412,8 @@ export class TypeChecker
    * @param suffixTerm the current array index
    * @param builder the current type
    */
-  public visitArrayIndex(
-    suffixTerm: SuffixTerm.ArrayIndex,
+  public visitHashIndex(
+    suffixTerm: SuffixTerm.HashIndex,
     [builder]: [SuffixTypeBuilder],
   ): Diagnostics {
     if (!builder.isTrailer()) {
@@ -1486,8 +1486,8 @@ export class TypeChecker
    * @param suffixTerm the current array bracket expression
    * @param builder the suffix type builder
    */
-  public visitArrayBracket(
-    suffixTerm: SuffixTerm.ArrayBracket,
+  public visitBracketIndex(
+    suffixTerm: SuffixTerm.BracketIndex,
     [builder]: [SuffixTypeBuilder],
   ): Diagnostics {
     if (!builder.isTrailer()) {
