@@ -76,6 +76,11 @@ local x is {
   return.
   print("post").
 }.
+
+local y is ({
+  return.
+  print("post").
+}).
 `;
 
 const postBreakSource = `
@@ -97,6 +102,13 @@ from { local x is 0. } until x > 10 step { set x to x + 1. } do {
   break.
   print(i).
 }
+
+local x is ({
+  for i in range(10) {
+    break.
+    print(i).
+  }
+}).
 `;
 
 describe('Unreachable code', () => {
@@ -105,6 +117,7 @@ describe('Unreachable code', () => {
     { start: new Marker(9, 2), end: new Marker(9, 15) },
     { start: new Marker(14, 2), end: new Marker(16, 3) },
     { start: new Marker(21, 2), end: new Marker(21, 15) },
+    { start: new Marker(26, 2), end: new Marker(26, 15) },
   ];
 
   test('post return', () => {
@@ -131,7 +144,7 @@ describe('Unreachable code', () => {
     { start: new Marker(7, 2), end: new Marker(7, 10) },
     { start: new Marker(12, 2), end: new Marker(12, 10) },
     { start: new Marker(15, 41), end: new Marker(15, 60) },
-    { start: new Marker(17, 2), end: new Marker(17, 10) },
+    { start: new Marker(23, 4), end: new Marker(23, 13) },
   ];
 
   test('post break', () => {
