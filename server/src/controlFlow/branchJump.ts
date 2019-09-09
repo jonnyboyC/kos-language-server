@@ -3,6 +3,9 @@ import { IExpr } from '../parser/types';
 import { ReachableJumps } from './types';
 import { Narrowing } from './narrowing';
 
+/**
+ * A class representing control from through a branch jump
+ */
 export class BranchJump {
   /**
    * What was the condition associated with this jump
@@ -27,7 +30,7 @@ export class BranchJump {
   /**
    * What narrowings are applied on the true branch
    */
-  public narrowing: Narrowing[];
+  public narrowings: Narrowing[];
 
   /**
    * Construct a new branch jump
@@ -40,6 +43,6 @@ export class BranchJump {
     this.trueBlock = trueBlock;
     this.falseBlock = falseBlock;
     this.reachable = ReachableJumps.both;
-    this.narrowing = [];
+    this.narrowings = [];
   }
 }
