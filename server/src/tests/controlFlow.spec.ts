@@ -144,7 +144,8 @@ describe('Unreachable code', () => {
     { start: new Marker(7, 2), end: new Marker(7, 10) },
     { start: new Marker(12, 2), end: new Marker(12, 10) },
     { start: new Marker(15, 41), end: new Marker(15, 60) },
-    { start: new Marker(23, 4), end: new Marker(23, 13) },
+    { start: new Marker(17, 2), end: new Marker(17, 10) },
+    { start: new Marker(23, 4), end: new Marker(23, 12) },
   ];
 
   test('post break', () => {

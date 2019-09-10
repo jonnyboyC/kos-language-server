@@ -1,3 +1,28 @@
+# [0.11.0] (2019-8-30)
+
+## Bug Fixes
+- **Path type declaration fixed** This is a minor type declaration fix to the `path()` function the type definition has been updated to `path: ((string or path)?) => path` indicates that a path can be constructed from a string, a path, or nothing. 
+
+## Features
+- **Control Flow Analysis** The language server can now find cases of unreachable code. Two simples examples are below.
+
+    for i in range(3) {
+        break.
+        print(i) // <- now indicates this is unreachable
+    }
+
+    function example {
+        parameter x.
+
+        if x < 3 {
+            return true.
+            print("Less than 3") // <- now indicates this is unreachable
+        }
+
+        return false
+    }
+
+
 # [0.10.1] (2019-8-30)
 
 ## Bug Fixes
