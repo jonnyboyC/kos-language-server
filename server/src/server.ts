@@ -64,12 +64,12 @@ const defaultConfiguration: KLSConfiguration = {
     hasConfiguration: false,
     hasWorkspaceFolder: false,
   },
-  keywords: keywordCompletions(CaseKind.camelcase),
+  keywords: keywordCompletions(CaseKind.camelCase),
   clientConfig: defaultClientConfiguration,
 };
 
 const kls = new KLS(
-  CaseKind.camelcase,
+  CaseKind.camelCase,
   new Logger(connection.console, LogLevel.info),
   connection.tracer,
   connection,

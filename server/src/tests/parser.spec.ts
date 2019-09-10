@@ -1,4 +1,4 @@
-import { readdirSync, statSync, readFileSync } from 'fs';
+import { readFileSync } from 'fs';
 import { join } from 'path';
 import { Diagnostic } from 'vscode-languageserver';
 import { Tokenized } from '../scanner/types';
@@ -9,7 +9,7 @@ import {
   Atom,
   SuffixTermTrailer,
   ScopeKind,
-  ParseResult,
+  Ast,
 } from '../parser/types';
 import { Parser } from '../parser/parser';
 import { TokenCheck } from '../parser/tokenCheck';
@@ -19,6 +19,7 @@ import * as Expr from '../parser/expr';
 import * as Decl from '../parser/declare';
 import { empty } from '../utilities/typeGuards';
 import * as SuffixTerm from '../parser/suffixTerm';
+import { walkDir } from '../utilities/fsUtils';
 
 // scan source file
 const scan = (source: string): Tokenized => {
@@ -30,14 +31,14 @@ const scan = (source: string): Tokenized => {
 const parseExpression = (
   source: string,
 ): [INodeResult<IExpr>, Diagnostic[]] => {
-  const { tokens, scanErrors } = scan(source);
+  const { tokens, scanDiagnostics: scanErrors } = scan(source);
   const parser = new Parser('', tokens);
   return [parser.parseExpression(), scanErrors];
 };
 
 // parse source expression
-const parse = (source: string): ParseResult => {
-  const { tokens, scanErrors } = scan(source);
+const parse = (source: string): Ast => {
+  const { tokens, scanDiagnostics: scanErrors } = scan(source);
   expect(scanErrors.length).toBe(0);
 
   const parser = new Parser('', tokens);
@@ -46,16 +47,7 @@ const parse = (source: string): ParseResult => {
 
 const testDir = join(__dirname, '../../../kerboscripts/parser_valid/');
 
-type callbackFunc = (fileName: string) => void;
 const tokenCheck = new TokenCheck();
-
-const walkDir = (dir: string, callback: callbackFunc): void => {
-  readdirSync(dir).forEach(f => {
-    const dirPath = join(dir, f);
-    const isDirectory = statSync(dirPath).isDirectory();
-    isDirectory ? walkDir(dirPath, callback) : callback(join(dir, f));
-  });
-};
 
 describe('Parse all test files', () => {
   test('parse all', () => {
@@ -63,13 +55,13 @@ describe('Parse all test files', () => {
       const kosFile = readFileSync(filePath, 'utf8');
 
       const scanner = new Scanner(kosFile, filePath);
-      const { tokens, scanErrors } = scanner.scanTokens();
+      const { tokens, scanDiagnostics: scanErrors } = scanner.scanTokens();
 
       expect(scanErrors.length === 0).toBe(true);
       const parser = new Parser('', tokens);
-      const { parseErrors } = parser.parse();
+      const { parseDiagnostics } = parser.parse();
 
-      expect(parseErrors.length === 0).toBe(true);
+      expect(parseDiagnostics.length === 0).toBe(true);
     });
   });
 
@@ -80,20 +72,20 @@ describe('Parse all test files', () => {
       const scanner1 = new Scanner(kosFile, filePath);
       const scanResults1 = scanner1.scanTokens();
 
-      expect(scanResults1.scanErrors.length).toBe(0);
+      expect(scanResults1.scanDiagnostics.length).toBe(0);
       const parser1 = new Parser('', scanResults1.tokens);
       const parseResults1 = parser1.parse();
-      expect(parseResults1.parseErrors.length).toBe(0);
+      expect(parseResults1.parseDiagnostics.length).toBe(0);
 
       const prettyKosFile = parseResults1.script.toString();
       const scanner2 = new Scanner(prettyKosFile, filePath);
       const scanResults2 = scanner2.scanTokens();
 
-      expect(scanResults1.scanErrors.length).toBe(0);
+      expect(scanResults1.scanDiagnostics.length).toBe(0);
       const parser2 = new Parser('', scanResults2.tokens);
       const parseResults2 = parser2.parse();
 
-      expect(parseResults2.parseErrors.length).toBe(0);
+      expect(parseResults2.parseDiagnostics.length).toBe(0);
 
       const zipped = zip(
         tokenCheck.orderedTokens(parseResults1.script),
@@ -565,9 +557,7 @@ describe('Parse expressions', () => {
             }
           });
         } else {
-          expect(value.trueExpr instanceof expression.trueArm.expr).toBe(
-            true,
-          );
+          expect(value.trueExpr instanceof expression.trueArm.expr).toBe(true);
         }
 
         if (
@@ -672,9 +662,9 @@ describe('Parse statement', () => {
     ];
 
     for (const declaration of validDeclarations) {
-      const { script, parseErrors } = parse(declaration.source);
+      const { script, parseDiagnostics } = parse(declaration.source);
 
-      expect(parseErrors.length).toBe(0);
+      expect(parseDiagnostics.length).toBe(0);
       expect(script.stmts.length).toBe(1);
       expect(script.runStmts.length).toBe(0);
 
@@ -708,9 +698,9 @@ describe('Parse statement', () => {
     ];
 
     for (const declaration of validDeclarations) {
-      const { script, parseErrors } = parse(declaration.source);
+      const { script, parseDiagnostics } = parse(declaration.source);
 
-      expect(parseErrors.length).toBe(0);
+      expect(parseDiagnostics.length).toBe(0);
       expect(script.stmts.length).toBe(1);
       expect(script.runStmts.length).toBe(0);
 

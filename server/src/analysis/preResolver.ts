@@ -28,9 +28,9 @@ export type Diagnostics = Diagnostic[];
  */
 export class PreResolver
   implements
-    IExprVisitor<Diagnostics>,
-    IStmtVisitor<Diagnostics>,
-    ISuffixTermVisitor<Diagnostics> {
+    IExprVisitor<() => Diagnostics>,
+    IStmtVisitor<() => Diagnostics>,
+    ISuffixTermVisitor<() => Diagnostics> {
   /**
    * current script being processed
    */
@@ -118,17 +118,17 @@ export class PreResolver
 
   // resolve for an statement
   private resolveStmt(stmt: IStmt): Diagnostics {
-    return stmt.accept(this);
+    return stmt.accept(this, []);
   }
 
   // resolve for an expression
   private resolveExpr(expr: IExpr): Diagnostics {
-    return expr.accept(this);
+    return expr.accept(this, []);
   }
 
   // resolve for an expression
   private resolveSuffixTerm(suffixTerm: ISuffixTerm): Diagnostics {
-    return suffixTerm.accept(this);
+    return suffixTerm.accept(this, []);
   }
 
   /* --------------------------------------------
@@ -514,11 +514,11 @@ export class PreResolver
     return accumulateErrors(expr.args, this.resolveExpr.bind(this));
   }
 
-  public visitArrayIndex(_: SuffixTerm.ArrayIndex): Diagnostics {
+  public visitHashIndex(_: SuffixTerm.HashIndex): Diagnostics {
     return [];
   }
 
-  public visitArrayBracket(expr: SuffixTerm.ArrayBracket): Diagnostics {
+  public visitBracketIndex(expr: SuffixTerm.BracketIndex): Diagnostics {
     return this.resolveExpr(expr.index);
   }
 

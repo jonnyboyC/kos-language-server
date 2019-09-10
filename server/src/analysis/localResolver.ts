@@ -13,8 +13,7 @@ import { Token } from '../entities/token';
  * Identify all local identifiers in a provided expression
  */
 export class LocalResolver
-  implements IExprVisitor<Token[]>, ISuffixTermVisitor<Token[]> {
-
+  implements IExprVisitor<() => Token[]>, ISuffixTermVisitor<() => Token[]> {
   /**
    * Are we currently looking at a suffix trailer
    */
@@ -32,7 +31,7 @@ export class LocalResolver
    * @param expr expression
    */
   public resolveExpr(expr: IExpr): Token[] {
-    return expr.accept(this);
+    return expr.accept(this, []);
   }
 
   /**
@@ -40,7 +39,7 @@ export class LocalResolver
    * @param suffixTerm suffix term
    */
   public resolveSuffixTerm(suffixTerm: ISuffixTerm): Token[] {
-    return suffixTerm.accept(this);
+    return suffixTerm.accept(this, []);
   }
 
   /**
@@ -59,7 +58,8 @@ export class LocalResolver
     const tokens = this.resolveExpr(expr.condition);
     tokens.push(
       ...this.resolveExpr(expr.trueExpr),
-      ...this.resolveExpr(expr.falseExpr));
+      ...this.resolveExpr(expr.falseExpr),
+    );
     return tokens;
   }
 
@@ -174,7 +174,7 @@ export class LocalResolver
    * Visit an array index
    * @param _ array index trailer
    */
-  public visitArrayIndex(_: SuffixTerm.ArrayIndex): Token[] {
+  public visitHashIndex(_: SuffixTerm.HashIndex): Token[] {
     return [];
   }
 
@@ -182,13 +182,13 @@ export class LocalResolver
    * Visit an array bracket
    * @param suffixTerm array bracket trailer
    */
-  public visitArrayBracket(suffixTerm: SuffixTerm.ArrayBracket): Token[] {
+  public visitBracketIndex(suffixTerm: SuffixTerm.BracketIndex): Token[] {
     return this.executeAs(false, () => this.resolveExpr(suffixTerm.index));
   }
 
   /**
    * Visit a delegate
-   * @param _ delgate trailer
+   * @param _ delegate trailer
    */
   public visitDelegate(_: SuffixTerm.Delegate): Token[] {
     return [];

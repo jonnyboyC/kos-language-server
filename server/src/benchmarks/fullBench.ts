@@ -9,6 +9,7 @@ import { PreResolver } from '../analysis/preResolver';
 import { Resolver } from '../analysis/resolver';
 import { standardLibraryBuilder } from '../analysis/standardLibrary';
 import { TypeChecker } from '../typeChecker/typeChecker';
+import { ControlFlow } from '../controlFlow/controlFlow';
 
 const testDir = join(__dirname, '../../../kerboscripts/parser_valid/');
 
@@ -26,12 +27,12 @@ interface IBenchResult {
   filePath: string;
 }
 
-const standardLibrary = standardLibraryBuilder(CaseKind.lowercase);
+const standardLibrary = standardLibraryBuilder(CaseKind.lowerCase);
 
-const scriptSources: { kosFile: string, filePath: string, size: number}[] = [];
+const scriptSources: { kosFile: string; filePath: string; size: number }[] = [];
 
 // jit warm up
-walkDir(testDir, (filePath) => {
+walkDir(testDir, filePath => {
   const size = statSync(filePath).size;
 
   const kosFile = readFileSync(filePath, 'utf8');
@@ -58,6 +59,7 @@ const overallResults: IBenchResult[] = [];
 let scanResults: IBenchResult[] = [];
 let parseResults: IBenchResult[] = [];
 let resolverResults: IBenchResult[] = [];
+let flowResults: IBenchResult[] = [];
 let typeCheckerResults: IBenchResult[] = [];
 
 for (let i = 0; i < 10; i += 1) {
@@ -84,6 +86,11 @@ for (let i = 0; i < 10; i += 1) {
     symbolTableBuilder.findUnused();
     const resolveEnd = performance.now();
 
+    const flowStart = performance.now();
+    const flow = new ControlFlow(script);
+    flow.flow();
+    const flowEnd = performance.now();
+
     const typeCheckerStart = performance.now();
     const typeChecker = new TypeChecker(script);
     typeChecker.check();
@@ -93,47 +100,59 @@ for (let i = 0; i < 10; i += 1) {
       filePath,
       size: size / 1024,
       time: scannerEnd - scannerStart,
-      rate: size / ((scannerEnd - scannerStart) / 1000 * 1024),
+      rate: size / (((scannerEnd - scannerStart) / 1000) * 1024),
     });
 
     parseResults.push({
       filePath,
       size: size / 1024,
       time: parserEnd - parserStart,
-      rate: size / ((parserEnd - parserStart) / 1000 * 1024),
+      rate: size / (((parserEnd - parserStart) / 1000) * 1024),
     });
 
     resolverResults.push({
       filePath,
       size: size / 1024,
       time: resolveEnd - resolverStart,
-      rate: size / ((resolveEnd - resolverStart) / 1000 * 1024),
+      rate: size / (((resolveEnd - resolverStart) / 1000) * 1024),
+    });
+
+    flowResults.push({
+      filePath,
+      size: size / 1024,
+      time: flowEnd - flowStart,
+      rate: size / (((flowEnd - flowStart) / 1000) * 1024),
     });
 
     typeCheckerResults.push({
       filePath,
       size: size / 1024,
       time: typeCheckerEnd - typeCheckerStart,
-      rate: size / ((typeCheckerEnd - typeCheckerStart) / 1000 * 1024),
+      rate: size / (((typeCheckerEnd - typeCheckerStart) / 1000) * 1024),
     });
 
     overallResults.push({
       filePath,
       size: size / 1024,
       time: typeCheckerEnd - scannerStart,
-      rate: size / ((typeCheckerEnd - scannerStart) / 1000 * 1024),
+      rate: size / (((typeCheckerEnd - scannerStart) / 1000) * 1024),
     });
   }
 }
 
-scanResults = scanResults.sort((x, y) => (y.rate - x.rate));
-parseResults = parseResults.sort((x, y) => (y.rate - x.rate));
-resolverResults = resolverResults.sort((x, y) => (y.rate - x.rate));
-typeCheckerResults = typeCheckerResults.sort((x, y) => (y.rate - x.rate));
+scanResults = scanResults.sort((x, y) => y.rate - x.rate);
+parseResults = parseResults.sort((x, y) => y.rate - x.rate);
+resolverResults = resolverResults.sort((x, y) => y.rate - x.rate);
+flowResults = flowResults.sort((x, y) => y.rate - x.rate);
+typeCheckerResults = typeCheckerResults.sort((x, y) => y.rate - x.rate);
 
 for (const result of scanResults) {
   // tslint:disable-next-line:max-line-length
-  log(`file: ${relative(testDir, result.filePath)} size: ${result.size.toFixed(1)} KB, time ${result.time.toFixed(2)} ms ${result.rate.toFixed(2)} KB/s`);
+  log(
+    `file: ${relative(testDir, result.filePath)} size: ${result.size.toFixed(
+      1,
+    )} KB, time ${result.time.toFixed(2)} ms ${result.rate.toFixed(2)} KB/s`,
+  );
 }
 
 log('');
@@ -142,7 +161,11 @@ log('');
 
 for (const result of parseResults) {
   // tslint:disable-next-line:max-line-length
-  log(`file: ${relative(testDir, result.filePath)} size: ${result.size.toFixed(1)} KB, time ${result.time.toFixed(2)} ms ${result.rate.toFixed(2)} KB/s`);
+  log(
+    `file: ${relative(testDir, result.filePath)} size: ${result.size.toFixed(
+      1,
+    )} KB, time ${result.time.toFixed(2)} ms ${result.rate.toFixed(2)} KB/s`,
+  );
 }
 
 log('');
@@ -151,7 +174,24 @@ log('');
 
 for (const result of resolverResults) {
   // tslint:disable-next-line:max-line-length
-  console.log(`file: ${relative(testDir, result.filePath)} size: ${result.size.toFixed(1)} KB, time ${result.time.toFixed(2)} ms ${result.rate.toFixed(2)} KB/s`);
+  console.log(
+    `file: ${relative(testDir, result.filePath)} size: ${result.size.toFixed(
+      1,
+    )} KB, time ${result.time.toFixed(2)} ms ${result.rate.toFixed(2)} KB/s`,
+  );
+}
+
+log('');
+log('-------------------------Control Flow-----------------------------');
+log('');
+
+for (const result of flowResults) {
+  // tslint:disable-next-line:max-line-length
+  log(
+    `file: ${relative(testDir, result.filePath)} size: ${result.size.toFixed(
+      1,
+    )} KB, time ${result.time.toFixed(2)} ms ${result.rate.toFixed(2)} KB/s`,
+  );
 }
 
 log('');
@@ -160,12 +200,17 @@ log('');
 
 for (const result of typeCheckerResults) {
   // tslint:disable-next-line:max-line-length
-  log(`file: ${relative(testDir, result.filePath)} size: ${result.size.toFixed(1)} KB, time ${result.time.toFixed(2)} ms ${result.rate.toFixed(2)} KB/s`);
+  log(
+    `file: ${relative(testDir, result.filePath)} size: ${result.size.toFixed(
+      1,
+    )} KB, time ${result.time.toFixed(2)} ms ${result.rate.toFixed(2)} KB/s`,
+  );
 }
 
 let scanTime = 0;
 let parseTime = 0;
 let resolveTime = 0;
+let flowTime = 0;
 let typeCheckerTime = 0;
 let overallTime = 0;
 let size = 0;
@@ -183,6 +228,10 @@ for (const result of resolverResults) {
   resolveTime += result.time;
 }
 
+for (const result of flowResults) {
+  flowTime += result.time;
+}
+
 for (const result of typeCheckerResults) {
   typeCheckerTime += result.time;
 }
@@ -198,5 +247,6 @@ log('');
 log(`Overall scan rate ${size / (scanTime / 1000)} KB/s`);
 log(`Overall parse rate ${size / (parseTime / 1000)} KB/s`);
 log(`Overall resolver rate ${size / (resolveTime / 1000)} KB/s`);
+log(`Overall control flow rate ${size / (flowTime / 1000)} KB/s`);
 log(`Overall type check rate ${size / (typeCheckerTime / 1000)} KB/s`);
 log(`Overall rate ${size / (overallTime / 1000)} KB/s`);

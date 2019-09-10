@@ -116,7 +116,7 @@ export class KLS {
   private readonly analysisService: AnalysisService;
 
   constructor(
-    caseKind: CaseKind = CaseKind.camelcase,
+    caseKind: CaseKind = CaseKind.camelCase,
     logger: ILogger = mockLogger,
     tracer: ITracer = mockTracer,
     connection: Connection,
@@ -372,7 +372,7 @@ export class KLS {
       return undefined;
     }
 
-    const { tokens, scanErrors } = scanner.scanTokens();
+    const { tokens, scanDiagnostics: scanErrors } = scanner.scanTokens();
 
     // check if rename is valid
     if (

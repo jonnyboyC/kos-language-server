@@ -116,10 +116,10 @@ export class Generator implements IExprClassVisitor<string> {
   visitCall(exprClass: ISuffixTermClass<SuffixTerm.Call>): string {
     return this.generateGrammarNodes(exprClass.grammar);
   }
-  visitArrayIndex(exprClass: ISuffixTermClass<SuffixTerm.ArrayIndex>): string {
+  visitArrayIndex(exprClass: ISuffixTermClass<SuffixTerm.HashIndex>): string {
     return this.generateGrammarNodes(exprClass.grammar);
   }
-  visitArrayBracket(exprClass: ISuffixTermClass<SuffixTerm.ArrayBracket>): string {
+  visitArrayBracket(exprClass: ISuffixTermClass<SuffixTerm.BracketIndex>): string {
     return this.generateGrammarNodes(exprClass.grammar);
   }
   visitDelegate(exprClass: ISuffixTermClass<SuffixTerm.Delegate>): string {

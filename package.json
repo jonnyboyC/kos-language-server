@@ -4,7 +4,7 @@
   "description": "Syntax highlighting, auto-complete, and language diagnostics for KerboScript in Kerbal Operating System.",
   "author": "John Chabot",
   "license": "MIT",
-  "version": "0.10.1",
+  "version": "0.11.0",
   "scripts": {
     "vscode:prepublish": "cd clients/vscode && npm run update-vscode && cd ../.. && node build/clean.js && npm run prod && npm run test",
     "prod": "run-p prod:vscode prod:atom prod:server",
@@ -56,8 +56,8 @@
     "ts-loader": "^6.0.4",
     "tslint": "^5.19.0",
     "tslint-config-airbnb": "^5.11.1",
-    "typescript": "^3.5.3",
-    "webpack": "^4.39.2",
+    "typescript": "^3.6.2",
+    "webpack": "^4.39.3",
     "webpack-cli": "^3.3.7"
   },
   "engines": {

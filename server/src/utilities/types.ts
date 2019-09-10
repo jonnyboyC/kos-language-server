@@ -22,7 +22,9 @@ type PropType<T, K extends keyof T> = T[K];
 /**
  * This type helper gets all property names of type T that extend type U
  */
-type PropertyNames<T, U> = { [K in keyof T]: T[K] extends U ? K : never }[keyof T];
+type PropertyNames<T, U> = {
+  [K in keyof T]: T[K] extends U ? K : never;
+}[keyof T];
 
 /**
  * This type helper get all properties of type T that extend type U
@@ -33,7 +35,7 @@ type Properties<T, U> = Pick<T, PropertyNames<T, U>>;
  * Create a writable version of a readonly mapped type
  */
 type Writeable<T> = {
-  -readonly [P in keyof T]-?: T[P]
+  -readonly [P in keyof T]-?: T[P];
 };
 
 /**
@@ -87,8 +89,23 @@ interface ITracer {
  * to decide how they should be cased
  */
 const enum CaseKind {
-  lowercase,
-  uppercase,
-  camelcase,
-  pascalcase,
+  lowerCase,
+  upperCase,
+  camelCase,
+  pascalCase,
+}
+
+/**
+ * An interface for representing directed graphs
+ */
+interface GraphNode<T> {
+  /**
+   * The value at the graph node
+   */
+  value(): T;
+
+  /**
+   * The adjacent nodes to this node
+   */
+  adjacentNodes(): GraphNode<T>[];
 }

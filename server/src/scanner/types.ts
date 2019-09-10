@@ -6,7 +6,7 @@ export type ITokenMap = Map<string, { type: TokenType; literal?: any }>;
 
 export interface Tokenized {
   tokens: Token[];
-  scanErrors: Diagnostic[];
+  scanDiagnostics: Diagnostic[];
   regions: Token[];
 }
 

@@ -1,4 +1,9 @@
-import { IExprVisitor, IExpr, ISuffixTerm, ISuffixTermVisitor } from '../parser/types';
+import {
+  IExprVisitor,
+  IExpr,
+  ISuffixTerm,
+  ISuffixTermVisitor,
+} from '../parser/types';
 import * as Expr from '../parser/expr';
 import * as SuffixTerm from '../parser/suffixTerm';
 import { LocalResolver } from './localResolver';
@@ -10,22 +15,21 @@ import { Token } from '../entities/token';
 /**
  * Identify all local symbols used and all used symbols
  */
-export class SetResolver implements
-  IExprVisitor<ISetResolverResult>,
-  ISuffixTermVisitor<ISetResolverResult> {
-
+export class SetResolver
+  implements
+    IExprVisitor<() => ISetResolverResult>,
+    ISuffixTermVisitor<() => ISetResolverResult> {
   /**
    * Set resolver constructor
    */
-  public constructor(public readonly localResolver: LocalResolver) {
-  }
+  public constructor(public readonly localResolver: LocalResolver) {}
 
   /**
    * Resolve expression
    * @param expr expression to resolve
    */
   public resolveExpr(expr: IExpr): ISetResolverResult {
-    return expr.accept(this);
+    return expr.accept(this, []);
   }
 
   /**
@@ -33,7 +37,7 @@ export class SetResolver implements
    * @param suffixTerm suffix term to resolve
    */
   public resolveSuffixTerm(suffixTerm: ISuffixTerm): ISetResolverResult {
-    return suffixTerm.accept(this);
+    return suffixTerm.accept(this, []);
   }
 
   /**
@@ -41,7 +45,7 @@ export class SetResolver implements
    * @param _ invalid expression
    */
   public visitExprInvalid(_: Expr.Invalid): ISetResolverResult {
-    return setResult();
+    return { set: undefined, used: [] };
   }
 
   /**
@@ -49,7 +53,7 @@ export class SetResolver implements
    * @param _ ternary expression
    */
   public visitTernary(_: Expr.Ternary): ISetResolverResult {
-    return setResult();
+    return { set: undefined, used: [] };
   }
 
   /**
@@ -57,7 +61,7 @@ export class SetResolver implements
    * @param _ binary expression
    */
   public visitBinary(_: Expr.Binary): ISetResolverResult {
-    return setResult();
+    return { set: undefined, used: [] };
   }
 
   /**
@@ -65,7 +69,7 @@ export class SetResolver implements
    * @param _ unary expression
    */
   public visitUnary(_: Expr.Unary): ISetResolverResult {
-    return setResult();
+    return { set: undefined, used: [] };
   }
 
   /**
@@ -73,7 +77,7 @@ export class SetResolver implements
    * @param _ factor expression
    */
   public visitFactor(_: Expr.Factor): ISetResolverResult {
-    return setResult();
+    return { set: undefined, used: [] };
   }
 
   /**
@@ -86,7 +90,11 @@ export class SetResolver implements
       return setResult(result.set, result.used);
     }
 
-    return setResult(result.set, result.used, this.localResolver.resolveSuffixTerm(expr.trailer));
+    return setResult(
+      result.set,
+      result.used,
+      this.localResolver.resolveSuffixTerm(expr.trailer),
+    );
   }
 
   /**
@@ -94,7 +102,7 @@ export class SetResolver implements
    * @param _ lambda expression
    */
   public visitLambda(_: Expr.Lambda): ISetResolverResult {
-    return setResult();
+    return { set: undefined, used: [] };
   }
 
   /**
@@ -102,20 +110,26 @@ export class SetResolver implements
    * @param _ invalid suffix term
    */
   public visitSuffixTermInvalid(_: SuffixTerm.Invalid): ISetResolverResult {
-    throw setResult();
+    throw { set: undefined, used: [] };
   }
 
   /**
    * Resolve suffix term trailer
    * @param expr suffix term trailer
    */
-  public visitSuffixTrailer(expr: SuffixTerm.SuffixTrailer): ISetResolverResult {
+  public visitSuffixTrailer(
+    expr: SuffixTerm.SuffixTrailer,
+  ): ISetResolverResult {
     const result = this.resolveSuffixTerm(expr.suffixTerm);
     if (empty(expr.trailer)) {
       return setResult(result.set, result.used);
     }
 
-    return setResult(result.set, result.used, this.localResolver.resolveSuffixTerm(expr.trailer));
+    return setResult(
+      result.set,
+      result.used,
+      this.localResolver.resolveSuffixTerm(expr.trailer),
+    );
   }
 
   /**
@@ -128,9 +142,12 @@ export class SetResolver implements
       return setResult(result.set, result.used);
     }
 
-    return setResult(result.set, result.used, expr.trailers.reduce(
-      (acc, curr) => acc.concat(this.localResolver.resolveSuffixTerm(curr)),
-      [] as Token[]));
+    const used: Token[] = [];
+    for (const trailer of expr.trailers) {
+      used.push(...this.localResolver.resolveSuffixTerm(trailer));
+    }
+
+    return setResult(result.set, result.used, used);
   }
 
   /**
@@ -138,23 +155,23 @@ export class SetResolver implements
    * @param _ suffix term call trailer
    */
   public visitCall(_: SuffixTerm.Call): ISetResolverResult {
-    return setResult();
+    return { set: undefined, used: [] };
   }
 
   /**
    * Resolve array index trailer
    * @param _ suffix term array index trailer
    */
-  public visitArrayIndex(_: SuffixTerm.ArrayIndex): ISetResolverResult {
-    return setResult();
+  public visitHashIndex(_: SuffixTerm.HashIndex): ISetResolverResult {
+    return { set: undefined, used: [] };
   }
 
   /**
    * Resolve array bracket trailer
    * @param _ suffix term array bracket trailer
    */
-  public visitArrayBracket(_: SuffixTerm.ArrayBracket): ISetResolverResult {
-    return setResult();
+  public visitBracketIndex(_: SuffixTerm.BracketIndex): ISetResolverResult {
+    return { set: undefined, used: [] };
   }
 
   /**
@@ -162,7 +179,7 @@ export class SetResolver implements
    * @param _ suffix term delegate
    */
   public visitDelegate(_: SuffixTerm.Delegate): ISetResolverResult {
-    return setResult();
+    return { set: undefined, used: [] };
   }
 
   /**
@@ -170,7 +187,7 @@ export class SetResolver implements
    * @param _ literal
    */
   public visitLiteral(_: SuffixTerm.Literal): ISetResolverResult {
-    return setResult();
+    return { set: undefined, used: [] };
   }
 
   /**
@@ -186,6 +203,6 @@ export class SetResolver implements
    * @param _ grouping suffix term
    */
   public visitGrouping(_: SuffixTerm.Grouping): ISetResolverResult {
-    return setResult();
+    return { set: undefined, used: [] };
   }
 }

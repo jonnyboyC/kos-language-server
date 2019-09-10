@@ -13,22 +13,25 @@ import * as SuffixTerm from './suffixTerm';
 import { empty } from '../utilities/typeGuards';
 
 export abstract class TreeTraverse
-  implements IExprVisitor<void>, IStmtVisitor<void>, ISuffixTermVisitor<void> {
+  implements
+    IExprVisitor<() => void>,
+    IStmtVisitor<() => void>,
+    ISuffixTermVisitor<() => void> {
   constructor() {}
 
   // find an statement
   protected stmtAction(stmt: IStmt): void {
-    return stmt.accept(this);
+    stmt.accept(this, []);
   }
 
   // find an expression
   protected exprAction(expr: IExpr): void {
-    return expr.accept(this);
+    expr.accept(this, []);
   }
 
   // find an expression
   protected suffixTermAction(suffixTerm: ISuffixTerm): void {
-    return suffixTerm.accept(this);
+    suffixTerm.accept(this, []);
   }
 
   public visitDeclVariable(decl: Decl.Var): void {
@@ -227,8 +230,8 @@ export abstract class TreeTraverse
       this.exprAction(arg);
     }
   }
-  public visitArrayIndex(_: SuffixTerm.ArrayIndex): void {}
-  public visitArrayBracket(suffixTerm: SuffixTerm.ArrayBracket): void {
+  public visitHashIndex(_: SuffixTerm.HashIndex): void {}
+  public visitBracketIndex(suffixTerm: SuffixTerm.BracketIndex): void {
     this.exprAction(suffixTerm.index);
   }
   public visitDelegate(_: SuffixTerm.Delegate): void {}

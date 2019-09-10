@@ -6,14 +6,18 @@
 
 A language server for Kerboscript within the [KOS](https://github.com/KSP-KOS/KOS) mod for Kerbal Space Program. A [language server](https://langserver.org/) can provide features typical to an IDE language for the supported target language, in this case Kerboscript. 
 
-The project currently has client support for [Visual Studio Code](https://code.visualstudio.com/). The extension can be found [here](https://marketplace.visualstudio.com/items?itemName=JohnChabot.kos-vscode). Some work is currently being done to get a client in place for github's Atom editor as well. For additional client support such as sublime text, vim, notepad++ or others please post an issue with the requested editor. 
+The project currently supports the following clients
+* [Visual Studio Code](https://code.visualstudio.com/) via the [kOS extension](https://marketplace.visualstudio.com/items?itemName=JohnChabot.kos-vscode)
+* [Vim](https://www.vim.org/) via [kerbovim](https://marketplace.visualstudio.com/items?itemName=JohnChabot.kos-vscode)
+* [Atom](https://atom.io/) only with syntax highlight via the [kos-ide plugin](https://atom.io/packages/ide-kos) 
 
+For additional client support such as sublime text, emacs, notepad++ or others please post an issue with the requested editor. 
 
 <a href="https://imgur.com/kmrbdE4"><img src="https://i.imgur.com/kmrbdE4h.gif" title="source: imgur.com" /></a>
 
 ## Features
 
-Currently the vscode client 0.10.1 implements the follow features
+Currently the vscode client 0.11.0 implements the follow features
 - syntax highlighting
 - brace detection
 - code snippets
@@ -23,6 +27,7 @@ Currently the vscode client 0.10.1 implements the follow features
 - suffix auto complete
 - manual completion triggering
 - rename symbol
+- unreachable code detection
 - function signature help
 - file symbol lookup
 - identify symbols that don't exist

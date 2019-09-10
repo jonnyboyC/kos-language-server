@@ -2,7 +2,7 @@ import * as Expr from './expr';
 import * as Stmt from './stmt';
 import * as SuffixTerm from './suffixTerm';
 import { Var, Lock, Func, Param } from './declare';
-import { Range, Location } from 'vscode-languageserver';
+import { Range, Location, Diagnostic } from 'vscode-languageserver';
 import { TokenType } from '../entities/tokentypes';
 import { NodeBase } from './base';
 import { Token } from '../entities/token';
@@ -29,8 +29,8 @@ export type NodeData<T> = Properties<
 
 export type SuffixTermTrailer =
   | SuffixTerm.Call
-  | SuffixTerm.ArrayBracket
-  | SuffixTerm.ArrayIndex
+  | SuffixTerm.BracketIndex
+  | SuffixTerm.HashIndex
   | SuffixTerm.Delegate;
 
 export type Atom =
@@ -62,25 +62,21 @@ export interface IScript extends RangeSequence {
   tag: SyntaxKind.script;
 }
 
-export interface IStmt extends IStmtVisitable, IStmtPassable, RangeSequence {
+export interface IStmt extends IStmtVisitable, RangeSequence {
   toLocation(uri: string): Location;
   toLines(): string[];
   toString(): string;
   tag: SyntaxKind.stmt;
 }
 
-export interface IExpr extends IExprVisitable, IExprPassable, RangeSequence {
+export interface IExpr extends IExprVisitable, RangeSequence {
   toLocation(uri: string): Location;
   toLines(): string[];
   toString(): string;
   tag: SyntaxKind.expr;
 }
 
-export interface ISuffixTerm
-  extends ISuffixTermPassable,
-    ISuffixTermVisitable,
-    ISuffixTermParamVisitable,
-    RangeSequence {
+export interface ISuffixTerm extends ISuffixTermVisitable, RangeSequence {
   toLocation(uri: string): Location;
   toString(): string;
   tag: SyntaxKind.suffixTerm;
@@ -156,9 +152,9 @@ export interface IParseError extends Range {
   inner: IParseError[];
 }
 
-export interface ParseResult {
+export interface Ast {
   script: IScript;
-  parseErrors: IParseError[];
+  parseDiagnostics: Diagnostic[];
 }
 
 export interface LexicalResult {
@@ -170,6 +166,7 @@ export interface LexicalResult {
 
 export interface SemanticResult {
   resolverDiagnostics: DiagnosticUri[];
+  flowDiagnostics: DiagnosticUri[];
   typeDiagnostics: DiagnosticUri[];
   symbolTable: SymbolTable;
 }
@@ -213,94 +210,73 @@ export type TreeNode =
   | IDeclScope;
 
 export interface IExprVisitable {
-  accept<T>(visitor: IExprVisitor<T>): T;
+  accept<T extends (...args: any) => any>(
+    visitor: IExprVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T>;
 }
 
-export interface IExprVisitor<T> {
-  visitExprInvalid(expr: Expr.Invalid): T;
-  visitTernary(expr: Expr.Ternary): T;
-  visitBinary(expr: Expr.Binary): T;
-  visitUnary(expr: Expr.Unary): T;
-  visitFactor(expr: Expr.Factor): T;
-  visitSuffix(expr: Expr.Suffix): T;
-  visitLambda(expr: Expr.Lambda): T;
-}
-
-export interface IExprPassable {
-  pass<T>(visitor: IExprPasser<T>): T;
-}
-
-export interface IExprPasser<T> {
-  passExprInvalid(expr: Expr.Invalid): T;
-  passTernary(expr: Expr.Ternary): T;
-  passBinary(expr: Expr.Binary): T;
-  passUnary(expr: Expr.Unary): T;
-  passFactor(expr: Expr.Factor): T;
-  passSuffix(expr: Expr.Suffix): T;
-  passAnonymousFunction(expr: Expr.Lambda): T;
+export interface IExprVisitor<T extends (...args: any) => any> {
+  visitExprInvalid(
+    expr: Expr.Invalid,
+    parameters: Parameters<T>,
+  ): ReturnType<T>;
+  visitTernary(expr: Expr.Ternary, parameters: Parameters<T>): ReturnType<T>;
+  visitBinary(expr: Expr.Binary, parameters: Parameters<T>): ReturnType<T>;
+  visitUnary(expr: Expr.Unary, parameters: Parameters<T>): ReturnType<T>;
+  visitFactor(expr: Expr.Factor, parameters: Parameters<T>): ReturnType<T>;
+  visitSuffix(expr: Expr.Suffix, parameters: Parameters<T>): ReturnType<T>;
+  visitLambda(expr: Expr.Lambda, parameters: Parameters<T>): ReturnType<T>;
 }
 
 export interface ISuffixTermVisitable {
-  accept<T>(visitor: ISuffixTermVisitor<T>): T;
+  accept<T extends (...args: any) => any>(
+    visitor: ISuffixTermVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T>;
 }
 
-export interface ISuffixTermVisitor<T> {
-  visitSuffixTermInvalid(suffixTerm: SuffixTerm.Invalid): T;
-  visitSuffixTrailer(suffixTerm: SuffixTerm.SuffixTrailer): T;
-  visitSuffixTerm(suffixTerm: SuffixTerm.SuffixTerm): T;
-  visitCall(suffixTerm: SuffixTerm.Call): T;
-  visitArrayIndex(suffixTerm: SuffixTerm.ArrayIndex): T;
-  visitArrayBracket(suffixTerm: SuffixTerm.ArrayBracket): T;
-  visitDelegate(suffixTerm: SuffixTerm.Delegate): T;
-  visitLiteral(suffixTerm: SuffixTerm.Literal): T;
-  visitIdentifier(suffixTerm: SuffixTerm.Identifier): T;
-  visitGrouping(suffixTerm: SuffixTerm.Grouping): T;
-}
-
-export interface ISuffixTermPassable {
-  pass<T>(visitor: ISuffixTermPasser<T>): T;
-}
-
-export interface ISuffixTermPasser<T> {
-  passSuffixTermInvalid(suffixTerm: SuffixTerm.Invalid): T;
-  passSuffixTrailer(suffixTerm: SuffixTerm.SuffixTrailer): T;
-  passSuffixTerm(suffixTerm: SuffixTerm.SuffixTerm): T;
-  passCall(suffixTerm: SuffixTerm.Call): T;
-  passArrayIndex(suffixTerm: SuffixTerm.ArrayIndex): T;
-  passArrayBracket(suffixTerm: SuffixTerm.ArrayBracket): T;
-  passDelegate(suffixTerm: SuffixTerm.Delegate): T;
-  passLiteral(suffixTerm: SuffixTerm.Literal): T;
-  passIdentifier(suffixTerm: SuffixTerm.Identifier): T;
-  passGrouping(suffixTerm: SuffixTerm.Grouping): T;
-}
-
-export interface ISuffixTermParamVisitable {
-  acceptParam<TParam, TReturn>(
-    visitor: ISuffixTermParamVisitor<TParam, TReturn>,
-    param: TParam,
-  ): TReturn;
-}
-
-export interface ISuffixTermParamVisitor<TParam, TReturn> {
+export interface ISuffixTermVisitor<T extends (...args: any) => any> {
   visitSuffixTermInvalid(
     suffixTerm: SuffixTerm.Invalid,
-    param: TParam,
-  ): TReturn;
+    parameters: Parameters<T>,
+  ): ReturnType<T>;
   visitSuffixTrailer(
     suffixTerm: SuffixTerm.SuffixTrailer,
-    param: TParam,
-  ): TReturn;
-  visitSuffixTerm(suffixTerm: SuffixTerm.SuffixTerm, param: TParam): TReturn;
-  visitCall(suffixTerm: SuffixTerm.Call, param: TParam): TReturn;
-  visitArrayIndex(suffixTerm: SuffixTerm.ArrayIndex, param: TParam): TReturn;
-  visitArrayBracket(
-    suffixTerm: SuffixTerm.ArrayBracket,
-    param: TParam,
-  ): TReturn;
-  visitDelegate(suffixTerm: SuffixTerm.Delegate, param: TParam): TReturn;
-  visitLiteral(suffixTerm: SuffixTerm.Literal, param: TParam): TReturn;
-  visitIdentifier(suffixTerm: SuffixTerm.Identifier, param: TParam): TReturn;
-  visitGrouping(suffixTerm: SuffixTerm.Grouping, param: TParam): TReturn;
+    parameters: Parameters<T>,
+  ): ReturnType<T>;
+  visitSuffixTerm(
+    suffixTerm: SuffixTerm.SuffixTerm,
+    parameters: Parameters<T>,
+  ): ReturnType<T>;
+  visitCall(
+    suffixTerm: SuffixTerm.Call,
+    parameters: Parameters<T>,
+  ): ReturnType<T>;
+  visitHashIndex(
+    suffixTerm: SuffixTerm.HashIndex,
+    parameters: Parameters<T>,
+  ): ReturnType<T>;
+  visitBracketIndex(
+    suffixTerm: SuffixTerm.BracketIndex,
+    parameters: Parameters<T>,
+  ): ReturnType<T>;
+  visitDelegate(
+    suffixTerm: SuffixTerm.Delegate,
+    parameters: Parameters<T>,
+  ): ReturnType<T>;
+  visitLiteral(
+    suffixTerm: SuffixTerm.Literal,
+    parameters: Parameters<T>,
+  ): ReturnType<T>;
+  visitIdentifier(
+    suffixTerm: SuffixTerm.Identifier,
+    parameters: Parameters<T>,
+  ): ReturnType<T>;
+  visitGrouping(
+    suffixTerm: SuffixTerm.Grouping,
+    parameters: Parameters<T>,
+  ): ReturnType<T>;
 }
 
 export interface IExprVisitableClass {
@@ -326,100 +302,70 @@ export interface ISuffixTermClassVisitor<T> {
   visitSuffixTrailer(termClass: Constructor<SuffixTerm.SuffixTrailer>): T;
   visitSuffixTerm(termClass: Constructor<SuffixTerm.SuffixTerm>): T;
   visitCall(termClass: Constructor<SuffixTerm.Call>): T;
-  visitArrayIndex(termClass: Constructor<SuffixTerm.ArrayIndex>): T;
-  visitArrayBracket(termClass: Constructor<SuffixTerm.ArrayBracket>): T;
+  visitHashIndex(termClass: Constructor<SuffixTerm.HashIndex>): T;
+  visitBracketIndex(termClass: Constructor<SuffixTerm.BracketIndex>): T;
   visitDelegate(termClass: Constructor<SuffixTerm.Delegate>): T;
   visitLiteral(termClass: Constructor<SuffixTerm.Literal>): T;
-  visitVariable(termClass: Constructor<SuffixTerm.Identifier>): T;
+  visitIdentifier(termClass: Constructor<SuffixTerm.Identifier>): T;
   visitGrouping(termClass: Constructor<SuffixTerm.Grouping>): T;
 }
 
 export interface IStmtVisitable {
-  accept<T>(visitor: IStmtVisitor<T>): T;
+  accept<T extends (...args: any) => any>(
+    visitor: IStmtVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T>;
 }
 
-export interface IStmtVisitor<T> {
-  visitDeclVariable(decl: Var): T;
-  visitDeclLock(decl: Lock): T;
-  visitDeclFunction(decl: Func): T;
-  visitDeclParameter(decl: Param): T;
+export interface IStmtVisitor<T extends (...args: any) => any> {
+  visitDeclVariable(decl: Var, parameters: Parameters<T>): ReturnType<T>;
+  visitDeclLock(decl: Lock, parameters: Parameters<T>): ReturnType<T>;
+  visitDeclFunction(decl: Func, parameters: Parameters<T>): ReturnType<T>;
+  visitDeclParameter(decl: Param, parameters: Parameters<T>): ReturnType<T>;
 
-  visitStmtInvalid(stmt: Stmt.Invalid): T;
-  visitBlock(stmt: Stmt.Block): T;
-  visitExpr(stmt: Stmt.ExprStmt): T;
-  visitOnOff(stmt: Stmt.OnOff): T;
-  visitCommand(stmt: Stmt.Command): T;
-  visitCommandExpr(stmt: Stmt.CommandExpr): T;
-  visitUnset(stmt: Stmt.Unset): T;
-  visitUnlock(stmt: Stmt.Unlock): T;
-  visitSet(stmt: Stmt.Set): T;
-  visitLazyGlobal(stmt: Stmt.LazyGlobal): T;
-  visitIf(stmt: Stmt.If): T;
-  visitElse(stmt: Stmt.Else): T;
-  visitUntil(stmt: Stmt.Until): T;
-  visitFrom(stmt: Stmt.From): T;
-  visitWhen(stmt: Stmt.When): T;
-  visitReturn(stmt: Stmt.Return): T;
-  visitBreak(stmt: Stmt.Break): T;
-  visitSwitch(stmt: Stmt.Switch): T;
-  visitFor(stmt: Stmt.For): T;
-  visitOn(stmt: Stmt.On): T;
-  visitToggle(stmt: Stmt.Toggle): T;
-  visitWait(stmt: Stmt.Wait): T;
-  visitLog(stmt: Stmt.Log): T;
-  visitCopy(stmt: Stmt.Copy): T;
-  visitRename(stmt: Stmt.Rename): T;
-  visitDelete(stmt: Stmt.Delete): T;
-  visitRun(stmt: Stmt.Run): T;
-  visitRunPath(stmt: Stmt.RunPath): T;
-  visitRunPathOnce(stmt: Stmt.RunOncePath): T;
-  visitCompile(stmt: Stmt.Compile): T;
-  visitList(stmt: Stmt.List): T;
-  visitEmpty(stmt: Stmt.Empty): T;
-  visitPrint(stmt: Stmt.Print): T;
-}
-
-export interface IStmtPassable {
-  pass<T>(visitor: IStmtPasser<T>): T;
-}
-
-export interface IStmtPasser<T> {
-  passDeclVariable(decl: Var): T;
-  passDeclLock(decl: Lock): T;
-  passDeclFunction(decl: Func): T;
-  passDeclParameter(decl: Param): T;
-
-  passStmtInvalid(stmt: Stmt.Invalid): T;
-  passBlock(stmt: Stmt.Block): T;
-  passExpr(stmt: Stmt.ExprStmt): T;
-  passOnOff(stmt: Stmt.OnOff): T;
-  passCommand(stmt: Stmt.Command): T;
-  passCommandExpr(stmt: Stmt.CommandExpr): T;
-  passUnset(stmt: Stmt.Unset): T;
-  passUnlock(stmt: Stmt.Unlock): T;
-  passSet(stmt: Stmt.Set): T;
-  passLazyGlobal(stmt: Stmt.LazyGlobal): T;
-  passIf(stmt: Stmt.If): T;
-  passElse(stmt: Stmt.Else): T;
-  passUntil(stmt: Stmt.Until): T;
-  passFrom(stmt: Stmt.From): T;
-  passWhen(stmt: Stmt.When): T;
-  passReturn(stmt: Stmt.Return): T;
-  passBreak(stmt: Stmt.Break): T;
-  passSwitch(stmt: Stmt.Switch): T;
-  passFor(stmt: Stmt.For): T;
-  passOn(stmt: Stmt.On): T;
-  passToggle(stmt: Stmt.Toggle): T;
-  passWait(stmt: Stmt.Wait): T;
-  passLog(stmt: Stmt.Log): T;
-  passCopy(stmt: Stmt.Copy): T;
-  passRename(stmt: Stmt.Rename): T;
-  passDelete(stmt: Stmt.Delete): T;
-  passRun(stmt: Stmt.Run): T;
-  passRunPath(stmt: Stmt.RunPath): T;
-  passRunPathOnce(stmt: Stmt.RunOncePath): T;
-  passCompile(stmt: Stmt.Compile): T;
-  passList(stmt: Stmt.List): T;
-  passEmpty(stmt: Stmt.Empty): T;
-  passPrint(stmt: Stmt.Print): T;
+  visitStmtInvalid(
+    stmt: Stmt.Invalid,
+    parameters: Parameters<T>,
+  ): ReturnType<T>;
+  visitBlock(stmt: Stmt.Block, parameters: Parameters<T>): ReturnType<T>;
+  visitExpr(stmt: Stmt.ExprStmt, parameters: Parameters<T>): ReturnType<T>;
+  visitOnOff(stmt: Stmt.OnOff, parameters: Parameters<T>): ReturnType<T>;
+  visitCommand(stmt: Stmt.Command, parameters: Parameters<T>): ReturnType<T>;
+  visitCommandExpr(
+    stmt: Stmt.CommandExpr,
+    parameters: Parameters<T>,
+  ): ReturnType<T>;
+  visitUnset(stmt: Stmt.Unset, parameters: Parameters<T>): ReturnType<T>;
+  visitUnlock(stmt: Stmt.Unlock, parameters: Parameters<T>): ReturnType<T>;
+  visitSet(stmt: Stmt.Set, parameters: Parameters<T>): ReturnType<T>;
+  visitLazyGlobal(
+    stmt: Stmt.LazyGlobal,
+    parameters: Parameters<T>,
+  ): ReturnType<T>;
+  visitIf(stmt: Stmt.If, parameters: Parameters<T>): ReturnType<T>;
+  visitElse(stmt: Stmt.Else, parameters: Parameters<T>): ReturnType<T>;
+  visitUntil(stmt: Stmt.Until, parameters: Parameters<T>): ReturnType<T>;
+  visitFrom(stmt: Stmt.From, parameters: Parameters<T>): ReturnType<T>;
+  visitWhen(stmt: Stmt.When, parameters: Parameters<T>): ReturnType<T>;
+  visitReturn(stmt: Stmt.Return, parameters: Parameters<T>): ReturnType<T>;
+  visitBreak(stmt: Stmt.Break, parameters: Parameters<T>): ReturnType<T>;
+  visitSwitch(stmt: Stmt.Switch, parameters: Parameters<T>): ReturnType<T>;
+  visitFor(stmt: Stmt.For, parameters: Parameters<T>): ReturnType<T>;
+  visitOn(stmt: Stmt.On, parameters: Parameters<T>): ReturnType<T>;
+  visitToggle(stmt: Stmt.Toggle, parameters: Parameters<T>): ReturnType<T>;
+  visitWait(stmt: Stmt.Wait, parameters: Parameters<T>): ReturnType<T>;
+  visitLog(stmt: Stmt.Log, parameters: Parameters<T>): ReturnType<T>;
+  visitCopy(stmt: Stmt.Copy, parameters: Parameters<T>): ReturnType<T>;
+  visitRename(stmt: Stmt.Rename, parameters: Parameters<T>): ReturnType<T>;
+  visitDelete(stmt: Stmt.Delete, parameters: Parameters<T>): ReturnType<T>;
+  visitRun(stmt: Stmt.Run, parameters: Parameters<T>): ReturnType<T>;
+  visitRunPath(stmt: Stmt.RunPath, parameters: Parameters<T>): ReturnType<T>;
+  visitRunPathOnce(
+    stmt: Stmt.RunOncePath,
+    parameters: Parameters<T>,
+  ): ReturnType<T>;
+  visitCompile(stmt: Stmt.Compile, parameters: Parameters<T>): ReturnType<T>;
+  visitList(stmt: Stmt.List, parameters: Parameters<T>): ReturnType<T>;
+  visitEmpty(stmt: Stmt.Empty, parameters: Parameters<T>): ReturnType<T>;
+  visitPrint(stmt: Stmt.Print, parameters: Parameters<T>): ReturnType<T>;
 }

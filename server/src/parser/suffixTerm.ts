@@ -8,8 +8,6 @@ import {
   ISuffixTermClassVisitor,
   Distribution,
   ISuffixTermClass,
-  ISuffixTermParamVisitor,
-  ISuffixTermPasser,
   SyntaxKind,
 } from './types';
 import { Range, Position } from 'vscode-languageserver';
@@ -46,18 +44,10 @@ export abstract class SuffixTermBase extends NodeBase implements ISuffixTerm {
    * Called when the node should execute the visitors methods
    * @param visitor visitor object
    */
-  public abstract accept<T>(visitor: ISuffixTermVisitor<T>): T;
-
-  /**
-   * Require all subclass to implement the pass method
-   * Call when the node should be passed through
-   * @param visitor visitor object
-   */
-  public abstract pass<T>(visitor: ISuffixTermPasser<T>): T;
-  public abstract acceptParam<TP, TR>(
-    visitor: ISuffixTermParamVisitor<TP, TR>,
-    param: TP,
-  ): TR;
+  public abstract accept<T extends (...args: any) => any>(
+    visitor: ISuffixTermVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T>;
 }
 
 /**
@@ -88,19 +78,11 @@ export class Invalid extends SuffixTermBase {
     return [''];
   }
 
-  public acceptParam<TP, TR>(
-    visitor: ISuffixTermParamVisitor<TP, TR>,
-    param: TP,
-  ): TR {
-    return visitor.visitSuffixTermInvalid(this, param);
-  }
-
-  public pass<T>(visitor: ISuffixTermPasser<T>): T {
-    return visitor.passSuffixTermInvalid(this);
-  }
-
-  public accept<T>(visitor: ISuffixTermVisitor<T>): T {
-    return visitor.visitSuffixTermInvalid(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: ISuffixTermVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitSuffixTermInvalid(this, parameters);
   }
 
   public static classAccept<T>(visitor: ISuffixTermClassVisitor<T>): T {
@@ -159,11 +141,11 @@ export class SuffixTrailer extends SuffixTermBase {
       if (trailers.length > 0) {
         const lastTrailer = trailers[trailers.length - 1];
 
-        if (lastTrailer instanceof ArrayBracket) {
+        if (lastTrailer instanceof BracketIndex) {
           return lastTrailer.open.tracker;
         }
 
-        if (lastTrailer instanceof ArrayIndex) {
+        if (lastTrailer instanceof HashIndex) {
           return undefined;
         }
 
@@ -212,19 +194,12 @@ export class SuffixTrailer extends SuffixTermBase {
 
     return suffixTermLines;
   }
-  public acceptParam<TP, TR>(
-    visitor: ISuffixTermParamVisitor<TP, TR>,
-    param: TP,
-  ): TR {
-    return visitor.visitSuffixTrailer(this, param);
-  }
 
-  public accept<T>(visitor: ISuffixTermVisitor<T>): T {
-    return visitor.visitSuffixTrailer(this);
-  }
-
-  public pass<T>(visitor: ISuffixTermPasser<T>): T {
-    return visitor.passSuffixTrailer(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: ISuffixTermVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitSuffixTrailer(this, parameters);
   }
 
   public static classAccept<T>(visitor: ISuffixTermClassVisitor<T>): T {
@@ -272,19 +247,11 @@ export class SuffixTerm extends SuffixTermBase {
     return joinLines('', atomLines, ...trailersLines);
   }
 
-  public acceptParam<TP, TR>(
-    visitor: ISuffixTermParamVisitor<TP, TR>,
-    param: TP,
-  ): TR {
-    return visitor.visitSuffixTerm(this, param);
-  }
-
-  public accept<T>(visitor: ISuffixTermVisitor<T>): T {
-    return visitor.visitSuffixTerm(this);
-  }
-
-  public pass<T>(visitor: ISuffixTermPasser<T>): T {
-    return visitor.passSuffixTerm(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: ISuffixTermVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitSuffixTerm(this, parameters);
   }
 
   public static classAccept<T>(visitor: ISuffixTermClassVisitor<T>): T {
@@ -342,19 +309,11 @@ export class Call extends SuffixTermBase {
     return argsResult;
   }
 
-  public acceptParam<TP, TR>(
-    visitor: ISuffixTermParamVisitor<TP, TR>,
-    param: TP,
-  ): TR {
-    return visitor.visitCall(this, param);
-  }
-
-  public accept<T>(visitor: ISuffixTermVisitor<T>): T {
-    return visitor.visitCall(this);
-  }
-
-  public pass<T>(visitor: ISuffixTermPasser<T>): T {
-    return visitor.passCall(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: ISuffixTermVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitCall(this, parameters);
   }
 
   public static classAccept<T>(visitor: ISuffixTermClassVisitor<T>): T {
@@ -365,7 +324,7 @@ export class Call extends SuffixTermBase {
 /**
  * Class containing all array index suffix term trailers
  */
-export class ArrayIndex extends SuffixTermBase {
+export class HashIndex extends SuffixTermBase {
   /**
    * Grammar for the array index suffix term trailers
    */
@@ -396,30 +355,22 @@ export class ArrayIndex extends SuffixTermBase {
     return [`${this.indexer.lexeme}${this.index.lexeme}`];
   }
 
-  public acceptParam<TP, TR>(
-    visitor: ISuffixTermParamVisitor<TP, TR>,
-    param: TP,
-  ): TR {
-    return visitor.visitArrayIndex(this, param);
-  }
-
-  public accept<T>(visitor: ISuffixTermVisitor<T>): T {
-    return visitor.visitArrayIndex(this);
-  }
-
-  public pass<T>(visitor: ISuffixTermPasser<T>): T {
-    return visitor.passArrayIndex(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: ISuffixTermVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitHashIndex(this, parameters);
   }
 
   public static classAccept<T>(visitor: ISuffixTermClassVisitor<T>): T {
-    return visitor.visitArrayIndex(this);
+    return visitor.visitHashIndex(this);
   }
 }
 
 /**
  * Class containing all valid array bracket suffix term trailers
  */
-export class ArrayBracket extends SuffixTermBase {
+export class BracketIndex extends SuffixTermBase {
   /**
    * Grammar for the array bracket suffix term
    */
@@ -459,23 +410,15 @@ export class ArrayBracket extends SuffixTermBase {
     return lines;
   }
 
-  public acceptParam<TP, TR>(
-    visitor: ISuffixTermParamVisitor<TP, TR>,
-    param: TP,
-  ): TR {
-    return visitor.visitArrayBracket(this, param);
-  }
-
-  public accept<T>(visitor: ISuffixTermVisitor<T>): T {
-    return visitor.visitArrayBracket(this);
-  }
-
-  public pass<T>(visitor: ISuffixTermPasser<T>): T {
-    return visitor.passArrayBracket(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: ISuffixTermVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitBracketIndex(this, parameters);
   }
 
   public static classAccept<T>(visitor: ISuffixTermClassVisitor<T>): T {
-    return visitor.visitArrayBracket(this);
+    return visitor.visitBracketIndex(this);
   }
 }
 
@@ -512,19 +455,11 @@ export class Delegate extends SuffixTermBase {
     return [this.atSign.lexeme];
   }
 
-  public acceptParam<TP, TR>(
-    visitor: ISuffixTermParamVisitor<TP, TR>,
-    param: TP,
-  ): TR {
-    return visitor.visitDelegate(this, param);
-  }
-
-  public accept<T>(visitor: ISuffixTermVisitor<T>): T {
-    return visitor.visitDelegate(this);
-  }
-
-  public pass<T>(visitor: ISuffixTermPasser<T>): T {
-    return visitor.passDelegate(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: ISuffixTermVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitDelegate(this, parameters);
   }
 
   public static classAccept<T>(visitor: ISuffixTermClassVisitor<T>): T {
@@ -565,19 +500,11 @@ export class Literal extends SuffixTermBase {
     return [`${this.token.lexeme}`];
   }
 
-  public acceptParam<TP, TR>(
-    visitor: ISuffixTermParamVisitor<TP, TR>,
-    param: TP,
-  ): TR {
-    return visitor.visitLiteral(this, param);
-  }
-
-  public accept<T>(visitor: ISuffixTermVisitor<T>): T {
-    return visitor.visitLiteral(this);
-  }
-
-  public pass<T>(visitor: ISuffixTermPasser<T>): T {
-    return visitor.passLiteral(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: ISuffixTermVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitLiteral(this, parameters);
   }
 
   public static classAccept<T>(visitor: ISuffixTermClassVisitor<T>): T {
@@ -625,23 +552,15 @@ export class Identifier extends SuffixTermBase {
     return [`${this.token.lexeme}`];
   }
 
-  public acceptParam<TP, TR>(
-    visitor: ISuffixTermParamVisitor<TP, TR>,
-    param: TP,
-  ): TR {
-    return visitor.visitIdentifier(this, param);
-  }
-
-  public accept<T>(visitor: ISuffixTermVisitor<T>): T {
-    return visitor.visitIdentifier(this);
-  }
-
-  public pass<T>(visitor: ISuffixTermPasser<T>): T {
-    return visitor.passIdentifier(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: ISuffixTermVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitIdentifier(this, parameters);
   }
 
   public static classAccept<T>(visitor: ISuffixTermClassVisitor<T>): T {
-    return visitor.visitVariable(this);
+    return visitor.visitIdentifier(this);
   }
 }
 
@@ -692,19 +611,11 @@ export class Grouping extends SuffixTermBase {
     return lines;
   }
 
-  public acceptParam<TP, TR>(
-    visitor: ISuffixTermParamVisitor<TP, TR>,
-    param: TP,
-  ): TR {
-    return visitor.visitGrouping(this, param);
-  }
-
-  public accept<T>(visitor: ISuffixTermVisitor<T>): T {
-    return visitor.visitGrouping(this);
-  }
-
-  public pass<T>(visitor: ISuffixTermPasser<T>): T {
-    return visitor.passGrouping(this);
+  public accept<T extends (...args: any) => any>(
+    visitor: ISuffixTermVisitor<T>,
+    parameters: Parameters<T>,
+  ): ReturnType<T> {
+    return visitor.visitGrouping(this, parameters);
   }
 
   public static classAccept<T>(visitor: ISuffixTermClassVisitor<T>): T {
@@ -719,8 +630,8 @@ export const validSuffixTerms: Constructor<SuffixTermBase>[] = [
   SuffixTrailer,
   SuffixTerm,
   Call,
-  ArrayIndex,
-  ArrayBracket,
+  HashIndex,
+  BracketIndex,
   Delegate,
   Literal,
   Identifier,
@@ -735,8 +646,8 @@ const atomTypes: [ISuffixTermClass, Distribution][] = [
 
 const suffixTermTrailers: [ISuffixTermClass, Distribution][] = [
   [Call, createConstant(0.8)],
-  [ArrayBracket, createConstant(1)],
-  [ArrayIndex, createConstant(0.3)],
+  [BracketIndex, createConstant(1)],
+  [HashIndex, createConstant(0.3)],
 ];
 
 const atom = createGrammarUnion(...atomTypes);
@@ -757,7 +668,7 @@ Call.grammar = [
   TokenType.bracketClose,
 ];
 
-ArrayIndex.grammar = [
+HashIndex.grammar = [
   TokenType.arrayIndex,
   createGrammarUnion(
     [TokenType.integer, createNormal(3, 1)],
@@ -765,7 +676,7 @@ ArrayIndex.grammar = [
   ),
 ];
 
-ArrayBracket.grammar = [TokenType.bracketOpen, expr, TokenType.bracketClose];
+BracketIndex.grammar = [TokenType.bracketOpen, expr, TokenType.bracketClose];
 
 Delegate.grammar = [TokenType.atSign];
 

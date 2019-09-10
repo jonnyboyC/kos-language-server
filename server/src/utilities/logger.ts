@@ -1,6 +1,8 @@
 import { empty } from './typeGuards';
 
-// dummy logger we may need for testing or just performance
+/**
+ * A mock logger for testings or performance
+ */
 export const mockLogger: ILogger = {
   level: LogLevel.verbose,
   error: (_: string) => {},
@@ -10,10 +12,16 @@ export const mockLogger: ILogger = {
   verbose: (_: string) => {},
 };
 
+/**
+ * A mock tracer for testing or performance
+ */
 export const mockTracer: ITracer = {
   log: (_: string, __?: string) => {},
 };
 
+/**
+ * A logger to write to the standard console
+ */
 export const consoleLogger: ILogger = {
   level: LogLevel.verbose,
   error: (message: string) => console.error(message),
@@ -23,6 +31,9 @@ export const consoleLogger: ILogger = {
   verbose: (message: string) => console.log(message),
 };
 
+/**
+ * A tracer to write to the standard console
+ */
 export const consoleTracer: ITracer = {
   log: (message: string, verbose?: string) => console.trace(message, verbose),
 };
@@ -79,7 +90,9 @@ export const logException = (
   }
 };
 
-// wrapper class for logger to implement logging levels
+/**
+ * A class to implement the logic of logging levels
+ */
 export class Logger implements ILogger {
   constructor(
     private readonly connection: ILoggerBase,

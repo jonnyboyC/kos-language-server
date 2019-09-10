@@ -5,7 +5,7 @@ import {
   IStmt,
   INodeResult,
   RunStmtType,
-  ParseResult,
+  Ast,
   Atom,
   SuffixTermTrailer,
   PartialNode,
@@ -29,6 +29,8 @@ import { Token } from '../entities/token';
 import { mockLogger, mockTracer, logException } from '../utilities/logger';
 import { flatten } from '../utilities/arrayUtils';
 import { Marker } from '../entities/marker';
+import { Diagnostic } from 'vscode-languageserver';
+import { parseToDiagnostics } from '../utilities/serverUtils';
 
 type NodeConstructor =
   | Constructor<Expr.Expr>
@@ -65,7 +67,7 @@ export class Parser {
   }
 
   // parse tokens
-  public parse(): ParseResult {
+  public parse(): Ast {
     try {
       const splits = this.uri.split('/');
       const file = splits[splits.length - 1];
@@ -75,24 +77,34 @@ export class Parser {
       );
 
       const statements: Stmt.Stmt[] = [];
-      const parseErrors: IParseError[] = [];
+      const parseDiagnostics: Diagnostic[] = [];
 
       while (!this.isAtEnd()) {
         const { value, errors } = this.declaration();
+        const diagnostics =
+          errors.length === 0
+            ? []
+            : errors
+                .map(error => error.inner.concat(error))
+                .reduce((acc, current) => acc.concat(current))
+                .map(error => parseToDiagnostics(error));
+
         statements.push(value);
-        parseErrors.push(...errors);
+        parseDiagnostics.push(...diagnostics);
       }
 
       this.logger.info(
         `Parsing finished for ${file} with ` +
           `${this.runStmts.length} run statements`,
       );
-      if (parseErrors.length > 0) {
-        this.logger.warn(`Parser encountered ${parseErrors.length} errors`);
+      if (parseDiagnostics.length > 0) {
+        this.logger.warn(
+          `Parser encountered ${parseDiagnostics.length} errors`,
+        );
       }
 
       return {
-        parseErrors,
+        parseDiagnostics,
         script: new Script(this.uri, statements, this.runStmts),
       };
     } catch (err) {
@@ -100,7 +112,7 @@ export class Parser {
       logException(this.logger, this.tracer, err, LogLevel.error);
 
       return {
-        parseErrors: [],
+        parseDiagnostics: [],
         script: new Script(this.uri, [], []),
       };
     }
@@ -1582,7 +1594,7 @@ export class Parser {
     }
 
     return expr;
-  };
+  }
 
   // parse unary expression
   private unary(): INodeResult<IExpr> {
@@ -1761,34 +1773,34 @@ export class Parser {
   }
 
   // generate array bracket expression
-  private arrayBracket(): INodeResult<SuffixTerm.ArrayBracket> {
+  private arrayBracket(): INodeResult<SuffixTerm.BracketIndex> {
     const open = this.previous();
     const index = this.expression();
 
     const close = this.consumeTokenThrow(
       'Expected "]" at end of array index.',
-      SuffixTerm.ArrayBracket,
+      SuffixTerm.BracketIndex,
       TokenType.squareClose,
     );
 
     return nodeResult(
-      new SuffixTerm.ArrayBracket(open, index.value, close),
+      new SuffixTerm.BracketIndex(open, index.value, close),
       index.errors,
     );
   }
 
   // generate array index expression
-  private arrayIndex(): INodeResult<SuffixTerm.ArrayIndex> {
+  private arrayIndex(): INodeResult<SuffixTerm.HashIndex> {
     const indexer = this.previous();
 
     // check for integer or identifier
     const index = this.consumeTokensThrow(
       'Expected integer or identifer.',
-      SuffixTerm.ArrayIndex,
+      SuffixTerm.HashIndex,
       [TokenType.integer, TokenType.identifier],
     );
 
-    return nodeResult(new SuffixTerm.ArrayIndex(indexer, index), []);
+    return nodeResult(new SuffixTerm.HashIndex(indexer, index), []);
   }
 
   // parse lambda expression

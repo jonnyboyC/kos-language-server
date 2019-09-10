@@ -1,5 +1,5 @@
 import { Tokenized } from '../scanner/types';
-import { ParseResult } from '../parser/types';
+import { Ast } from '../parser/types';
 import { SymbolTable } from '../analysis/symbolTable';
 import { Diagnostic, Range, DiagnosticSeverity } from 'vscode-languageserver';
 import { Scanner } from '../scanner/scanner';
@@ -41,7 +41,7 @@ typeInitializer();
 
 interface ITypeCheckResults {
   scan: Tokenized;
-  parse: ParseResult;
+  parse: Ast;
   table: SymbolTable;
   resolveDiagnostics: Diagnostic[];
   typeCheckDiagnostics: Diagnostic[];
@@ -70,7 +70,7 @@ const checkSource = (
 
   if (standardLib) {
     symbolTableBuilder.linkDependency(
-      standardLibraryBuilder(CaseKind.lowercase),
+      standardLibraryBuilder(CaseKind.lowerCase),
     );
   }
 
@@ -96,14 +96,14 @@ const checkSource = (
 };
 
 const noResolverErrors = (result: ITypeCheckResults): void => {
-  expect(result.scan.scanErrors.map(e => e.message)).toEqual([]);
-  expect(result.parse.parseErrors.map(e => e.message)).toEqual([]);
+  expect(result.scan.scanDiagnostics.map(e => e.message)).toEqual([]);
+  expect(result.parse.parseDiagnostics.map(e => e.message)).toEqual([]);
   expect(result.resolveDiagnostics.map(e => e.message)).toEqual([]);
 };
 
 const noErrors = (result: ITypeCheckResults): void => {
-  expect(result.scan.scanErrors.map(e => e.message)).toEqual([]);
-  expect(result.parse.parseErrors.map(e => e.message)).toEqual([]);
+  expect(result.scan.scanDiagnostics.map(e => e.message)).toEqual([]);
+  expect(result.parse.parseDiagnostics.map(e => e.message)).toEqual([]);
   expect(result.resolveDiagnostics.map(e => e.message)).toEqual([]);
   expect(result.typeCheckDiagnostics.map(e => e.message)).toEqual([]);
 };
@@ -424,7 +424,6 @@ local l2 is true or true.
 local l3 is ship or true.
 local l4 is 10 and 20.
 local l5 is "true" or "false".
-
 
 print(l1).
 print(l2).

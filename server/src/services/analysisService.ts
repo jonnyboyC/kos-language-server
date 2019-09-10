@@ -18,10 +18,7 @@ import { empty } from '../utilities/typeGuards';
 import { Scanner } from '../scanner/scanner';
 import { Parser } from '../parser/parser';
 import { TextDocument, Diagnostic } from 'vscode-languageserver';
-import {
-  addDiagnosticsUri,
-  parseToDiagnostics,
-} from '../utilities/serverUtils';
+import { addDiagnosticsUri } from '../utilities/serverUtils';
 import { DocumentService } from './documentService';
 import { logException } from '../utilities/logger';
 import { Resolver } from '../analysis/resolver';
@@ -30,6 +27,7 @@ import {
   standardLibraryBuilder,
   bodyLibraryBuilder,
 } from '../analysis/standardLibrary';
+import { ControlFlow } from '../controlFlow/controlFlow';
 
 interface DependencyLoadResult {
   documentInfos: DocumentInfo[];
@@ -220,6 +218,7 @@ export class AnalysisService {
     const {
       resolverDiagnostics,
       typeDiagnostics,
+      flowDiagnostics,
       symbolTable,
     } = this.semanticAnalysisDocument(uri, script, dependencyTables);
 
@@ -234,6 +233,7 @@ export class AnalysisService {
       diagnostics: [
         ...scannerDiagnostics,
         ...parserDiagnostics,
+        ...flowDiagnostics,
         ...loadDiagnostics,
         ...resolverDiagnostics,
         ...typeDiagnostics,
@@ -252,17 +252,19 @@ export class AnalysisService {
 
     performance.mark('scanner-start');
     const scanner = new Scanner(text, uri, this.logger, this.tracer);
-    const { tokens, scanErrors, regions } = scanner.scanTokens();
+    const { tokens, scanDiagnostics, regions } = scanner.scanTokens();
     performance.mark('scanner-end');
 
     // if scanner found errors report those immediately
-    if (scanErrors.length > 0) {
-      this.logger.warn(`Scanning encountered ${scanErrors.length} Errors.`);
+    if (scanDiagnostics.length > 0) {
+      this.logger.warn(
+        `Scanning encountered ${scanDiagnostics.length} Errors.`,
+      );
     }
 
     performance.mark('parser-start');
     const parser = new Parser(uri, tokens, this.logger, this.tracer);
-    const { script, parseErrors } = parser.parse();
+    const { script, parseDiagnostics } = parser.parse();
     performance.mark('parser-end');
 
     // measure performance
@@ -273,16 +275,12 @@ export class AnalysisService {
     this.logger.verbose('--------------------------------------');
 
     // generate lexical diagnostics
-    const scannerDiagnostics = scanErrors.map(scanError =>
-      addDiagnosticsUri(scanError, uri),
+    const scannerDiagnostics = scanDiagnostics.map(scanDiagnostic =>
+      addDiagnosticsUri(scanDiagnostic, uri),
     );
-    const parserDiagnostics =
-      parseErrors.length === 0
-        ? []
-        : parseErrors
-            .map(error => error.inner.concat(error))
-            .reduce((acc, current) => acc.concat(current))
-            .map(error => parseToDiagnostics(error, uri));
+    const parserDiagnostics = parseDiagnostics.map(parseDiagnostic =>
+      addDiagnosticsUri(parseDiagnostic, uri),
+    );
 
     return {
       scannerDiagnostics,
@@ -370,6 +368,20 @@ export class AnalysisService {
       oldDocumentInfo = undefined;
     }
 
+    const controlFlow = new ControlFlow(script, this.logger, this.tracer);
+
+    performance.mark('control-flow-start');
+
+    const flowGraph = controlFlow.flow();
+
+    const flowDiagnostics = empty(flowGraph)
+      ? []
+      : flowGraph
+          .reachable()
+          .map(diagnostic => addDiagnosticsUri(diagnostic, uri));
+
+    performance.mark('control-flow-end');
+
     // perform type checking
     const typeChecker = new TypeChecker(script, this.logger, this.tracer);
 
@@ -389,6 +401,11 @@ export class AnalysisService {
     );
     performance.measure('Resolver', 'resolver-start', 'resolver-end');
     performance.measure(
+      'Control Flow',
+      'control-flow-start',
+      'control-flow-end',
+    );
+    performance.measure(
       'Type Checking',
       'type-checking-start',
       'type-checking-end',
@@ -398,6 +415,7 @@ export class AnalysisService {
 
     return {
       symbolTable,
+      flowDiagnostics,
       typeDiagnostics,
       resolverDiagnostics,
     };

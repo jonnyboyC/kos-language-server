@@ -13,7 +13,7 @@ describe('Scan all files', () => {
       const kosFile = readFileSync(filePath, 'utf8');
 
       const scanner = new Scanner(kosFile);
-      const { tokens, scanErrors } = scanner.scanTokens();
+      const { tokens, scanDiagnostics: scanErrors } = scanner.scanTokens();
       const errorResult = scanErrors.map(error => ({ filePath, ...error }));
 
       expect(tokens.length > 0).toBe(true);
@@ -148,7 +148,7 @@ describe('Scan test file', () => {
     const kosFile = readFileSync(scannerPath, 'utf8');
 
     const scanner = new Scanner(kosFile);
-    const { tokens, scanErrors } = scanner.scanTokens();
+    const { tokens, scanDiagnostics: scanErrors } = scanner.scanTokens();
     expect(scanErrors.length === 0).toBe(true);
 
     for (const [type, token] of zip(sequence, tokens)) {

@@ -25,16 +25,15 @@ import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
 import { createDiagnostic } from '../utilities/diagnosticsUtils';
 // tslint:disable-next-line: import-name
 import Denque from 'denque';
-import { flatten } from '../utilities/arrayUtils';
 import { Token } from '../entities/token';
 
 type Diagnostics = Diagnostic[];
 
 export class Resolver
   implements
-    IStmtVisitor<Diagnostics>,
-    IExprVisitor<Diagnostics>,
-    ISuffixTermVisitor<Diagnostics> {
+    IStmtVisitor<() => Diagnostics>,
+    IExprVisitor<() => Diagnostics>,
+    ISuffixTermVisitor<() => Diagnostics> {
   /**
    * Script the resolver executes on
    */
@@ -228,7 +227,7 @@ export class Resolver
    * @param stmt resolve statement
    */
   private resolveStmt(stmt: IStmt): Diagnostics {
-    return stmt.accept(this);
+    return stmt.accept(this, []);
   }
 
   /**
@@ -236,7 +235,7 @@ export class Resolver
    * @param expr expression to skip
    */
   private resolveExpr(expr: IExpr): Diagnostics {
-    return expr.accept(this);
+    return expr.accept(this, []);
   }
 
   /**
@@ -244,7 +243,7 @@ export class Resolver
    * @param suffixTerm suffix term to skip
    */
   private resolveSuffixTerm(suffixTerm: ISuffixTerm): Diagnostics {
-    return suffixTerm.accept(this);
+    return suffixTerm.accept(this, []);
   }
 
   /**
@@ -269,14 +268,6 @@ export class Resolver
     }
 
     return errors;
-  }
-
-  /**
-   * filter to just errors
-   * @param maybeError potential error
-   */
-  private filterError(maybeError: Maybe<Diagnostic>): maybeError is Diagnostic {
-    return !empty(maybeError);
   }
 
   /* --------------------------------------------
@@ -320,7 +311,8 @@ export class Resolver
       ScopeKind.global,
     );
 
-    const errors: Diagnostic[] = [];
+    const errors: Diagnostic[] = this.useExprLocals(decl.value);
+    errors.push(...this.resolveExpr(decl.value));
 
     if (empty(tracker)) {
       const declareError = this.tableBuilder.declareLock(
@@ -332,9 +324,6 @@ export class Resolver
         errors.push(declareError);
       }
     }
-
-    errors.push(...this.useExprLocals(decl.value));
-    errors.push(...this.resolveExpr(decl.value));
 
     return errors;
   }
@@ -374,36 +363,32 @@ export class Resolver
     // all parameters are local
     const scopeType = ScopeKind.local;
 
-    // need to check if default paraemter can really be abbitrary expr
-    const parameterErrors = decl.requiredParameters
-      .map(parameter =>
-        this.tableBuilder.declareParameter(
-          scopeType,
-          parameter.identifier,
-          false,
-        ),
-      )
-      .filter(this.filterError);
+    // check required parameters
+    for (const parameter of decl.requiredParameters) {
+      const error = this.tableBuilder.declareParameter(
+        scopeType,
+        parameter.identifier,
+        false,
+      );
 
-    const defaultParameterErrors = decl.optionalParameters
-      .map(parameter =>
-        this.tableBuilder.declareParameter(
-          scopeType,
-          parameter.identifier,
-          true,
-        ),
-      )
-      .filter(this.filterError);
+      if (!empty(error)) {
+        errors.push(error);
+      }
+    }
 
-    const defaultUseErrors = decl.optionalParameters.map(parameter =>
-      this.useExprLocals(parameter.value),
-    );
+    // check optional parameters
+    for (const parameter of decl.optionalParameters) {
+      const error = this.tableBuilder.declareParameter(
+        scopeType,
+        parameter.identifier,
+        false,
+      );
 
-    errors.push(
-      ...parameterErrors,
-      ...defaultParameterErrors,
-      ...flatten(defaultUseErrors),
-    );
+      if (!empty(error)) {
+        errors.push(error);
+      }
+      errors.push(...this.useExprLocals(parameter.value));
+    }
 
     return errors;
   }
@@ -457,9 +442,10 @@ export class Resolver
    * @param stmt the syntax node
    */
   public visitExpr(stmt: Stmt.ExprStmt): Diagnostics {
-    return this.useExprLocals(stmt.suffix).concat(
-      this.resolveExpr(stmt.suffix),
-    );
+    const errors = this.useExprLocals(stmt.suffix);
+    errors.push(...this.resolveExpr(stmt.suffix));
+
+    return errors;
   }
 
   /**
@@ -467,9 +453,10 @@ export class Resolver
    * @param stmt the syntax node
    */
   public visitOnOff(stmt: Stmt.OnOff): Diagnostics {
-    return this.useExprLocals(stmt.suffix).concat(
-      this.resolveExpr(stmt.suffix),
-    );
+    const errors = this.useExprLocals(stmt.suffix);
+    errors.push(...this.resolveExpr(stmt.suffix));
+
+    return errors;
   }
 
   /**
@@ -499,7 +486,10 @@ export class Resolver
    * @param stmt the syntax node
    */
   public visitCommandExpr(stmt: Stmt.CommandExpr): Diagnostics {
-    return this.useExprLocals(stmt.expr).concat(this.resolveExpr(stmt.expr));
+    const errors = this.useExprLocals(stmt.expr);
+    errors.push(...this.resolveExpr(stmt.expr));
+
+    return errors;
   }
 
   /**
@@ -703,9 +693,10 @@ export class Resolver
    * @param stmt the syntax node
    */
   public visitSwitch(stmt: Stmt.Switch): Diagnostics {
-    return this.useExprLocalsBind(stmt.target).concat(
-      this.resolveExpr(stmt.target),
-    );
+    const errors = this.useExprLocals(stmt.target);
+    errors.push(...this.resolveExpr(stmt.target));
+
+    return errors;
   }
 
   /**
@@ -715,21 +706,21 @@ export class Resolver
   public visitFor(stmt: Stmt.For): Diagnostics {
     return this.trackLoop(() => {
       this.tableBuilder.beginScope(stmt);
-      const errors: Diagnostics = [];
 
       const declareError = this.tableBuilder.declareVariable(
         ScopeKind.local,
         stmt.element,
       );
-      if (!empty(declareError)) {
-        errors.push(declareError);
-      }
 
+      const errors: Diagnostics = this.useExprLocalsBind(stmt.collection);
       errors.push(
-        ...this.useExprLocalsBind(stmt.collection),
         ...this.resolveExpr(stmt.collection),
         ...this.resolveStmt(stmt.body),
       );
+
+      if (!empty(declareError)) {
+        errors.push(declareError);
+      }
 
       this.tableBuilder.endScope();
 
@@ -762,9 +753,10 @@ export class Resolver
    * @param stmt the syntax node
    */
   public visitToggle(stmt: Stmt.Toggle): Diagnostics {
-    return this.useExprLocalsBind(stmt.suffix).concat(
-      this.resolveExpr(stmt.suffix),
-    );
+    const errors = this.useExprLocals(stmt.suffix);
+    errors.push(...this.resolveExpr(stmt.suffix));
+
+    return errors;
   }
 
   /**
@@ -772,9 +764,10 @@ export class Resolver
    * @param stmt the syntax node
    */
   public visitWait(stmt: Stmt.Wait): Diagnostics {
-    return this.useExprLocalsBind(stmt.expr).concat(
-      this.resolveExpr(stmt.expr),
-    );
+    const errors = this.useExprLocals(stmt.expr);
+    errors.push(...this.resolveExpr(stmt.expr));
+
+    return errors;
   }
 
   /**
@@ -782,10 +775,12 @@ export class Resolver
    * @param stmt the syntax node
    */
   public visitLog(stmt: Stmt.Log): Diagnostics {
-    return this.useExprLocalsBind(stmt.expr).concat(
-      this.resolveExpr(stmt.expr),
-      this.resolveExpr(stmt.target),
+    const errors = this.useExprLocalsBind(stmt.expr);
+    errors.push(
+      ...this.resolveExpr(stmt.expr),
+      ...this.resolveExpr(stmt.target),
     );
+    return errors;
   }
 
   /**
@@ -857,19 +852,22 @@ export class Resolver
     }
 
     const argError = !empty(stmt.args)
-      ? accumulateErrors(stmt.args, this.useExprLocalsBind).concat(
-          accumulateErrors(stmt.args, this.resolveExprBind),
-        )
+      ? [
+          ...accumulateErrors(stmt.args, this.useExprLocalsBind),
+          ...accumulateErrors(stmt.args, this.resolveExprBind),
+        ]
       : [];
 
     if (empty(stmt.expr)) {
       return argError;
     }
 
-    return this.useExprLocalsBind(stmt.expr).concat(
-      this.resolveExpr(stmt.expr),
-      argError,
+    argError.push(
+      ...this.useExprLocalsBind(stmt.expr),
+      ...this.resolveExpr(stmt.expr),
     );
+
+    return argError;
   }
 
   /**
@@ -877,17 +875,17 @@ export class Resolver
    * @param stmt the syntax node
    */
   public visitRunPath(stmt: Stmt.RunPath): Diagnostics {
-    if (empty(stmt.args)) {
-      return this.useExprLocalsBind(stmt.expr).concat(
-        this.resolveExpr(stmt.expr),
+    const errors = this.useExprLocalsBind(stmt.expr);
+    errors.push(...this.resolveExpr(stmt.expr));
+
+    if (!empty(stmt.args)) {
+      errors.push(
+        ...accumulateErrors(stmt.args, this.useExprLocalsBind),
+        ...accumulateErrors(stmt.args, this.resolveExprBind),
       );
     }
 
-    return this.useExprLocalsBind(stmt.expr).concat(
-      this.resolveExpr(stmt.expr),
-      accumulateErrors(stmt.args, this.useExprLocalsBind),
-      accumulateErrors(stmt.args, this.resolveExprBind),
-    );
+    return errors;
   }
 
   /**
@@ -895,17 +893,17 @@ export class Resolver
    * @param stmt the syntax node
    */
   public visitRunPathOnce(stmt: Stmt.RunOncePath): Diagnostics {
-    if (empty(stmt.args)) {
-      return this.useExprLocalsBind(stmt.expr).concat(
-        this.resolveExpr(stmt.expr),
+    const errors = this.useExprLocalsBind(stmt.expr);
+    errors.push(...this.resolveExpr(stmt.expr));
+
+    if (!empty(stmt.args)) {
+      errors.push(
+        ...accumulateErrors(stmt.args, this.useExprLocalsBind),
+        ...accumulateErrors(stmt.args, this.resolveExprBind),
       );
     }
 
-    return this.useExprLocalsBind(stmt.expr).concat(
-      this.resolveExpr(stmt.expr),
-      accumulateErrors(stmt.args, this.useExprLocalsBind),
-      accumulateErrors(stmt.args, this.resolveExprBind),
-    );
+    return errors;
   }
 
   /**
@@ -952,9 +950,10 @@ export class Resolver
    * @param stmt the syntax node
    */
   public visitPrint(stmt: Stmt.Print): Diagnostics {
-    return this.useExprLocalsBind(stmt.expr).concat(
-      this.resolveExpr(stmt.expr),
-    );
+    const errors = this.useExprLocalsBind(stmt.expr);
+    errors.push(...this.resolveExpr(stmt.expr));
+
+    return errors;
   }
 
   /**
@@ -1090,11 +1089,11 @@ export class Resolver
     return accumulateErrors(suffixTerm.args, this.resolveExprBind);
   }
 
-  public visitArrayIndex(_: SuffixTerm.ArrayIndex): Diagnostics {
+  public visitHashIndex(_: SuffixTerm.HashIndex): Diagnostics {
     return [];
   }
 
-  public visitArrayBracket(suffixTerm: SuffixTerm.ArrayBracket): Diagnostics {
+  public visitBracketIndex(suffixTerm: SuffixTerm.BracketIndex): Diagnostics {
     return this.resolveExpr(suffixTerm.index);
   }
 

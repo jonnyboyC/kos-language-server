@@ -19,7 +19,7 @@ import { basename } from 'path';
 import { Scanner } from '../scanner/scanner';
 import { Parser } from '../parser/parser';
 import { Tokenized } from '../scanner/types';
-import { ParseResult } from '../parser/types';
+import { Ast } from '../parser/types';
 import { FoldableService } from '../services/foldableService';
 import {
   createMockDocConnection,
@@ -467,7 +467,7 @@ describe('analysisService', () => {
     );
 
     const analysisService = new AnalysisService(
-      CaseKind.camelcase,
+      CaseKind.camelCase,
       mockLogger,
       mockTracer,
       docService,
@@ -504,7 +504,7 @@ describe('analysisService', () => {
     );
 
     const analysisService = new AnalysisService(
-      CaseKind.camelcase,
+      CaseKind.camelCase,
       mockLogger,
       mockTracer,
       docService,
@@ -550,7 +550,7 @@ describe('analysisService', () => {
     );
 
     const analysisService = new AnalysisService(
-      CaseKind.lowercase,
+      CaseKind.lowerCase,
       mockLogger,
       mockTracer,
       docService,
@@ -567,7 +567,7 @@ describe('analysisService', () => {
       expect(stdSymbol.name.lexeme).toBe(stdSymbol.name.lexeme.toLowerCase());
     }
 
-    analysisService.setCase(CaseKind.uppercase);
+    analysisService.setCase(CaseKind.upperCase);
 
     bodyLib = analysisService['bodyLibrary'];
     stdLib = analysisService['bodyLibrary'];
@@ -604,7 +604,7 @@ describe('analysisService', () => {
     const docService = createMockDocumentService(documents, baseUri);
 
     const analysisService = new AnalysisService(
-      CaseKind.camelcase,
+      CaseKind.camelCase,
       mockLogger,
       mockTracer,
       docService,
@@ -664,7 +664,7 @@ describe('analysisService', () => {
     const docService = createMockDocumentService(documents, baseUri);
 
     const analysisService = new AnalysisService(
-      CaseKind.camelcase,
+      CaseKind.camelCase,
       mockLogger,
       mockTracer,
       docService,
@@ -771,7 +771,7 @@ const fakeUri = 'file:///fake.ks';
 
 interface ScanParseResult {
   scan: Tokenized;
-  parse: ParseResult;
+  parse: Ast;
 }
 
 // parse source
@@ -786,8 +786,8 @@ const parseSource = (source: string): ScanParseResult => {
 };
 
 const noParseErrors = (result: ScanParseResult): void => {
-  expect(result.scan.scanErrors.length).toBe(0);
-  expect(result.parse.parseErrors.length).toBe(0);
+  expect(result.scan.scanDiagnostics.length).toBe(0);
+  expect(result.parse.parseDiagnostics.length).toBe(0);
 };
 
 describe('foldableService', () => {
