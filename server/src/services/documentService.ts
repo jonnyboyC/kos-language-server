@@ -8,11 +8,12 @@ import {
   Range,
 } from 'vscode-languageserver';
 import { empty } from '../utilities/typeGuards';
-import { PathResolver, normalizeExtensions } from '../utilities/pathResolver';
 import { URI } from 'vscode-uri';
 import { createDiagnostic } from '../utilities/diagnosticsUtils';
-import { DocumentLoader, Document } from '../utilities/documentLoader';
+import { IoService, Document } from './IoService';
 import { logException, mockTracer } from '../utilities/logger';
+import { ResolverService } from './resolverService';
+import { normalizeExtensions } from '../utilities/pathUtilities';
 
 type DocumentChangeHandler = (document: Document) => void;
 type DocumentClosedHandler = (uri: string) => void;
@@ -52,35 +53,35 @@ export class DocumentService {
   private tracer: ITracer;
 
   /**
-   * A function to load a uri asynchronously
+   * A service for interacting with io
    */
-  private documentLoader: DocumentLoader;
+  private ioService: IoService;
 
   /**
    * The path resolver to identifying file paths from kos run paths
    */
-  private pathResolver: PathResolver;
+  private resolverService: ResolverService;
 
   /**
    * Create a new instance of the document service.
    * @param conn document connection holding the required callbacks from iconnection
-   * @param uriLoader service to load from a provided uri
+   * @param ioService service to load from a provided uri
+   * @param resolverService service to resolve uri for kerboscript
    * @param logger logger to log messages to client
    * @param tracer tracer to location exception
-   * @param volume0Uri the uri to volume 0 on the drive
    */
   constructor(
     conn: DocumentConnection,
-    uriLoader: DocumentLoader,
+    ioService: IoService,
+    resolverService: ResolverService,
     logger: ILogger,
     tracer: ITracer,
-    volume0Uri?: string,
   ) {
     this.clientDocs = new Map();
     this.serverDocs = new Map();
-    this.pathResolver = new PathResolver(volume0Uri);
+    this.resolverService = resolverService;
     this.conn = conn;
-    this.documentLoader = uriLoader;
+    this.ioService = ioService;
     this.logger = logger;
     this.tracer = tracer;
   }
@@ -89,16 +90,7 @@ export class DocumentService {
    * Is the document service read
    */
   public ready(): boolean {
-    return this.pathResolver.ready();
-  }
-
-  /**
-   * Set the volume 0 uri
-   * @param uri uri of volume 0
-   */
-  public async setVolume0Uri(uri: URI) {
-    this.pathResolver.volume0Uri = uri;
-    this.cacheDocuments();
+    return this.resolverService.ready();
   }
 
   /**
@@ -124,48 +116,28 @@ export class DocumentService {
   /**
    * Attempt load a document from a kOS script
    * @param caller the caller location for the document
-   * @param kosPath the path in the run statement
+   * @param rawPath the path in the run statement
    */
   public async loadDocumentFromScript(
     caller: Location,
-    kosPath: string,
+    rawPath: string,
   ): Promise<Maybe<Diagnostic | TextDocument>> {
-    // resolver must first be ready
-    if (!this.ready()) {
+    if (!this.resolverService.ready()) {
       return undefined;
     }
 
-    // resolve kos path to uri
-    const uri = this.pathResolver.resolveUri(caller, kosPath);
+    const uri = this.resolverService.resolve(caller, rawPath);
+
+    // report load diagnostics if we can't construct a uri
     if (empty(uri)) {
-      return this.loadError(caller.range, kosPath);
+      return this.loadError(caller.range, rawPath);
     }
 
-    // attempt to load a resource from whatever uri is provided
-    const normalized = normalizeExtensions(uri);
-    if (empty(normalized)) {
-      return this.loadError(caller.range, kosPath);
-    }
-
-    // check for cached versions first
-    const cached = this.serverDocs.get(normalized);
-    if (!empty(cached)) {
-      return cached;
-    }
-
-    try {
-      // attempt to load a resource from whatever uri is provided
-      const uri = URI.parse(normalized);
-      const retrieved = await this.retrieveResource(uri);
-      const textDocument = TextDocument.create(normalized, 'kos', 0, retrieved);
-
-      // if found set in cache and return document
-      this.serverDocs.set(normalized, textDocument);
-      return textDocument;
-    } catch (err) {
-      // create a diagnostic if we can't load the file
-      return this.loadError(caller.range, kosPath);
-    }
+    // report load diagnostic if we can't find the file
+    return (
+      (await this.loadDocument(uri.toString())) ||
+      this.loadError(caller.range, rawPath)
+    );
   }
 
   /**
@@ -227,15 +199,15 @@ export class DocumentService {
   /**
    * Cache all documents in the workspace.
    */
-  private async cacheDocuments() {
-    if (empty(this.pathResolver.volume0Uri)) {
+  public async cacheDocuments() {
+    if (empty(this.resolverService.volume0Uri)) {
       return;
     }
 
-    const volume0Path = this.pathResolver.volume0Uri.fsPath;
+    const volume0Path = this.resolverService.volume0Uri.fsPath;
 
     try {
-      for await (const { uri, text } of this.documentLoader.loadDirectory(
+      for await (const { uri, text } of this.ioService.loadDirectory(
         volume0Path,
       )) {
         const textDocument = TextDocument.create(uri, 'kos', 0, text);
@@ -267,7 +239,7 @@ export class DocumentService {
    */
   private retrieveResource(uri: URI): Promise<string> {
     const path = uri.fsPath;
-    return this.documentLoader.load(path);
+    return this.ioService.load(path);
   }
 
   /**

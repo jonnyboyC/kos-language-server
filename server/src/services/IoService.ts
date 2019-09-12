@@ -1,7 +1,9 @@
-import { readFileAsync } from './fsUtils';
-import { statSync, readdirSync } from 'fs';
+import { readFileAsync } from '../utilities/fsUtils';
+import { statSync, readdirSync, existsSync } from 'fs';
 import { join } from 'path';
 import { URI } from 'vscode-uri';
+import { normalizeExtensions } from '../utilities/pathUtilities';
+import { empty } from '../utilities/typeGuards';
 
 /**
  * Document interface
@@ -21,7 +23,7 @@ export interface Document {
 /**
  * A small set of functionality for loading files and directory of files
  */
-export class DocumentLoader {
+export class IoService {
   constructor() {}
 
   /**
@@ -53,5 +55,31 @@ export class DocumentLoader {
         }
       }
     }
+  }
+
+  /**
+   * Check if the uri exists. Performs a normalization step in cases of
+   * `runPath("0:\script")` where the .ks is omitted
+   * @param caller location of caller
+   * @param rawPath path provided in a run statement
+   */
+  public exists(uri: URI): Maybe<URI> {
+    // check if file exists then
+    if (existsSync(uri.fsPath)) {
+      return uri;
+    }
+
+    // if we didn't find try to normalize the path with extension .ks
+    const result = normalizeExtensions(uri);
+    if (empty(result)) {
+      return undefined;
+    }
+
+    const normalized = URI.parse(result);
+    if (!existsSync(normalized.fsPath)) {
+      return undefined;
+    }
+
+    return normalized;
   }
 }

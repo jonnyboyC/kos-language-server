@@ -63,16 +63,12 @@ import {
 import { isValidIdentifier } from './entities/tokentypes';
 import { tokenTrackedType } from './typeChecker/utilities/typeUtilities';
 import { TypeKind } from './typeChecker/types';
-import { DocumentLoader, Document } from './utilities/documentLoader';
+import { IoService, Document } from './services/IoService';
 import { FoldableService } from './services/foldableService';
 import { AnalysisService } from './services/analysisService';
-import {
-  PathResolver,
-  runPath,
-  normalizeExtensions,
-} from './utilities/pathResolver';
-import { existsSync } from 'fs';
 import { IFindResult } from './parser/types';
+import { ResolverService } from './services/resolverService';
+import { runPath } from './utilities/pathUtilities';
 
 export class KLS {
   /**
@@ -115,6 +111,16 @@ export class KLS {
    */
   private readonly analysisService: AnalysisService;
 
+  /**
+   * A service to resolve path in kos
+   */
+  private readonly resolverService: ResolverService;
+
+  /**
+   * A service for interacting with io
+   */
+  private readonly ioService: IoService;
+
   constructor(
     caseKind: CaseKind = CaseKind.camelCase,
     logger: ILogger = mockLogger,
@@ -127,9 +133,12 @@ export class KLS {
     this.tracer = tracer;
     this.configuration = configuration;
     this.connection = connection;
+    this.ioService = new IoService();
+    this.resolverService = new ResolverService();
     this.documentService = new DocumentService(
       connection,
-      new DocumentLoader(),
+      this.ioService,
+      this.resolverService,
       logger,
       tracer,
     );
@@ -764,7 +773,8 @@ export class KLS {
   private setUri(uri: string): void {
     const parsed = URI.parse(uri);
 
-    this.documentService.setVolume0Uri(parsed);
+    this.resolverService.volume0Uri = parsed;
+    this.documentService.cacheDocuments();
     this.workspaceUri = uri;
   }
 
@@ -830,48 +840,35 @@ export class KLS {
     // check if symbols exists
     const { token, node } = result;
     if (empty(token.tracker)) {
-      // if no tracker it might be a run statment
+      // if no tracker it might be a run statement
       if (
         node instanceof Stmt.Run ||
         node instanceof Stmt.RunPath ||
         node instanceof Stmt.RunOncePath
       ) {
-        const pathResolver = new PathResolver(this.configuration.workspaceUri);
-
         // get the kos run path
         const kosPath = runPath(node);
         if (typeof kosPath !== 'string') {
           return undefined;
         }
 
+        const resolved = this.resolverService.resolve(
+          node.toLocation(uri),
+          kosPath,
+        );
+
+        if (empty(resolved)) {
+          return undefined;
+        }
+
         // resolve to the file system
-        const path = pathResolver.resolveUri(node.toLocation(uri), kosPath);
-        if (empty(path)) {
-          return undefined;
-        }
-
-        // check if file exists then
-        if (existsSync(path.fsPath)) {
-          return Location.create(
-            path.toString(),
+        const found = this.ioService.exists(resolved);
+        return (
+          found &&
+          Location.create(
+            found.toString(),
             Range.create(Position.create(0, 0), Position.create(0, 0)),
-          );
-        }
-
-        // if we didn't find try to normalize the path with extension .ks
-        const result = normalizeExtensions(path);
-        if (empty(result)) {
-          return undefined;
-        }
-
-        const normalized = URI.parse(result);
-        if (!existsSync(normalized.fsPath)) {
-          return undefined;
-        }
-
-        return Location.create(
-          normalized.toString(),
-          Range.create(Position.create(0, 0), Position.create(0, 0)),
+          )
         );
       }
 

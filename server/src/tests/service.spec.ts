@@ -15,7 +15,7 @@ import { mockLogger, mockTracer } from '../utilities/logger';
 import { URI } from 'vscode-uri';
 import { empty } from '../utilities/typeGuards';
 import { zip } from '../utilities/arrayUtils';
-import { basename } from 'path';
+import { basename, join } from 'path';
 import { Scanner } from '../scanner/scanner';
 import { Parser } from '../parser/parser';
 import { Tokenized } from '../scanner/types';
@@ -23,27 +23,146 @@ import { Ast } from '../parser/types';
 import { FoldableService } from '../services/foldableService';
 import {
   createMockDocConnection,
-  createMockUriResponse,
+  createMockUriResponse as createMockIoService,
   createMockDocumentService,
 } from './utilities/mockServices';
 import { rangeEqual } from '../utilities/positionUtils';
 import { AnalysisService } from '../services/analysisService';
 import { typeInitializer } from '../typeChecker/initialize';
+import { ResolverService } from '../services/resolverService';
 
 typeInitializer();
+
+describe('path resolver', () => {
+  test('path resolver', () => {
+    const pathResolver = new ResolverService();
+    const range = {
+      start: {
+        line: 0,
+        character: 0,
+      },
+      end: {
+        line: 0,
+        character: 1,
+      },
+    };
+
+    const otherFileLocation: Location = {
+      range,
+      uri: 'file:///root/example/otherFile.ks',
+    };
+
+    const otherDirLocation: Location = {
+      range,
+      uri: 'file:///root/example/up/upFile.ks',
+    };
+
+    const relative1 = ['relative', 'path', 'file.ks'].join('/');
+    const relative2 = ['..', 'relative', 'path', 'file.ks'].join('/');
+    const absolute = ['0:', 'relative', 'path', 'file.ks'].join('/');
+    const weird = ['0:relative', 'path', 'file.ks'].join('/');
+
+    expect(pathResolver.resolve(otherFileLocation, relative1)).toBeUndefined();
+    expect(pathResolver.resolve(otherDirLocation, relative2)).toBeUndefined();
+    expect(pathResolver.resolve(otherFileLocation, absolute)).toBeUndefined();
+    expect(pathResolver.resolve(otherFileLocation, weird)).toBeUndefined();
+
+    pathResolver.volume0Uri = URI.file(join('root', 'example'));
+
+    const resolvedUri = 'file:///root/example/relative/path/file.ks';
+
+    const relativeResolved1 = pathResolver.resolve(
+      otherFileLocation,
+      relative1,
+    );
+    expect(undefined).not.toBe(relativeResolved1);
+    if (!empty(relativeResolved1)) {
+      expect(relativeResolved1.toString()).toBe(resolvedUri);
+    }
+
+    const relativeResolved2 = pathResolver.resolve(otherDirLocation, relative2);
+    expect(undefined).not.toBe(relativeResolved2);
+    if (!empty(relativeResolved2)) {
+      expect(relativeResolved2.toString()).toBe(resolvedUri);
+    }
+
+    const absoluteResolved = pathResolver.resolve(otherFileLocation, absolute);
+    expect(undefined).not.toBe(absoluteResolved);
+    if (!empty(absoluteResolved)) {
+      expect(absoluteResolved.toString()).toBe(resolvedUri);
+    }
+
+    const weirdResolved = pathResolver.resolve(otherFileLocation, weird);
+    expect(undefined).not.toBe(weirdResolved);
+    if (!empty(weirdResolved)) {
+      expect(weirdResolved.toString()).toBe(resolvedUri);
+    }
+  });
+
+  test('path resolver boot', () => {
+    const pathResolver = new ResolverService();
+    const range = {
+      start: {
+        line: 0,
+        character: 0,
+      },
+      end: {
+        line: 0,
+        character: 1,
+      },
+    };
+
+    const bootFileLocation: Location = {
+      range,
+      uri: 'file:///root/example/boot/otherFile.ks',
+    };
+
+    const relative1 = ['relative', 'path', 'file.ks'].join('/');
+    const absolute = ['0:', 'relative', 'path', 'file.ks'].join('/');
+    const weird = ['0:relative', 'path', 'file.ks'].join('/');
+
+    expect(pathResolver.resolve(bootFileLocation, relative1)).toBeUndefined();
+    expect(pathResolver.resolve(bootFileLocation, absolute)).toBeUndefined();
+    expect(pathResolver.resolve(bootFileLocation, weird)).toBeUndefined();
+
+    pathResolver.volume0Uri = URI.file(join('root', 'example'));
+
+    const resolvedUri = 'file:///root/example/relative/path/file.ks';
+
+    const relativeResolved1 = pathResolver.resolve(bootFileLocation, relative1);
+    expect(relativeResolved1).toBeDefined();
+    if (!empty(relativeResolved1)) {
+      expect(relativeResolved1.toString()).toBe(resolvedUri);
+    }
+
+    const absoluteResolved = pathResolver.resolve(bootFileLocation, absolute);
+    expect(absoluteResolved).toBeDefined();
+    if (!empty(absoluteResolved)) {
+      expect(absoluteResolved.toString()).toBe(resolvedUri);
+    }
+
+    const weirdResolved = pathResolver.resolve(bootFileLocation, weird);
+    expect(weirdResolved).toBeDefined();
+    if (!empty(weirdResolved)) {
+      expect(weirdResolved.toString()).toBe(resolvedUri);
+    }
+  });
+});
 
 describe('documentService', () => {
   test('ready', async () => {
     const mockConnection = createMockDocConnection();
     const files = new Map();
-    const mockUriResponse = createMockUriResponse(files);
+    const mockIoService = createMockIoService(files);
 
     const baseUri = URI.file('/example/folder');
     const callingUri = URI.file('/example/folder/example.ks').toString();
 
+    const resolverService = new ResolverService();
     const docService = new DocumentService(
       mockConnection,
-      mockUriResponse,
+      mockIoService,
+      resolverService,
       mockLogger,
       mockTracer,
     );
@@ -65,21 +184,24 @@ describe('documentService', () => {
       callingUri,
     );
 
+    debugger;
     expect(docService.ready()).toBe(false);
     expect(documentLoaded).toBeUndefined();
 
-    docService.setVolume0Uri(baseUri);
+    resolverService.volume0Uri = baseUri;
     expect(docService.ready()).toBe(true);
   });
 
   test('load from client', () => {
     const mockConnection = createMockDocConnection();
     const files = new Map();
-    const mockUriResponse = createMockUriResponse(files);
+    const mockIoService = createMockIoService(files);
+    const resolverService = new ResolverService();
 
     const docService = new DocumentService(
       mockConnection,
-      mockUriResponse,
+      mockIoService,
+      resolverService,
       mockLogger,
       mockTracer,
     );
@@ -144,17 +266,19 @@ describe('documentService', () => {
   test('load from server using kOS run', async () => {
     const mockConnection = createMockDocConnection();
     const files = new Map();
-    const mockUriResponse = createMockUriResponse(files);
+    const mockIoService = createMockIoService(files);
 
     const baseUri = URI.file('/example/folder').toString();
     const callingUri = URI.file('/example/folder/example.ks').toString();
 
+    const resolverService = new ResolverService(baseUri);
+
     const docService = new DocumentService(
       mockConnection,
-      mockUriResponse,
+      mockIoService,
+      resolverService,
       mockLogger,
       mockTracer,
-      baseUri,
     );
 
     const serverDocs = docService['serverDocs'];
@@ -238,16 +362,17 @@ describe('documentService', () => {
   test('load from server using uri', async () => {
     const mockConnection = createMockDocConnection();
     const files = new Map();
-    const mockUriResponse = createMockUriResponse(files);
+    const mockIoResponse = createMockIoService(files);
 
     const baseUri = URI.file('/example/folder').toString();
+    const resolverService = new ResolverService(baseUri);
 
     const docService = new DocumentService(
       mockConnection,
-      mockUriResponse,
+      mockIoResponse,
+      resolverService,
       mockLogger,
       mockTracer,
-      baseUri,
     );
 
     const serverDocs = docService['serverDocs'];
@@ -308,17 +433,17 @@ describe('documentService', () => {
   test('change update', async () => {
     const mockConnection = createMockDocConnection();
     const files = new Map();
-    const mockUriResponse = createMockUriResponse(files);
+    const mockIoService = createMockIoService(files);
 
     const baseUri = URI.file('/example/folder').toString();
-    // const callingUri = URI.file('/example/folder/example.ks').toString();
+    const resolverService = new ResolverService(baseUri);
 
     const docService = new DocumentService(
       mockConnection,
-      mockUriResponse,
+      mockIoService,
+      resolverService,
       mockLogger,
       mockTracer,
-      baseUri,
     );
 
     const serverDocs = docService['serverDocs'];
@@ -395,17 +520,18 @@ describe('documentService', () => {
   test('load extension', async () => {
     const mockConnection = createMockDocConnection();
     const files = new Map();
-    const mockUriResponse = createMockUriResponse(files);
+    const mockUriResponse = createMockIoService(files);
 
     const baseUri = URI.file('/example/folder').toString();
     const callingUri = URI.file('/example/folder/example.ks').toString();
+    const resolverService = new ResolverService(baseUri);
 
     const docService = new DocumentService(
       mockConnection,
       mockUriResponse,
+      resolverService,
       mockLogger,
       mockTracer,
-      baseUri,
     );
 
     const serverDocs = docService['serverDocs'];

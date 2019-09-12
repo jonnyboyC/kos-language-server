@@ -22,12 +22,12 @@ import { addDiagnosticsUri } from '../utilities/serverUtils';
 import { DocumentService } from './documentService';
 import { logException } from '../utilities/logger';
 import { Resolver } from '../analysis/resolver';
-import { runPath } from '../utilities/pathResolver';
 import {
   standardLibraryBuilder,
   bodyLibraryBuilder,
 } from '../analysis/standardLibrary';
 import { ControlFlow } from '../controlFlow/controlFlow';
+import { runPath } from '../utilities/pathUtilities';
 
 interface DependencyLoadResult {
   documentInfos: DocumentInfo[];
