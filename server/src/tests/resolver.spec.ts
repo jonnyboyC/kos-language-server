@@ -213,12 +213,12 @@ describe('Resolver tracking', () => {
     expect(y.declared.symbol.tag).toBe(KsSymbolKind.variable);
 
     // check the tracked set properties
-    expect(x.sets.length).toBe(2);
-    expect(y.sets.length).toBe(0);
+    expect(x.sets).toHaveLength(2);
+    expect(y.sets).toHaveLength(0);
 
     // check the tracked set properties
-    expect(x.usages.length).toBe(1);
-    expect(y.usages.length).toBe(1);
+    expect(x.usages).toHaveLength(1);
+    expect(y.usages).toHaveLength(1);
 
     const [yUsage] = y.usages;
     const [xUsage] = x.usages;
@@ -297,8 +297,8 @@ describe('Resolver tracking', () => {
       range = makeRange(3, 16, 3, 20);
       expect(rangeEqual(name, range)).toBe(true);
       expect(tag).toBe(KsSymbolKind.function);
-      expect(testTracker.usages.length).toBe(1);
-      expect(testTracker.sets.length).toBe(0);
+      expect(testTracker.usages).toHaveLength(1);
+      expect(testTracker.sets).toHaveLength(0);
     }
 
     // check param a
@@ -317,8 +317,8 @@ describe('Resolver tracking', () => {
       range = makeRange(4, 14, 4, 15);
       expect(rangeEqual(name, range)).toBeTruthy();
       expect(tag).toBe(KsSymbolKind.parameter);
-      expect(aParamTracker.usages.length).toBe(1);
-      expect(aParamTracker.sets.length).toBe(0);
+      expect(aParamTracker.usages).toHaveLength(1);
+      expect(aParamTracker.sets).toHaveLength(0);
     }
 
     // check param b
@@ -337,8 +337,8 @@ describe('Resolver tracking', () => {
       range = makeRange(4, 17, 4, 18);
       expect(rangeEqual(name, range)).toBeTruthy();
       expect(tag).toBe(KsSymbolKind.parameter);
-      expect(bParamTracker.usages.length).toBe(1);
-      expect(bParamTracker.sets.length).toBe(0);
+      expect(bParamTracker.usages).toHaveLength(1);
+      expect(bParamTracker.sets).toHaveLength(0);
     }
 
     // check loop i
@@ -354,8 +354,8 @@ describe('Resolver tracking', () => {
       range = makeRange(7, 8, 7, 9);
       expect(rangeEqual(name, range)).toBeTruthy();
       expect(tag).toBe(KsSymbolKind.variable);
-      expect(iTracker.usages.length).toBe(1);
-      expect(iTracker.sets.length).toBe(0);
+      expect(iTracker.usages).toHaveLength(1);
+      expect(iTracker.sets).toHaveLength(0);
     }
 
     // check loop x
@@ -371,8 +371,8 @@ describe('Resolver tracking', () => {
       range = makeRange(11, 17, 11, 18);
       expect(rangeEqual(name, range)).toBeTruthy();
       expect(tag).toBe(KsSymbolKind.variable);
-      expect(xTracker.usages.length).toBe(3);
-      expect(xTracker.sets.length).toBe(1);
+      expect(xTracker.usages).toHaveLength(3);
+      expect(xTracker.sets).toHaveLength(1);
     }
 
     // check t lock
@@ -386,8 +386,8 @@ describe('Resolver tracking', () => {
       range = makeRange(17, 5, 17, 6);
       expect(rangeEqual(name, range)).toBeTruthy();
       expect(tag).toBe(KsSymbolKind.lock);
-      expect(tTracker.usages.length).toBe(1);
-      expect(tTracker.sets.length).toBe(0);
+      expect(tTracker.usages).toHaveLength(1);
+      expect(tTracker.sets).toHaveLength(0);
     }
   });
 
@@ -406,7 +406,7 @@ describe('Resolver tracking', () => {
     const symbolKindSource = readFileSync(allNodePath, 'utf8');
     const results = resolveSource(symbolKindSource, true);
     noParseErrors(results);
-    expect(results.resolveDiagnostics.length).toBe(allNodeLocations.length);
+    expect(results.resolveDiagnostics).toHaveLength(allNodeLocations.length);
 
     // spot each deprecated error
     for (const [error, location] of zip(
@@ -431,8 +431,8 @@ describe('Resolver tracking', () => {
       expect(name.lexeme).toBe('ship');
 
       expect(tag).toBe(KsSymbolKind.variable);
-      expect(shipTracker.usages.length).toBe(5);
-      expect(shipTracker.sets.length).toBe(0);
+      expect(shipTracker.usages).toHaveLength(5);
+      expect(shipTracker.sets).toHaveLength(0);
     }
 
     const bodyTracker = table.scopedNamedTracker(
@@ -447,8 +447,8 @@ describe('Resolver tracking', () => {
       expect(name.lexeme).toBe('body');
 
       expect(tag).toBe(KsSymbolKind.variable);
-      expect(bodyTracker.usages.length).toBe(3);
-      expect(bodyTracker.sets.length).toBe(0);
+      expect(bodyTracker.usages).toHaveLength(3);
+      expect(bodyTracker.sets).toHaveLength(0);
     }
 
     const funcTracker = table.scopedNamedTracker(
@@ -463,8 +463,8 @@ describe('Resolver tracking', () => {
       expect(name.lexeme).toBe('func');
 
       expect(tag).toBe(KsSymbolKind.function);
-      expect(funcTracker.usages.length).toBe(1);
-      expect(funcTracker.sets.length).toBe(0);
+      expect(funcTracker.usages).toHaveLength(1);
+      expect(funcTracker.sets).toHaveLength(0);
     }
 
     const otherTracker = table.scopedNamedTracker(
@@ -479,8 +479,8 @@ describe('Resolver tracking', () => {
       expect(name.lexeme).toBe('other');
 
       expect(tag).toBe(KsSymbolKind.lock);
-      expect(otherTracker.usages.length).toBe(1);
-      expect(otherTracker.sets.length).toBe(0);
+      expect(otherTracker.usages).toHaveLength(1);
+      expect(otherTracker.sets).toHaveLength(0);
     }
   });
 
@@ -527,12 +527,12 @@ describe('Resolver tracking', () => {
     expect(example.declared.symbol.tag).toBe(KsSymbolKind.function);
 
     // check the tracked set properties
-    expect(x.sets.length).toBe(1);
-    expect(example.sets.length).toBe(0);
+    expect(x.sets).toHaveLength(1);
+    expect(example.sets).toHaveLength(0);
 
     // check the tracked set properties
-    expect(x.usages.length).toBe(2);
-    expect(example.usages.length).toBe(1);
+    expect(x.usages).toHaveLength(2);
+    expect(example.usages).toHaveLength(1);
 
     expect(
       table.scopedNamedTracker({ line: 1, character: 15 }, 'x'),
@@ -564,9 +564,9 @@ describe('Resolver errors', () => {
   test('list command', () => {
     const results = resolveSource(listSource);
 
-    expect(results.scan.scanDiagnostics.length).toBe(0);
-    expect(results.parse.parseDiagnostics.length).toBe(0);
-    expect(results.resolveDiagnostics.length).toBe(listLocations.length);
+    expect(results.scan.scanDiagnostics).toHaveLength(0);
+    expect(results.parse.parseDiagnostics).toHaveLength(0);
+    expect(results.resolveDiagnostics).toHaveLength(listLocations.length);
 
     for (const [error, location] of zip(
       results.resolveDiagnostics,
@@ -599,9 +599,9 @@ describe('Resolver errors', () => {
     const defineSource = readFileSync(definedPath, 'utf8');
     const results = resolveSource(defineSource);
 
-    expect(results.scan.scanDiagnostics.length).toBe(0);
-    expect(results.parse.parseDiagnostics.length).toBe(0);
-    expect(results.resolveDiagnostics.length).toBe(definedLocations.length);
+    expect(results.scan.scanDiagnostics).toHaveLength(0);
+    expect(results.parse.parseDiagnostics).toHaveLength(0);
+    expect(results.resolveDiagnostics).toHaveLength(definedLocations.length);
 
     const sortedErrors = results.resolveDiagnostics.sort(
       (a, b) => a.range.start.line - b.range.start.line,
@@ -629,8 +629,8 @@ describe('Resolver errors', () => {
     const usedSource = readFileSync(usedPath, 'utf8');
     const results = resolveSource(usedSource);
 
-    expect(results.scan.scanDiagnostics.length).toBe(0);
-    expect(results.parse.parseDiagnostics.length).toBe(0);
+    expect(results.scan.scanDiagnostics).toHaveLength(0);
+    expect(results.parse.parseDiagnostics).toHaveLength(0);
     expect(results.resolveDiagnostics.length > 0).toBe(true);
 
     for (const [error, location] of zip(
@@ -657,8 +657,8 @@ describe('Resolver errors', () => {
     const shadowedSource = readFileSync(shadowPath, 'utf8');
     const results = resolveSource(shadowedSource);
 
-    expect(results.scan.scanDiagnostics.length).toBe(0);
-    expect(results.parse.parseDiagnostics.length).toBe(0);
+    expect(results.scan.scanDiagnostics).toHaveLength(0);
+    expect(results.parse.parseDiagnostics).toHaveLength(0);
     expect(results.resolveDiagnostics.length > 0).toBe(true);
 
     for (const [error, location] of zip(
@@ -689,8 +689,8 @@ describe('Resolver errors', () => {
     const deferredSource = readFileSync(deferredPath, 'utf8');
     const results = resolveSource(deferredSource);
 
-    expect(results.scan.scanDiagnostics.length).toBe(0);
-    expect(results.parse.parseDiagnostics.length).toBe(0);
+    expect(results.scan.scanDiagnostics).toHaveLength(0);
+    expect(results.parse.parseDiagnostics).toHaveLength(0);
     expect(results.resolveDiagnostics.length > 0).toBe(true);
 
     for (const [error, location] of zip(
@@ -718,8 +718,8 @@ describe('Resolver errors', () => {
     const deferredSource = readFileSync(breakPath, 'utf8');
     const results = resolveSource(deferredSource);
 
-    expect(results.scan.scanDiagnostics.length).toBe(0);
-    expect(results.parse.parseDiagnostics.length).toBe(0);
+    expect(results.scan.scanDiagnostics).toHaveLength(0);
+    expect(results.parse.parseDiagnostics).toHaveLength(0);
     expect(results.resolveDiagnostics.length > 0).toBe(true);
 
     for (const [error, location] of zip(
@@ -747,8 +747,8 @@ describe('Resolver errors', () => {
     const returnSource = readFileSync(returnPath, 'utf8');
     const results = resolveSource(returnSource);
 
-    expect(results.scan.scanDiagnostics.length).toBe(0);
-    expect(results.parse.parseDiagnostics.length).toBe(0);
+    expect(results.scan.scanDiagnostics).toHaveLength(0);
+    expect(results.parse.parseDiagnostics).toHaveLength(0);
     expect(results.resolveDiagnostics.length > 0).toBe(true);
 
     for (const [error, location] of zip(
@@ -778,8 +778,8 @@ describe('Resolver errors', () => {
     const preserveSource = readFileSync(preservePath, 'utf8');
     const results = resolveSource(preserveSource, true);
 
-    expect(results.scan.scanDiagnostics.length).toBe(0);
-    expect(results.parse.parseDiagnostics.length).toBe(0);
+    expect(results.scan.scanDiagnostics).toHaveLength(0);
+    expect(results.parse.parseDiagnostics).toHaveLength(0);
     expect(results.resolveDiagnostics.length > 0).toBe(true);
 
     const sorted = results.resolveDiagnostics.sort((a, b) =>
@@ -841,7 +841,7 @@ describe('Function Scan', () => {
     noParseErrors(parseResult);
 
     const { script } = parseResult.parse;
-    expect(script.stmts.length).toBe(1);
+    expect(script.stmts).toHaveLength(1);
 
     const [funcStmt] = script.stmts;
     expect(funcStmt).toBeInstanceOf(Decl.Func);
@@ -865,7 +865,7 @@ describe('Function Scan', () => {
     noParseErrors(parseResult);
 
     const { script } = parseResult.parse;
-    expect(script.stmts.length).toBe(1);
+    expect(script.stmts).toHaveLength(1);
 
     const [funcStmt] = script.stmts;
     expect(funcStmt).toBeInstanceOf(Decl.Func);
@@ -889,7 +889,7 @@ describe('Function Scan', () => {
     noParseErrors(parseResult);
 
     const { script } = parseResult.parse;
-    expect(script.stmts.length).toBe(1);
+    expect(script.stmts).toHaveLength(1);
 
     const [funcStmt] = script.stmts;
     expect(funcStmt).toBeInstanceOf(Decl.Func);
@@ -921,7 +921,7 @@ describe('Local Resolver', () => {
     const resolver = new LocalResolver();
     if (stmt instanceof Stmt.Set) {
       const resolverResult = resolver.resolveExpr(stmt.value);
-      expect(resolverResult.length).toBe(4);
+      expect(resolverResult).toHaveLength(4);
       const [thing, used1, used2, used3] = resolverResult;
 
       expect(thing.lexeme).toBe('Thing');
@@ -945,7 +945,7 @@ describe('Local Resolver', () => {
     const resolver = new LocalResolver();
     if (stmt instanceof Stmt.Set) {
       const resolverResult = resolver.resolveExpr(stmt.value);
-      expect(resolverResult.length).toBe(5);
+      expect(resolverResult).toHaveLength(5);
       const [first, nest, array, exponent, example] = resolverResult;
 
       expect(first.lexeme).toBe('first');
@@ -978,7 +978,7 @@ describe('Set Resolver', () => {
         expect(set.lexeme).toBe('Thing');
       }
 
-      expect(used.length).toBe(4);
+      expect(used).toHaveLength(4);
 
       const [fart, used1, used2, used3] = used;
       expect(fart.lexeme).toBe('fart');

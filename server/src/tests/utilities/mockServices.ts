@@ -72,6 +72,9 @@ export const createMockUriResponse = (
     exists(uri: URI): Maybe<URI> {
       return uri;
     },
+    statDirectory() {
+      return [];
+    },
   };
 };
 

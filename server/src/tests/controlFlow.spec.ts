@@ -128,7 +128,7 @@ describe('Unreachable code', () => {
     expect(flow).toBeDefined();
 
     const flowDiagnostics = flow!.reachable();
-    expect(flowDiagnostics.length).toBe(returnLocations.length);
+    expect(flowDiagnostics).toHaveLength(returnLocations.length);
     for (const [diagnostic, location] of zip(
       flowDiagnostics,
       returnLocations,
@@ -156,7 +156,7 @@ describe('Unreachable code', () => {
     expect(flow).toBeDefined();
 
     const flowDiagnostics = flow!.reachable();
-    expect(flowDiagnostics.length).toBe(breakLocations.length);
+    expect(flowDiagnostics).toHaveLength(breakLocations.length);
     for (const [diagnostic, location] of zip(flowDiagnostics, breakLocations)) {
       expect(diagnostic.severity).toBe(DiagnosticSeverity.Information);
       expect(diagnostic.range.start).toEqual(location.start);

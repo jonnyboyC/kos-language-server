@@ -30,10 +30,12 @@ import { rangeEqual } from '../utilities/positionUtils';
 import { AnalysisService } from '../services/analysisService';
 import { typeInitializer } from '../typeChecker/initialize';
 import { ResolverService } from '../services/resolverService';
+import { IoService, Document, IoKind, IoEntity } from '../services/IoService';
 
+const testDir = join(__dirname, '../../../kerboscripts/parser_valid/');
 typeInitializer();
 
-describe('path resolver', () => {
+describe('resolver service', () => {
   test('path resolver', () => {
     const pathResolver = new ResolverService();
     const range = {
@@ -149,7 +151,7 @@ describe('path resolver', () => {
   });
 });
 
-describe('documentService', () => {
+describe('document service', () => {
   test('ready', async () => {
     const mockConnection = createMockDocConnection();
     const files = new Map();
@@ -580,7 +582,7 @@ describe('documentService', () => {
   });
 });
 
-describe('analysisService', () => {
+describe('analysis service', () => {
   test('validate single document', async () => {
     const uri = URI.file('/example/folder/example.ks').toString();
 
@@ -605,13 +607,13 @@ describe('analysisService', () => {
     );
     const documentInfo = await analysisService.getInfo(uri);
 
-    expect(diagnostics.length).toBe(0);
+    expect(diagnostics).toHaveLength(0);
     expect(documentInfo).toBeDefined();
 
     if (!empty(documentInfo)) {
       expect(documentInfo.symbolTable.dependencyTables.size).toBe(2);
       expect(documentInfo.diagnostics).toStrictEqual(diagnostics);
-      expect(documentInfo.script.stmts.length).toBe(1);
+      expect(documentInfo.script.stmts).toHaveLength(1);
       expect(
         documentInfo.symbolTable.rootScope.environment.symbols.length,
       ).toBe(0);
@@ -642,7 +644,7 @@ describe('analysisService', () => {
 
     if (!empty(documentInfo)) {
       expect(documentInfo.symbolTable.dependencyTables.size).toBe(2);
-      expect(documentInfo.script.stmts.length).toBe(1);
+      expect(documentInfo.script.stmts).toHaveLength(1);
       expect(
         documentInfo.symbolTable.rootScope.environment.symbols.length,
       ).toBe(0);
@@ -652,12 +654,12 @@ describe('analysisService', () => {
       uri,
       (documents.get(uri) as TextDocument).getText(),
     );
-    expect(diagnostics.length).toBe(0);
+    expect(diagnostics).toHaveLength(0);
 
     if (!empty(documentInfo)) {
       expect(documentInfo.symbolTable.dependencyTables.size).toBe(0);
       expect(documentInfo.diagnostics).toStrictEqual(diagnostics);
-      expect(documentInfo.script.stmts.length).toBe(1);
+      expect(documentInfo.script.stmts).toHaveLength(1);
       expect(
         documentInfo.symbolTable.rootScope.environment.symbols.length,
       ).toBe(0);
@@ -743,7 +745,7 @@ describe('analysisService', () => {
     const documentInfo1 = await analysisService.getInfo(uri1);
     const documentInfo2 = await analysisService.getInfo(uri2);
 
-    expect(diagnostics.length).toBe(0);
+    expect(diagnostics).toHaveLength(0);
     expect(documentInfo1).toBeDefined();
     expect(documentInfo2).toBeDefined();
 
@@ -755,8 +757,8 @@ describe('analysisService', () => {
       );
 
       expect(documentInfo1.diagnostics).toStrictEqual(diagnostics);
-      expect(documentInfo1.script.stmts.length).toBe(2);
-      expect(documentInfo2.script.stmts.length).toBe(1);
+      expect(documentInfo1.script.stmts).toHaveLength(2);
+      expect(documentInfo2.script.stmts).toHaveLength(1);
       expect(
         documentInfo1.symbolTable.rootScope.environment.symbols().length,
       ).toBe(0);
@@ -824,10 +826,10 @@ describe('analysisService', () => {
     );
     const documentInfo22 = await analysisService.getInfo(uri2);
 
-    expect(diagnostics11.length).toBe(0);
-    expect(diagnostics12.length).toBe(0);
-    expect(diagnostics21.length).toBe(0);
-    expect(diagnostics22.length).toBe(0);
+    expect(diagnostics11).toHaveLength(0);
+    expect(diagnostics12).toHaveLength(0);
+    expect(diagnostics21).toHaveLength(0);
+    expect(diagnostics22).toHaveLength(0);
 
     expect(documentInfo11).toBeDefined();
     expect(documentInfo12).toBeDefined();
@@ -860,6 +862,93 @@ describe('analysisService', () => {
       expect(documentInfos.get(uri1)).toBe(documentInfo12);
       expect(documentInfos.get(uri2)).toBe(documentInfo22);
     }
+  });
+});
+
+const loadDir = join(testDir, 'unitTests/loadFiles');
+describe('io service', () => {
+  test('load a document', async () => {
+    const ioService = new IoService();
+    const contents = await ioService.load(join(loadDir, 'example.ks'));
+    expect(contents).toBe('print("hi").');
+  });
+
+  test('load a directory', async () => {
+    const ioService = new IoService();
+
+    const documents: Document[] = [];
+    for await (const document of ioService.loadDirectory(loadDir)) {
+      documents.push(document);
+    }
+
+    expect(documents).toHaveLength(2);
+  });
+
+  test('get stats on directory with partial', async () => {
+    const ioService = new IoService();
+
+    const entities = ioService.statDirectory(
+      URI.file(join(loadDir, 'something')),
+    );
+    expect(entities).toHaveLength(2);
+
+    const entityMap = new Map<IoKind, IoEntity>();
+    for (const entity of entities) {
+      entityMap.set(entity.kind, entity);
+    }
+
+    expect(entityMap.has(IoKind.file)).toBe(true);
+    expect(entityMap.has(IoKind.directory)).toBe(true);
+
+    expect(entityMap.get(IoKind.file)!.uri.toString()).toBe(
+      URI.file(join(loadDir, 'example.ks')).toString(),
+    );
+    expect(entityMap.get(IoKind.directory)!.uri.toString()).toBe(
+      URI.file(join(loadDir, 'empty')).toString(),
+    );
+  });
+
+  test('get stats on directory with full', async () => {
+    const ioService = new IoService();
+
+    const entities = ioService.statDirectory(URI.file(loadDir));
+    expect(entities).toHaveLength(2);
+
+    const entityMap = new Map<IoKind, IoEntity>();
+    for (const entity of entities) {
+      entityMap.set(entity.kind, entity);
+    }
+
+    expect(entityMap.has(IoKind.file)).toBe(true);
+    expect(entityMap.has(IoKind.directory)).toBe(true);
+
+    expect(entityMap.get(IoKind.file)!.uri.toString()).toBe(
+      URI.file(join(loadDir, 'example.ks')).toString(),
+    );
+    expect(entityMap.get(IoKind.directory)!.uri.toString()).toBe(
+      URI.file(join(loadDir, 'empty')).toString(),
+    );
+  });
+
+  test('does a file exist', async () => {
+    const ioService = new IoService();
+
+    const ksUri = ioService.exists(URI.file(join(loadDir, 'example.ks')));
+    const ksmUri = ioService.exists(URI.file(join(loadDir, 'example.ksm')));
+    const blankUri = ioService.exists(URI.file(join(loadDir, 'example')));
+
+    expect(ksUri).toBeDefined();
+    expect(ksmUri).toBeDefined();
+    expect(blankUri).toBeDefined();
+
+    const match = [ksUri, ksmUri, blankUri]
+      .map(uri => uri!.toString())
+      .every(uri => uri === ksUri!.toString());
+
+    expect(match).toBe(true);
+
+    const invalidUri = ioService.exists(URI.file(join(loadDir, 'example.js')));
+    expect(invalidUri).toBeUndefined();
   });
 });
 
@@ -912,8 +1001,8 @@ const parseSource = (source: string): ScanParseResult => {
 };
 
 const noParseErrors = (result: ScanParseResult): void => {
-  expect(result.scan.scanDiagnostics.length).toBe(0);
-  expect(result.parse.parseDiagnostics.length).toBe(0);
+  expect(result.scan.scanDiagnostics).toHaveLength(0);
+  expect(result.parse.parseDiagnostics).toHaveLength(0);
 };
 
 describe('foldableService', () => {
@@ -950,7 +1039,7 @@ describe('foldableService', () => {
       result.scan.regions,
     );
 
-    expect(foldable.length).toBe(2);
+    expect(foldable).toHaveLength(2);
     const folds: FoldingRange[] = [
       {
         startCharacter: 8,
@@ -982,7 +1071,7 @@ describe('foldableService', () => {
       result.scan.regions,
     );
 
-    expect(foldable.length).toBe(3);
+    expect(foldable).toHaveLength(3);
     const folds: FoldingRange[] = [
       {
         startCharacter: 8,

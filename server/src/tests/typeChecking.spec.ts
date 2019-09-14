@@ -694,7 +694,7 @@ describe('Statements', () => {
 
     declaredTests(names, 'r', KsSymbolKind.variable, structureType);
     declaredTests(names, 'b', KsSymbolKind.variable, structureType);
-    expect(results.typeCheckDiagnostics.length).toBe(
+    expect(results.typeCheckDiagnostics).toHaveLength(
       iteratorErrorsLocation.length,
     );
 
@@ -732,7 +732,7 @@ describe('Statements', () => {
     const params = callSignature!.params();
     const returns = callSignature!.returns();
 
-    expect(params.length).toBe(2);
+    expect(params).toHaveLength(2);
     const [first, second] = params;
 
     expect(first).toBe(structureType);
@@ -791,7 +791,7 @@ describe('Statements', () => {
     const results = checkSource(setInValidSource, true);
     noResolverErrors(results);
 
-    expect(results.typeCheckDiagnostics.length).toBe(setErrorsLocation.length);
+    expect(results.typeCheckDiagnostics).toHaveLength(setErrorsLocation.length);
 
     for (const [error, location] of zip(
       results.typeCheckDiagnostics,

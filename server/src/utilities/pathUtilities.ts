@@ -27,7 +27,7 @@ export const runPath = (stmt: RunStmtType): string | Diagnostic => {
   }
 
   // for run path variants check for literal
-  const { expr } = stmt;
+  const { path: expr } = stmt;
   if (expr instanceof Expr.Suffix) {
     if (expr.suffixTerm.atom instanceof SuffixTerm.Literal) {
       return literalPath(expr.suffixTerm.atom) || cannotLoad(stmt);

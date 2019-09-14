@@ -28,6 +28,7 @@ import * as SuffixTerm from '../parser/suffixTerm';
 import { IType } from '../typeChecker/types';
 import { tokenTrackedType } from '../typeChecker/utilities/typeUtilities';
 import { structureType } from '../typeChecker/ksTypes/primitives/structure';
+import { IoKind } from '../services/IoService';
 
 /**
  * The default client configuration if none are available
@@ -106,6 +107,16 @@ const logMap = new Map([
  * Map a string to a log level
  */
 export const logMapper = mapper(logMap, 'LogLevel');
+
+const ioEntityMap = new Map([
+  [IoKind.file, CompletionItemKind.File],
+  [IoKind.directory, CompletionItemKind.Folder],
+]);
+
+/**
+ * Map of io kind to completion kind
+ */
+export const ioEntityMapper = mapper(ioEntityMap, 'IoEntity');
 
 const symbolCompletionMap = new Map([
   [KsSymbolKind.function, CompletionItemKind.Function],

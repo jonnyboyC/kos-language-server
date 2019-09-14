@@ -390,20 +390,20 @@ export class PreResolver
 
   public visitRunPath(stmt: Stmt.RunPath): Diagnostics {
     if (empty(stmt.args)) {
-      return this.resolveExpr(stmt.expr);
+      return this.resolveExpr(stmt.path);
     }
 
-    const errors = this.resolveExpr(stmt.expr);
+    const errors = this.resolveExpr(stmt.path);
     errors.push(...accumulateErrors(stmt.args, this.resolveExpr.bind(this)));
     return errors;
   }
 
   public visitRunPathOnce(stmt: Stmt.RunOncePath): Diagnostics {
     if (empty(stmt.args)) {
-      return this.resolveExpr(stmt.expr);
+      return this.resolveExpr(stmt.path);
     }
 
-    const errors = this.resolveExpr(stmt.expr);
+    const errors = this.resolveExpr(stmt.path);
     errors.push(...accumulateErrors(stmt.args, this.resolveExpr.bind(this)));
 
     return errors;

@@ -1,6 +1,6 @@
 import { readFileAsync } from '../utilities/fsUtils';
-import { statSync, readdirSync, existsSync } from 'fs';
-import { join } from 'path';
+import { statSync, readdirSync, existsSync, lstatSync } from 'fs';
+import { join, dirname } from 'path';
 import { URI } from 'vscode-uri';
 import { normalizeExtensions } from '../utilities/pathUtilities';
 import { empty } from '../utilities/typeGuards';
@@ -18,6 +18,36 @@ export interface Document {
    * The text contained within a document
    */
   text: string;
+}
+
+/**
+ * What kinda of entity is this
+ */
+export enum IoKind {
+  /**
+   * The io entity is a file
+   */
+  file,
+
+  /**
+   * The io entity is a directory
+   */
+  directory,
+}
+
+/**
+ * What is the io entity that is found
+ */
+export interface IoEntity {
+  /**
+   * What is the uri of this entity
+   */
+  uri: URI;
+
+  /**
+   * WHat is the kind of this entity
+   */
+  kind: IoKind;
 }
 
 /**
@@ -81,5 +111,35 @@ export class IoService {
     }
 
     return normalized;
+  }
+
+  /**
+   * What entities are in the relevant directory
+   * @param uri The uri of the request
+   */
+  public statDirectory(uri: URI): IoEntity[] {
+    const { fsPath } = uri;
+
+    const isDirectory = existsSync(fsPath) && lstatSync(fsPath).isDirectory();
+    const directory = isDirectory ? fsPath : dirname(fsPath);
+
+    // check if file exists then
+    if (!existsSync(directory)) {
+      return [];
+    }
+
+    const files = readdirSync(directory);
+
+    const entities: IoEntity[] = [];
+    for (const file of files) {
+      const path = join(directory, file);
+
+      entities.push({
+        uri: URI.file(join(directory, file)),
+        kind: statSync(path).isDirectory() ? IoKind.directory : IoKind.file,
+      });
+    }
+
+    return entities;
   }
 }

@@ -1195,7 +1195,7 @@ export class Parser {
   private run(): INodeResult<Stmt.Run> {
     const builder: NodeDataBuilder<Stmt.Run> = {
       run: this.previous(),
-      once: undefined,
+      path: undefined,
       identifier: undefined,
       open: undefined,
       args: undefined,
@@ -1205,7 +1205,7 @@ export class Parser {
     };
     const errors: IParseError[] = [];
 
-    builder.once = this.matchToken(TokenType.once)
+    builder.path = this.matchToken(TokenType.once)
       ? this.previous()
       : undefined;
 
@@ -1251,7 +1251,7 @@ export class Parser {
     const builder: NodeDataBuilder<Stmt.RunPath> = {
       runPath: this.previous(),
       open: undefined,
-      expr: undefined,
+      path: undefined,
       args: undefined,
       close: undefined,
     };
@@ -1262,7 +1262,7 @@ export class Parser {
       TokenType.bracketOpen,
     );
     const exprResult = this.expression();
-    builder.expr = exprResult.value;
+    builder.path = exprResult.value;
 
     const args = this.matchToken(TokenType.comma)
       ? this.arguments(Stmt.RunPath)
@@ -1293,7 +1293,7 @@ export class Parser {
     const builder: NodeDataBuilder<Stmt.RunOncePath> = {
       runPath: this.previous(),
       open: undefined,
-      expr: undefined,
+      path: undefined,
       args: undefined,
       close: undefined,
     };
@@ -1305,7 +1305,7 @@ export class Parser {
       TokenType.bracketOpen,
     );
     const exprResult = this.expression();
-    builder.expr = exprResult.value;
+    builder.path = exprResult.value;
 
     const args = this.matchToken(TokenType.comma)
       ? this.arguments(Stmt.RunOncePath)

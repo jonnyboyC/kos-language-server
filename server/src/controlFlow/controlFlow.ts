@@ -791,7 +791,7 @@ export class ControlFlow
     const block = this.getBlock(stmt);
     prevBlock.addJump(block);
 
-    this.exprFlow(stmt.expr, block);
+    this.exprFlow(stmt.path, block);
     if (!empty(stmt.args)) {
       for (const arg of stmt.args) {
         this.exprFlow(arg, block);
@@ -813,7 +813,7 @@ export class ControlFlow
     const block = this.getBlock(stmt);
     prevBlock.addJump(block);
 
-    this.exprFlow(stmt.expr, block);
+    this.exprFlow(stmt.path, block);
     if (!empty(stmt.args)) {
       for (const arg of stmt.args) {
         this.exprFlow(arg, block);

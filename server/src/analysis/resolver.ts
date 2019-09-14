@@ -875,8 +875,8 @@ export class Resolver
    * @param stmt the syntax node
    */
   public visitRunPath(stmt: Stmt.RunPath): Diagnostics {
-    const errors = this.useExprLocalsBind(stmt.expr);
-    errors.push(...this.resolveExpr(stmt.expr));
+    const errors = this.useExprLocalsBind(stmt.path);
+    errors.push(...this.resolveExpr(stmt.path));
 
     if (!empty(stmt.args)) {
       errors.push(
@@ -893,8 +893,8 @@ export class Resolver
    * @param stmt the syntax node
    */
   public visitRunPathOnce(stmt: Stmt.RunOncePath): Diagnostics {
-    const errors = this.useExprLocalsBind(stmt.expr);
-    errors.push(...this.resolveExpr(stmt.expr));
+    const errors = this.useExprLocalsBind(stmt.path);
+    errors.push(...this.resolveExpr(stmt.path));
 
     if (!empty(stmt.args)) {
       errors.push(

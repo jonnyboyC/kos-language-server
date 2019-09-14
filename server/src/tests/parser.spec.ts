@@ -39,7 +39,7 @@ const parseExpression = (
 // parse source expression
 const parse = (source: string): Ast => {
   const { tokens, scanDiagnostics: scanErrors } = scan(source);
-  expect(scanErrors.length).toBe(0);
+  expect(scanErrors).toHaveLength(0);
 
   const parser = new Parser('', tokens);
   return parser.parse();
@@ -72,20 +72,20 @@ describe('Parse all test files', () => {
       const scanner1 = new Scanner(kosFile, filePath);
       const scanResults1 = scanner1.scanTokens();
 
-      expect(scanResults1.scanDiagnostics.length).toBe(0);
+      expect(scanResults1.scanDiagnostics).toHaveLength(0);
       const parser1 = new Parser('', scanResults1.tokens);
       const parseResults1 = parser1.parse();
-      expect(parseResults1.parseDiagnostics.length).toBe(0);
+      expect(parseResults1.parseDiagnostics).toHaveLength(0);
 
       const prettyKosFile = parseResults1.script.toString();
       const scanner2 = new Scanner(prettyKosFile, filePath);
       const scanResults2 = scanner2.scanTokens();
 
-      expect(scanResults1.scanDiagnostics.length).toBe(0);
+      expect(scanResults1.scanDiagnostics).toHaveLength(0);
       const parser2 = new Parser('', scanResults2.tokens);
       const parseResults2 = parser2.parse();
 
-      expect(parseResults2.parseDiagnostics.length).toBe(0);
+      expect(parseResults2.parseDiagnostics).toHaveLength(0);
 
       const zipped = zip(
         tokenCheck.orderedTokens(parseResults1.script),
@@ -141,7 +141,7 @@ const testSuffixTerm = (
     expect(empty(value.trailer)).toBe(true);
     expect(value.suffixTerm instanceof SuffixTerm.SuffixTerm).toBe(true);
     if (value.suffixTerm instanceof SuffixTerm.SuffixTerm) {
-      expect(trailerTests.length).toBe(value.suffixTerm.trailers.length);
+      expect(trailerTests).toHaveLength(value.suffixTerm.trailers.length);
       atomTest(value.suffixTerm.atom);
 
       for (const [trailerTest, trailer] of zip(
@@ -270,8 +270,8 @@ describe('Parse expressions', () => {
       const [{ value, errors }, scanErrors] = parseExpression(
         expression.source,
       );
-      expect(errors.length).toBe(0);
-      expect(scanErrors.length).toBe(0);
+      expect(errors).toHaveLength(0);
+      expect(scanErrors).toHaveLength(0);
 
       testAtom(value, atom => {
         expect(atom instanceof SuffixTerm.Literal).toBe(true);
@@ -308,8 +308,8 @@ describe('Parse expressions', () => {
       const [{ value, errors }, scanErrors] = parseExpression(
         expression.source,
       );
-      expect(errors.length).toBe(0);
-      expect(scanErrors.length).toBe(0);
+      expect(errors).toHaveLength(0);
+      expect(scanErrors).toHaveLength(0);
 
       testAtom(value, atom => {
         expect(atom instanceof SuffixTerm.Identifier).toBe(true);
@@ -355,8 +355,8 @@ describe('Parse expressions', () => {
       const [{ value, errors }, scannerErrors] = parseExpression(
         expression.source,
       );
-      expect(errors.length).toBe(0);
-      expect(scannerErrors.length).toBe(0);
+      expect(errors).toHaveLength(0);
+      expect(scannerErrors).toHaveLength(0);
 
       testSuffixTerm(
         value,
@@ -369,7 +369,7 @@ describe('Parse expressions', () => {
         trailer => {
           expect(trailer instanceof SuffixTerm.Call).toBe(true);
           if (trailer instanceof SuffixTerm.Call) {
-            expect(expression.args.length).toBe(trailer.args.length);
+            expect(expression.args).toHaveLength(trailer.args.length);
 
             for (let i = 0; i < expression.args.length; i += 1) {
               testAtom(trailer.args[i], atom => {
@@ -664,9 +664,9 @@ describe('Parse statement', () => {
     for (const declaration of validDeclarations) {
       const { script, parseDiagnostics } = parse(declaration.source);
 
-      expect(parseDiagnostics.length).toBe(0);
-      expect(script.stmts.length).toBe(1);
-      expect(script.runStmts.length).toBe(0);
+      expect(parseDiagnostics).toHaveLength(0);
+      expect(script.stmts).toHaveLength(1);
+      expect(script.runStmts).toHaveLength(0);
 
       const [stmt] = script.stmts;
 
@@ -700,9 +700,9 @@ describe('Parse statement', () => {
     for (const declaration of validDeclarations) {
       const { script, parseDiagnostics } = parse(declaration.source);
 
-      expect(parseDiagnostics.length).toBe(0);
-      expect(script.stmts.length).toBe(1);
-      expect(script.runStmts.length).toBe(0);
+      expect(parseDiagnostics).toHaveLength(0);
+      expect(script.stmts).toHaveLength(1);
+      expect(script.runStmts).toHaveLength(0);
 
       const [stmt] = script.stmts;
 

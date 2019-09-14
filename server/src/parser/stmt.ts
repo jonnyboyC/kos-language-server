@@ -1228,7 +1228,7 @@ export class Delete extends Stmt {
 export class Run extends Stmt {
   public readonly run: Token;
   public readonly identifier: Token;
-  public readonly once?: Token;
+  public readonly path?: Token;
   public readonly open?: Token;
   public readonly args?: IExpr[];
   public readonly close?: Token;
@@ -1240,7 +1240,7 @@ export class Run extends Stmt {
 
     this.run = unWrap(builder.run);
     this.identifier = unWrap(builder.identifier);
-    this.once = builder.once;
+    this.path = builder.path;
     this.open = builder.open;
     this.args = builder.args;
     this.close = builder.close;
@@ -1249,9 +1249,9 @@ export class Run extends Stmt {
   }
 
   public toLines(): string[] {
-    let lines = empty(this.once)
+    let lines = empty(this.path)
       ? [`${this.run.lexeme} ${this.identifier.lexeme}`]
-      : [`${this.run.lexeme} ${this.once.lexeme} ${this.identifier.lexeme}`];
+      : [`${this.run.lexeme} ${this.path.lexeme} ${this.identifier.lexeme}`];
 
     if (!empty(this.open) && !empty(this.args) && !empty(this.close)) {
       const argsLines = joinLines(', ', ...this.args.map(arg => arg.toLines()));
@@ -1288,8 +1288,8 @@ export class Run extends Stmt {
 
   public get ranges(): Range[] {
     const ranges: Range[] = [this.run];
-    if (!empty(this.once)) {
-      ranges.push(this.once);
+    if (!empty(this.path)) {
+      ranges.push(this.path);
     }
     ranges.push(this.identifier);
     if (!empty(this.open) && !empty(this.args) && !empty(this.close)) {
@@ -1320,7 +1320,7 @@ export class Run extends Stmt {
 export class RunPath extends Stmt {
   public readonly runPath: Token;
   public readonly open: Token;
-  public readonly expr: IExpr;
+  public readonly path: IExpr;
   public readonly close: Token;
   public readonly args?: IExpr[];
 
@@ -1329,13 +1329,13 @@ export class RunPath extends Stmt {
 
     this.runPath = unWrap(builder.runPath);
     this.open = unWrap(builder.open);
-    this.expr = unWrap(builder.expr);
+    this.path = unWrap(builder.path);
     this.close = unWrap(builder.close);
     this.args = builder.args;
   }
 
   public toLines(): string[] {
-    let lines = this.expr.toLines();
+    let lines = this.path.toLines();
 
     if (!empty(this.args)) {
       lines = joinLines(', ', lines, ...this.args.map(arg => arg.toLines()));
@@ -1355,7 +1355,7 @@ export class RunPath extends Stmt {
   }
 
   public get ranges(): Range[] {
-    const ranges: Range[] = [this.runPath, this.open, this.expr];
+    const ranges: Range[] = [this.runPath, this.open, this.path];
     if (!empty(this.args)) {
       for (const arg of this.args) {
         ranges.push(arg);
@@ -1377,7 +1377,7 @@ export class RunPath extends Stmt {
 export class RunOncePath extends Stmt {
   public readonly runPath: Token;
   public readonly open: Token;
-  public readonly expr: IExpr;
+  public readonly path: IExpr;
   public readonly close: Token;
   public readonly args?: IExpr[];
 
@@ -1386,13 +1386,13 @@ export class RunOncePath extends Stmt {
 
     this.runPath = unWrap(builder.runPath);
     this.open = unWrap(builder.open);
-    this.expr = unWrap(builder.expr);
+    this.path = unWrap(builder.path);
     this.close = unWrap(builder.close);
     this.args = builder.args;
   }
 
   public toLines(): string[] {
-    let lines = this.expr.toLines();
+    let lines = this.path.toLines();
 
     if (!empty(this.args)) {
       lines = joinLines(', ', lines, ...this.args.map(arg => arg.toLines()));
@@ -1412,7 +1412,7 @@ export class RunOncePath extends Stmt {
   }
 
   public get ranges(): Range[] {
-    const ranges: Range[] = [this.runPath, this.open, this.expr];
+    const ranges: Range[] = [this.runPath, this.open, this.path];
     if (!empty(this.args)) {
       for (const arg of this.args) {
         ranges.push(arg);

@@ -150,7 +150,7 @@ export abstract class TreeTraverse
     }
   }
   public visitRunPath(stmt: Stmt.RunPath): void {
-    this.exprAction(stmt.expr);
+    this.exprAction(stmt.path);
     if (!empty(stmt.args)) {
       for (const arg of stmt.args) {
         this.exprAction(arg);
@@ -158,7 +158,7 @@ export abstract class TreeTraverse
     }
   }
   public visitRunPathOnce(stmt: Stmt.RunOncePath): void {
-    this.exprAction(stmt.expr);
+    this.exprAction(stmt.path);
     if (!empty(stmt.args)) {
       for (const arg of stmt.args) {
         this.exprAction(arg);
