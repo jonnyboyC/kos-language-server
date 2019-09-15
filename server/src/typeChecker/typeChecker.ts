@@ -1909,7 +1909,7 @@ export class TypeChecker
 
     return createDiagnostic(
       expr,
-      `${leftType.name} nor ${rightType.name} supports the ${OperatorKind[operatorKind]} operator between them`,
+      `The ${OperatorKind[operatorKind]} operator is may not be supported between ${leftType.name} and ${rightType.name}.`,
       DiagnosticSeverity.Hint,
     );
   }

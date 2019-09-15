@@ -155,7 +155,10 @@ describe('Unreachable code', () => {
     const { flow } = result;
     expect(flow).toBeDefined();
 
-    const flowDiagnostics = flow!.reachable();
+    const flowDiagnostics = flow!
+      .reachable()
+      .sort((a, b) => a.range.start.line - b.range.start.line);
+
     expect(flowDiagnostics).toHaveLength(breakLocations.length);
     for (const [diagnostic, location] of zip(flowDiagnostics, breakLocations)) {
       expect(diagnostic.severity).toBe(DiagnosticSeverity.Information);

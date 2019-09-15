@@ -1,6 +1,6 @@
 import { Boundary } from './types';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
-import { dfs } from '../utilities/graphUtils';
+import { Graph, dfs } from '../utilities/graphUtils';
 import { IStmt } from '../parser/types';
 import { BasicBlock } from './basicBlock';
 import { empty } from '../utilities/typeGuards';
@@ -27,9 +27,14 @@ export class FlowGraph {
   public readonly triggers: Boundary[];
 
   /**
-   * Map from each statement to it's basic block
+   * All the nodes in this script
    */
-  private readonly stmtBlocks: Map<IStmt, BasicBlock>;
+  public readonly nodes: BasicBlock[];
+
+  /**
+   * A graph of the whole flow
+   */
+  private readonly graph: Graph<BasicBlock>;
 
   /**
    * construct a new flow graph
@@ -41,39 +46,44 @@ export class FlowGraph {
     script: Boundary,
     functions: Boundary[],
     triggers: Boundary[],
-    stmtBlocks: Map<IStmt, BasicBlock>,
+    nodes: BasicBlock[],
   ) {
     this.script = script;
     this.functions = functions;
     this.triggers = triggers;
-    this.stmtBlocks = stmtBlocks;
+    this.nodes = nodes;
+
+    this.graph = Graph.fromNodes(nodes);
   }
 
   public reachable(): Diagnostic[] {
+    const visited = new Array<boolean>(this.graph.nodes.length).fill(false);
+
     // find all reachable points from the script entrance
-    const reachableBlock = dfs(this.script.entry);
+    dfs(this.graph, this.graph.toIdx(this.script.entry), visited);
 
     // check reachable blocks from each function
-    for (const entry of this.functions.map(func => func.entry)) {
-      for (const block of dfs(entry)) {
-        reachableBlock.add(block);
-      }
+    for (const boundary of this.functions) {
+      dfs(this.graph, this.graph.toIdx(boundary.entry), visited);
     }
 
     // check reachable blocks from each trigger
-    for (const entry of this.triggers.map(trigger => trigger.entry)) {
-      for (const block of dfs(entry)) {
-        reachableBlock.add(block);
-      }
+    for (const boundary of this.triggers) {
+      dfs(this.graph, this.graph.toIdx(boundary.entry), visited);
     }
 
     const diagnostics: Diagnostic[] = [];
     let lastStmt: Maybe<IStmt> = undefined;
 
     // create diagnostics for regions that are unreachable
-    for (const [stmt, block] of this.stmtBlocks) {
-      if (!reachableBlock.has(block)) {
-        if (!empty(lastStmt) && rangeContains(lastStmt, stmt)) {
+    for (const block of this.nodes) {
+      if (!visited[this.graph.toIdx(block)]) {
+        const { stmt } = block;
+
+        if (
+          empty(stmt) ||
+          (!empty(lastStmt) && rangeContains(lastStmt, stmt))
+        ) {
           continue;
         }
 

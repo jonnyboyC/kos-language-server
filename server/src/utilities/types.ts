@@ -109,3 +109,8 @@ interface GraphNode<T> {
    */
   adjacentNodes(): GraphNode<T>[];
 }
+
+interface Dfs<T> {
+  reachable: Set<GraphNode<T>>;
+  unreachable: Set<GraphNode<T>>;
+}

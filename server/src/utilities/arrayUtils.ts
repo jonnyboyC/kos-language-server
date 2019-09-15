@@ -2,7 +2,7 @@
  * Flatten a set of nested arrays
  * @param arrays a collection of nested arrays
  */
-export const flatten = <T>(arrays: T[][]): T[] => {
+export function flatten<T>(arrays: T[][]): T[] {
   if (arrays.length === 0) {
     return [];
   }
@@ -13,7 +13,7 @@ export const flatten = <T>(arrays: T[][]): T[] => {
   }
 
   return final;
-};
+}
 
 /**
  * Zip two arrays together as an iterable of tuples. Note if array are unequal
