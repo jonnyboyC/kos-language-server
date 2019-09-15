@@ -1,5 +1,5 @@
 import { TypeKind } from '../../types';
-import { Type } from '../../types/type';
+import { Type } from '../../models/types/type';
 
 export const noneType = new Type(
   'none',

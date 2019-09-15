@@ -1,11 +1,12 @@
 import { Boundary } from './types';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
-import { Graph, dfs } from '../utilities/graphUtils';
+import { dfs } from '../utilities/graphUtils';
 import { IStmt } from '../parser/types';
-import { BasicBlock } from './basicBlock';
+import { BasicBlock } from './models/basicBlock';
 import { empty } from '../utilities/typeGuards';
 import { rangeContains } from '../utilities/positionUtils';
 import { createDiagnostic } from '../utilities/diagnosticsUtils';
+import { Graph } from '../models/graph';
 
 /**
  * A class representing the control flow graph through a script.

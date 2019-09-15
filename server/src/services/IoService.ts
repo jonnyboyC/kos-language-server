@@ -2,7 +2,7 @@ import { readFileAsync } from '../utilities/fsUtils';
 import { statSync, readdirSync, existsSync, lstatSync } from 'fs';
 import { join, dirname } from 'path';
 import { URI } from 'vscode-uri';
-import { normalizeExtensions } from '../utilities/pathUtilities';
+import { normalizeExtensions } from '../utilities/pathUtils';
 import { empty } from '../utilities/typeGuards';
 
 /**

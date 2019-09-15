@@ -1,16 +1,16 @@
-import { KsVariable } from '../entities/variable';
-import { KsFunction } from '../entities/function';
-import { KsLock } from '../entities/lock';
-import { KsParameter } from '../entities/parameter';
+import { KsVariable } from '../models/variable';
+import { KsFunction } from '../models/function';
+import { KsLock } from '../models/lock';
+import { KsParameter } from '../models/parameter';
 import { Range, Location, Diagnostic } from 'vscode-languageserver';
 import { IExpr, IStmt, ScopeKind } from '../parser/types';
-import { BasicTracker } from './tracker';
-import { Token } from '../entities/token';
-import { KsSuffix } from '../entities/suffix';
-import { Environment } from './environment';
-import { TypeTracker } from './typeTracker';
+import { BasicTracker } from './models/tracker';
+import { Token } from '../models/token';
+import { KsSuffix } from '../models/suffix';
+import { Environment } from './models/environment';
+import { TypeTracker } from './models/typeTracker';
 import { IType } from '../typeChecker/types';
-import { KsGrouping } from '../entities/grouping';
+import { KsGrouping } from '../models/grouping';
 
 /**
  * The result of a function scan

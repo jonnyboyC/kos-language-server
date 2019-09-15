@@ -8,14 +8,14 @@ import {
   ISuffixTermVisitor,
   IScript,
 } from '../parser/types';
-import * as SuffixTerm from '../parser/suffixTerm';
-import * as Expr from '../parser/expr';
-import * as Stmt from '../parser/stmt';
-import { Var, Lock, Func, Param } from '../parser/declare';
+import * as SuffixTerm from '../parser/models/suffixTerm';
+import * as Expr from '../parser/models/expr';
+import * as Stmt from '../parser/models/stmt';
+import { Var, Lock, Func, Param } from '../parser/models/declare';
 import { empty } from '../utilities/typeGuards';
-import { TokenType } from '../entities/tokentypes';
-import { mockLogger, mockTracer, logException } from '../utilities/logger';
-import { SymbolTableBuilder } from './symbolTableBuilder';
+import { TokenType } from '../models/tokentypes';
+import { mockLogger, mockTracer, logException } from '../models/logger';
+import { SymbolTableBuilder } from './models/symbolTableBuilder';
 import { Diagnostic } from 'vscode-languageserver';
 import { FunctionScan } from './functionScan';
 

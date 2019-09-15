@@ -4,15 +4,15 @@ import {
   ICallSignature,
   TypeKind,
   IParametricType,
+  IIndexer,
   OperatorKind,
   TypeMap,
-  IIndexer,
 } from '../types';
-import { TypeTracker } from '../../analysis/typeTracker';
-import { Operator } from './operator';
-import { KsSuffix } from '../../entities/suffix';
+import { TypeTracker } from '../../analysis/models/typeTracker';
+import { Operator } from '../models/types/operator';
+import { KsGrouping } from '../../models/grouping';
+import { KsSuffix } from '../../models/suffix';
 import { empty } from '../../utilities/typeGuards';
-import { KsGrouping } from '../../entities/grouping';
 
 /**
  * A class representing a type in Kerboscript

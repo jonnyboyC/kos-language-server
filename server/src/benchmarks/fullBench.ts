@@ -4,7 +4,7 @@ import { readFileSync, statSync, createWriteStream } from 'fs';
 import { join, relative } from 'path';
 import { performance } from 'perf_hooks';
 import { Parser } from '../parser/parser';
-import { SymbolTableBuilder } from '../analysis/symbolTableBuilder';
+import { SymbolTableBuilder } from '../analysis/models/symbolTableBuilder';
 import { PreResolver } from '../analysis/preResolver';
 import { Resolver } from '../analysis/resolver';
 import { standardLibraryBuilder } from '../analysis/standardLibrary';

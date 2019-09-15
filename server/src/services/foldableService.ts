@@ -1,10 +1,10 @@
 import { empty } from '../utilities/typeGuards';
 import { IStack } from '../analysis/types';
-import * as Stmt from '../parser/stmt';
+import * as Stmt from '../parser/models/stmt';
 import { FoldingRange, FoldingRangeKind } from 'vscode-languageserver';
-import { Token } from '../entities/token';
-import { TokenType } from '../entities/tokentypes';
-import { TreeTraverse } from '../parser/treeTraverse';
+import { Token } from '../models/token';
+import { TokenType } from '../models/tokentypes';
+import { TreeTraverse } from '../utilities/treeTraverse';
 import { IScript } from '../parser/types';
 
 /**

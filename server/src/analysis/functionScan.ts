@@ -1,8 +1,8 @@
 import { IFunctionScanResult } from './types';
-import * as Decl from '../parser/declare';
-import * as Expr from '../parser/expr';
-import * as Stmt from '../parser/stmt';
-import { TreeTraverse } from '../parser/treeTraverse';
+import * as Decl from '../parser/models/declare';
+import * as Expr from '../parser/models/expr';
+import * as Stmt from '../parser/models/stmt';
+import { TreeTraverse } from '../utilities/treeTraverse';
 
 /**
  * Class to help identify parameters and return statements in

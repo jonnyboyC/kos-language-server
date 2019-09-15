@@ -3,14 +3,14 @@ import {
   IDocumentInfo as DocumentInfo,
   LoadedDocuments,
 } from '../types';
-import { SymbolTable } from '../analysis/symbolTable';
+import { SymbolTable } from '../analysis/models/symbolTable';
 import {
   LexicalResult,
   RunStmtType,
   IScript,
   SemanticResult,
 } from '../parser/types';
-import { SymbolTableBuilder } from '../analysis/symbolTableBuilder';
+import { SymbolTableBuilder } from '../analysis/models/symbolTableBuilder';
 import { PreResolver } from '../analysis/preResolver';
 import { performance, PerformanceObserver } from 'perf_hooks';
 import { TypeChecker } from '../typeChecker/typeChecker';
@@ -20,14 +20,14 @@ import { Parser } from '../parser/parser';
 import { TextDocument, Diagnostic } from 'vscode-languageserver';
 import { addDiagnosticsUri } from '../utilities/serverUtils';
 import { DocumentService } from './documentService';
-import { logException } from '../utilities/logger';
+import { logException } from '../models/logger';
 import { Resolver } from '../analysis/resolver';
 import {
   standardLibraryBuilder,
   bodyLibraryBuilder,
 } from '../analysis/standardLibrary';
 import { ControlFlow } from '../controlFlow/controlFlow';
-import { runPath } from '../utilities/pathUtilities';
+import { runPath } from '../utilities/pathUtils';
 
 interface DependencyLoadResult {
   documentInfos: DocumentInfo[];

@@ -6,17 +6,17 @@ import {
   ISuffixTermVisitor,
   ISuffixTerm,
 } from '../parser/types';
-import { BasicBlock } from './basicBlock';
-import * as SuffixTerm from '../parser/suffixTerm';
-import * as Expr from '../parser/expr';
-import * as Decl from '../parser/declare';
-import * as Stmt from '../parser/stmt';
-import { mockLogger, mockTracer, logException } from '../utilities/logger';
-import { Script } from '../entities/script';
+import { BasicBlock } from './models/basicBlock';
+import * as SuffixTerm from '../parser/models/suffixTerm';
+import * as Expr from '../parser/models/expr';
+import * as Decl from '../parser/models/declare';
+import * as Stmt from '../parser/models/stmt';
+import { mockLogger, mockTracer, logException } from '../models/logger';
+import { Script } from '../models/script';
 import { empty } from '../utilities/typeGuards';
 import { BlockKind, Boundary, ReturnContext } from './types';
 import { IStack } from '../analysis/types';
-import { BranchJump } from './branchJump';
+import { BranchJump } from './models/branchJump';
 import { FlowGraph } from './flowGraph';
 
 export class ControlFlow

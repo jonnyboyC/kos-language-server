@@ -19,7 +19,7 @@ import { vesselTargetType } from '../orbital/vesselTarget';
 import { partModuleType } from './partModule';
 import { OperatorKind } from '../../types';
 import { boundsType } from './bounds';
-import { Operator } from '../../types/operator';
+import { Operator } from '../../models/types/operator';
 import { scienceExperimentType } from './scienceExperimentModule';
 import { scienceDataType } from '../scienceData';
 

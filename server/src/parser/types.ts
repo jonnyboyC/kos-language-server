@@ -1,13 +1,13 @@
-import * as Expr from './expr';
-import * as Stmt from './stmt';
-import * as SuffixTerm from './suffixTerm';
-import { Var, Lock, Func, Param } from './declare';
+import * as Expr from './models/expr';
+import * as Stmt from './models/stmt';
+import * as SuffixTerm from './models/suffixTerm';
+import { Var, Lock, Func, Param } from './models/declare';
 import { Range, Location, Diagnostic } from 'vscode-languageserver';
-import { TokenType } from '../entities/tokentypes';
-import { NodeBase } from './base';
-import { Token } from '../entities/token';
+import { TokenType } from '../models/tokentypes';
+import { NodeBase } from './models/base';
+import { Token } from '../models/token';
 import { DiagnosticUri } from '../types';
-import { SymbolTable } from '../analysis/symbolTable';
+import { SymbolTable } from '../analysis/models/symbolTable';
 
 export interface RangeSequence extends Range {
   ranges: Range[];

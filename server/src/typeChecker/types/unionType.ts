@@ -3,15 +3,15 @@ import {
   Access,
   TypeKind,
   IParametricType,
-  OperatorKind,
-  IIndexer,
   ICallSignature,
+  IIndexer,
+  OperatorKind,
 } from '../types';
-import { TypeTracker } from '../../analysis/typeTracker';
-import { Operator } from './operator';
+import { TypeTracker } from '../../analysis/models/typeTracker';
+import { KsSuffix } from '../../models/suffix';
 import { KsSymbol } from '../../analysis/types';
-import { KsSuffix } from '../../entities/suffix';
 import { empty } from '../../utilities/typeGuards';
+import { Operator } from '../models/types/operator';
 import { createIndexer } from '../utilities/typeCreators';
 
 /**

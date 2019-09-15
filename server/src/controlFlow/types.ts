@@ -1,4 +1,4 @@
-import { BasicBlock } from './basicBlock';
+import { BasicBlock } from './models/basicBlock';
 
 /**
  * Block kinds for basic blocks

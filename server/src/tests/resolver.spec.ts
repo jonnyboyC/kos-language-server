@@ -13,8 +13,8 @@ import { structureType } from '../typeChecker/ksTypes/primitives/structure';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { zip } from '../utilities/arrayUtils';
-import { SymbolTable } from '../analysis/symbolTable';
-import { SymbolTableBuilder } from '../analysis/symbolTableBuilder';
+import { SymbolTable } from '../analysis/models/symbolTable';
+import { SymbolTableBuilder } from '../analysis/models/symbolTableBuilder';
 import { PreResolver } from '../analysis/preResolver';
 import {
   KsSymbolKind,
@@ -23,12 +23,12 @@ import {
 } from '../analysis/types';
 import { Resolver } from '../analysis/resolver';
 import { FunctionScan } from '../analysis/functionScan';
-import * as Decl from '../parser/declare';
+import * as Decl from '../parser/models/declare';
 import { standardLibraryBuilder } from '../analysis/standardLibrary';
 import { LocalResolver } from '../analysis/localResolver';
-import * as Stmt from '../parser/stmt';
+import * as Stmt from '../parser/models/stmt';
 import { SetResolver } from '../analysis/setResolver';
-import { Marker } from '../entities/marker';
+import { Marker } from '../scanner/models/marker';
 import { Tokenized } from '../scanner/types';
 
 const fakeUri = 'C:\\fake.ks';

@@ -36,12 +36,12 @@ import {
   SymbolTracker,
   KsBaseSymbol,
 } from './analysis/types';
-import { mockLogger, mockTracer, logException } from './utilities/logger';
+import { mockLogger, mockTracer, logException } from './models/logger';
 import { empty } from './utilities/typeGuards';
 import { ScriptFind, AstContext } from './parser/scriptFind';
-import * as Expr from './parser/expr';
-import * as Stmt from './parser/stmt';
-import * as SuffixTerm from './parser/suffixTerm';
+import * as Expr from './parser/models/expr';
+import * as Stmt from './parser/models/stmt';
+import * as SuffixTerm from './parser/models/suffixTerm';
 import { builtIn, serverName, keywordCompletions } from './utilities/constants';
 import { binarySearchIndex, rangeContains } from './utilities/positionUtils';
 import { URI } from 'vscode-uri';
@@ -60,7 +60,7 @@ import {
   cleanPosition,
   cleanLocation,
 } from './utilities/clean';
-import { isValidIdentifier } from './entities/tokentypes';
+import { isValidIdentifier } from './models/tokentypes';
 import { tokenTrackedType } from './typeChecker/utilities/typeUtilities';
 import { TypeKind } from './typeChecker/types';
 import { IoService, Document } from './services/IoService';
@@ -68,7 +68,7 @@ import { FoldableService } from './services/foldableService';
 import { AnalysisService } from './services/analysisService';
 import { IFindResult } from './parser/types';
 import { ResolverService } from './services/resolverService';
-import { runPath } from './utilities/pathUtilities';
+import { runPath } from './utilities/pathUtils';
 
 export class KLS {
   /**

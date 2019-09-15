@@ -1,6 +1,6 @@
 import { Generator } from './generator';
-import { consoleLogger, consoleTracer } from '../utilities/logger';
-import { validExprTypes } from '../parser/expr';
+import { consoleLogger, consoleTracer } from '../models/logger';
+import { validExprTypes } from '../parser/models/expr';
 import { Scanner } from '../scanner/scanner';
 import { Parser } from '../parser/parser';
 import { INodeResult, IExpr } from '../parser/types';

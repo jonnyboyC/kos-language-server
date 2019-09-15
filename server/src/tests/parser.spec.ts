@@ -14,11 +14,11 @@ import {
 import { Parser } from '../parser/parser';
 import { TokenCheck } from '../parser/tokenCheck';
 import { zip } from '../utilities/arrayUtils';
-import { TokenType } from '../entities/tokentypes';
-import * as Expr from '../parser/expr';
-import * as Decl from '../parser/declare';
+import { TokenType } from '../models/tokentypes';
+import * as Expr from '../parser/models/expr';
+import * as Decl from '../parser/models/declare';
 import { empty } from '../utilities/typeGuards';
-import * as SuffixTerm from '../parser/suffixTerm';
+import * as SuffixTerm from '../parser/models/suffixTerm';
 import { walkDir } from '../utilities/fsUtils';
 
 // scan source file

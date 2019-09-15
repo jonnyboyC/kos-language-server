@@ -7,15 +7,15 @@ import {
   IParametricIndexer,
 } from '../types';
 import { memoize } from '../../utilities/memoize';
-import { ParametricType } from '../parametricTypes/parametricType';
-import { Type } from '../types/type';
-import { VariadicType } from '../types/variadicType';
-import { CallSignature } from '../types/callSignature';
-import { GenericCallSignature } from '../parametricTypes/parametricCallSignature';
-import { ParametricIndexer } from '../parametricTypes/parametricIndexer';
-import { Indexer } from '../types/indexer';
+import { ParametricType } from '../models/parametricTypes/parametricType';
+import { Type } from '../models/types/type';
+import { VariadicType } from '../models/types/variadicType';
+import { CallSignature } from '../models/types/callSignature';
+import { GenericCallSignature } from '../models/parametricTypes/parametricCallSignature';
+import { ParametricIndexer } from '../models/parametricTypes/parametricIndexer';
+import { Indexer } from '../models/types/indexer';
 import { empty } from '../../utilities/typeGuards';
-import { UnionType } from '../types/unionType';
+import { UnionType } from '../models/types/unionType';
 
 /**
  * Create a type parameter type

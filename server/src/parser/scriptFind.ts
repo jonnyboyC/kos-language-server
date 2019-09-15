@@ -1,13 +1,13 @@
 import { IFindResult, TreeNode } from './types';
-import * as Decl from './declare';
-import * as Stmt from './stmt';
-import * as Expr from './expr';
-import * as SuffixTerm from './suffixTerm';
+import * as Decl from './models/declare';
+import * as Stmt from './models/stmt';
+import * as Expr from './models/expr';
+import * as SuffixTerm from './models/suffixTerm';
 import { Position } from 'vscode-languageserver';
 import { binarySearch, rangeContainsPos } from '../utilities/positionUtils';
 import { empty } from '../utilities/typeGuards';
-import { Token } from '../entities/token';
-import { TreeExecute } from './treeExecute';
+import { Token } from '../models/token';
+import { TreeExecute } from '../utilities/treeExecute';
 
 export type AstContext =
   | Constructor<Expr.Expr>

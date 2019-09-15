@@ -11,9 +11,9 @@ import { empty } from '../utilities/typeGuards';
 import { URI } from 'vscode-uri';
 import { createDiagnostic } from '../utilities/diagnosticsUtils';
 import { IoService, Document } from './IoService';
-import { logException, mockTracer } from '../utilities/logger';
+import { logException, mockTracer } from '../models/logger';
 import { ResolverService } from './resolverService';
-import { normalizeExtensions } from '../utilities/pathUtilities';
+import { normalizeExtensions } from '../utilities/pathUtils';
 
 type DocumentChangeHandler = (document: Document) => void;
 type DocumentClosedHandler = (uri: string) => void;

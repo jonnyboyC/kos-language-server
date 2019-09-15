@@ -2,7 +2,7 @@ import { URI } from 'vscode-uri';
 import { TextDocument } from 'vscode-languageserver';
 import { createMockDocumentService } from './utilities/mockServices';
 import { AnalysisService } from '../services/analysisService';
-import { mockLogger, mockTracer } from '../utilities/logger';
+import { mockLogger, mockTracer } from '../models/logger';
 import { empty } from '../utilities/typeGuards';
 import { SearchState } from '../analysis/types';
 

@@ -3,12 +3,12 @@ import {
   Access,
   TypeKind,
   ICallSignature,
-  OperatorKind,
-  IParametricType,
   IIndexer,
+  IParametricType,
+  OperatorKind,
 } from '../types';
-import { Operator } from './operator';
-import { TypeTracker } from '../../analysis/typeTracker';
+import { TypeTracker } from '../../analysis/models/typeTracker';
+import { Operator } from '../models/types/operator';
 
 export class VariadicType implements IType {
   public readonly anyType: boolean;

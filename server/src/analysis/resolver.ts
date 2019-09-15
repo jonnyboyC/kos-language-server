@@ -9,23 +9,23 @@ import {
   ISuffixTermVisitor,
   SyntaxKind,
 } from '../parser/types';
-import * as SuffixTerm from '../parser/suffixTerm';
-import * as Expr from '../parser/expr';
-import * as Stmt from '../parser/stmt';
-import * as Decl from '../parser/declare';
+import * as SuffixTerm from '../parser/models/suffixTerm';
+import * as Expr from '../parser/models/expr';
+import * as Stmt from '../parser/models/stmt';
+import * as Decl from '../parser/models/declare';
 import { empty } from '../utilities/typeGuards';
 import { LocalResolver } from './localResolver';
 import { SetResolver } from './setResolver';
-import { TokenType } from '../entities/tokentypes';
-import { Script } from '../entities/script';
-import { mockLogger, mockTracer, logException } from '../utilities/logger';
-import { SymbolTableBuilder } from './symbolTableBuilder';
+import { TokenType } from '../models/tokentypes';
+import { Script } from '../models/script';
+import { mockLogger, mockTracer, logException } from '../models/logger';
+import { SymbolTableBuilder } from './models/symbolTableBuilder';
 import { IDeferred } from './types';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
 import { createDiagnostic } from '../utilities/diagnosticsUtils';
 // tslint:disable-next-line: import-name
 import Denque from 'denque';
-import { Token } from '../entities/token';
+import { Token } from '../models/token';
 
 type Diagnostics = Diagnostic[];
 

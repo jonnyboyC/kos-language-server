@@ -34,7 +34,7 @@ import { crewType } from '../crew';
 import { vesselSensorsType } from '../vessel/vesselSensors';
 import { OperatorKind } from '../../types';
 import { boundsType } from '../parts/bounds';
-import { Operator } from '../../types/operator';
+import { Operator } from '../../models/types/operator';
 
 let set = false;
 

@@ -3,7 +3,7 @@ import { Ast } from '../parser/types';
 import { Scanner } from '../scanner/scanner';
 import { Parser } from '../parser/parser';
 import { ControlFlow } from '../controlFlow/controlFlow';
-import { Marker } from '../entities/marker';
+import { Marker } from '../scanner/models/marker';
 import { zip } from '../utilities/arrayUtils';
 import { DiagnosticSeverity, Range } from 'vscode-languageserver';
 import { join } from 'path';

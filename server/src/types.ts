@@ -1,4 +1,4 @@
-import { SymbolTable } from './analysis/symbolTable';
+import { SymbolTable } from './analysis/models/symbolTable';
 import { IScript } from './parser/types';
 import {
   Diagnostic,
@@ -7,7 +7,7 @@ import {
   CompletionItem,
   TextDocument,
 } from 'vscode-languageserver';
-import { Token } from './entities/token';
+import { Token } from './models/token';
 
 export interface IDocumentInfo {
   script: IScript;

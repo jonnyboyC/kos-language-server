@@ -18,7 +18,7 @@ import {
   binaryRightKey,
 } from '../utilities/positionUtils';
 import { toCase } from '../utilities/stringUtils';
-import { Logger } from '../utilities/logger';
+import { Logger } from '../models/logger';
 
 const createRange = (
   startLine: number,

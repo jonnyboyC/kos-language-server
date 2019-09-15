@@ -1,7 +1,7 @@
 import { Diagnostic } from 'vscode-languageserver';
-import { SuffixTypeBuilder } from './suffixTypeNode';
-import { Operator } from './types/operator';
-import { TypeTracker } from '../analysis/typeTracker';
+import { SuffixTypeBuilder } from './models/suffixTypeNode';
+import { Operator } from './models/types/operator';
+import { TypeTracker } from '../analysis/models/typeTracker';
 
 /**
  * type result for a kerboscript expression

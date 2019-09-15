@@ -1,4 +1,4 @@
-import { TokenType, isValidIdentifier } from '../entities/tokentypes';
+import { TokenType, isValidIdentifier } from '../models/tokentypes';
 import {
   IParseError,
   IExpr,
@@ -17,18 +17,18 @@ import {
   failedUnknown,
   failedExpr,
   failedStmt,
-} from './parserError';
-import * as Expr from './expr';
-import * as SuffixTerm from './suffixTerm';
-import * as Stmt from './stmt';
-import * as Decl from './declare';
+} from './models/parserError';
+import * as Expr from './models/expr';
+import * as SuffixTerm from './models/suffixTerm';
+import * as Stmt from './models/stmt';
+import * as Decl from './models/declare';
 import { empty } from '../utilities/typeGuards';
-import { Script } from '../entities/script';
-import { nodeResult } from './parseResult';
-import { Token } from '../entities/token';
-import { mockLogger, mockTracer, logException } from '../utilities/logger';
+import { Script } from '../models/script';
+import { nodeResult } from './utils/parseResult';
+import { Token } from '../models/token';
+import { mockLogger, mockTracer, logException } from '../models/logger';
 import { flatten } from '../utilities/arrayUtils';
-import { Marker } from '../entities/marker';
+import { Marker } from '../scanner/models/marker';
 import { Diagnostic } from 'vscode-languageserver';
 import { parseToDiagnostics } from '../utilities/serverUtils';
 

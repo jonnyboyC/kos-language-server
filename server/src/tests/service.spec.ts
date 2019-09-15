@@ -11,7 +11,7 @@ import {
   Diagnostic,
   DiagnosticSeverity,
 } from 'vscode-languageserver';
-import { mockLogger, mockTracer } from '../utilities/logger';
+import { mockLogger, mockTracer } from '../models/logger';
 import { URI } from 'vscode-uri';
 import { empty } from '../utilities/typeGuards';
 import { zip } from '../utilities/arrayUtils';

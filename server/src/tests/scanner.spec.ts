@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { walkDir } from '../utilities/fsUtils';
-import { TokenType } from '../entities/tokentypes';
+import { TokenType } from '../models/tokentypes';
 import { zip } from '../utilities/arrayUtils';
 import { Scanner } from '../scanner/scanner';
 
