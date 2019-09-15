@@ -945,7 +945,7 @@ export class KLS {
   }
 
   /**
-   * Get all symbols in scope at a particular location in the file
+   * Get all symbols locally in scope at this particular script
    * @param pos position in document
    * @param uri document uri
    */
@@ -955,11 +955,25 @@ export class KLS {
   ): Promise<KsBaseSymbol[]> {
     const documentInfo = await this.analysisService.getInfo(uri);
 
-    if (!empty(documentInfo) && !empty(documentInfo.symbolTable)) {
-      return documentInfo.symbolTable.scopedSymbols(pos);
+    if (empty(documentInfo) || empty(documentInfo.symbolTable)) {
+      return [];
     }
 
-    return [];
+    return documentInfo.symbolTable.scopedSymbols(pos);
+  }
+
+  /**
+   * Get all symbols imported in this particular script
+   * @param uri document uri
+   */
+  public async getImportedSymbols(uri: string): Promise<KsBaseSymbol[]> {
+    const documentInfo = await this.analysisService.getInfo(uri);
+
+    if (empty(documentInfo) || empty(documentInfo.symbolTable)) {
+      return [];
+    }
+
+    return documentInfo.symbolTable.importedSymbols();
   }
 
   /**

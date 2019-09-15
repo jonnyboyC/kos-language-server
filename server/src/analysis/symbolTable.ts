@@ -144,11 +144,18 @@ export class SymbolTable implements GraphNode<SymbolTable> {
   }
 
   /**
-   * Get all symbols available at the provide position
+   * Get all symbols locally scoped available at the provide position
    * @param pos position to check
    */
   public scopedSymbols(pos: Position): KsBaseSymbol[] {
     return this.scopedTrackers(pos).map(tracker => tracker.declared.symbol);
+  }
+
+  /**
+   * Get all imported symbols relative to this script
+   */
+  public importedSymbols(): KsBaseSymbol[] {
+    return [...this.importedTrackers()].map(tracker => tracker.declared.symbol);
   }
 
   /**
@@ -192,14 +199,14 @@ export class SymbolTable implements GraphNode<SymbolTable> {
   }
 
   /**
-   * get all symbol trackers in scope at a position
+   * get all symbol trackers locally in scope at a position
    * @param pos the position to retrieve symbols from
    */
   private scopedTrackers(pos: Position): BasicTracker[] {
     const trackers: BasicTracker[] = [];
 
     this.scopedTrackersDepth(trackers, pos, this.rootScope);
-    trackers.push(...this.importedTrackers());
+    // trackers.push(...this.importedTrackers());
 
     return trackers;
   }
@@ -315,7 +322,7 @@ export class SymbolTable implements GraphNode<SymbolTable> {
   }
 
   /**
-   * Search all imported trackers that are accessible from this
+   * Search all for all imported symbol trackers that are accessible from this
    * environment
    */
   private *importedTrackers(): IterableIterator<BasicTracker> {

@@ -16,7 +16,7 @@ import {
   Position,
 } from 'vscode-languageserver';
 import { empty } from './typeGuards';
-import { KsSymbolKind, KsSymbol } from '../analysis/types';
+import { KsSymbolKind, KsSymbol, KsBaseSymbol } from '../analysis/types';
 import { cleanLocation, cleanToken, cleanCompletion } from './clean';
 import { CommanderStatic } from 'commander';
 import { ClientConfiguration, DiagnosticUri } from '../types';
@@ -157,30 +157,45 @@ export const symbolCompletionItems = async (
   const { uri } = documentPosition.textDocument;
 
   // get all symbols currently in scope
-  const entities = await analyzer.getScopedSymbols(position, uri);
+  const localSymbols = await analyzer.getScopedSymbols(position, uri);
+  const importedSymbols = await analyzer.getImportedSymbols(uri);
+
+  const sortString = (priority: number, label: string) => `${priority}${label}`;
+  const locals = sortString.bind(null, 0);
+  const imports = sortString.bind(null, 1);
+
+  const toCompletion = (
+    sortLabel: (label: string) => string,
+    entity: KsBaseSymbol,
+  ): CompletionItem => {
+    const kind = symbolCompletionMapper(entity.tag);
+
+    let typeString = 'structure';
+    const { tracker } = entity.name;
+    if (!empty(tracker)) {
+      const type = tracker.getType({ uri, range: entity.name });
+
+      if (!empty(type)) {
+        typeString = type.toString();
+      }
+    }
+
+    return {
+      kind,
+      label: entity.name.lexeme,
+      sortText: sortLabel(entity.name.lexeme),
+      detail: `${entity.name.lexeme}: ${typeString}`,
+      data: cleanToken(entity.name),
+    } as CompletionItem;
+  };
+
+  const localCompletions = toCompletion.bind(null, locals);
+  const importedCompletions = toCompletion.bind(null, imports);
 
   // generate completions
-  return entities
-    .map(entity => {
-      const kind = symbolCompletionMapper(entity.tag);
-
-      let typeString = 'structure';
-      const { tracker } = entity.name;
-      if (!empty(tracker)) {
-        const type = tracker.getType({ uri, range: entity.name });
-
-        if (!empty(type)) {
-          typeString = type.toString();
-        }
-      }
-
-      return {
-        kind,
-        label: entity.name.lexeme,
-        detail: `${entity.name.lexeme}: ${typeString}`,
-        data: cleanToken(entity.name),
-      } as CompletionItem;
-    })
+  return localSymbols
+    .map(localCompletions)
+    .concat(importedSymbols.map(importedCompletions))
     .concat(keywordCompletions)
     .map(completion => cleanCompletion(completion));
 };
