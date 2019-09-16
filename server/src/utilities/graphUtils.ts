@@ -38,7 +38,12 @@ function fillOrder<T>(
   stack.push(idx);
 }
 
-export function stronglyConnected<T>(graph: Graph<T>): any {
+/**
+ * Search the graph for strongly connected components. A strongly connected
+ * component is a set of nodes that are reachable from all members of the component
+ * @param graph graph to search for components
+ */
+export function scc<T>(graph: Graph<T>): any {
   const stack: IStack<number> = [];
   const visited: boolean[] = new Array(graph.nodes.length).fill(false);
 
@@ -95,6 +100,13 @@ export function dfsNode<T>(graph: Graph<T>, root: GraphNode<T>): Dfs<T> {
   return { reachable, unreachable };
 }
 
+/**
+ * Perform depth first search on the provided graph. Updated the passed
+ * visited array with visited nodes
+ * @param graph graph
+ * @param idx index of the node to start from
+ * @param visited visited nodes
+ */
 export function dfs<T>(graph: Graph<T>, idx: number, visited: boolean[]): void {
   const stack: IStack<number> = [];
 

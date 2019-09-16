@@ -19,6 +19,8 @@ import {
 } from '../utilities/positionUtils';
 import { toCase } from '../utilities/stringUtils';
 import { Logger } from '../models/logger';
+import { Graph } from '../models/graph';
+import { dfsNode } from '../utilities/graphUtils';
 
 const createRange = (
   startLine: number,
@@ -298,9 +300,146 @@ describe('logger', () => {
   });
 });
 
+class NumberNode implements GraphNode<number> {
+  public readonly nodes: GraphNode<number>[];
+  constructor(public readonly idx: number) {
+    this.nodes = [];
+  }
+
+  value() {
+    return this.idx;
+  }
+  adjacentNodes() {
+    return this.nodes;
+  }
+}
+
+const createLoop = (length: number) => {
+  const nodes: NumberNode[] = [];
+
+  for (let i = 0; i < length; i++) {
+    nodes.push(new NumberNode(i));
+  }
+
+  for (let i = 0; i < length; i++) {
+    nodes[i].nodes.push(nodes[(i + 1) % length]);
+  }
+
+  return nodes;
+};
+
+const createDisjoint = (length: number) => {
+  const nodes: NumberNode[] = [];
+
+  for (let i = 0; i < length; i++) {
+    nodes.push(new NumberNode(i));
+  }
+
+  return nodes;
+};
+
+const createFullyConnected = (length: number) => {
+  const nodes: NumberNode[] = [];
+
+  for (let i = 0; i < length; i++) {
+    nodes.push(new NumberNode(i));
+  }
+
+  for (let i = 0; i < length; i++) {
+    for (let j = 0; j < length; j++) {
+      nodes[i].nodes.push(nodes[j]);
+    }
+  }
+
+  return nodes;
+};
+
+describe('when using a graph', () => {
+  describe('when constructing a graph', () => {
+    test('when constructing a graph from nodes', () => {
+      const nodes = createLoop(10);
+      const graph = Graph.fromNodes(nodes);
+
+      expect(graph.nodes).toBe(nodes);
+
+      for (const node of nodes) {
+        // check that map goes correctly
+        const id = graph.nodeMap.get(node);
+        expect(id).toBeDefined();
+        expect(graph.idMap.get(id!)).toBe(node);
+
+        // check adjacent nodes are correct
+        for (const adjacentNode of node.adjacentNodes()) {
+          const adjacentId = graph.nodeMap.get(adjacentNode);
+          expect(adjacentId).toBeDefined();
+          expect(graph.edges[id!]).toContain(adjacentId);
+        }
+      }
+    });
+  });
+
+  describe('when performing depth first search', () => {
+    test('when all nodes are disjoint', () => {
+      const nodes = createDisjoint(10);
+      const graph = Graph.fromNodes(nodes);
+
+      for (const node of nodes) {
+        const dfs = dfsNode(graph, node);
+
+        // check we're reachable
+        expect(dfs.reachable.size).toBe(1);
+        expect(dfs.reachable.has(node)).toBe(true);
+
+        // check all other are un reachable
+        expect(dfs.unreachable.size).toBe(9);
+        expect(dfs.unreachable.has(node)).toBe(false);
+      }
+    });
+
+    test('when nodes form a cycle', () => {
+      const nodes = createLoop(10);
+      const graph = Graph.fromNodes(nodes);
+
+      for (const node of nodes) {
+        const dfs = dfsNode(graph, node);
+
+        // check we're reachable
+        expect(dfs.reachable.size).toBe(10);
+        for (const innerNode of nodes) {
+          expect(dfs.reachable.has(innerNode)).toBe(true);
+        }
+
+        // check none are unreachable
+        expect(dfs.unreachable.size).toBe(0);
+      }
+    });
+
+    test('when nodes are fully connected', () => {
+      const nodes = createFullyConnected(10);
+      const graph = Graph.fromNodes(nodes);
+
+      for (const node of nodes) {
+        const dfs = dfsNode(graph, node);
+
+        // check we're reachable
+        expect(dfs.reachable.size).toBe(10);
+        for (const innerNode of nodes) {
+          expect(dfs.reachable.has(innerNode)).toBe(true);
+        }
+
+        // check none are unreachable
+        expect(dfs.unreachable.size).toBe(0);
+      }
+    });
+  });
+});
+
 // describe('tree traverse', () => {
 //   test('token check', () => {
-//     const source = readFileSync('../../kerboscripts/unitTests/allLanguage.ks', 'utf-8');
+//     const source = readFileSync(
+//       '../../kerboscripts/unitTests/allLanguage.ks',
+//       'utf-8',
+//     );
 //     const scanner = new Scanner(source, 'file://fake.ks');
 //     const { tokens } = scanner.scanTokens();
 
