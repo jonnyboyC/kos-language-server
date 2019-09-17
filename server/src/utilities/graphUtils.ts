@@ -104,15 +104,19 @@ export function dfsNode<T>(graph: Graph<T>, root: GraphNode<T>): Dfs<T> {
  * Perform depth first search on the provided graph. Updated the passed
  * visited array with visited nodes
  * @param graph graph
- * @param idx index of the node to start from
+ * @param root index of the node to start from
  * @param visited visited nodes
  */
-export function dfs<T>(graph: Graph<T>, idx: number, visited: boolean[]): void {
+export function dfs<T>(
+  graph: Graph<T>,
+  root: number,
+  visited: boolean[],
+): void {
   const stack: IStack<number> = [];
 
   // initialize with root
-  stack.push(idx);
-  visited[idx] = true;
+  stack.push(root);
+  visited[root] = true;
 
   while (stack.length !== 0) {
     // pop a node off the stack

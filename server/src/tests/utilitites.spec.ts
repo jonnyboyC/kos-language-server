@@ -20,7 +20,7 @@ import {
 import { toCase } from '../utilities/stringUtils';
 import { Logger } from '../models/logger';
 import { Graph } from '../models/graph';
-import { dfsNode } from '../utilities/graphUtils';
+import { dfsNode, transpose } from '../utilities/graphUtils';
 
 const createRange = (
   startLine: number,
@@ -379,6 +379,16 @@ describe('when using a graph', () => {
   });
 
   describe('when performing depth first search', () => {
+    test('when call with invalid args', () => {
+      const nodes = createFullyConnected(10);
+      const connected = Graph.fromNodes(nodes);
+
+      const disjoint = new NumberNode(20);
+
+      // expect(() => dfs(connected, 11, new Array(10).fill(false))).toThrow();
+      expect(() => dfsNode(connected, disjoint)).toThrow();
+    });
+
     test('when all nodes are disjoint', () => {
       const nodes = createDisjoint(10);
       const graph = Graph.fromNodes(nodes);
@@ -429,6 +439,53 @@ describe('when using a graph', () => {
 
         // check none are unreachable
         expect(dfs.unreachable.size).toBe(0);
+      }
+    });
+  });
+
+  describe('when transposing a graph', () => {
+    test('when all nodes are disjoint', () => {
+      const nodes = createDisjoint(10);
+      const graph = Graph.fromNodes(nodes);
+      const graphPrime = transpose(graph);
+
+      // check we're still disjoint
+      for (const nodeEdges of graphPrime.edges) {
+        expect(nodeEdges).toHaveLength(0);
+      }
+    });
+
+    test('when nodes form a cycle', () => {
+      const nodes = createLoop(10);
+      const graph = Graph.fromNodes(nodes);
+      const graphPrime = transpose(graph);
+
+      for (let i = 0; i < 10; i++) {
+        const adjacentNode = graphPrime.nodes[(i + 9) % 10];
+        const edges = graphPrime.edges[i];
+
+        expect(edges).toHaveLength(1);
+
+        const adjacentId = graphPrime.nodeMap.get(adjacentNode);
+        expect(adjacentId).toBeDefined();
+        expect(edges[0]).toBe(adjacentId);
+      }
+    });
+
+    test('when nodes are fully connected', () => {
+      const nodes = createFullyConnected(10);
+      const graph = Graph.fromNodes(nodes);
+      const graphPrime = transpose(graph);
+
+      for (let i = 0; i < 10; i++) {
+        const edges = graphPrime.edges[i];
+        expect(edges).toHaveLength(10);
+
+        for (const node of graphPrime.nodes) {
+          const adjacentId = graphPrime.nodeMap.get(node);
+          expect(adjacentId).toBeDefined();
+          expect(edges).toContain(adjacentId);
+        }
       }
     });
   });
