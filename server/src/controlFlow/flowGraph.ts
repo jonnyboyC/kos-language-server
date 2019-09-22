@@ -58,19 +58,19 @@ export class FlowGraph {
   }
 
   public reachable(): Diagnostic[] {
-    const visited = new Array<boolean>(this.graph.nodes.length).fill(false);
+    const visited = new Set<BasicBlock>();
 
     // find all reachable points from the script entrance
-    dfs(this.graph, this.graph.toIdx(this.script.entry), visited);
+    dfs(this.graph, this.script.entry, visited);
 
     // check reachable blocks from each function
     for (const boundary of this.functions) {
-      dfs(this.graph, this.graph.toIdx(boundary.entry), visited);
+      dfs(this.graph, boundary.entry, visited);
     }
 
     // check reachable blocks from each trigger
     for (const boundary of this.triggers) {
-      dfs(this.graph, this.graph.toIdx(boundary.entry), visited);
+      dfs(this.graph, boundary.entry, visited);
     }
 
     const diagnostics: Diagnostic[] = [];
@@ -78,7 +78,7 @@ export class FlowGraph {
 
     // create diagnostics for regions that are unreachable
     for (const block of this.nodes) {
-      if (!visited[this.graph.toIdx(block)]) {
+      if (!visited.has(block)) {
         const { stmt } = block;
 
         if (

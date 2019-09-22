@@ -20,7 +20,8 @@ import {
 import { toCase } from '../utilities/stringUtils';
 import { Logger } from '../models/logger';
 import { Graph } from '../models/graph';
-import { dfsNode, transpose } from '../utilities/graphUtils';
+import { dfsNode } from '../utilities/graphUtils';
+import { empty } from '../utilities/typeGuards';
 
 const createRange = (
   startLine: number,
@@ -300,14 +301,16 @@ describe('logger', () => {
   });
 });
 
-class NumberNode implements GraphNode<number> {
-  public readonly nodes: GraphNode<number>[];
-  constructor(public readonly idx: number) {
+class Node implements GraphNode<Node> {
+  public readonly nodes: GraphNode<Node>[];
+  public id: number;
+  constructor(id: number) {
     this.nodes = [];
+    this.id = id;
   }
 
   value() {
-    return this.idx;
+    return this;
   }
   adjacentNodes() {
     return this.nodes;
@@ -315,10 +318,10 @@ class NumberNode implements GraphNode<number> {
 }
 
 const createLoop = (length: number) => {
-  const nodes: NumberNode[] = [];
+  const nodes: Node[] = [];
 
   for (let i = 0; i < length; i++) {
-    nodes.push(new NumberNode(i));
+    nodes.push(new Node(i));
   }
 
   for (let i = 0; i < length; i++) {
@@ -329,20 +332,20 @@ const createLoop = (length: number) => {
 };
 
 const createDisjoint = (length: number) => {
-  const nodes: NumberNode[] = [];
+  const nodes: Node[] = [];
 
   for (let i = 0; i < length; i++) {
-    nodes.push(new NumberNode(i));
+    nodes.push(new Node(i));
   }
 
   return nodes;
 };
 
 const createFullyConnected = (length: number) => {
-  const nodes: NumberNode[] = [];
+  const nodes: Node[] = [];
 
   for (let i = 0; i < length; i++) {
-    nodes.push(new NumberNode(i));
+    nodes.push(new Node(i));
   }
 
   for (let i = 0; i < length; i++) {
@@ -354,74 +357,179 @@ const createFullyConnected = (length: number) => {
   return nodes;
 };
 
-describe('when using a graph', () => {
-  describe('when constructing a graph', () => {
-    test('when constructing a graph from nodes', () => {
-      const nodes = createLoop(10);
-      const graph = Graph.fromNodes(nodes);
+describe('when constructing a graph', () => {
+  test('when constructing a graph from nodes', () => {
+    const nodes = createLoop(10);
+    const graph = Graph.fromNodes(nodes);
 
-      expect(graph.nodes).toBe(nodes);
+    for (const node of nodes) {
+      // check that map goes correctly
+      expect(graph.nodes.has(node)).toBe(true);
+      expect(nodes).toContain(node);
+      const edges = graph.getEdges(node);
+      expect(edges).toBeDefined();
 
-      for (const node of nodes) {
-        // check that map goes correctly
-        const id = graph.nodeMap.get(node);
-        expect(id).toBeDefined();
-        expect(graph.idMap.get(id!)).toBe(node);
+      // check adjacent nodes are correct
+      for (const adjacentNode of node.adjacentNodes()) {
+        expect(graph.nodes.has(adjacentNode.value())).toBe(true);
+        expect(edges!.has(adjacentNode.value())).toBeDefined();
+      }
+    }
+  });
+});
 
-        // check adjacent nodes are correct
-        for (const adjacentNode of node.adjacentNodes()) {
-          const adjacentId = graph.nodeMap.get(adjacentNode);
-          expect(adjacentId).toBeDefined();
-          expect(graph.edges[id!]).toContain(adjacentId);
-        }
+describe('when mutating a graph', () => {
+  let graph: Graph<Node>;
+
+  beforeEach(() => {
+    const nodes = createLoop(4);
+    graph = Graph.fromNodes(nodes);
+  });
+
+  describe('when adding a node to the graph', () => {
+    test('Does not add when it exists', () => {
+      const [firstNode] = graph.nodes;
+      expect(graph.addNode(firstNode)).toBe(false);
+    });
+
+    test("Does add when it doesn't exists", () => {
+      const newNode = new Node(10);
+      expect(graph.addNode(newNode)).toBe(true);
+    });
+  });
+
+  describe('when removing a node from the graph', () => {
+    test("Does nothing if it doesn't exists", () => {
+      const newNode = new Node(10);
+      expect(graph.removeNode(newNode)).toBe(false);
+    });
+
+    test('Removes nodes and associated edges if node exists', () => {
+      const [firstNode] = graph.nodes;
+      expect(graph.removeNode(firstNode)).toBe(true);
+      expect(graph.nodes.has(firstNode)).toBe(false);
+
+      for (const node of graph.nodes) {
+        const edges = graph.getEdges(node);
+        expect(edges).toBeDefined();
+        expect(edges!.has(firstNode)).toBe(false);
       }
     });
   });
 
+  describe('when adding a edge to the graph', () => {
+    test('Does not add when either is node does not exist', () => {
+      const [firstNode] = graph.nodes;
+      const newNode = new Node(20);
+
+      expect(graph.addEdge(firstNode, newNode)).toBe(false);
+      expect(graph.addEdge(newNode, firstNode)).toBe(false);
+    });
+
+    test('Does add edge when both exists', () => {
+      const [firstNode, secondNode] = graph.nodes;
+
+      expect(graph.addEdge(firstNode, secondNode)).toBe(true);
+      expect(graph.addEdge(secondNode, firstNode)).toBe(true);
+    });
+  });
+
+  describe('when removing an edge from the graph', () => {
+    test("Doesn't remove if node doesn't exist", () => {
+      const newNode = new Node(10);
+      const [firstNode] = graph.nodes;
+
+      expect(graph.removeEdge(newNode, firstNode)).toBe(false);
+    });
+
+    test("Doesn't remove edge if doesn't exist", () => {
+      const [firstNode, secondNode, thirdNode, fourthNode] = graph.nodes;
+
+      expect(graph.removeEdge(firstNode, thirdNode)).toBe(false);
+      expect(graph.removeEdge(secondNode, fourthNode)).toBe(false);
+      expect(graph.removeEdge(thirdNode, firstNode)).toBe(false);
+      expect(graph.removeEdge(fourthNode, secondNode)).toBe(false);
+    });
+
+    test('Removes edge if it exist', () => {
+      const [firstNode, secondNode, thirdNode, fourthNode] = graph.nodes;
+
+      expect(graph.removeEdge(firstNode, secondNode)).toBe(true);
+
+      let edges = graph.getEdges(firstNode);
+      expect(edges).toBeDefined();
+      expect(edges!.size).toBe(0);
+
+      expect(graph.removeEdge(secondNode, thirdNode)).toBe(true);
+
+      edges = graph.getEdges(secondNode);
+      expect(edges).toBeDefined();
+      expect(edges!.size).toBe(0);
+
+      expect(graph.removeEdge(thirdNode, fourthNode)).toBe(true);
+
+      edges = graph.getEdges(thirdNode);
+      expect(edges).toBeDefined();
+      expect(edges!.size).toBe(0);
+
+      expect(graph.removeEdge(fourthNode, firstNode)).toBe(true);
+
+      edges = graph.getEdges(fourthNode);
+      expect(edges).toBeDefined();
+      expect(edges!.size).toBe(0);
+    });
+  });
+});
+
+describe('when using a graph', () => {
   describe('when performing depth first search', () => {
-    test('when call with invalid args', () => {
+    test('throws when called with invalid args', () => {
       const nodes = createFullyConnected(10);
       const connected = Graph.fromNodes(nodes);
 
-      const disjoint = new NumberNode(20);
+      const disjoint = new Node(20);
 
       // expect(() => dfs(connected, 11, new Array(10).fill(false))).toThrow();
       expect(() => dfsNode(connected, disjoint)).toThrow();
     });
 
-    test('when all nodes are disjoint', () => {
-      const nodes = createDisjoint(10);
-      const graph = Graph.fromNodes(nodes);
+    describe('for a disjoint graph', () => {
+      test('discovers only one node is reachable', () => {
+        const nodes = createDisjoint(10);
+        const graph = Graph.fromNodes(nodes);
 
-      for (const node of nodes) {
-        const dfs = dfsNode(graph, node);
+        for (const node of nodes) {
+          const dfs = dfsNode(graph, node);
 
-        // check we're reachable
-        expect(dfs.reachable.size).toBe(1);
-        expect(dfs.reachable.has(node)).toBe(true);
+          // check we're reachable
+          expect(dfs.reachable.size).toBe(1);
+          expect(dfs.reachable.has(node)).toBe(true);
 
-        // check all other are un reachable
-        expect(dfs.unreachable.size).toBe(9);
-        expect(dfs.unreachable.has(node)).toBe(false);
-      }
+          // check all other are un reachable
+          expect(dfs.unreachable.size).toBe(9);
+          expect(dfs.unreachable.has(node)).toBe(false);
+        }
+      });
     });
 
-    test('when nodes form a cycle', () => {
-      const nodes = createLoop(10);
-      const graph = Graph.fromNodes(nodes);
+    describe('for a single cycle graph', () => {
+      test('discovers only one node is reachable', () => {
+        const nodes = createLoop(10);
+        const graph = Graph.fromNodes(nodes);
 
-      for (const node of nodes) {
-        const dfs = dfsNode(graph, node);
+        for (const node of nodes) {
+          const dfs = dfsNode(graph, node);
 
-        // check we're reachable
-        expect(dfs.reachable.size).toBe(10);
-        for (const innerNode of nodes) {
-          expect(dfs.reachable.has(innerNode)).toBe(true);
+          // check we're reachable
+          expect(dfs.reachable.size).toBe(10);
+          for (const innerNode of nodes) {
+            expect(dfs.reachable.has(innerNode)).toBe(true);
+          }
+
+          // check none are unreachable
+          expect(dfs.unreachable.size).toBe(0);
         }
-
-        // check none are unreachable
-        expect(dfs.unreachable.size).toBe(0);
-      }
+      });
     });
 
     test('when nodes are fully connected', () => {
@@ -443,52 +551,106 @@ describe('when using a graph', () => {
     });
   });
 
-  describe('when transposing a graph', () => {
+  describe('when mirroring a graph', () => {
     test('when all nodes are disjoint', () => {
       const nodes = createDisjoint(10);
       const graph = Graph.fromNodes(nodes);
-      const graphPrime = transpose(graph);
+      const graphPrime = graph.mirror();
 
       // check we're still disjoint
-      for (const nodeEdges of graphPrime.edges) {
-        expect(nodeEdges).toHaveLength(0);
+      for (const node of graphPrime.nodes) {
+        const edges = graph.getEdges(node);
+        expect(edges).toBeDefined();
+        expect(edges!.size).toBe(0);
       }
     });
 
     test('when nodes form a cycle', () => {
       const nodes = createLoop(10);
       const graph = Graph.fromNodes(nodes);
-      const graphPrime = transpose(graph);
+      const graphPrime = graph.mirror();
 
       for (let i = 0; i < 10; i++) {
-        const adjacentNode = graphPrime.nodes[(i + 9) % 10];
-        const edges = graphPrime.edges[i];
+        const node = nodes[i];
+        const adjacentNode = nodes[(i + 9) % 10];
 
-        expect(edges).toHaveLength(1);
+        expect(graphPrime.nodes.has(node)).toBeDefined();
+        expect(graphPrime.nodes.has(adjacentNode)).toBeDefined();
 
-        const adjacentId = graphPrime.nodeMap.get(adjacentNode);
-        expect(adjacentId).toBeDefined();
-        expect(edges[0]).toBe(adjacentId);
+        const edges = graphPrime.getEdges(node);
+        expect(edges).toBeDefined();
+        expect(edges!.size).toBe(1);
+
+        expect(edges!.has(adjacentNode)).toBe(true);
       }
     });
 
     test('when nodes are fully connected', () => {
       const nodes = createFullyConnected(10);
       const graph = Graph.fromNodes(nodes);
-      const graphPrime = transpose(graph);
+      const graphPrime = graph.mirror();
 
-      for (let i = 0; i < 10; i++) {
-        const edges = graphPrime.edges[i];
-        expect(edges).toHaveLength(10);
+      for (const node of graphPrime.nodes) {
+        const edges = graphPrime.getEdges(node);
+        expect(edges).toBeDefined();
 
-        for (const node of graphPrime.nodes) {
-          const adjacentId = graphPrime.nodeMap.get(node);
-          expect(adjacentId).toBeDefined();
-          expect(edges).toContain(adjacentId);
+        if (!empty(edges)) {
+          expect(edges.size).toBe(10);
+
+          for (const node of graphPrime.nodes) {
+            expect(edges.has(node)).toBe(true);
+          }
         }
       }
     });
   });
+
+  // describe('when determining strongly connected components', () => {
+  //   test('when all nodes are disjoint', () => {
+  //     const nodes = createDisjoint(10);
+  //     const graph = Graph.fromNodes(nodes);
+  //     const graphPrime = scc(graph);
+
+  //     // check we're still disjoint
+  //     for (const nodeEdges of graphPrime.edges) {
+  //       expect(nodeEdges).toHaveLength(0);
+  //     }
+  //   });
+
+  //   test('when nodes form a cycle', () => {
+  //     const nodes = createLoop(10);
+  //     const graph = Graph.fromNodes(nodes);
+  //     const graphPrime = transpose(graph);
+
+  //     for (let i = 0; i < 10; i++) {
+  //       const adjacentNode = graphPrime.nodes[(i + 9) % 10];
+  //       const edges = graphPrime.edges[i];
+
+  //       expect(edges).toHaveLength(1);
+
+  //       const adjacentId = graphPrime.nodeMap.get(adjacentNode);
+  //       expect(adjacentId).toBeDefined();
+  //       expect(edges[0]).toBe(adjacentId);
+  //     }
+  //   });
+
+  //   test('when nodes are fully connected', () => {
+  //     const nodes = createFullyConnected(10);
+  //     const graph = Graph.fromNodes(nodes);
+  //     const graphPrime = transpose(graph);
+
+  //     for (let i = 0; i < 10; i++) {
+  //       const edges = graphPrime.edges[i];
+  //       expect(edges).toHaveLength(10);
+
+  //       for (const node of graphPrime.nodes) {
+  //         const adjacentId = graphPrime.nodeMap.get(node);
+  //         expect(adjacentId).toBeDefined();
+  //         expect(edges).toContain(adjacentId);
+  //       }
+  //     }
+  //   });
+  // });
 });
 
 // describe('tree traverse', () => {

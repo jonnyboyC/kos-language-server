@@ -1,41 +1,22 @@
 import { IStack } from '../analysis/types';
-import { empty } from './typeGuards';
+import { unWrap } from './typeGuards';
 import { Graph } from '../models/graph';
-
-/**
- * Transpose the graph to reverse the edges
- * @param graph The graph to transpose
- */
-export function transpose<T>(graph: Graph<T>): Graph<T> {
-  const edges: number[][] = [];
-  for (let i = 0; i < graph.nodes.length; i += 1) {
-    edges.push([]);
-  }
-
-  for (let i = 0; i < graph.nodes.length; i += 1) {
-    for (const j of graph.edges[i]) {
-      edges[j].push(i);
-    }
-  }
-
-  return new Graph(graph.nodes, edges, graph.nodeMap, graph.idMap);
-}
 
 function fillOrder<T>(
   graph: Graph<T>,
-  idx: number,
-  visited: boolean[],
-  stack: IStack<number>,
+  node: T,
+  visited: Set<T>,
+  stack: IStack<T>,
 ): void {
-  visited[idx] = true;
+  visited.add(node);
 
-  for (const edge of graph.edges[idx]) {
-    if (!visited[edge]) {
+  for (const edge of unWrap(graph.getEdges(node))) {
+    if (!visited.has(edge)) {
       fillOrder(graph, edge, visited, stack);
     }
   }
 
-  stack.push(idx);
+  stack.push(node);
 }
 
 /**
@@ -43,32 +24,32 @@ function fillOrder<T>(
  * component is a set of nodes that are reachable from all members of the component
  * @param graph graph to search for components
  */
-export function scc<T>(graph: Graph<T>): any {
-  const stack: IStack<number> = [];
-  const visited: boolean[] = new Array(graph.nodes.length).fill(false);
+export function scc<T>(graph: Graph<T>): Set<T>[] {
+  const stack: IStack<T> = [];
+  const visited: Set<T> = new Set();
 
-  for (let i = 0; i < graph.nodes.length; i++) {
-    visited.push(false);
-  }
-
-  for (let i = 0; i < graph.nodes.length; i++) {
-    if (!visited[i]) {
-      fillOrder(graph, i, visited, stack);
+  for (const node of graph.nodes) {
+    if (!visited.has(node)) {
+      fillOrder(graph, node, visited, stack);
     }
   }
 
-  const reverse = transpose(graph);
-  for (let i = 0; i < graph.nodes.length; i++) {
-    visited[i] = false;
-  }
+  const reverse = graph.mirror();
+  visited.clear();
+
+  const components: Set<T>[] = [];
 
   // # Now process all vertices in order defined by Stack
   while (stack.length > 0) {
     const current = stack.pop()!;
-    if (!visited[current]) {
-      dfs(reverse, current, visited);
+    if (!visited.has(current)) {
+      const component = new Set<T>();
+      dfs(reverse, current, visited, (node: T) => component.add(node));
+      components.push(component);
     }
   }
+
+  return components;
 }
 
 /**
@@ -76,24 +57,23 @@ export function scc<T>(graph: Graph<T>): any {
  * @param graph The graph to transpose
  * @param root root node to inspect
  */
-export function dfsNode<T>(graph: Graph<T>, root: GraphNode<T>): Dfs<T> {
-  const rootId = graph.nodeMap.get(root);
-  if (empty(rootId)) {
+export function dfsNode<T>(graph: Graph<T>, root: T): Dfs<T> {
+  if (!graph.nodes.has(root)) {
     throw new Error('Root not in this graph');
   }
 
-  const visited: boolean[] = new Array(graph.nodes.length).fill(false);
-  dfs(graph, rootId, visited);
+  const visited: Set<T> = new Set();
+  dfs(graph, root, visited);
 
-  const reachable = new Set<GraphNode<T>>();
-  const unreachable = new Set<GraphNode<T>>();
+  const reachable = new Set<T>();
+  const unreachable = new Set<T>();
 
   // determine reachable and unreachable nodes
-  for (let i = 0; i < graph.nodes.length; i++) {
-    if (visited[i]) {
-      reachable.add(graph.nodes[i]);
+  for (const node of graph.nodes) {
+    if (visited.has(node)) {
+      reachable.add(node);
     } else {
-      unreachable.add(graph.nodes[i]);
+      unreachable.add(node);
     }
   }
 
@@ -109,28 +89,30 @@ export function dfsNode<T>(graph: Graph<T>, root: GraphNode<T>): Dfs<T> {
  */
 export function dfs<T>(
   graph: Graph<T>,
-  root: number,
-  visited: boolean[],
+  root: T,
+  visited: Set<T>,
+  whenVisited = (_: T) => {},
 ): void {
-  const stack: IStack<number> = [];
+  const stack: IStack<T> = [];
 
   // initialize with root
   stack.push(root);
-  visited[root] = true;
+  visited.add(root);
 
   while (stack.length !== 0) {
     // pop a node off the stack
     const current = stack.pop()!;
 
     // check all adjacent nodes
-    for (const node of graph.edges[current]) {
+    for (const node of unWrap(graph.getEdges(current))) {
       // if we've already seen this node continue
-      if (visited[node]) {
+      if (visited.has(node)) {
         continue;
       }
 
       // add to stack
-      visited[node] = true;
+      visited.add(node);
+      whenVisited(node);
       stack.push(node);
     }
   }

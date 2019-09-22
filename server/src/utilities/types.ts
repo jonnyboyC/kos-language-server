@@ -110,7 +110,17 @@ interface GraphNode<T> {
   adjacentNodes(): GraphNode<T>[];
 }
 
+/**
+ * Represents the result of a depth first search
+ */
 interface Dfs<T> {
-  reachable: Set<GraphNode<T>>;
-  unreachable: Set<GraphNode<T>>;
+  /**
+   * The nodes that are reachable
+   */
+  reachable: Set<T>;
+
+  /**
+   * The nodes that are unreachable
+   */
+  unreachable: Set<T>;
 }
