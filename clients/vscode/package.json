@@ -28,8 +28,8 @@
     "ws": "^7.1.2"
   },
   "devDependencies": {
-    "@types/node": "^12.7.2",
-    "@types/semver": "^6.0.1",
-    "@types/ws": "^6.0.2"
+    "@types/node": "^12.7.5",
+    "@types/semver": "^6.0.2",
+    "@types/ws": "^6.0.3"
   }
 }

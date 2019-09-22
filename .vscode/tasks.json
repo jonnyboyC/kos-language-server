@@ -30,10 +30,13 @@
 		{
 			"type": "npm",
 			"script": "dev:server",
-			"group": "build",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
 			"presentation": {
 				"panel": "dedicated",
-				"reveal": "never"
+				"reveal": "always"
 			},
 			"problemMatcher": [
 				"$tsc"
@@ -82,6 +85,6 @@
 			"problemMatcher": [
 				"$tsc-watch"
 			]
-		}
+		},
 	]
 }
