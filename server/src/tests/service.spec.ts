@@ -186,7 +186,6 @@ describe('document service', () => {
       callingUri,
     );
 
-    debugger;
     expect(docService.ready()).toBe(false);
     expect(documentLoaded).toBeUndefined();
 

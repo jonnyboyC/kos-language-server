@@ -1,6 +1,7 @@
 import { IStack } from '../analysis/types';
 import { unWrap } from './typeGuards';
 import { Graph } from '../models/graph';
+import { StronglyConnectedComponent } from '../models/scc';
 
 function fillOrder<T>(
   graph: Graph<T>,
@@ -24,7 +25,7 @@ function fillOrder<T>(
  * component is a set of nodes that are reachable from all members of the component
  * @param graph graph to search for components
  */
-export function scc<T>(graph: Graph<T>): Set<T>[] {
+export function scc<T>(graph: Graph<T>): StronglyConnectedComponent<T> {
   const stack: IStack<T> = [];
   const visited: Set<T> = new Set();
 
@@ -37,6 +38,7 @@ export function scc<T>(graph: Graph<T>): Set<T>[] {
   const reverse = graph.mirror();
   visited.clear();
 
+  const nodeMap = new Map<T, Set<T>>();
   const components: Set<T>[] = [];
 
   // # Now process all vertices in order defined by Stack
@@ -44,12 +46,17 @@ export function scc<T>(graph: Graph<T>): Set<T>[] {
     const current = stack.pop()!;
     if (!visited.has(current)) {
       const component = new Set<T>();
-      dfs(reverse, current, visited, (node: T) => component.add(node));
+      dfs(reverse, current, visited, (node: T) => {
+        component.add(node);
+        nodeMap.set(node, component);
+        return false;
+      });
+
       components.push(component);
     }
   }
 
-  return components;
+  return StronglyConnectedComponent.fromResult(graph, nodeMap, components);
 }
 
 /**
@@ -86,18 +93,24 @@ export function dfsNode<T>(graph: Graph<T>, root: T): Dfs<T> {
  * @param graph graph
  * @param root index of the node to start from
  * @param visited visited nodes
+ * @param whenVisited a function called when a node is visited.
  */
 export function dfs<T>(
   graph: Graph<T>,
   root: T,
   visited: Set<T>,
-  whenVisited = (_: T) => {},
+  whenVisited: (node: T) => Maybe<boolean> = (_: T) => false,
 ): void {
   const stack: IStack<T> = [];
 
   // initialize with root
   stack.push(root);
   visited.add(root);
+
+  // check if we should exit early
+  if (whenVisited(root)) {
+    return;
+  }
 
   while (stack.length !== 0) {
     // pop a node off the stack
@@ -112,8 +125,12 @@ export function dfs<T>(
 
       // add to stack
       visited.add(node);
-      whenVisited(node);
       stack.push(node);
+
+      // check if we should exit early
+      if (whenVisited(node)) {
+        return;
+      }
     }
   }
 }
