@@ -658,25 +658,3 @@ describe('when determining strongly connected components of a graph', () => {
     expect(sccResult.acyclic).toBe(true);
   });
 });
-
-describe('when using a graph', () => {});
-
-// describe('tree traverse', () => {
-//   test('token check', () => {
-//     const source = readFileSync(
-//       '../../kerboscripts/unitTests/allLanguage.ks',
-//       'utf-8',
-//     );
-//     const scanner = new Scanner(source, 'file://fake.ks');
-//     const { tokens } = scanner.scanTokens();
-
-//     const parser = new Parser('file:://fake.ks', tokens);
-//     const { script } = parser.parse();
-
-//     const tokenCheck = new TokenCheck();
-//     tokenCheck.orderedTokens(script);
-
-//     for (const statement of validStatements) {
-//     }
-//   });
-// });

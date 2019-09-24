@@ -9,11 +9,21 @@ import {
 } from 'vscode-languageserver';
 import { Token } from './models/token';
 
-export interface IDocumentInfo {
+export interface LexicalInfo {
   script: IScript;
   regions: Token[];
+  diagnostics: DiagnosticUri[];
+}
+
+export interface SemanticInfo {
   symbolTable: SymbolTable;
   diagnostics: DiagnosticUri[];
+}
+
+export interface DocumentInfo {
+  lexicalInfo: LexicalInfo;
+  semanticInfo: SemanticInfo;
+  otherDiagnostics: DiagnosticUri[];
 }
 
 export interface LoadedDocuments {

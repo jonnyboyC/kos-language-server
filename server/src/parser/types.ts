@@ -6,8 +6,6 @@ import { Range, Location, Diagnostic } from 'vscode-languageserver';
 import { TokenType } from '../models/tokentypes';
 import { NodeBase } from './models/base';
 import { Token } from '../models/token';
-import { DiagnosticUri } from '../types';
-import { SymbolTable } from '../analysis/models/symbolTable';
 
 export interface RangeSequence extends Range {
   ranges: Range[];
@@ -155,20 +153,6 @@ export interface IParseError extends Range {
 export interface Ast {
   script: IScript;
   parseDiagnostics: Diagnostic[];
-}
-
-export interface LexicalResult {
-  scannerDiagnostics: DiagnosticUri[];
-  parserDiagnostics: DiagnosticUri[];
-  regions: Token[];
-  script: IScript;
-}
-
-export interface SemanticResult {
-  resolverDiagnostics: DiagnosticUri[];
-  flowDiagnostics: DiagnosticUri[];
-  typeDiagnostics: DiagnosticUri[];
-  symbolTable: SymbolTable;
 }
 
 export interface IFindResult {

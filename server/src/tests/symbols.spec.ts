@@ -81,35 +81,35 @@ describe('Symbol Table', () => {
       !empty(childInfo)
     ) {
       expect(
-        grandInfo.symbolTable.globalEnvironment(
+        grandInfo.semanticInfo.symbolTable.globalEnvironment(
           'grandparent',
           SearchState.dependents,
           new Set(),
         ),
       ).toBeDefined();
       expect(
-        grandInfo.symbolTable.globalEnvironment(
+        grandInfo.semanticInfo.symbolTable.globalEnvironment(
           'greatuncle',
           SearchState.dependents,
           new Set(),
         ),
       ).toBeUndefined();
       expect(
-        grandInfo.symbolTable.globalEnvironment(
+        grandInfo.semanticInfo.symbolTable.globalEnvironment(
           'parent',
           SearchState.dependents,
           new Set(),
         ),
       ).toBeDefined();
       expect(
-        grandInfo.symbolTable.globalEnvironment(
+        grandInfo.semanticInfo.symbolTable.globalEnvironment(
           'uncle',
           SearchState.dependents,
           new Set(),
         ),
       ).toBeUndefined();
       expect(
-        grandInfo.symbolTable.globalEnvironment(
+        grandInfo.semanticInfo.symbolTable.globalEnvironment(
           'child',
           SearchState.dependents,
           new Set(),
@@ -117,35 +117,35 @@ describe('Symbol Table', () => {
       ).toBeDefined();
 
       expect(
-        greatUncleInfo.symbolTable.globalEnvironment(
+        greatUncleInfo.semanticInfo.symbolTable.globalEnvironment(
           'grandparent',
           SearchState.dependents,
           new Set(),
         ),
       ).toBeUndefined();
       expect(
-        greatUncleInfo.symbolTable.globalEnvironment(
+        greatUncleInfo.semanticInfo.symbolTable.globalEnvironment(
           'greatuncle',
           SearchState.dependents,
           new Set(),
         ),
       ).toBeDefined();
       expect(
-        greatUncleInfo.symbolTable.globalEnvironment(
+        greatUncleInfo.semanticInfo.symbolTable.globalEnvironment(
           'parent',
           SearchState.dependents,
           new Set(),
         ),
       ).toBeDefined();
       expect(
-        greatUncleInfo.symbolTable.globalEnvironment(
+        greatUncleInfo.semanticInfo.symbolTable.globalEnvironment(
           'uncle',
           SearchState.dependents,
           new Set(),
         ),
       ).toBeDefined();
       expect(
-        greatUncleInfo.symbolTable.globalEnvironment(
+        greatUncleInfo.semanticInfo.symbolTable.globalEnvironment(
           'child',
           SearchState.dependents,
           new Set(),
@@ -153,35 +153,35 @@ describe('Symbol Table', () => {
       ).toBeDefined();
 
       expect(
-        parentInfo.symbolTable.globalEnvironment(
+        parentInfo.semanticInfo.symbolTable.globalEnvironment(
           'grandparent',
           SearchState.dependents,
           new Set(),
         ),
       ).toBeDefined();
       expect(
-        parentInfo.symbolTable.globalEnvironment(
+        parentInfo.semanticInfo.symbolTable.globalEnvironment(
           'greatuncle',
           SearchState.dependents,
           new Set(),
         ),
       ).toBeDefined();
       expect(
-        parentInfo.symbolTable.globalEnvironment(
+        parentInfo.semanticInfo.symbolTable.globalEnvironment(
           'parent',
           SearchState.dependents,
           new Set(),
         ),
       ).toBeDefined();
       expect(
-        parentInfo.symbolTable.globalEnvironment(
+        parentInfo.semanticInfo.symbolTable.globalEnvironment(
           'uncle',
           SearchState.dependents,
           new Set(),
         ),
       ).toBeDefined();
       expect(
-        parentInfo.symbolTable.globalEnvironment(
+        parentInfo.semanticInfo.symbolTable.globalEnvironment(
           'child',
           SearchState.dependents,
           new Set(),
@@ -189,35 +189,35 @@ describe('Symbol Table', () => {
       ).toBeDefined();
 
       expect(
-        uncleInfo.symbolTable.globalEnvironment(
+        uncleInfo.semanticInfo.symbolTable.globalEnvironment(
           'grandparent',
           SearchState.dependents,
           new Set(),
         ),
       ).toBeUndefined();
       expect(
-        uncleInfo.symbolTable.globalEnvironment(
+        uncleInfo.semanticInfo.symbolTable.globalEnvironment(
           'greatuncle',
           SearchState.dependents,
           new Set(),
         ),
       ).toBeDefined();
       expect(
-        uncleInfo.symbolTable.globalEnvironment(
+        uncleInfo.semanticInfo.symbolTable.globalEnvironment(
           'parent',
           SearchState.dependents,
           new Set(),
         ),
       ).toBeDefined();
       expect(
-        uncleInfo.symbolTable.globalEnvironment(
+        uncleInfo.semanticInfo.symbolTable.globalEnvironment(
           'uncle',
           SearchState.dependents,
           new Set(),
         ),
       ).toBeDefined();
       expect(
-        uncleInfo.symbolTable.globalEnvironment(
+        uncleInfo.semanticInfo.symbolTable.globalEnvironment(
           'child',
           SearchState.dependents,
           new Set(),
@@ -225,35 +225,35 @@ describe('Symbol Table', () => {
       ).toBeDefined();
 
       expect(
-        childInfo.symbolTable.globalEnvironment(
+        childInfo.semanticInfo.symbolTable.globalEnvironment(
           'grandparent',
           SearchState.dependents,
           new Set(),
         ),
       ).toBeDefined();
       expect(
-        childInfo.symbolTable.globalEnvironment(
+        childInfo.semanticInfo.symbolTable.globalEnvironment(
           'greatuncle',
           SearchState.dependents,
           new Set(),
         ),
       ).toBeDefined();
       expect(
-        childInfo.symbolTable.globalEnvironment(
+        childInfo.semanticInfo.symbolTable.globalEnvironment(
           'parent',
           SearchState.dependents,
           new Set(),
         ),
       ).toBeDefined();
       expect(
-        childInfo.symbolTable.globalEnvironment(
+        childInfo.semanticInfo.symbolTable.globalEnvironment(
           'uncle',
           SearchState.dependents,
           new Set(),
         ),
       ).toBeDefined();
       expect(
-        childInfo.symbolTable.globalEnvironment(
+        childInfo.semanticInfo.symbolTable.globalEnvironment(
           'child',
           SearchState.dependents,
           new Set(),

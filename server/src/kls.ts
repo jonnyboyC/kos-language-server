@@ -686,7 +686,7 @@ export class KLS {
       return undefined;
     }
 
-    const { script, regions } = documentInfo;
+    const { script, regions } = documentInfo.lexicalInfo;
     return this.foldableService.findRegions(script, regions);
   }
 
@@ -770,12 +770,12 @@ export class KLS {
    * Set the volume 0 path for the analyzer
    * @param uri path of volume 0
    */
-  private setUri(uri: string): void {
+  private async setUri(uri: string): Promise<void> {
     const parsed = URI.parse(uri);
 
     this.resolverService.volume0Uri = parsed;
-    this.documentService.cacheDocuments();
     this.workspaceUri = uri;
+    await this.documentService.cacheDocuments();
   }
 
   /**
@@ -803,7 +803,7 @@ export class KLS {
     }
 
     // try to find an symbol at the position
-    const { script } = documentInfo;
+    const { script } = documentInfo.lexicalInfo;
     const finder = new ScriptFind();
     return finder.find(script, pos, ...contexts);
   }
@@ -823,7 +823,7 @@ export class KLS {
     }
 
     // try to find an symbol at the position
-    const { script } = documentInfo;
+    const { script } = documentInfo.lexicalInfo;
     const finder = new ScriptFind();
     const result = finder.find(
       script,
@@ -899,16 +899,16 @@ export class KLS {
     const documentInfo = await this.analysisService.getInfo(uri);
     if (
       empty(documentInfo) ||
-      empty(documentInfo.symbolTable) ||
-      empty(documentInfo.script)
+      empty(documentInfo.semanticInfo.symbolTable) ||
+      empty(documentInfo.lexicalInfo.script)
     ) {
       return undefined;
     }
 
     // try to find the symbol at the position
-    const { symbolTable: symbolsTable, script } = documentInfo;
+    const { semanticInfo, lexicalInfo } = documentInfo;
     const finder = new ScriptFind();
-    const result = finder.find(script, pos);
+    const result = finder.find(lexicalInfo.script, pos);
 
     if (empty(result)) {
       return undefined;
@@ -916,7 +916,10 @@ export class KLS {
 
     // try to find the tracker at a given position
     const { token } = result;
-    const tracker = symbolsTable.scopedNamedTracker(pos, token.lookup);
+    const tracker = semanticInfo.symbolTable.scopedNamedTracker(
+      pos,
+      token.lookup,
+    );
     if (empty(tracker)) {
       return undefined;
     }
@@ -955,11 +958,11 @@ export class KLS {
   ): Promise<KsBaseSymbol[]> {
     const documentInfo = await this.analysisService.getInfo(uri);
 
-    if (empty(documentInfo) || empty(documentInfo.symbolTable)) {
+    if (empty(documentInfo)) {
       return [];
     }
 
-    return documentInfo.symbolTable.scopedSymbols(pos);
+    return documentInfo.semanticInfo.symbolTable.scopedSymbols(pos);
   }
 
   /**
@@ -969,11 +972,11 @@ export class KLS {
   public async getImportedSymbols(uri: string): Promise<KsBaseSymbol[]> {
     const documentInfo = await this.analysisService.getInfo(uri);
 
-    if (empty(documentInfo) || empty(documentInfo.symbolTable)) {
+    if (empty(documentInfo)) {
       return [];
     }
 
-    return documentInfo.symbolTable.importedSymbols();
+    return documentInfo.semanticInfo.symbolTable.importedSymbols();
   }
 
   /**
@@ -983,11 +986,11 @@ export class KLS {
   public async getAllFileSymbols(uri: string): Promise<KsSymbol[]> {
     const documentInfo = await this.analysisService.getInfo(uri);
 
-    if (!empty(documentInfo) && !empty(documentInfo.symbolTable)) {
-      return documentInfo.symbolTable.allSymbols();
+    if (empty(documentInfo)) {
+      return [];
     }
 
-    return [];
+    return documentInfo.semanticInfo.symbolTable.allSymbols();
   }
 
   /**
@@ -1003,7 +1006,7 @@ export class KLS {
     const documentInfo = await this.analysisService.getInfo(uri);
     if (empty(documentInfo)) return undefined;
 
-    const { script } = documentInfo;
+    const { script } = documentInfo.lexicalInfo;
     const finder = new ScriptFind();
 
     // attempt to find a token here get surround invalid Stmt context

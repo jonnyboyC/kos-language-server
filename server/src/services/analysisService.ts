@@ -1,15 +1,12 @@
 import {
   DiagnosticUri,
-  IDocumentInfo as DocumentInfo,
+  DocumentInfo,
   LoadedDocuments,
+  LexicalInfo,
+  SemanticInfo,
 } from '../types';
 import { SymbolTable } from '../analysis/models/symbolTable';
-import {
-  LexicalResult,
-  RunStmtType,
-  IScript,
-  SemanticResult,
-} from '../parser/types';
+import { RunStmtType, IScript } from '../parser/types';
 import { SymbolTableBuilder } from '../analysis/models/symbolTableBuilder';
 import { PreResolver } from '../analysis/preResolver';
 import { performance, PerformanceObserver } from 'perf_hooks';
@@ -56,9 +53,19 @@ export class AnalysisService {
   private readonly documentService: DocumentService;
 
   /**
-   * Document information
+   * A cache of lexical info for each document
    */
-  private readonly documentInfos: Map<string, DocumentInfo>;
+  private readonly lexicalCache: Map<string, LexicalInfo>;
+
+  /**
+   * A cache of semantic info for each document
+   */
+  private readonly semanticCache: Map<string, SemanticInfo>;
+
+  /**
+   * A cache of other diagnostics for each document
+   */
+  private readonly otherDiagnosticCache: Map<string, DiagnosticUri[]>;
 
   /**
    * The current loaded standard library
@@ -92,7 +99,9 @@ export class AnalysisService {
     this.tracer = tracer;
     this.documentService = documentService;
 
-    this.documentInfos = new Map();
+    this.lexicalCache = new Map();
+    this.semanticCache = new Map();
+    this.otherDiagnosticCache = new Map();
 
     this.caseKind = caseKind;
     this.standardLibrary = standardLibraryBuilder(caseKind);
@@ -120,12 +129,18 @@ export class AnalysisService {
     text: string,
   ): Promise<DiagnosticUri[]> {
     try {
-      const result = await this.validateDocument_(uri, text, 0);
-      if (!empty(result)) {
-        this.documentInfos.set(uri, result);
+      const documentInfo = await this.validateDocument_(uri, text, 0);
+      const diagnostics: DiagnosticUri[] = [];
+
+      if (!empty(documentInfo)) {
+        this.setDocumentInfo(uri, documentInfo);
+
+        diagnostics.push(...documentInfo.lexicalInfo.diagnostics);
+        diagnostics.push(...documentInfo.semanticInfo.diagnostics);
+        diagnostics.push(...documentInfo.otherDiagnostics);
       }
 
-      return empty(result) ? [] : result.diagnostics;
+      return diagnostics;
     } catch (err) {
       logException(this.logger, this.tracer, err, LogLevel.error);
       return [];
@@ -136,8 +151,7 @@ export class AnalysisService {
    * Get a document info if it exists
    */
   public async getInfo(uri: string): Promise<Maybe<DocumentInfo>> {
-    // if we already have the document loaded return it
-    const documentInfo = this.documentInfos.get(uri);
+    const documentInfo = this.getDocumentInfo(uri);
     if (!empty(documentInfo)) {
       return documentInfo;
     }
@@ -151,7 +165,7 @@ export class AnalysisService {
       const result = await this.validateDocument_(uri, document.getText(), 0);
 
       if (!empty(result)) {
-        this.documentInfos.set(uri, result);
+        this.setDocumentInfo(uri, result);
       }
       return result;
     } catch (err) {
@@ -189,17 +203,13 @@ export class AnalysisService {
     }
 
     // preform lexical analysis
-    const {
-      script,
-      regions,
-      scannerDiagnostics,
-      parserDiagnostics,
-    } = this.lexicalAnalysisDocument(uri, text);
+    const lexicalInfo = this.analyzeLexically(uri, text);
+    this.lexicalCache.set(uri, lexicalInfo);
 
     // load dependencies found in the ast
     const { documentInfos, loadDiagnostics } = await this.loadDependencies(
       uri,
-      script,
+      lexicalInfo.script,
       depth,
     );
 
@@ -211,33 +221,24 @@ export class AnalysisService {
 
     // add run statement dependencies and their dependencies
     for (const documentInfo of documentInfos) {
-      dependencyTables.add(documentInfo.symbolTable);
+      dependencyTables.add(documentInfo.semanticInfo.symbolTable);
     }
 
     // perform semantic analysis
-    const {
-      resolverDiagnostics,
-      typeDiagnostics,
-      flowDiagnostics,
-      symbolTable,
-    } = this.semanticAnalysisDocument(uri, script, dependencyTables);
+    const semanticInfo = this.semanticAnalysisDocument(
+      uri,
+      lexicalInfo.script,
+      dependencyTables,
+    );
 
     // clear performance observer marks
     performance.clearMarks();
 
     // generate the document info
     return {
-      script,
-      regions,
-      symbolTable,
-      diagnostics: [
-        ...scannerDiagnostics,
-        ...parserDiagnostics,
-        ...flowDiagnostics,
-        ...loadDiagnostics,
-        ...resolverDiagnostics,
-        ...typeDiagnostics,
-      ],
+      lexicalInfo,
+      semanticInfo,
+      otherDiagnostics: loadDiagnostics,
     };
   }
 
@@ -246,7 +247,7 @@ export class AnalysisService {
    * @param uri uri to document
    * @param text source text of document
    */
-  private lexicalAnalysisDocument(uri: string, text: string): LexicalResult {
+  private analyzeLexically(uri: string, text: string): LexicalInfo {
     this.logger.verbose('');
     this.logger.verbose('-------------Lexical Analysis------------');
 
@@ -283,10 +284,9 @@ export class AnalysisService {
     );
 
     return {
-      scannerDiagnostics,
-      parserDiagnostics,
       script,
       regions,
+      diagnostics: [...scannerDiagnostics, ...parserDiagnostics],
     };
   }
 
@@ -300,21 +300,21 @@ export class AnalysisService {
     uri: string,
     script: IScript,
     tables: Set<SymbolTable>,
-  ): SemanticResult {
+  ): SemanticInfo {
     this.logger.verbose('');
     this.logger.verbose('-------------Semantic Analysis------------');
 
     // generate a scope manager for resolving
     const symbolTableBuilder = new SymbolTableBuilder(uri, this.logger);
-    let oldDocumentInfo = this.documentInfos.get(uri);
+    let semanticInfo = this.semanticCache.get(uri);
 
     // add symbol tables that are dependent
-    if (!empty(oldDocumentInfo)) {
-      for (const dependent of oldDocumentInfo.symbolTable.dependentTables) {
+    if (!empty(semanticInfo)) {
+      for (const dependent of semanticInfo.symbolTable.dependentTables) {
         symbolTableBuilder.linkDependent(dependent);
       }
 
-      oldDocumentInfo.symbolTable.removeSelf();
+      semanticInfo.symbolTable.removeSelf();
     }
 
     // add symbol tables that are dependencies
@@ -363,9 +363,9 @@ export class AnalysisService {
     const symbolTable = symbolTableBuilder.build();
 
     // make sure to delete references so scope manager can be gc'ed
-    if (!empty(oldDocumentInfo)) {
-      oldDocumentInfo.symbolTable.removeSelf();
-      oldDocumentInfo = undefined;
+    if (!empty(semanticInfo)) {
+      semanticInfo.symbolTable.removeSelf();
+      semanticInfo = undefined;
     }
 
     const controlFlow = new ControlFlow(script, this.logger, this.tracer);
@@ -415,9 +415,11 @@ export class AnalysisService {
 
     return {
       symbolTable,
-      flowDiagnostics,
-      typeDiagnostics,
-      resolverDiagnostics,
+      diagnostics: [
+        ...flowDiagnostics,
+        ...typeDiagnostics,
+        ...resolverDiagnostics,
+      ],
     };
   }
 
@@ -451,7 +453,7 @@ export class AnalysisService {
 
       // for each document run validate and yield any results
       for (const document of documents) {
-        const cached = this.documentInfos.get(document.uri);
+        const cached = this.getDocumentInfo(document.uri);
         if (!empty(cached)) {
           result.documentInfos.push(cached);
         } else {
@@ -463,7 +465,7 @@ export class AnalysisService {
 
           // if document valid cache and push to result
           if (!empty(documentInfo)) {
-            this.documentInfos.set(document.uri, documentInfo);
+            this.setDocumentInfo(document.uri, documentInfo);
             result.documentInfos.push(documentInfo);
           }
         }
@@ -514,6 +516,39 @@ export class AnalysisService {
       documents,
       diagnostics,
     };
+  }
+
+  /**
+   * Get the document info from the individual caches
+   * @param uri document uri to check against
+   */
+  private getDocumentInfo(uri: string): Maybe<DocumentInfo> {
+    // check cache for existing document info
+    const lexicalInfo = this.lexicalCache.get(uri);
+    const semanticInfo = this.semanticCache.get(uri);
+    const otherDiagnostics = this.otherDiagnosticCache.get(uri);
+
+    if (
+      !empty(lexicalInfo) &&
+      !empty(semanticInfo) &&
+      !empty(otherDiagnostics)
+    ) {
+      return { lexicalInfo, semanticInfo, otherDiagnostics };
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Set all the individual caches for a document info
+   * @param uri document uri to set
+   * @param documentInfo document info to set
+   */
+  private setDocumentInfo(uri: string, documentInfo: DocumentInfo): void {
+    // check cache for existing document info
+    this.lexicalCache.set(uri, documentInfo.lexicalInfo);
+    this.semanticCache.set(uri, documentInfo.semanticInfo);
+    this.otherDiagnosticCache.set(uri, documentInfo.otherDiagnostics);
   }
 
   /**

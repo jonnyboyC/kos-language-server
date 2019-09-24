@@ -31,6 +31,7 @@ import { AnalysisService } from '../services/analysisService';
 import { typeInitializer } from '../typeChecker/initialize';
 import { ResolverService } from '../services/resolverService';
 import { IoService, Document, IoKind, IoEntity } from '../services/IoService';
+import { DocumentInfo, DiagnosticUri } from '../types';
 
 const testDir = join(__dirname, '../../../kerboscripts/parser_valid/');
 typeInitializer();
@@ -581,6 +582,16 @@ describe('document service', () => {
   });
 });
 
+const documentInfoDiagnostics = ({
+  lexicalInfo,
+  semanticInfo,
+  otherDiagnostics,
+}: DocumentInfo): DiagnosticUri[] => [
+  ...lexicalInfo.diagnostics,
+  ...semanticInfo.diagnostics,
+  ...otherDiagnostics,
+];
+
 describe('analysis service', () => {
   test('validate single document', async () => {
     const uri = URI.file('/example/folder/example.ks').toString();
@@ -610,11 +621,13 @@ describe('analysis service', () => {
     expect(documentInfo).toBeDefined();
 
     if (!empty(documentInfo)) {
-      expect(documentInfo.symbolTable.dependencyTables.size).toBe(2);
-      expect(documentInfo.diagnostics).toStrictEqual(diagnostics);
-      expect(documentInfo.script.stmts).toHaveLength(1);
+      const { lexicalInfo, semanticInfo } = documentInfo;
+
+      expect(semanticInfo.symbolTable.dependencyTables.size).toBe(2);
+      expect(documentInfoDiagnostics(documentInfo)).toStrictEqual(diagnostics);
+      expect(lexicalInfo.script.stmts).toHaveLength(1);
       expect(
-        documentInfo.symbolTable.rootScope.environment.symbols.length,
+        semanticInfo.symbolTable.rootScope.environment.symbols.length,
       ).toBe(0);
     }
   });
@@ -642,10 +655,12 @@ describe('analysis service', () => {
     expect(documentInfo).toBeDefined();
 
     if (!empty(documentInfo)) {
-      expect(documentInfo.symbolTable.dependencyTables.size).toBe(2);
-      expect(documentInfo.script.stmts).toHaveLength(1);
+      const { lexicalInfo, semanticInfo } = documentInfo;
+
+      expect(semanticInfo.symbolTable.dependencyTables.size).toBe(2);
+      expect(lexicalInfo.script.stmts).toHaveLength(1);
       expect(
-        documentInfo.symbolTable.rootScope.environment.symbols.length,
+        semanticInfo.symbolTable.rootScope.environment.symbols.length,
       ).toBe(0);
     }
 
@@ -656,11 +671,13 @@ describe('analysis service', () => {
     expect(diagnostics).toHaveLength(0);
 
     if (!empty(documentInfo)) {
-      expect(documentInfo.symbolTable.dependencyTables.size).toBe(0);
-      expect(documentInfo.diagnostics).toStrictEqual(diagnostics);
-      expect(documentInfo.script.stmts).toHaveLength(1);
+      const { lexicalInfo, semanticInfo } = documentInfo;
+
+      expect(semanticInfo.symbolTable.dependencyTables.size).toBe(0);
+      expect(semanticInfo.diagnostics).toStrictEqual(diagnostics);
+      expect(lexicalInfo.script.stmts).toHaveLength(1);
       expect(
-        documentInfo.symbolTable.rootScope.environment.symbols.length,
+        semanticInfo.symbolTable.rootScope.environment.symbols.length,
       ).toBe(0);
     }
   });
@@ -749,21 +766,27 @@ describe('analysis service', () => {
     expect(documentInfo2).toBeDefined();
 
     if (!empty(documentInfo1) && !empty(documentInfo2)) {
-      expect(documentInfo1.symbolTable.dependencyTables.size).toBe(3);
-      expect(documentInfo2.symbolTable.dependencyTables.size).toBe(2);
-      expect(documentInfo1.symbolTable.dependencyTables).toContain(
-        documentInfo2.symbolTable,
+      expect(documentInfo1.semanticInfo.symbolTable.dependencyTables.size).toBe(
+        3,
+      );
+      expect(documentInfo2.semanticInfo.symbolTable.dependencyTables.size).toBe(
+        2,
+      );
+      expect(documentInfo1.semanticInfo.symbolTable.dependencyTables).toContain(
+        documentInfo2.semanticInfo.symbolTable,
       );
 
-      expect(documentInfo1.diagnostics).toStrictEqual(diagnostics);
-      expect(documentInfo1.script.stmts).toHaveLength(2);
-      expect(documentInfo2.script.stmts).toHaveLength(1);
+      expect(documentInfoDiagnostics(documentInfo1)).toStrictEqual(diagnostics);
+      expect(documentInfo1.lexicalInfo.script.stmts).toHaveLength(2);
+      expect(documentInfo2.lexicalInfo.script.stmts).toHaveLength(1);
       expect(
-        documentInfo1.symbolTable.rootScope.environment.symbols().length,
+        documentInfo1.semanticInfo.symbolTable.rootScope.environment.symbols()
+          .length,
       ).toBe(0);
 
       expect(
-        documentInfo2.symbolTable.rootScope.environment.symbols().length,
+        documentInfo2.semanticInfo.symbolTable.rootScope.environment.symbols()
+          .length,
       ).toBe(1);
     }
   });
@@ -835,31 +858,61 @@ describe('analysis service', () => {
     expect(documentInfo21).toBeDefined();
     expect(documentInfo22).toBeDefined();
 
-    const documentInfos = analysisService['documentInfos'];
-
     if (!empty(documentInfo11) && !empty(documentInfo21)) {
-      expect(documentInfo11.symbolTable.dependencyTables.size).toBe(0);
-      expect(documentInfo11.symbolTable.dependentTables.size).toBe(0);
-      expect(documentInfo21.symbolTable.dependencyTables.size).toBe(0);
-      expect(documentInfo21.symbolTable.dependentTables.size).toBe(0);
+      expect(
+        documentInfo11.semanticInfo.symbolTable.dependencyTables.size,
+      ).toBe(0);
+      expect(documentInfo11.semanticInfo.symbolTable.dependentTables.size).toBe(
+        0,
+      );
+      expect(
+        documentInfo21.semanticInfo.symbolTable.dependencyTables.size,
+      ).toBe(0);
+      expect(documentInfo21.semanticInfo.symbolTable.dependentTables.size).toBe(
+        0,
+      );
 
-      expect(documentInfo11.diagnostics).toStrictEqual(diagnostics11);
-      expect(documentInfo11.diagnostics).toStrictEqual(diagnostics12);
-      expect(documentInfo21.diagnostics).toStrictEqual(diagnostics21);
-      expect(documentInfo21.diagnostics).toStrictEqual(diagnostics22);
+      expect(documentInfoDiagnostics(documentInfo11)).toStrictEqual(
+        diagnostics11,
+      );
+      expect(documentInfoDiagnostics(documentInfo11)).toStrictEqual(
+        diagnostics12,
+      );
+      expect(documentInfoDiagnostics(documentInfo21)).toStrictEqual(
+        diagnostics21,
+      );
+      expect(documentInfoDiagnostics(documentInfo21)).toStrictEqual(
+        diagnostics22,
+      );
 
-      expect(documentInfos.get(uri1)).not.toBe(documentInfo11);
-      expect(documentInfos.get(uri2)).not.toBe(documentInfo21);
+      expect(analysisService['getDocumentInfo'](uri1)).not.toStrictEqual(
+        documentInfo11,
+      );
+      expect(analysisService['getDocumentInfo'](uri2)).not.toStrictEqual(
+        documentInfo21,
+      );
     }
 
     if (!empty(documentInfo12) && !empty(documentInfo22)) {
-      expect(documentInfo12.symbolTable.dependencyTables.size).toBe(3);
-      expect(documentInfo12.symbolTable.dependentTables.size).toBe(0);
-      expect(documentInfo22.symbolTable.dependencyTables.size).toBe(2);
-      expect(documentInfo22.symbolTable.dependentTables.size).toBe(1);
+      expect(
+        documentInfo12.semanticInfo.symbolTable.dependencyTables.size,
+      ).toBe(3);
+      expect(documentInfo12.semanticInfo.symbolTable.dependentTables.size).toBe(
+        0,
+      );
+      expect(
+        documentInfo22.semanticInfo.symbolTable.dependencyTables.size,
+      ).toBe(2);
+      expect(documentInfo22.semanticInfo.symbolTable.dependentTables.size).toBe(
+        1,
+      );
 
-      expect(documentInfos.get(uri1)).toBe(documentInfo12);
-      expect(documentInfos.get(uri2)).toBe(documentInfo22);
+      expect(analysisService['getDocumentInfo'](uri1)).toStrictEqual(
+        documentInfo12,
+      );
+      expect(analysisService['getDocumentInfo'](uri2)).toStrictEqual(
+        documentInfo22,
+      );
     }
   });
 });
