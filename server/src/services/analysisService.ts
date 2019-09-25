@@ -187,6 +187,26 @@ export class AnalysisService {
   }
 
   /**
+   * Load full directory with initial set of diagnostics
+   */
+  public async loadDirectory(): Promise<DiagnosticUri[]> {
+    await this.documentService.cacheDocuments();
+    debugger;
+
+    const diagnostics: DiagnosticUri[] = [];
+    for (const document of this.documentService.getAllDocuments()) {
+      const lexicalInfo = this.analyzeLexically(
+        document.uri,
+        document.getText(),
+      );
+
+      diagnostics.push(...lexicalInfo.diagnostics);
+    }
+
+    return diagnostics;
+  }
+
+  /**
    * Main validation function for a document. Lexically and semantically understands a document.
    * Will additionally perform the same analysis on other run scripts found in this script
    * @param uri uri of the document

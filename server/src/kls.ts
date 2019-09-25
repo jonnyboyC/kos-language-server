@@ -28,7 +28,7 @@ import {
   CancellationToken,
   Hover,
 } from 'vscode-languageserver';
-import { KLSConfiguration, ClientConfiguration } from './types';
+import { KLSConfiguration, ClientConfiguration, DiagnosticUri } from './types';
 import { Scanner } from './scanner/scanner';
 import {
   KsSymbol,
@@ -698,42 +698,50 @@ export class KLS {
    */
   private async onChange(document: Document) {
     try {
-      const diagnosticResults = await this.analysisService.validateDocument(
+      const diagnostic = await this.analysisService.validateDocument(
         document.uri,
         document.text,
       );
 
-      const total = diagnosticResults.length;
-      const diagnosticMap: Map<string, Diagnostic[]> = new Map();
-
-      // retrieve diagnostics from analyzer
-      for (const diagnostic of diagnosticResults) {
-        const uriDiagnostics = diagnosticMap.get(diagnostic.uri);
-        if (empty(uriDiagnostics)) {
-          diagnosticMap.set(diagnostic.uri, [cleanDiagnostic(diagnostic)]);
-        } else {
-          uriDiagnostics.push(cleanDiagnostic(diagnostic));
-        }
-      }
-
-      // send diagnostics to each document reported
-      for (const [uri, diagnostics] of diagnosticMap.entries()) {
-        this.connection.sendDiagnostics({
-          uri,
-          diagnostics,
-        });
-      }
-
-      // if not problems found clear out diagnostics
-      if (total === 0) {
-        this.connection.sendDiagnostics({
-          uri: document.uri,
-          diagnostics: [],
-        });
-      }
+      this.sendDiagnostics(diagnostic, document.uri);
     } catch (err) {
       // report any exceptions to the client
       logException(this.logger, this.tracer, err, LogLevel.error);
+    }
+  }
+
+  /**
+   * send diagnostics to client
+   * @param diagnostics diagnostics to organize and send
+   */
+  private sendDiagnostics(diagnostics: DiagnosticUri[], uri?: string): void {
+    const total = diagnostics.length;
+    const diagnosticMap: Map<string, Diagnostic[]> = new Map();
+
+    // retrieve diagnostics from analyzer
+    for (const diagnostic of diagnostics) {
+      const uriDiagnostics = diagnosticMap.get(diagnostic.uri);
+      if (empty(uriDiagnostics)) {
+        diagnosticMap.set(diagnostic.uri, [cleanDiagnostic(diagnostic)]);
+      } else {
+        uriDiagnostics.push(cleanDiagnostic(diagnostic));
+      }
+    }
+
+    // send diagnostics to each document reported
+    for (const [uri, diagnostics] of diagnosticMap.entries()) {
+      this.connection.sendDiagnostics({
+        uri,
+        diagnostics,
+      });
+    }
+
+    // if not problems found clear out diagnostics
+    if (total === 0 && !empty(uri)) {
+      this.connection.sendDiagnostics({
+        uri: uri,
+        diagnostics: [],
+      });
     }
   }
 
@@ -775,7 +783,8 @@ export class KLS {
 
     this.resolverService.volume0Uri = parsed;
     this.workspaceUri = uri;
-    await this.documentService.cacheDocuments();
+    const diagnostics = await this.analysisService.loadDirectory();
+    this.sendDiagnostics(diagnostics);
   }
 
   /**
