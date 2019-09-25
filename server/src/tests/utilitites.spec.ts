@@ -657,4 +657,28 @@ describe('when determining strongly connected components of a graph', () => {
 
     expect(sccResult.acyclic).toBe(true);
   });
+
+  test('when two strongly connect components', () => {
+    const strong1 = createFullyConnected(4);
+    const strong2 = createFullyConnected(4);
+
+    strong1[0].nodes.push(strong2[0]);
+    const graph = Graph.fromNodes([...strong1, ...strong2]);
+
+    const sccResult = scc(graph);
+    expect(sccResult.acyclic).toBe(false);
+    expect(sccResult.components).toHaveLength(2);
+
+    const [component1, component2] = sccResult.components;
+    expect(component1.size).toBe(4);
+    expect(component2.size).toBe(4);
+
+    for (const node of strong1) {
+      expect(component1.has(node)).toBe(true);
+    }
+
+    for (const node of strong2) {
+      expect(component2.has(node)).toBe(true);
+    }
+  });
 });
