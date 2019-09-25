@@ -4,6 +4,7 @@ import { walkDir } from '../utilities/fsUtils';
 import { TokenType } from '../models/tokentypes';
 import { zip } from '../utilities/arrayUtils';
 import { Scanner } from '../scanner/scanner';
+import { Token } from '../models/token';
 
 const testDir = join(__dirname, '../../../kerboscripts/parser_valid/');
 
@@ -143,6 +144,11 @@ const sequence = [
   TokenType.period,
 ];
 
+const scan = (source: string): Token[] => {
+  const scanner = new Scanner(source);
+  return scanner.scanTokens().tokens;
+};
+
 describe('Scan test file', () => {
   test('token sequence', () => {
     const kosFile = readFileSync(scannerPath, 'utf8');
@@ -154,5 +160,28 @@ describe('Scan test file', () => {
     for (const [type, token] of zip(sequence, tokens)) {
       expect(token.type).toBe(type);
     }
+  });
+});
+
+describe('When scanning numbers', () => {
+  describe('when scanning integers', () => {
+    const tokens = scan('10');
+    expect(tokens).toHaveLength(1);
+    expect(tokens[0].lexeme).toBe('10');
+    expect(tokens[0].literal).toBe(10);
+  });
+
+  describe('when scanning doubles with leading numbers', () => {
+    const tokens = scan('10.0');
+    expect(tokens).toHaveLength(1);
+    expect(tokens[0].lexeme).toBe('10.0');
+    expect(tokens[0].literal).toBe(10.0);
+  });
+
+  describe('when scanning doubles with no leading number', () => {
+    const tokens = scan('.0');
+    expect(tokens).toHaveLength(1);
+    expect(tokens[0].lexeme).toBe('.0');
+    expect(tokens[0].literal).toBe(0.0);
   });
 });

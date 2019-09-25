@@ -240,7 +240,7 @@ export class Scanner {
       case '=':
         return this.generateToken(TokenType.equal);
       case '.':
-        if (this.isDigit(this.peekNext())) {
+        if (this.isDigit(this.peek())) {
           this.decrement();
           return this.number();
         }
