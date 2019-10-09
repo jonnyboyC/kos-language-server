@@ -1,6 +1,6 @@
 import { empty } from '../../utilities/typeGuards';
-import { Token } from '../../entities/token';
-import { TokenType } from '../../entities/tokentypes';
+import { Token } from '../../models/token';
+import { TokenType } from '../../models/tokentypes';
 import { booleanType } from '../ksTypes/primitives/boolean';
 import { integerType, doubleType } from '../ksTypes/primitives/scalar';
 import { stringType } from '../ksTypes/primitives/string';

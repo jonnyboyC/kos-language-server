@@ -3,7 +3,7 @@ import { Ast } from '../parser/types';
 import { Scanner } from '../scanner/scanner';
 import { Parser } from '../parser/parser';
 import { ControlFlow } from '../controlFlow/controlFlow';
-import { Marker } from '../entities/marker';
+import { Marker } from '../scanner/models/marker';
 import { zip } from '../utilities/arrayUtils';
 import { DiagnosticSeverity, Range } from 'vscode-languageserver';
 import { join } from 'path';
@@ -128,7 +128,7 @@ describe('Unreachable code', () => {
     expect(flow).toBeDefined();
 
     const flowDiagnostics = flow!.reachable();
-    expect(flowDiagnostics.length).toBe(returnLocations.length);
+    expect(flowDiagnostics).toHaveLength(returnLocations.length);
     for (const [diagnostic, location] of zip(
       flowDiagnostics,
       returnLocations,
@@ -155,8 +155,11 @@ describe('Unreachable code', () => {
     const { flow } = result;
     expect(flow).toBeDefined();
 
-    const flowDiagnostics = flow!.reachable();
-    expect(flowDiagnostics.length).toBe(breakLocations.length);
+    const flowDiagnostics = flow!
+      .reachable()
+      .sort((a, b) => a.range.start.line - b.range.start.line);
+
+    expect(flowDiagnostics).toHaveLength(breakLocations.length);
     for (const [diagnostic, location] of zip(flowDiagnostics, breakLocations)) {
       expect(diagnostic.severity).toBe(DiagnosticSeverity.Information);
       expect(diagnostic.range.start).toEqual(location.start);

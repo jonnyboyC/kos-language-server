@@ -92,12 +92,13 @@
 			},
 			"args": [
 				"--runInBand",
-				// "--config",
-				// "${workspaceFolder}/server/jest.config.js"
+				"--config",
+				"${workspaceFolder}/server/jest.config.js"
 			],
 			"console": "integratedTerminal",
 			"internalConsoleOptions": "neverOpen",
 			"disableOptimisticBPs": true,
+			"sourceMaps": true,
 			"outFiles": [
 				"${workspaceRoot}/server/out/**/*.js"
 			],
@@ -122,6 +123,7 @@
 			"console": "integratedTerminal",
 			"internalConsoleOptions": "neverOpen",
 			"disableOptimisticBPs": true,
+			"sourceMaps": true,
 			"outFiles": [
 				"${workspaceRoot}/server/out/**/*.js"
 			],

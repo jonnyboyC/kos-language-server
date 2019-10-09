@@ -4,10 +4,10 @@ import {
   ISuffixTerm,
   ISuffixTermVisitor,
 } from '../parser/types';
-import * as Expr from '../parser/expr';
-import * as SuffixTerm from '../parser/suffixTerm';
+import * as Expr from '../parser/models/expr';
+import * as SuffixTerm from '../parser/models/suffixTerm';
 import { empty } from '../utilities/typeGuards';
-import { Token } from '../entities/token';
+import { Token } from '../models/token';
 
 /**
  * Identify all local identifiers in a provided expression

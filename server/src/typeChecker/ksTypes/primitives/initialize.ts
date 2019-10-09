@@ -15,9 +15,9 @@ import { delegateType } from './delegate';
 import { OperatorKind } from '../../types';
 import { iterator } from '../../../utilities/constants';
 import { enumeratorType } from '../collections/enumerator';
-import { Operator } from '../../types/operator';
-import { Indexer } from '../../types/indexer';
-import { CallSignature } from '../../types/callSignature';
+import { Operator } from '../../models/types/operator';
+import { Indexer } from '../../models/types/indexer';
+import { CallSignature } from '../../models/types/callSignature';
 
 let set = false;
 

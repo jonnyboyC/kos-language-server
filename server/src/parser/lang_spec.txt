@@ -9,8 +9,8 @@ declaration -> ( statement
     | parameterDeclaration
 )
 
-variableDeclaration -> scope idenitifer ( 'to' | 'is' ) expression '.'
-lockDeclaration -> scope? 'lock' idenitifer 'to' expression '.'
+variableDeclaration -> scope identifier ( 'to' | 'is' ) expression '.'
+lockDeclaration -> scope? 'lock' identifier 'to' expression '.'
 parameterDeclaration -> scope? 'parameter' parameters '.'
 functionDeclaration -> scope? 'function' statementBlock '.'?
 
@@ -22,14 +22,14 @@ parameters -> ( parameter (',' parameters)?
     | defaultParameters
 )
 defaultParameters -> defaultParameter (',' defaultParameters)?
-parameter -> ( idenitifer | defaultParameter )
-defaultParameter -> idenitifer ( 'to' | 'is' ) expression
+parameter -> ( identifier | defaultParameter )
+defaultParameter -> identifier ( 'to' | 'is' ) expression
 
 // statements
 statement -> ( statementBlock
     | identifierInstruction
-    | commandstatement
-    | commandExpressionstatement
+    | commandStatement
+    | commandExpressionStatement
     | unset
     | unlock
     | set
@@ -88,7 +88,7 @@ log -> 'log' expression 'to' expression '.'
 rename -> 'rename' ( 'volume' | 'file' ) ioIdentifier expression 'to' expression '.'
 delete -> 'delete' expression ('from' expression)? '.'
 compile -> 'compile' expression ('to' expression)? '.'
-run -> 'run' 'once'? ( string | fileIdentifier ) ('(' arguments ')')? ('on', expresion)? '.'
+run -> 'run' 'once'? ( string | fileIdentifier ) ('(' arguments ')')? ('on', expression)? '.'
 runPath -> 'runPath' '(' expression (',' arguments)? ')' '.'
 runOncePath -> 'runOncePath' '(' expression (',' arguments)? ')' '.'
 print -> 'print' expression ('at' '(' expression ',' expression ')')? '.'
@@ -98,16 +98,19 @@ empty -> '.'
 list -> 'list' (idenitifer ('in' idenitifer)?)? '.'
 
 // command statement
-commandExpressionstatement -> commandExpression expression '.'
-commandstatement -> command '.'
+commandExpressionStatement -> commandExpression expression '.'
+commandStatement -> command '.'
 
 // identifier statements
 identifierInstruction -> suffix ( 'on' | 'off' )? '.'
 
 // expressions
-expression -> or | statementBlock
+expression -> or | statementBlock | choose
 
-// binary expresions
+// ternary expressions
+choose -> choose expression 'if' expression 'else' expression
+
+// binary expressions
 or -> and ('or' and)?
 and -> equality ('and' equality)?
 equality -> comparison (( '=' | '<>' ) comparison)?
@@ -129,13 +132,13 @@ arrayIndex -> '#' ( idenitifer | integer )
 arrayBracket -> '[' expression ']'
 delegate -> '@' 
 
-// expresion components
+// expression components
 arguments -> expression? (',' expression)*
 
 // atom
 atom -> ( literal
     | fileIdentifier
-    | idenitifer
+    | identifier
     | '(' expression ')'
 )
 
@@ -146,8 +149,8 @@ literal -> ( number
     | 'false'
 )
 
-idenitifer -> ([all valid letter] | '_')*
-fileIdentifier -> idenitifer ('.' idenitifer)*
+identifier -> ([all valid letter] | '_')*
+fileIdentifier -> identifier ('.' identifier)*
 
 string -> '"' [utf-16]* '"'
 integer -> sub_number

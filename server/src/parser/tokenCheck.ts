@@ -1,6 +1,6 @@
 import { IScript, IStmt, IExpr, ISuffixTerm } from './types';
-import { Token } from '../entities/token';
-import { TreeTraverse } from './treeTraverse';
+import { Token } from '../models/token';
+import { TreeTraverse } from '../utilities/treeTraverse';
 
 /**
  * Check all tokens in a given tree node

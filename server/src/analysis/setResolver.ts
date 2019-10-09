@@ -4,13 +4,13 @@ import {
   ISuffixTerm,
   ISuffixTermVisitor,
 } from '../parser/types';
-import * as Expr from '../parser/expr';
-import * as SuffixTerm from '../parser/suffixTerm';
+import * as Expr from '../parser/models/expr';
+import * as SuffixTerm from '../parser/models/suffixTerm';
 import { LocalResolver } from './localResolver';
 import { ISetResolverResult } from './types';
-import { setResult } from './setResult';
+import { setResult } from './models/setResult';
 import { empty } from '../utilities/typeGuards';
-import { Token } from '../entities/token';
+import { Token } from '../models/token';
 
 /**
  * Identify all local symbols used and all used symbols

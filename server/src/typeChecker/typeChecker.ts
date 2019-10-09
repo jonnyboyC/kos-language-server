@@ -7,17 +7,17 @@ import {
   ISuffixTermVisitor,
   Atom,
 } from '../parser/types';
-import * as SuffixTerm from '../parser/suffixTerm';
-import * as Expr from '../parser/expr';
-import * as Stmt from '../parser/stmt';
-import * as Decl from '../parser/declare';
+import * as SuffixTerm from '../parser/models/suffixTerm';
+import * as Expr from '../parser/models/expr';
+import * as Stmt from '../parser/models/stmt';
+import * as Decl from '../parser/models/declare';
 import { ITypeResultExpr, TypeKind, OperatorKind, IType } from './types';
-import { mockLogger, mockTracer, logException } from '../utilities/logger';
-import { Script } from '../entities/script';
+import { mockLogger, mockTracer, logException } from '../models/logger';
+import { Script } from '../models/script';
 import { empty } from '../utilities/typeGuards';
 import { structureType } from './ksTypes/primitives/structure';
 import { iterator } from '../utilities/constants';
-import { TokenType } from '../entities/tokentypes';
+import { TokenType } from '../models/tokentypes';
 import { nodeType } from './ksTypes/node';
 import { createFunctionType, createUnion } from './utilities/typeCreators';
 import { zip, zipLong } from '../utilities/arrayUtils';
@@ -36,9 +36,9 @@ import {
   arrayIndexer,
   functionError,
   indexerError,
-} from './typeHelpers';
+} from './utilities/typeHelpers';
 import { delegateType } from './ksTypes/primitives/delegate';
-import { TypeNode } from './typeNode';
+import { TypeNode } from './models/typeNode';
 import { KsSymbolKind, TrackerKind, SymbolTracker } from '../analysis/types';
 import { listType } from './ksTypes/collections/list';
 import { bodyTargetType } from './ksTypes/orbital/bodyTarget';
@@ -49,18 +49,18 @@ import { partType } from './ksTypes/parts/part';
 import { pathType } from './ksTypes/io/path';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
 import { createDiagnostic } from '../utilities/diagnosticsUtils';
-import { BasicTracker } from '../analysis/tracker';
-import { SuffixTypeBuilder } from './suffixTypeNode';
+import { BasicTracker } from '../analysis/models/tracker';
+import { SuffixTypeBuilder } from './models/suffixTypeNode';
 import { engineType } from './ksTypes/parts/engine';
 import { dockingPortType } from './ksTypes/parts/dockingPort';
 import { vesselSensorsType } from './ksTypes/vessel/vesselSensors';
 import { kosProcessorFieldsType } from './ksTypes/kosProcessorFields';
 import { elementType } from './ksTypes/parts/element';
 import { aggregateResourceType } from './ksTypes/parts/aggregateResource';
-import { Operator } from './types/operator';
-import { VariadicType } from './types/variadicType';
-import { Type } from './types/type';
-import { CallSignature } from './types/callSignature';
+import { Operator } from './models/types/operator';
+import { VariadicType } from './models/types/variadicType';
+import { Type } from './models/types/type';
+import { CallSignature } from './models/types/callSignature';
 
 type Diagnostics = Diagnostic[];
 
@@ -1909,7 +1909,7 @@ export class TypeChecker
 
     return createDiagnostic(
       expr,
-      `${leftType.name} nor ${rightType.name} supports the ${OperatorKind[operatorKind]} operator between them`,
+      `The ${OperatorKind[operatorKind]} operator is may not be supported between ${leftType.name} and ${rightType.name}.`,
       DiagnosticSeverity.Hint,
     );
   }

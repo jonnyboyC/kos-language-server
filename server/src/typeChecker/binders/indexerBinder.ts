@@ -6,7 +6,7 @@ import {
 } from '../types';
 import { empty } from '../../utilities/typeGuards';
 import { Binder } from './binder';
-import { Indexer } from '../types/indexer';
+import { Indexer } from '../models/types/indexer';
 
 /**
  * A class that's responsible for binding type arguments to type

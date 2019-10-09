@@ -14,7 +14,7 @@ import { booleanType } from '../primitives/boolean';
 import { serializableType } from '../primitives/serializeableStructure';
 import { listType } from '../collections/list';
 import { OperatorKind } from '../../types';
-import { Operator } from '../../types/operator';
+import { Operator } from '../../models/types/operator';
 
 export const pathType = createType('path');
 pathType.addSuper(noMap(serializableType));

@@ -1,13 +1,11 @@
-import * as Expr from './expr';
-import * as Stmt from './stmt';
-import * as SuffixTerm from './suffixTerm';
-import { Var, Lock, Func, Param } from './declare';
+import * as Expr from './models/expr';
+import * as Stmt from './models/stmt';
+import * as SuffixTerm from './models/suffixTerm';
+import { Var, Lock, Func, Param } from './models/declare';
 import { Range, Location, Diagnostic } from 'vscode-languageserver';
-import { TokenType } from '../entities/tokentypes';
-import { NodeBase } from './base';
-import { Token } from '../entities/token';
-import { DiagnosticUri } from '../types';
-import { SymbolTable } from '../analysis/symbolTable';
+import { TokenType } from '../models/tokentypes';
+import { NodeBase } from './models/base';
+import { Token } from '../models/token';
 
 export interface RangeSequence extends Range {
   ranges: Range[];
@@ -155,20 +153,6 @@ export interface IParseError extends Range {
 export interface Ast {
   script: IScript;
   parseDiagnostics: Diagnostic[];
-}
-
-export interface LexicalResult {
-  scannerDiagnostics: DiagnosticUri[];
-  parserDiagnostics: DiagnosticUri[];
-  regions: Token[];
-  script: IScript;
-}
-
-export interface SemanticResult {
-  resolverDiagnostics: DiagnosticUri[];
-  flowDiagnostics: DiagnosticUri[];
-  typeDiagnostics: DiagnosticUri[];
-  symbolTable: SymbolTable;
 }
 
 export interface IFindResult {

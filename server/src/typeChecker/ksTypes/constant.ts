@@ -2,7 +2,7 @@ import { createType, createSuffixType, noMap } from '../utilities/typeCreators';
 import { structureType } from './primitives/structure';
 import { doubleType } from './primitives/scalar';
 import { TypeKind } from '../types';
-import { ConstantType } from '../types/constantType';
+import { ConstantType } from '../models/types/constantType';
 
 export const gType = new ConstantType(
   'g',

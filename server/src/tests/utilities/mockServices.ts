@@ -4,14 +4,12 @@ import {
   DidOpenTextDocumentParams,
   DidCloseTextDocumentParams,
   TextDocument,
-  Location,
-  Diagnostic,
 } from 'vscode-languageserver';
-import { DocumentLoader, Document } from '../../utilities/documentLoader';
+import { IoService, Document } from '../../services/IoService';
 import { empty } from '../../utilities/typeGuards';
 import { DocumentService } from '../../services/documentService';
 import { URI } from 'vscode-uri';
-import { PathResolver } from '../../utilities/pathResolver';
+import { EventEmitter } from 'events';
 
 export const createMockDocConnection = () => ({
   changeDoc: undefined as Maybe<
@@ -57,7 +55,7 @@ export const createMockDocConnection = () => ({
 
 export const createMockUriResponse = (
   files: Map<string, string>,
-): DocumentLoader => {
+): IoService => {
   return {
     load(path: string): Promise<string> {
       const document = files.get(path);
@@ -69,22 +67,23 @@ export const createMockUriResponse = (
       return Promise.reject();
     },
     async *loadDirectory(_: string): AsyncIterableIterator<Document> {},
+    exists(uri: URI): Maybe<URI> {
+      return uri;
+    },
+    statDirectory() {
+      return [];
+    },
   };
 };
 
 export const createMockDocumentService = (
   documents: Map<string, TextDocument>,
-  volume0: string,
 ): DocumentService => {
-  const resolver = new PathResolver(volume0);
+  const emitter = new EventEmitter();
 
-  return {
+  return Object.assign(emitter, {
     ready(): boolean {
       return true;
-    },
-    async setVolume0Uri(uri: URI) {
-      resolver.volume0Uri = uri;
-      return Promise.resolve();
     },
     getDocument(uri: string): Maybe<TextDocument> {
       return documents.get(uri);
@@ -92,17 +91,8 @@ export const createMockDocumentService = (
     getAllDocuments(): TextDocument[] {
       return [...documents.values()];
     },
-    async loadDocumentFromScript(
-      location: Location,
-      runPath: string,
-    ): Promise<Maybe<Diagnostic | TextDocument>> {
-      const uri = resolver.resolveUri(location, runPath);
-      return uri && documents.get(uri.toString());
-    },
     async loadDocument(uri: string): Promise<Maybe<TextDocument>> {
       return Promise.resolve(documents.get(uri));
     },
-    onChange(_: (document: Document) => void) {},
-    onClose(_: (uri: string) => void) {},
-  } as DocumentService;
+  }) as DocumentService;
 };

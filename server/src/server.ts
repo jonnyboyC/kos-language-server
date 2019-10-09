@@ -5,7 +5,7 @@ if (Symbol['asyncIterator'] === undefined) {
 import { createConnection, ProposedFeatures } from 'vscode-languageserver';
 import { KLS } from './kls';
 import { getConnectionPrimitives } from './utilities/serverUtils';
-import { Logger } from './utilities/logger';
+import { Logger } from './models/logger';
 import { keywordCompletions } from './utilities/constants';
 // tslint:disable-next-line:import-name
 import program from 'commander';

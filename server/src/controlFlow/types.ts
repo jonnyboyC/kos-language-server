@@ -1,4 +1,4 @@
-import { BasicBlock } from './basicBlock';
+import { BasicBlock } from './models/basicBlock';
 
 /**
  * Block kinds for basic blocks
@@ -28,6 +28,11 @@ export const enum BlockKind {
    * The exit to an unknown block, either a function or trigger
    */
   unknownExit,
+
+  /**
+   * A fake entrance to an unreachable block
+   */
+  unreachableEntry,
 }
 
 /**

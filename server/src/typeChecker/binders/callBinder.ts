@@ -1,6 +1,6 @@
 import { IParametricType, IType, ICallSignature, TypeMap } from '../types';
 import { empty } from '../../utilities/typeGuards';
-import { CallSignature } from '../types/callSignature';
+import { CallSignature } from '../models/types/callSignature';
 import { Binder } from './binder';
 
 /**

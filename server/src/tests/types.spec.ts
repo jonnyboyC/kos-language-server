@@ -18,13 +18,13 @@ import { listType } from '../typeChecker/ksTypes/collections/list';
 import { collectionType } from '../typeChecker/ksTypes/collections/enumerable';
 import { scalarType } from '../typeChecker/ksTypes/primitives/scalar';
 import { TypeKind } from '../typeChecker/types';
-import { ParametricType } from '../typeChecker/parametricTypes/parametricType';
-import { Type } from '../typeChecker/types/type';
-import { UnionType } from '../typeChecker/types/unionType';
+import { ParametricType } from '../typeChecker/models/parametricTypes/parametricType';
+import { Type } from '../typeChecker/models/types/type';
+import { UnionType } from '../typeChecker/models/types/unionType';
 import { noneType } from '../typeChecker/ksTypes/primitives/none';
-import { DelegateType } from '../typeChecker/types/delegateType';
+import { DelegateType } from '../typeChecker/models/types/delegateType';
 import { delegateType } from '../typeChecker/ksTypes/primitives/delegate';
-import { CallSignature } from '../typeChecker/types/callSignature';
+import { CallSignature } from '../typeChecker/models/types/callSignature';
 
 typeInitializer();
 
@@ -62,7 +62,7 @@ describe('Type', () => {
     expect(type.toString()).toBe('example<integer>');
 
     const genericTypeParameters = type.getTypeParameters();
-    expect(genericTypeParameters.length).toBe(1);
+    expect(genericTypeParameters).toHaveLength(1);
     expect(genericTypeParameters[0].name).toBe('T');
 
     const exampleType = type.apply(stringType);
@@ -255,7 +255,7 @@ describe('Parametric Type', () => {
     expect(parametricType.toString()).toBe('example<T>');
 
     const genericTypeParameters = parametricType.getTypeParameters();
-    expect(genericTypeParameters.length).toBe(1);
+    expect(genericTypeParameters).toHaveLength(1);
     expect(genericTypeParameters[0].name).toBe('T');
 
     const exampleType = parametricType.apply(stringType);
@@ -274,7 +274,7 @@ describe('Parametric Type', () => {
     expect(exampleType.toString()).toBe('example<string>');
 
     const typeParameters = exampleType.getTypeParameters();
-    expect(typeParameters.length).toBe(1);
+    expect(typeParameters).toHaveLength(1);
     expect(typeParameters[0].name).toBe('T');
   });
 

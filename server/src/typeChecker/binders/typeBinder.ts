@@ -7,10 +7,10 @@ import {
   IIndexer,
 } from '../types';
 import { empty } from '../../utilities/typeGuards';
-import { Operator } from '../types/operator';
+import { Operator } from '../models/types/operator';
 import { noMap } from '../utilities/typeCreators';
-import { ParametricType } from '../parametricTypes/parametricType';
-import { Type } from '../types/type';
+import { ParametricType } from '../models/parametricTypes/parametricType';
+import { Type } from '../models/types/type';
 import { Binder } from './binder';
 
 /**

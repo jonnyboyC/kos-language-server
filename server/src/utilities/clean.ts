@@ -10,8 +10,8 @@ import {
   Hover,
   Position,
 } from 'vscode-languageserver';
-import { TokenBase } from '../entities/types';
-import { Token } from '../entities/token';
+import { TokenBase } from '../models/types';
+import { Token } from '../models/token';
 
 export const cleanCompletion = (completion: CompletionItem): CompletionItem => {
   return {

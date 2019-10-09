@@ -10,7 +10,7 @@
     "esModuleInterop": true,
     "sourceMap": true,
     "noEmit": false,
-    // "incremental": true,
+    "incremental": false
     // "tsBuildInfoFile": "./out/buildcache.json",
   },
   "include": [

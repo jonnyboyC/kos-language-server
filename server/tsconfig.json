@@ -11,15 +11,14 @@
     "strict": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "noEmit": false
-    // "incremental": true,
+    "noEmit": false,
+    "incremental": false
     // "tsBuildInfoFile": "./build/buildcache.json",
   },
   "include": [
     "src"
   ],
   "exclude": [
-    "node_modules",
-    "src/test"
+    "node_modules"
   ]
 }

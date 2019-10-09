@@ -4,7 +4,7 @@ import { stringType } from './primitives/string';
 import { serializableType } from './primitives/serializeableStructure';
 import { OperatorKind } from '../types';
 import { booleanType } from './primitives/boolean';
-import { Operator } from '../types/operator';
+import { Operator } from '../models/types/operator';
 
 export const timeSpanType = createType('timeSpan');
 timeSpanType.addSuper(noMap(serializableType));

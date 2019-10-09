@@ -1,3 +1,9 @@
+# [0.12.0] (2019-10-8)
+
+## Features
+- **Workspace Loading** The language server can now eagerly load the whole workspace, providing diagnostics for all files in the folder
+- **Change Propagation** The server can now better propagate changes from one file to another that is dependent based on a run statement
+
 # [0.11.0] (2019-8-30)
 
 ## Bug Fixes

@@ -1,6 +1,6 @@
-import { TokenType } from '../entities/tokentypes';
+import { TokenType } from '../models/tokentypes';
 import { Diagnostic } from 'vscode-languageserver';
-import { Token } from '../entities/token';
+import { Token } from '../models/token';
 
 export type ITokenMap = Map<string, { type: TokenType; literal?: any }>;
 

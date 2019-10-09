@@ -1,15 +1,15 @@
 // import * as Decl from '../parser/declare';
-import * as Expr from '../parser/expr';
-import * as Stmt from '../parser/stmt';
-import * as SuffixTerm from '../parser/suffixTerm';
+import * as Expr from '../parser/models/expr';
+import * as Stmt from '../parser/models/stmt';
+import * as SuffixTerm from '../parser/models/suffixTerm';
 import { getRandomInt } from '../utilities/randomUtils';
-import { mockLogger, mockTracer } from '../utilities/logger';
+import { mockLogger, mockTracer } from '../models/logger';
 import {
   IExprClass, IExprClassVisitor,
   IGrammarUnion, GrammarNode, IStmtClass,
   IGrammarOptional, IGrammarRepeat, Distribution, ISuffixTermClass,
 } from '../parser/types';
-import { TokenType } from '../entities/tokentypes';
+import { TokenType } from '../models/tokentypes';
 import { keywords } from '../utilities/constants';
 const jStat = require('jstat').jStat;
 

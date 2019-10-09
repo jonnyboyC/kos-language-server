@@ -1,4 +1,4 @@
-import { SymbolTable } from './analysis/symbolTable';
+import { SymbolTable } from './analysis/models/symbolTable';
 import { IScript } from './parser/types';
 import {
   Diagnostic,
@@ -7,13 +7,33 @@ import {
   CompletionItem,
   TextDocument,
 } from 'vscode-languageserver';
-import { Token } from './entities/token';
+import { Token } from './models/token';
 
-export interface IDocumentInfo {
+export interface DependencyInfo {
+  dependencyTables: Set<SymbolTable>;
+  diagnostics: DiagnosticUri[];
+}
+
+export interface LexiconLoad {
+  lexicon: Map<string, LexicalInfo>;
+  diagnostics: DiagnosticUri[];
+}
+
+export interface LexicalInfo {
   script: IScript;
   regions: Token[];
+  diagnostics: DiagnosticUri[];
+}
+
+export interface SemanticInfo {
   symbolTable: SymbolTable;
   diagnostics: DiagnosticUri[];
+}
+
+export interface DocumentInfo {
+  lexicalInfo: LexicalInfo;
+  semanticInfo: SemanticInfo;
+  dependencyInfo: DependencyInfo;
 }
 
 export interface LoadedDocuments {

@@ -28,7 +28,7 @@ import {
   CancellationToken,
   Hover,
 } from 'vscode-languageserver';
-import { KLSConfiguration, ClientConfiguration } from './types';
+import { KLSConfiguration, ClientConfiguration, DiagnosticUri } from './types';
 import { Scanner } from './scanner/scanner';
 import {
   KsSymbol,
@@ -36,12 +36,12 @@ import {
   SymbolTracker,
   KsBaseSymbol,
 } from './analysis/types';
-import { mockLogger, mockTracer, logException } from './utilities/logger';
+import { mockLogger, mockTracer, logException } from './models/logger';
 import { empty } from './utilities/typeGuards';
 import { ScriptFind, AstContext } from './parser/scriptFind';
-import * as Expr from './parser/expr';
-import * as Stmt from './parser/stmt';
-import * as SuffixTerm from './parser/suffixTerm';
+import * as Expr from './parser/models/expr';
+import * as Stmt from './parser/models/stmt';
+import * as SuffixTerm from './parser/models/suffixTerm';
 import { builtIn, serverName, keywordCompletions } from './utilities/constants';
 import { binarySearchIndex, rangeContains } from './utilities/positionUtils';
 import { URI } from 'vscode-uri';
@@ -60,19 +60,15 @@ import {
   cleanPosition,
   cleanLocation,
 } from './utilities/clean';
-import { isValidIdentifier } from './entities/tokentypes';
+import { isValidIdentifier } from './models/tokentypes';
 import { tokenTrackedType } from './typeChecker/utilities/typeUtilities';
 import { TypeKind } from './typeChecker/types';
-import { DocumentLoader, Document } from './utilities/documentLoader';
+import { IoService, Document } from './services/IoService';
 import { FoldableService } from './services/foldableService';
 import { AnalysisService } from './services/analysisService';
-import {
-  PathResolver,
-  runPath,
-  normalizeExtensions,
-} from './utilities/pathResolver';
-import { existsSync } from 'fs';
 import { IFindResult } from './parser/types';
+import { ResolverService } from './services/resolverService';
+import { runPath } from './utilities/pathUtils';
 
 export class KLS {
   /**
@@ -115,6 +111,16 @@ export class KLS {
    */
   private readonly analysisService: AnalysisService;
 
+  /**
+   * A service to resolve path in kos
+   */
+  private readonly resolverService: ResolverService;
+
+  /**
+   * A service for interacting with io
+   */
+  private readonly ioService: IoService;
+
   constructor(
     caseKind: CaseKind = CaseKind.camelCase,
     logger: ILogger = mockLogger,
@@ -127,9 +133,11 @@ export class KLS {
     this.tracer = tracer;
     this.configuration = configuration;
     this.connection = connection;
+    this.ioService = new IoService();
+    this.resolverService = new ResolverService();
     this.documentService = new DocumentService(
       connection,
-      new DocumentLoader(),
+      this.ioService,
       logger,
       tracer,
     );
@@ -139,6 +147,7 @@ export class KLS {
       this.logger,
       this.tracer,
       this.documentService,
+      this.resolverService,
     );
   }
 
@@ -162,7 +171,8 @@ export class KLS {
     this.connection.onDefinition(this.onDefinition.bind(this));
     this.connection.onFoldingRanges(this.onFoldingRange.bind(this));
 
-    this.documentService.onChange(this.onChange.bind(this));
+    this.documentService.on('change', this.onChange.bind(this));
+    this.analysisService.on('propagate', this.sendDiagnostics.bind(this));
 
     this.connection.listen();
   }
@@ -677,7 +687,7 @@ export class KLS {
       return undefined;
     }
 
-    const { script, regions } = documentInfo;
+    const { script, regions } = documentInfo.lexicalInfo;
     return this.foldableService.findRegions(script, regions);
   }
 
@@ -689,42 +699,50 @@ export class KLS {
    */
   private async onChange(document: Document) {
     try {
-      const diagnosticResults = await this.analysisService.validateDocument(
+      const diagnostic = await this.analysisService.analyzeDocument(
         document.uri,
         document.text,
       );
 
-      const total = diagnosticResults.length;
-      const diagnosticMap: Map<string, Diagnostic[]> = new Map();
-
-      // retrieve diagnostics from analyzer
-      for (const diagnostic of diagnosticResults) {
-        const uriDiagnostics = diagnosticMap.get(diagnostic.uri);
-        if (empty(uriDiagnostics)) {
-          diagnosticMap.set(diagnostic.uri, [cleanDiagnostic(diagnostic)]);
-        } else {
-          uriDiagnostics.push(cleanDiagnostic(diagnostic));
-        }
-      }
-
-      // send diagnostics to each document reported
-      for (const [uri, diagnostics] of diagnosticMap.entries()) {
-        this.connection.sendDiagnostics({
-          uri,
-          diagnostics,
-        });
-      }
-
-      // if not problems found clear out diagnostics
-      if (total === 0) {
-        this.connection.sendDiagnostics({
-          uri: document.uri,
-          diagnostics: [],
-        });
-      }
+      this.sendDiagnostics(diagnostic, document.uri);
     } catch (err) {
       // report any exceptions to the client
       logException(this.logger, this.tracer, err, LogLevel.error);
+    }
+  }
+
+  /**
+   * send diagnostics to client
+   * @param diagnostics diagnostics to organize and send
+   */
+  private sendDiagnostics(diagnostics: DiagnosticUri[], uri?: string): void {
+    const total = diagnostics.length;
+    const diagnosticMap: Map<string, Diagnostic[]> = new Map();
+
+    // retrieve diagnostics from analyzer
+    for (const diagnostic of diagnostics) {
+      const uriDiagnostics = diagnosticMap.get(diagnostic.uri);
+      if (empty(uriDiagnostics)) {
+        diagnosticMap.set(diagnostic.uri, [cleanDiagnostic(diagnostic)]);
+      } else {
+        uriDiagnostics.push(cleanDiagnostic(diagnostic));
+      }
+    }
+
+    // send diagnostics to each document reported
+    for (const [uri, diagnostics] of diagnosticMap.entries()) {
+      this.connection.sendDiagnostics({
+        uri,
+        diagnostics,
+      });
+    }
+
+    // if not problems found clear out diagnostics
+    if (total === 0 && !empty(uri)) {
+      this.connection.sendDiagnostics({
+        uri: uri,
+        diagnostics: [],
+      });
     }
   }
 
@@ -761,11 +779,14 @@ export class KLS {
    * Set the volume 0 path for the analyzer
    * @param uri path of volume 0
    */
-  private setUri(uri: string): void {
+  private async setUri(uri: string): Promise<void> {
     const parsed = URI.parse(uri);
 
-    this.documentService.setVolume0Uri(parsed);
+    this.resolverService.rootVolume = parsed;
+    this.documentService.rootVolume = parsed;
     this.workspaceUri = uri;
+    const diagnostics = await this.analysisService.loadDirectory();
+    this.sendDiagnostics(diagnostics);
   }
 
   /**
@@ -793,7 +814,7 @@ export class KLS {
     }
 
     // try to find an symbol at the position
-    const { script } = documentInfo;
+    const { script } = documentInfo.lexicalInfo;
     const finder = new ScriptFind();
     return finder.find(script, pos, ...contexts);
   }
@@ -813,7 +834,7 @@ export class KLS {
     }
 
     // try to find an symbol at the position
-    const { script } = documentInfo;
+    const { script } = documentInfo.lexicalInfo;
     const finder = new ScriptFind();
     const result = finder.find(
       script,
@@ -830,48 +851,35 @@ export class KLS {
     // check if symbols exists
     const { token, node } = result;
     if (empty(token.tracker)) {
-      // if no tracker it might be a run statment
+      // if no tracker it might be a run statement
       if (
         node instanceof Stmt.Run ||
         node instanceof Stmt.RunPath ||
         node instanceof Stmt.RunOncePath
       ) {
-        const pathResolver = new PathResolver(this.configuration.workspaceUri);
-
         // get the kos run path
         const kosPath = runPath(node);
         if (typeof kosPath !== 'string') {
           return undefined;
         }
 
+        const resolved = this.resolverService.resolve(
+          node.toLocation(uri),
+          kosPath,
+        );
+
+        if (empty(resolved)) {
+          return undefined;
+        }
+
         // resolve to the file system
-        const path = pathResolver.resolveUri(node.toLocation(uri), kosPath);
-        if (empty(path)) {
-          return undefined;
-        }
-
-        // check if file exists then
-        if (existsSync(path.fsPath)) {
-          return Location.create(
-            path.toString(),
+        const found = this.ioService.exists(resolved);
+        return (
+          found &&
+          Location.create(
+            found.toString(),
             Range.create(Position.create(0, 0), Position.create(0, 0)),
-          );
-        }
-
-        // if we didn't find try to normalize the path with extension .ks
-        const result = normalizeExtensions(path);
-        if (empty(result)) {
-          return undefined;
-        }
-
-        const normalized = URI.parse(result);
-        if (!existsSync(normalized.fsPath)) {
-          return undefined;
-        }
-
-        return Location.create(
-          normalized.toString(),
-          Range.create(Position.create(0, 0), Position.create(0, 0)),
+          )
         );
       }
 
@@ -902,16 +910,16 @@ export class KLS {
     const documentInfo = await this.analysisService.getInfo(uri);
     if (
       empty(documentInfo) ||
-      empty(documentInfo.symbolTable) ||
-      empty(documentInfo.script)
+      empty(documentInfo.semanticInfo.symbolTable) ||
+      empty(documentInfo.lexicalInfo.script)
     ) {
       return undefined;
     }
 
     // try to find the symbol at the position
-    const { symbolTable: symbolsTable, script } = documentInfo;
+    const { semanticInfo, lexicalInfo } = documentInfo;
     const finder = new ScriptFind();
-    const result = finder.find(script, pos);
+    const result = finder.find(lexicalInfo.script, pos);
 
     if (empty(result)) {
       return undefined;
@@ -919,7 +927,10 @@ export class KLS {
 
     // try to find the tracker at a given position
     const { token } = result;
-    const tracker = symbolsTable.scopedNamedTracker(pos, token.lookup);
+    const tracker = semanticInfo.symbolTable.scopedNamedTracker(
+      pos,
+      token.lookup,
+    );
     if (empty(tracker)) {
       return undefined;
     }
@@ -948,7 +959,7 @@ export class KLS {
   }
 
   /**
-   * Get all symbols in scope at a particular location in the file
+   * Get all symbols locally in scope at this particular script
    * @param pos position in document
    * @param uri document uri
    */
@@ -958,11 +969,25 @@ export class KLS {
   ): Promise<KsBaseSymbol[]> {
     const documentInfo = await this.analysisService.getInfo(uri);
 
-    if (!empty(documentInfo) && !empty(documentInfo.symbolTable)) {
-      return documentInfo.symbolTable.scopedSymbols(pos);
+    if (empty(documentInfo)) {
+      return [];
     }
 
-    return [];
+    return documentInfo.semanticInfo.symbolTable.scopedSymbols(pos);
+  }
+
+  /**
+   * Get all symbols imported in this particular script
+   * @param uri document uri
+   */
+  public async getImportedSymbols(uri: string): Promise<KsBaseSymbol[]> {
+    const documentInfo = await this.analysisService.getInfo(uri);
+
+    if (empty(documentInfo)) {
+      return [];
+    }
+
+    return documentInfo.semanticInfo.symbolTable.importedSymbols();
   }
 
   /**
@@ -972,11 +997,11 @@ export class KLS {
   public async getAllFileSymbols(uri: string): Promise<KsSymbol[]> {
     const documentInfo = await this.analysisService.getInfo(uri);
 
-    if (!empty(documentInfo) && !empty(documentInfo.symbolTable)) {
-      return documentInfo.symbolTable.allSymbols();
+    if (empty(documentInfo)) {
+      return [];
     }
 
-    return [];
+    return documentInfo.semanticInfo.symbolTable.allSymbols();
   }
 
   /**
@@ -992,7 +1017,7 @@ export class KLS {
     const documentInfo = await this.analysisService.getInfo(uri);
     if (empty(documentInfo)) return undefined;
 
-    const { script } = documentInfo;
+    const { script } = documentInfo.lexicalInfo;
     const finder = new ScriptFind();
 
     // attempt to find a token here get surround invalid Stmt context

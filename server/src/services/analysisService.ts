@@ -1,40 +1,53 @@
 import {
   DiagnosticUri,
-  IDocumentInfo as DocumentInfo,
+  DocumentInfo,
   LoadedDocuments,
+  LexicalInfo,
+  SemanticInfo,
+  DependencyInfo,
+  LexiconLoad as LoadLexicon,
 } from '../types';
-import { SymbolTable } from '../analysis/symbolTable';
-import {
-  LexicalResult,
-  RunStmtType,
-  IScript,
-  SemanticResult,
-} from '../parser/types';
-import { SymbolTableBuilder } from '../analysis/symbolTableBuilder';
+import { SymbolTable } from '../analysis/models/symbolTable';
+import { RunStmtType, IScript } from '../parser/types';
+import { SymbolTableBuilder } from '../analysis/models/symbolTableBuilder';
 import { PreResolver } from '../analysis/preResolver';
 import { performance, PerformanceObserver } from 'perf_hooks';
 import { TypeChecker } from '../typeChecker/typeChecker';
-import { empty } from '../utilities/typeGuards';
+import { empty, notEmpty, unWrap } from '../utilities/typeGuards';
 import { Scanner } from '../scanner/scanner';
 import { Parser } from '../parser/parser';
-import { TextDocument, Diagnostic } from 'vscode-languageserver';
+import {
+  TextDocument,
+  Diagnostic,
+  Range,
+  DiagnosticSeverity,
+} from 'vscode-languageserver';
 import { addDiagnosticsUri } from '../utilities/serverUtils';
 import { DocumentService } from './documentService';
-import { logException } from '../utilities/logger';
+import { logException } from '../models/logger';
 import { Resolver } from '../analysis/resolver';
-import { runPath } from '../utilities/pathResolver';
 import {
   standardLibraryBuilder,
   bodyLibraryBuilder,
 } from '../analysis/standardLibrary';
 import { ControlFlow } from '../controlFlow/controlFlow';
+import { runPath, normalizeExtensions } from '../utilities/pathUtils';
+import { ResolverService } from './resolverService';
+import { Graph } from '../models/graph';
+import { scc, dfs } from '../utilities/graphUtils';
+import { createDiagnostic } from '../utilities/diagnosticsUtils';
+import { debounce } from '../utilities/debounce';
+import { union, disjoint } from 'ts-set-utils';
+import { EventEmitter } from 'events';
 
-interface DependencyLoadResult {
-  documentInfos: DocumentInfo[];
-  loadDiagnostics: DiagnosticUri[];
+type ChangeHandler = (diagnostics: DiagnosticUri[]) => void;
+
+export declare interface AnalysisService {
+  on(event: 'propagate', listener: ChangeHandler): this;
+  emit(event: 'propagate', ...args: Parameters<ChangeHandler>): boolean;
 }
 
-export class AnalysisService {
+export class AnalysisService extends EventEmitter {
   /**
    * A logger for message and error logger
    */
@@ -56,9 +69,34 @@ export class AnalysisService {
   private readonly documentService: DocumentService;
 
   /**
-   * Document information
+   * A service to resolver kos paths
    */
-  private readonly documentInfos: Map<string, DocumentInfo>;
+  private readonly resolverService: ResolverService;
+
+  /**
+   * A cache of lexical info for each document
+   */
+  private readonly lexicalCache: Map<string, Maybe<LexicalInfo>>;
+
+  /**
+   * A cache of semantic info for each document
+   */
+  private readonly semanticCache: Map<string, Maybe<SemanticInfo>>;
+
+  /**
+   * A cache of other diagnostics for each document
+   */
+  private readonly dependencyCache: Map<string, Maybe<DependencyInfo>>;
+
+  /**
+   * The set of files to eventually propagate changes to
+   */
+  private readonly changes: Set<string>;
+
+  /**
+   * debounce'd propagate changes to execute on a queued changes
+   */
+  private readonly debouncePropagateChange: () => void;
 
   /**
    * The current loaded standard library
@@ -81,19 +119,35 @@ export class AnalysisService {
    * @param logger A logger to log performance and exception
    * @param tracer a tracer to location exceptions
    * @param documentService The document service to load new files from disk
+   * @param resolverService A service to resolver kos paths
    */
   constructor(
     caseKind: CaseKind,
     logger: ILogger,
     tracer: ITracer,
     documentService: DocumentService,
+    resolverService: ResolverService,
   ) {
+    super();
+
+    // initialize services
     this.logger = logger;
     this.tracer = tracer;
     this.documentService = documentService;
+    this.resolverService = resolverService;
 
-    this.documentInfos = new Map();
+    // create caches
+    this.lexicalCache = new Map();
+    this.semanticCache = new Map();
+    this.dependencyCache = new Map();
 
+    this.changes = new Set();
+    this.debouncePropagateChange = debounce(
+      4000,
+      this.propagateChanges.bind(this),
+    );
+
+    // configure analysis service
     this.caseKind = caseKind;
     this.standardLibrary = standardLibraryBuilder(caseKind);
     this.bodyLibrary = bodyLibraryBuilder(caseKind);
@@ -110,57 +164,6 @@ export class AnalysisService {
   }
 
   /**
-   * Validate a document in asynchronous stages. This produces diagnostics about known errors or
-   * potential problems in the provided script
-   * @param uri uri of the document
-   * @param text source text of the document
-   */
-  public async validateDocument(
-    uri: string,
-    text: string,
-  ): Promise<DiagnosticUri[]> {
-    try {
-      const result = await this.validateDocument_(uri, text, 0);
-      if (!empty(result)) {
-        this.documentInfos.set(uri, result);
-      }
-
-      return empty(result) ? [] : result.diagnostics;
-    } catch (err) {
-      logException(this.logger, this.tracer, err, LogLevel.error);
-      return [];
-    }
-  }
-
-  /**
-   * Get a document info if it exists
-   */
-  public async getInfo(uri: string): Promise<Maybe<DocumentInfo>> {
-    // if we already have the document loaded return it
-    const documentInfo = this.documentInfos.get(uri);
-    if (!empty(documentInfo)) {
-      return documentInfo;
-    }
-
-    try {
-      const document = await this.documentService.loadDocument(uri);
-      if (empty(document)) {
-        return undefined;
-      }
-
-      const result = await this.validateDocument_(uri, document.getText(), 0);
-
-      if (!empty(result)) {
-        this.documentInfos.set(uri, result);
-      }
-      return result;
-    } catch (err) {
-      logException(this.logger, this.tracer, err, LogLevel.error);
-      return undefined;
-    }
-  }
-
-  /**
    * Set the case of the body library and standard library
    * @param caseKind case to set
    */
@@ -173,71 +176,263 @@ export class AnalysisService {
   }
 
   /**
+   * Validate a document in asynchronous stages. This produces diagnostics about known errors or
+   * potential problems in the provided script
+   * @param uri uri of the document
+   * @param text source text of the document
+   */
+  public async analyzeDocument(
+    uri: string,
+    text: string,
+  ): Promise<DiagnosticUri[]> {
+    try {
+      // analyze document
+      const documentInfo = await this.analyze(uri, text);
+
+      // set cache and update changes queue
+      this.setDocumentCache(uri, documentInfo);
+      this.queueChanges(uri);
+
+      return this.documentInfoDiagnostics(documentInfo);
+    } catch (err) {
+      logException(this.logger, this.tracer, err, LogLevel.error);
+      return [];
+    }
+  }
+
+  /**
+   * Get a document info if it exists
+   */
+  public async getInfo(uri: string): Promise<Maybe<DocumentInfo>> {
+    // check if document has already been analyzed
+    const documentInfo = this.getDocumentInfo(uri);
+    if (!empty(documentInfo)) {
+      return documentInfo;
+    }
+
+    try {
+      // attempt to load document from file
+      const document = await this.documentService.loadDocument(uri);
+      if (empty(document)) {
+        return undefined;
+      }
+
+      const result = await this.analyze(uri, document.getText());
+
+      this.setDocumentCache(uri, result);
+      return this.isFull(result) ? result : undefined;
+    } catch (err) {
+      logException(this.logger, this.tracer, err, LogLevel.error);
+      return undefined;
+    }
+  }
+
+  /**
+   * Load full directory with initial set of diagnostics
+   */
+  public async loadDirectory(): Promise<DiagnosticUri[]> {
+    await this.documentService.cacheDocuments();
+    const { diagnostics, lexicon } = await this.loadLexicon();
+    const graph = this.documentGraph(lexicon);
+
+    // Determine strongly connected components
+    const sccResult = scc(graph);
+    const loaded = new Set<string>();
+
+    // move bottom up
+    for (let i = sccResult.components.length - 1; i >= 0; i--) {
+      for (const lexicalInfo of sccResult.components[i]) {
+        // load dependencies
+        const dependencyInfo = await this.getDependencies(
+          lexicalInfo.script.uri,
+          loaded,
+        );
+
+        if (empty(dependencyInfo)) {
+          continue;
+        }
+
+        diagnostics.push(...dependencyInfo.diagnostics);
+
+        // analyze semantics
+        const semanticInfo = await this.getSemantics(
+          lexicalInfo.script.uri,
+          loaded,
+        );
+        if (empty(semanticInfo)) {
+          continue;
+        }
+        diagnostics.push(...semanticInfo.diagnostics);
+      }
+    }
+
+    return diagnostics;
+  }
+
+  /**
    * Main validation function for a document. Lexically and semantically understands a document.
    * Will additionally perform the same analysis on other run scripts found in this script
    * @param uri uri of the document
    * @param text source text of the document
-   * @param depth TODO remove: current depth of the document
    */
-  private async validateDocument_(
+  private async analyze(
     uri: string,
     text: string,
-    depth: number,
-  ): Promise<Maybe<DocumentInfo>> {
-    if (depth > 10) {
-      return undefined;
-    }
-
+  ): Promise<Partial<DocumentInfo>> {
     // preform lexical analysis
-    const {
-      script,
-      regions,
-      scannerDiagnostics,
-      parserDiagnostics,
-    } = this.lexicalAnalysisDocument(uri, text);
+    const lexicalInfo = this.analyzeLexicon(uri, text);
 
     // load dependencies found in the ast
-    const { documentInfos, loadDiagnostics } = await this.loadDependencies(
+    const dependencyInfo = await this.loadDependencies(
       uri,
-      script,
-      depth,
+      lexicalInfo.script,
+      new Set(),
     );
 
-    // add standard library to dependencies
-    const dependencyTables: Set<SymbolTable> = new Set([
-      this.activeStandardLibrary(),
-      this.activeBodyLibrary(),
-    ]);
-
-    // add run statement dependencies and their dependencies
-    for (const documentInfo of documentInfos) {
-      dependencyTables.add(documentInfo.symbolTable);
-    }
-
     // perform semantic analysis
-    const {
-      resolverDiagnostics,
-      typeDiagnostics,
-      flowDiagnostics,
-      symbolTable,
-    } = this.semanticAnalysisDocument(uri, script, dependencyTables);
+    const semanticInfo = this.analyzeSemantics(
+      uri,
+      lexicalInfo.script,
+      dependencyInfo.dependencyTables,
+    );
 
     // clear performance observer marks
     performance.clearMarks();
 
     // generate the document info
     return {
-      script,
-      regions,
-      symbolTable,
-      diagnostics: [
-        ...scannerDiagnostics,
-        ...parserDiagnostics,
-        ...flowDiagnostics,
-        ...loadDiagnostics,
-        ...resolverDiagnostics,
-        ...typeDiagnostics,
-      ],
+      lexicalInfo,
+      semanticInfo,
+      dependencyInfo,
+    };
+  }
+
+  /**
+   * Function to be debounce'd in order to propagate changes indirectly affected
+   * files
+   */
+  private async propagateChanges(): Promise<void> {
+    const { lexicon } = await this.loadLexicon();
+
+    const documentGraph = this.documentGraph(lexicon);
+    const documentComponentGraph = scc(documentGraph).componentGraph();
+
+    const directlyAffected = new Set(
+      [...this.changes].map(c => lexicon.get(c)).filter(notEmpty),
+    );
+
+    const affectedSets: Set<LexicalInfo>[] = [];
+    for (const source of documentComponentGraph.sources()) {
+      const first = [...source.values()][0];
+
+      const visited = new Set<LexicalInfo>();
+      dfs(documentGraph, first, visited);
+      if (!disjoint(directlyAffected, visited)) {
+        affectedSets.push(visited);
+      }
+    }
+    const affected = union(...affectedSets);
+    const affectedGraph = this.documentGraph(
+      new Map([...affected].map(affected => [affected.script.uri, affected])),
+    );
+
+    const affectedScc = scc(affectedGraph);
+    const diagnostics: DiagnosticUri[] = [];
+
+    for (const component of affectedScc.components.reverse()) {
+      for (const { script } of component) {
+        const document = this.documentService.getDocument(script.uri);
+        const documentInfo = await this.analyze(
+          script.uri,
+          unWrap(document).getText(),
+        );
+
+        diagnostics.push(...this.documentInfoDiagnostics(documentInfo));
+      }
+    }
+
+    this.emit('propagate', diagnostics);
+    this.changes.clear();
+  }
+
+  /**
+   * Add a file to to the set of files to eventually process
+   * @param uri document uri to enqueue
+   */
+  private queueChanges(uri: string) {
+    this.changes.add(uri);
+    this.debouncePropagateChange();
+  }
+
+  /**
+   * Determine the document graph of the current root directory
+   */
+  private documentGraph(
+    lexicalMap: Map<string, LexicalInfo>,
+  ): Graph<LexicalInfo> {
+    // generate graph nodes
+    const graph = new Graph(...lexicalMap.values());
+
+    // loop through ever nodes and it's run statements
+    for (const [uri, lexicalInfo] of lexicalMap) {
+      for (const runStmt of lexicalInfo.script.runStmts) {
+        // get underlying run path
+        const path = runPath(runStmt);
+
+        if (typeof path !== 'string') {
+          break;
+        }
+
+        // attempt to resolve to normalized path
+        const resolved = this.resolverService.resolve(
+          runStmt.toLocation(uri),
+          path,
+        );
+
+        if (empty(resolved)) {
+          break;
+        }
+
+        const normalized = normalizeExtensions(resolved);
+        if (empty(normalized)) {
+          break;
+        }
+
+        const sink = lexicalMap.get(normalized);
+        if (empty(sink)) {
+          break;
+        }
+
+        // add graph edge
+        graph.addEdge(lexicalInfo, sink);
+      }
+    }
+
+    return graph;
+  }
+
+  /**
+   * Load the lexicon of all available documents
+   */
+  private async loadLexicon(): Promise<LoadLexicon> {
+    const lexicon: Map<string, LexicalInfo> = new Map();
+    const diagnostics: DiagnosticUri[] = [];
+
+    // enumerate all documents in the directory
+    for (const document of this.documentService.getAllDocuments()) {
+      // // perform lexical analysis
+      const lexicalInfo = await this.getLexicon(document.uri);
+
+      if (!empty(lexicalInfo)) {
+        diagnostics.push(...lexicalInfo.diagnostics);
+        lexicon.set(document.uri, lexicalInfo);
+        this.lexicalCache.set(document.uri, lexicalInfo);
+      }
+    }
+
+    return {
+      lexicon,
+      diagnostics,
     };
   }
 
@@ -246,7 +441,7 @@ export class AnalysisService {
    * @param uri uri to document
    * @param text source text of document
    */
-  private lexicalAnalysisDocument(uri: string, text: string): LexicalResult {
+  private analyzeLexicon(uri: string, text: string): LexicalInfo {
     this.logger.verbose('');
     this.logger.verbose('-------------Lexical Analysis------------');
 
@@ -282,12 +477,32 @@ export class AnalysisService {
       addDiagnosticsUri(parseDiagnostic, uri),
     );
 
-    return {
-      scannerDiagnostics,
-      parserDiagnostics,
+    const lexicalInfo = {
       script,
       regions,
+      diagnostics: [...scannerDiagnostics, ...parserDiagnostics],
     };
+
+    this.lexicalCache.set(uri, lexicalInfo);
+    return lexicalInfo;
+  }
+
+  /**
+   * Get lexical information about a document from a cache or file
+   * @param uri uri to document
+   */
+  private async getLexicon(uri: string): Promise<Maybe<LexicalInfo>> {
+    const cache = this.lexicalCache.get(uri);
+    if (!empty(cache)) {
+      return cache;
+    }
+
+    const document = await this.documentService.loadDocument(uri);
+    if (empty(document)) {
+      return undefined;
+    }
+
+    return this.analyzeLexicon(uri, document.getText());
   }
 
   /**
@@ -296,25 +511,25 @@ export class AnalysisService {
    * @param script Ast of the document
    * @param tables symbol tables that are dependencies of this document
    */
-  private semanticAnalysisDocument(
+  private analyzeSemantics(
     uri: string,
     script: IScript,
     tables: Set<SymbolTable>,
-  ): SemanticResult {
+  ): SemanticInfo {
     this.logger.verbose('');
     this.logger.verbose('-------------Semantic Analysis------------');
 
     // generate a scope manager for resolving
     const symbolTableBuilder = new SymbolTableBuilder(uri, this.logger);
-    let oldDocumentInfo = this.documentInfos.get(uri);
+    let oldSemanticInfo = this.semanticCache.get(uri);
 
     // add symbol tables that are dependent
-    if (!empty(oldDocumentInfo)) {
-      for (const dependent of oldDocumentInfo.symbolTable.dependentTables) {
+    if (!empty(oldSemanticInfo)) {
+      for (const dependent of oldSemanticInfo.symbolTable.dependentTables) {
         symbolTableBuilder.linkDependent(dependent);
       }
 
-      oldDocumentInfo.symbolTable.removeSelf();
+      oldSemanticInfo.symbolTable.removeSelf();
     }
 
     // add symbol tables that are dependencies
@@ -363,9 +578,9 @@ export class AnalysisService {
     const symbolTable = symbolTableBuilder.build();
 
     // make sure to delete references so scope manager can be gc'ed
-    if (!empty(oldDocumentInfo)) {
-      oldDocumentInfo.symbolTable.removeSelf();
-      oldDocumentInfo = undefined;
+    if (!empty(oldSemanticInfo)) {
+      oldSemanticInfo.symbolTable.removeSelf();
+      oldSemanticInfo = undefined;
     }
 
     const controlFlow = new ControlFlow(script, this.logger, this.tracer);
@@ -413,29 +628,72 @@ export class AnalysisService {
 
     this.logger.verbose('--------------------------------------');
 
-    return {
+    const semanticInfo = {
       symbolTable,
-      flowDiagnostics,
-      typeDiagnostics,
-      resolverDiagnostics,
+      diagnostics: [
+        ...flowDiagnostics,
+        ...typeDiagnostics,
+        ...resolverDiagnostics,
+      ],
     };
+
+    this.semanticCache.set(uri, semanticInfo);
+    return semanticInfo;
+  }
+
+  /**
+   * Get semantic information about a document from a cache or file
+   * @param uri uri to document
+   */
+  private async getSemantics(
+    uri: string,
+    loaded: Set<string>,
+  ): Promise<Maybe<SemanticInfo>> {
+    const cache = this.semanticCache.get(uri);
+    if (!empty(cache)) {
+      return cache;
+    }
+
+    const lexicalInfo = await this.getLexicon(uri);
+    if (empty(lexicalInfo)) {
+      return undefined;
+    }
+
+    const dependencyInfo = await this.getDependencies(uri, loaded);
+    if (empty(dependencyInfo)) {
+      return undefined;
+    }
+
+    return this.analyzeSemantics(
+      uri,
+      lexicalInfo.script,
+      dependencyInfo.dependencyTables,
+    );
   }
 
   /**
    * Load dependencies either from cache or by perform analysis on them as well
    * @param uri uri to document
    * @param script Ast of the document
-   * @param depth current resolving depth TODO actually check cycles
    */
   private async loadDependencies(
     uri: string,
     script: IScript,
-    depth: number,
-  ): Promise<DependencyLoadResult> {
-    const result: DependencyLoadResult = {
-      documentInfos: [],
-      loadDiagnostics: [],
+    loaded: Set<string>,
+  ): Promise<DependencyInfo> {
+    // pre-fill dependency tables with standard library
+    const result: DependencyInfo = {
+      dependencyTables: new Set([
+        this.activeStandardLibrary(),
+        this.activeBodyLibrary(),
+      ]),
+      diagnostics: [],
     };
+
+    if (loaded.has(uri)) {
+      return result;
+    }
+    loaded.add(uri);
 
     // if any run statement exist get uri then load
     if (script.runStmts.length > 0 && this.documentService.ready) {
@@ -445,32 +703,55 @@ export class AnalysisService {
       );
 
       // add diagnostics related to the actual load
-      result.loadDiagnostics.push(
+      result.diagnostics.push(
         ...diagnostics.map(error => addDiagnosticsUri(error, uri)),
       );
 
       // for each document run validate and yield any results
       for (const document of documents) {
-        const cached = this.documentInfos.get(document.uri);
-        if (!empty(cached)) {
-          result.documentInfos.push(cached);
-        } else {
-          const documentInfo = await this.validateDocument_(
-            document.uri,
-            document.getText(),
-            depth + 1,
-          );
-
-          // if document valid cache and push to result
-          if (!empty(documentInfo)) {
-            this.documentInfos.set(document.uri, documentInfo);
-            result.documentInfos.push(documentInfo);
-          }
+        const lexicalInfo = await this.getLexicon(document.uri);
+        if (empty(lexicalInfo)) {
+          continue;
         }
+
+        const dependencyInfo = await this.loadDependencies(
+          document.uri,
+          lexicalInfo.script,
+          loaded,
+        );
+        const semanticInfo = await this.getSemantics(document.uri, loaded);
+
+        if (!empty(semanticInfo)) {
+          result.dependencyTables.add(semanticInfo.symbolTable);
+        }
+
+        result.diagnostics.push(...dependencyInfo.diagnostics);
       }
     }
 
+    this.dependencyCache.set(uri, result);
     return result;
+  }
+
+  /**
+   * Get dependencies for a document from a cache or file
+   * @param uri uri to document
+   */
+  private async getDependencies(
+    uri: string,
+    loaded: Set<string>,
+  ): Promise<Maybe<DependencyInfo>> {
+    const cache = this.dependencyCache.get(uri);
+    if (!empty(cache)) {
+      return cache;
+    }
+
+    const lexicalInfo = await this.getLexicon(uri);
+    if (empty(lexicalInfo)) {
+      return undefined;
+    }
+
+    return this.loadDependencies(uri, lexicalInfo.script, loaded);
   }
 
   /**
@@ -486,34 +767,126 @@ export class AnalysisService {
     const diagnostics: Diagnostic[] = [];
 
     for (const runStmt of runStmts) {
-      // attempt to get a resolvable path from a run statement
+      // retrieve path from run statement
       const path = runPath(runStmt);
-      if (typeof path === 'string') {
-        // attempt to load document
-        const document = await this.documentService.loadDocumentFromScript(
-          runStmt.toLocation(uri),
-          path,
-        );
-
-        if (!empty(document)) {
-          // determine if document or diagnostic
-          if (TextDocument.is(document)) {
-            documents.push(document);
-          } else {
-            diagnostics.push(document);
-          }
-        }
-        // was dynamically loaded path can't load
-      } else {
+      if (typeof path !== 'string') {
         diagnostics.push(path);
+        continue;
+      }
+
+      // resolve path to uri
+      const runUri = this.resolverService.resolve(
+        runStmt.toLocation(uri),
+        path,
+      );
+
+      if (empty(runUri)) {
+        diagnostics.push(this.loadError(runStmt, path));
+        continue;
+      }
+
+      // load document from uri
+      const document = await this.documentService.loadDocument(
+        runUri.toString(),
+      );
+
+      if (!empty(document)) {
+        documents.push(document);
+      } else {
+        diagnostics.push(this.loadError(runStmt, path));
       }
     }
 
-    // generate uris then remove empty or preloaded documents
+    // return loaded documents and load errors
     return {
       documents,
       diagnostics,
     };
+  }
+
+  /**
+   * Extract all diagnostics from a document info
+   * @param documentInfo document info
+   */
+  private documentInfoDiagnostics(
+    documentInfo: Partial<DocumentInfo>,
+  ): DiagnosticUri[] {
+    const { lexicalInfo, semanticInfo, dependencyInfo } = documentInfo;
+
+    const diagnostics: DiagnosticUri[] = [];
+    if (!empty(lexicalInfo)) {
+      diagnostics.push(...lexicalInfo.diagnostics);
+    }
+
+    if (!empty(semanticInfo)) {
+      diagnostics.push(...semanticInfo.diagnostics);
+    }
+
+    if (!empty(dependencyInfo)) {
+      diagnostics.push(...dependencyInfo.diagnostics);
+    }
+
+    return diagnostics;
+  }
+
+  /**
+   * Get the full document in from the individual caches
+   * @param uri document uri to check against
+   */
+  private getDocumentInfo(uri: string): Maybe<DocumentInfo> {
+    const lexicalInfo = this.lexicalCache.get(uri);
+    const semanticInfo = this.semanticCache.get(uri);
+    const otherDiagnostics = this.dependencyCache.get(uri);
+
+    if (
+      !empty(lexicalInfo) &&
+      !empty(semanticInfo) &&
+      !empty(otherDiagnostics)
+    ) {
+      return { lexicalInfo, semanticInfo, dependencyInfo: otherDiagnostics };
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Set all the individual caches for a document info
+   * @param uri document uri to set
+   * @param documentInfo document info to set
+   */
+  private setDocumentCache(
+    uri: string,
+    documentInfo: Partial<DocumentInfo>,
+  ): void {
+    // check cache for existing document info
+    this.lexicalCache.set(uri, documentInfo.lexicalInfo);
+    this.semanticCache.set(uri, documentInfo.semanticInfo);
+    this.dependencyCache.set(uri, documentInfo.dependencyInfo);
+  }
+
+  /**
+   * Is this partial document info actually full
+   * @param partial potentially partial document info
+   */
+  private isFull(partial: Partial<DocumentInfo>): partial is DocumentInfo {
+    return (
+      !empty(partial.lexicalInfo) &&
+      !empty(partial.semanticInfo) &&
+      !empty(partial.dependencyInfo)
+    );
+  }
+
+  /**
+   * Generate a loading diagnostic if file cannot be loaded
+   * @param range range of the run statement
+   * @param path kos path of the file
+   */
+  private loadError(range: Range, path: string) {
+    return createDiagnostic(
+      range,
+      `Unable to load script at ${path}`,
+      DiagnosticSeverity.Information,
+    );
   }
 
   /**

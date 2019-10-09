@@ -8,14 +8,12 @@ import {
   Position,
   TextDocumentIdentifier,
   FoldingRange,
-  Diagnostic,
-  DiagnosticSeverity,
 } from 'vscode-languageserver';
-import { mockLogger, mockTracer } from '../utilities/logger';
+import { mockLogger, mockTracer } from '../models/logger';
 import { URI } from 'vscode-uri';
 import { empty } from '../utilities/typeGuards';
 import { zip } from '../utilities/arrayUtils';
-import { basename } from 'path';
+import { basename, join } from 'path';
 import { Scanner } from '../scanner/scanner';
 import { Parser } from '../parser/parser';
 import { Tokenized } from '../scanner/types';
@@ -23,63 +21,165 @@ import { Ast } from '../parser/types';
 import { FoldableService } from '../services/foldableService';
 import {
   createMockDocConnection,
-  createMockUriResponse,
+  createMockUriResponse as createMockIoService,
   createMockDocumentService,
 } from './utilities/mockServices';
-import { rangeEqual } from '../utilities/positionUtils';
 import { AnalysisService } from '../services/analysisService';
 import { typeInitializer } from '../typeChecker/initialize';
+import { ResolverService } from '../services/resolverService';
+import { IoService, Document, IoKind, IoEntity } from '../services/IoService';
+import { DocumentInfo, DiagnosticUri } from '../types';
 
+const testDir = join(__dirname, '../../../kerboscripts/parser_valid/');
+const loadDir = join(testDir, 'unitTests/loadFiles');
+const analysisDir = join(testDir, 'unitTests/analysis');
 typeInitializer();
 
-describe('documentService', () => {
+describe('resolver service', () => {
+  test('path resolver', () => {
+    const pathResolver = new ResolverService();
+    const range = {
+      start: {
+        line: 0,
+        character: 0,
+      },
+      end: {
+        line: 0,
+        character: 1,
+      },
+    };
+
+    const otherFileLocation: Location = {
+      range,
+      uri: 'file:///root/example/otherFile.ks',
+    };
+
+    const otherDirLocation: Location = {
+      range,
+      uri: 'file:///root/example/up/upFile.ks',
+    };
+
+    const relative1 = ['relative', 'path', 'file.ks'].join('/');
+    const relative2 = ['..', 'relative', 'path', 'file.ks'].join('/');
+    const absolute = ['0:', 'relative', 'path', 'file.ks'].join('/');
+    const weird = ['0:relative', 'path', 'file.ks'].join('/');
+
+    expect(pathResolver.resolve(otherFileLocation, relative1)).toBeUndefined();
+    expect(pathResolver.resolve(otherDirLocation, relative2)).toBeUndefined();
+    expect(pathResolver.resolve(otherFileLocation, absolute)).toBeUndefined();
+    expect(pathResolver.resolve(otherFileLocation, weird)).toBeUndefined();
+
+    pathResolver.rootVolume = URI.file(join('root', 'example'));
+
+    const resolvedUri = 'file:///root/example/relative/path/file.ks';
+
+    const relativeResolved1 = pathResolver.resolve(
+      otherFileLocation,
+      relative1,
+    );
+    expect(undefined).not.toBe(relativeResolved1);
+    if (!empty(relativeResolved1)) {
+      expect(relativeResolved1.toString()).toBe(resolvedUri);
+    }
+
+    const relativeResolved2 = pathResolver.resolve(otherDirLocation, relative2);
+    expect(undefined).not.toBe(relativeResolved2);
+    if (!empty(relativeResolved2)) {
+      expect(relativeResolved2.toString()).toBe(resolvedUri);
+    }
+
+    const absoluteResolved = pathResolver.resolve(otherFileLocation, absolute);
+    expect(undefined).not.toBe(absoluteResolved);
+    if (!empty(absoluteResolved)) {
+      expect(absoluteResolved.toString()).toBe(resolvedUri);
+    }
+
+    const weirdResolved = pathResolver.resolve(otherFileLocation, weird);
+    expect(undefined).not.toBe(weirdResolved);
+    if (!empty(weirdResolved)) {
+      expect(weirdResolved.toString()).toBe(resolvedUri);
+    }
+  });
+
+  test('path resolver boot', () => {
+    const pathResolver = new ResolverService();
+    const range = {
+      start: {
+        line: 0,
+        character: 0,
+      },
+      end: {
+        line: 0,
+        character: 1,
+      },
+    };
+
+    const bootFileLocation: Location = {
+      range,
+      uri: 'file:///root/example/boot/otherFile.ks',
+    };
+
+    const relative1 = ['relative', 'path', 'file.ks'].join('/');
+    const absolute = ['0:', 'relative', 'path', 'file.ks'].join('/');
+    const weird = ['0:relative', 'path', 'file.ks'].join('/');
+
+    expect(pathResolver.resolve(bootFileLocation, relative1)).toBeUndefined();
+    expect(pathResolver.resolve(bootFileLocation, absolute)).toBeUndefined();
+    expect(pathResolver.resolve(bootFileLocation, weird)).toBeUndefined();
+
+    pathResolver.rootVolume = URI.file(join('root', 'example'));
+
+    const resolvedUri = 'file:///root/example/relative/path/file.ks';
+
+    const relativeResolved1 = pathResolver.resolve(bootFileLocation, relative1);
+    expect(relativeResolved1).toBeDefined();
+    if (!empty(relativeResolved1)) {
+      expect(relativeResolved1.toString()).toBe(resolvedUri);
+    }
+
+    const absoluteResolved = pathResolver.resolve(bootFileLocation, absolute);
+    expect(absoluteResolved).toBeDefined();
+    if (!empty(absoluteResolved)) {
+      expect(absoluteResolved.toString()).toBe(resolvedUri);
+    }
+
+    const weirdResolved = pathResolver.resolve(bootFileLocation, weird);
+    expect(weirdResolved).toBeDefined();
+    if (!empty(weirdResolved)) {
+      expect(weirdResolved.toString()).toBe(resolvedUri);
+    }
+  });
+});
+
+describe('document service', () => {
   test('ready', async () => {
     const mockConnection = createMockDocConnection();
     const files = new Map();
-    const mockUriResponse = createMockUriResponse(files);
+    const mockIoService = createMockIoService(files);
 
     const baseUri = URI.file('/example/folder');
-    const callingUri = URI.file('/example/folder/example.ks').toString();
 
     const docService = new DocumentService(
       mockConnection,
-      mockUriResponse,
+      mockIoService,
       mockLogger,
       mockTracer,
     );
 
-    const documentLoaded = await docService.loadDocumentFromScript(
-      {
-        uri: callingUri,
-        range: {
-          start: {
-            line: 0,
-            character: 0,
-          },
-          end: {
-            line: 1,
-            character: 0,
-          },
-        },
-      },
-      callingUri,
-    );
-
     expect(docService.ready()).toBe(false);
-    expect(documentLoaded).toBeUndefined();
+    docService.rootVolume = baseUri;
 
-    docService.setVolume0Uri(baseUri);
     expect(docService.ready()).toBe(true);
   });
 
   test('load from client', () => {
     const mockConnection = createMockDocConnection();
     const files = new Map();
-    const mockUriResponse = createMockUriResponse(files);
+    const mockIoService = createMockIoService(files);
 
     const docService = new DocumentService(
       mockConnection,
-      mockUriResponse,
+      mockIoService,
       mockLogger,
       mockTracer,
     );
@@ -98,7 +198,7 @@ describe('documentService', () => {
 
     const docs = ['example 1', 'example 2', 'example 3', 'example 4'];
 
-    docService.onChange(document => {
+    docService.on('change', document => {
       expect(document.uri).toBe(uris[i].toString());
       expect(document.text).toBe(docs[i]);
     });
@@ -141,113 +241,19 @@ describe('documentService', () => {
     }
   });
 
-  test('load from server using kOS run', async () => {
-    const mockConnection = createMockDocConnection();
-    const files = new Map();
-    const mockUriResponse = createMockUriResponse(files);
-
-    const baseUri = URI.file('/example/folder').toString();
-    const callingUri = URI.file('/example/folder/example.ks').toString();
-
-    const docService = new DocumentService(
-      mockConnection,
-      mockUriResponse,
-      mockLogger,
-      mockTracer,
-      baseUri,
-    );
-
-    const serverDocs = docService['serverDocs'];
-    const clientDocs = docService['clientDocs'];
-
-    const uris = [
-      URI.file('/example/folder/doc1.ks'),
-      URI.file('/example/folder/doc2.ks'),
-      URI.file('/example/folder/doc3.ks'),
-      URI.file('/example/folder/doc4.ks'),
-    ];
-
-    const docs = ['example 1', 'example 2', 'example 3', 'example 4'];
-
-    let i = 0;
-    for (const [uri, doc] of zip(uris, docs)) {
-      const uriString = uri.toString();
-      files.set(uri.fsPath, doc);
-
-      const loadedDoc = await docService.loadDocumentFromScript(
-        Location.create(
-          callingUri,
-          Range.create({ line: 0, character: 0 }, { line: 0, character: 10 }),
-        ),
-        `0:/${basename(uriString)}`,
-      );
-
-      expect(loadedDoc).toBeDefined();
-      if (!empty(loadedDoc)) {
-        expect(TextDocument.is(loadedDoc)).toBe(true);
-        expect((loadedDoc as TextDocument).getText()).toBe(doc);
-      }
-
-      expect(clientDocs.size).toBe(0);
-      expect(serverDocs.size).toBe(i + 1);
-      expect(serverDocs.has(uri.toString())).toBe(true);
-
-      for (let j = 0; j <= i; j += 1) {
-        const doc = docService.getDocument(uris[j].toString());
-        expect(doc).toBeDefined();
-
-        if (!empty(doc)) {
-          expect(doc.getText()).toBe(docs[j]);
-        }
-
-        expect(serverDocs.has(uris[j].toString())).toBe(true);
-      }
-
-      i = i + 1;
-    }
-
-    const nonExistentUri = [
-      URI.file('/example/folder/none1.ks'),
-      URI.file('/example/folder/none2.ks'),
-    ];
-
-    for (const uri of nonExistentUri) {
-      const uriString = uri.toString();
-      const loadedDoc = await docService.loadDocumentFromScript(
-        Location.create(
-          callingUri,
-          Range.create({ line: 0, character: 0 }, { line: 0, character: 10 }),
-        ),
-        `0:/${basename(uriString)}`,
-      );
-      expect(loadedDoc).toBeDefined();
-      expect(Diagnostic.is(loadedDoc)).toBe(true);
-
-      if (Diagnostic.is(loadedDoc)) {
-        expect(loadedDoc.severity).toBe(DiagnosticSeverity.Information);
-        expect(
-          rangeEqual(
-            loadedDoc.range,
-            Range.create({ line: 0, character: 0 }, { line: 0, character: 10 }),
-          ),
-        ).toBe(true);
-      }
-    }
-  });
-
   test('load from server using uri', async () => {
     const mockConnection = createMockDocConnection();
     const files = new Map();
-    const mockUriResponse = createMockUriResponse(files);
+    const mockIoResponse = createMockIoService(files);
 
     const baseUri = URI.file('/example/folder').toString();
 
     const docService = new DocumentService(
       mockConnection,
-      mockUriResponse,
+      mockIoResponse,
       mockLogger,
       mockTracer,
-      baseUri,
+      URI.parse(baseUri),
     );
 
     const serverDocs = docService['serverDocs'];
@@ -308,17 +314,16 @@ describe('documentService', () => {
   test('change update', async () => {
     const mockConnection = createMockDocConnection();
     const files = new Map();
-    const mockUriResponse = createMockUriResponse(files);
+    const mockIoService = createMockIoService(files);
 
     const baseUri = URI.file('/example/folder').toString();
-    // const callingUri = URI.file('/example/folder/example.ks').toString();
 
     const docService = new DocumentService(
       mockConnection,
-      mockUriResponse,
+      mockIoService,
       mockLogger,
       mockTracer,
-      baseUri,
+      URI.parse(baseUri),
     );
 
     const serverDocs = docService['serverDocs'];
@@ -330,7 +335,7 @@ describe('documentService', () => {
 
     let first = true;
 
-    docService.onChange(document => {
+    docService.on('change', document => {
       if (first) {
         expect(document.uri).toBe(uri.toString());
         expect(document.text).toBe(content);
@@ -341,7 +346,7 @@ describe('documentService', () => {
       }
     });
 
-    docService.onClose(closeUri => {
+    docService.on('close', closeUri => {
       expect(closeUri).toBe(uri.toString());
     });
 
@@ -395,17 +400,18 @@ describe('documentService', () => {
   test('load extension', async () => {
     const mockConnection = createMockDocConnection();
     const files = new Map();
-    const mockUriResponse = createMockUriResponse(files);
+    const mockUriResponse = createMockIoService(files);
 
     const baseUri = URI.file('/example/folder').toString();
     const callingUri = URI.file('/example/folder/example.ks').toString();
+    const resolverService = new ResolverService(baseUri);
 
     const docService = new DocumentService(
       mockConnection,
       mockUriResponse,
       mockLogger,
       mockTracer,
-      baseUri,
+      URI.parse(baseUri),
     );
 
     const serverDocs = docService['serverDocs'];
@@ -431,13 +437,16 @@ describe('documentService', () => {
       const uriString = rUri.toString();
       files.set(aUri.fsPath, doc);
 
-      const loadedDoc = await docService.loadDocumentFromScript(
+      const resolvedUri = resolverService.resolve(
         Location.create(
           callingUri,
           Range.create({ line: 0, character: 0 }, { line: 0, character: 10 }),
         ),
         `0:/${basename(uriString)}`,
       );
+      expect(resolvedUri).toBeDefined();
+
+      const loadedDoc = await docService.loadDocument(resolvedUri!.toString());
 
       expect(loadedDoc).toBeDefined();
       if (!empty(loadedDoc)) {
@@ -452,42 +461,85 @@ describe('documentService', () => {
       i += 1;
     }
   });
+
+  test('cache document', async () => {
+    const mockConnection = createMockDocConnection();
+    const mockUriResponse = new IoService();
+
+    const baseUri = URI.file(loadDir);
+
+    const docService = new DocumentService(
+      mockConnection,
+      mockUriResponse,
+      mockLogger,
+      mockTracer,
+      URI.parse(baseUri.toString()),
+    );
+
+    await docService.cacheDocuments();
+
+    const serverDocs = docService['serverDocs'];
+    const clientDocs = docService['clientDocs'];
+
+    const fileUris = [
+      URI.file(join(baseUri.fsPath, 'example.ks')),
+      URI.file(join(baseUri.fsPath, 'empty', 'empty.ks')),
+    ];
+
+    expect(clientDocs.size).toBe(0);
+    expect(serverDocs.size).toBe(fileUris.length);
+
+    for (const uri of fileUris) {
+      expect(serverDocs.has(uri.toString())).toBe(true);
+    }
+  });
 });
 
-describe('analysisService', () => {
+const documentInfoDiagnostics = ({
+  lexicalInfo,
+  semanticInfo,
+  dependencyInfo,
+}: DocumentInfo): DiagnosticUri[] => [
+  ...lexicalInfo.diagnostics,
+  ...semanticInfo.diagnostics,
+  ...dependencyInfo.diagnostics,
+];
+
+describe('analysis service', () => {
   test('validate single document', async () => {
     const uri = URI.file('/example/folder/example.ks').toString();
 
     const documents = new Map([
       [uri, TextDocument.create(uri, 'kos', 1.0, 'print(10).')],
     ]);
-    const docService = createMockDocumentService(
-      documents,
-      URI.file('/').toString(),
-    );
+    const docService = createMockDocumentService(documents);
+    const resolverService = new ResolverService(uri);
 
     const analysisService = new AnalysisService(
       CaseKind.camelCase,
       mockLogger,
       mockTracer,
       docService,
+      resolverService,
     );
 
-    const diagnostics = await analysisService.validateDocument(
+    const diagnostics = await analysisService.analyzeDocument(
       uri,
       (documents.get(uri) as TextDocument).getText(),
     );
     const documentInfo = await analysisService.getInfo(uri);
 
-    expect(diagnostics.length).toBe(0);
+    expect(diagnostics).toHaveLength(0);
     expect(documentInfo).toBeDefined();
 
     if (!empty(documentInfo)) {
-      expect(documentInfo.symbolTable.dependencyTables.size).toBe(2);
-      expect(documentInfo.diagnostics).toStrictEqual(diagnostics);
-      expect(documentInfo.script.stmts.length).toBe(1);
+      const { lexicalInfo, semanticInfo } = documentInfo;
+
+      expect(semanticInfo.symbolTable.dependencyTables.size).toBe(2);
+      expect(documentInfoDiagnostics(documentInfo)).toStrictEqual(diagnostics);
+      expect(lexicalInfo.script.stmts).toHaveLength(1);
       expect(
-        documentInfo.symbolTable.rootScope.environment.symbols.length,
+        semanticInfo.symbolTable.rootScope.environment.symbols.length,
       ).toBe(0);
     }
   });
@@ -498,16 +550,15 @@ describe('analysisService', () => {
     const documents = new Map([
       [uri, TextDocument.create(uri, 'kos', 1.0, 'print(10).')],
     ]);
-    const docService = createMockDocumentService(
-      documents,
-      URI.file('/').toString(),
-    );
+    const docService = createMockDocumentService(documents);
+    const resolverService = new ResolverService(uri);
 
     const analysisService = new AnalysisService(
       CaseKind.camelCase,
       mockLogger,
       mockTracer,
       docService,
+      resolverService,
     );
 
     const documentInfo = await analysisService.getInfo(uri);
@@ -515,25 +566,29 @@ describe('analysisService', () => {
     expect(documentInfo).toBeDefined();
 
     if (!empty(documentInfo)) {
-      expect(documentInfo.symbolTable.dependencyTables.size).toBe(2);
-      expect(documentInfo.script.stmts.length).toBe(1);
+      const { lexicalInfo, semanticInfo } = documentInfo;
+
+      expect(semanticInfo.symbolTable.dependencyTables.size).toBe(2);
+      expect(lexicalInfo.script.stmts).toHaveLength(1);
       expect(
-        documentInfo.symbolTable.rootScope.environment.symbols.length,
+        semanticInfo.symbolTable.rootScope.environment.symbols.length,
       ).toBe(0);
     }
 
-    const diagnostics = await analysisService.validateDocument(
+    const diagnostics = await analysisService.analyzeDocument(
       uri,
       (documents.get(uri) as TextDocument).getText(),
     );
-    expect(diagnostics.length).toBe(0);
+    expect(diagnostics).toHaveLength(0);
 
     if (!empty(documentInfo)) {
-      expect(documentInfo.symbolTable.dependencyTables.size).toBe(0);
-      expect(documentInfo.diagnostics).toStrictEqual(diagnostics);
-      expect(documentInfo.script.stmts.length).toBe(1);
+      const { lexicalInfo, semanticInfo } = documentInfo;
+
+      expect(semanticInfo.symbolTable.dependencyTables.size).toBe(0);
+      expect(semanticInfo.diagnostics).toStrictEqual(diagnostics);
+      expect(lexicalInfo.script.stmts).toHaveLength(1);
       expect(
-        documentInfo.symbolTable.rootScope.environment.symbols.length,
+        semanticInfo.symbolTable.rootScope.environment.symbols.length,
       ).toBe(0);
     }
   });
@@ -544,16 +599,15 @@ describe('analysisService', () => {
     const documents = new Map([
       [uri, TextDocument.create(uri, 'kos', 1.0, 'print(10).')],
     ]);
-    const docService = createMockDocumentService(
-      documents,
-      URI.file('/').toString(),
-    );
+    const docService = createMockDocumentService(documents);
+    const resolverService = new ResolverService(uri);
 
     const analysisService = new AnalysisService(
       CaseKind.lowerCase,
       mockLogger,
       mockTracer,
       docService,
+      resolverService,
     );
 
     let bodyLib = analysisService['bodyLibrary'];
@@ -601,42 +655,50 @@ describe('analysisService', () => {
         TextDocument.create(uri2, 'kos', 1.0, 'function hi { print("hi"). }'),
       ],
     ]);
-    const docService = createMockDocumentService(documents, baseUri);
+    const docService = createMockDocumentService(documents);
+    const resolverService = new ResolverService(baseUri);
 
     const analysisService = new AnalysisService(
       CaseKind.camelCase,
       mockLogger,
       mockTracer,
       docService,
+      resolverService,
     );
 
-    const diagnostics = await analysisService.validateDocument(
+    const diagnostics = await analysisService.analyzeDocument(
       uri1,
       (documents.get(uri1) as TextDocument).getText(),
     );
     const documentInfo1 = await analysisService.getInfo(uri1);
     const documentInfo2 = await analysisService.getInfo(uri2);
 
-    expect(diagnostics.length).toBe(0);
+    expect(diagnostics).toHaveLength(0);
     expect(documentInfo1).toBeDefined();
     expect(documentInfo2).toBeDefined();
 
     if (!empty(documentInfo1) && !empty(documentInfo2)) {
-      expect(documentInfo1.symbolTable.dependencyTables.size).toBe(3);
-      expect(documentInfo2.symbolTable.dependencyTables.size).toBe(2);
-      expect(documentInfo1.symbolTable.dependencyTables).toContain(
-        documentInfo2.symbolTable,
+      expect(documentInfo1.semanticInfo.symbolTable.dependencyTables.size).toBe(
+        3,
+      );
+      expect(documentInfo2.semanticInfo.symbolTable.dependencyTables.size).toBe(
+        2,
+      );
+      expect(documentInfo1.semanticInfo.symbolTable.dependencyTables).toContain(
+        documentInfo2.semanticInfo.symbolTable,
       );
 
-      expect(documentInfo1.diagnostics).toStrictEqual(diagnostics);
-      expect(documentInfo1.script.stmts.length).toBe(2);
-      expect(documentInfo2.script.stmts.length).toBe(1);
+      expect(documentInfoDiagnostics(documentInfo1)).toStrictEqual(diagnostics);
+      expect(documentInfo1.lexicalInfo.script.stmts).toHaveLength(2);
+      expect(documentInfo2.lexicalInfo.script.stmts).toHaveLength(1);
       expect(
-        documentInfo1.symbolTable.rootScope.environment.symbols().length,
+        documentInfo1.semanticInfo.symbolTable.rootScope.environment.symbols()
+          .length,
       ).toBe(0);
 
       expect(
-        documentInfo2.symbolTable.rootScope.environment.symbols().length,
+        documentInfo2.semanticInfo.symbolTable.rootScope.environment.symbols()
+          .length,
       ).toBe(1);
     }
   });
@@ -661,79 +723,227 @@ describe('analysisService', () => {
         TextDocument.create(uri2, 'kos', 1.0, 'function hi { print("hi"). }'),
       ],
     ]);
-    const docService = createMockDocumentService(documents, baseUri);
+    const docService = createMockDocumentService(documents);
+    const resolverService = new ResolverService(baseUri);
 
     const analysisService = new AnalysisService(
       CaseKind.camelCase,
       mockLogger,
       mockTracer,
       docService,
+      resolverService,
     );
 
     // initial load of example1.ks
-    const diagnostics11 = await analysisService.validateDocument(
+    const diagnostics11 = await analysisService.analyzeDocument(
       uri1,
       (documents.get(uri1) as TextDocument).getText(),
     );
     const documentInfo11 = await analysisService.getInfo(uri1);
 
     // load from client example2.ks
-    const diagnostics21 = await analysisService.validateDocument(
+    const diagnostics21 = await analysisService.analyzeDocument(
       uri2,
       (documents.get(uri2) as TextDocument).getText(),
     );
     const documentInfo21 = await analysisService.getInfo(uri2);
 
     // update load of example1.ks
-    const diagnostics12 = await analysisService.validateDocument(
+    const diagnostics12 = await analysisService.analyzeDocument(
       uri1,
       (documents.get(uri1) as TextDocument).getText(),
     );
     const documentInfo12 = await analysisService.getInfo(uri1);
 
     // update load of example2.ks
-    const diagnostics22 = await analysisService.validateDocument(
+    const diagnostics22 = await analysisService.analyzeDocument(
       uri2,
       (documents.get(uri2) as TextDocument).getText(),
     );
     const documentInfo22 = await analysisService.getInfo(uri2);
 
-    expect(diagnostics11.length).toBe(0);
-    expect(diagnostics12.length).toBe(0);
-    expect(diagnostics21.length).toBe(0);
-    expect(diagnostics22.length).toBe(0);
+    expect(diagnostics11).toHaveLength(0);
+    expect(diagnostics12).toHaveLength(0);
+    expect(diagnostics21).toHaveLength(0);
+    expect(diagnostics22).toHaveLength(0);
 
     expect(documentInfo11).toBeDefined();
     expect(documentInfo12).toBeDefined();
     expect(documentInfo21).toBeDefined();
     expect(documentInfo22).toBeDefined();
 
-    const documentInfos = analysisService['documentInfos'];
-
     if (!empty(documentInfo11) && !empty(documentInfo21)) {
-      expect(documentInfo11.symbolTable.dependencyTables.size).toBe(0);
-      expect(documentInfo11.symbolTable.dependentTables.size).toBe(0);
-      expect(documentInfo21.symbolTable.dependencyTables.size).toBe(0);
-      expect(documentInfo21.symbolTable.dependentTables.size).toBe(0);
+      expect(
+        documentInfo11.semanticInfo.symbolTable.dependencyTables.size,
+      ).toBe(0);
+      expect(documentInfo11.semanticInfo.symbolTable.dependentTables.size).toBe(
+        0,
+      );
+      expect(
+        documentInfo21.semanticInfo.symbolTable.dependencyTables.size,
+      ).toBe(0);
+      expect(documentInfo21.semanticInfo.symbolTable.dependentTables.size).toBe(
+        0,
+      );
 
-      expect(documentInfo11.diagnostics).toStrictEqual(diagnostics11);
-      expect(documentInfo11.diagnostics).toStrictEqual(diagnostics12);
-      expect(documentInfo21.diagnostics).toStrictEqual(diagnostics21);
-      expect(documentInfo21.diagnostics).toStrictEqual(diagnostics22);
+      expect(documentInfoDiagnostics(documentInfo11)).toStrictEqual(
+        diagnostics11,
+      );
+      expect(documentInfoDiagnostics(documentInfo11)).toStrictEqual(
+        diagnostics12,
+      );
+      expect(documentInfoDiagnostics(documentInfo21)).toStrictEqual(
+        diagnostics21,
+      );
+      expect(documentInfoDiagnostics(documentInfo21)).toStrictEqual(
+        diagnostics22,
+      );
 
-      expect(documentInfos.get(uri1)).not.toBe(documentInfo11);
-      expect(documentInfos.get(uri2)).not.toBe(documentInfo21);
+      expect(analysisService['getDocumentInfo'](uri1)).not.toStrictEqual(
+        documentInfo11,
+      );
+      expect(analysisService['getDocumentInfo'](uri2)).not.toStrictEqual(
+        documentInfo21,
+      );
     }
 
     if (!empty(documentInfo12) && !empty(documentInfo22)) {
-      expect(documentInfo12.symbolTable.dependencyTables.size).toBe(3);
-      expect(documentInfo12.symbolTable.dependentTables.size).toBe(0);
-      expect(documentInfo22.symbolTable.dependencyTables.size).toBe(2);
-      expect(documentInfo22.symbolTable.dependentTables.size).toBe(1);
+      expect(
+        documentInfo12.semanticInfo.symbolTable.dependencyTables.size,
+      ).toBe(3);
+      expect(documentInfo12.semanticInfo.symbolTable.dependentTables.size).toBe(
+        0,
+      );
+      expect(
+        documentInfo22.semanticInfo.symbolTable.dependencyTables.size,
+      ).toBe(2);
+      expect(documentInfo22.semanticInfo.symbolTable.dependentTables.size).toBe(
+        1,
+      );
 
-      expect(documentInfos.get(uri1)).toBe(documentInfo12);
-      expect(documentInfos.get(uri2)).toBe(documentInfo22);
+      expect(analysisService['getDocumentInfo'](uri1)).toStrictEqual(
+        documentInfo12,
+      );
+      expect(analysisService['getDocumentInfo'](uri2)).toStrictEqual(
+        documentInfo22,
+      );
     }
+  });
+
+  test('load directory', async () => {
+    const connection = createMockDocConnection();
+    const ioService = new IoService();
+    const docService = new DocumentService(
+      connection,
+      ioService,
+      mockLogger,
+      mockTracer,
+      URI.file(analysisDir),
+    );
+    const resolverService = new ResolverService(
+      URI.file(analysisDir).toString(),
+    );
+
+    const analysisService = new AnalysisService(
+      CaseKind.camelCase,
+      mockLogger,
+      mockTracer,
+      docService,
+      resolverService,
+    );
+
+    const diagnostics = await analysisService.loadDirectory();
+    expect(diagnostics).toHaveLength(1);
+
+    expect(diagnostics[0].uri).toBe(
+      URI.file(join(analysisDir, 'test.ks')).toString(),
+    );
+  });
+});
+
+describe('io service', () => {
+  test('load a document', async () => {
+    const ioService = new IoService();
+    const contents = await ioService.load(join(loadDir, 'example.ks'));
+    expect(contents).toBe('print("hi").');
+  });
+
+  test('load a directory', async () => {
+    const ioService = new IoService();
+
+    const documents: Document[] = [];
+    for await (const document of ioService.loadDirectory(loadDir)) {
+      documents.push(document);
+    }
+
+    expect(documents).toHaveLength(2);
+  });
+
+  test('get stats on directory with partial', async () => {
+    const ioService = new IoService();
+
+    const entities = ioService.statDirectory(
+      URI.file(join(loadDir, 'something')),
+    );
+    expect(entities).toHaveLength(2);
+
+    const entityMap = new Map<IoKind, IoEntity>();
+    for (const entity of entities) {
+      entityMap.set(entity.kind, entity);
+    }
+
+    expect(entityMap.has(IoKind.file)).toBe(true);
+    expect(entityMap.has(IoKind.directory)).toBe(true);
+
+    expect(entityMap.get(IoKind.file)!.uri.toString()).toBe(
+      URI.file(join(loadDir, 'example.ks')).toString(),
+    );
+    expect(entityMap.get(IoKind.directory)!.uri.toString()).toBe(
+      URI.file(join(loadDir, 'empty')).toString(),
+    );
+  });
+
+  test('get stats on directory with full', async () => {
+    const ioService = new IoService();
+
+    const entities = ioService.statDirectory(URI.file(loadDir));
+    expect(entities).toHaveLength(2);
+
+    const entityMap = new Map<IoKind, IoEntity>();
+    for (const entity of entities) {
+      entityMap.set(entity.kind, entity);
+    }
+
+    expect(entityMap.has(IoKind.file)).toBe(true);
+    expect(entityMap.has(IoKind.directory)).toBe(true);
+
+    expect(entityMap.get(IoKind.file)!.uri.toString()).toBe(
+      URI.file(join(loadDir, 'example.ks')).toString(),
+    );
+    expect(entityMap.get(IoKind.directory)!.uri.toString()).toBe(
+      URI.file(join(loadDir, 'empty')).toString(),
+    );
+  });
+
+  test('does a file exist', async () => {
+    const ioService = new IoService();
+
+    const ksUri = ioService.exists(URI.file(join(loadDir, 'example.ks')));
+    const ksmUri = ioService.exists(URI.file(join(loadDir, 'example.ksm')));
+    const blankUri = ioService.exists(URI.file(join(loadDir, 'example')));
+
+    expect(ksUri).toBeDefined();
+    expect(ksmUri).toBeDefined();
+    expect(blankUri).toBeDefined();
+
+    const match = [ksUri, ksmUri, blankUri]
+      .map(uri => uri!.toString())
+      .every(uri => uri === ksUri!.toString());
+
+    expect(match).toBe(true);
+
+    const invalidUri = ioService.exists(URI.file(join(loadDir, 'example.js')));
+    expect(invalidUri).toBeUndefined();
   });
 });
 
@@ -786,8 +996,8 @@ const parseSource = (source: string): ScanParseResult => {
 };
 
 const noParseErrors = (result: ScanParseResult): void => {
-  expect(result.scan.scanDiagnostics.length).toBe(0);
-  expect(result.parse.parseDiagnostics.length).toBe(0);
+  expect(result.scan.scanDiagnostics).toHaveLength(0);
+  expect(result.parse.parseDiagnostics).toHaveLength(0);
 };
 
 describe('foldableService', () => {
@@ -824,7 +1034,7 @@ describe('foldableService', () => {
       result.scan.regions,
     );
 
-    expect(foldable.length).toBe(2);
+    expect(foldable).toHaveLength(2);
     const folds: FoldingRange[] = [
       {
         startCharacter: 8,
@@ -856,7 +1066,7 @@ describe('foldableService', () => {
       result.scan.regions,
     );
 
-    expect(foldable.length).toBe(3);
+    expect(foldable).toHaveLength(3);
     const folds: FoldingRange[] = [
       {
         startCharacter: 8,

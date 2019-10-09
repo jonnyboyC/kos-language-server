@@ -1,7 +1,4 @@
-import { Location, Position, Range } from 'vscode-languageserver';
-import { join } from 'path';
-import { PathResolver } from '../utilities/pathResolver';
-import { empty } from '../utilities/typeGuards';
+import { Position, Range } from 'vscode-languageserver';
 import {
   rangeEqual,
   positionAfter,
@@ -21,144 +18,10 @@ import {
   binaryRightKey,
 } from '../utilities/positionUtils';
 import { toCase } from '../utilities/stringUtils';
-import { Logger } from '../utilities/logger';
-import { URI } from 'vscode-uri';
-
-describe('path resolver', () => {
-  test('path resolver', () => {
-    const pathResolver = new PathResolver();
-    const range = {
-      start: {
-        line: 0,
-        character: 0,
-      },
-      end: {
-        line: 0,
-        character: 1,
-      },
-    };
-
-    const otherFileLocation: Location = {
-      range,
-      uri: 'file:///root/example/otherFile.ks',
-    };
-
-    const otherDirLocation: Location = {
-      range,
-      uri: 'file:///root/example/up/upFile.ks',
-    };
-
-    const relative1 = ['relative', 'path', 'file.ks'].join('/');
-    const relative2 = ['..', 'relative', 'path', 'file.ks'].join('/');
-    const absolute = ['0:', 'relative', 'path', 'file.ks'].join('/');
-    const weird = ['0:relative', 'path', 'file.ks'].join('/');
-
-    expect(
-      pathResolver.resolveUri(otherFileLocation, relative1),
-    ).toBeUndefined();
-    expect(
-      pathResolver.resolveUri(otherDirLocation, relative2),
-    ).toBeUndefined();
-    expect(
-      pathResolver.resolveUri(otherFileLocation, absolute),
-    ).toBeUndefined();
-    expect(pathResolver.resolveUri(otherFileLocation, weird)).toBeUndefined();
-
-    pathResolver.volume0Uri = URI.file(join('root', 'example'));
-
-    const resolvedUri = 'file:///root/example/relative/path/file.ks';
-
-    const relativeResolved1 = pathResolver.resolveUri(
-      otherFileLocation,
-      relative1,
-    );
-    expect(undefined).not.toBe(relativeResolved1);
-    if (!empty(relativeResolved1)) {
-      expect(relativeResolved1.toString()).toBe(resolvedUri);
-    }
-
-    const relativeResolved2 = pathResolver.resolveUri(
-      otherDirLocation,
-      relative2,
-    );
-    expect(undefined).not.toBe(relativeResolved2);
-    if (!empty(relativeResolved2)) {
-      expect(relativeResolved2.toString()).toBe(resolvedUri);
-    }
-
-    const absoluteResolved = pathResolver.resolveUri(
-      otherFileLocation,
-      absolute,
-    );
-    expect(undefined).not.toBe(absoluteResolved);
-    if (!empty(absoluteResolved)) {
-      expect(absoluteResolved.toString()).toBe(resolvedUri);
-    }
-
-    const weirdResolved = pathResolver.resolveUri(otherFileLocation, weird);
-    expect(undefined).not.toBe(weirdResolved);
-    if (!empty(weirdResolved)) {
-      expect(weirdResolved.toString()).toBe(resolvedUri);
-    }
-  });
-
-  test('path resolver boot', () => {
-    const pathResolver = new PathResolver();
-    const range = {
-      start: {
-        line: 0,
-        character: 0,
-      },
-      end: {
-        line: 0,
-        character: 1,
-      },
-    };
-
-    const bootFileLocation: Location = {
-      range,
-      uri: 'file:///root/example/boot/otherFile.ks',
-    };
-
-    const relative1 = ['relative', 'path', 'file.ks'].join('/');
-    const absolute = ['0:', 'relative', 'path', 'file.ks'].join('/');
-    const weird = ['0:relative', 'path', 'file.ks'].join('/');
-
-    expect(
-      pathResolver.resolveUri(bootFileLocation, relative1),
-    ).toBeUndefined();
-    expect(pathResolver.resolveUri(bootFileLocation, absolute)).toBeUndefined();
-    expect(pathResolver.resolveUri(bootFileLocation, weird)).toBeUndefined();
-
-    pathResolver.volume0Uri = URI.file(join('root', 'example'));
-
-    const resolvedUri = 'file:///root/example/relative/path/file.ks';
-
-    const relativeResolved1 = pathResolver.resolveUri(
-      bootFileLocation,
-      relative1,
-    );
-    expect(relativeResolved1).toBeDefined();
-    if (!empty(relativeResolved1)) {
-      expect(relativeResolved1.toString()).toBe(resolvedUri);
-    }
-
-    const absoluteResolved = pathResolver.resolveUri(
-      bootFileLocation,
-      absolute,
-    );
-    expect(absoluteResolved).toBeDefined();
-    if (!empty(absoluteResolved)) {
-      expect(absoluteResolved.toString()).toBe(resolvedUri);
-    }
-
-    const weirdResolved = pathResolver.resolveUri(bootFileLocation, weird);
-    expect(weirdResolved).toBeDefined();
-    if (!empty(weirdResolved)) {
-      expect(weirdResolved.toString()).toBe(resolvedUri);
-    }
-  });
-});
+import { Logger } from '../models/logger';
+import { Graph } from '../models/graph';
+import { dfsNode, scc } from '../utilities/graphUtils';
+import { empty } from '../utilities/typeGuards';
 
 const createRange = (
   startLine: number,
@@ -438,19 +301,384 @@ describe('logger', () => {
   });
 });
 
-// describe('tree traverse', () => {
-//   test('token check', () => {
-//     const source = readFileSync('../../kerboscripts/unitTests/allLanguage.ks', 'utf-8');
-//     const scanner = new Scanner(source, 'file://fake.ks');
-//     const { tokens } = scanner.scanTokens();
+class Node implements GraphNode<Node> {
+  public readonly nodes: GraphNode<Node>[];
+  public id: number;
+  constructor(id: number) {
+    this.nodes = [];
+    this.id = id;
+  }
 
-//     const parser = new Parser('file:://fake.ks', tokens);
-//     const { script } = parser.parse();
+  value() {
+    return this;
+  }
+  adjacentNodes() {
+    return this.nodes;
+  }
+}
 
-//     const tokenCheck = new TokenCheck();
-//     tokenCheck.orderedTokens(script);
+const createLoop = (length: number) => {
+  const nodes: Node[] = [];
 
-//     for (const statement of validStatements) {
-//     }
-//   });
-// });
+  for (let i = 0; i < length; i++) {
+    nodes.push(new Node(i));
+  }
+
+  for (let i = 0; i < length; i++) {
+    nodes[i].nodes.push(nodes[(i + 1) % length]);
+  }
+
+  return nodes;
+};
+
+const createDisjoint = (length: number) => {
+  const nodes: Node[] = [];
+
+  for (let i = 0; i < length; i++) {
+    nodes.push(new Node(i));
+  }
+
+  return nodes;
+};
+
+const createFullyConnected = (length: number) => {
+  const nodes: Node[] = [];
+
+  for (let i = 0; i < length; i++) {
+    nodes.push(new Node(i));
+  }
+
+  for (let i = 0; i < length; i++) {
+    for (let j = 0; j < length; j++) {
+      nodes[i].nodes.push(nodes[j]);
+    }
+  }
+
+  return nodes;
+};
+
+const createDiamond = () => {
+  const nodes: Node[] = [];
+
+  for (let i = 0; i < 4; i++) {
+    nodes.push(new Node(i));
+  }
+
+  nodes[0].nodes.push(nodes[1], nodes[2]);
+  nodes[1].nodes.push(nodes[3]);
+  nodes[2].nodes.push(nodes[3]);
+
+  return nodes;
+};
+
+describe('when constructing a graph', () => {
+  test('when constructing a graph from nodes', () => {
+    const nodes = createLoop(10);
+    const graph = Graph.fromNodes(nodes);
+
+    for (const node of nodes) {
+      // check that map goes correctly
+      expect(graph.nodes.has(node)).toBe(true);
+      expect(nodes).toContain(node);
+      const edges = graph.getEdges(node);
+      expect(edges).toBeDefined();
+
+      // check adjacent nodes are correct
+      for (const adjacentNode of node.adjacentNodes()) {
+        expect(graph.nodes.has(adjacentNode.value())).toBe(true);
+        expect(edges!.has(adjacentNode.value())).toBeDefined();
+      }
+    }
+  });
+});
+
+describe('when mutating a graph', () => {
+  let graph: Graph<Node>;
+
+  beforeEach(() => {
+    const nodes = createLoop(4);
+    graph = Graph.fromNodes(nodes);
+  });
+
+  describe('when adding a node to the graph', () => {
+    test('Does not add when it exists', () => {
+      const [firstNode] = graph.nodes;
+      expect(graph.addNode(firstNode)).toBe(false);
+    });
+
+    test("Does add when it doesn't exists", () => {
+      const newNode = new Node(10);
+      expect(graph.addNode(newNode)).toBe(true);
+    });
+  });
+
+  describe('when removing a node from the graph', () => {
+    test("Does nothing if it doesn't exists", () => {
+      const newNode = new Node(10);
+      expect(graph.removeNode(newNode)).toBe(false);
+    });
+
+    test('Removes nodes and associated edges if node exists', () => {
+      const [firstNode] = graph.nodes;
+      expect(graph.removeNode(firstNode)).toBe(true);
+      expect(graph.nodes.has(firstNode)).toBe(false);
+
+      for (const node of graph.nodes) {
+        const edges = graph.getEdges(node);
+        expect(edges).toBeDefined();
+        expect(edges!.has(firstNode)).toBe(false);
+      }
+    });
+  });
+
+  describe('when adding a edge to the graph', () => {
+    test('Does not add when either is node does not exist', () => {
+      const [firstNode] = graph.nodes;
+      const newNode = new Node(20);
+
+      expect(graph.addEdge(firstNode, newNode)).toBe(false);
+      expect(graph.addEdge(newNode, firstNode)).toBe(false);
+    });
+
+    test('Does add edge when both exists', () => {
+      const [firstNode, secondNode] = graph.nodes;
+
+      expect(graph.addEdge(firstNode, secondNode)).toBe(true);
+      expect(graph.addEdge(secondNode, firstNode)).toBe(true);
+    });
+  });
+
+  describe('when removing an edge from the graph', () => {
+    test("Doesn't remove if node doesn't exist", () => {
+      const newNode = new Node(10);
+      const [firstNode] = graph.nodes;
+
+      expect(graph.removeEdge(newNode, firstNode)).toBe(false);
+    });
+
+    test("Doesn't remove edge if doesn't exist", () => {
+      const [firstNode, secondNode, thirdNode, fourthNode] = graph.nodes;
+
+      expect(graph.removeEdge(firstNode, thirdNode)).toBe(false);
+      expect(graph.removeEdge(secondNode, fourthNode)).toBe(false);
+      expect(graph.removeEdge(thirdNode, firstNode)).toBe(false);
+      expect(graph.removeEdge(fourthNode, secondNode)).toBe(false);
+    });
+
+    test('Removes edge if it exist', () => {
+      const [firstNode, secondNode, thirdNode, fourthNode] = graph.nodes;
+
+      expect(graph.removeEdge(firstNode, secondNode)).toBe(true);
+
+      let edges = graph.getEdges(firstNode);
+      expect(edges).toBeDefined();
+      expect(edges!.size).toBe(0);
+
+      expect(graph.removeEdge(secondNode, thirdNode)).toBe(true);
+
+      edges = graph.getEdges(secondNode);
+      expect(edges).toBeDefined();
+      expect(edges!.size).toBe(0);
+
+      expect(graph.removeEdge(thirdNode, fourthNode)).toBe(true);
+
+      edges = graph.getEdges(thirdNode);
+      expect(edges).toBeDefined();
+      expect(edges!.size).toBe(0);
+
+      expect(graph.removeEdge(fourthNode, firstNode)).toBe(true);
+
+      edges = graph.getEdges(fourthNode);
+      expect(edges).toBeDefined();
+      expect(edges!.size).toBe(0);
+    });
+  });
+});
+
+describe('when performing depth first search on a graph', () => {
+  test('throws when called with invalid args', () => {
+    const nodes = createFullyConnected(10);
+    const connected = Graph.fromNodes(nodes);
+
+    const disjoint = new Node(20);
+
+    // expect(() => dfs(connected, 11, new Array(10).fill(false))).toThrow();
+    expect(() => dfsNode(connected, disjoint)).toThrow();
+  });
+
+  describe('for a disjoint graph', () => {
+    test('discovers only one node is reachable', () => {
+      const nodes = createDisjoint(10);
+      const graph = Graph.fromNodes(nodes);
+
+      for (const node of nodes) {
+        const dfs = dfsNode(graph, node);
+
+        // check we're reachable
+        expect(dfs.reachable.size).toBe(1);
+        expect(dfs.reachable.has(node)).toBe(true);
+
+        // check all other are un reachable
+        expect(dfs.unreachable.size).toBe(9);
+        expect(dfs.unreachable.has(node)).toBe(false);
+      }
+    });
+  });
+
+  describe('for a single cycle graph', () => {
+    test('discovers only one node is reachable', () => {
+      const nodes = createLoop(10);
+      const graph = Graph.fromNodes(nodes);
+
+      for (const node of nodes) {
+        const dfs = dfsNode(graph, node);
+
+        // check we're reachable
+        expect(dfs.reachable.size).toBe(10);
+        for (const innerNode of nodes) {
+          expect(dfs.reachable.has(innerNode)).toBe(true);
+        }
+
+        // check none are unreachable
+        expect(dfs.unreachable.size).toBe(0);
+      }
+    });
+  });
+
+  test('when nodes are fully connected', () => {
+    const nodes = createFullyConnected(10);
+    const graph = Graph.fromNodes(nodes);
+
+    for (const node of nodes) {
+      const dfs = dfsNode(graph, node);
+
+      // check we're reachable
+      expect(dfs.reachable.size).toBe(10);
+      for (const innerNode of nodes) {
+        expect(dfs.reachable.has(innerNode)).toBe(true);
+      }
+
+      // check none are unreachable
+      expect(dfs.unreachable.size).toBe(0);
+    }
+  });
+});
+
+describe('when mirroring a graph', () => {
+  test('when all nodes are disjoint', () => {
+    const nodes = createDisjoint(10);
+    const graph = Graph.fromNodes(nodes);
+    const graphPrime = graph.transpose();
+
+    // check we're still disjoint
+    for (const node of graphPrime.nodes) {
+      const edges = graph.getEdges(node);
+      expect(edges).toBeDefined();
+      expect(edges!.size).toBe(0);
+    }
+  });
+
+  test('when nodes form a cycle', () => {
+    const nodes = createLoop(10);
+    const graph = Graph.fromNodes(nodes);
+    const graphPrime = graph.transpose();
+
+    for (let i = 0; i < 10; i++) {
+      const node = nodes[i];
+      const adjacentNode = nodes[(i + 9) % 10];
+
+      expect(graphPrime.nodes.has(node)).toBeDefined();
+      expect(graphPrime.nodes.has(adjacentNode)).toBeDefined();
+
+      const edges = graphPrime.getEdges(node);
+      expect(edges).toBeDefined();
+      expect(edges!.size).toBe(1);
+
+      expect(edges!.has(adjacentNode)).toBe(true);
+    }
+  });
+
+  test('when nodes are fully connected', () => {
+    const nodes = createFullyConnected(10);
+    const graph = Graph.fromNodes(nodes);
+    const graphPrime = graph.transpose();
+
+    for (const node of graphPrime.nodes) {
+      const edges = graphPrime.getEdges(node);
+      expect(edges).toBeDefined();
+
+      if (!empty(edges)) {
+        expect(edges.size).toBe(10);
+
+        for (const node of graphPrime.nodes) {
+          expect(edges.has(node)).toBe(true);
+        }
+      }
+    }
+  });
+});
+
+describe('when determining strongly connected components of a graph', () => {
+  test('when all nodes are disjoint', () => {
+    const nodes = createDisjoint(10);
+    const graph = Graph.fromNodes(nodes);
+    const sccResult = scc(graph);
+
+    expect(sccResult.acyclic).toBe(true);
+
+    // check we're still disjoint
+    for (const [node, component] of sccResult.nodeMap) {
+      expect(component.has(node)).toBe(true);
+      expect(component.size).toBe(1);
+    }
+  });
+
+  test('when nodes form a cycle', () => {
+    const nodes = createLoop(10);
+    const graph = Graph.fromNodes(nodes);
+    const sccResult = scc(graph);
+
+    expect(sccResult.acyclic).toBe(false);
+
+    // check we're in the same component disjoint
+    for (const [, component] of sccResult.nodeMap) {
+      for (const graphNode of nodes) {
+        expect(component.has(graphNode)).toBe(true);
+      }
+
+      expect(component.size).toBe(10);
+    }
+  });
+
+  test('when nodes form a diamond', () => {
+    const nodes = createDiamond();
+    const graph = Graph.fromNodes(nodes);
+    const sccResult = scc(graph);
+
+    expect(sccResult.acyclic).toBe(true);
+  });
+
+  test('when two strongly connect components', () => {
+    const strong1 = createFullyConnected(4);
+    const strong2 = createFullyConnected(4);
+
+    strong1[0].nodes.push(strong2[0]);
+    const graph = Graph.fromNodes([...strong1, ...strong2]);
+
+    const sccResult = scc(graph);
+    expect(sccResult.acyclic).toBe(false);
+    expect(sccResult.components).toHaveLength(2);
+
+    const [component1, component2] = sccResult.components;
+    expect(component1.size).toBe(4);
+    expect(component2.size).toBe(4);
+
+    for (const node of strong1) {
+      expect(component1.has(node)).toBe(true);
+    }
+
+    for (const node of strong2) {
+      expect(component2.has(node)).toBe(true);
+    }
+  });
+});

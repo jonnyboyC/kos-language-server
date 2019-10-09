@@ -79,17 +79,23 @@ export const rangeEqual = (range1: Range, range2: Range): boolean => {
 };
 
 /**
- * Does this range contain another prange
+ * Does this range contain another range
  * @param range1 the target range
  * @param range2 the query range
  */
 export const rangeContains = (range1: Range, range2: Range): boolean => {
   if (range2.start.line < range1.start.line) return false;
-  if (range2.start.line === range1.start.line && range2.start.character < range1.start.character) {
+  if (
+    range2.start.line === range1.start.line &&
+    range2.start.character < range1.start.character
+  ) {
     return false;
   }
   if (range2.end.line > range1.end.line) return false;
-  if (range2.end.line === range1.end.line && range2.end.character > range1.end.character) {
+  if (
+    range2.end.line === range1.end.line &&
+    range2.end.character > range1.end.character
+  ) {
     return false;
   }
 
@@ -308,9 +314,7 @@ export const binarySearchIndex = <T extends Range>(
     }
   }
 
-  return left < right
-    ? [left, right]
-    : [right, left];
+  return left < right ? [left, right] : [right, left];
 };
 
 /**
@@ -339,9 +343,7 @@ export const binarySearchKeyIndex = <T>(
     }
   }
 
-  return left < right
-    ? [left, right]
-    : [right, left];
+  return left < right ? [left, right] : [right, left];
 };
 
 /**

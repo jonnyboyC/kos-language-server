@@ -6,18 +6,17 @@ import {
   ISuffixTermVisitor,
   ISuffixTerm,
 } from '../parser/types';
-import { BasicBlock } from './basicBlock';
-import * as SuffixTerm from '../parser/suffixTerm';
-import * as Expr from '../parser/expr';
-import * as Decl from '../parser/declare';
-import * as Stmt from '../parser/stmt';
-import { mockLogger, mockTracer, logException } from '../utilities/logger';
-import { Script } from '../entities/script';
+import { BasicBlock } from './models/basicBlock';
+import * as SuffixTerm from '../parser/models/suffixTerm';
+import * as Expr from '../parser/models/expr';
+import * as Decl from '../parser/models/declare';
+import * as Stmt from '../parser/models/stmt';
+import { mockLogger, mockTracer, logException } from '../models/logger';
+import { Script } from '../models/script';
 import { empty } from '../utilities/typeGuards';
 import { BlockKind, Boundary, ReturnContext } from './types';
 import { IStack } from '../analysis/types';
-import { BranchJump } from './branchJump';
-import { GenerateBlocks } from './generateBlocks';
+import { BranchJump } from './models/branchJump';
 import { FlowGraph } from './flowGraph';
 
 export class ControlFlow
@@ -73,7 +72,13 @@ export class ControlFlow
   /**
    * Map from each statement to it's basic block
    */
-  private stmtBlocks: Map<IStmt, BasicBlock>;
+  // private stmtBlocks: Map<IStmt, BasicBlock>;
+  // this.stmtBlocks = gen.generate();
+
+  /**
+   * All nodes in this script
+   */
+  private nodes: BasicBlock[];
 
   constructor(
     script: Script,
@@ -91,19 +96,16 @@ export class ControlFlow
 
     this.functionBoundaries = [];
     this.triggerBoundaries = [];
-    this.stmtBlocks = new Map();
+    this.nodes = [];
   }
 
   /**
    * Generate a control flow diagram
    */
   public flow(): Maybe<FlowGraph> {
-    const gen = new GenerateBlocks(this.script);
-    this.stmtBlocks = gen.generate();
-
     // resolve the sequence of statements
-    const entry = new BasicBlock(BlockKind.scriptEntry);
-    const exit = new BasicBlock(BlockKind.scriptEntry);
+    const entry = this.createBlock(BlockKind.scriptEntry);
+    const exit = this.createBlock(BlockKind.scriptEntry);
 
     try {
       let block: Maybe<BasicBlock> = entry;
@@ -123,7 +125,7 @@ export class ControlFlow
         { entry, exit },
         this.functionBoundaries,
         this.triggerBoundaries,
-        this.stmtBlocks,
+        this.nodes,
       );
     } catch (err) {
       this.logger.error('Error occurred in control flow');
@@ -168,7 +170,7 @@ export class ControlFlow
     decl: Decl.Var,
     [prevBlock]: [BasicBlock],
   ): BasicBlock {
-    const block = this.getBlock(decl);
+    const block = this.createBlock(BlockKind.basic, decl);
     this.exprFlow(decl.value, block);
     prevBlock.addJump(block);
 
@@ -181,7 +183,7 @@ export class ControlFlow
    * @param prevBlock current block
    */
   public visitDeclLock(decl: Decl.Lock, [prevBlock]: [BasicBlock]): BasicBlock {
-    const block = this.getBlock(decl);
+    const block = this.createBlock(BlockKind.basic, decl);
     this.exprFlow(decl.value, block);
     prevBlock.addJump(block);
 
@@ -197,11 +199,11 @@ export class ControlFlow
     decl: Decl.Func,
     [prevBlock]: [BasicBlock],
   ): BasicBlock {
-    const block = this.getBlock(decl);
+    const block = this.createBlock(BlockKind.basic, decl);
     prevBlock.addJump(block);
 
-    const entry = new BasicBlock(BlockKind.unknownEntry);
-    const exit = new BasicBlock(BlockKind.unknownExit);
+    const entry = this.createBlock(BlockKind.unknownEntry);
+    const exit = this.createBlock(BlockKind.unknownExit);
     this.functionBoundaries.push({ entry, exit });
 
     this.trackFunc(entry, exit, () => {
@@ -226,7 +228,7 @@ export class ControlFlow
     decl: Decl.Param,
     [prevBlock]: [BasicBlock],
   ): BasicBlock {
-    const block = this.getBlock(decl);
+    const block = this.createBlock(BlockKind.basic, decl);
     for (const param of decl.optionalParameters) {
       this.exprFlow(param.value, block);
     }
@@ -244,7 +246,7 @@ export class ControlFlow
     stmt: Stmt.Invalid,
     [prevBlock]: [BasicBlock],
   ): BasicBlock {
-    const block = this.getBlock(stmt);
+    const block = this.createBlock(BlockKind.basic, stmt);
     prevBlock.addJump(block);
 
     return block;
@@ -259,7 +261,7 @@ export class ControlFlow
     stmt: Stmt.Block,
     [prevBlock]: [BasicBlock],
   ): Maybe<BasicBlock> {
-    const block = this.getBlock(stmt);
+    const block = this.createBlock(BlockKind.basic, stmt);
     prevBlock.addJump(block);
 
     // indicate block itself was used
@@ -268,7 +270,7 @@ export class ControlFlow
     // add each statement of the block
     for (const blockStmt of stmt.stmts) {
       if (empty(currentBlock)) {
-        return undefined;
+        currentBlock = this.createBlock(BlockKind.unreachableEntry);
       }
 
       currentBlock = this.stmtFlow(blockStmt, currentBlock);
@@ -283,7 +285,7 @@ export class ControlFlow
    * @param prevBlock current block
    */
   public visitExpr(stmt: Stmt.ExprStmt, [prevBlock]: [BasicBlock]): BasicBlock {
-    const block = this.getBlock(stmt);
+    const block = this.createBlock(BlockKind.basic, stmt);
     prevBlock.addJump(block);
     this.exprFlow(stmt.suffix, block);
 
@@ -296,7 +298,7 @@ export class ControlFlow
    * @param prevBlock current block
    */
   public visitOnOff(stmt: Stmt.OnOff, [prevBlock]: [BasicBlock]): BasicBlock {
-    const block = this.getBlock(stmt);
+    const block = this.createBlock(BlockKind.basic, stmt);
     prevBlock.addJump(block);
     this.exprFlow(stmt.suffix, block);
 
@@ -312,7 +314,7 @@ export class ControlFlow
     stmt: Stmt.Command,
     [prevBlock]: [BasicBlock],
   ): BasicBlock {
-    const block = this.getBlock(stmt);
+    const block = this.createBlock(BlockKind.basic, stmt);
     prevBlock.addJump(block);
 
     return block;
@@ -327,7 +329,7 @@ export class ControlFlow
     stmt: Stmt.CommandExpr,
     [prevBlock]: [BasicBlock],
   ): BasicBlock {
-    const block = this.getBlock(stmt);
+    const block = this.createBlock(BlockKind.basic, stmt);
     prevBlock.addJump(block);
     this.exprFlow(stmt.expr, block);
 
@@ -340,7 +342,7 @@ export class ControlFlow
    * @param prevBlock current block
    */
   public visitUnset(stmt: Stmt.Unset, [prevBlock]: [BasicBlock]): BasicBlock {
-    const block = this.getBlock(stmt);
+    const block = this.createBlock(BlockKind.basic, stmt);
     prevBlock.addJump(block);
 
     return block;
@@ -352,7 +354,7 @@ export class ControlFlow
    * @param prevBlock current block
    */
   public visitUnlock(stmt: Stmt.Unlock, [prevBlock]: [BasicBlock]): BasicBlock {
-    const block = this.getBlock(stmt);
+    const block = this.createBlock(BlockKind.basic, stmt);
     prevBlock.addJump(block);
 
     return block;
@@ -364,7 +366,7 @@ export class ControlFlow
    * @param prevBlock current block
    */
   public visitSet(stmt: Stmt.Set, [prevBlock]: [BasicBlock]): BasicBlock {
-    const block = this.getBlock(stmt);
+    const block = this.createBlock(BlockKind.basic, stmt);
     prevBlock.addJump(block);
     this.exprFlow(stmt.value, block);
     this.exprFlow(stmt.suffix, block);
@@ -381,7 +383,7 @@ export class ControlFlow
     stmt: Stmt.LazyGlobal,
     [prevBlock]: [BasicBlock],
   ): BasicBlock {
-    const block = this.getBlock(stmt);
+    const block = this.createBlock(BlockKind.basic, stmt);
     prevBlock.addJump(block);
 
     return block;
@@ -393,13 +395,13 @@ export class ControlFlow
    * @param prevBlock current block
    */
   public visitIf(stmt: Stmt.If, [prevBlock]: [BasicBlock]): BasicBlock {
-    const block = this.getBlock(stmt);
+    const block = this.createBlock(BlockKind.basic, stmt);
     prevBlock.addJump(block);
 
-    const exitBlock = new BasicBlock(BlockKind.basic);
+    const exitBlock = this.createBlock(BlockKind.basic);
 
     // process the then block
-    const thenEntry = new BasicBlock(BlockKind.basic);
+    const thenEntry = this.createBlock(BlockKind.basic);
     const thenExit = this.stmtFlow(stmt.body, thenEntry);
 
     // if we reach the end of the if add straight jump to exit
@@ -412,7 +414,7 @@ export class ControlFlow
 
     if (!empty(stmt.elseStmt)) {
       // process the else block if it exists
-      const elseEntry = new BasicBlock(BlockKind.basic);
+      const elseEntry = this.createBlock(BlockKind.basic);
       const elseExit = this.stmtFlow(stmt.elseStmt, elseEntry);
 
       // if we reach end of else add straight jump to exit
@@ -439,7 +441,7 @@ export class ControlFlow
     stmt: Stmt.Else,
     [prevBlock]: [BasicBlock],
   ): Maybe<BasicBlock> {
-    const block = this.getBlock(stmt);
+    const block = this.createBlock(BlockKind.basic, stmt);
     prevBlock.addJump(block);
 
     return this.stmtFlow(stmt.body, block);
@@ -451,14 +453,14 @@ export class ControlFlow
    * @param prevBlock the current block
    */
   public visitUntil(stmt: Stmt.Until, [prevBlock]: [BasicBlock]): BasicBlock {
-    const block = this.getBlock(stmt);
+    const block = this.createBlock(BlockKind.basic, stmt);
     prevBlock.addJump(block);
 
-    const exitBlock = new BasicBlock(BlockKind.basic);
+    const exitBlock = this.createBlock(BlockKind.basic);
 
     return this.trackLoop(block, exitBlock, () => {
       // process the body block
-      const bodyEntry = new BasicBlock(BlockKind.basic);
+      const bodyEntry = this.createBlock(BlockKind.basic);
       const bodyExit = this.stmtFlow(stmt.body, bodyEntry);
 
       // generate the block jump
@@ -480,16 +482,16 @@ export class ControlFlow
    * @param prevBlock current block
    */
   public visitFrom(stmt: Stmt.From, [prevBlock]: [BasicBlock]): BasicBlock {
-    const block = this.getBlock(stmt);
+    const block = this.createBlock(BlockKind.basic, stmt);
     prevBlock.addJump(block);
 
-    const exitBlock = new BasicBlock(BlockKind.basic);
+    const exitBlock = this.createBlock(BlockKind.basic);
 
     return this.trackLoop(block, exitBlock, () => {
       const initializerExit = this.stmtFlow(stmt.initializer, block);
 
       // process the body block
-      const bodyEntry = new BasicBlock(BlockKind.basic);
+      const bodyEntry = this.createBlock(BlockKind.basic);
       const bodyExit = this.stmtFlow(stmt.body, bodyEntry);
 
       // generate the block jump
@@ -518,18 +520,18 @@ export class ControlFlow
    * @param prevBlock the current block
    */
   public visitWhen(stmt: Stmt.When, [prevBlock]: [BasicBlock]): BasicBlock {
-    const block = this.getBlock(stmt);
+    const block = this.createBlock(BlockKind.basic, stmt);
     prevBlock.addJump(block);
 
     // trigger entry and exit blocks for unknown
-    const entry = new BasicBlock(BlockKind.unknownEntry);
-    const exit = new BasicBlock(BlockKind.unknownExit);
+    const entry = this.createBlock(BlockKind.unknownEntry);
+    const exit = this.createBlock(BlockKind.unknownExit);
 
     this.triggerBoundaries.push({ entry, exit });
 
     this.trackTrigger(entry, exit, () => {
       // process the body block
-      const bodyEntry = new BasicBlock(BlockKind.basic);
+      const bodyEntry = this.createBlock(BlockKind.basic);
       const bodyExit = this.stmtFlow(stmt.body, bodyEntry);
 
       // generate the block jump, either jump over or entry body
@@ -554,7 +556,7 @@ export class ControlFlow
     stmt: Stmt.Return,
     [prevBlock]: [BasicBlock],
   ): Maybe<BasicBlock> {
-    const block = this.getBlock(stmt);
+    const block = this.createBlock(BlockKind.basic, stmt);
     prevBlock.addJump(block);
 
     // add expr if it exits
@@ -582,7 +584,7 @@ export class ControlFlow
     stmt: Stmt.Break,
     [prevBlock]: [BasicBlock],
   ): Maybe<BasicBlock> {
-    const block = this.getBlock(stmt);
+    const block = this.createBlock(BlockKind.basic, stmt);
     prevBlock.addJump(block);
 
     const breakContext = this.peekBreakContext();
@@ -600,7 +602,7 @@ export class ControlFlow
    * @param prevBlock the current block
    */
   public visitSwitch(stmt: Stmt.Switch, [prevBlock]: [BasicBlock]): BasicBlock {
-    const block = this.getBlock(stmt);
+    const block = this.createBlock(BlockKind.basic, stmt);
     prevBlock.addJump(block);
     this.exprFlow(stmt.target, block);
 
@@ -613,14 +615,14 @@ export class ControlFlow
    * @param prevBlock the current block
    */
   public visitFor(stmt: Stmt.For, [prevBlock]: [BasicBlock]): BasicBlock {
-    const block = this.getBlock(stmt);
+    const block = this.createBlock(BlockKind.basic, stmt);
     prevBlock.addJump(block);
 
-    const exitBlock = new BasicBlock(BlockKind.basic);
+    const exitBlock = this.createBlock(BlockKind.basic);
 
     return this.trackLoop(block, exitBlock, () => {
       // process the body block
-      const bodyEntry = new BasicBlock(BlockKind.basic);
+      const bodyEntry = this.createBlock(BlockKind.basic);
       const bodyExit = this.stmtFlow(stmt.body, bodyEntry);
 
       // generate the block jump
@@ -642,18 +644,18 @@ export class ControlFlow
    * @param prevBlock the current block
    */
   public visitOn(stmt: Stmt.On, [prevBlock]: [BasicBlock]): BasicBlock {
-    const block = this.getBlock(stmt);
+    const block = this.createBlock(BlockKind.basic, stmt);
     prevBlock.addJump(block);
 
     // trigger entry and exit blocks for unknown
-    const entry = new BasicBlock(BlockKind.unknownEntry);
-    const exit = new BasicBlock(BlockKind.unknownExit);
+    const entry = this.createBlock(BlockKind.unknownEntry);
+    const exit = this.createBlock(BlockKind.unknownExit);
 
     this.triggerBoundaries.push({ entry, exit });
 
     this.trackTrigger(entry, exit, () => {
       // process the body block
-      const bodyEntry = new BasicBlock(BlockKind.basic);
+      const bodyEntry = this.createBlock(BlockKind.basic);
       const bodyExit = this.stmtFlow(stmt.body, bodyEntry);
 
       // generate the block jump, either jump over or entry body
@@ -675,7 +677,7 @@ export class ControlFlow
    * @param prevBlock the current block
    */
   public visitToggle(stmt: Stmt.Toggle, [prevBlock]: [BasicBlock]): BasicBlock {
-    const block = this.getBlock(stmt);
+    const block = this.createBlock(BlockKind.basic, stmt);
     prevBlock.addJump(block);
     this.exprFlow(stmt.suffix, block);
 
@@ -688,7 +690,7 @@ export class ControlFlow
    * @param prevBlock the current block
    */
   public visitWait(stmt: Stmt.Wait, [prevBlock]: [BasicBlock]): BasicBlock {
-    const block = this.getBlock(stmt);
+    const block = this.createBlock(BlockKind.basic, stmt);
     prevBlock.addJump(block);
     this.exprFlow(stmt.expr, block);
 
@@ -701,7 +703,7 @@ export class ControlFlow
    * @param prevBlock the current block
    */
   public visitLog(stmt: Stmt.Log, [prevBlock]: [BasicBlock]): BasicBlock {
-    const block = this.getBlock(stmt);
+    const block = this.createBlock(BlockKind.basic, stmt);
     prevBlock.addJump(block);
     this.exprFlow(stmt.expr, block);
     this.exprFlow(stmt.target, block);
@@ -715,7 +717,7 @@ export class ControlFlow
    * @param prevBlock the current block
    */
   public visitCopy(stmt: Stmt.Copy, [prevBlock]: [BasicBlock]): BasicBlock {
-    const block = this.getBlock(stmt);
+    const block = this.createBlock(BlockKind.basic, stmt);
     prevBlock.addJump(block);
 
     this.exprFlow(stmt.target, block);
@@ -730,7 +732,7 @@ export class ControlFlow
    * @param prevBlock the current block
    */
   public visitRename(stmt: Stmt.Rename, [prevBlock]: [BasicBlock]): BasicBlock {
-    const block = this.getBlock(stmt);
+    const block = this.createBlock(BlockKind.basic, stmt);
     prevBlock.addJump(block);
 
     this.exprFlow(stmt.target, block);
@@ -745,7 +747,7 @@ export class ControlFlow
    * @param prevBlock the current block
    */
   public visitDelete(stmt: Stmt.Delete, [prevBlock]: [BasicBlock]): BasicBlock {
-    const block = this.getBlock(stmt);
+    const block = this.createBlock(BlockKind.basic, stmt);
     prevBlock.addJump(block);
 
     this.exprFlow(stmt.target, block);
@@ -763,7 +765,7 @@ export class ControlFlow
    * @param prevBlock the current block
    */
   public visitRun(stmt: Stmt.Run, [prevBlock]: [BasicBlock]): BasicBlock {
-    const block = this.getBlock(stmt);
+    const block = this.createBlock(BlockKind.basic, stmt);
     prevBlock.addJump(block);
 
     if (!empty(stmt.args)) {
@@ -788,10 +790,10 @@ export class ControlFlow
     stmt: Stmt.RunPath,
     [prevBlock]: [BasicBlock],
   ): BasicBlock {
-    const block = this.getBlock(stmt);
+    const block = this.createBlock(BlockKind.basic, stmt);
     prevBlock.addJump(block);
 
-    this.exprFlow(stmt.expr, block);
+    this.exprFlow(stmt.path, block);
     if (!empty(stmt.args)) {
       for (const arg of stmt.args) {
         this.exprFlow(arg, block);
@@ -810,10 +812,10 @@ export class ControlFlow
     stmt: Stmt.RunOncePath,
     [prevBlock]: [BasicBlock],
   ): BasicBlock {
-    const block = this.getBlock(stmt);
+    const block = this.createBlock(BlockKind.basic, stmt);
     prevBlock.addJump(block);
 
-    this.exprFlow(stmt.expr, block);
+    this.exprFlow(stmt.path, block);
     if (!empty(stmt.args)) {
       for (const arg of stmt.args) {
         this.exprFlow(arg, block);
@@ -832,7 +834,7 @@ export class ControlFlow
     stmt: Stmt.Compile,
     [prevBlock]: [BasicBlock],
   ): BasicBlock {
-    const block = this.getBlock(stmt);
+    const block = this.createBlock(BlockKind.basic, stmt);
     prevBlock.addJump(block);
 
     this.exprFlow(stmt.target, block);
@@ -849,7 +851,7 @@ export class ControlFlow
    * @param prevBlock the current block
    */
   public visitList(stmt: Stmt.List, [prevBlock]: [BasicBlock]): BasicBlock {
-    const block = this.getBlock(stmt);
+    const block = this.createBlock(BlockKind.basic, stmt);
     prevBlock.addJump(block);
 
     return block;
@@ -861,7 +863,7 @@ export class ControlFlow
    * @param prevBlock the previous block
    */
   public visitEmpty(stmt: Stmt.Empty, [prevBlock]: [BasicBlock]): BasicBlock {
-    const block = this.getBlock(stmt);
+    const block = this.createBlock(BlockKind.basic, stmt);
     prevBlock.addJump(block);
 
     return block;
@@ -873,7 +875,7 @@ export class ControlFlow
    * @param prevBlock the current block
    */
   public visitPrint(stmt: Stmt.Print, [prevBlock]: [BasicBlock]): BasicBlock {
-    const block = this.getBlock(stmt);
+    const block = this.createBlock(BlockKind.basic, stmt);
     prevBlock.addJump(block);
     this.exprFlow(stmt.expr, block);
 
@@ -951,8 +953,8 @@ export class ControlFlow
   public visitLambda(expr: Expr.Lambda, [block]: [BasicBlock]): void {
     block.exprs.push(expr);
 
-    const entry = new BasicBlock(BlockKind.unknownEntry);
-    const exit = new BasicBlock(BlockKind.unknownExit);
+    const entry = this.createBlock(BlockKind.unknownEntry);
+    const exit = this.createBlock(BlockKind.unknownExit);
     this.functionBoundaries.push({ entry, exit });
 
     this.trackFunc(entry, exit, () => {
@@ -1071,15 +1073,11 @@ export class ControlFlow
   }
 
   /**
-   * Get a basic block for this statement
-   * @param stmt statement to get a basic block
+   * Create a new basic block and add it to the nodes
    */
-  private getBlock(stmt: IStmt): BasicBlock {
-    const block = this.stmtBlocks.get(stmt);
-    if (empty(block)) {
-      throw new Error('Unable to find basic block');
-    }
-
+  private createBlock(kind: BlockKind, stmt?: IStmt): BasicBlock {
+    const block = new BasicBlock(kind, stmt);
+    this.nodes.push(block);
     return block;
   }
 

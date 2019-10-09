@@ -1,7 +1,7 @@
 import { createVarType } from '../../utilities/typeCreators';
-import { Type } from '../../types/type';
+import { Type } from '../../models/types/type';
 import { TypeKind } from '../../types';
-import { CallSignature } from '../../types/callSignature';
+import { CallSignature } from '../../models/types/callSignature';
 import { structureType } from './structure';
 
 export const delegateType = new Type(

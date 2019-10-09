@@ -6,7 +6,7 @@ import {
   noMap,
 } from '../../utilities/typeCreators';
 import { scalarType } from '../primitives/scalar';
-import { Operator } from '../../types/operator';
+import { Operator } from '../../models/types/operator';
 import { OperatorKind } from '../../types';
 import { booleanType } from '../primitives/boolean';
 import { directionType } from './direction';
