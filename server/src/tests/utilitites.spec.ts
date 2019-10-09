@@ -568,7 +568,7 @@ describe('when mirroring a graph', () => {
   test('when all nodes are disjoint', () => {
     const nodes = createDisjoint(10);
     const graph = Graph.fromNodes(nodes);
-    const graphPrime = graph.mirror();
+    const graphPrime = graph.transpose();
 
     // check we're still disjoint
     for (const node of graphPrime.nodes) {
@@ -581,7 +581,7 @@ describe('when mirroring a graph', () => {
   test('when nodes form a cycle', () => {
     const nodes = createLoop(10);
     const graph = Graph.fromNodes(nodes);
-    const graphPrime = graph.mirror();
+    const graphPrime = graph.transpose();
 
     for (let i = 0; i < 10; i++) {
       const node = nodes[i];
@@ -601,7 +601,7 @@ describe('when mirroring a graph', () => {
   test('when nodes are fully connected', () => {
     const nodes = createFullyConnected(10);
     const graph = Graph.fromNodes(nodes);
-    const graphPrime = graph.mirror();
+    const graphPrime = graph.transpose();
 
     for (const node of graphPrime.nodes) {
       const edges = graphPrime.getEdges(node);

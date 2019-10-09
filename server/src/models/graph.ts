@@ -12,12 +12,12 @@ export class Graph<T> {
   /**
    * The edges present within this graph
    */
-  private edges: Map<T, Set<T>>;
+  private outEdges: Map<T, Set<T>>;
 
   /**
    * The reverse of the edges present in the graph
    */
-  private mirrorEdges: Map<T, Set<T>>;
+  private inEdges: Map<T, Set<T>>;
 
   /**
    * Construct a new graph
@@ -25,11 +25,11 @@ export class Graph<T> {
    */
   constructor(...nodes: T[]) {
     this.nodes = new Set(nodes);
-    this.edges = new Map();
-    this.mirrorEdges = new Map();
+    this.outEdges = new Map();
+    this.inEdges = new Map();
 
     for (const node of nodes) {
-      this.addEdgeSets(node);
+      this.initEdges(node);
     }
   }
 
@@ -37,12 +37,12 @@ export class Graph<T> {
    * Add a node to this graph
    */
   public addNode(node: T): boolean {
-    if (this.has(node)) {
+    if (this.hasNode(node)) {
       return false;
     }
 
     this.nodes.add(node);
-    this.addEdgeSets(node);
+    this.initEdges(node);
 
     return true;
   }
@@ -52,14 +52,61 @@ export class Graph<T> {
    * @param node
    */
   public removeNode(node: T): boolean {
-    if (!this.has(node)) {
+    if (!this.hasNode(node)) {
       return false;
     }
 
     this.nodes.delete(node);
-    this.removeEdgeSets(node);
+    this.removeNodeEdges(node);
 
     return true;
+  }
+
+  /**
+   * How many nodes are in the graph
+   */
+  public nodeCount(): number {
+    return this.nodes.size;
+  }
+
+  /**
+   * Is this node is in the graph
+   * @param node node to check
+   */
+  public hasNode(node: T): boolean {
+    return this.nodes.has(node);
+  }
+
+  /**
+   * What are nodes that act as sources in this graph
+   */
+  public sources(): T[] {
+    const sourceNodes: T[] = [];
+
+    for (const node of this.nodes) {
+      const inEdges = this.inEdges.get(node);
+      if (!empty(inEdges) && inEdges.size === 0) {
+        sourceNodes.push(node);
+      }
+    }
+
+    return sourceNodes;
+  }
+
+  /**
+   * What are nodes that act as sources in this graph
+   */
+  public sinks(): T[] {
+    const sinkNodes: T[] = [];
+
+    for (const node of this.nodes) {
+      const outEdges = this.outEdges.get(node);
+      if (!empty(outEdges) && outEdges.size === 0) {
+        sinkNodes.push(node);
+      }
+    }
+
+    return sinkNodes;
   }
 
   /**
@@ -69,8 +116,8 @@ export class Graph<T> {
    */
   public addEdge(source: T, sink: T): boolean {
     // get normal and reverse
-    const nodeEdges = this.edges.get(source);
-    const nodeMirrorEdges = this.mirrorEdges.get(sink);
+    const nodeEdges = this.outEdges.get(source);
+    const nodeMirrorEdges = this.inEdges.get(sink);
 
     // if either edges doesn't exists break out
     if (empty(nodeEdges) || empty(nodeMirrorEdges)) {
@@ -91,8 +138,8 @@ export class Graph<T> {
    */
   public removeEdge(source: T, sink: T): boolean {
     // get normal and reverse
-    const nodeEdges = this.edges.get(source);
-    const nodeMirrorEdges = this.mirrorEdges.get(sink);
+    const nodeEdges = this.outEdges.get(source);
+    const nodeMirrorEdges = this.inEdges.get(sink);
 
     // if either edges doesn't exists break out
     if (empty(nodeEdges) || empty(nodeMirrorEdges)) {
@@ -118,59 +165,51 @@ export class Graph<T> {
    * @param node node to retrieve edges
    */
   public getEdges(node: T): Maybe<Set<T>> {
-    return this.edges.get(node);
+    return this.outEdges.get(node);
   }
 
   /**
    * Mirror the graph with reversed edges
    */
-  public mirror(): Graph<T> {
+  public transpose(): Graph<T> {
     const graph = new Graph(...this.nodes);
 
-    graph.edges = new Map(this.mirrorEdges.entries());
-    graph.mirrorEdges = new Map(this.edges.entries());
+    graph.outEdges = new Map(this.inEdges.entries());
+    graph.inEdges = new Map(this.outEdges.entries());
 
     return graph;
   }
 
   /**
-   * Is this node is in the graph
-   * @param node node to check
-   */
-  private has(node: T): boolean {
-    return this.nodes.has(node);
-  }
-
-  /**
    * Add the sets for each edge map
-   * @param node node to add sets
+   * @param node node to initialize edges
    */
-  private addEdgeSets(node: T) {
-    this.edges.set(node, new Set());
-    this.mirrorEdges.set(node, new Set());
+  private initEdges(node: T) {
+    this.outEdges.set(node, new Set());
+    this.inEdges.set(node, new Set());
   }
 
   /**
    * Remove all edges associated with the node
-   * @param node
+   * @param node node to remove edges to
    */
-  private removeEdgeSets(node: T) {
+  private removeNodeEdges(node: T) {
     // get edges for the node normally and reverse
-    const nodeEdges = unWrap(this.edges.get(node));
-    const nodeMirrorEdges = unWrap(this.mirrorEdges.get(node));
+    const nodeEdges = unWrap(this.outEdges.get(node));
+    const nodeMirrorEdges = unWrap(this.inEdges.get(node));
 
     // delete the node edges from both collection
-    this.edges.delete(node);
-    this.mirrorEdges.delete(node);
+    this.outEdges.delete(node);
+    this.inEdges.delete(node);
 
     // delete edges going into node
     for (const edgeNode of nodeMirrorEdges) {
-      unWrap(this.edges.get(edgeNode)).delete(node);
+      unWrap(this.outEdges.get(edgeNode)).delete(node);
     }
 
     // delete edges leaving node in the mirror
     for (const edgeNode of nodeEdges) {
-      unWrap(this.mirrorEdges.get(edgeNode)).delete(node);
+      unWrap(this.inEdges.get(edgeNode)).delete(node);
     }
   }
 

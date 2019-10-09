@@ -35,7 +35,7 @@ export function scc<T>(graph: Graph<T>): StronglyConnectedComponent<T> {
     }
   }
 
-  const reverse = graph.mirror();
+  const reverse = graph.transpose();
   visited.clear();
 
   const nodeMap = new Map<T, Set<T>>();
