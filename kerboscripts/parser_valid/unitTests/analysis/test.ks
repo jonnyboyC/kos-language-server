@@ -1,0 +1,1 @@
+local s is 10.

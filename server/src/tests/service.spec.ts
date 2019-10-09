@@ -31,6 +31,8 @@ import { IoService, Document, IoKind, IoEntity } from '../services/IoService';
 import { DocumentInfo, DiagnosticUri } from '../types';
 
 const testDir = join(__dirname, '../../../kerboscripts/parser_valid/');
+const loadDir = join(testDir, 'unitTests/loadFiles');
+const analysisDir = join(testDir, 'unitTests/analysis');
 typeInitializer();
 
 describe('resolver service', () => {
@@ -459,6 +461,38 @@ describe('document service', () => {
       i += 1;
     }
   });
+
+  test('cache document', async () => {
+    const mockConnection = createMockDocConnection();
+    const mockUriResponse = new IoService();
+
+    const baseUri = URI.file(loadDir);
+
+    const docService = new DocumentService(
+      mockConnection,
+      mockUriResponse,
+      mockLogger,
+      mockTracer,
+      URI.parse(baseUri.toString()),
+    );
+
+    await docService.cacheDocuments();
+
+    const serverDocs = docService['serverDocs'];
+    const clientDocs = docService['clientDocs'];
+
+    const fileUris = [
+      URI.file(join(baseUri.fsPath, 'example.ks')),
+      URI.file(join(baseUri.fsPath, 'empty', 'empty.ks')),
+    ];
+
+    expect(clientDocs.size).toBe(0);
+    expect(serverDocs.size).toBe(fileUris.length);
+
+    for (const uri of fileUris) {
+      expect(serverDocs.has(uri.toString())).toBe(true);
+    }
+  });
 });
 
 const documentInfoDiagnostics = ({
@@ -795,9 +829,38 @@ describe('analysis service', () => {
       );
     }
   });
+
+  test('load directory', async () => {
+    const connection = createMockDocConnection();
+    const ioService = new IoService();
+    const docService = new DocumentService(
+      connection,
+      ioService,
+      mockLogger,
+      mockTracer,
+      URI.file(analysisDir),
+    );
+    const resolverService = new ResolverService(
+      URI.file(analysisDir).toString(),
+    );
+
+    const analysisService = new AnalysisService(
+      CaseKind.camelCase,
+      mockLogger,
+      mockTracer,
+      docService,
+      resolverService,
+    );
+
+    const diagnostics = await analysisService.loadDirectory();
+    expect(diagnostics).toHaveLength(1);
+
+    expect(diagnostics[0].uri).toBe(
+      URI.file(join(analysisDir, 'test.ks')).toString(),
+    );
+  });
 });
 
-const loadDir = join(testDir, 'unitTests/loadFiles');
 describe('io service', () => {
   test('load a document', async () => {
     const ioService = new IoService();
