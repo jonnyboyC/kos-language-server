@@ -29,7 +29,7 @@ Currently the kos-language-server 0.11.0 implements the follow features
     - suffixes where the type can be resolved
     - can be manually triggered
 - Document Symbols for quick navigation to properties in the document.
-- Diagnostics (Validation) are pushed for all open documents
+- Diagnostics (Validation) are pushed for all documents
   - syntax errors
   - semantic errors such as:
     - invalid parameter order
