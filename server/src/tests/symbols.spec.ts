@@ -5,6 +5,7 @@ import { AnalysisService } from '../services/analysisService';
 import { mockLogger, mockTracer } from '../models/logger';
 import { empty } from '../utilities/typeGuards';
 import { SearchState } from '../analysis/types';
+import { ResolverService } from '../services/resolverService';
 
 const grandSource = `
 runOncePath("parent.ks").
@@ -49,16 +50,15 @@ describe('Symbol Table', () => {
       [childUri, TextDocument.create(childUri, 'kos', 1.0, childSource)],
     ]);
 
-    const docService = createMockDocumentService(
-      documents,
-      URI.file('/').toString(),
-    );
+    const docService = createMockDocumentService(documents);
+    const resolverService = new ResolverService(URI.file('/').toString());
 
     const analysisService = new AnalysisService(
       CaseKind.camelCase,
       mockLogger,
       mockTracer,
       docService,
+      resolverService,
     );
 
     const grandInfo = await analysisService.getInfo(grandUri);
@@ -152,6 +152,9 @@ describe('Symbol Table', () => {
         ),
       ).toBeDefined();
 
+      expect(parentInfo.semanticInfo.symbolTable.dependentTables).toContain(
+        grandInfo.semanticInfo.symbolTable,
+      );
       expect(
         parentInfo.semanticInfo.symbolTable.globalEnvironment(
           'grandparent',

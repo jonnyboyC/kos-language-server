@@ -138,7 +138,6 @@ export class KLS {
     this.documentService = new DocumentService(
       connection,
       this.ioService,
-      this.resolverService,
       logger,
       tracer,
     );
@@ -148,6 +147,7 @@ export class KLS {
       this.logger,
       this.tracer,
       this.documentService,
+      this.resolverService,
     );
   }
 
@@ -171,7 +171,8 @@ export class KLS {
     this.connection.onDefinition(this.onDefinition.bind(this));
     this.connection.onFoldingRanges(this.onFoldingRange.bind(this));
 
-    this.documentService.onChange(this.onChange.bind(this));
+    this.documentService.on('change', this.onChange.bind(this));
+    this.analysisService.on('propagate', this.sendDiagnostics.bind(this));
 
     this.connection.listen();
   }
@@ -698,7 +699,7 @@ export class KLS {
    */
   private async onChange(document: Document) {
     try {
-      const diagnostic = await this.analysisService.validateDocument(
+      const diagnostic = await this.analysisService.analyzeDocument(
         document.uri,
         document.text,
       );
@@ -781,7 +782,8 @@ export class KLS {
   private async setUri(uri: string): Promise<void> {
     const parsed = URI.parse(uri);
 
-    this.resolverService.volume0Uri = parsed;
+    this.resolverService.rootVolume = parsed;
+    this.documentService.rootVolume = parsed;
     this.workspaceUri = uri;
     const diagnostics = await this.analysisService.loadDirectory();
     this.sendDiagnostics(diagnostics);

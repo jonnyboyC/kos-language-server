@@ -10,21 +10,21 @@ export class ResolverService {
   /**
    * The path corresponding to root of volume 0 of the kos directory
    */
-  public volume0Uri?: URI;
+  public rootVolume?: URI;
 
   /**
    * Create an instance of that path resolve.
-   * @param volume0Uri the uri associated with volume 0
+   * @param rootVolume the uri associated with volume 0
    */
-  constructor(volume0Uri?: string) {
-    this.volume0Uri = !empty(volume0Uri) ? URI.parse(volume0Uri) : undefined;
+  constructor(rootVolume?: string) {
+    this.rootVolume = !empty(rootVolume) ? URI.parse(rootVolume) : undefined;
   }
 
   /**
    * Is the resolve ready to resolve paths
    */
   public ready(): boolean {
-    return !empty(this.volume0Uri);
+    return !empty(this.rootVolume);
   }
 
   /**
@@ -33,7 +33,7 @@ export class ResolverService {
    * @param rawPath path provided in a run statement
    */
   public resolve(caller: Location, rawPath: string): Maybe<URI> {
-    if (empty(this.volume0Uri)) {
+    if (empty(this.rootVolume)) {
       return undefined;
     }
 
@@ -46,7 +46,7 @@ export class ResolverService {
     }
 
     const relativePath = relative(
-      this.volume0Uri.toString(),
+      this.rootVolume.toString(),
       dirname(caller.uri),
     );
 
@@ -87,8 +87,8 @@ export class ResolverService {
    * @param pathSegments path segments
    */
   private toUri(...pathSegments: string[]): Maybe<URI> {
-    if (empty(this.volume0Uri)) return undefined;
+    if (empty(this.rootVolume)) return undefined;
 
-    return URI.file(join(this.volume0Uri.fsPath, ...pathSegments));
+    return URI.file(join(this.rootVolume.fsPath, ...pathSegments));
   }
 }

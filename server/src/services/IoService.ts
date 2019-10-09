@@ -9,7 +9,7 @@ import { empty } from '../utilities/typeGuards';
  * Document interface
  */
 export interface Document {
-  /**
+  /**Document
    * The uri of a document
    */
   uri: string;

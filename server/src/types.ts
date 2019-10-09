@@ -9,6 +9,16 @@ import {
 } from 'vscode-languageserver';
 import { Token } from './models/token';
 
+export interface DependencyInfo {
+  dependencyTables: Set<SymbolTable>;
+  diagnostics: DiagnosticUri[];
+}
+
+export interface LexiconLoad {
+  lexicon: Map<string, LexicalInfo>;
+  diagnostics: DiagnosticUri[];
+}
+
 export interface LexicalInfo {
   script: IScript;
   regions: Token[];
@@ -23,7 +33,7 @@ export interface SemanticInfo {
 export interface DocumentInfo {
   lexicalInfo: LexicalInfo;
   semanticInfo: SemanticInfo;
-  otherDiagnostics: DiagnosticUri[];
+  dependencyInfo: DependencyInfo;
 }
 
 export interface LoadedDocuments {

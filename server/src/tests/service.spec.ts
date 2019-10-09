@@ -8,8 +8,6 @@ import {
   Position,
   TextDocumentIdentifier,
   FoldingRange,
-  Diagnostic,
-  DiagnosticSeverity,
 } from 'vscode-languageserver';
 import { mockLogger, mockTracer } from '../models/logger';
 import { URI } from 'vscode-uri';
@@ -26,7 +24,6 @@ import {
   createMockUriResponse as createMockIoService,
   createMockDocumentService,
 } from './utilities/mockServices';
-import { rangeEqual } from '../utilities/positionUtils';
 import { AnalysisService } from '../services/analysisService';
 import { typeInitializer } from '../typeChecker/initialize';
 import { ResolverService } from '../services/resolverService';
@@ -70,7 +67,7 @@ describe('resolver service', () => {
     expect(pathResolver.resolve(otherFileLocation, absolute)).toBeUndefined();
     expect(pathResolver.resolve(otherFileLocation, weird)).toBeUndefined();
 
-    pathResolver.volume0Uri = URI.file(join('root', 'example'));
+    pathResolver.rootVolume = URI.file(join('root', 'example'));
 
     const resolvedUri = 'file:///root/example/relative/path/file.ks';
 
@@ -128,7 +125,7 @@ describe('resolver service', () => {
     expect(pathResolver.resolve(bootFileLocation, absolute)).toBeUndefined();
     expect(pathResolver.resolve(bootFileLocation, weird)).toBeUndefined();
 
-    pathResolver.volume0Uri = URI.file(join('root', 'example'));
+    pathResolver.rootVolume = URI.file(join('root', 'example'));
 
     const resolvedUri = 'file:///root/example/relative/path/file.ks';
 
@@ -159,38 +156,17 @@ describe('document service', () => {
     const mockIoService = createMockIoService(files);
 
     const baseUri = URI.file('/example/folder');
-    const callingUri = URI.file('/example/folder/example.ks').toString();
 
-    const resolverService = new ResolverService();
     const docService = new DocumentService(
       mockConnection,
       mockIoService,
-      resolverService,
       mockLogger,
       mockTracer,
     );
 
-    const documentLoaded = await docService.loadDocumentFromScript(
-      {
-        uri: callingUri,
-        range: {
-          start: {
-            line: 0,
-            character: 0,
-          },
-          end: {
-            line: 1,
-            character: 0,
-          },
-        },
-      },
-      callingUri,
-    );
-
     expect(docService.ready()).toBe(false);
-    expect(documentLoaded).toBeUndefined();
+    docService.rootVolume = baseUri;
 
-    resolverService.volume0Uri = baseUri;
     expect(docService.ready()).toBe(true);
   });
 
@@ -198,12 +174,10 @@ describe('document service', () => {
     const mockConnection = createMockDocConnection();
     const files = new Map();
     const mockIoService = createMockIoService(files);
-    const resolverService = new ResolverService();
 
     const docService = new DocumentService(
       mockConnection,
       mockIoService,
-      resolverService,
       mockLogger,
       mockTracer,
     );
@@ -222,7 +196,7 @@ describe('document service', () => {
 
     const docs = ['example 1', 'example 2', 'example 3', 'example 4'];
 
-    docService.onChange(document => {
+    docService.on('change', document => {
       expect(document.uri).toBe(uris[i].toString());
       expect(document.text).toBe(docs[i]);
     });
@@ -265,116 +239,19 @@ describe('document service', () => {
     }
   });
 
-  test('load from server using kOS run', async () => {
-    const mockConnection = createMockDocConnection();
-    const files = new Map();
-    const mockIoService = createMockIoService(files);
-
-    const baseUri = URI.file('/example/folder').toString();
-    const callingUri = URI.file('/example/folder/example.ks').toString();
-
-    const resolverService = new ResolverService(baseUri);
-
-    const docService = new DocumentService(
-      mockConnection,
-      mockIoService,
-      resolverService,
-      mockLogger,
-      mockTracer,
-    );
-
-    const serverDocs = docService['serverDocs'];
-    const clientDocs = docService['clientDocs'];
-
-    const uris = [
-      URI.file('/example/folder/doc1.ks'),
-      URI.file('/example/folder/doc2.ks'),
-      URI.file('/example/folder/doc3.ks'),
-      URI.file('/example/folder/doc4.ks'),
-    ];
-
-    const docs = ['example 1', 'example 2', 'example 3', 'example 4'];
-
-    let i = 0;
-    for (const [uri, doc] of zip(uris, docs)) {
-      const uriString = uri.toString();
-      files.set(uri.fsPath, doc);
-
-      const loadedDoc = await docService.loadDocumentFromScript(
-        Location.create(
-          callingUri,
-          Range.create({ line: 0, character: 0 }, { line: 0, character: 10 }),
-        ),
-        `0:/${basename(uriString)}`,
-      );
-
-      expect(loadedDoc).toBeDefined();
-      if (!empty(loadedDoc)) {
-        expect(TextDocument.is(loadedDoc)).toBe(true);
-        expect((loadedDoc as TextDocument).getText()).toBe(doc);
-      }
-
-      expect(clientDocs.size).toBe(0);
-      expect(serverDocs.size).toBe(i + 1);
-      expect(serverDocs.has(uri.toString())).toBe(true);
-
-      for (let j = 0; j <= i; j += 1) {
-        const doc = docService.getDocument(uris[j].toString());
-        expect(doc).toBeDefined();
-
-        if (!empty(doc)) {
-          expect(doc.getText()).toBe(docs[j]);
-        }
-
-        expect(serverDocs.has(uris[j].toString())).toBe(true);
-      }
-
-      i = i + 1;
-    }
-
-    const nonExistentUri = [
-      URI.file('/example/folder/none1.ks'),
-      URI.file('/example/folder/none2.ks'),
-    ];
-
-    for (const uri of nonExistentUri) {
-      const uriString = uri.toString();
-      const loadedDoc = await docService.loadDocumentFromScript(
-        Location.create(
-          callingUri,
-          Range.create({ line: 0, character: 0 }, { line: 0, character: 10 }),
-        ),
-        `0:/${basename(uriString)}`,
-      );
-      expect(loadedDoc).toBeDefined();
-      expect(Diagnostic.is(loadedDoc)).toBe(true);
-
-      if (Diagnostic.is(loadedDoc)) {
-        expect(loadedDoc.severity).toBe(DiagnosticSeverity.Information);
-        expect(
-          rangeEqual(
-            loadedDoc.range,
-            Range.create({ line: 0, character: 0 }, { line: 0, character: 10 }),
-          ),
-        ).toBe(true);
-      }
-    }
-  });
-
   test('load from server using uri', async () => {
     const mockConnection = createMockDocConnection();
     const files = new Map();
     const mockIoResponse = createMockIoService(files);
 
     const baseUri = URI.file('/example/folder').toString();
-    const resolverService = new ResolverService(baseUri);
 
     const docService = new DocumentService(
       mockConnection,
       mockIoResponse,
-      resolverService,
       mockLogger,
       mockTracer,
+      URI.parse(baseUri),
     );
 
     const serverDocs = docService['serverDocs'];
@@ -438,14 +315,13 @@ describe('document service', () => {
     const mockIoService = createMockIoService(files);
 
     const baseUri = URI.file('/example/folder').toString();
-    const resolverService = new ResolverService(baseUri);
 
     const docService = new DocumentService(
       mockConnection,
       mockIoService,
-      resolverService,
       mockLogger,
       mockTracer,
+      URI.parse(baseUri),
     );
 
     const serverDocs = docService['serverDocs'];
@@ -457,7 +333,7 @@ describe('document service', () => {
 
     let first = true;
 
-    docService.onChange(document => {
+    docService.on('change', document => {
       if (first) {
         expect(document.uri).toBe(uri.toString());
         expect(document.text).toBe(content);
@@ -468,7 +344,7 @@ describe('document service', () => {
       }
     });
 
-    docService.onClose(closeUri => {
+    docService.on('close', closeUri => {
       expect(closeUri).toBe(uri.toString());
     });
 
@@ -531,9 +407,9 @@ describe('document service', () => {
     const docService = new DocumentService(
       mockConnection,
       mockUriResponse,
-      resolverService,
       mockLogger,
       mockTracer,
+      URI.parse(baseUri),
     );
 
     const serverDocs = docService['serverDocs'];
@@ -559,13 +435,16 @@ describe('document service', () => {
       const uriString = rUri.toString();
       files.set(aUri.fsPath, doc);
 
-      const loadedDoc = await docService.loadDocumentFromScript(
+      const resolvedUri = resolverService.resolve(
         Location.create(
           callingUri,
           Range.create({ line: 0, character: 0 }, { line: 0, character: 10 }),
         ),
         `0:/${basename(uriString)}`,
       );
+      expect(resolvedUri).toBeDefined();
+
+      const loadedDoc = await docService.loadDocument(resolvedUri!.toString());
 
       expect(loadedDoc).toBeDefined();
       if (!empty(loadedDoc)) {
@@ -585,11 +464,11 @@ describe('document service', () => {
 const documentInfoDiagnostics = ({
   lexicalInfo,
   semanticInfo,
-  otherDiagnostics,
+  dependencyInfo,
 }: DocumentInfo): DiagnosticUri[] => [
   ...lexicalInfo.diagnostics,
   ...semanticInfo.diagnostics,
-  ...otherDiagnostics,
+  ...dependencyInfo.diagnostics,
 ];
 
 describe('analysis service', () => {
@@ -599,19 +478,18 @@ describe('analysis service', () => {
     const documents = new Map([
       [uri, TextDocument.create(uri, 'kos', 1.0, 'print(10).')],
     ]);
-    const docService = createMockDocumentService(
-      documents,
-      URI.file('/').toString(),
-    );
+    const docService = createMockDocumentService(documents);
+    const resolverService = new ResolverService(uri);
 
     const analysisService = new AnalysisService(
       CaseKind.camelCase,
       mockLogger,
       mockTracer,
       docService,
+      resolverService,
     );
 
-    const diagnostics = await analysisService.validateDocument(
+    const diagnostics = await analysisService.analyzeDocument(
       uri,
       (documents.get(uri) as TextDocument).getText(),
     );
@@ -638,16 +516,15 @@ describe('analysis service', () => {
     const documents = new Map([
       [uri, TextDocument.create(uri, 'kos', 1.0, 'print(10).')],
     ]);
-    const docService = createMockDocumentService(
-      documents,
-      URI.file('/').toString(),
-    );
+    const docService = createMockDocumentService(documents);
+    const resolverService = new ResolverService(uri);
 
     const analysisService = new AnalysisService(
       CaseKind.camelCase,
       mockLogger,
       mockTracer,
       docService,
+      resolverService,
     );
 
     const documentInfo = await analysisService.getInfo(uri);
@@ -664,7 +541,7 @@ describe('analysis service', () => {
       ).toBe(0);
     }
 
-    const diagnostics = await analysisService.validateDocument(
+    const diagnostics = await analysisService.analyzeDocument(
       uri,
       (documents.get(uri) as TextDocument).getText(),
     );
@@ -688,16 +565,15 @@ describe('analysis service', () => {
     const documents = new Map([
       [uri, TextDocument.create(uri, 'kos', 1.0, 'print(10).')],
     ]);
-    const docService = createMockDocumentService(
-      documents,
-      URI.file('/').toString(),
-    );
+    const docService = createMockDocumentService(documents);
+    const resolverService = new ResolverService(uri);
 
     const analysisService = new AnalysisService(
       CaseKind.lowerCase,
       mockLogger,
       mockTracer,
       docService,
+      resolverService,
     );
 
     let bodyLib = analysisService['bodyLibrary'];
@@ -745,16 +621,18 @@ describe('analysis service', () => {
         TextDocument.create(uri2, 'kos', 1.0, 'function hi { print("hi"). }'),
       ],
     ]);
-    const docService = createMockDocumentService(documents, baseUri);
+    const docService = createMockDocumentService(documents);
+    const resolverService = new ResolverService(baseUri);
 
     const analysisService = new AnalysisService(
       CaseKind.camelCase,
       mockLogger,
       mockTracer,
       docService,
+      resolverService,
     );
 
-    const diagnostics = await analysisService.validateDocument(
+    const diagnostics = await analysisService.analyzeDocument(
       uri1,
       (documents.get(uri1) as TextDocument).getText(),
     );
@@ -811,38 +689,40 @@ describe('analysis service', () => {
         TextDocument.create(uri2, 'kos', 1.0, 'function hi { print("hi"). }'),
       ],
     ]);
-    const docService = createMockDocumentService(documents, baseUri);
+    const docService = createMockDocumentService(documents);
+    const resolverService = new ResolverService(baseUri);
 
     const analysisService = new AnalysisService(
       CaseKind.camelCase,
       mockLogger,
       mockTracer,
       docService,
+      resolverService,
     );
 
     // initial load of example1.ks
-    const diagnostics11 = await analysisService.validateDocument(
+    const diagnostics11 = await analysisService.analyzeDocument(
       uri1,
       (documents.get(uri1) as TextDocument).getText(),
     );
     const documentInfo11 = await analysisService.getInfo(uri1);
 
     // load from client example2.ks
-    const diagnostics21 = await analysisService.validateDocument(
+    const diagnostics21 = await analysisService.analyzeDocument(
       uri2,
       (documents.get(uri2) as TextDocument).getText(),
     );
     const documentInfo21 = await analysisService.getInfo(uri2);
 
     // update load of example1.ks
-    const diagnostics12 = await analysisService.validateDocument(
+    const diagnostics12 = await analysisService.analyzeDocument(
       uri1,
       (documents.get(uri1) as TextDocument).getText(),
     );
     const documentInfo12 = await analysisService.getInfo(uri1);
 
     // update load of example2.ks
-    const diagnostics22 = await analysisService.validateDocument(
+    const diagnostics22 = await analysisService.analyzeDocument(
       uri2,
       (documents.get(uri2) as TextDocument).getText(),
     );
