@@ -1,5 +1,6 @@
 import {
-  Diagnostic, DiagnosticSeverity,
+  Diagnostic,
+  DiagnosticSeverity,
   DiagnosticRelatedInformation,
   Range,
 } from 'vscode-languageserver';
@@ -16,8 +17,64 @@ import { languageServer } from './constants';
 export const createDiagnostic = (
   range: Range,
   message: string,
-  severity?: DiagnosticSeverity,
-  code?: number | string,
-  relatedInformation?: DiagnosticRelatedInformation[]): Diagnostic => {
-  return Diagnostic.create(range, message, severity, code, languageServer, relatedInformation);
+  severity: DiagnosticSeverity,
+  code: ValueOf<typeof DIAGNOSTIC_CODE>,
+  relatedInformation?: DiagnosticRelatedInformation[],
+): Diagnostic => {
+  return Diagnostic.create(
+    range,
+    message,
+    severity,
+    code,
+    languageServer,
+    relatedInformation,
+  );
 };
+
+/**
+ * Code for each diagnostics int the language server
+ */
+export const DIAGNOSTIC_CODE = {
+  // scanner
+  SCANNER_ERROR: 'scanner-error',
+
+  // parser
+  PARSER_ERROR: 'parser-error',
+
+  // analysis service
+  LOAD_ERROR: 'unable-to-load-file',
+
+  // flow analysis
+  UNREACHABLE_CODE: 'unreachable-code',
+
+  // resolver
+  GLOBAL_PARAMETER: 'global-parameter',
+  CANNOT_SET: 'cannot-set',
+  INVALID_LAZY_GLOBAL: 'invalid-lazy-global',
+  INVALID_RETURN_CONTEXT: 'invalid-return-context',
+  INVALID_PRESERVE_CONTEXT: 'invalid-preserve-context',
+  INVALID_BREAK_CONTEXT: 'invalid-break-context',
+  COPY_DEPRECATED: 'copy-deprecated',
+  RENAME_DEPRECATED: 'rename-deprecated',
+  DELETE_DEPRECATED: 'delete-deprecated',
+  INVALID_SET: 'invalid-set',
+
+  // symbol table
+  SYMBOL_MAY_NOT_EXIST: 'symbol-may-not-exist',
+  SYMBOL_MAY_NOT_RUNTIME_EXIST: 'symbol-may-not-runtime-exist',
+  SYMBOL_WRONG_KIND: 'symbol-wrong-kind',
+  SYMBOL_UNUSED_LOCALLY: 'symbol-unused-locally',
+  SYMBOL_UNUSED: 'symbol-unused',
+  SYMBOL_SHADOWS: 'symbol-shadows',
+  SYMBOL_CONFLICT: 'symbol-conflict',
+
+  // type checker
+  TYPE_WRONG: 'type-wrong',
+  TYPE_NO_CALL: 'type-no-call',
+  TYPE_WRONG_ARITY: 'type-wrong-arity',
+  TYPE_LIST_INVALID: 'type-list-invalid',
+  TYPE_NO_INDEXER: 'type-no-indexer',
+  TYPE_NOT_FUNCTION: 'type-not-function',
+  TYPE_MISSING_SUFFIX: 'type-missing-suffix',
+  TYPE_MISSING_OPERATOR: 'type-missing-operator',
+} as const;

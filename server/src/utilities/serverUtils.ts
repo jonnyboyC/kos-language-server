@@ -29,6 +29,7 @@ import { IType } from '../typeChecker/types';
 import { tokenTrackedType } from '../typeChecker/utilities/typeUtilities';
 import { structureType } from '../typeChecker/ksTypes/primitives/structure';
 import { IoKind } from '../services/IoService';
+import { createDiagnostic, DIAGNOSTIC_CODE } from './diagnosticsUtils';
 
 /**
  * The default client configuration if none are available
@@ -344,12 +345,12 @@ export const toDocumentSymbols = (
  * @param uri uri string
  */
 export const parseToDiagnostics = (error: IParseError): Diagnostic => {
-  return {
-    severity: DiagnosticSeverity.Error,
-    range: { start: error.start, end: error.end },
-    message: error.message,
-    source: 'kos-language-server',
-  };
+  return createDiagnostic(
+    { start: error.start, end: error.end },
+    error.message,
+    DiagnosticSeverity.Error,
+    DIAGNOSTIC_CODE.PARSER_ERROR,
+  );
 };
 
 /**

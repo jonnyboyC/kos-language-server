@@ -13,7 +13,10 @@ import { Token } from '../models/token';
 import { empty } from '../utilities/typeGuards';
 import { mockLogger, mockTracer, logException } from '../models/logger';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
-import { createDiagnostic } from '../utilities/diagnosticsUtils';
+import {
+  createDiagnostic,
+  DIAGNOSTIC_CODE,
+} from '../utilities/diagnosticsUtils';
 import { MutableMarker } from './models/marker';
 
 /**
@@ -529,6 +532,7 @@ export class Scanner {
       },
       message,
       DiagnosticSeverity.Error,
+      DIAGNOSTIC_CODE.SCANNER_ERROR,
     );
 
     this.diagnosticResult.result = diagnostic;

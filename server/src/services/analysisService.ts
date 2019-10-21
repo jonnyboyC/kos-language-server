@@ -35,7 +35,10 @@ import { runPath, normalizeExtensions } from '../utilities/pathUtils';
 import { ResolverService } from './resolverService';
 import { Graph } from '../models/graph';
 import { scc, dfs } from '../utilities/graphUtils';
-import { createDiagnostic } from '../utilities/diagnosticsUtils';
+import {
+  createDiagnostic,
+  DIAGNOSTIC_CODE,
+} from '../utilities/diagnosticsUtils';
 import { debounce } from '../utilities/debounce';
 import { union, disjoint } from 'ts-set-utils';
 import { EventEmitter } from 'events';
@@ -886,6 +889,7 @@ export class AnalysisService extends EventEmitter {
       range,
       `Unable to load script at ${path}`,
       DiagnosticSeverity.Information,
+      DIAGNOSTIC_CODE.LOAD_ERROR,
     );
   }
 

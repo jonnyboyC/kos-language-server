@@ -5,7 +5,10 @@ import { IStmt } from '../parser/types';
 import { BasicBlock } from './models/basicBlock';
 import { empty } from '../utilities/typeGuards';
 import { rangeContains } from '../utilities/positionUtils';
-import { createDiagnostic } from '../utilities/diagnosticsUtils';
+import {
+  createDiagnostic,
+  DIAGNOSTIC_CODE,
+} from '../utilities/diagnosticsUtils';
 import { Graph } from '../models/graph';
 
 /**
@@ -93,6 +96,7 @@ export class FlowGraph {
             stmt,
             'Unreachable code',
             DiagnosticSeverity.Information,
+            DIAGNOSTIC_CODE.UNREACHABLE_CODE,
           ),
         );
         lastStmt = stmt;
