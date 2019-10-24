@@ -8,7 +8,7 @@ A language server for Kerboscript within the [KOS](https://github.com/KSP-KOS/KO
 
 The project currently supports the following clients
 * [Visual Studio Code](https://code.visualstudio.com/) via the [kOS extension](https://marketplace.visualstudio.com/items?itemName=JohnChabot.kos-vscode)
-* [Vim](https://www.vim.org/) via [kerbovim](https://marketplace.visualstudio.com/items?itemName=JohnChabot.kos-vscode)
+* [Vim](https://www.vim.org/) via [kerbovim](https://github.com/Freedzone/kerbovim)
 * [Atom](https://atom.io/) only with syntax highlight via the [kos-ide plugin](https://atom.io/packages/ide-kos) 
 
 For additional client support such as sublime text, emacs, notepad++ or others please post an issue with the requested editor. 
