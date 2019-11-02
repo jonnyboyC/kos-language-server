@@ -13,7 +13,7 @@ import { ClientConfiguration, KLSConfiguration } from './types';
 import { typeInitializer } from './typeChecker/initialize';
 
 program
-  .version('0.10.0', '-v --version')
+  .version('0.12.0', '-v --version')
   .option('--node-ipc', 'Connect with node inter process communication')
   .option('--stdio', 'Connect with standard io')
   .option('--clientProcessId', 'Id of the attached client process')
