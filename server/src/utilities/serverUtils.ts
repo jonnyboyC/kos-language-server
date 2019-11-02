@@ -29,7 +29,7 @@ import { IType } from '../typeChecker/types';
 import { tokenTrackedType } from '../typeChecker/utilities/typeUtilities';
 import { structureType } from '../typeChecker/ksTypes/primitives/structure';
 import { IoKind } from '../services/IoService';
-import { createDiagnostic, DIAGNOSTIC_CODE } from './diagnosticsUtils';
+import { createDiagnostic, DIAGNOSTICS } from './diagnosticsUtils';
 
 /**
  * The default client configuration if none are available
@@ -349,7 +349,7 @@ export const parseToDiagnostics = (error: IParseError): Diagnostic => {
     { start: error.start, end: error.end },
     error.message,
     DiagnosticSeverity.Error,
-    DIAGNOSTIC_CODE.PARSER_ERROR,
+    DIAGNOSTICS.PARSER_ERROR,
   );
 };
 

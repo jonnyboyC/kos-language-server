@@ -24,7 +24,7 @@ import { IDeferred } from './types';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
 import {
   createDiagnostic,
-  DIAGNOSTIC_CODE,
+  DIAGNOSTICS,
 } from '../utilities/diagnosticsUtils';
 // tslint:disable-next-line: import-name
 import Denque from 'denque';
@@ -358,7 +358,7 @@ export class Resolver
             decl.scope.scope,
             'Parameters cannot be global',
             DiagnosticSeverity.Error,
-            DIAGNOSTIC_CODE.GLOBAL_PARAMETER,
+            DIAGNOSTICS.GLOBAL_PARAMETER,
           ),
         );
       }
@@ -477,7 +477,7 @@ export class Resolver
             stmt,
             'preserve appeared outside of a trigger body',
             DiagnosticSeverity.Error,
-            DIAGNOSTIC_CODE.INVALID_PRESERVE_CONTEXT,
+            DIAGNOSTICS.INVALID_PRESERVE_CONTEXT,
           ),
         );
       }
@@ -540,7 +540,7 @@ export class Resolver
           token,
           `cannot assign to variable ${token.lexeme}`,
           DiagnosticSeverity.Error,
-          DIAGNOSTIC_CODE.CANNOT_SET,
+          DIAGNOSTICS.CANNOT_SET,
         ),
       ];
     }
@@ -567,7 +567,7 @@ export class Resolver
           stmt.lazyGlobal,
           'Lazy global was not declared at top of the file',
           DiagnosticSeverity.Error,
-          DIAGNOSTIC_CODE.INVALID_LAZY_GLOBAL,
+          DIAGNOSTICS.INVALID_LAZY_GLOBAL,
         ),
       ];
     }
@@ -672,7 +672,7 @@ export class Resolver
           stmt.returnToken,
           'Return appeared outside of function or trigger body',
           DiagnosticSeverity.Error,
-          DIAGNOSTIC_CODE.INVALID_RETURN_CONTEXT,
+          DIAGNOSTICS.INVALID_RETURN_CONTEXT,
         ),
       );
     }
@@ -691,7 +691,7 @@ export class Resolver
             stmt,
             'Break appeared outside of a loop',
             DiagnosticSeverity.Error,
-            DIAGNOSTIC_CODE.INVALID_BREAK_CONTEXT,
+            DIAGNOSTICS.INVALID_BREAK_CONTEXT,
           ),
         ]
       : [];
@@ -802,7 +802,7 @@ export class Resolver
         stmt,
         'Copy is deprecated as of 1.0.0',
         DiagnosticSeverity.Warning,
-        DIAGNOSTIC_CODE.COPY_DEPRECATED,
+        DIAGNOSTICS.COPY_DEPRECATED,
       ),
       this.resolveExpr(stmt.target),
       this.resolveExpr(stmt.destination),
@@ -819,7 +819,7 @@ export class Resolver
         stmt,
         'Rename is deprecated as of 1.0.0',
         DiagnosticSeverity.Warning,
-        DIAGNOSTIC_CODE.RENAME_DEPRECATED,
+        DIAGNOSTICS.RENAME_DEPRECATED,
       ),
       this.useExprLocalsBind(stmt.alternative),
       this.resolveExpr(stmt.target),
@@ -836,7 +836,7 @@ export class Resolver
       stmt,
       'Copy is deprecated as of 1.0.0',
       DiagnosticSeverity.Warning,
-      DIAGNOSTIC_CODE.DELETE_DEPRECATED,
+      DIAGNOSTICS.DELETE_DEPRECATED,
     );
 
     if (empty(stmt.volume)) {
@@ -1000,7 +1000,7 @@ export class Resolver
           `Attempted to set ${set.lexeme} which has not been declared. ` +
             `Either remove lazy global directive or declare ${set.lexeme}`,
           DiagnosticSeverity.Error,
-          DIAGNOSTIC_CODE.INVALID_SET,
+          DIAGNOSTICS.INVALID_SET,
         ),
       );
 

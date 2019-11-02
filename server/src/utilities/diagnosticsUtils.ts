@@ -18,7 +18,7 @@ export const createDiagnostic = (
   range: Range,
   message: string,
   severity: DiagnosticSeverity,
-  code: ValueOf<typeof DIAGNOSTIC_CODE>,
+  code: ValueOf<typeof DIAGNOSTICS>,
   relatedInformation?: DiagnosticRelatedInformation[],
 ): Diagnostic => {
   return Diagnostic.create(
@@ -34,7 +34,7 @@ export const createDiagnostic = (
 /**
  * Code for each diagnostics int the language server
  */
-export const DIAGNOSTIC_CODE = {
+export const DIAGNOSTICS = {
   // scanner
   SCANNER_ERROR: 'scanner-error',
 

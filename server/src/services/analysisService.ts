@@ -37,7 +37,7 @@ import { Graph } from '../models/graph';
 import { scc, dfs } from '../utilities/graphUtils';
 import {
   createDiagnostic,
-  DIAGNOSTIC_CODE,
+  DIAGNOSTICS,
 } from '../utilities/diagnosticsUtils';
 import { debounce } from '../utilities/debounce';
 import { union, disjoint } from 'ts-set-utils';
@@ -889,7 +889,7 @@ export class AnalysisService extends EventEmitter {
       range,
       `Unable to load script at ${path}`,
       DiagnosticSeverity.Information,
-      DIAGNOSTIC_CODE.LOAD_ERROR,
+      DIAGNOSTICS.LOAD_ERROR,
     );
   }
 

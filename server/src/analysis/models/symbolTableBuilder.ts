@@ -36,7 +36,7 @@ import {
 } from '../../utilities/positionUtils';
 import {
   createDiagnostic,
-  DIAGNOSTIC_CODE,
+  DIAGNOSTICS,
 } from '../../utilities/diagnosticsUtils';
 import { builtIn } from '../../utilities/constants';
 import { toCase } from '../../utilities/stringUtils';
@@ -287,7 +287,7 @@ export class SymbolTableBuilder {
         name,
         `Symbol ${name.lexeme} may not exist`,
         DiagnosticSeverity.Warning,
-        DIAGNOSTIC_CODE.SYMBOL_MAY_NOT_EXIST,
+        DIAGNOSTICS.SYMBOL_MAY_NOT_EXIST,
       );
       return { tracker, error };
     }
@@ -313,7 +313,7 @@ export class SymbolTableBuilder {
         token,
         `${token.lexeme} may not exist`,
         DiagnosticSeverity.Warning,
-        DIAGNOSTIC_CODE.SYMBOL_MAY_NOT_EXIST,
+        DIAGNOSTICS.SYMBOL_MAY_NOT_EXIST,
       );
     }
 
@@ -599,7 +599,7 @@ export class SymbolTableBuilder {
           token.lexeme
         } may not exist.`,
         DiagnosticSeverity.Warning,
-        DIAGNOSTIC_CODE.SYMBOL_MAY_NOT_EXIST,
+        DIAGNOSTICS.SYMBOL_MAY_NOT_EXIST,
       );
     }
 
@@ -622,7 +622,7 @@ export class SymbolTableBuilder {
         token,
         `${symbolType} ${token.lexeme} may not exist at script runtime.`,
         DiagnosticSeverity.Hint,
-        DIAGNOSTIC_CODE.SYMBOL_MAY_NOT_RUNTIME_EXIST,
+        DIAGNOSTICS.SYMBOL_MAY_NOT_RUNTIME_EXIST,
         [
           DiagnosticRelatedInformation.create(
             { uri: tracker.declared.uri, range: tracker.declared.range },
@@ -803,7 +803,7 @@ export class SymbolTableBuilder {
       token,
       `Expected a ${expected} but found a ${foundKind} instead`,
       DiagnosticSeverity.Warning,
-      DIAGNOSTIC_CODE.SYMBOL_WRONG_KIND,
+      DIAGNOSTICS.SYMBOL_WRONG_KIND,
       [
         DiagnosticRelatedInformation.create(
           { uri: tracker.declared.uri, range: tracker.declared.range },
@@ -877,14 +877,14 @@ export class SymbolTableBuilder {
     let level: DiagnosticSeverity = DiagnosticSeverity.Warning;
     let usedString = 'was not used.';
     let scopeString = 'Local';
-    let code: ValueOf<typeof DIAGNOSTIC_CODE> = DIAGNOSTIC_CODE.SYMBOL_UNUSED;
+    let code: ValueOf<typeof DIAGNOSTICS> = DIAGNOSTICS.SYMBOL_UNUSED;
 
     if (isLock(symbol) || isVariable(symbol) || isFunction(symbol)) {
       if (symbol.scope === ScopeKind.global) {
         level = DiagnosticSeverity.Information;
         usedString = 'was not used locally.';
         scopeString = 'Global';
-        code = DIAGNOSTIC_CODE.SYMBOL_UNUSED_LOCALLY;
+        code = DIAGNOSTICS.SYMBOL_UNUSED_LOCALLY;
       }
     }
 
@@ -1029,7 +1029,7 @@ export class SymbolTableBuilder {
         symbol.name.lexeme
       } ` + `already exists here. This ${KsSymbolKind[kind]} shadows it.`,
       DiagnosticSeverity.Hint,
-      DIAGNOSTIC_CODE.SYMBOL_SHADOWS,
+      DIAGNOSTICS.SYMBOL_SHADOWS,
       [this.symbolConflictInfo(symbol)],
     );
   }
@@ -1046,7 +1046,7 @@ export class SymbolTableBuilder {
         symbol.name.lexeme
       } already exists.`,
       DiagnosticSeverity.Warning,
-      DIAGNOSTIC_CODE.SYMBOL_CONFLICT,
+      DIAGNOSTICS.SYMBOL_CONFLICT,
       [this.symbolConflictInfo(symbol)],
     );
   }
