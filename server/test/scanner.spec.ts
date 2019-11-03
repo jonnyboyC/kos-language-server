@@ -1,12 +1,12 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { walkDir } from '../utilities/fsUtils';
-import { TokenType } from '../models/tokentypes';
-import { zip } from '../utilities/arrayUtils';
-import { Scanner } from '../scanner/scanner';
-import { Token } from '../models/token';
+import { walkDir } from '../src/utilities/fsUtils';
+import { TokenType } from '../src/models/tokentypes';
+import { zip } from '../src/utilities/arrayUtils';
+import { Scanner } from '../src/scanner/scanner';
+import { Token } from '../src/models/token';
 
-const testDir = join(__dirname, '../../../kerboscripts/parser_valid/');
+const testDir = join(__dirname, '../../kerboscripts/parser_valid/');
 
 describe('Scan all files', () => {
   test('scan all', () => {
@@ -25,7 +25,7 @@ describe('Scan all files', () => {
 
 const scannerPath = join(
   __dirname,
-  '../../../kerboscripts/parser_valid/unitTests/scannertest.ks',
+  '../../kerboscripts/parser_valid/unitTests/scannertest.ks',
 );
 
 const sequence = [

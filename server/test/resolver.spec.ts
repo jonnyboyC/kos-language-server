@@ -1,35 +1,35 @@
-import { Parser } from '../parser/parser';
-import { Scanner } from '../scanner/scanner';
-import { Ast } from '../parser/types';
-import { empty, unWrap, unWrapMany } from '../utilities/typeGuards';
-import { rangeEqual, rangeOrder } from '../utilities/positionUtils';
+import { Parser } from '../src/parser/parser';
+import { Scanner } from '../src/scanner/scanner';
+import { Ast } from '../src/parser/types';
+import { empty, unWrap, unWrapMany } from '../src/utilities/typeGuards';
+import { rangeEqual, rangeOrder } from '../src/utilities/positionUtils';
 import {
   Range,
   Diagnostic,
   DiagnosticSeverity,
   Position,
 } from 'vscode-languageserver';
-import { structureType } from '../typeChecker/ksTypes/primitives/structure';
+import { structureType } from '../src/typeChecker/ksTypes/primitives/structure';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { zip } from '../utilities/arrayUtils';
-import { SymbolTable } from '../analysis/models/symbolTable';
-import { SymbolTableBuilder } from '../analysis/models/symbolTableBuilder';
-import { PreResolver } from '../analysis/preResolver';
+import { zip } from '../src/utilities/arrayUtils';
+import { SymbolTable } from '../src/analysis/models/symbolTable';
+import { SymbolTableBuilder } from '../src/analysis/models/symbolTableBuilder';
+import { PreResolver } from '../src/analysis/preResolver';
 import {
   KsSymbolKind,
   SymbolTrackerBase,
   KsBaseSymbol,
-} from '../analysis/types';
-import { Resolver } from '../analysis/resolver';
-import { FunctionScan } from '../analysis/functionScan';
-import * as Decl from '../parser/models/declare';
-import { standardLibraryBuilder } from '../analysis/standardLibrary';
-import { LocalResolver } from '../analysis/localResolver';
-import * as Stmt from '../parser/models/stmt';
-import { SetResolver } from '../analysis/setResolver';
-import { Marker } from '../scanner/models/marker';
-import { Tokenized } from '../scanner/types';
+} from '../src/analysis/types';
+import { Resolver } from '../src/analysis/resolver';
+import { FunctionScan } from '../src/analysis/functionScan';
+import * as Decl from '../src/parser/models/declare';
+import { standardLibraryBuilder } from '../src/analysis/standardLibrary';
+import { LocalResolver } from '../src/analysis/localResolver';
+import * as Stmt from '../src/parser/models/stmt';
+import { SetResolver } from '../src/analysis/setResolver';
+import { Marker } from '../src/scanner/models/marker';
+import { Tokenized } from '../src/scanner/types';
 
 const fakeUri = 'C:\\fake.ks';
 
@@ -270,7 +270,7 @@ describe('Resolver tracking', () => {
 
   const symbolKindPath = join(
     __dirname,
-    '../../../kerboscripts/parser_valid/unitTests/scannertest.ks',
+    '../../kerboscripts/parser_valid/unitTests/scannertest.ks',
   );
 
   // test basic identifier
@@ -393,7 +393,7 @@ describe('Resolver tracking', () => {
 
   const allNodePath = join(
     __dirname,
-    '../../../kerboscripts/parser_valid/unitTests/allLanguage.ks',
+    '../../kerboscripts/parser_valid/unitTests/allLanguage.ks',
   );
 
   const allNodeLocations: Range[] = [
@@ -580,7 +580,7 @@ describe('Resolver errors', () => {
 
   const definedPath = join(
     __dirname,
-    '../../../kerboscripts/parser_valid/unitTests/definedtest.ks',
+    '../../kerboscripts/parser_valid/unitTests/definedtest.ks',
   );
 
   const definedLocations: Range[] = [
@@ -616,7 +616,7 @@ describe('Resolver errors', () => {
 
   const usedPath = join(
     __dirname,
-    '../../../kerboscripts/parser_valid/unitTests/usedtest.ks',
+    '../../kerboscripts/parser_valid/unitTests/usedtest.ks',
   );
 
   const usedLocations: Range[] = [
@@ -645,7 +645,7 @@ describe('Resolver errors', () => {
 
   const shadowPath = join(
     __dirname,
-    '../../../kerboscripts/parser_valid/unitTests/shadowtest.ks',
+    '../../kerboscripts/parser_valid/unitTests/shadowtest.ks',
   );
 
   const shadowedLocations: Range[] = [
@@ -673,7 +673,7 @@ describe('Resolver errors', () => {
 
   const deferredPath = join(
     __dirname,
-    '../../../kerboscripts/parser_valid/unitTests/deferredtest.ks',
+    '../../kerboscripts/parser_valid/unitTests/deferredtest.ks',
   );
 
   const deferredLocations: Range[] = [
@@ -705,7 +705,7 @@ describe('Resolver errors', () => {
 
   const breakPath = join(
     __dirname,
-    '../../../kerboscripts/parser_valid/unitTests/breaktest.ks',
+    '../../kerboscripts/parser_valid/unitTests/breaktest.ks',
   );
 
   const breakLocations: Range[] = [
@@ -734,7 +734,7 @@ describe('Resolver errors', () => {
 
   const returnPath = join(
     __dirname,
-    '../../../kerboscripts/parser_valid/unitTests/returntest.ks',
+    '../../kerboscripts/parser_valid/unitTests/returntest.ks',
   );
 
   const returnLocations: Range[] = [
@@ -763,7 +763,7 @@ describe('Resolver errors', () => {
 
   const preservePath = join(
     __dirname,
-    '../../../kerboscripts/parser_valid/unitTests/preservetest.ks',
+    '../../kerboscripts/parser_valid/unitTests/preservetest.ks',
   );
 
   const preserveLocations: Range[] = [

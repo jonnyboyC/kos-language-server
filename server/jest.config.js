@@ -5,7 +5,7 @@ const config = {
   preset: 'ts-jest',
   reporters: ['default', 'jest-junit'],
   coverageReporters: ['html', 'cobertura'],
-  rootDir: 'src',
+  rootDir: 'test',
   globals: {
     'ts-jest': {
       suiteName: 'jest tests',

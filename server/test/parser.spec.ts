@@ -1,8 +1,8 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { Diagnostic } from 'vscode-languageserver';
-import { Tokenized } from '../scanner/types';
-import { Scanner } from '../scanner/scanner';
+import { Tokenized } from '../src/scanner/types';
+import { Scanner } from '../src/scanner/scanner';
 import {
   INodeResult,
   IExpr,
@@ -10,16 +10,16 @@ import {
   SuffixTermTrailer,
   ScopeKind,
   Ast,
-} from '../parser/types';
-import { Parser } from '../parser/parser';
-import { TokenCheck } from '../parser/tokenCheck';
-import { zip } from '../utilities/arrayUtils';
-import { TokenType } from '../models/tokentypes';
-import * as Expr from '../parser/models/expr';
-import * as Decl from '../parser/models/declare';
-import { empty } from '../utilities/typeGuards';
-import * as SuffixTerm from '../parser/models/suffixTerm';
-import { walkDir } from '../utilities/fsUtils';
+} from '../src/parser/types';
+import { Parser } from '../src/parser/parser';
+import { TokenCheck } from '../src/parser/tokenCheck';
+import { zip } from '../src/utilities/arrayUtils';
+import { TokenType } from '../src/models/tokentypes';
+import * as Expr from '../src/parser/models/expr';
+import * as Decl from '../src/parser/models/declare';
+import { empty } from '../src/utilities/typeGuards';
+import * as SuffixTerm from '../src/parser/models/suffixTerm';
+import { walkDir } from '../src/utilities/fsUtils';
 
 // scan source file
 const scan = (source: string): Tokenized => {
@@ -45,7 +45,7 @@ const parse = (source: string): Ast => {
   return parser.parse();
 };
 
-const testDir = join(__dirname, '../../../kerboscripts/parser_valid/');
+const testDir = join(__dirname, '../../kerboscripts/parser_valid/');
 
 const tokenCheck = new TokenCheck();
 

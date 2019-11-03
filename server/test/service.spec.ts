@@ -1,4 +1,4 @@
-import { DocumentService } from '../services/documentService';
+import { DocumentService } from '../src/services/documentService';
 import {
   TextDocumentItem,
   Location,
@@ -9,28 +9,33 @@ import {
   TextDocumentIdentifier,
   FoldingRange,
 } from 'vscode-languageserver';
-import { mockLogger, mockTracer } from '../models/logger';
+import { mockLogger, mockTracer } from '../src/models/logger';
 import { URI } from 'vscode-uri';
-import { empty } from '../utilities/typeGuards';
-import { zip } from '../utilities/arrayUtils';
+import { empty } from '../src/utilities/typeGuards';
+import { zip } from '../src/utilities/arrayUtils';
 import { basename, join } from 'path';
-import { Scanner } from '../scanner/scanner';
-import { Parser } from '../parser/parser';
-import { Tokenized } from '../scanner/types';
-import { Ast } from '../parser/types';
-import { FoldableService } from '../services/foldableService';
+import { Scanner } from '../src/scanner/scanner';
+import { Parser } from '../src/parser/parser';
+import { Tokenized } from '../src/scanner/types';
+import { Ast } from '../src/parser/types';
+import { FoldableService } from '../src/services/foldableService';
 import {
   createMockDocConnection,
   createMockUriResponse as createMockIoService,
   createMockDocumentService,
 } from './utilities/mockServices';
-import { AnalysisService } from '../services/analysisService';
-import { typeInitializer } from '../typeChecker/initialize';
-import { ResolverService } from '../services/resolverService';
-import { IoService, Document, IoKind, IoEntity } from '../services/IoService';
-import { DocumentInfo, DiagnosticUri } from '../types';
+import { AnalysisService } from '../src/services/analysisService';
+import { typeInitializer } from '../src/typeChecker/initialize';
+import { ResolverService } from '../src/services/resolverService';
+import {
+  IoService,
+  Document,
+  IoKind,
+  IoEntity,
+} from '../src/services/IoService';
+import { DocumentInfo, DiagnosticUri } from '../src/types';
 
-const testDir = join(__dirname, '../../../kerboscripts/parser_valid/');
+const testDir = join(__dirname, '../../kerboscripts/parser_valid/');
 const loadDir = join(testDir, 'unitTests/loadFiles');
 const analysisDir = join(testDir, 'unitTests/analysis');
 typeInitializer();
