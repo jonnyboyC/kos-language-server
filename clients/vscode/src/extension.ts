@@ -30,7 +30,7 @@ import { searchDocumentationProvider } from './commands/searchDocumentationProvi
 let client: LanguageClient;
 
 const env = process.env.NODE_ENV || 'dev';
-const serverFolder = env === 'dev' ? 'out' : 'dist';
+const serverFolder = env === 'dev' ? 'out/src' : 'dist';
 
 /**
  * This function activates the extension when vscode determines we've either opens a
@@ -85,7 +85,10 @@ export function activate(context: ExtensionContext) {
   // Options to control the language client
   const clientOptions: LanguageClientOptions = {
     // Register the server for kos documents
-    documentSelector: [{ scheme: 'file', language: 'kos' }],
+    documentSelector: [
+      { scheme: 'file', language: 'kos' },
+      { scheme: 'file', language: 'json' },
+    ],
 
     errorHandler: {
       error(error: Error, message: Message, count: number): ErrorAction {

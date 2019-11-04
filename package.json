@@ -65,6 +65,7 @@
   },
   "activationEvents": [
     "onLanguage:kos",
+    "workspaceContains:**/ksconfig.json",
     "onCommand:kos.lspPort",
     "onCommand:kos.startTelnet",
     "onCommand:kos.startksp"
