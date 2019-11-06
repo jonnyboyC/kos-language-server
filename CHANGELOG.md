@@ -1,3 +1,13 @@
+# [0.12.1] (2019-11-6)
+## Features
+- **Diagnostics Names** Diagnostics now have consistent names throughout the language server so they can more easily be searched.
+- **kOS 1.2.0 Types** The type definition have been updated to include the functions and suffixes added int he kOS 1.2.0 update 
+
+## Bug Fixes
+- **Shadow / Conflict Related Info** Previously the language server would incorrectly report that the location of a definition shadow or conflict was in the same file as the error occured. This has been updated so global symbols are correctly reported.
+- **Gui Types** Fixed an issue with the GUI types where completions on GUI types would sometimes cause the server to throw.
+
+
 # [0.12.0] (2019-10-8)
 
 ## Features
