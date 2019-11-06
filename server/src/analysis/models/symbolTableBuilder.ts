@@ -16,6 +16,7 @@ import {
   Diagnostic,
   DiagnosticSeverity,
   DiagnosticRelatedInformation,
+  Location,
 } from 'vscode-languageserver';
 import { ScopePosition } from './scopePosition';
 import { mockLogger } from '../../models/logger';
@@ -1020,14 +1021,7 @@ export class SymbolTableBuilder {
       } ` + `already exists here. This ${KsSymbolKind[kind]} shadows it.`,
       DiagnosticSeverity.Hint,
       undefined,
-      [
-        DiagnosticRelatedInformation.create(
-          { uri: this.uri, range: symbol.name },
-          symbol.name.uri === builtIn
-            ? `${symbol.name.lexeme} is a built in ${KsSymbolKind[symbol.tag]}`
-            : 'Originally declared here',
-        ),
-      ],
+      [this.symbolConflictInfo(symbol)],
     );
   }
 
@@ -1044,14 +1038,42 @@ export class SymbolTableBuilder {
       } already exists.`,
       DiagnosticSeverity.Warning,
       undefined,
-      [
-        DiagnosticRelatedInformation.create(
-          { uri: this.uri, range: symbol.name },
-          symbol.name.uri === builtIn
-            ? `${symbol.name.lexeme} is a built in ${KsSymbolKind[symbol.tag]}`
-            : 'Originally declared here',
-        ),
-      ],
+      [this.symbolConflictInfo(symbol)],
     );
+  }
+
+  /**
+   * Create a related information diagnostics to point to the location
+   * of the original definition
+   * @param symbol symbol in conflict
+   */
+  private symbolConflictInfo(
+    symbol: KsBaseSymbol,
+  ): DiagnosticRelatedInformation {
+    return DiagnosticRelatedInformation.create(
+      this.symbolConflictLocation(symbol),
+      this.symbolConflictMessage(symbol),
+    );
+  }
+
+  /**
+   * Create a conflict message for a related diagnostic
+   * @param symbol symbol in conflict
+   */
+  private symbolConflictMessage(symbol: KsBaseSymbol): string {
+    return symbol.name.uri === builtIn
+      ? `${symbol.name.lexeme} is a built in ${KsSymbolKind[symbol.tag]}`
+      : 'Originally declared here';
+  }
+
+  /**
+   * Determine the location of the conflicted symbol. With an exception for
+   * built in symbols
+   * @param symbol symbol in conflict
+   */
+  private symbolConflictLocation(symbol: KsBaseSymbol): Location {
+    return symbol.name.uri === builtIn
+      ? { uri: this.uri, range: symbol.name }
+      : { uri: symbol.name.uri, range: symbol.name };
   }
 }
