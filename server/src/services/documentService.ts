@@ -126,6 +126,7 @@ export class DocumentService extends EventEmitter {
     if (empty(normalized)) {
       return undefined;
     }
+
     return this.clientDocs.get(normalized) || this.serverDocs.get(normalized);
   }
 

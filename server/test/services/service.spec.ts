@@ -1,4 +1,4 @@
-import { DocumentService } from '../src/services/documentService';
+import { DocumentService } from '../../src/services/documentService';
 import {
   TextDocumentItem,
   Location,
@@ -9,33 +9,33 @@ import {
   TextDocumentIdentifier,
   FoldingRange,
 } from 'vscode-languageserver';
-import { mockLogger, mockTracer } from '../src/models/logger';
+import { mockLogger, mockTracer } from '../../src/models/logger';
 import { URI } from 'vscode-uri';
-import { empty } from '../src/utilities/typeGuards';
-import { zip } from '../src/utilities/arrayUtils';
+import { empty } from '../../src/utilities/typeGuards';
+import { zip } from '../../src/utilities/arrayUtils';
 import { basename, join } from 'path';
-import { Scanner } from '../src/scanner/scanner';
-import { Parser } from '../src/parser/parser';
-import { Tokenized } from '../src/scanner/types';
-import { Ast } from '../src/parser/types';
-import { FoldableService } from '../src/services/foldableService';
+import { Scanner } from '../../src/scanner/scanner';
+import { Parser } from '../../src/parser/parser';
+import { Tokenized } from '../../src/scanner/types';
+import { Ast } from '../../src/parser/types';
+import { FoldableService } from '../../src/services/foldableService';
 import {
   createMockDocConnection,
-  createMockUriResponse as createMockIoService,
+  createMockUriResponse,
   createMockDocumentService,
-} from './utilities/mockServices';
-import { AnalysisService } from '../src/services/analysisService';
-import { typeInitializer } from '../src/typeChecker/initialize';
-import { ResolverService } from '../src/services/resolverService';
+} from '../utilities/mockServices';
+import { AnalysisService } from '../../src/services/analysisService';
+import { typeInitializer } from '../../src/typeChecker/initialize';
+import { ResolverService } from '../../src/services/resolverService';
 import {
   IoService,
   Document,
   IoKind,
   IoEntity,
-} from '../src/services/IoService';
-import { DocumentInfo, DiagnosticUri } from '../src/types';
+} from '../../src/services/IoService';
+import { DocumentInfo, DiagnosticUri } from '../../src/types';
 
-const testDir = join(__dirname, '../../kerboscripts/parser_valid/');
+const testDir = join(__dirname, '../../../kerboscripts/parser_valid/');
 const loadDir = join(testDir, 'unitTests/loadFiles');
 const analysisDir = join(testDir, 'unitTests/analysis');
 typeInitializer();
@@ -160,7 +160,7 @@ describe('document service', () => {
   test('ready', async () => {
     const mockConnection = createMockDocConnection();
     const files = new Map();
-    const mockIoService = createMockIoService(files);
+    const mockIoService = createMockUriResponse(files);
 
     const baseUri = URI.file('/example/folder');
 
@@ -180,7 +180,7 @@ describe('document service', () => {
   test('load from client', () => {
     const mockConnection = createMockDocConnection();
     const files = new Map();
-    const mockIoService = createMockIoService(files);
+    const mockIoService = createMockUriResponse(files);
 
     const docService = new DocumentService(
       mockConnection,
@@ -249,7 +249,7 @@ describe('document service', () => {
   test('load from server using uri', async () => {
     const mockConnection = createMockDocConnection();
     const files = new Map();
-    const mockIoResponse = createMockIoService(files);
+    const mockIoResponse = createMockUriResponse(files);
 
     const baseUri = URI.file('/example/folder').toString();
 
@@ -319,7 +319,7 @@ describe('document service', () => {
   test('change update', async () => {
     const mockConnection = createMockDocConnection();
     const files = new Map();
-    const mockIoService = createMockIoService(files);
+    const mockIoService = createMockUriResponse(files);
 
     const baseUri = URI.file('/example/folder').toString();
 
@@ -405,7 +405,7 @@ describe('document service', () => {
   test('load extension', async () => {
     const mockConnection = createMockDocConnection();
     const files = new Map();
-    const mockUriResponse = createMockIoService(files);
+    const mockUriResponse = createMockUriResponse(files);
 
     const baseUri = URI.file('/example/folder').toString();
     const callingUri = URI.file('/example/folder/example.ks').toString();
