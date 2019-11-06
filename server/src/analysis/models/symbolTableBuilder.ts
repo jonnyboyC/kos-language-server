@@ -870,6 +870,10 @@ export class SymbolTableBuilder {
     }
   }
 
+  /**
+   * Create a diagnostics for a symbol has been unused
+   * @param tracker symbol tracker tha has been unused
+   */
   private createUnusedDiagnostic(tracker: BasicTracker) {
     const { symbol } = tracker.declared;
     const { tag, name } = symbol;
