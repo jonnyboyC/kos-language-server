@@ -4,7 +4,7 @@
   "description": "Syntax highlighting, auto-complete, and language diagnostics for KerboScript in Kerbal Operating System.",
   "author": "John Chabot",
   "license": "MIT",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "scripts": {
     "vscode:prepublish": "cd clients/vscode && npm run update-vscode && cd ../.. && node build/clean.js && npm run prod && npm run test",
     "prod": "run-p prod:vscode prod:atom prod:server",
@@ -48,21 +48,22 @@
     "language-server"
   ],
   "devDependencies": {
-    "@types/jest": "^24.0.18",
+    "@types/jest": "^24.0.22",
     "jest": "^24.9.0",
-    "jest-junit": "^7.0.0",
+    "jest-junit": "^9.0.0",
     "npm-run-all": "^4.1.5",
     "ts-jest": "^24.1.0",
-    "ts-loader": "^6.1.0",
-    "tslint": "^5.20.0",
-    "tslint-config-airbnb": "^5.11.1",
-    "typescript": "^3.6.3",
-    "webpack": "^4.40.2",
-    "webpack-cli": "^3.3.8"
+    "ts-loader": "^6.2.1",
+    "tslint": "^5.20.1",
+    "tslint-config-airbnb": "^5.11.2",
+    "typescript": "^3.7.2",
+    "webpack": "^4.41.2",
+    "webpack-cli": "^3.3.10"
   },
   "engines": {
     "vscode": "^1.32.0"
   },
+  "sideEffects": false,
   "activationEvents": [
     "onLanguage:kos",
     "workspaceContains:**/ksconfig.json",
@@ -215,8 +216,5 @@
         "path": "clients/vscode/snippets/snippets.json"
       }
     ]
-  },
-  "dependencies": {
-    "ts-set-utils": "^0.1.0"
   }
 }

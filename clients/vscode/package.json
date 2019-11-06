@@ -25,11 +25,11 @@
     "semver": "^6.3.0",
     "vscode": "^1.1.36",
     "vscode-languageclient": "^5.2.1",
-    "ws": "^7.1.2"
+    "ws": "^7.2.0"
   },
   "devDependencies": {
-    "@types/node": "^12.7.5",
-    "@types/semver": "^6.0.2",
+    "@types/node": "^12.12.6",
+    "@types/semver": "^6.2.0",
     "@types/ws": "^6.0.3"
   }
 }
