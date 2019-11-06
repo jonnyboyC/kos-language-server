@@ -16,12 +16,12 @@ import {
   binaryRight,
   binaryLeftKey,
   binaryRightKey,
-} from '../utilities/positionUtils';
-import { toCase } from '../utilities/stringUtils';
-import { Logger } from '../models/logger';
-import { Graph } from '../models/graph';
-import { dfsNode, scc } from '../utilities/graphUtils';
-import { empty } from '../utilities/typeGuards';
+} from '../src/utilities/positionUtils';
+import { toCase } from '../src/utilities/stringUtils';
+import { Logger } from '../src/models/logger';
+import { Graph } from '../src/models/graph';
+import { dfsNode, scc } from '../src/utilities/graphUtils';
+import { empty } from '../src/utilities/typeGuards';
 
 const createRange = (
   startLine: number,

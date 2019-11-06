@@ -5,9 +5,9 @@ import {
   DidCloseTextDocumentParams,
   TextDocument,
 } from 'vscode-languageserver';
-import { IoService, Document } from '../../services/IoService';
-import { empty } from '../../utilities/typeGuards';
-import { DocumentService } from '../../services/documentService';
+import { IoService, Document } from '../../src/services/IoService';
+import { empty } from '../../src/utilities/typeGuards';
+import { DocumentService } from '../../src/services/documentService';
 import { URI } from 'vscode-uri';
 import { EventEmitter } from 'events';
 

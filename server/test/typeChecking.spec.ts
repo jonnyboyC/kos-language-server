@@ -1,39 +1,39 @@
-import { Tokenized } from '../scanner/types';
-import { Ast } from '../parser/types';
-import { SymbolTable } from '../analysis/models/symbolTable';
+import { Tokenized } from '../src/scanner/types';
+import { Ast } from '../src/parser/types';
+import { SymbolTable } from '../src/analysis/models/symbolTable';
 import { Diagnostic, Range, DiagnosticSeverity } from 'vscode-languageserver';
-import { Scanner } from '../scanner/scanner';
-import { Parser } from '../parser/parser';
-import { SymbolTableBuilder } from '../analysis/models/symbolTableBuilder';
-import { standardLibraryBuilder } from '../analysis/standardLibrary';
-import { PreResolver } from '../analysis/preResolver';
-import { Resolver } from '../analysis/resolver';
-import { TypeChecker } from '../typeChecker/typeChecker';
-import { KsBaseSymbol, KsSymbolKind } from '../analysis/types';
-import { unWrap, empty } from '../utilities/typeGuards';
-import { booleanType } from '../typeChecker/ksTypes/primitives/boolean';
+import { Scanner } from '../src/scanner/scanner';
+import { Parser } from '../src/parser/parser';
+import { SymbolTableBuilder } from '../src/analysis/models/symbolTableBuilder';
+import { standardLibraryBuilder } from '../src/analysis/standardLibrary';
+import { PreResolver } from '../src/analysis/preResolver';
+import { Resolver } from '../src/analysis/resolver';
+import { TypeChecker } from '../src/typeChecker/typeChecker';
+import { KsBaseSymbol, KsSymbolKind } from '../src/analysis/types';
+import { unWrap, empty } from '../src/utilities/typeGuards';
+import { booleanType } from '../src/typeChecker/ksTypes/primitives/boolean';
 import {
   doubleType,
   integerType,
   scalarType,
-} from '../typeChecker/ksTypes/primitives/scalar';
-import { stringType } from '../typeChecker/ksTypes/primitives/string';
-import { userListType } from '../typeChecker/ksTypes/collections/userList';
-import { structureType } from '../typeChecker/ksTypes/primitives/structure';
-import { vectorType } from '../typeChecker/ksTypes/collections/vector';
-import { directionType } from '../typeChecker/ksTypes/collections/direction';
-import { Marker } from '../scanner/models/marker';
-import { zip } from '../utilities/arrayUtils';
-import { timeSpanType } from '../typeChecker/ksTypes/timespan';
-import { typeInitializer } from '../typeChecker/initialize';
-import { bodyAtmosphereType } from '../typeChecker/ksTypes/bodyatmosphere';
-import { listType } from '../typeChecker/ksTypes/collections/list';
-import { partType } from '../typeChecker/ksTypes/parts/part';
-import { IType } from '../typeChecker/types';
-import { pathType } from '../typeChecker/ksTypes/io/path';
-import { KsFunction } from '../models/function';
-import { createUnion } from '../typeChecker/utilities/typeCreators';
-import { noneType } from '../typeChecker/ksTypes/primitives/none';
+} from '../src/typeChecker/ksTypes/primitives/scalar';
+import { stringType } from '../src/typeChecker/ksTypes/primitives/string';
+import { userListType } from '../src/typeChecker/ksTypes/collections/userList';
+import { structureType } from '../src/typeChecker/ksTypes/primitives/structure';
+import { vectorType } from '../src/typeChecker/ksTypes/collections/vector';
+import { directionType } from '../src/typeChecker/ksTypes/collections/direction';
+import { Marker } from '../src/scanner/models/marker';
+import { zip } from '../src/utilities/arrayUtils';
+import { timeSpanType } from '../src/typeChecker/ksTypes/timespan';
+import { typeInitializer } from '../src/typeChecker/initialize';
+import { bodyAtmosphereType } from '../src/typeChecker/ksTypes/bodyatmosphere';
+import { listType } from '../src/typeChecker/ksTypes/collections/list';
+import { partType } from '../src/typeChecker/ksTypes/parts/part';
+import { IType } from '../src/typeChecker/types';
+import { pathType } from '../src/typeChecker/ksTypes/io/path';
+import { KsFunction } from '../src/models/function';
+import { createUnion } from '../src/typeChecker/utilities/typeCreators';
+import { noneType } from '../src/typeChecker/ksTypes/primitives/none';
 
 const fakeUri = 'C:\\fake.ks';
 

@@ -55,10 +55,10 @@ export class UnionType implements IType {
 
   /**
    * Construct a new union type
-   * @param param Is this for a call parameter
+   * @param isParameter Is this for a call parameter
    * @param types types of the union
    */
-  constructor(param: boolean, ...types: IType[]) {
+  constructor(isParameter: boolean, ...types: IType[]) {
     if (types.length < 2) {
       throw new Error('Union must be at least two types');
     }
@@ -79,7 +79,7 @@ export class UnionType implements IType {
       return 0;
     });
 
-    this.param = param;
+    this.param = isParameter;
     this.types = sortedTypes;
     this.name = 'Union';
     this.anyType = sortedTypes.every(type => type.anyType);

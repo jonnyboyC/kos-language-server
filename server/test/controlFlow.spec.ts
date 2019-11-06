@@ -1,14 +1,14 @@
-import { Tokenized } from '../scanner/types';
-import { Ast } from '../parser/types';
-import { Scanner } from '../scanner/scanner';
-import { Parser } from '../parser/parser';
-import { ControlFlow } from '../controlFlow/controlFlow';
-import { Marker } from '../scanner/models/marker';
-import { zip } from '../utilities/arrayUtils';
+import { Tokenized } from '../src/scanner/types';
+import { Ast } from '../src/parser/types';
+import { Scanner } from '../src/scanner/scanner';
+import { Parser } from '../src/parser/parser';
+import { ControlFlow } from '../src/controlFlow/controlFlow';
+import { Marker } from '../src/scanner/models/marker';
+import { zip } from '../src/utilities/arrayUtils';
 import { DiagnosticSeverity, Range } from 'vscode-languageserver';
 import { join } from 'path';
 import { readFileSync } from 'fs';
-import { FlowGraph } from '../controlFlow/flowGraph';
+import { FlowGraph } from '../src/controlFlow/flowGraph';
 
 const fakeUri = 'C:\\fake.ks';
 
@@ -170,7 +170,7 @@ describe('Unreachable code', () => {
   test('all language', () => {
     const allNodePath = join(
       __dirname,
-      '../../../kerboscripts/parser_valid/unitTests/allLanguage.ks',
+      '../../kerboscripts/parser_valid/unitTests/allLanguage.ks',
     );
 
     const allNodeSource = readFileSync(allNodePath, 'utf8');

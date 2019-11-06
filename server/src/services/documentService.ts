@@ -5,6 +5,7 @@ import {
   DidChangeTextDocumentParams,
   DidOpenTextDocumentParams,
   DidCloseTextDocumentParams,
+  TextDocumentItem,
 } from 'vscode-languageserver';
 import { empty } from '../utilities/typeGuards';
 import { URI } from 'vscode-uri';
@@ -13,6 +14,7 @@ import { logException, mockTracer } from '../models/logger';
 import { normalizeExtensions } from '../utilities/pathUtils';
 import { EventEmitter } from 'events';
 
+type ConfigChangeHandler = (config: string) => void;
 type DocumentChangeHandler = (document: Document) => void;
 type DocumentClosedHandler = (uri: string) => void;
 
@@ -24,6 +26,11 @@ type DocumentConnection = Pick<
 export declare interface DocumentService {
   on(event: 'change', listener: DocumentChangeHandler): this;
   emit(event: 'change', ...args: Parameters<DocumentChangeHandler>): boolean;
+  on(event: 'configChange', listener: ConfigChangeHandler): this;
+  emit(
+    event: 'configChange',
+    ...args: Parameters<ConfigChangeHandler>
+  ): boolean;
   on(event: 'close', listener: DocumentClosedHandler): this;
   emit(event: 'close', ...args: Parameters<DocumentClosedHandler>): boolean;
 }
@@ -46,6 +53,11 @@ export class DocumentService extends EventEmitter {
    * Current cached document only loaded by the server
    */
   private serverDocs: Map<string, TextDocument>;
+
+  /**
+   * A ksconfig.json if it exists
+   */
+  private config?: TextDocument;
 
   /**
    * client connection with events for open, close, and change events
@@ -85,6 +97,7 @@ export class DocumentService extends EventEmitter {
     super();
     this.clientDocs = new Map();
     this.serverDocs = new Map();
+    this.config = undefined;
     this.conn = conn;
     this.ioService = ioService;
     this.logger = logger;
@@ -113,6 +126,7 @@ export class DocumentService extends EventEmitter {
     if (empty(normalized)) {
       return undefined;
     }
+
     return this.clientDocs.get(normalized) || this.serverDocs.get(normalized);
   }
 
@@ -173,9 +187,17 @@ export class DocumentService extends EventEmitter {
       for await (const { uri, text } of this.ioService.loadDirectory(
         this.rootVolume.fsPath,
       )) {
-        const textDocument = TextDocument.create(uri, 'kos', 0, text);
-        if (!this.clientDocs.has(uri)) {
-          this.serverDocs.set(uri, textDocument);
+        // store as sever doc if .ks
+        if (uri.endsWith('.ks')) {
+          const textDocument = TextDocument.create(uri, 'kos', 0, text);
+          if (!this.clientDocs.has(uri)) {
+            this.serverDocs.set(uri, textDocument);
+          }
+        }
+
+        // store as config if ksconfig
+        if (uri.endsWith('ksconfig.json')) {
+          this.config = TextDocument.create(uri, 'kos', 0, text);
         }
       }
     } catch (err) {
@@ -196,9 +218,27 @@ export class DocumentService extends EventEmitter {
    * Handle calls to open text document.
    * @param handler handler to call when did open text document events fires
    */
-  private onOpenHandler(params: DidOpenTextDocumentParams): void {
+  private onOpenHandler(params: DidOpenTextDocumentParams): boolean {
     const document = params.textDocument;
 
+    // emit change file if a .ks file was opened
+    if (document.uri.endsWith('.ks')) {
+      return this.onOpenFile(document);
+    }
+
+    // emit change config if a ksconfig.json file was opened
+    if (document.uri.endsWith('ksconfig.json')) {
+      return this.onOpenConfig(document);
+    }
+
+    return false;
+  }
+
+  /**
+   * Set the client cache emit a file change event
+   * @param document document to cache
+   */
+  private onOpenFile(document: TextDocumentItem): boolean {
     this.clientDocs.delete(document.uri);
     this.clientDocs.set(
       document.uri,
@@ -210,18 +250,34 @@ export class DocumentService extends EventEmitter {
       ),
     );
 
-    this.emit('change', document);
+    return this.emit('change', document);
+  }
+
+  /**
+   * Set the config cache and emit a config changed events
+   * @param config config to cache
+   */
+  private onOpenConfig(config: TextDocumentItem): boolean {
+    this.config = TextDocument.create(
+      config.uri,
+      config.languageId,
+      config.version,
+      config.text,
+    );
+
+    return this.emit('configChange', config.text);
   }
 
   /**
    * Handle calls to on change text document
    * @param handler handler to call when did change text document event fires
    */
-  private onChangeHandler(params: DidChangeTextDocumentParams): void {
+  private onChangeHandler(params: DidChangeTextDocumentParams): boolean {
     // lookup existing document
-    const document = this.clientDocs.get(params.textDocument.uri);
+    const document = this.getCache(params.textDocument.uri);
+
     if (empty(document)) {
-      return;
+      return false;
     }
 
     // find all edits that have defined range
@@ -250,12 +306,58 @@ export class DocumentService extends EventEmitter {
       text,
     );
 
-    // update editor docs
-    this.clientDocs.set(document.uri, updatedDoc);
-    this.serverDocs.delete(document.uri);
+    // set document cache
+    return this.setCache(params, updatedDoc);
+  }
 
-    // call handler
-    this.emit('change', { text, uri: document.uri });
+  /**
+   * Get the cached file for the requested uri
+   * @param uri file uri
+   */
+  private getCache(uri: string): Maybe<TextDocument> {
+    if (uri.endsWith('.ks')) {
+      return this.clientDocs.get(uri);
+    }
+
+    if (uri.endsWith('ksconfig.json')) {
+      return this.config;
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Set cached with an new text document
+   * @param uri file uri
+   * @param document new text document
+   */
+  private setCache(
+    params: DidChangeTextDocumentParams,
+    document: TextDocument,
+  ): boolean {
+    const { uri } = params.textDocument;
+
+    if (uri.endsWith('.ks')) {
+      // update cache
+      this.clientDocs.set(document.uri, document);
+      this.serverDocs.delete(document.uri);
+
+      // emit change event
+      return this.emit('change', {
+        text: document.getText(),
+        uri: document.uri,
+      });
+    }
+
+    if (uri.endsWith('ksconfig.json')) {
+      // update cache
+      this.config = document;
+
+      // emit config change event
+      return this.emit('configChange', document.getText());
+    }
+
+    return false;
   }
 
   /**

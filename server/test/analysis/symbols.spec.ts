@@ -1,11 +1,11 @@
 import { URI } from 'vscode-uri';
 import { TextDocument } from 'vscode-languageserver';
-import { createMockDocumentService } from './utilities/mockServices';
-import { AnalysisService } from '../services/analysisService';
-import { mockLogger, mockTracer } from '../models/logger';
-import { empty } from '../utilities/typeGuards';
-import { SearchState } from '../analysis/types';
-import { ResolverService } from '../services/resolverService';
+import { createMockDocumentService } from '../utilities/mockServices';
+import { AnalysisService } from '../../src/services/analysisService';
+import { mockLogger, mockTracer } from '../../src/models/logger';
+import { empty } from '../../src/utilities/typeGuards';
+import { SearchState } from '../../src/analysis/types';
+import { ResolverService } from '../../src/services/resolverService';
 
 const grandSource = `
 runOncePath("parent.ks").

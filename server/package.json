@@ -22,11 +22,12 @@
     "url": "https://github.com/jonnyboyC/kos-language-server"
   },
   "dependencies": {
-    "commander": "^3.0.1",
+    "commander": "^4.0.0",
     "denque": "^1.4.1",
-    "jstat": "^1.9.1",
+    "jstat": "^1.9.2",
+    "ts-set-utils": "^0.2.0",
     "vscode-languageserver": "^5.2.1",
-    "vscode-uri": "^2.0.3"
+    "vscode-uri": "^2.1.1"
   },
   "keywords": [
     "Kerbal Operating System",
@@ -39,6 +40,6 @@
     "prepack": "cd .. && npm run dev:server && npm run prod:server && npm test"
   },
   "devDependencies": {
-    "@types/node": "^12.7.5"
+    "@types/node": "^12.12.6"
   }
 }

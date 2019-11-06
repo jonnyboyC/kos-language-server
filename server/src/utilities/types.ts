@@ -39,6 +39,11 @@ type Writeable<T> = {
 };
 
 /**
+ * Get the values of an object
+ */
+type ValueOf<T> = T[keyof T];
+
+/**
  * Currently used in signature utilities
  */
 interface IdentifierIndex {

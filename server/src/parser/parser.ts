@@ -1594,7 +1594,7 @@ export class Parser {
     }
 
     return expr;
-  }
+  };
 
   // parse unary expression
   private unary(): INodeResult<IExpr> {

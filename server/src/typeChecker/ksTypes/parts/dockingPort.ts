@@ -24,6 +24,8 @@ dockingPortType.addSuffixes(
   noMap(createSuffixType('reengagedDistance', scalarType)),
   noMap(createSuffixType('dockedShipName', stringType)),
   noMap(createSuffixType('state', stringType)),
+  noMap(createSuffixType('partner', dockingPortType)),
+  noMap(createSuffixType('hasPartner', booleanType)),
   noMap(createSuffixType('targetTable', booleanType)),
   noMap(createArgSuffixType('undock', noneType)),
   noMap(createArgSuffixType('target', noneType)),

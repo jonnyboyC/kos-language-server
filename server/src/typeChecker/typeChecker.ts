@@ -48,7 +48,10 @@ import { volumeItemType } from './ksTypes/io/volumeItem';
 import { partType } from './ksTypes/parts/part';
 import { pathType } from './ksTypes/io/path';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
-import { createDiagnostic } from '../utilities/diagnosticsUtils';
+import {
+  createDiagnostic,
+  DIAGNOSTICS,
+} from '../utilities/diagnosticsUtils';
 import { BasicTracker } from '../analysis/models/tracker';
 import { SuffixTypeBuilder } from './models/suffixTypeNode';
 import { engineType } from './ksTypes/parts/engine';
@@ -326,6 +329,7 @@ export class TypeChecker
           stmt.suffix,
           'Suffix could not be boolean',
           DiagnosticSeverity.Hint,
+          DIAGNOSTICS.TYPE_WRONG,
         ),
       );
     }
@@ -364,6 +368,7 @@ export class TypeChecker
               `${command} expected a node.` +
                 ' Node may not able to be  be coerced into node type',
               DiagnosticSeverity.Hint,
+              DIAGNOSTICS.TYPE_WRONG,
             ),
           );
         }
@@ -376,6 +381,7 @@ export class TypeChecker
               stmt.expr,
               'Path may not be coerced into string type',
               DiagnosticSeverity.Hint,
+              DIAGNOSTICS.TYPE_WRONG,
             ),
           );
         }
@@ -421,7 +427,12 @@ export class TypeChecker
       }
 
       errors.push(
-        createDiagnostic(stmt.suffix, message, DiagnosticSeverity.Hint),
+        createDiagnostic(
+          stmt.suffix,
+          message,
+          DiagnosticSeverity.Hint,
+          DIAGNOSTICS.CANNOT_SET,
+        ),
       );
 
       return errors;
@@ -442,6 +453,7 @@ export class TypeChecker
             `Cannot set suffix ${stmt.suffix.toString()} ` +
               `of type ${suffixResult.type.toString()} to ${exprResult.type.toString()}`,
             DiagnosticSeverity.Hint,
+            DIAGNOSTICS.TYPE_WRONG,
           ),
         );
       }
@@ -461,7 +473,12 @@ export class TypeChecker
         }
       } else {
         errors.push(
-          createDiagnostic(stmt.suffix, 'Cannot set', DiagnosticSeverity.Hint),
+          createDiagnostic(
+            stmt.suffix,
+            'Cannot set',
+            DiagnosticSeverity.Hint,
+            DIAGNOSTICS.CANNOT_SET,
+          ),
         );
       }
     } else {
@@ -471,6 +488,7 @@ export class TypeChecker
           stmt.suffix,
           `Cannot set ${stmt.suffix.toString()}, must be identifier, or suffix`,
           DiagnosticSeverity.Hint,
+          DIAGNOSTICS.CANNOT_SET,
         ),
       );
     }
@@ -494,6 +512,7 @@ export class TypeChecker
           stmt.condition,
           'Condition may not able to be  be coerced into boolean type',
           DiagnosticSeverity.Hint,
+          DIAGNOSTICS.TYPE_WRONG,
         ),
       );
     }
@@ -519,6 +538,7 @@ export class TypeChecker
           stmt.condition,
           'Condition may not able to be coerced into boolean type',
           DiagnosticSeverity.Hint,
+          DIAGNOSTICS.TYPE_WRONG,
         ),
       );
     }
@@ -538,6 +558,7 @@ export class TypeChecker
           stmt.condition,
           'Condition may not able to be coerced into boolean type',
           DiagnosticSeverity.Hint,
+          DIAGNOSTICS.TYPE_WRONG,
         ),
       );
     }
@@ -558,6 +579,7 @@ export class TypeChecker
           stmt.condition,
           'Condition may not able to be coerced into boolean type',
           DiagnosticSeverity.Hint,
+          DIAGNOSTICS.TYPE_WRONG,
         ),
       );
     }
@@ -591,6 +613,7 @@ export class TypeChecker
           stmt.target,
           'May not be a string identifer for volume',
           DiagnosticSeverity.Hint,
+          DIAGNOSTICS.TYPE_WRONG,
         ),
       );
     }
@@ -614,6 +637,7 @@ export class TypeChecker
           stmt.collection,
           'May not be a valid enumerable type',
           DiagnosticSeverity.Hint,
+          DIAGNOSTICS.TYPE_WRONG,
         ),
       );
     }
@@ -650,6 +674,7 @@ export class TypeChecker
           stmt.suffix,
           'Condition may not able to be coerced into boolean type',
           DiagnosticSeverity.Hint,
+          DIAGNOSTICS.TYPE_WRONG,
         ),
       );
     }
@@ -673,6 +698,7 @@ export class TypeChecker
           'Toggle requires a boolean type. ' +
             'This may not able to be coerced into boolean type',
           DiagnosticSeverity.Hint,
+          DIAGNOSTICS.TYPE_WRONG,
         ),
       );
     }
@@ -697,6 +723,7 @@ export class TypeChecker
             'Wait requires a scalar type. ' +
               'This may not able to be coerced into scalar type',
             DiagnosticSeverity.Hint,
+            DIAGNOSTICS.TYPE_WRONG,
           ),
         );
       }
@@ -709,6 +736,7 @@ export class TypeChecker
             'Wait requires a boolean type. ' +
               'This may not able to be coerced into boolean type',
             DiagnosticSeverity.Hint,
+            DIAGNOSTICS.TYPE_WRONG,
           ),
         );
       }
@@ -733,6 +761,7 @@ export class TypeChecker
           'Can only log a string type. ' +
             'This may not able to be coerced into string type',
           DiagnosticSeverity.Hint,
+          DIAGNOSTICS.TYPE_WRONG,
         ),
       );
     }
@@ -743,6 +772,7 @@ export class TypeChecker
           stmt.expr,
           'Can only log to a path. ',
           DiagnosticSeverity.Hint,
+          DIAGNOSTICS.TYPE_WRONG,
         ),
       );
     }
@@ -763,6 +793,7 @@ export class TypeChecker
           'Can only copy from a string or bare path. ' +
             'This may not able to be coerced into string type',
           DiagnosticSeverity.Hint,
+          DIAGNOSTICS.TYPE_WRONG,
         ),
       );
     }
@@ -774,6 +805,7 @@ export class TypeChecker
           'Can only copy to a string or bare path. ' +
             'This may not able to be coerced into string type',
           DiagnosticSeverity.Hint,
+          DIAGNOSTICS.TYPE_WRONG,
         ),
       );
     }
@@ -796,6 +828,7 @@ export class TypeChecker
           'Can only rename from a string or bare path. ' +
             'This may not able to be coerced into string type',
           DiagnosticSeverity.Hint,
+          DIAGNOSTICS.TYPE_WRONG,
         ),
       );
     }
@@ -807,6 +840,7 @@ export class TypeChecker
           'Can only rename to a string or bare path. ' +
             'This may not able to be coerced into string type',
           DiagnosticSeverity.Hint,
+          DIAGNOSTICS.TYPE_WRONG,
         ),
       );
     }
@@ -824,6 +858,7 @@ export class TypeChecker
           'Can only delete from a string or bare path. ' +
             'This may not able to be coerced into string type',
           DiagnosticSeverity.Hint,
+          DIAGNOSTICS.TYPE_WRONG,
         ),
       );
     }
@@ -843,6 +878,7 @@ export class TypeChecker
           'Can only rename to a string or bare path. ' +
             'This may not able to be coerced into string type',
           DiagnosticSeverity.Hint,
+          DIAGNOSTICS.TYPE_WRONG,
         ),
       );
     }
@@ -869,6 +905,7 @@ export class TypeChecker
           'Can only compile from a string or bare path. ' +
             'This may not able to be coerced into string type',
           DiagnosticSeverity.Hint,
+          DIAGNOSTICS.TYPE_WRONG,
         ),
       );
     }
@@ -885,6 +922,7 @@ export class TypeChecker
           'Can only compile to a string or bare path. ' +
             'This may not able to be coerced into string type',
           DiagnosticSeverity.Hint,
+          DIAGNOSTICS.TYPE_WRONG,
         ),
       );
     }
@@ -950,6 +988,7 @@ export class TypeChecker
             collection,
             'Not a valid list identifier',
             DiagnosticSeverity.Hint,
+            DIAGNOSTICS.TYPE_LIST_INVALID,
           ),
         );
     }
@@ -978,6 +1017,7 @@ export class TypeChecker
           stmt.expr,
           'Cannot print a function, can only print structures',
           DiagnosticSeverity.Hint,
+          DIAGNOSTICS.TYPE_WRONG,
         ),
       );
     }
@@ -1011,6 +1051,7 @@ export class TypeChecker
           expr.condition,
           'condition must be able to be coerced into boolean',
           DiagnosticSeverity.Hint,
+          DIAGNOSTICS.TYPE_WRONG,
         ),
       );
     }
@@ -1071,6 +1112,7 @@ export class TypeChecker
               expr.factor,
               'Can only apply not operator to booleans',
               DiagnosticSeverity.Hint,
+              DIAGNOSTICS.TYPE_WRONG,
             ),
           );
         }
@@ -1225,6 +1267,7 @@ export class TypeChecker
           call,
           `${type.name} has no call signature`,
           DiagnosticSeverity.Hint,
+          DIAGNOSTICS.TYPE_NO_CALL,
         ),
       );
 
@@ -1273,6 +1316,7 @@ export class TypeChecker
           call,
           `Type ${type.name} may not have a call signature`,
           DiagnosticSeverity.Hint,
+          DIAGNOSTICS.TYPE_NO_CALL,
         ),
       );
 
@@ -1318,6 +1362,7 @@ export class TypeChecker
             arg,
             `Function argument could not be coerced into ${params.toString()}`,
             DiagnosticSeverity.Hint,
+            DIAGNOSTICS.TYPE_WRONG,
           ),
         );
       }
@@ -1341,6 +1386,7 @@ export class TypeChecker
           call.close,
           `Call expected ${params.length} parameters but was called with ${call.args.length} arguments`,
           DiagnosticSeverity.Hint,
+          DIAGNOSTICS.TYPE_WRONG_ARITY,
         ),
       );
     }
@@ -1361,6 +1407,7 @@ export class TypeChecker
               arg,
               `Argument could not be coerced into ${param.toString()}`,
               DiagnosticSeverity.Hint,
+              DIAGNOSTICS.TYPE_WRONG,
             ),
           );
         }
@@ -1384,6 +1431,7 @@ export class TypeChecker
               empty(arg) ? call.close : arg,
               `Function argument could not be coerced into ${param!.toString()}`,
               DiagnosticSeverity.Hint,
+              DIAGNOSTICS.TYPE_WRONG,
             ),
           );
 
@@ -1400,6 +1448,7 @@ export class TypeChecker
           call.close,
           `Function expected ${params.length} parameters but was called with ${call.args.length} arguments`,
           DiagnosticSeverity.Hint,
+          DIAGNOSTICS.TYPE_WRONG_ARITY,
         ),
       );
     }
@@ -1433,6 +1482,7 @@ export class TypeChecker
           suffixTerm,
           'indexing with # requires a list',
           DiagnosticSeverity.Hint,
+          DIAGNOSTICS.TYPE_NO_INDEXER,
         ),
       );
 
@@ -1462,6 +1512,7 @@ export class TypeChecker
             `${suffixTerm.indexer.lexeme} is not a scalar type. ` +
               'Can only use scalar to index with #',
             DiagnosticSeverity.Hint,
+            DIAGNOSTICS.TYPE_WRONG,
           ),
         );
 
@@ -1474,6 +1525,7 @@ export class TypeChecker
             suffixTerm.indexer,
             'Can only index a list with # using scalars or variables',
             DiagnosticSeverity.Hint,
+            DIAGNOSTICS.TYPE_WRONG,
           ),
         );
 
@@ -1509,6 +1561,7 @@ export class TypeChecker
           suffixTerm,
           `${type.toString()} may not have indexer`,
           DiagnosticSeverity.Hint,
+          DIAGNOSTICS.TYPE_NO_INDEXER,
         ),
       );
 
@@ -1533,6 +1586,7 @@ export class TypeChecker
             callSignature.params()[0]
           }` + ` ${suffixTerm.toString()} is of type ${indexResult.type}`,
           DiagnosticSeverity.Hint,
+          DIAGNOSTICS.TYPE_WRONG,
         ),
       );
     }
@@ -1566,6 +1620,7 @@ export class TypeChecker
           suffixTerm,
           'Can only create delegate of functions',
           DiagnosticSeverity.Hint,
+          DIAGNOSTICS.TYPE_NOT_FUNCTION,
         ),
       );
     }
@@ -1652,6 +1707,7 @@ export class TypeChecker
             suffixTerm.token.lookup
           } on type ${type.toString()}`,
           DiagnosticSeverity.Hint,
+          DIAGNOSTICS.TYPE_MISSING_SUFFIX,
         ),
       ];
     }
@@ -1675,6 +1731,7 @@ export class TypeChecker
           suffixTerm,
           `Cannot determine type for ${suffixTerm.token.lexeme}.`,
           DiagnosticSeverity.Hint,
+          DIAGNOSTICS.TYPE_MISSING_SUFFIX,
         ),
       ];
     }
@@ -1789,6 +1846,7 @@ export class TypeChecker
           expr.left,
           `${leftType.name} cannot be converted to a boolean`,
           DiagnosticSeverity.Hint,
+          DIAGNOSTICS.TYPE_WRONG,
         ),
       );
       return { errors, type: booleanType };
@@ -1801,6 +1859,7 @@ export class TypeChecker
           expr.right,
           `${rightType.name} cannot be converted to a boolean`,
           DiagnosticSeverity.Hint,
+          DIAGNOSTICS.TYPE_WRONG,
         ),
       );
       return { errors, type: booleanType };
@@ -1904,6 +1963,7 @@ export class TypeChecker
         expr,
         `${leftType.name} may not support the ${OperatorKind[operatorKind]} operator`,
         DiagnosticSeverity.Hint,
+        DIAGNOSTICS.TYPE_MISSING_OPERATOR,
       );
     }
 
@@ -1911,6 +1971,7 @@ export class TypeChecker
       expr,
       `The ${OperatorKind[operatorKind]} operator is may not be supported between ${leftType.name} and ${rightType.name}.`,
       DiagnosticSeverity.Hint,
+      DIAGNOSTICS.TYPE_MISSING_OPERATOR,
     );
   }
 

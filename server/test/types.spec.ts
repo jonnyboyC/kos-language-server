@@ -1,8 +1,8 @@
-import { stringType } from '../typeChecker/ksTypes/primitives/string';
-import { booleanType } from '../typeChecker/ksTypes/primitives/boolean';
-import { structureType } from '../typeChecker/ksTypes/primitives/structure';
-import { partType } from '../typeChecker/ksTypes/parts/part';
-import { dockingPortType } from '../typeChecker/ksTypes/parts/dockingPort';
+import { stringType } from '../src/typeChecker/ksTypes/primitives/string';
+import { booleanType } from '../src/typeChecker/ksTypes/primitives/boolean';
+import { structureType } from '../src/typeChecker/ksTypes/primitives/structure';
+import { partType } from '../src/typeChecker/ksTypes/parts/part';
+import { dockingPortType } from '../src/typeChecker/ksTypes/parts/dockingPort';
 import {
   createType,
   createSuffixType,
@@ -11,20 +11,20 @@ import {
   createParametricType,
   mapTypes,
   createUnion,
-} from '../typeChecker/utilities/typeCreators';
-import { typeInitializer } from '../typeChecker/initialize';
-import { userListType } from '../typeChecker/ksTypes/collections/userList';
-import { listType } from '../typeChecker/ksTypes/collections/list';
-import { collectionType } from '../typeChecker/ksTypes/collections/enumerable';
-import { scalarType } from '../typeChecker/ksTypes/primitives/scalar';
-import { TypeKind } from '../typeChecker/types';
-import { ParametricType } from '../typeChecker/models/parametricTypes/parametricType';
-import { Type } from '../typeChecker/models/types/type';
-import { UnionType } from '../typeChecker/models/types/unionType';
-import { noneType } from '../typeChecker/ksTypes/primitives/none';
-import { DelegateType } from '../typeChecker/models/types/delegateType';
-import { delegateType } from '../typeChecker/ksTypes/primitives/delegate';
-import { CallSignature } from '../typeChecker/models/types/callSignature';
+} from '../src/typeChecker/utilities/typeCreators';
+import { typeInitializer } from '../src/typeChecker/initialize';
+import { userListType } from '../src/typeChecker/ksTypes/collections/userList';
+import { listType } from '../src/typeChecker/ksTypes/collections/list';
+import { collectionType } from '../src/typeChecker/ksTypes/collections/enumerable';
+import { scalarType } from '../src/typeChecker/ksTypes/primitives/scalar';
+import { TypeKind } from '../src/typeChecker/types';
+import { ParametricType } from '../src/typeChecker/models/parametricTypes/parametricType';
+import { Type } from '../src/typeChecker/models/types/type';
+import { UnionType } from '../src/typeChecker/models/types/unionType';
+import { noneType } from '../src/typeChecker/ksTypes/primitives/none';
+import { DelegateType } from '../src/typeChecker/models/types/delegateType';
+import { delegateType } from '../src/typeChecker/ksTypes/primitives/delegate';
+import { CallSignature } from '../src/typeChecker/models/types/callSignature';
 
 typeInitializer();
 
