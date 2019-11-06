@@ -119,6 +119,10 @@ const functionTypes: [string[], IType][] = [
     createFunctionType('bodyatmosphere', bodyAtmosphereType, stringType),
   ],
   [
+    ['body', 'exists'],
+    createFunctionType('bodyExists', booleanType, stringType),
+  ],
+  [
     ['bounds'],
     createFunctionType(
       'bounds',
@@ -142,7 +146,15 @@ const functionTypes: [string[], IType][] = [
       createUnion(true, stringType, pathType, noneType),
     ),
   ],
-  [['ceiling'], createFunctionType('ceiling', scalarType, scalarType)],
+  [
+    ['ceiling'],
+    createFunctionType(
+      'ceiling',
+      scalarType,
+      scalarType,
+      createUnion(true, scalarType, noneType),
+    ),
+  ],
   [['char'], createFunctionType('char', stringType, scalarType)],
   [
     ['chdir'],
@@ -172,6 +184,20 @@ const functionTypes: [string[], IType][] = [
       'create',
       volumeFileType,
       createUnion(true, stringType, pathType),
+    ),
+  ],
+  [
+    ['create', 'orbit'],
+    createFunctionType(
+      'createorbit',
+      orbitableType,
+      scalarType,
+      scalarType,
+      scalarType,
+      scalarType,
+      scalarType,
+      scalarType,
+      scalarType,
     ),
   ],
   [
@@ -215,7 +241,15 @@ const functionTypes: [string[], IType][] = [
       createUnion(true, stringType, pathType),
     ),
   ],
-  [['floor'], createFunctionType('floor', scalarType, scalarType)],
+  [
+    ['floor'],
+    createFunctionType(
+      'floor',
+      scalarType,
+      scalarType,
+      createUnion(true, scalarType, noneType),
+    ),
+  ],
   [['get', 'voice'], createFunctionType('getvoice', voiceType, integerType)],
   [
     ['gui'],
@@ -228,7 +262,13 @@ const functionTypes: [string[], IType][] = [
   ],
   [
     ['heading'],
-    createFunctionType('heading', directionType, scalarType, scalarType),
+    createFunctionType(
+      'heading',
+      directionType,
+      scalarType,
+      scalarType,
+      createUnion(true, scalarType, noneType),
+    ),
   ],
   [
     ['highlight'],

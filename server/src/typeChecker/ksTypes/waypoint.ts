@@ -1,4 +1,9 @@
-import { createType, createArgSuffixType, noMap } from '../utilities/typeCreators';
+import {
+  createType,
+  createArgSuffixType,
+  noMap,
+  createSuffixType,
+} from '../utilities/typeCreators';
 import { structureType } from './primitives/structure';
 import { vectorType } from './collections/vector';
 import { stringType } from './primitives/string';
@@ -14,6 +19,7 @@ waypointType.addSuffixes(
   noMap(createArgSuffixType('dump', stringType)),
   noMap(createArgSuffixType('name', stringType)),
   noMap(createArgSuffixType('body', bodyTargetType)),
+  noMap(createSuffixType('isSelected', booleanType)),
   noMap(createArgSuffixType('geoPosition', geoCoordinatesType)),
   noMap(createArgSuffixType('position', vectorType)),
   noMap(createArgSuffixType('altitude', scalarType)),

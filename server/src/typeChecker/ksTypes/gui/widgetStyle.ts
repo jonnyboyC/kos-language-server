@@ -25,6 +25,7 @@ widgetStyleType.addSuffixes(
   noMap(createSetSuffixType('vStretch', booleanType)),
   noMap(createSetSuffixType('bg', stringType)),
   noMap(createSetSuffixType('textColor', rgbaType)),
+  noMap(createSetSuffixType('wordWrap', booleanType)),
   noMap(createSuffixType('normal', widgetStyleStateType)),
   noMap(createSuffixType('focused', widgetStyleStateType)),
   noMap(createSuffixType('active', widgetStyleStateType)),

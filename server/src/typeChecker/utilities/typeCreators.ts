@@ -50,11 +50,11 @@ export const createParametricType = (
 const unionCache = new Map<string, IType>();
 
 /**
- * Create an indexer
- * @param index the index type
- * @param returns the return type
+ * Create a union type
+ * @param isParameter is this union type a call parameter
+ * @param types the types of the union
  */
-export const createUnion = (param: boolean, ...types: IType[]): IType => {
+export const createUnion = (isParameter: boolean, ...types: IType[]): IType => {
   // deduplicate and sort
   const sortedTypes = [...new Set(types)].sort((a, b) => {
     if (a.name < b.name) {
@@ -98,7 +98,7 @@ export const createUnion = (param: boolean, ...types: IType[]): IType => {
     return cacheHit;
   }
 
-  const unionType = new UnionType(param, ...reducedTypes);
+  const unionType = new UnionType(isParameter, ...reducedTypes);
   unionCache.set(unionString, unionType);
   return unionType;
 };
