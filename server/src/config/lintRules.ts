@@ -1,6 +1,9 @@
 import { DiagnosticSeverity } from 'vscode-languageserver';
 import { DIAGNOSTICS } from '../utilities/diagnosticsUtils';
 
+/**
+ * A class for holding information about a lint rule in kos-language-server
+ */
 export class LintRule {
   /**
    * The name of the rule
@@ -10,7 +13,7 @@ export class LintRule {
   /**
    * What level should this rule by reported as
    */
-  public readonly level: DiagnosticSeverity;
+  public readonly level: SettableSeverity;
 
   /**
    * What diagnostics fall under this linter rule
@@ -31,7 +34,7 @@ export class LintRule {
    */
   constructor(
     rule: string,
-    level: DiagnosticSeverity,
+    level: SettableSeverity,
     diagnostics: ValueOf<typeof DIAGNOSTICS>[],
     owned: LintRule[],
   ) {
@@ -39,6 +42,10 @@ export class LintRule {
     this.level = level;
     this.diagnostics = diagnostics;
     this.owned = owned;
+  }
+
+  public static from({ rule, level, diagnostics, owned }: LintRule): LintRule {
+    return new LintRule(rule, level, diagnostics, owned);
   }
 }
 
@@ -57,16 +64,29 @@ function toRule(lintTemplate: LintRule): { flat: LintRule[]; tree: LintRule } {
     nested.push(tree);
   }
 
-  const lintRule = new LintRule(
-    lintTemplate.rule,
-    lintTemplate.level,
-    lintTemplate.diagnostics,
-    nested,
-  );
+  const lintRule = LintRule.from({
+    ...lintTemplate,
+    owned: nested,
+  });
 
   flattened.push(lintRule);
   return { flat: flattened, tree: lintRule };
 }
+
+/**
+ * Settable severity
+ */
+export type SettableSeverity = 'error' | 'warning' | 'info' | 'hint' | 'off';
+
+/**
+ * Map from settable severity to diagnostic severity
+ */
+export const severityMapper = new Map([
+  ['error', DiagnosticSeverity.Error],
+  ['warning', DiagnosticSeverity.Warning],
+  ['info', DiagnosticSeverity.Information],
+  ['hint', DiagnosticSeverity.Hint],
+]);
 
 /**
  * Lint rules in data form
@@ -74,25 +94,25 @@ function toRule(lintTemplate: LintRule): { flat: LintRule[]; tree: LintRule } {
 const lintTemplates: LintRule[] = [
   {
     rule: 'parsing',
-    level: DiagnosticSeverity.Error,
+    level: 'error',
     diagnostics: [DIAGNOSTICS.PARSER_ERROR],
     owned: [],
   },
   {
     rule: 'file-loading',
-    level: DiagnosticSeverity.Error,
+    level: 'error',
     diagnostics: [DIAGNOSTICS.LOAD_ERROR],
     owned: [],
   },
   {
     rule: 'unreachable-code',
-    level: DiagnosticSeverity.Error,
+    level: 'error',
     diagnostics: [DIAGNOSTICS.UNREACHABLE_CODE],
     owned: [],
   },
   {
     rule: 'invalid-control-flow',
-    level: DiagnosticSeverity.Error,
+    level: 'error',
     diagnostics: [
       DIAGNOSTICS.INVALID_BREAK_CONTEXT,
       DIAGNOSTICS.INVALID_LAZY_GLOBAL,
@@ -102,25 +122,25 @@ const lintTemplates: LintRule[] = [
     owned: [
       {
         rule: 'invalid-break',
-        level: DiagnosticSeverity.Error,
+        level: 'error',
         diagnostics: [DIAGNOSTICS.INVALID_BREAK_CONTEXT],
         owned: [],
       },
       {
         rule: 'invalid-return',
-        level: DiagnosticSeverity.Error,
+        level: 'error',
         diagnostics: [DIAGNOSTICS.INVALID_RETURN_CONTEXT],
         owned: [],
       },
       {
         rule: 'invalid-preserve',
-        level: DiagnosticSeverity.Error,
+        level: 'error',
         diagnostics: [DIAGNOSTICS.INVALID_PRESERVE_CONTEXT],
         owned: [],
       },
       {
         rule: 'invalid-lazy-global',
-        level: DiagnosticSeverity.Error,
+        level: 'error',
         diagnostics: [DIAGNOSTICS.INVALID_LAZY_GLOBAL],
         owned: [],
       },
@@ -128,25 +148,25 @@ const lintTemplates: LintRule[] = [
   },
   {
     rule: 'no-global-parameters',
-    level: DiagnosticSeverity.Warning,
+    level: 'warning',
     diagnostics: [DIAGNOSTICS.GLOBAL_PARAMETER],
     owned: [],
   },
   {
     rule: 'cannot-set',
-    level: DiagnosticSeverity.Warning,
+    level: 'warning',
     diagnostics: [DIAGNOSTICS.CANNOT_SET],
     owned: [],
   },
   {
     rule: 'invalid-set',
-    level: DiagnosticSeverity.Warning,
+    level: 'warning',
     diagnostics: [DIAGNOSTICS.INVALID_SET],
     owned: [],
   },
   {
     rule: 'deprecated',
-    level: DiagnosticSeverity.Warning,
+    level: 'warning',
     diagnostics: [
       DIAGNOSTICS.DELETE_DEPRECATED,
       DIAGNOSTICS.COPY_DEPRECATED,
@@ -155,19 +175,19 @@ const lintTemplates: LintRule[] = [
     owned: [
       {
         rule: 'deprecated-delete',
-        level: DiagnosticSeverity.Warning,
+        level: 'warning',
         diagnostics: [DIAGNOSTICS.DELETE_DEPRECATED],
         owned: [],
       },
       {
         rule: 'deprecated-copy',
-        level: DiagnosticSeverity.Warning,
+        level: 'warning',
         diagnostics: [DIAGNOSTICS.COPY_DEPRECATED],
         owned: [],
       },
       {
         rule: 'deprecated-rename',
-        level: DiagnosticSeverity.Warning,
+        level: 'warning',
         diagnostics: [DIAGNOSTICS.RENAME_DEPRECATED],
         owned: [],
       },
@@ -175,13 +195,13 @@ const lintTemplates: LintRule[] = [
   },
   {
     rule: 'no-global-parameters',
-    level: DiagnosticSeverity.Error,
+    level: 'error',
     diagnostics: [DIAGNOSTICS.GLOBAL_PARAMETER],
     owned: [],
   },
   {
     rule: 'symbols-strict',
-    level: DiagnosticSeverity.Error,
+    level: 'error',
     diagnostics: [
       DIAGNOSTICS.SYMBOL_MAY_NOT_EXIST,
       DIAGNOSTICS.SYMBOL_MAY_NOT_RUNTIME_EXIST,
@@ -194,43 +214,43 @@ const lintTemplates: LintRule[] = [
     owned: [
       {
         rule: 'symbol-may-not-exist',
-        level: DiagnosticSeverity.Warning,
+        level: 'warning',
         diagnostics: [DIAGNOSTICS.SYMBOL_MAY_NOT_EXIST],
         owned: [],
       },
       {
         rule: 'symbol-may-not-exist-closure',
-        level: DiagnosticSeverity.Warning,
+        level: 'warning',
         diagnostics: [DIAGNOSTICS.SYMBOL_MAY_NOT_RUNTIME_EXIST],
         owned: [],
       },
       {
         rule: 'symbol-wrong-kind',
-        level: DiagnosticSeverity.Warning,
+        level: 'warning',
         diagnostics: [DIAGNOSTICS.SYMBOL_WRONG_KIND],
         owned: [],
       },
       {
         rule: 'symbol-unused',
-        level: DiagnosticSeverity.Warning,
+        level: 'warning',
         diagnostics: [DIAGNOSTICS.SYMBOL_UNUSED],
         owned: [],
       },
       {
         rule: 'symbol-unused-global',
-        level: DiagnosticSeverity.Warning,
+        level: 'warning',
         diagnostics: [DIAGNOSTICS.SYMBOL_UNUSED_LOCALLY],
         owned: [],
       },
       {
         rule: 'symbol-shadowing',
-        level: DiagnosticSeverity.Warning,
+        level: 'warning',
         diagnostics: [DIAGNOSTICS.SYMBOL_SHADOWS],
         owned: [],
       },
       {
         rule: 'symbol-conflict',
-        level: DiagnosticSeverity.Warning,
+        level: 'warning',
         diagnostics: [DIAGNOSTICS.SYMBOL_CONFLICT],
         owned: [],
       },
@@ -238,7 +258,7 @@ const lintTemplates: LintRule[] = [
   },
   {
     rule: 'type-checking',
-    level: DiagnosticSeverity.Hint,
+    level: 'hint',
     diagnostics: [
       DIAGNOSTICS.TYPE_WRONG,
       DIAGNOSTICS.TYPE_NO_CALL,
@@ -252,49 +272,49 @@ const lintTemplates: LintRule[] = [
     owned: [
       {
         rule: 'type-wrong',
-        level: DiagnosticSeverity.Hint,
+        level: 'hint',
         diagnostics: [DIAGNOSTICS.TYPE_WRONG],
         owned: [],
       },
       {
         rule: 'type-no-call',
-        level: DiagnosticSeverity.Hint,
+        level: 'hint',
         diagnostics: [DIAGNOSTICS.TYPE_NO_CALL],
         owned: [],
       },
       {
         rule: 'type-wrong-arity',
-        level: DiagnosticSeverity.Hint,
+        level: 'hint',
         diagnostics: [DIAGNOSTICS.TYPE_WRONG_ARITY],
         owned: [],
       },
       {
         rule: 'type-list-invalid',
-        level: DiagnosticSeverity.Hint,
+        level: 'hint',
         diagnostics: [DIAGNOSTICS.TYPE_LIST_INVALID],
         owned: [],
       },
       {
         rule: 'type-no-indexer',
-        level: DiagnosticSeverity.Hint,
+        level: 'hint',
         diagnostics: [DIAGNOSTICS.TYPE_NO_INDEXER],
         owned: [],
       },
       {
         rule: 'type-not-function',
-        level: DiagnosticSeverity.Hint,
+        level: 'hint',
         diagnostics: [DIAGNOSTICS.TYPE_NOT_FUNCTION],
         owned: [],
       },
       {
         rule: 'type-missing-suffix',
-        level: DiagnosticSeverity.Hint,
+        level: 'hint',
         diagnostics: [DIAGNOSTICS.TYPE_MISSING_SUFFIX],
         owned: [],
       },
       {
         rule: 'type-missing-operator',
-        level: DiagnosticSeverity.Hint,
+        level: 'hint',
         diagnostics: [DIAGNOSTICS.TYPE_MISSING_OPERATOR],
         owned: [],
       },
@@ -303,13 +323,16 @@ const lintTemplates: LintRule[] = [
 ];
 
 const nested: LintRule[] = [];
-const flattened: LintRule[] = [];
+const flattened: Map<string, LintRule> = new Map();
 
 // convert the interfaces into a nested and flattened form
 for (const lintTemplate of lintTemplates) {
   const { tree, flat } = toRule(lintTemplate);
   nested.push(tree);
-  flattened.push(...flat);
+
+  for (const rule of flat) {
+    flattened.set(rule.rule, rule);
+  }
 }
 
 export const lintCategories = nested;

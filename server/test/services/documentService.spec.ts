@@ -176,7 +176,7 @@ describe('document service', () => {
 
     docService.on('change', document => {
       expect(document.uri).toBe(uris[i].toString());
-      expect(document.text).toBe(docs[i]);
+      expect(document.getText()).toBe(docs[i]);
     });
 
     for (i = 0; i < uris.length; i += 1) {
@@ -314,11 +314,11 @@ describe('document service', () => {
     docService.on('change', document => {
       if (first) {
         expect(document.uri).toBe(uri.toString());
-        expect(document.text).toBe(content);
+        expect(document.getText()).toBe(content);
         first = false;
       } else {
         expect(document.uri).toBe(uri.toString());
-        expect(document.text).toBe(afterEdit);
+        expect(document.getText()).toBe(afterEdit);
       }
     });
 
@@ -458,7 +458,7 @@ describe('document service', () => {
       const configUri = URI.file('/example/folder/ksconfig.json');
 
       docService.on('configChange', text => {
-        expect(text).toBe(configContents);
+        expect(text.getText()).toBe(configContents);
       });
 
       mockConnection.callOpen({
@@ -504,8 +504,8 @@ describe('document service', () => {
       ];
       docService['config'] = configDoc;
 
-      docService.on('configChange', text => {
-        expect(text).toBe(
+      docService.on('configChange', document => {
+        expect(document.getText()).toBe(
           TextDocument.applyEdits(configDoc, [
             { range: edits[0].range!, newText: edits[0].text },
           ]),

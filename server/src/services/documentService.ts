@@ -9,13 +9,12 @@ import {
 } from 'vscode-languageserver';
 import { empty } from '../utilities/typeGuards';
 import { URI } from 'vscode-uri';
-import { IoService, Document } from './IoService';
+import { IoService } from './IoService';
 import { logException, mockTracer } from '../models/logger';
 import { normalizeExtensions } from '../utilities/pathUtils';
 import { EventEmitter } from 'events';
 
-type ConfigChangeHandler = (config: string) => void;
-type DocumentChangeHandler = (document: Document) => void;
+type DocumentChangeHandler = (document: TextDocument) => void;
 type DocumentClosedHandler = (uri: string) => void;
 
 type DocumentConnection = Pick<
@@ -26,10 +25,10 @@ type DocumentConnection = Pick<
 export declare interface DocumentService {
   on(event: 'change', listener: DocumentChangeHandler): this;
   emit(event: 'change', ...args: Parameters<DocumentChangeHandler>): boolean;
-  on(event: 'configChange', listener: ConfigChangeHandler): this;
+  on(event: 'configChange', listener: DocumentChangeHandler): this;
   emit(
     event: 'configChange',
-    ...args: Parameters<ConfigChangeHandler>
+    ...args: Parameters<DocumentChangeHandler>
   ): boolean;
   on(event: 'close', listener: DocumentClosedHandler): this;
   emit(event: 'close', ...args: Parameters<DocumentClosedHandler>): boolean;
@@ -239,18 +238,17 @@ export class DocumentService extends EventEmitter {
    * @param document document to cache
    */
   private onOpenFile(document: TextDocumentItem): boolean {
-    this.clientDocs.delete(document.uri);
-    this.clientDocs.set(
+    const textDocument = TextDocument.create(
       document.uri,
-      TextDocument.create(
-        document.uri,
-        document.languageId,
-        document.version,
-        document.text,
-      ),
+      document.languageId,
+      document.version,
+      document.text,
     );
 
-    return this.emit('change', document);
+    this.clientDocs.delete(document.uri);
+    this.clientDocs.set(document.uri, textDocument);
+
+    return this.emit('change', textDocument);
   }
 
   /**
@@ -265,7 +263,7 @@ export class DocumentService extends EventEmitter {
       config.text,
     );
 
-    return this.emit('configChange', config.text);
+    return this.emit('configChange', this.config);
   }
 
   /**
@@ -343,10 +341,7 @@ export class DocumentService extends EventEmitter {
       this.serverDocs.delete(document.uri);
 
       // emit change event
-      return this.emit('change', {
-        text: document.getText(),
-        uri: document.uri,
-      });
+      return this.emit('change', document);
     }
 
     if (uri.endsWith('ksconfig.json')) {
@@ -354,7 +349,7 @@ export class DocumentService extends EventEmitter {
       this.config = document;
 
       // emit config change event
-      return this.emit('configChange', document.getText());
+      return this.emit('configChange', document);
     }
 
     return false;

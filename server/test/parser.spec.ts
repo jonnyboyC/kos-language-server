@@ -1,5 +1,5 @@
 import { readFileSync } from 'fs';
-import { join } from 'path';
+import { join, basename } from 'path';
 import { Diagnostic } from 'vscode-languageserver';
 import { Tokenized } from '../src/scanner/types';
 import { Scanner } from '../src/scanner/scanner';
@@ -52,6 +52,10 @@ const tokenCheck = new TokenCheck();
 describe('Parse all test files', () => {
   test('parse all', () => {
     walkDir(testDir, filePath => {
+      if (basename(filePath).endsWith('.json')) {
+        return;
+      }
+
       const kosFile = readFileSync(filePath, 'utf8');
 
       const scanner = new Scanner(kosFile, filePath);
@@ -67,6 +71,10 @@ describe('Parse all test files', () => {
 
   test('parse all validate', () => {
     walkDir(testDir, filePath => {
+      if (basename(filePath).endsWith('.json')) {
+        return;
+      }
+
       const kosFile = readFileSync(filePath, 'utf8');
 
       const scanner1 = new Scanner(kosFile, filePath);

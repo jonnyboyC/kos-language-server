@@ -205,7 +205,7 @@ describe('document service', () => {
 
     docService.on('change', document => {
       expect(document.uri).toBe(uris[i].toString());
-      expect(document.text).toBe(docs[i]);
+      expect(document.getText()).toBe(docs[i]);
     });
 
     for (i = 0; i < uris.length; i += 1) {
@@ -343,11 +343,11 @@ describe('document service', () => {
     docService.on('change', document => {
       if (first) {
         expect(document.uri).toBe(uri.toString());
-        expect(document.text).toBe(content);
+        expect(document.getText()).toBe(content);
         first = false;
       } else {
         expect(document.uri).toBe(uri.toString());
-        expect(document.text).toBe(afterEdit);
+        expect(document.getText()).toBe(afterEdit);
       }
     });
 

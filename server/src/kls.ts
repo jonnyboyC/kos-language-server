@@ -27,6 +27,7 @@ import {
   FoldingRange,
   CancellationToken,
   Hover,
+  TextDocument,
 } from 'vscode-languageserver';
 import { KLSConfiguration, ClientConfiguration, DiagnosticUri } from './types';
 import { Scanner } from './scanner/scanner';
@@ -63,12 +64,17 @@ import {
 import { isValidIdentifier } from './models/tokentypes';
 import { tokenTrackedType } from './typeChecker/utilities/typeUtilities';
 import { TypeKind } from './typeChecker/types';
-import { IoService, Document } from './services/IoService';
+import { IoService } from './services/IoService';
 import { FoldableService } from './services/foldableService';
 import { AnalysisService } from './services/analysisService';
 import { IFindResult } from './parser/types';
 import { ResolverService } from './services/resolverService';
 import { runPath } from './utilities/pathUtils';
+import { workspaceConfigurationParser } from './config/workspaceConfigParser';
+import {
+  WorkspaceConfiguration,
+  defaultWorkspaceConfiguration,
+} from './config/workspaceConfiguration';
 
 export class KLS {
   /**
@@ -86,10 +92,15 @@ export class KLS {
    */
   private readonly tracer: ITracer;
 
-  /**
+  /**defaultClientConfiguration
    * Connection to the client
    */
   private readonly connection: Connection;
+
+  /**
+   * The workspace's configuration
+   */
+  private workspaceConfiguration: WorkspaceConfiguration;
 
   /**
    * This server's configuration
@@ -132,6 +143,7 @@ export class KLS {
     this.logger = logger;
     this.tracer = tracer;
     this.configuration = configuration;
+    this.workspaceConfiguration = defaultWorkspaceConfiguration;
     this.connection = connection;
     this.ioService = new IoService();
     this.resolverService = new ResolverService();
@@ -172,6 +184,7 @@ export class KLS {
     this.connection.onFoldingRanges(this.onFoldingRange.bind(this));
 
     this.documentService.on('change', this.onChange.bind(this));
+    this.documentService.on('configChange', this.onConfigChange.bind(this));
     this.analysisService.on('propagate', this.sendDiagnostics.bind(this));
 
     this.connection.listen();
@@ -697,11 +710,11 @@ export class KLS {
    * reporting errors to the client as they are discovered
    * @param document the updated document
    */
-  private async onChange(document: Document) {
+  private async onChange(document: TextDocument) {
     try {
       const diagnostic = await this.analysisService.analyzeDocument(
         document.uri,
-        document.text,
+        document.getText(),
       );
 
       this.sendDiagnostics(diagnostic, document.uri);
@@ -709,6 +722,14 @@ export class KLS {
       // report any exceptions to the client
       logException(this.logger, this.tracer, err, LogLevel.error);
     }
+  }
+
+  /**
+   * Update the workspace configuration on `ksconfig.json` updates
+   * @param config updated json
+   */
+  private async onConfigChange(config: TextDocument) {
+    this.workspaceConfiguration = workspaceConfigurationParser(config);
   }
 
   /**

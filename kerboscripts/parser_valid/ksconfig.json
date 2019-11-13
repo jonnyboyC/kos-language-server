@@ -1,0 +1,7 @@
+{
+  "archiveDirectory": ".",
+  "bodies": ["Mun", "Kerbin", "Duna"],
+  "lintRules": {
+    "invalid-break": "error"
+  }
+}
