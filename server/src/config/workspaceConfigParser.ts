@@ -3,12 +3,13 @@ import { WorkspaceConfiguration } from './workspaceConfiguration';
 import { LintRule, lintRules } from './lintRules';
 import { empty } from '../utilities/typeGuards';
 import { TextDocument } from 'vscode-languageserver';
+import { URI } from 'vscode-uri';
 
 /**
  * Parse the configuration from the provided text document
  * @param document text document containing the configuration
  */
-export function workspaceConfigurationParser(
+export function parseWorkspaceConfiguration(
   document: TextDocument,
 ): WorkspaceConfiguration {
   const root = parseTree(document.getText());
@@ -17,7 +18,7 @@ export function workspaceConfigurationParser(
   let bodies: Maybe<string[]> = undefined;
   let lintRules = new Map<string, LintRule>();
 
-  switch (root.type) {
+  switch (root?.type) {
     case 'object':
       if (empty(root.children)) {
         break;
@@ -38,7 +39,7 @@ export function workspaceConfigurationParser(
               case 'bodies':
                 bodies = parseBodies(value);
                 break;
-              case 'lintRules':
+              case 'linting':
                 lintRules = parseLintRules(value);
                 break;
               default:
@@ -50,32 +51,37 @@ export function workspaceConfigurationParser(
             break;
         }
       }
-
-      break;
-    default:
-      console.log('you suck');
   }
 
-  return new WorkspaceConfiguration(rootVolume, bodies, lintRules);
+  return new WorkspaceConfiguration(
+    URI.parse(document.uri),
+    rootVolume,
+    bodies,
+    lintRules,
+  );
 }
 
 /**
  * Parse the root directory for use in a workspace configuration
  * @param node representing the bodies section of the configuration
  */
-function parseRootVolume(node: Node): string {
+function parseRootVolume(node: Node): Maybe<string> {
   if (node.type === 'string' && typeof node.value === 'string') {
     return node.value;
   }
 
-  return '';
+  return undefined;
 }
 
 /**
  * Parse a set of custom bodies for use in a workspace configuration
  * @param node representing the bodies section of the configuration
  */
-function parseBodies(node: Node): string[] {
+function parseBodies(node: Node): Maybe<string[]> {
+  if (node.type !== 'array') {
+    return undefined;
+  }
+
   const bodies: string[] = [];
   if (node.type === 'array') {
     for (const item of node.children!) {

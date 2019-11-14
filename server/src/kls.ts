@@ -70,7 +70,7 @@ import { AnalysisService } from './services/analysisService';
 import { IFindResult } from './parser/types';
 import { ResolverService } from './services/resolverService';
 import { runPath } from './utilities/pathUtils';
-import { workspaceConfigurationParser } from './config/workspaceConfigParser';
+import { parseWorkspaceConfiguration } from './config/workspaceConfigParser';
 import {
   WorkspaceConfiguration,
   defaultWorkspaceConfiguration,
@@ -732,7 +732,7 @@ export class KLS {
    * @param config updated json
    */
   private async onConfigChange(document: TextDocument) {
-    const config = workspaceConfigurationParser(document);
+    const config = parseWorkspaceConfiguration(document);
     this.workspaceConfiguration = defaultWorkspaceConfiguration.merge(config);
   }
 
