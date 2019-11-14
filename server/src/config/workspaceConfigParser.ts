@@ -1,8 +1,5 @@
 import { parseTree, Node } from 'jsonc-parser';
-import {
-  WorkspaceConfiguration,
-  defaultWorkspaceConfiguration,
-} from './workspaceConfiguration';
+import { WorkspaceConfiguration } from './workspaceConfiguration';
 import { LintRule, lintRules } from './lintRules';
 import { empty } from '../utilities/typeGuards';
 import { TextDocument } from 'vscode-languageserver';
@@ -59,9 +56,7 @@ export function workspaceConfigurationParser(
       console.log('you suck');
   }
 
-  return defaultWorkspaceConfiguration.merge(
-    new WorkspaceConfiguration(rootVolume, bodies, lintRules),
-  );
+  return new WorkspaceConfiguration(rootVolume, bodies, lintRules);
 }
 
 /**

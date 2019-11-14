@@ -8,20 +8,14 @@ import { Range, DiagnosticSeverity, Position } from 'vscode-languageserver';
 import { structureType } from '../../src/typeChecker/ksTypes/primitives/structure';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { zip, flatten } from '../../src/utilities/arrayUtils';
-// import { SymbolTableBuilder } from '../../src/analysis/models/symbolTableBuilder';
-// import { PreResolver } from '../../src/analysis/preResolver';
+import { zip } from '../../src/utilities/arrayUtils';
 import {
   KsSymbolKind,
   SymbolTrackerBase,
   KsBaseSymbol,
 } from '../../src/analysis/types';
-// import { Resolver } from '../../src/analysis/resolver';
-// import { standardLibraryBuilder } from '../../src/analysis/standardLibrary';
 import { Marker } from '../../src/scanner/models/marker';
 import {
-  // IResolveResults,
-  // parseSource,
   noParseErrors,
   resolveSource,
   noResolverErrors,
@@ -676,14 +670,6 @@ describe('resolver', () => {
 
         const sorted = resolveDiagnostics.sort((a, b) =>
           rangeBefore(a.range, b.range.start) ? -1 : 1,
-        );
-        console.log(
-          flatten(
-            sorted.map(x => [
-              { ...x.range },
-              { ...x!.relatedInformation![0].location.range },
-            ]),
-          ),
         );
 
         expect(scan.scanDiagnostics).toHaveLength(0);

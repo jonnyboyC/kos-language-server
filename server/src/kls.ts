@@ -161,6 +161,9 @@ export class KLS {
       this.documentService,
       this.resolverService,
     );
+
+    if (this.workspaceConfiguration) {
+    }
   }
 
   /**
@@ -728,8 +731,9 @@ export class KLS {
    * Update the workspace configuration on `ksconfig.json` updates
    * @param config updated json
    */
-  private async onConfigChange(config: TextDocument) {
-    this.workspaceConfiguration = workspaceConfigurationParser(config);
+  private async onConfigChange(document: TextDocument) {
+    const config = workspaceConfigurationParser(document);
+    this.workspaceConfiguration = defaultWorkspaceConfiguration.merge(config);
   }
 
   /**
