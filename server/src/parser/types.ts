@@ -18,11 +18,16 @@ export interface IDeclScope extends RangeSequence {
   toString(): string;
 }
 
+export interface ITypeHint extends RangeSequence {
+  typeHint: string;
+  toString(): string;
+}
+
 export type NodeDataBuilder<T> = Partial<Writeable<NodeData<T>>>;
 
 export type NodeData<T> = Properties<
   T,
-  Token | NodeBase | NodeBase[] | undefined
+  Token | NodeBase | NodeBase[] | ITypeHint | undefined
 >;
 
 export type SuffixTermTrailer =
@@ -191,7 +196,8 @@ export type TreeNode =
   | IExpr
   | ISuffixTerm
   | IParameter
-  | IDeclScope;
+  | IDeclScope
+  | ITypeHint;
 
 export interface IExprVisitable {
   accept<T extends (...args: any) => any>(

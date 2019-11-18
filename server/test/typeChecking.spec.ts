@@ -736,7 +736,7 @@ describe('Statements', () => {
     const [first, second] = params;
 
     expect(first).toBe(structureType);
-    expect(second).toBe(createUnion(true, structureType, noneType));
+    expect(second).toBe(createUnion(true, integerType, noneType));
     expect(returns).toBe(structureType);
   });
 
