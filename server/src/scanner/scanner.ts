@@ -4,6 +4,7 @@ import {
   ScanResult,
   ScanKind,
   TokenResult,
+  TypeResult,
   WhitespaceResult,
   RegionResult,
   DiagnosticResult,
@@ -66,6 +67,11 @@ export class Scanner {
   private readonly tokenResult: TokenResult;
 
   /**
+   * results for types
+   */
+  private readonly typeResult: TypeResult;
+  
+  /**
    * results for whitespace
    */
   private readonly whiteSpaceResult: WhitespaceResult;
@@ -114,6 +120,17 @@ export class Scanner {
       kind: ScanKind.Token,
     };
 
+    this.typeResult = {
+      result: new Token(
+        TokenType.type,
+        'placeholder',
+        undefined,
+        { line: 0, character: 0 },
+        { line: 0, character: 0 },
+        'placeholder',
+      ),
+      kind: ScanKind.Type,
+    };
     this.regionResult = {
       result: new Token(
         TokenType.region,
@@ -152,6 +169,7 @@ export class Scanner {
       const tokens: Token[] = [];
       const scanDiagnostics: Diagnostic[] = [];
       const regions: Token[] = [];
+      const types: Token[] = [];
 
       const splits = this.uri.split('/');
       const file = splits[splits.length - 1];
@@ -177,8 +195,14 @@ export class Scanner {
           case ScanKind.Region:
             regions.push(result.result);
             break;
-          case ScanKind.Whitespace:
+          case ScanKind.Type:
+            // Were not able to reference earlier to lookback
+            // Gets first identifier on the line where type is defined
+            result.result.ref = tokens.filter(token => token.type === TokenType.identifier && token.start.line == result.result.start.line)[0];
+            types.push(result.result);
             break;
+          case ScanKind.Whitespace:
+          break;
         }
       }
 
@@ -189,7 +213,7 @@ export class Scanner {
         this.logger.warn(`Scanning encounter ${scanDiagnostics.length} errors`);
       }
 
-      return { tokens, scanDiagnostics, regions };
+      return { tokens, scanDiagnostics, regions, types};
     } catch (err) {
       this.logger.error('Error occurred in scanner');
       logException(this.logger, this.tracer, err, LogLevel.error);
@@ -198,6 +222,7 @@ export class Scanner {
         tokens: [],
         scanDiagnostics: [],
         regions: [],
+        types: [],
       };
     }
   }
@@ -285,7 +310,7 @@ export class Scanner {
   /**
    * Extract a comment or a region
    */
-  private comment(): WhitespaceResult | RegionResult {
+  private comment(): WhitespaceResult | RegionResult | TypeResult {
     this.advanceWhitespace();
     if (this.peek() !== '#') {
       this.advanceEndOfLine();
@@ -293,13 +318,30 @@ export class Scanner {
     }
 
     this.increment();
-    const start = this.current;
+    let start = this.current;
     while (this.isAlpha(this.peek())) this.increment();
-
     const text = this.source.substr(start, this.current - start).toLowerCase();
 
     const region = regions.get(text);
-
+    const ttype = types.get(text);
+    // TODO: accept #returns: only for function defition and #type: for parameter/lock/variable
+    if (!empty(ttype)) {
+      start = this.current;
+      this.advanceWhitespace();
+      while (this.peek() !== ':') {
+        this.increment();
+      }
+      this.increment();
+      this.advanceWhitespace();
+      start = this.current;
+      while (this.isAlphaNumeric(this.peek())) this.increment();
+      if (ttype == types.get('returns')) {
+        this.advanceEndOfLine();
+      }
+      const value = this.source
+        .substr(start, this.current - start).trim().replace(new RegExp(" ", 'g'), "");
+      return this.generateType(ttype.type, value);
+    }
     this.advanceEndOfLine();
     return empty(region)
       ? this.whiteSpaceResult
@@ -515,6 +557,31 @@ export class Scanner {
 
     this.regionResult.result = token;
     return this.regionResult;
+  }
+
+  
+  /**
+   * generate token from provided token type and optional literal
+   * @param type token type
+   * @param literal optional literal
+   * @param toLower should the lexeme be lowered
+   */
+  private generateType(type: TokenType, literal?: any, ref?: any): TypeResult {
+    const text = this.source.substr(this.start, this.current - this.start);
+
+    const token = new Token(
+      type,
+      text,
+      literal,
+      this.startPosition.toImmutable(),
+      this.currentPosition.toImmutable(),
+      this.uri,
+    );
+
+    token.ref = ref;
+
+    this.typeResult.result = token;
+    return this.typeResult;
   }
 
   /**
@@ -801,4 +868,9 @@ const keywords: ITokenMap = new Map([
 const regions: ITokenMap = new Map([
   ['region', { type: TokenType.region }],
   ['endregion', { type: TokenType.endRegion }],
+]);
+
+const types: ITokenMap = new Map([
+  ['type', {type: TokenType.type }],
+  ['returns', {type: TokenType.returns }],
 ]);

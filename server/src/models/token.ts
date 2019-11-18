@@ -14,6 +14,8 @@ export class Token implements TokenBase {
   public readonly end: Position;
   public readonly uri: string;
 
+  public ref: Maybe<Token>;
+  
   /**
    * What symbol tracker is this token tied too
    */
@@ -32,6 +34,7 @@ export class Token implements TokenBase {
     this.start = start;
     this.end = end;
     this.uri = uri;
+    this.ref = undefined;
     this.tracker = undefined;
   }
 
@@ -55,6 +58,10 @@ export class Token implements TokenBase {
       start: this.start,
       end: this.end,
     };
+  }
+
+  public get getRef(): Token | undefined {
+    return this.ref;
   }
 
   /**

@@ -2,6 +2,7 @@ export enum TokenType {
     // whitespace
     whiteSpace, commentLine,
     region, endRegion,
+    type, returns,
 
     plus, minus, multi, div, power,
     not, and, or, true, false,

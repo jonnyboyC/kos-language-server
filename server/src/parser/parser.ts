@@ -2,6 +2,7 @@ import { TokenType, isValidIdentifier } from '../models/tokentypes';
 import {
   IParseError,
   IExpr,
+  ITypeHint,
   IStmt,
   INodeResult,
   RunStmtType,
@@ -42,6 +43,7 @@ export class Parser {
   private tokens: Token[];
   private current: number;
   private runStmts: RunStmtType[];
+  private types: Token[];
 
   private readonly andBind = this.and.bind(this);
   private readonly eqaulityBind = this.equality.bind(this);
@@ -57,6 +59,7 @@ export class Parser {
     tokens: Token[],
     logger: ILogger = mockLogger,
     tracer: ITracer = mockTracer,
+    types: Token[] = [],
   ) {
     this.uri = uri;
     this.tokens = tokens.concat(this.eof(tokens));
@@ -64,6 +67,7 @@ export class Parser {
     this.runStmts = [];
     this.logger = logger;
     this.tracer = tracer;
+    this.types = types;
   }
 
   // parse tokens
@@ -74,6 +78,9 @@ export class Parser {
 
       this.logger.info(
         `Parsing started for ${file} with ${this.tokens.length} tokens.`,
+      );
+      this.logger.info(
+        `Parsing started for ${file} with ${this.types.length} tokens.`,
       );
 
       const statements: Stmt.Stmt[] = [];
@@ -242,9 +249,10 @@ export class Parser {
   }
 
   // parse function declaration
-  private declareFunction(scope?: Decl.Scope): INodeResult<Decl.Func> {
+  private declareFunction(scope?: Decl.Scope, typeHint?: Maybe<ITypeHint>): INodeResult<Decl.Func> {
     const builder: NodeDataBuilder<Decl.Func> = {
       scope,
+      typeHint,
       functionToken: undefined,
       identifier: undefined,
       block: undefined,
@@ -261,6 +269,8 @@ export class Parser {
     if (this.matchToken(TokenType.curlyOpen)) {
       const block = this.block();
       builder.block = block.value;
+      
+      builder.typeHint = this.types.find(x => x.ref === builder.identifier)?.literal;
 
       this.matchToken(TokenType.period);
       return nodeResult(new Decl.Func(builder), block.errors);
@@ -308,7 +318,8 @@ export class Parser {
         Decl.Parameter,
       );
 
-      parameters.push(new Decl.Parameter(identifer));
+      const typeHint = this.types.find(x => x.ref === identifer);
+      parameters.push(new Decl.Parameter(identifer, typeHint?.literal));
     } while (this.matchToken(TokenType.comma));
 
     return parameters;
@@ -333,8 +344,9 @@ export class Parser {
         [TokenType.to, TokenType.is],
       );
       const valueResult = this.expression();
+      const typeHint = this.types.find(x => x.ref === identifer);
       defaultParameters.push(
-        new Decl.DefaultParam(identifer, toIs, valueResult.value),
+        new Decl.DefaultParam(identifer, toIs, valueResult.value, typeHint?.literal),
       );
       errors.push(valueResult.errors);
     } while (this.matchToken(TokenType.comma));
@@ -343,13 +355,14 @@ export class Parser {
   }
 
   // parse lock statement
-  private declareLock(scope?: Decl.Scope): INodeResult<Decl.Lock> {
+  private declareLock(scope?: Decl.Scope, typeHint?: Maybe<ITypeHint>): INodeResult<Decl.Lock> {
     const builder: NodeDataBuilder<Decl.Lock> = {
       scope,
       lock: undefined,
       identifier: undefined,
       value: undefined,
       to: undefined,
+      typeHint,
     };
 
     builder.lock = this.previous();
@@ -366,18 +379,21 @@ export class Parser {
     );
     const valueResult = this.expression();
     builder.value = valueResult.value;
+    
+    builder.typeHint = this.types.find(x => x.ref === builder.identifier)?.literal;
 
     this.terminal(Decl.Lock, builder);
     return nodeResult(new Decl.Lock(builder), valueResult.errors);
   }
 
   // parse a variable declaration, scoping occurs elsewhere
-  private declareVariable(scope: Decl.Scope): INodeResult<Decl.Var> {
+  private declareVariable(scope: Decl.Scope, typeHint?: Maybe<ITypeHint>): INodeResult<Decl.Var> {
     const builder: NodeDataBuilder<Decl.Var> = {
       scope,
       identifier: undefined,
       value: undefined,
       toIs: undefined,
+      typeHint,
     };
 
     builder.identifier = this.consumeIdentifierThrow(
@@ -394,6 +410,8 @@ export class Parser {
     );
     const valueResult = this.expression();
     builder.value = valueResult.value;
+
+    builder.typeHint = this.types.find(x => x.ref === builder.identifier)?.literal;
 
     this.terminal(Decl.Var, builder);
     return nodeResult(new Decl.Var(builder), valueResult.errors);

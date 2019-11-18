@@ -450,7 +450,7 @@ export class AnalysisService extends EventEmitter {
 
     performance.mark('scanner-start');
     const scanner = new Scanner(text, uri, this.logger, this.tracer);
-    const { tokens, scanDiagnostics, regions } = scanner.scanTokens();
+    const { tokens, scanDiagnostics, regions, types } = scanner.scanTokens();
     performance.mark('scanner-end');
 
     // if scanner found errors report those immediately
@@ -461,7 +461,7 @@ export class AnalysisService extends EventEmitter {
     }
 
     performance.mark('parser-start');
-    const parser = new Parser(uri, tokens, this.logger, this.tracer);
+    const parser = new Parser(uri, tokens, this.logger, this.tracer, types);
     const { script, parseDiagnostics } = parser.parse();
     performance.mark('parser-end');
 
@@ -606,6 +606,8 @@ export class AnalysisService extends EventEmitter {
     performance.mark('type-checking-start');
 
     const typeDiagnostics = typeChecker
+    // TODO: Kris: Get functions on first pass for set statements using functions
+    // .check(symbolTable)
       .check()
       .map(error => addDiagnosticsUri(error, uri));
 

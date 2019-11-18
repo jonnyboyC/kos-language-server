@@ -64,6 +64,10 @@ import { Operator } from './models/types/operator';
 import { VariadicType } from './models/types/variadicType';
 import { Type } from './models/types/type';
 import { CallSignature } from './models/types/callSignature';
+import { TypeHint } from './ksTypes/typeHint';
+
+// TODO: KRIS
+//import { SymbolTable } from '../analysis/models/symbolTable';
 
 type Diagnostics = Diagnostic[];
 
@@ -91,6 +95,9 @@ export class TypeChecker
    */
   private readonly script: Script;
 
+  // TODO: Kris
+  //private symbolTable?: SymbolTable;
+
   /**
    * The cached bound check statement
    */
@@ -111,6 +118,13 @@ export class TypeChecker
    */
   public check(): Diagnostics {
     // resolve the sequence of statements
+    
+    // TODO: Kris
+  // public check(symbolTable?: SymbolTable): Diagnostics {
+  //   if (symbolTable) {
+  //     this.symbolTable = symbolTable;
+  //     //console.log(this.symbolTable.rootScope.environment);
+  //   }
     try {
       const splits = this.script.uri.split('/');
       const file = splits[splits.length - 1];
@@ -140,6 +154,7 @@ export class TypeChecker
    * @param stmts statements to check
    */
   private checkStmts(stmts: IStmt[]): Diagnostics {
+    //buildSymbolTable(stmts, this.checkStmtBind);
     return accumulateErrors(stmts, this.checkStmtBind);
   }
 
@@ -182,7 +197,11 @@ export class TypeChecker
     const { tracker } = decl.identifier;
 
     if (this.isBasicTracker(tracker)) {
-      tracker.declareType(result.type.assignmentType());
+      if (decl.typeHint && TypeHint.get(decl.typeHint.toString())) {
+          tracker.declareType(TypeHint.get(decl.typeHint.toString()) || result.type.assignmentType());
+      } else {
+          tracker.declareType(result.type.assignmentType());
+      }
     }
 
     return result.errors;
@@ -197,7 +216,11 @@ export class TypeChecker
     const { tracker } = decl.identifier;
 
     if (this.isBasicTracker(tracker)) {
-      tracker.declareType(result.type.assignmentType());
+      if (decl.typeHint && TypeHint.get(decl.typeHint.toString())) {
+          tracker.declareType(TypeHint.get(decl.typeHint.toString()) || result.type.assignmentType());
+      } else {
+          tracker.declareType(result.type.assignmentType());
+      }
     }
 
     return result.errors;
@@ -211,20 +234,63 @@ export class TypeChecker
     const errors = this.checkStmt(decl.block);
     const { tracker } = decl.identifier;
 
+    let requiredParameters: Decl.Parameter[] = [];
+    let optionalParameters: Decl.DefaultParam[] = [];
+    for (const param of decl.block.stmts.filter(x => x instanceof Decl.Param)) {
+      const temp = <Decl.Param> param;
+      
+      temp.optionalParameters.forEach(element => {
+        optionalParameters.push(element);
+      });
+      temp.requiredParameters.forEach(element => {
+        requiredParameters.push(element);
+      });
+    }
+    
+
+    // debug code:
+/*     for (const required of requiredParameters) {
+      const { tracker } = required.identifier;
+
+      if (this.isBasicTracker(tracker)) {
+        if (required.typeHint && TypeHint.get(required.typeHint)) {
+            tracker.declareType(TypeHint.get(required.typeHint) || structureType);
+        } else {
+            tracker.declareType(structureType);
+        }
+      }
+    }
+    for (const optional of optionalParameters) {
+      const valueResult = this.checkExpr(optional.value);
+      const { tracker } = optional.identifier;
+
+      if (this.isBasicTracker(tracker)) {
+        if (optional.typeHint && TypeHint.get(optional.typeHint)) {
+          tracker.declareType(TypeHint.get(optional.typeHint) || valueResult.type);
+        } else {
+          tracker.declareType(valueResult.type);
+        }
+      }
+    } */
+
     if (!empty(tracker) && tracker.kind === TrackerKind.basic) {
       const { symbol } = tracker.declared;
       if (symbol.tag === KsSymbolKind.function) {
         const paramsTypes: IType[] = [];
-
+        //console.log(symbol.name, decl, requiredParameters, optionalParameters);
         // TODO eventually we should tag ks parameter to the function type
         for (let i = 0; i < symbol.requiredParameters; i += 1) {
-          paramsTypes.push(structureType);
+          paramsTypes.push(requiredParameters[i].identifier.tracker?.declared.type || structureType);
         }
         for (let i = 0; i < symbol.optionalParameters; i += 1) {
-          paramsTypes.push(createUnion(true, structureType, noneType));
+          paramsTypes.push(createUnion(true, optionalParameters[i].identifier.tracker?.declared.type.assignmentType() || structureType, noneType));
         }
 
-        const returnType = symbol.returnValue ? structureType : noneType;
+        let returnType: IType = symbol.returnValue ? structureType : noneType;
+
+        if (decl.typeHint && TypeHint.get(decl.typeHint.toString())) {
+          returnType = TypeHint.get(decl.typeHint.toString()) || returnType;
+        }
 
         const funcType = createFunctionType(
           tracker.declared.symbol.name.lookup,
@@ -236,7 +302,7 @@ export class TypeChecker
       }
     }
 
-    return errors;
+  return errors;
   }
 
   /**
@@ -251,7 +317,11 @@ export class TypeChecker
       const { tracker } = required.identifier;
 
       if (this.isBasicTracker(tracker)) {
-        tracker.declareType(structureType);
+        if (required.typeHint && TypeHint.get(required.typeHint)) {
+            tracker.declareType(TypeHint.get(required.typeHint) || structureType);
+        } else {
+            tracker.declareType(structureType);
+        }
       }
     }
 
@@ -261,7 +331,11 @@ export class TypeChecker
       const { tracker } = optional.identifier;
 
       if (this.isBasicTracker(tracker)) {
-        tracker.declareType(valueResult.type);
+        if (optional.typeHint && TypeHint.get(optional.typeHint)) {
+          tracker.declareType(TypeHint.get(optional.typeHint) || valueResult.type);
+        } else {
+          tracker.declareType(valueResult.type);
+        }
       }
 
       errors = errors.concat(valueResult.errors);
@@ -1299,6 +1373,12 @@ export class TypeChecker
     tracker: Maybe<SymbolTracker>,
     builder: SuffixTypeBuilder,
   ): Diagnostics {
+    // TODO: Kris
+    // const funcFromSymbol = this.symbolTable?.scopedSymbols(tracker?.declared.range.end || call.end).filter(x => x.name === tracker?.declared.symbol.name)[0];
+    // if (funcFromSymbol) {
+    //   console.log(funcFromSymbol.name.tracker?.declared.type);
+    //   console.log(funcFromSymbol.name.tracker?.declared.type.callSignature())
+    // }
     const type = builder.current();
     const errors: Diagnostics = [];
 
@@ -1678,6 +1758,7 @@ export class TypeChecker
     // if we're a trailer check for suffixes
     if (builder.isTrailer()) {
       const type = builder.current();
+      //console.log(type);
       const suffix = type
         .assignmentType()
         .suffixes()
@@ -2028,3 +2109,12 @@ const accumulateErrors = <T>(
 
   return errors;
 };
+// Code I used for 2 pass system without reporting errors on first try
+// const buildSymbolTable = <T>(
+//   items: T[],
+//   checker: (item: T) => Diagnostics,
+// ): void => {
+//   for (const item of items) {
+//     checker(item);
+//   }
+// };
