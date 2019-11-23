@@ -1,5 +1,5 @@
 import { DiagnosticSeverity } from 'vscode-languageserver';
-import { DIAGNOSTICS } from '../utilities/diagnosticsUtils';
+import { DIAGNOSTICS } from '../../utilities/diagnosticsUtils';
 
 /**
  * A class for holding information about a lint rule in kos-language-server
@@ -44,6 +44,10 @@ export class LintRule {
     this.owned = owned;
   }
 
+  /**
+   * Create a rule from another rule
+   * @param lintRule rule to clone from
+   */
   public static from({ rule, level, diagnostics, owned }: LintRule): LintRule {
     return new LintRule(rule, level, diagnostics, owned);
   }

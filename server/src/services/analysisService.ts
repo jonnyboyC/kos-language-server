@@ -35,13 +35,11 @@ import { runPath, normalizeExtensions } from '../utilities/pathUtils';
 import { ResolverService } from './resolverService';
 import { Graph } from '../models/graph';
 import { scc, dfs } from '../utilities/graphUtils';
-import {
-  createDiagnostic,
-  DIAGNOSTICS,
-} from '../utilities/diagnosticsUtils';
+import { createDiagnostic, DIAGNOSTICS } from '../utilities/diagnosticsUtils';
 import { debounce } from '../utilities/debounce';
-import { union, disjoint } from 'ts-set-utils';
+import { union, disjoint, setEqual } from 'ts-set-utils';
 import { EventEmitter } from 'events';
+import { DEFAULT_BODIES } from '../utilities/constants';
 
 type ChangeHandler = (diagnostics: DiagnosticUri[]) => void;
 
@@ -117,6 +115,11 @@ export class AnalysisService extends EventEmitter {
   private caseKind: CaseKind;
 
   /**
+   * The current set of celestialBodies
+   */
+  private celestialBodies: string[];
+
+  /**
    * Construct a new analysis service
    * @param caseKind the typing case of the build in standard and body libraries
    * @param logger A logger to log performance and exception
@@ -152,8 +155,9 @@ export class AnalysisService extends EventEmitter {
 
     // configure analysis service
     this.caseKind = caseKind;
+    this.celestialBodies = DEFAULT_BODIES;
     this.standardLibrary = standardLibraryBuilder(caseKind);
-    this.bodyLibrary = bodyLibraryBuilder(caseKind);
+    this.bodyLibrary = bodyLibraryBuilder(caseKind, DEFAULT_BODIES);
 
     this.observer = new PerformanceObserver(list => {
       this.logger.info('');
@@ -170,12 +174,26 @@ export class AnalysisService extends EventEmitter {
    * Set the case of the body library and standard library
    * @param caseKind case to set
    */
-  public setCase(caseKind: CaseKind) {
+  public setCase(caseKind: CaseKind): this {
     if (this.caseKind !== caseKind) {
       this.caseKind = caseKind;
       this.standardLibrary = standardLibraryBuilder(caseKind);
-      this.bodyLibrary = bodyLibraryBuilder(caseKind);
+      this.bodyLibrary = bodyLibraryBuilder(caseKind, this.celestialBodies);
     }
+
+    return this;
+  }
+
+  /**
+   * Set the current bodies that should be completed
+   * @param bodies
+   */
+  public setBodies(bodies: string[]): this {
+    if (!setEqual(new Set(...bodies), new Set(this.celestialBodies))) {
+      this.bodyLibrary = bodyLibraryBuilder(this.caseKind, bodies);
+    }
+
+    return this;
   }
 
   /**

@@ -1,4 +1,4 @@
-import { LintRule, severityMapper } from './lintRules';
+import { LintRule, severityMapper } from './models/lintRules';
 import { DiagnosticSeverity, Diagnostic } from 'vscode-languageserver';
 import { empty } from '../utilities/typeGuards';
 
@@ -48,44 +48,41 @@ export class LintManager {
       (entry1, entry2) => entry1.owned.length - entry2.owned.length,
     );
 
-    const severities = new Map<string, DiagnosticSeverity>();
-    const removed = new Set<string>();
+    const adjustedLintRules = new Map<LintRule, DiagnosticSeverity>();
+    const removed = new Set<LintRule>();
+
+    const update = (
+      lintRule: LintRule,
+      ruleSeverity: Maybe<DiagnosticSeverity>,
+    ) => {
+      if (empty(ruleSeverity)) {
+        removed.add(lintRule);
+        adjustedLintRules.delete(lintRule);
+      } else {
+        adjustedLintRules.set(lintRule, ruleSeverity);
+        removed.delete(lintRule);
+      }
+    };
 
     // place rules in each bin
     for (const rule of sorted) {
-      let set = false;
-
-      // determine if any diagnostics in this rule have
-      // already been accounted for
-      for (const diagnostic of rule.diagnostics) {
-        if (severities.has(diagnostic)) {
-          set = true;
-          break;
-        }
-
-        if (removed.has(diagnostic)) {
-          set = true;
-          break;
-        }
-      }
-
-      if (set) {
-        continue;
-      }
-
       const severity = severityMapper.get(rule.level);
+      update(rule, severity);
 
       // add diagnostics to appropriate bin
-      for (const diagnostic of rule.diagnostics) {
-        if (empty(severity)) {
-          removed.add(diagnostic);
-        } else {
-          severities.set(diagnostic, severity);
-        }
+      for (const owned of rule.owned) {
+        update(owned, severity);
+      }
+    }
+
+    const codeSeverities = new Map<string, DiagnosticSeverity>();
+    for (const [rule, severity] of adjustedLintRules) {
+      for (const diagnostics of rule.diagnostics) {
+        codeSeverities.set(diagnostics, severity);
       }
     }
 
     // create lint manager
-    return new LintManager(severities);
+    return new LintManager(codeSeverities);
   }
 }

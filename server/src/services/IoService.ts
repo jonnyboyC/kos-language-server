@@ -83,6 +83,13 @@ export class IoService {
             text: await readFileAsync(dirPath, 'utf-8'),
           };
         }
+
+        if (dirPath.endsWith('ksconfig.json')) {
+          yield {
+            uri: URI.file(dirPath).toString(),
+            text: await readFileAsync(dirPath, 'utf-8'),
+          };
+        }
       }
     }
   }

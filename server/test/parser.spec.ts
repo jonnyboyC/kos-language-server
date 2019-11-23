@@ -52,7 +52,7 @@ const tokenCheck = new TokenCheck();
 describe('Parse all test files', () => {
   test('parse all', () => {
     walkDir(testDir, filePath => {
-      if (basename(filePath).endsWith('.json')) {
+      if (!basename(filePath).endsWith('.ks')) {
         return;
       }
 
@@ -71,7 +71,7 @@ describe('Parse all test files', () => {
 
   test('parse all validate', () => {
     walkDir(testDir, filePath => {
-      if (basename(filePath).endsWith('.json')) {
+      if (!basename(filePath).endsWith('.ks')) {
         return;
       }
 
@@ -95,14 +95,21 @@ describe('Parse all test files', () => {
 
       expect(parseResults2.parseDiagnostics).toHaveLength(0);
 
-      const zipped = zip(
-        tokenCheck.orderedTokens(parseResults1.script),
-        tokenCheck.orderedTokens(parseResults2.script),
-      );
-      for (const [token1, token2] of zipped) {
-        expect(token1.lexeme).toBe(token2.lexeme);
-        expect(token1.type).toBe(token2.type);
+      const tokens1 = tokenCheck.orderedTokens(parseResults1.script);
+      const tokens2 = tokenCheck.orderedTokens(parseResults2.script);
+      expect(tokens1).toHaveLength(tokens2.length);
+
+      let equal = true;
+      for (let i = 0; i < tokens1.length; i++) {
+        const token1 = tokens1[i];
+        const token2 = tokens2[i];
+
+        if (token1.lexeme !== token2.lexeme || token1.type !== token2.type) {
+          equal = false;
+        }
       }
+
+      expect(equal).toBe(true);
     });
   });
 });

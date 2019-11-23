@@ -4,6 +4,7 @@ import {
   DidOpenTextDocumentParams,
   DidCloseTextDocumentParams,
   TextDocument,
+  DidChangeConfigurationParams,
 } from 'vscode-languageserver';
 import { IoService, Document } from '../../src/services/IoService';
 import { empty } from '../../src/utilities/typeGuards';
@@ -49,6 +50,24 @@ export const createMockDocConnection = () => ({
   callClose(params: DidCloseTextDocumentParams) {
     if (this.closeDoc) {
       this.closeDoc(params);
+    }
+  },
+});
+
+export const createMockConfigConnection = () => ({
+  changeConfig: undefined as Maybe<
+    NotificationHandler<DidChangeConfigurationParams>
+  >,
+
+  onDidChangeConfiguration(
+    handler: NotificationHandler<DidChangeConfigurationParams>,
+  ) {
+    this.changeConfig = handler;
+  },
+
+  callConfig(params: DidChangeConfigurationParams) {
+    if (this.changeConfig) {
+      this.changeConfig(params);
     }
   },
 });

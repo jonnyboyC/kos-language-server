@@ -1,5 +1,5 @@
 import { readFileSync } from 'fs';
-import { join } from 'path';
+import { join, basename } from 'path';
 import { walkDir } from '../src/utilities/fsUtils';
 import { TokenType } from '../src/models/tokentypes';
 import { zip } from '../src/utilities/arrayUtils';
@@ -11,6 +11,10 @@ const testDir = join(__dirname, '../../kerboscripts/parser_valid/');
 describe('Scan all files', () => {
   test('scan all', () => {
     walkDir(testDir, filePath => {
+      if (!basename(filePath).endsWith('.ks')) {
+        return;
+      }
+
       const kosFile = readFileSync(filePath, 'utf8');
 
       const scanner = new Scanner(kosFile);

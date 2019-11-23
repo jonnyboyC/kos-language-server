@@ -2,8 +2,8 @@ import { URI } from 'vscode-uri';
 import {
   ServerConfiguration,
   defaultServerConfiguration,
-} from '../../src/config/serverConfiguration';
-import { ClientConfiguration, IClientCapabilities } from '../../src/types';
+} from '../../../src/config/models/serverConfiguration';
+import { ClientConfiguration, IClientCapabilities } from '../../../src/types';
 
 const clientConfig: ClientConfiguration = {
   completionCase: 'lowercase',

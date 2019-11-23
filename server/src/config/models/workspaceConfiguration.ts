@@ -1,6 +1,8 @@
 import { LintRule, lintRules } from './lintRules';
-import { empty } from '../utilities/typeGuards';
+import { empty } from '../../utilities/typeGuards';
 import { URI } from 'vscode-uri';
+import { join, dirname } from 'path';
+import { existsSync } from 'fs';
 
 /**
  * Class representing a ksconfig.json file. This is used to specify
@@ -10,12 +12,12 @@ export class WorkspaceConfiguration {
   /**
    * The location of the workspace config
    */
-  public configUri: URI;
+  public configDirectoryUri?: URI;
 
   /**
    * The location of the root volume (volume 0)
    */
-  public readonly rootVolume?: string;
+  public readonly rootVolumePath?: string;
 
   /**
    * The name of any custom bodies used i.e. modded
@@ -29,20 +31,36 @@ export class WorkspaceConfiguration {
 
   /**
    * Construct a new configuration
-   * @param rootVolume root volume
+   * @param rootVolumePath root volume
    * @param bodies custom bodies
    * @param lintRules lint rules in place
    */
   constructor(
-    configUri: URI,
-    rootVolume?: string,
+    configDirectoryUri?: URI,
+    rootVolumePath?: string,
     bodies?: string[],
     lintRules?: Map<string, LintRule>,
   ) {
-    this.configUri = configUri;
-    this.rootVolume = rootVolume;
+    this.configDirectoryUri = configDirectoryUri;
+    this.rootVolumePath = rootVolumePath;
     this.bodies = bodies;
     this.lintRules = lintRules;
+  }
+
+  /**
+   * What is the location of the root volume
+   */
+  public rootVolumeUri(): Maybe<URI> {
+    if (empty(this.configDirectoryUri)) {
+      return undefined;
+    }
+
+    const configDirectory = dirname(this.configDirectoryUri.fsPath);
+    const rootVolume = join(configDirectory, this.rootVolumePath ?? '.');
+
+    return existsSync(rootVolume)
+      ? URI.file(rootVolume)
+      : URI.file(configDirectory);
   }
 
   /**
@@ -50,19 +68,23 @@ export class WorkspaceConfiguration {
    * @param config config to merge into this one
    */
   public merge(config: WorkspaceConfiguration): WorkspaceConfiguration {
-    const rootVolume = config.rootVolume || this.rootVolume;
+    const configUri = config.configDirectoryUri || this.configDirectoryUri;
+    const rootVolume = config.rootVolumePath || this.rootVolumePath;
     const bodies = config.bodies || this.bodies;
     const lintRules =
       !empty(config.lintRules) && !empty(this.lintRules)
         ? new Map([...this.lintRules, ...config.lintRules])
         : config.lintRules || this.lintRules;
 
-    return new WorkspaceConfiguration(
-      config.configUri,
-      rootVolume,
-      bodies,
-      lintRules,
-    );
+    return new WorkspaceConfiguration(configUri, rootVolume, bodies, lintRules);
+  }
+
+  /**
+   * Is this workspace configuration equal to another
+   * @param other other workspace configuration to compare to
+   */
+  public equal(other: WorkspaceConfiguration): boolean {
+    return JSON.stringify(this) === JSON.stringify(other);
   }
 }
 
@@ -70,7 +92,7 @@ export class WorkspaceConfiguration {
  * The default configuration workspace configuration
  */
 export const defaultWorkspaceConfiguration = new WorkspaceConfiguration(
-  URI.file('/dummy'),
+  undefined,
   '.',
   [
     'kerbol',

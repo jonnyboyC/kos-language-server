@@ -1,10 +1,13 @@
 'use strict';
 const path = require('path');
+const { cpus } = require('os');
 
 const config = {
+  testEnvironment: 'node',
   preset: 'ts-jest',
   reporters: ['default', 'jest-junit'],
   coverageReporters: ['html', 'cobertura'],
+  maxWorkers: cpus().length * 2,
   roots: ['src', 'test'],
   coverageDirectory: 'coverage',
   globals: {

@@ -1,12 +1,6 @@
 import { SymbolTable } from './analysis/models/symbolTable';
 import { IScript } from './parser/types';
-import {
-  Diagnostic,
-  MessageReader,
-  MessageWriter,
-  CompletionItem,
-  TextDocument,
-} from 'vscode-languageserver';
+import { Diagnostic, TextDocument } from 'vscode-languageserver';
 import { Token } from './models/token';
 
 export interface DependencyInfo {
@@ -63,14 +57,4 @@ export interface ClientConfiguration {
 export interface IClientCapabilities {
   hasConfiguration: boolean;
   hasWorkspaceFolder: boolean;
-}
-
-export interface KLSConfiguration {
-  reader: MessageReader;
-  writer: MessageWriter;
-  workspaceFolder: string;
-  workspaceUri: string;
-  keywords: CompletionItem[];
-  clientConfig: ClientConfiguration;
-  clientCapability: IClientCapabilities;
 }

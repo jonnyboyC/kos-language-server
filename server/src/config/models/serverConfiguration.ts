@@ -1,4 +1,4 @@
-import { ClientConfiguration, IClientCapabilities } from '../types';
+import { ClientConfiguration, IClientCapabilities } from '../../types';
 import { URI } from 'vscode-uri';
 
 export class ServerConfiguration {

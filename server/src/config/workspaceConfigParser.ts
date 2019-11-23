@@ -1,6 +1,6 @@
 import { parseTree, Node } from 'jsonc-parser';
-import { WorkspaceConfiguration } from './workspaceConfiguration';
-import { LintRule, lintRules } from './lintRules';
+import { WorkspaceConfiguration } from './models/workspaceConfiguration';
+import { LintRule, lintRules } from './models/lintRules';
 import { empty } from '../utilities/typeGuards';
 import { TextDocument } from 'vscode-languageserver';
 import { URI } from 'vscode-uri';
@@ -14,7 +14,7 @@ export function parseWorkspaceConfiguration(
 ): WorkspaceConfiguration {
   const root = parseTree(document.getText());
 
-  let rootVolume: Maybe<string> = undefined;
+  let rootVolumePath: Maybe<string> = undefined;
   let bodies: Maybe<string[]> = undefined;
   let lintRules = new Map<string, LintRule>();
 
@@ -34,7 +34,7 @@ export function parseWorkspaceConfiguration(
             const [key, value] = prop.children;
             switch (key.value) {
               case 'archiveDirectory':
-                rootVolume = parseRootVolume(value);
+                rootVolumePath = parseRootVolume(value);
                 break;
               case 'bodies':
                 bodies = parseBodies(value);
@@ -55,7 +55,7 @@ export function parseWorkspaceConfiguration(
 
   return new WorkspaceConfiguration(
     URI.parse(document.uri),
-    rootVolume,
+    rootVolumePath,
     bodies,
     lintRules,
   );

@@ -40,7 +40,7 @@ describe('document service', () => {
     );
 
     expect(docService.ready()).toBe(false);
-    docService.rootVolume = baseUri;
+    docService.workspaceUri = baseUri;
     expect(docService.ready()).toBe(true);
   });
 

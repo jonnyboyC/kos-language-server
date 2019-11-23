@@ -41,7 +41,7 @@ export class DocumentService extends EventEmitter {
   /**
    * What is the root volume of this directory
    */
-  public rootVolume?: URI;
+  public workspaceUri?: URI;
 
   /**
    * Currently cached documents loaded by the client
@@ -91,7 +91,7 @@ export class DocumentService extends EventEmitter {
     ioService: IoService,
     logger: ILogger,
     tracer: ITracer,
-    rootVolume?: URI,
+    workspaceUri?: URI,
   ) {
     super();
     this.clientDocs = new Map();
@@ -101,7 +101,7 @@ export class DocumentService extends EventEmitter {
     this.ioService = ioService;
     this.logger = logger;
     this.tracer = tracer;
-    this.rootVolume = rootVolume;
+    this.workspaceUri = workspaceUri;
 
     this.conn.onDidChangeTextDocument(this.onChangeHandler.bind(this));
     this.conn.onDidOpenTextDocument(this.onOpenHandler.bind(this));
@@ -112,7 +112,7 @@ export class DocumentService extends EventEmitter {
    * Is the document service read
    */
   public ready(): boolean {
-    return !empty(this.rootVolume);
+    return !empty(this.workspaceUri);
   }
 
   /**
@@ -178,13 +178,13 @@ export class DocumentService extends EventEmitter {
    * Cache all documents in the workspace.
    */
   public async cacheDocuments() {
-    if (empty(this.rootVolume)) {
+    if (empty(this.workspaceUri)) {
       return;
     }
 
     try {
       for await (const { uri, text } of this.ioService.loadDirectory(
-        this.rootVolume.fsPath,
+        this.workspaceUri.fsPath,
       )) {
         // store as sever doc if .ks
         if (uri.endsWith('.ks')) {

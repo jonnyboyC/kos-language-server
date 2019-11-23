@@ -1,12 +1,14 @@
 import { parseWorkspaceConfiguration } from '../../src/config/workspaceConfigParser';
 import { TextDocument } from 'vscode-languageserver';
 import { URI } from 'vscode-uri';
-import { LintRule } from '../../src/config/lintRules';
+import { LintRule } from '../../src/config/models/lintRules';
 import { DIAGNOSTICS } from '../../src/utilities/diagnosticsUtils';
+
+const exampleConfigUri = URI.file('/example/ksconfig.json');
 
 function makeDocument(source: string): TextDocument {
   return TextDocument.create(
-    URI.file('/example/ksconfig.json').toString(),
+    exampleConfigUri.toString(),
     'kos-language-server',
     1,
     source,
@@ -20,7 +22,8 @@ describe('WorkspaceConfigParser', () => {
         const empty = makeDocument('');
 
         const config = parseWorkspaceConfiguration(empty);
-        expect(config.rootVolume).toBe(undefined);
+        expect(config.configDirectoryUri);
+        expect(config.rootVolumePath).toBe(undefined);
         expect(config.bodies).toBe(undefined);
         expect(config.lintRules).toEqual(new Map());
       });
@@ -31,7 +34,7 @@ describe('WorkspaceConfigParser', () => {
         const empty = makeDocument('{}');
 
         const config = parseWorkspaceConfiguration(empty);
-        expect(config.rootVolume).toBe(undefined);
+        expect(config.rootVolumePath).toBe(undefined);
         expect(config.bodies).toBe(undefined);
         expect(config.lintRules).toEqual(new Map());
       });
@@ -45,7 +48,7 @@ describe('WorkspaceConfigParser', () => {
           const empty = makeDocument('{"archiveDirectory": "/src" }');
 
           const config = parseWorkspaceConfiguration(empty);
-          expect(config.rootVolume).toBe('/src');
+          expect(config.rootVolumePath).toBe('/src');
           expect(config.bodies).toBe(undefined);
           expect(config.lintRules).toEqual(new Map());
         });
@@ -56,7 +59,7 @@ describe('WorkspaceConfigParser', () => {
           const empty = makeDocument('{"archiveDirectory": 10.3 }');
 
           const config = parseWorkspaceConfiguration(empty);
-          expect(config.rootVolume).toBe(undefined);
+          expect(config.rootVolumePath).toBe(undefined);
           expect(config.bodies).toBe(undefined);
           expect(config.lintRules).toEqual(new Map());
         });
@@ -69,7 +72,7 @@ describe('WorkspaceConfigParser', () => {
           const empty = makeDocument('{"bodies": ["Mun", "Kerbin"] }');
 
           const config = parseWorkspaceConfiguration(empty);
-          expect(config.rootVolume).toBe(undefined);
+          expect(config.rootVolumePath).toBe(undefined);
           expect(config.bodies).toEqual(['Mun', 'Kerbin']);
           expect(config.lintRules).toEqual(new Map());
         });
@@ -80,7 +83,7 @@ describe('WorkspaceConfigParser', () => {
           const empty = makeDocument('{"bodies": ["Mun", false] }');
 
           const config = parseWorkspaceConfiguration(empty);
-          expect(config.rootVolume).toBe(undefined);
+          expect(config.rootVolumePath).toBe(undefined);
           expect(config.bodies).toEqual(['Mun']);
           expect(config.lintRules).toEqual(new Map());
         });
@@ -91,7 +94,7 @@ describe('WorkspaceConfigParser', () => {
           const empty = makeDocument('{"bodies": [10.3] }');
 
           const config = parseWorkspaceConfiguration(empty);
-          expect(config.rootVolume).toBe(undefined);
+          expect(config.rootVolumePath).toBe(undefined);
           expect(config.bodies).toEqual([]);
           expect(config.lintRules).toEqual(new Map());
         });
@@ -102,7 +105,7 @@ describe('WorkspaceConfigParser', () => {
           const empty = makeDocument('{"bodies": false }');
 
           const config = parseWorkspaceConfiguration(empty);
-          expect(config.rootVolume).toBe(undefined);
+          expect(config.rootVolumePath).toBe(undefined);
           expect(config.bodies).toEqual(undefined);
           expect(config.lintRules).toEqual(new Map());
         });
@@ -118,7 +121,7 @@ describe('WorkspaceConfigParser', () => {
             );
 
             const config = parseWorkspaceConfiguration(single);
-            expect(config.rootVolume).toBe(undefined);
+            expect(config.rootVolumePath).toBe(undefined);
             expect(config.bodies).toEqual(undefined);
             expect(config.lintRules).toEqual(
               new Map([
@@ -147,7 +150,7 @@ describe('WorkspaceConfigParser', () => {
             );
 
             const config = parseWorkspaceConfiguration(multiple);
-            expect(config.rootVolume).toBe(undefined);
+            expect(config.rootVolumePath).toBe(undefined);
             expect(config.bodies).toEqual(undefined);
             expect(config.lintRules).toEqual(
               new Map([
@@ -184,7 +187,7 @@ describe('WorkspaceConfigParser', () => {
               );
 
               const config = parseWorkspaceConfiguration(invalid);
-              expect(config.rootVolume).toBe(undefined);
+              expect(config.rootVolumePath).toBe(undefined);
               expect(config.bodies).toEqual(undefined);
               expect(config.lintRules).toEqual(new Map());
             });
@@ -197,7 +200,7 @@ describe('WorkspaceConfigParser', () => {
               );
 
               const config = parseWorkspaceConfiguration(invalid);
-              expect(config.rootVolume).toBe(undefined);
+              expect(config.rootVolumePath).toBe(undefined);
               expect(config.bodies).toEqual(undefined);
               expect(config.lintRules).toEqual(new Map());
             });

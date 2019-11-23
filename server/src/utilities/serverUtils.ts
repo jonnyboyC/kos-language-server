@@ -19,7 +19,7 @@ import { empty } from './typeGuards';
 import { KsSymbolKind, KsSymbol, KsBaseSymbol } from '../analysis/types';
 import { cleanLocation, cleanToken, cleanCompletion } from './clean';
 import { CommanderStatic } from 'commander';
-import { ClientConfiguration, DiagnosticUri } from '../types';
+import { DiagnosticUri } from '../types';
 import { mapper } from './mapper';
 import { IParseError } from '../parser/types';
 import * as Expr from '../parser/models/expr';
@@ -30,24 +30,6 @@ import { tokenTrackedType } from '../typeChecker/utilities/typeUtilities';
 import { structureType } from '../typeChecker/ksTypes/primitives/structure';
 import { IoKind } from '../services/IoService';
 import { createDiagnostic, DIAGNOSTICS } from './diagnosticsUtils';
-
-/**
- * The default client configuration if none are available
- */
-export const defaultClientConfiguration: ClientConfiguration = {
-  kerbalSpaceProgramPath: undefined,
-  telnetHost: '127.0.0.1',
-  telnetPort: 5410,
-  lspPort: 7000,
-  completionCase: 'camelcase',
-  trace: {
-    server: {
-      verbosity: 'off',
-      format: 'text',
-      level: 'error',
-    },
-  },
-};
 
 /**
  * Get the connection primitives based on the request connection type

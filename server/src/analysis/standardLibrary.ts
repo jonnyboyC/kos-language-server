@@ -28,7 +28,7 @@ import { orbitInfoType } from '../typeChecker/ksTypes/orbitInfo';
 import { careerType } from '../typeChecker/ksTypes/career';
 import { waypointType } from '../typeChecker/ksTypes/waypoint';
 import { resourceTransferType } from '../typeChecker/ksTypes/resourceTransfer';
-import { builtIn } from '../utilities/constants';
+import { builtIn, DEFAULT_BODIES } from '../utilities/constants';
 import { lexiconType } from '../typeChecker/ksTypes/collections/lexicon';
 import { rangeType } from '../typeChecker/ksTypes/collections/range';
 import { SymbolTableBuilder } from './models/symbolTableBuilder';
@@ -778,29 +778,6 @@ const variables: [string[], IType][] = [
   [['yellow'], rgbaType],
 ];
 
-const bodies: [string, IType][] = [
-  ['kerbol', bodyTargetType],
-  ['moho', bodyTargetType],
-  ['eve', bodyTargetType],
-  ['gilly', bodyTargetType],
-  ['kerbin', bodyTargetType],
-  ['mun', bodyTargetType],
-  ['minmus', bodyTargetType],
-  ['duna', bodyTargetType],
-  ['ike', bodyTargetType],
-  ['dres', bodyTargetType],
-  ['jool', bodyTargetType],
-  ['laythe', bodyTargetType],
-  ['vall', bodyTargetType],
-  ['tylo', bodyTargetType],
-  ['bop', bodyTargetType],
-  ['pol', bodyTargetType],
-  ['eeloo', bodyTargetType],
-];
-
-// obsoleted
-//  ['groundspeed', scalarType],
-
 export const standardLibraryBuilder = (caseKind: CaseKind): SymbolTable => {
   const libraryBuilder = new SymbolTableBuilder(builtIn);
 
@@ -861,10 +838,13 @@ export const standardLibraryBuilder = (caseKind: CaseKind): SymbolTable => {
   return libraryBuilder.build();
 };
 
-export const bodyLibraryBuilder = (caseKind: CaseKind): SymbolTable => {
+export const bodyLibraryBuilder = (
+  caseKind: CaseKind,
+  celetrialBodies = DEFAULT_BODIES,
+): SymbolTable => {
   const bodyBuilder = new SymbolTableBuilder(builtIn);
 
-  for (const [identifier, type] of bodies) {
+  for (const identifier of celetrialBodies) {
     bodyBuilder.declareVariable(
       ScopeKind.global,
       new Token(
@@ -875,7 +855,7 @@ export const bodyLibraryBuilder = (caseKind: CaseKind): SymbolTable => {
         new Marker(0, 0),
         builtIn,
       ),
-      type,
+      bodyTargetType,
     );
   }
 
