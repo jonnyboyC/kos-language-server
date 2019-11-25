@@ -124,7 +124,6 @@ describe('LintManager', () => {
           [lintChild1, lintChile2],
         );
 
-        debugger;
         const lintRules: LintRule[] = [lintChild1, lintChile2, lintParent];
         const lintManager = LintManager.fromRules(lintRules, config_codes);
 

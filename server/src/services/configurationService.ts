@@ -125,7 +125,6 @@ export class ConfigurationService extends EventEmitter {
       parsedConfiguration.config,
     );
 
-    console.log(document.getText());
     this.emit('error', parsedConfiguration.diagnostics, document.uri);
 
     // if the configuration has changed emit change event

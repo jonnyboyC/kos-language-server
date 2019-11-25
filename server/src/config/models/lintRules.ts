@@ -101,36 +101,7 @@ export const severityMapper = new Map([
 const lintTemplates: LintRule = {
   rule: 'all',
   level: 'warning',
-  diagnostics: [
-    // DIAGNOSTICS.PARSER_ERROR,
-    // DIAGNOSTICS.LOAD_ERROR,
-    // DIAGNOSTICS.UNREACHABLE_CODE,
-    // DIAGNOSTICS.INVALID_BREAK_CONTEXT,
-    // DIAGNOSTICS.INVALID_LAZY_GLOBAL,
-    // DIAGNOSTICS.INVALID_RETURN_CONTEXT,
-    // DIAGNOSTICS.INVALID_PRESERVE_CONTEXT,
-    // DIAGNOSTICS.GLOBAL_PARAMETER,
-    // DIAGNOSTICS.CANNOT_SET,
-    // DIAGNOSTICS.INVALID_SET,
-    // DIAGNOSTICS.DELETE_DEPRECATED,
-    // DIAGNOSTICS.COPY_DEPRECATED,
-    // DIAGNOSTICS.RENAME_DEPRECATED,
-    // DIAGNOSTICS.SYMBOL_MAY_NOT_EXIST,
-    // DIAGNOSTICS.SYMBOL_MAY_NOT_RUNTIME_EXIST,
-    // DIAGNOSTICS.SYMBOL_WRONG_KIND,
-    // DIAGNOSTICS.SYMBOL_UNUSED_LOCALLY,
-    // DIAGNOSTICS.SYMBOL_UNUSED,
-    // DIAGNOSTICS.SYMBOL_SHADOWS,
-    // DIAGNOSTICS.SYMBOL_CONFLICT,
-    // DIAGNOSTICS.TYPE_WRONG,
-    // DIAGNOSTICS.TYPE_NO_CALL,
-    // DIAGNOSTICS.TYPE_WRONG_ARITY,
-    // DIAGNOSTICS.TYPE_LIST_INVALID,
-    // DIAGNOSTICS.TYPE_NO_INDEXER,
-    // DIAGNOSTICS.TYPE_NOT_FUNCTION,
-    // DIAGNOSTICS.TYPE_MISSING_SUFFIX,
-    // DIAGNOSTICS.TYPE_MISSING_OPERATOR,
-  ],
+  diagnostics: [],
   owned: [
     {
       rule: 'parsing',
@@ -153,12 +124,7 @@ const lintTemplates: LintRule = {
     {
       rule: 'invalid-control-flow',
       level: 'error',
-      diagnostics: [
-        // DIAGNOSTICS.INVALID_BREAK_CONTEXT,
-        // DIAGNOSTICS.INVALID_LAZY_GLOBAL,
-        // DIAGNOSTICS.INVALID_RETURN_CONTEXT,
-        // DIAGNOSTICS.INVALID_PRESERVE_CONTEXT,
-      ],
+      diagnostics: [],
       owned: [
         {
           rule: 'invalid-break',
@@ -293,16 +259,7 @@ const lintTemplates: LintRule = {
     {
       rule: 'type-checking',
       level: 'hint',
-      diagnostics: [
-        // DIAGNOSTICS.TYPE_WRONG,
-        // DIAGNOSTICS.TYPE_NO_CALL,
-        // DIAGNOSTICS.TYPE_WRONG_ARITY,
-        // DIAGNOSTICS.TYPE_LIST_INVALID,
-        // DIAGNOSTICS.TYPE_NO_INDEXER,
-        // DIAGNOSTICS.TYPE_NOT_FUNCTION,
-        // DIAGNOSTICS.TYPE_MISSING_SUFFIX,
-        // DIAGNOSTICS.TYPE_MISSING_OPERATOR,
-      ],
+      diagnostics: [],
       owned: [
         {
           rule: 'type-wrong',

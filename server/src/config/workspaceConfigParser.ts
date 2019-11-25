@@ -65,6 +65,7 @@ export function parseWorkspaceConfiguration(
                 diagnostics.push(...lintResult.diagnostics);
                 break;
               default:
+                // invalid property diagnostic
                 diagnostics.push(
                   createConfigDiagnostic(
                     nodeRange(key, text),
@@ -103,62 +104,6 @@ export function parseWorkspaceConfiguration(
 }
 
 /**
- * Get the range for a node in the json file
- * @param node json node
- */
-function nodeRange(node: Node, text: string) {
-  return {
-    start: offsetPosition(node.offset, text),
-    end: offsetPosition(node.offset + node.length, text),
-  };
-}
-
-/**
- * Get the position of a given offset in the json document
- * @param offset json character offset
- * @param text `ksconfig.json` text
- */
-function offsetPosition(offset: number, text: string): Position {
-  let line = 0;
-  let lineOffset = 0;
-  for (let i = 0; i < offset; i++) {
-    if (text[i] === '\n') {
-      line++;
-      lineOffset = i + 1;
-    }
-  }
-
-  return { line, character: offset - lineOffset };
-}
-
-/**
- * Create a diagnostics for the `ksconfig.json` file
- * @param range range of the json node the error occurred on
- * @param uri uri of the `ksconfig.json` file
- * @param message error message
- * @param code error code
- * @param relatedInformation related information to the diagnostics
- */
-function createConfigDiagnostic(
-  range: Range,
-  uri: string,
-  message: string,
-  code: ValueOf<typeof CONFIG_DIAGNOSTICS>,
-  relatedInformation?: DiagnosticRelatedInformation[],
-): DiagnosticUri {
-  return {
-    ...createDiagnostic(
-      range,
-      message,
-      DiagnosticSeverity.Information,
-      code,
-      relatedInformation,
-    ),
-    uri,
-  };
-}
-
-/**
  * Parse the archive directory for use in a workspace configuration
  * @param node representing the bodies section of the configuration
  * @param text `ksconfig.json` text
@@ -175,6 +120,7 @@ function parseArchive(
     return { archive: node.value, diagnostics };
   }
 
+  // expect string for archive value
   diagnostics.push(
     createConfigDiagnostic(
       nodeRange(node, text),
@@ -200,6 +146,7 @@ function parseBodies(
 ): Fallible<{ bodies: Maybe<string[]> }> {
   const diagnostics: DiagnosticUri[] = [];
   if (node.type !== 'array') {
+    // bodies expects an array diagnostics
     diagnostics.push(
       createConfigDiagnostic(
         nodeRange(node, text),
@@ -218,6 +165,7 @@ function parseBodies(
       if (item.type === 'string' && typeof item.value === 'string') {
         bodies.push(item.value);
       } else {
+        // diagnostic for elements that aren't strings
         diagnostics.push(
           createConfigDiagnostic(
             nodeRange(item, text),
@@ -252,9 +200,11 @@ function parseLintRules(
       if (prop.type === 'property') {
         const [key, value] = prop.children!;
 
+        // check if rule exists
         const rule = lintRules.get(key.value);
         if (!empty(rule)) {
           if (value.type === 'string' && typeof value.value === 'string') {
+            // check if correct level was provided
             switch (value.value) {
               case 'error':
               case 'warning':
@@ -267,6 +217,7 @@ function parseLintRules(
                 );
                 break;
               default:
+                // incorrect level diagnostic
                 diagnostics.push(
                   createConfigDiagnostic(
                     nodeRange(value, text),
@@ -302,6 +253,7 @@ function parseLintRules(
             );
           }
         } else {
+          // invalid rule diagnostic
           diagnostics.push(
             createConfigDiagnostic(
               nodeRange(key, text),
@@ -322,6 +274,7 @@ function parseLintRules(
       }
     }
   } else {
+    // linting takes an object diagnostics
     diagnostics.push(
       createConfigDiagnostic(
         nodeRange(node, text),
@@ -333,4 +286,60 @@ function parseLintRules(
   }
 
   return { rules, diagnostics };
+}
+
+/**
+ * Create a diagnostics for the `ksconfig.json` file
+ * @param range range of the json node the error occurred on
+ * @param uri uri of the `ksconfig.json` file
+ * @param message error message
+ * @param code error code
+ * @param relatedInformation related information to the diagnostics
+ */
+function createConfigDiagnostic(
+  range: Range,
+  uri: string,
+  message: string,
+  code: ValueOf<typeof CONFIG_DIAGNOSTICS>,
+  relatedInformation?: DiagnosticRelatedInformation[],
+): DiagnosticUri {
+  return {
+    ...createDiagnostic(
+      range,
+      message,
+      DiagnosticSeverity.Information,
+      code,
+      relatedInformation,
+    ),
+    uri,
+  };
+}
+
+/**
+ * Get the range for a node in the json file
+ * @param node json node
+ */
+function nodeRange(node: Node, text: string) {
+  return {
+    start: offsetPosition(node.offset, text),
+    end: offsetPosition(node.offset + node.length, text),
+  };
+}
+
+/**
+ * Get the position of a given offset in the json document
+ * @param offset json character offset
+ * @param text `ksconfig.json` text
+ */
+function offsetPosition(offset: number, text: string): Position {
+  let line = 0;
+  let lineOffset = 0;
+  for (let i = 0; i < offset; i++) {
+    if (text[i] === '\n') {
+      line++;
+      lineOffset = i + 1;
+    }
+  }
+
+  return { line, character: offset - lineOffset };
 }

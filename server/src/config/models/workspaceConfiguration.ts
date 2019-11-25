@@ -3,6 +3,7 @@ import { empty } from '../../utilities/typeGuards';
 import { URI } from 'vscode-uri';
 import { join, dirname } from 'path';
 import { existsSync } from 'fs';
+import { DEFAULT_BODIES } from '../../utilities/constants';
 
 /**
  * Class representing a ksconfig.json file. This is used to specify
@@ -94,24 +95,6 @@ export class WorkspaceConfiguration {
 export const defaultWorkspaceConfiguration = new WorkspaceConfiguration(
   undefined,
   '.',
-  [
-    'kerbol',
-    'moho',
-    'eve',
-    'gilly',
-    'kerbin',
-    'mun',
-    'minmus',
-    'duna',
-    'ike',
-    'dres',
-    'jool',
-    'laythe',
-    'vall',
-    'tylo',
-    'bop',
-    'pol',
-    'eeloo',
-  ],
+  DEFAULT_BODIES,
   new Map([...lintRules].filter(([_, rule]) => rule.owned.length === 0)),
 );
