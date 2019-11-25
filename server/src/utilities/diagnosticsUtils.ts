@@ -11,14 +11,14 @@ import { languageServer } from './constants';
  * @param range range the diagnostics applies
  * @param message message for the diagnostic
  * @param severity severity of the diagnostic
- * @param code error code
+ * @param code error code for the diagnostic
  * @param relatedInformation other related information
  */
 export const createDiagnostic = (
   range: Range,
   message: string,
   severity: DiagnosticSeverity,
-  code: ValueOf<typeof DIAGNOSTICS>,
+  code: ValueOf<typeof DIAGNOSTICS> | ValueOf<typeof CONFIG_DIAGNOSTICS>,
   relatedInformation?: DiagnosticRelatedInformation[],
 ): Diagnostic => {
   return Diagnostic.create(
@@ -32,7 +32,7 @@ export const createDiagnostic = (
 };
 
 /**
- * Code for each diagnostics int the language server
+ * Code for each diagnostic in the language server
  */
 export const DIAGNOSTICS = {
   // scanner
@@ -77,4 +77,12 @@ export const DIAGNOSTICS = {
   TYPE_NOT_FUNCTION: 'type-not-function',
   TYPE_MISSING_SUFFIX: 'type-missing-suffix',
   TYPE_MISSING_OPERATOR: 'type-missing-operator',
+} as const;
+
+/**
+ * Code for each diagnostic in `ksconfig.json`
+ */
+export const CONFIG_DIAGNOSTICS = {
+  INVALID_PROPERTY: 'invalid-property',
+  INVALID_VALUE: 'invalid-value',
 } as const;

@@ -8,6 +8,10 @@ export interface DependencyInfo {
   diagnostics: DiagnosticUri[];
 }
 
+export type Fallible<T extends {}> = T & {
+  diagnostics: DiagnosticUri[];
+};
+
 export interface LexiconLoad {
   lexicon: Map<string, LexicalInfo>;
   diagnostics: DiagnosticUri[];

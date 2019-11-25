@@ -54,9 +54,14 @@ export class DocumentService extends EventEmitter {
   private serverDocs: Map<string, TextDocument>;
 
   /**
-   * A ksconfig.json if it exists
+   * A ksconfig.json if it exists reported by the client
    */
-  private config?: TextDocument;
+  private clientConfigDoc?: TextDocument;
+
+  /**
+   * A ksconfig.json if it exists read by the server
+   */
+  private serverConfigDoc?: TextDocument;
 
   /**
    * client connection with events for open, close, and change events
@@ -96,7 +101,8 @@ export class DocumentService extends EventEmitter {
     super();
     this.clientDocs = new Map();
     this.serverDocs = new Map();
-    this.config = undefined;
+    this.clientConfigDoc = undefined;
+    this.serverConfigDoc = undefined;
     this.conn = conn;
     this.ioService = ioService;
     this.logger = logger;
@@ -196,7 +202,9 @@ export class DocumentService extends EventEmitter {
 
         // store as config if ksconfig
         if (uri.endsWith('ksconfig.json')) {
-          this.config = TextDocument.create(uri, 'kos', 0, text);
+          if (!this.clientConfigDoc) {
+            this.serverConfigDoc = TextDocument.create(uri, 'json', 0, text);
+          }
         }
       }
     } catch (err) {
@@ -245,9 +253,7 @@ export class DocumentService extends EventEmitter {
       document.text,
     );
 
-    this.clientDocs.delete(document.uri);
     this.clientDocs.set(document.uri, textDocument);
-
     return this.emit('change', textDocument);
   }
 
@@ -256,14 +262,14 @@ export class DocumentService extends EventEmitter {
    * @param config config to cache
    */
   private onOpenConfig(config: TextDocumentItem): boolean {
-    this.config = TextDocument.create(
+    this.clientConfigDoc = TextDocument.create(
       config.uri,
       config.languageId,
       config.version,
       config.text,
     );
 
-    return this.emit('configChange', this.config);
+    return this.emit('configChange', this.clientConfigDoc);
   }
 
   /**
@@ -318,7 +324,7 @@ export class DocumentService extends EventEmitter {
     }
 
     if (uri.endsWith('ksconfig.json')) {
-      return this.config;
+      return this.clientConfigDoc || this.serverConfigDoc;
     }
 
     return undefined;
@@ -346,7 +352,7 @@ export class DocumentService extends EventEmitter {
 
     if (uri.endsWith('ksconfig.json')) {
       // update cache
-      this.config = document;
+      this.clientConfigDoc = document;
 
       // emit config change event
       return this.emit('configChange', document);

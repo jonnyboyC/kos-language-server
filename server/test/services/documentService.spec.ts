@@ -502,7 +502,7 @@ describe('document service', () => {
           text: ' edited',
         },
       ];
-      docService['config'] = configDoc;
+      docService['clientConfigDoc'] = configDoc;
 
       docService.on('configChange', document => {
         expect(document.getText()).toBe(

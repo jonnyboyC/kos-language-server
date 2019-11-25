@@ -84,6 +84,7 @@ import {
 } from './services/configurationService';
 import { URI } from 'vscode-uri';
 import { debounce } from './utilities/debounce';
+import { CONFIG_DIAGNOSTICS } from './utilities/diagnosticsUtils';
 
 export class KLS {
   /**
@@ -159,9 +160,10 @@ export class KLS {
   ) {
     this.logger = logger;
     this.tracer = tracer;
-    this.lintManager = LintManager.fromRules([
-      ...defaultWorkspaceConfiguration.lintRules!.values(),
-    ]);
+    this.lintManager = LintManager.fromRules(
+      [...defaultWorkspaceConfiguration.lintRules!.values()],
+      new Set(Object.values(CONFIG_DIAGNOSTICS)),
+    );
     this.connection = connection;
     this.keywords = keywordCompletions(caseKind);
     this.ioService = new IoService();
@@ -212,6 +214,7 @@ export class KLS {
     this.documentService.on('change', this.onChange.bind(this));
     this.analysisService.on('propagate', this.sendDiagnostics.bind(this));
     this.configurationService.on('change', this.onConfigChange.bind(this));
+    this.configurationService.on('error', this.sendDiagnostics.bind(this));
 
     this.connection.listen();
   }
@@ -739,9 +742,10 @@ export class KLS {
     serverConfiguration,
     workspaceConfiguration,
   }: ChangeConfiguration) {
-    this.lintManager = LintManager.fromRules([
-      ...workspaceConfiguration.lintRules!.values(),
-    ]);
+    this.lintManager = LintManager.fromRules(
+      [...workspaceConfiguration.lintRules!.values()],
+      new Set(Object.values(CONFIG_DIAGNOSTICS)),
+    );
     const casePreference = caseMapper(
       serverConfiguration.clientConfig.completionCase,
     );

@@ -1,7 +1,10 @@
 import { DiagnosticSeverity, Diagnostic, Range } from 'vscode-languageserver';
 import { LintManager } from '../../src/config/lintManager';
 import { LintRule } from '../../src/config/models/lintRules';
-import { DIAGNOSTICS } from '../../src/utilities/diagnosticsUtils';
+import {
+  DIAGNOSTICS,
+  CONFIG_DIAGNOSTICS,
+} from '../../src/utilities/diagnosticsUtils';
 
 const dummyRange: Range = {
   start: {
@@ -14,6 +17,8 @@ const dummyRange: Range = {
   },
 };
 
+const config_codes = new Set(Object.values(CONFIG_DIAGNOSTICS));
+
 describe('LintManager', () => {
   describe('When constructing an instance', () => {
     test('It has the appropriate properties', () => {
@@ -22,8 +27,8 @@ describe('LintManager', () => {
         ['example2', DiagnosticSeverity.Error],
       ]);
 
-      const lintManager = new LintManager(severities);
-      expect(lintManager.severities).toBe(severities);
+      const lintManager = new LintManager(severities, config_codes);
+      expect(lintManager.codeSeverities).toBe(severities);
     });
   });
 
@@ -39,14 +44,14 @@ describe('LintManager', () => {
         ),
       ];
 
-      const lintManager = LintManager.fromRules(lintRules);
-      expect(lintManager.severities.get(DIAGNOSTICS.CANNOT_SET)).toBe(
+      const lintManager = LintManager.fromRules(lintRules, config_codes);
+      expect(lintManager.codeSeverities.get(DIAGNOSTICS.CANNOT_SET)).toBe(
         DiagnosticSeverity.Error,
       );
-      expect(lintManager.severities.get(DIAGNOSTICS.UNREACHABLE_CODE)).toBe(
+      expect(lintManager.codeSeverities.get(DIAGNOSTICS.UNREACHABLE_CODE)).toBe(
         DiagnosticSeverity.Hint,
       );
-      expect(lintManager.severities.get('fake')).toBe(undefined);
+      expect(lintManager.codeSeverities.get('fake')).toBe(undefined);
     });
   });
 
@@ -63,7 +68,7 @@ describe('LintManager', () => {
           ),
         ];
 
-        const lintManager = LintManager.fromRules(lintRules);
+        const lintManager = LintManager.fromRules(lintRules, config_codes);
 
         const diagnostics: Diagnostic[] = [
           Diagnostic.create(
@@ -121,7 +126,7 @@ describe('LintManager', () => {
 
         debugger;
         const lintRules: LintRule[] = [lintChild1, lintChile2, lintParent];
-        const lintManager = LintManager.fromRules(lintRules);
+        const lintManager = LintManager.fromRules(lintRules, config_codes);
 
         const diagnostics: Diagnostic[] = [
           Diagnostic.create(

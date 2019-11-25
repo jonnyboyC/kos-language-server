@@ -9,6 +9,7 @@ import { DocumentService } from './documentService';
 import { serverName } from '../utilities/constants';
 import { ServerConfiguration } from '../config/models/serverConfiguration';
 import { parseWorkspaceConfiguration } from '../config/workspaceConfigParser';
+import { DiagnosticUri } from '../types';
 
 export interface ChangeConfiguration {
   serverConfiguration: ServerConfiguration;
@@ -16,10 +17,13 @@ export interface ChangeConfiguration {
 }
 
 type ChangeHandler = (configurations: ChangeConfiguration) => void;
+type ErrorHandler = (errors: DiagnosticUri[], uri: string) => void;
 
 export declare interface ConfigurationService {
   on(event: 'change', listener: ChangeHandler): this;
   emit(event: 'change', ...args: Parameters<ChangeHandler>): boolean;
+  on(event: 'error', listener: ErrorHandler): this;
+  emit(event: 'error', ...args: Parameters<ErrorHandler>): boolean;
 }
 
 type ConfigurationConnection = Pick<IConnection, 'onDidChangeConfiguration'>;
@@ -116,9 +120,13 @@ export class ConfigurationService extends EventEmitter {
    * @param document workspace config document
    */
   private onChangeWorkspaceConfig(document: TextDocument): void {
+    const parsedConfiguration = parseWorkspaceConfiguration(document);
     const workspaceConfiguration = this.defaultWorkspaceConfiguration.merge(
-      parseWorkspaceConfiguration(document),
+      parsedConfiguration.config,
     );
+
+    console.log(document.getText());
+    this.emit('error', parsedConfiguration.diagnostics, document.uri);
 
     // if the configuration has changed emit change event
     if (!this.workspaceConfiguration.equal(workspaceConfiguration)) {

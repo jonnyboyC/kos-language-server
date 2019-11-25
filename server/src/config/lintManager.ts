@@ -9,14 +9,23 @@ export class LintManager {
   /**
    * What severity should a diagnostic be reported as
    */
-  public readonly severities: Map<string, DiagnosticSeverity>;
+  public readonly codeSeverities: Map<string, DiagnosticSeverity>;
+
+  /**
+   * What codes are associated with the config
+   */
+  public readonly configCodes: Set<string>;
 
   /**
    * Construct a new LintManager
    * @param severities
    */
-  constructor(severities: Map<string, DiagnosticSeverity>) {
-    this.severities = severities;
+  constructor(
+    severities: Map<string, DiagnosticSeverity>,
+    configRules: Set<string>,
+  ) {
+    this.codeSeverities = severities;
+    this.configCodes = configRules;
   }
 
   /**
@@ -27,10 +36,12 @@ export class LintManager {
     const result: T[] = [];
 
     for (const diagnostic of diagnostics) {
-      const severity = this.severities.get(diagnostic.code as string);
+      const severity = this.codeSeverities.get(diagnostic.code as string);
 
       if (!empty(severity)) {
         diagnostic.severity = severity;
+        result.push(diagnostic);
+      } else if (this.configCodes.has(diagnostic.code as string)) {
         result.push(diagnostic);
       }
     }
@@ -42,10 +53,10 @@ export class LintManager {
    * Create a lint manager from a set of lint rules
    * @param rules line rules to create diagnostic manager from
    */
-  static fromRules(rules: LintRule[]) {
+  static fromRules(rules: LintRule[], configCodes: Set<string>) {
     // sort entries by the number owned to get in essentially breath first search
     const sorted = rules.sort(
-      (entry1, entry2) => entry1.owned.length - entry2.owned.length,
+      (entry1, entry2) => entry1.diagnostics.length - entry2.diagnostics.length,
     );
 
     const adjustedLintRules = new Map<LintRule, DiagnosticSeverity>();
@@ -64,15 +75,24 @@ export class LintManager {
       }
     };
 
-    // place rules in each bin
-    for (const rule of sorted) {
-      const severity = severityMapper.get(rule.level);
-      update(rule, severity);
-
+    const updateOwned = (
+      rule: LintRule,
+      severity: Maybe<DiagnosticSeverity>,
+    ) => {
       // add diagnostics to appropriate bin
       for (const owned of rule.owned) {
         update(owned, severity);
+        updateOwned(owned, severity);
       }
+    };
+
+    // place rules in each bin
+    for (const rule of sorted) {
+      const severity = severityMapper.get(rule.level);
+
+      // set diagnostics to appropriate level
+      update(rule, severity);
+      updateOwned(rule, severity);
     }
 
     const codeSeverities = new Map<string, DiagnosticSeverity>();
@@ -83,6 +103,6 @@ export class LintManager {
     }
 
     // create lint manager
-    return new LintManager(codeSeverities);
+    return new LintManager(codeSeverities, configCodes);
   }
 }
