@@ -104,6 +104,12 @@ const lintTemplates: LintRule = {
   diagnostics: [],
   owned: [
     {
+      rule: 'scanning',
+      level: 'error',
+      diagnostics: [DIAGNOSTICS.SCANNER_ERROR],
+      owned: [],
+    },
+    {
       rule: 'parsing',
       level: 'error',
       diagnostics: [DIAGNOSTICS.PARSER_ERROR],
@@ -122,30 +128,42 @@ const lintTemplates: LintRule = {
       owned: [],
     },
     {
-      rule: 'invalid-control-flow',
+      rule: 'no-global-parameters',
+      level: 'error',
+      diagnostics: [DIAGNOSTICS.GLOBAL_PARAMETER],
+      owned: [],
+    },
+    {
+      rule: 'uninitialized-set',
+      level: 'warning',
+      diagnostics: [DIAGNOSTICS.UNINITIALIZED_SET],
+      owned: [],
+    },
+    {
+      rule: 'control-flow',
       level: 'error',
       diagnostics: [],
       owned: [
         {
-          rule: 'invalid-break',
+          rule: 'control-flow-break',
           level: 'error',
           diagnostics: [DIAGNOSTICS.INVALID_BREAK_CONTEXT],
           owned: [],
         },
         {
-          rule: 'invalid-return',
+          rule: 'control-flow-return',
           level: 'error',
           diagnostics: [DIAGNOSTICS.INVALID_RETURN_CONTEXT],
           owned: [],
         },
         {
-          rule: 'invalid-preserve',
+          rule: 'control-flow-preserve',
           level: 'error',
           diagnostics: [DIAGNOSTICS.INVALID_PRESERVE_CONTEXT],
           owned: [],
         },
         {
-          rule: 'invalid-lazy-global',
+          rule: 'control-flow-lazy-global',
           level: 'error',
           diagnostics: [DIAGNOSTICS.INVALID_LAZY_GLOBAL],
           owned: [],
@@ -153,64 +171,34 @@ const lintTemplates: LintRule = {
       ],
     },
     {
-      rule: 'cannot-set',
-      level: 'warning',
-      diagnostics: [DIAGNOSTICS.CANNOT_SET],
-      owned: [],
-    },
-    {
-      rule: 'invalid-set',
-      level: 'warning',
-      diagnostics: [DIAGNOSTICS.INVALID_SET],
-      owned: [],
-    },
-    {
       rule: 'deprecated',
       level: 'warning',
-      diagnostics: [
-        // DIAGNOSTICS.DELETE_DEPRECATED,
-        // DIAGNOSTICS.COPY_DEPRECATED,
-        // DIAGNOSTICS.RENAME_DEPRECATED,
-      ],
+      diagnostics: [],
       owned: [
         {
           rule: 'deprecated-delete',
-          level: 'warning',
+          level: 'info',
           diagnostics: [DIAGNOSTICS.DELETE_DEPRECATED],
           owned: [],
         },
         {
           rule: 'deprecated-copy',
-          level: 'warning',
+          level: 'info',
           diagnostics: [DIAGNOSTICS.COPY_DEPRECATED],
           owned: [],
         },
         {
           rule: 'deprecated-rename',
-          level: 'warning',
+          level: 'info',
           diagnostics: [DIAGNOSTICS.RENAME_DEPRECATED],
           owned: [],
         },
       ],
     },
     {
-      rule: 'no-global-parameters',
-      level: 'error',
-      diagnostics: [DIAGNOSTICS.GLOBAL_PARAMETER],
-      owned: [],
-    },
-    {
       rule: 'symbols-strict',
       level: 'error',
-      diagnostics: [
-        // DIAGNOSTICS.SYMBOL_MAY_NOT_EXIST,
-        // DIAGNOSTICS.SYMBOL_MAY_NOT_RUNTIME_EXIST,
-        // DIAGNOSTICS.SYMBOL_WRONG_KIND,
-        // DIAGNOSTICS.SYMBOL_UNUSED_LOCALLY,
-        // DIAGNOSTICS.SYMBOL_UNUSED,
-        // DIAGNOSTICS.SYMBOL_SHADOWS,
-        // DIAGNOSTICS.SYMBOL_CONFLICT,
-      ],
+      diagnostics: [],
       owned: [
         {
           rule: 'symbol-may-not-exist',
@@ -237,7 +225,7 @@ const lintTemplates: LintRule = {
           owned: [],
         },
         {
-          rule: 'symbol-unused-global',
+          rule: 'symbol-unused-locally',
           level: 'warning',
           diagnostics: [DIAGNOSTICS.SYMBOL_UNUSED_LOCALLY],
           owned: [],
@@ -287,7 +275,7 @@ const lintTemplates: LintRule = {
         },
         {
           rule: 'type-no-indexer',
-          level: 'hint',
+          level: 'warning',
           diagnostics: [DIAGNOSTICS.TYPE_NO_INDEXER],
           owned: [],
         },
@@ -307,6 +295,12 @@ const lintTemplates: LintRule = {
           rule: 'type-missing-operator',
           level: 'hint',
           diagnostics: [DIAGNOSTICS.TYPE_MISSING_OPERATOR],
+          owned: [],
+        },
+        {
+          rule: 'type-not-setter',
+          level: 'warning',
+          diagnostics: [DIAGNOSTICS.TYPE_NO_SETTER],
           owned: [],
         },
       ],

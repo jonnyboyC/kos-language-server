@@ -22,10 +22,7 @@ import { mockLogger, mockTracer, logException } from '../models/logger';
 import { SymbolTableBuilder } from './models/symbolTableBuilder';
 import { IDeferred } from './types';
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
-import {
-  createDiagnostic,
-  DIAGNOSTICS,
-} from '../utilities/diagnosticsUtils';
+import { createDiagnostic, DIAGNOSTICS } from '../utilities/diagnosticsUtils';
 // tslint:disable-next-line: import-name
 import Denque from 'denque';
 import { Token } from '../models/token';
@@ -540,7 +537,7 @@ export class Resolver
           token,
           `cannot assign to variable ${token.lexeme}`,
           DiagnosticSeverity.Error,
-          DIAGNOSTICS.CANNOT_SET,
+          DIAGNOSTICS.TYPE_NO_SETTER,
         ),
       ];
     }
@@ -1000,7 +997,7 @@ export class Resolver
           `Attempted to set ${set.lexeme} which has not been declared. ` +
             `Either remove lazy global directive or declare ${set.lexeme}`,
           DiagnosticSeverity.Error,
-          DIAGNOSTICS.INVALID_SET,
+          DIAGNOSTICS.UNINITIALIZED_SET,
         ),
       );
 

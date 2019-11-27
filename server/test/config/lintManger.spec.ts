@@ -35,7 +35,7 @@ describe('LintManager', () => {
   describe('When constructing using the from rules static method', () => {
     test('It has the appropriate properties', () => {
       const lintRules: LintRule[] = [
-        new LintRule('example-rule1', 'error', [DIAGNOSTICS.CANNOT_SET], []),
+        new LintRule('example-rule1', 'error', [DIAGNOSTICS.TYPE_NO_SETTER], []),
         new LintRule(
           'example-rule2',
           'hint',
@@ -45,7 +45,7 @@ describe('LintManager', () => {
       ];
 
       const lintManager = LintManager.fromRules(lintRules, config_codes);
-      expect(lintManager.codeSeverities.get(DIAGNOSTICS.CANNOT_SET)).toBe(
+      expect(lintManager.codeSeverities.get(DIAGNOSTICS.TYPE_NO_SETTER)).toBe(
         DiagnosticSeverity.Error,
       );
       expect(lintManager.codeSeverities.get(DIAGNOSTICS.UNREACHABLE_CODE)).toBe(
@@ -59,7 +59,7 @@ describe('LintManager', () => {
     describe('When no owning rules', () => {
       test('it altered correctly', () => {
         const lintRules: LintRule[] = [
-          new LintRule('example-rule1', 'error', [DIAGNOSTICS.CANNOT_SET], []),
+          new LintRule('example-rule1', 'error', [DIAGNOSTICS.TYPE_NO_SETTER], []),
           new LintRule(
             'example-rule2',
             'off',
@@ -75,13 +75,13 @@ describe('LintManager', () => {
             dummyRange,
             'example1',
             DiagnosticSeverity.Hint,
-            DIAGNOSTICS.CANNOT_SET,
+            DIAGNOSTICS.TYPE_NO_SETTER,
           ),
           Diagnostic.create(
             dummyRange,
             'example2',
             DiagnosticSeverity.Warning,
-            DIAGNOSTICS.CANNOT_SET,
+            DIAGNOSTICS.TYPE_NO_SETTER,
           ),
           Diagnostic.create(
             dummyRange,
@@ -120,7 +120,7 @@ describe('LintManager', () => {
         const lintParent = new LintRule(
           'example-parent',
           'error',
-          [DIAGNOSTICS.CANNOT_SET],
+          [DIAGNOSTICS.TYPE_NO_SETTER],
           [lintChild1, lintChile2],
         );
 
@@ -144,7 +144,7 @@ describe('LintManager', () => {
             dummyRange,
             'example3',
             DiagnosticSeverity.Error,
-            DIAGNOSTICS.CANNOT_SET,
+            DIAGNOSTICS.TYPE_NO_SETTER,
           ),
         ];
 

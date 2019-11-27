@@ -431,7 +431,7 @@ export class TypeChecker
           stmt.suffix,
           message,
           DiagnosticSeverity.Hint,
-          DIAGNOSTICS.CANNOT_SET,
+          DIAGNOSTICS.TYPE_NO_SETTER,
         ),
       );
 
@@ -477,7 +477,7 @@ export class TypeChecker
             stmt.suffix,
             'Cannot set',
             DiagnosticSeverity.Hint,
-            DIAGNOSTICS.CANNOT_SET,
+            DIAGNOSTICS.TYPE_NO_SETTER,
           ),
         );
       }
@@ -488,7 +488,7 @@ export class TypeChecker
           stmt.suffix,
           `Cannot set ${stmt.suffix.toString()}, must be identifier, or suffix`,
           DiagnosticSeverity.Hint,
-          DIAGNOSTICS.CANNOT_SET,
+          DIAGNOSTICS.TYPE_NO_SETTER,
         ),
       );
     }

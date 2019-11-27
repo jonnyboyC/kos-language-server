@@ -2,6 +2,6 @@
   "archive": "..",
   "bodies": ["earth", "moon", "mars"],
   "linting": {
-    "invalid-break": "off"
+    "control-flow-break": "off"
   }
 }
