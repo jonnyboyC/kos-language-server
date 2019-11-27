@@ -12,8 +12,10 @@ import { typeInitializer } from './typeChecker/initialize';
 import { defaultWorkspaceConfiguration } from './config/models/workspaceConfiguration';
 import { defaultServerConfiguration } from './config/models/serverConfiguration';
 
+const version = '0.13.0';
+
 program
-  .version('0.12.1', '-v --version')
+  .version(version, '-v --version')
   .option('--node-ipc', 'Connect with node inter process communication')
   .option('--stdio', 'Connect with standard io')
   .option('--clientProcessId', 'Id of the attached client process')

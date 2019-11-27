@@ -1,10 +1,26 @@
+# [0.13.0] (2019-11-27)
+# Features
+- **Workspace configuration** The kos-language-server now recognizes a new workspace configuration file `ksconfig.json`. An example is shown below
+
+```json
+{
+    "archive": "src",
+    "bodies": ["earth", "moon"],
+    "linting": {
+        "unreachable-code": "off" 
+    }
+}
+```
+
+This configuration sets `0:/` to correspond to the `/src` folder for the language server. The bodies considered valid are now the earth and moon. Finally the unreachable code diagnostics are turned off. See more details and documentation [here](https://github.com/jonnyboyC/kos-language-server/tree/master/server/ksconfig.md).
+
 # [0.12.1] (2019-11-6)
 ## Features
 - **Diagnostics Names** Diagnostics now have consistent names throughout the language server so they can more easily be searched.
 - **kOS 1.2.0 Types** The type definition have been updated to include the functions and suffixes added int he kOS 1.2.0 update 
 
 ## Bug Fixes
-- **Shadow / Conflict Related Info** Previously the language server would incorrectly report that the location of a definition shadow or conflict was in the same file as the error occured. This has been updated so global symbols are correctly reported.
+- **Shadow / Conflict Related Info** Previously the language server would incorrectly report that the location of a definition shadow or conflict was in the same file as the error occurred. This has been updated so global symbols are correctly reported.
 - **Gui Types** Fixed an issue with the GUI types where completions on GUI types would sometimes cause the server to throw.
 
 
@@ -178,7 +194,7 @@
 # [0.5.0] (2019-5-13)
 
 ## Features
-- **Break and Return Diagnostics** The language server is now able to find breaks outside of loops and returns outside of functions. A diagnostics reports when these occure
+- **Break and Return Diagnostics** The language server is now able to find breaks outside of loops and returns outside of functions. A diagnostics reports when these occur.
 - **On Hover Improvements** Overall the on hover has been improved. The server now indicates the response is code can should be formatted as such. Additionally some symbols that previously wouldn't allow on hover now work as expected
 
 ## Bug Fixes
@@ -213,7 +229,7 @@
       set b to 10.
       example().
 
-  this now indicates via a hint that `b` may not be defined during the script run. Usages and go to defintion should both now work in this situation.
+  this now indicates via a hint that `b` may not be defined during the script run. Usages and go to definition should both now work in this situation.
 - **true / false syntax**: previously the syntax highlighting would only highlight `true` or `false` if all lowercase. Now highlighting works for any casing of `TRUE` or `FALSE`. 
 
 
