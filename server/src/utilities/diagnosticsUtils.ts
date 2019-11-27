@@ -11,14 +11,14 @@ import { languageServer } from './constants';
  * @param range range the diagnostics applies
  * @param message message for the diagnostic
  * @param severity severity of the diagnostic
- * @param code error code
+ * @param code error code for the diagnostic
  * @param relatedInformation other related information
  */
 export const createDiagnostic = (
   range: Range,
   message: string,
   severity: DiagnosticSeverity,
-  code: ValueOf<typeof DIAGNOSTICS>,
+  code: ValueOf<typeof DIAGNOSTICS> | ValueOf<typeof CONFIG_DIAGNOSTICS>,
   relatedInformation?: DiagnosticRelatedInformation[],
 ): Diagnostic => {
   return Diagnostic.create(
@@ -32,7 +32,7 @@ export const createDiagnostic = (
 };
 
 /**
- * Code for each diagnostics int the language server
+ * Code for each diagnostic in the language server
  */
 export const DIAGNOSTICS = {
   // scanner
@@ -49,7 +49,6 @@ export const DIAGNOSTICS = {
 
   // resolver
   GLOBAL_PARAMETER: 'global-parameter',
-  CANNOT_SET: 'cannot-set',
   INVALID_LAZY_GLOBAL: 'invalid-lazy-global',
   INVALID_RETURN_CONTEXT: 'invalid-return-context',
   INVALID_PRESERVE_CONTEXT: 'invalid-preserve-context',
@@ -57,7 +56,7 @@ export const DIAGNOSTICS = {
   COPY_DEPRECATED: 'copy-deprecated',
   RENAME_DEPRECATED: 'rename-deprecated',
   DELETE_DEPRECATED: 'delete-deprecated',
-  INVALID_SET: 'invalid-set',
+  UNINITIALIZED_SET: 'uninitialized-set',
 
   // symbol table
   SYMBOL_MAY_NOT_EXIST: 'symbol-may-not-exist',
@@ -77,4 +76,13 @@ export const DIAGNOSTICS = {
   TYPE_NOT_FUNCTION: 'type-not-function',
   TYPE_MISSING_SUFFIX: 'type-missing-suffix',
   TYPE_MISSING_OPERATOR: 'type-missing-operator',
+  TYPE_NO_SETTER: 'type-no-setter',
+} as const;
+
+/**
+ * Code for each diagnostic in `ksconfig.json`
+ */
+export const CONFIG_DIAGNOSTICS = {
+  INVALID_PROPERTY: 'invalid-property',
+  INVALID_VALUE: 'invalid-value',
 } as const;

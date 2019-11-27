@@ -73,14 +73,6 @@ export class ResolverService {
     return this.toUri(relativePath, possibleVolume, ...remaining);
   }
 
-  public resolveDirectory(caller: Location, rawPath: string): URI[] {
-    // get relative run path from file
-    const uri = this.resolve(caller, rawPath);
-    if (uri) {
-    }
-    return [];
-  }
-
   /**
    * Creates a load data payload from a caller and path segments
    * @param caller call location

@@ -39,7 +39,6 @@ Currently the vscode client 0.12.0 implements the follow features
 - foldable regions with `\\ #region` and `\\ #endregion`
 - documentation searching
 
-
 ## Commands
 All commands can be launched with `ctrl+shift+p`
 - launch kerbal space program `kOS: Start Kerbal Space Program`
@@ -48,7 +47,22 @@ All commands can be launched with `ctrl+shift+p`
 - Route server logging to Vscode `kOS: Route Logging to Vscode`
 - Search kOS Documentation `kOS: Search Documentation`
 
-## Settings
+## Workspace Configuration
+The workspace can be configured with a file called `ksconfig.json`. The following is an example
+
+```json
+{
+  "archive": "..",
+  "bodies": ["earth", "moon", "sun"],
+  "linting": {
+    "control-flow-break": "off"
+  }
+}
+```
+
+This will set the archive folder to correspond to the folder above, the valid bodes to be `earth`, `moon` and `sun` and to turn off linting related to invalid break statements. More info can be found [here](https://github.com/jonnyboyC/kos-language-server/tree/master/server/ksconfig.md).
+
+## Global Configuration
 These settings are currently included with the tool
 - `kos-vscode.kerbalSpaceProgramPath` Path to kerbal space program
 - `kos-vscode.completionCase` Indicate the preferred completion case for built in symbols

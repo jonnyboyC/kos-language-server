@@ -50,3 +50,19 @@ Currently the kos-language-server 0.11.0 implements the follow features
 - Signature help for functions that can be correctly resolved
 - Caching of all documents in the workspace
 - Foldable regions using `\\#region` and `\\#endregion`
+- Linting configuration with `ksconfig.json`
+
+## Configuration
+The workspace can be configured with a file called `ksconfig.json`. The following is an example
+
+```json
+{
+  "archive": "..",
+  "bodies": ["earth", "moon", "sun"],
+  "linting": {
+    "control-flow-break": "off"
+  }
+}
+```
+
+This will set the archive folder to correspond to the folder above, the valid bodes to be `earth`, `moon` and `sun` and to turn off linting related to invalid break statements. More info can be found [here](https://github.com/jonnyboyC/kos-language-server/tree/master/server/ksconfig.md).

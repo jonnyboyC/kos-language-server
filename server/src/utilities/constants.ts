@@ -133,6 +133,26 @@ const keywordSegments: string[][] = [
   ['when'],
 ];
 
+export const DEFAULT_BODIES: string[] = [
+  'kerbol',
+  'moho',
+  'eve',
+  'gilly',
+  'kerbin',
+  'mun',
+  'minmus',
+  'duna',
+  'ike',
+  'dres',
+  'jool',
+  'laythe',
+  'vall',
+  'tylo',
+  'bop',
+  'pol',
+  'eeloo',
+];
+
 /**
  * Generate a cased set of keyword completion items
  * @param caseKind case of the keyword completions

@@ -1,0 +1,7 @@
+{
+  "archive": "string",
+  "bodies": ["Mun", "Kerbin", "Earth", "Duna", "Mon"],
+  "lintRules": {
+    "invalid-break": "error"
+  }
+}

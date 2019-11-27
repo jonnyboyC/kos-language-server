@@ -6,11 +6,11 @@ import { createConnection, ProposedFeatures } from 'vscode-languageserver';
 import { KLS } from './kls';
 import { getConnectionPrimitives } from './utilities/serverUtils';
 import { Logger } from './models/logger';
-import { keywordCompletions } from './utilities/constants';
 // tslint:disable-next-line:import-name
 import program from 'commander';
-import { ClientConfiguration, KLSConfiguration } from './types';
 import { typeInitializer } from './typeChecker/initialize';
+import { defaultWorkspaceConfiguration } from './config/models/workspaceConfiguration';
+import { defaultServerConfiguration } from './config/models/serverConfiguration';
 
 program
   .version('0.12.1', '-v --version')
@@ -37,43 +37,15 @@ export const connection = createConnection(
 // REMOVE ME TODO probably need to refactor the type modules as
 // structure and the primitives have a dependency loop
 typeInitializer();
-
-// default client configuration
-const defaultClientConfiguration: ClientConfiguration = {
-  kerbalSpaceProgramPath: undefined,
-  telnetHost: '127.0.0.1',
-  telnetPort: 5410,
-  lspPort: 7000,
-  completionCase: 'camelcase',
-  trace: {
-    server: {
-      verbosity: 'off',
-      format: 'text',
-      level: 'error',
-    },
-  },
-};
-
-// create default server options object
-const defaultConfiguration: KLSConfiguration = {
-  reader,
-  writer,
-  workspaceFolder: '',
-  workspaceUri: '',
-  clientCapability: {
-    hasConfiguration: false,
-    hasWorkspaceFolder: false,
-  },
-  keywords: keywordCompletions(CaseKind.camelCase),
-  clientConfig: defaultClientConfiguration,
-};
+const logger = new Logger(connection.console, LogLevel.info);
 
 const kls = new KLS(
   CaseKind.camelCase,
-  new Logger(connection.console, LogLevel.info),
+  logger,
   connection.tracer,
   connection,
-  defaultConfiguration,
+  defaultServerConfiguration,
+  defaultWorkspaceConfiguration,
 );
 
 kls.listen();
