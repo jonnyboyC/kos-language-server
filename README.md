@@ -62,7 +62,7 @@ The workspace can be configured with a file called `ksconfig.json`. The followin
 
 This will set the archive folder to correspond to the folder above, the valid bodes to be `earth`, `moon` and `sun` and to turn off linting related to invalid break statements. More info can be found [here](https://github.com/jonnyboyC/kos-language-server/tree/master/server/ksconfig.md).
 
-## Global Settings
+## Global Configuration
 These settings are currently included with the tool
 - `kos-vscode.kerbalSpaceProgramPath` Path to kerbal space program
 - `kos-vscode.completionCase` Indicate the preferred completion case for built in symbols

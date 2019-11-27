@@ -117,7 +117,7 @@ const lintTemplates: LintRule = {
     },
     {
       rule: 'file-loading',
-      level: 'error',
+      level: 'warning',
       diagnostics: [DIAGNOSTICS.LOAD_ERROR],
       owned: [],
     },

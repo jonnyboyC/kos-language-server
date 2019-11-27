@@ -1,10 +1,10 @@
 # Workspace Configuration with **ksconfig.json**
 
-lilThe kos-language-server as of 0.13.0 now supports a workspace level configuration file `ksconfig.json`. This file describes the following configurations
+The kos-language-server as of 0.13.0 now supports a workspace level configuration file `ksconfig.json`. This file describes the following configurations
 
 |Name|Description|
 |--|--|
-|archive|The location relative to this `ksconfig.json` that corresponds to the archive directory}
+|archive|The location relative to this `ksconfig.json` that corresponds to the archive directory `0:/`|
 |bodies|A list of custom bodies for the language server to consider valid. By default the normal KSP bodies are assumed|
 |linting|A collection of rules and levels indicating what level lints should be reported|
 
@@ -13,7 +13,7 @@ lilThe kos-language-server as of 0.13.0 now supports a workspace level configura
 The location of the archive directory
 
 ## Example
-This `ksconfig.json` will set the server to assume a directory scripts relative to the config correspondes to `0:/`
+This `ksconfig.json` will set the server to assume a directory scripts relative to the config corresponds to `0:/`
 
 ```json
 {
@@ -71,10 +71,10 @@ These rules are not part of a grouping other than `all` and represent an assortm
 |Name|Description|Default Level|
 |--|--|--|
 |scanner|This provides an error when an invalid token is encountered such as `variable$$$`|error|
-|parser|This provides an error when invalid syntax is encounted such as `set x to .`|error|
-|file-loading|This provides an error when the file cannot in a run statement|error|
-|unreachable-code|This provides an error when code is unreachable. This typically occurs when a statement occurs after a break or return|error|
-|no-global-parameters|This provides an error when `global parameter example.` is used as globals will throw in kOS|error|
+|parser|This provides an error when invalid syntax is encountered such as `set x to .`|error|
+|file-loading|This provides an error when the file cannot in a run statement|warning|
+|unreachable-code|This provides an error when code is unreachable. This typically occurs when a statement occurs after a break or return statement|error|
+|no-global-parameters|This provides an error when `global parameter example.` is used as globals. This will throw in kOS|error|
 |uninitialized-set|This is a warning when an undeclared variable is set with `@lazyglobal off`|warning|
 
 ### **Control Flow**
@@ -123,7 +123,7 @@ The `type-checking` grouping are rules related to types in kerboscript. This inc
 |type-wrong-arity|This applies to situations where a function or delegate is called with the wrong number of arguments|hint|
 |type-list-invalid|This applies to the list command when an invalid list string is given|warning|
 |type-no-indexer|This applies to situations where the type checker determined the given type does not have an indexer|hint|
-|type-not-function|This applies to situations where a delgate is created from something other than a function|hint|
+|type-not-function|This applies to situations where a delegate is created from something other than a function|hint|
 |type-missing-suffix|This applies to situation where the type checker determines a given type does not have a given suffix|hint|
 |type-missing-operator|This applies to situations where the type checker determines a given type does not have the request binary or unary operator|hint|
 |type-no-setter|This applies to situation where the type checker determines a given type cannot be set|hint|
