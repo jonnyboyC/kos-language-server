@@ -17,3 +17,4 @@ server/build/**
 server/out/**
 server/bin/**
 server/node_modules/**
+server/coverage/**
