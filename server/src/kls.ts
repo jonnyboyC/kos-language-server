@@ -67,7 +67,7 @@ import { isValidIdentifier } from './models/tokentypes';
 import { tokenTrackedType } from './typeChecker/utilities/typeUtilities';
 import { TypeKind } from './typeChecker/types';
 import { IoService } from './services/IoService';
-import { FoldableService } from './services/foldableService';
+import { FoldableService, regionDirectives } from './services/foldableService';
 import { AnalysisService } from './services/analysisService';
 import { IFindResult } from './parser/types';
 import { ResolverService } from './services/resolverService';
@@ -709,8 +709,11 @@ export class KLS {
       return undefined;
     }
 
-    const { script, regions } = documentInfo.lexicalInfo;
-    return this.foldableService.findRegions(script, regions);
+    const { script, directives } = documentInfo.lexicalInfo;
+    return this.foldableService.findRegions(
+      script,
+      directives.filter(regionDirectives),
+    );
   }
 
   /**

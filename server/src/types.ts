@@ -1,7 +1,7 @@
 import { SymbolTable } from './analysis/models/symbolTable';
 import { IScript } from './parser/types';
 import { Diagnostic, TextDocument } from 'vscode-languageserver';
-import { Token } from './models/token';
+import { Directive } from './scanner/types';
 
 export interface DependencyInfo {
   dependencyTables: Set<SymbolTable>;
@@ -19,7 +19,7 @@ export interface LexiconLoad {
 
 export interface LexicalInfo {
   script: IScript;
-  regions: Token[];
+  directives: Directive[];
   diagnostics: DiagnosticUri[];
 }
 

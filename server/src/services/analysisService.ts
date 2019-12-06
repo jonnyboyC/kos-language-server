@@ -468,7 +468,7 @@ export class AnalysisService extends EventEmitter {
 
     performance.mark('scanner-start');
     const scanner = new Scanner(text, uri, this.logger, this.tracer);
-    const { tokens, scanDiagnostics, regions } = scanner.scanTokens();
+    const { tokens, scanDiagnostics, directives } = scanner.scanTokens();
     performance.mark('scanner-end');
 
     // if scanner found errors report those immediately
@@ -500,7 +500,7 @@ export class AnalysisService extends EventEmitter {
 
     const lexicalInfo = {
       script,
-      regions,
+      directives,
       diagnostics: [...scannerDiagnostics, ...parserDiagnostics],
     };
 

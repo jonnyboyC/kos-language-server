@@ -11,7 +11,7 @@ import { standardLibraryBuilder } from '../analysis/standardLibrary';
 import { TypeChecker } from '../typeChecker/typeChecker';
 import { ControlFlow } from '../controlFlow/controlFlow';
 
-const testDir = join(__dirname, '../../../kerboscripts/parser_valid/');
+const testDir = join(__dirname, '../../../../kerboscripts/parser_valid/');
 
 const logger = createWriteStream('bench.txt', { flags: 'a' });
 const log = (line: string): void => {
