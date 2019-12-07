@@ -6,6 +6,7 @@ export enum TokenType {
   // directives
   region,
   endRegion,
+  include,
   unknown,
 
   // binary

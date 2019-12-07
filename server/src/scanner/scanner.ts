@@ -843,4 +843,5 @@ const keywords: ITokenMap = new Map([
 const directives: ITokenMap = new Map([
   ['#region', { type: TokenType.region }],
   ['#endregion', { type: TokenType.endRegion }],
+  ['#include', { type: TokenType.include }],
 ]);

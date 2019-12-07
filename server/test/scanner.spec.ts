@@ -200,6 +200,7 @@ describe('When scanning numbers', () => {
 const directiveMap = new Map([
   [TokenType.region, 'region'],
   [TokenType.endRegion, 'endregion'],
+  [TokenType.include, 'include'],
 ]);
 
 describe('when scanning directives', () => {

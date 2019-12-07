@@ -40,6 +40,8 @@ import { debounce } from '../utilities/debounce';
 import { union, disjoint, setEqual } from 'ts-set-utils';
 import { EventEmitter } from 'events';
 import { DEFAULT_BODIES } from '../utilities/constants';
+import { Directive } from '../scanner/types';
+import { TokenType } from '../models/tokentypes';
 
 type ChangeHandler = (diagnostics: DiagnosticUri[]) => void;
 
@@ -779,10 +781,12 @@ export class AnalysisService extends EventEmitter {
    * Get all valid uris from the documents run statements
    * @param uri uri of the calling document
    * @param runStmts run statements in the document
+   * @param includes include directives within the file
    */
   private async loadDocuments(
     uri: string,
     runStmts: RunStmtType[],
+    includes: Directive<TokenType.include>,
   ): Promise<LoadedDocuments> {
     const documents: TextDocument[] = [];
     const diagnostics: Diagnostic[] = [];

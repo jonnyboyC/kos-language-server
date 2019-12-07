@@ -58,15 +58,15 @@ export type DiagnosticResult = Result<Diagnostic, ScanKind.Diagnostic>;
 /**
  * A directive result
  */
-export type DirectiveResult<T extends Token = Token> = {
-  directive: T;
+export type DirectiveResult<T extends TokenType = TokenType> = {
+  directive: Token<T>;
   tokens: Token[];
   diagnostics: Diagnostic[];
   kind: ScanKind.Directive;
 };
 
-export interface Directive<T extends Token = Token> {
-  directive: T;
+export interface Directive<T extends TokenType = TokenType> {
+  directive: Token<T>;
   tokens: Token[];
 }
 

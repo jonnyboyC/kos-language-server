@@ -305,6 +305,19 @@ const lintTemplates: LintRule = {
         },
       ],
     },
+    {
+      rule: 'directives',
+      level: 'info',
+      diagnostics: [],
+      owned: [
+        {
+          rule: 'directive-invalid-include',
+          level: 'info',
+          diagnostics: [DIAGNOSTICS.DIRECTIVE_INVALID_INCLUDE],
+          owned: [],
+        },
+      ],
+    },
   ],
 };
 
