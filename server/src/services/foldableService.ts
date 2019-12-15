@@ -2,29 +2,14 @@ import { empty } from '../utilities/typeGuards';
 import { IStack } from '../analysis/types';
 import * as Stmt from '../parser/models/stmt';
 import { FoldingRange, FoldingRangeKind } from 'vscode-languageserver';
-import { Token } from '../models/token';
 import { TokenType } from '../models/tokentypes';
 import { TreeTraverse } from '../utilities/treeTraverse';
 import { IScript } from '../parser/types';
-import { Directive } from '../scanner/types';
+import { Token } from '../models/token';
+import { BasicDirective } from '../directives/basicDirectives';
 
+type RegionDirectives = BasicDirective<TokenType.region | TokenType.endRegion>;
 type RegionTokens = Token<TokenType.region | TokenType.endRegion>;
-
-/**
- * Is the directive a region directive
- * @param directive directive in question
- */
-export const regionDirectives = (
-  directive: Directive<Token>,
-): directive is Directive<RegionTokens> => {
-  switch (directive.directive.type) {
-    case TokenType.region:
-    case TokenType.endRegion:
-      return true;
-    default:
-      return false;
-  }
-};
 
 /**
  * A service for identifying foldable regions inside a kerboscript
@@ -50,7 +35,7 @@ export class FoldableService extends TreeTraverse {
    */
   public findRegions(
     script: IScript,
-    directives: Directive<RegionTokens>[],
+    directives: RegionDirectives[],
   ): FoldingRange[] {
     this.result = [];
 
@@ -84,7 +69,7 @@ export class FoldableService extends TreeTraverse {
    * What are the foldable regions within this document using `\\ #region` and `\\ #endregion`
    * @param regions regions tokens
    */
-  private foldableRegions(regions: Directive<RegionTokens>[]) {
+  private foldableRegions(regions: RegionDirectives[]) {
     const regionStack: IStack<RegionTokens> = [];
 
     for (const region of regions) {
