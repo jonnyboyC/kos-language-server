@@ -1,0 +1,23 @@
+{
+  "benchmark": {
+    "minTime": 50000000,
+    "maxTime": 5000000000,
+    "minSamples": 5,
+    "maxSamples": 5000,
+    "minIterations": 0,
+    "maxIterations": 0,
+    "memoryBenchmark": true,
+    "minMemorySamples": 10,
+    "maxMemorySamples": 100,
+    "cpuProfiling": true,
+    "minCpuProfilingIterations": 100,
+    "maxCpuProfilingIterations": 10000,
+    "samplingInterval": 5000
+  },
+  "manager": {
+    "runParallel": 1,
+    "pattern": "./**/*.benchmark.js",
+    "path": "./out/",
+    "exporter": ["./out/benchmark/exporter.js"]
+  }
+}

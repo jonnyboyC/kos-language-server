@@ -3,11 +3,40 @@ import {
   DiagnosticSeverity,
   DiagnosticRelatedInformation,
   Range,
+  Location,
 } from 'vscode-languageserver';
 import { languageServer } from './constants';
+import { DiagnosticUri } from '../types';
 
 /**
  * This provides thin wrapper around Diagnostic.create where the server name is already included
+ * @param range range the diagnostics applies
+ * @param message message for the diagnostic
+ * @param severity severity of the diagnostic
+ * @param code error code for the diagnostic
+ * @param relatedInformation other related information
+ */
+export const createDiagnosticUri = (
+  location: Location,
+  message: string,
+  severity: DiagnosticSeverity,
+  code: ValueOf<typeof DIAGNOSTICS> | ValueOf<typeof CONFIG_DIAGNOSTICS>,
+  relatedInformation?: DiagnosticRelatedInformation[],
+): DiagnosticUri => {
+  return {
+    ...createDiagnostic(
+      location.range,
+      message,
+      severity,
+      code,
+      relatedInformation,
+    ),
+    uri: location.uri,
+  };
+};
+
+/**
+ * This provides a thin wrapper around Diagnostic.create where the server name is already included
  * @param range range the diagnostics applies
  * @param message message for the diagnostic
  * @param severity severity of the diagnostic
@@ -77,6 +106,9 @@ export const DIAGNOSTICS = {
   TYPE_MISSING_SUFFIX: 'type-missing-suffix',
   TYPE_MISSING_OPERATOR: 'type-missing-operator',
   TYPE_NO_SETTER: 'type-no-setter',
+
+  // directives:
+  DIRECTIVE_INVALID_INCLUDE: 'directive-invalid-include',
 } as const;
 
 /**

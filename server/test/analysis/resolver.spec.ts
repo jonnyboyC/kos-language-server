@@ -532,8 +532,8 @@ describe('resolver', () => {
     test('list command', () => {
       const results = resolveSource(listSource);
 
-      expect(results.scan.scanDiagnostics).toHaveLength(0);
-      expect(results.parse.parseDiagnostics).toHaveLength(0);
+      expect(results.scan.diagnostics).toHaveLength(0);
+      expect(results.parse.diagnostics).toHaveLength(0);
       expect(results.resolveDiagnostics).toHaveLength(listLocations.length);
 
       for (const [error, location] of zip(
@@ -564,8 +564,8 @@ describe('resolver', () => {
       const defineSource = readFileSync(definedPath, 'utf8');
       const results = resolveSource(defineSource);
 
-      expect(results.scan.scanDiagnostics).toHaveLength(0);
-      expect(results.parse.parseDiagnostics).toHaveLength(0);
+      expect(results.scan.diagnostics).toHaveLength(0);
+      expect(results.parse.diagnostics).toHaveLength(0);
       expect(results.resolveDiagnostics).toHaveLength(definedLocations.length);
 
       const sortedErrors = results.resolveDiagnostics.sort(
@@ -591,8 +591,8 @@ describe('resolver', () => {
       const usedSource = readFileSync(usedPath, 'utf8');
       const results = resolveSource(usedSource);
 
-      expect(results.scan.scanDiagnostics).toHaveLength(0);
-      expect(results.parse.parseDiagnostics).toHaveLength(0);
+      expect(results.scan.diagnostics).toHaveLength(0);
+      expect(results.parse.diagnostics).toHaveLength(0);
       expect(results.resolveDiagnostics.length > 0).toBe(true);
 
       for (const [error, location] of zip(
@@ -619,8 +619,8 @@ describe('resolver', () => {
         const shadowedSource = readFileSync(shadowPath, 'utf8');
         const results = resolveSource(shadowedSource, undefined, true);
 
-        expect(results.scan.scanDiagnostics).toHaveLength(0);
-        expect(results.parse.parseDiagnostics).toHaveLength(0);
+        expect(results.scan.diagnostics).toHaveLength(0);
+        expect(results.parse.diagnostics).toHaveLength(0);
 
         expect(results.resolveDiagnostics).toHaveLength(
           shadowedLocalLocations.length,
@@ -672,8 +672,8 @@ describe('resolver', () => {
           rangeBefore(a.range, b.range.start) ? -1 : 1,
         );
 
-        expect(scan.scanDiagnostics).toHaveLength(0);
-        expect(parse.parseDiagnostics).toHaveLength(0);
+        expect(scan.diagnostics).toHaveLength(0);
+        expect(parse.diagnostics).toHaveLength(0);
         expect(resolveDiagnostics).toHaveLength(
           shadowedDifferentLocations.length,
         );
@@ -714,8 +714,8 @@ describe('resolver', () => {
       const deferredSource = readFileSync(deferredPath, 'utf8');
       const results = resolveSource(deferredSource);
 
-      expect(results.scan.scanDiagnostics).toHaveLength(0);
-      expect(results.parse.parseDiagnostics).toHaveLength(0);
+      expect(results.scan.diagnostics).toHaveLength(0);
+      expect(results.parse.diagnostics).toHaveLength(0);
       expect(results.resolveDiagnostics.length > 0).toBe(true);
 
       for (const [error, location] of zip(
@@ -740,8 +740,8 @@ describe('resolver', () => {
       const deferredSource = readFileSync(breakPath, 'utf8');
       const results = resolveSource(deferredSource);
 
-      expect(results.scan.scanDiagnostics).toHaveLength(0);
-      expect(results.parse.parseDiagnostics).toHaveLength(0);
+      expect(results.scan.diagnostics).toHaveLength(0);
+      expect(results.parse.diagnostics).toHaveLength(0);
       expect(results.resolveDiagnostics.length > 0).toBe(true);
 
       for (const [error, location] of zip(
@@ -766,8 +766,8 @@ describe('resolver', () => {
       const returnSource = readFileSync(returnPath, 'utf8');
       const results = resolveSource(returnSource);
 
-      expect(results.scan.scanDiagnostics).toHaveLength(0);
-      expect(results.parse.parseDiagnostics).toHaveLength(0);
+      expect(results.scan.diagnostics).toHaveLength(0);
+      expect(results.parse.diagnostics).toHaveLength(0);
       expect(results.resolveDiagnostics.length > 0).toBe(true);
 
       for (const [error, location] of zip(
@@ -794,8 +794,8 @@ describe('resolver', () => {
       const preserveSource = readFileSync(preservePath, 'utf8');
       const results = resolveSource(preserveSource, undefined, true);
 
-      expect(results.scan.scanDiagnostics).toHaveLength(0);
-      expect(results.parse.parseDiagnostics).toHaveLength(0);
+      expect(results.scan.diagnostics).toHaveLength(0);
+      expect(results.parse.diagnostics).toHaveLength(0);
       expect(results.resolveDiagnostics.length > 0).toBe(true);
 
       const sorted = results.resolveDiagnostics.sort((a, b) =>

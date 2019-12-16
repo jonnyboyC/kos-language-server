@@ -1,4 +1,6 @@
-import { FoldableService } from '../../src/services/foldableService';
+import {
+  FoldableService,
+} from '../../src/services/foldableService';
 import { FoldingRange } from 'vscode-languageserver';
 import { parseSource, noParseErrors } from '../utilities/setup';
 
@@ -34,13 +36,16 @@ function example {
 
 describe('foldableService', () => {
   test('Fold region', () => {
+    debugger;
     const result = parseSource(regionFold);
     noParseErrors(result);
+    const { region, endRegion } = result.directives.directives;
+
 
     const service = new FoldableService();
     const foldable = service.findRegions(
       result.parse.script,
-      result.scan.regions,
+      [...region, ...endRegion]
     );
 
     const folds: FoldingRange[] = [
@@ -60,10 +65,12 @@ describe('foldableService', () => {
     const result = parseSource(blockFold);
     noParseErrors(result);
 
+    const { region, endRegion } = result.directives.directives;
+
     const service = new FoldableService();
     const foldable = service.findRegions(
-      result.parse.script,
-      result.scan.regions,
+      result.parse.script,  
+      [...region, ...endRegion]
     );
 
     expect(foldable).toHaveLength(2);
@@ -92,10 +99,12 @@ describe('foldableService', () => {
     const result = parseSource(bothFold);
     noParseErrors(result);
 
+    const { region, endRegion } = result.directives.directives;
+
     const service = new FoldableService();
     const foldable = service.findRegions(
       result.parse.script,
-      result.scan.regions,
+      [...region, ...endRegion],
     );
 
     expect(foldable).toHaveLength(3);

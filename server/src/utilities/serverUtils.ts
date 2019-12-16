@@ -21,7 +21,6 @@ import { cleanLocation, cleanToken, cleanCompletion } from './clean';
 import { CommanderStatic } from 'commander';
 import { DiagnosticUri } from '../types';
 import { mapper } from './mapper';
-import { IParseError } from '../parser/types';
 import * as Expr from '../parser/models/expr';
 import { rangeContainsPos, rangeAfter } from './positionUtils';
 import * as SuffixTerm from '../parser/models/suffixTerm';
@@ -29,7 +28,8 @@ import { IType } from '../typeChecker/types';
 import { tokenTrackedType } from '../typeChecker/utilities/typeUtilities';
 import { structureType } from '../typeChecker/ksTypes/primitives/structure';
 import { IoKind } from '../services/IoService';
-import { createDiagnostic, DIAGNOSTICS } from './diagnosticsUtils';
+import { DIAGNOSTICS, createDiagnosticUri } from './diagnosticsUtils';
+import { ParseError } from '../parser/models/parserError';
 
 /**
  * Get the connection primitives based on the request connection type
@@ -326,13 +326,19 @@ export const toDocumentSymbols = (
  * @param error parser error
  * @param uri uri string
  */
-export const parseToDiagnostics = (error: IParseError): Diagnostic => {
-  return createDiagnostic(
-    { start: error.start, end: error.end },
+export const parseToDiagnostics = (error: ParseError, diagnostics: DiagnosticUri[] = []): DiagnosticUri[] => {
+  diagnostics.push(createDiagnosticUri(
+    error.token,
     error.message,
     DiagnosticSeverity.Error,
     DIAGNOSTICS.PARSER_ERROR,
-  );
+  ));
+
+  for (const inner of error.inner) {
+    parseToDiagnostics(inner, diagnostics);
+  }
+
+  return diagnostics;
 };
 
 /**

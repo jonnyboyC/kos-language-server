@@ -2,9 +2,14 @@ export enum TokenType {
   // whitespace
   whiteSpace,
   commentLine,
+
+  // directives
   region,
   endRegion,
+  include,
+  unknown,
 
+  // binary
   plus,
   minus,
   multi,
@@ -13,8 +18,6 @@ export enum TokenType {
   not,
   and,
   or,
-  true,
-  false,
   equal,
   notEqual,
   greaterEqual,
@@ -43,9 +46,12 @@ export enum TokenType {
   print,
   arrayIndex,
 
+  // literals
   integer,
   double,
   string,
+  true,
+  false,
 
   local,
   global,

@@ -1,14 +1,14 @@
-import { Tokenized } from '../src/scanner/types';
-import { Ast } from '../src/parser/types';
-import { Scanner } from '../src/scanner/scanner';
-import { Parser } from '../src/parser/parser';
-import { ControlFlow } from '../src/controlFlow/controlFlow';
-import { Marker } from '../src/scanner/models/marker';
-import { zip } from '../src/utilities/arrayUtils';
+import { Tokenized } from '../../src/scanner/types';
+import { Ast } from '../../src/parser/types';
+import { Scanner } from '../../src/scanner/scanner';
+import { Parser } from '../../src/parser/parser';
+import { ControlFlow } from '../../src/controlFlow/controlFlow';
+import { Marker } from '../../src/scanner/models/marker';
+import { zip } from '../../src/utilities/arrayUtils';
 import { DiagnosticSeverity, Range } from 'vscode-languageserver';
 import { join } from 'path';
 import { readFileSync } from 'fs';
-import { FlowGraph } from '../src/controlFlow/flowGraph';
+import { FlowGraph } from '../../src/controlFlow/flowGraph';
 
 const fakeUri = 'C:\\fake.ks';
 
@@ -42,13 +42,13 @@ const checkFlow = (source: string): IFlowResults => {
 };
 
 const noParseErrors = (result: IFlowResults): void => {
-  expect(result.scan.scanDiagnostics.map(e => e.message)).toEqual([]);
-  expect(result.parse.parseDiagnostics.map(e => e.message)).toEqual([]);
+  expect(result.scan.diagnostics.map(e => e.message)).toEqual([]);
+  expect(result.parse.diagnostics.map(e => e.message)).toEqual([]);
 };
 
 const noErrors = (result: IFlowResults): void => {
-  expect(result.scan.scanDiagnostics.map(e => e.message)).toEqual([]);
-  expect(result.parse.parseDiagnostics.map(e => e.message)).toEqual([]);
+  expect(result.scan.diagnostics.map(e => e.message)).toEqual([]);
+  expect(result.parse.diagnostics.map(e => e.message)).toEqual([]);
   expect(result.flow).toBeDefined();
   expect(result.flow!.reachable().map(e => e.message)).toEqual([]);
 };
@@ -170,7 +170,7 @@ describe('Unreachable code', () => {
   test('all language', () => {
     const allNodePath = join(
       __dirname,
-      '../../kerboscripts/parser_valid/unitTests/allLanguage.ks',
+      '../../../kerboscripts/parser_valid/unitTests/allLanguage.ks',
     );
 
     const allNodeSource = readFileSync(allNodePath, 'utf8');

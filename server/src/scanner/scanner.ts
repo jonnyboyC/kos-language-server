@@ -3,18 +3,20 @@ import {
   ITokenMap,
   ScanResult,
   ScanKind,
-  TokenResult,
-  WhitespaceResult,
-  RegionResult,
-  DiagnosticResult,
+  ScanToken,
+  ScanWhitespace,
+  ScanDirective,
+  ScanDiagnostic,
   Tokenized,
 } from './types';
 import { Token } from '../models/token';
 import { empty } from '../utilities/typeGuards';
 import { mockLogger, mockTracer, logException } from '../models/logger';
-import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
-import { createDiagnostic, DIAGNOSTICS } from '../utilities/diagnosticsUtils';
+import { DiagnosticSeverity } from 'vscode-languageserver';
+import { DIAGNOSTICS, createDiagnosticUri } from '../utilities/diagnosticsUtils';
 import { MutableMarker } from './models/marker';
+import { DirectiveTokens } from '../directives/types';
+import { DiagnosticUri } from '../types';
 
 /**
  * Class for scanning kerboscript files
@@ -61,24 +63,9 @@ export class Scanner {
   private readonly tracer: ITracer;
 
   /**
-   * results for tokens
-   */
-  private readonly tokenResult: TokenResult;
-
-  /**
    * results for whitespace
    */
-  private readonly whiteSpaceResult: WhitespaceResult;
-
-  /**
-   * results for regions
-   */
-  private readonly regionResult: RegionResult;
-
-  /**
-   * results for diagnostic
-   */
-  private readonly diagnosticResult: DiagnosticResult;
+  private readonly whiteSpaceResult: ScanWhitespace;
 
   /**
    * Scanner constructor
@@ -102,44 +89,9 @@ export class Scanner {
     this.startPosition = new MutableMarker(0, 0);
     this.currentPosition = new MutableMarker(0, 0);
 
-    this.tokenResult = {
-      result: new Token(
-        TokenType.not,
-        'placeholder',
-        undefined,
-        { line: 0, character: 0 },
-        { line: 0, character: 0 },
-        'placeholder',
-      ),
-      kind: ScanKind.Token,
-    };
-
-    this.regionResult = {
-      result: new Token(
-        TokenType.region,
-        'placeholder',
-        undefined,
-        { line: 0, character: 0 },
-        { line: 0, character: 0 },
-        'placeholder',
-      ),
-      kind: ScanKind.Region,
-    };
-
     this.whiteSpaceResult = {
       result: null,
       kind: ScanKind.Whitespace,
-    };
-
-    this.diagnosticResult = {
-      result: Diagnostic.create(
-        {
-          start: { line: 0, character: 0 },
-          end: { line: 0, character: 0 },
-        },
-        'placeholder',
-      ),
-      kind: ScanKind.Diagnostic,
     };
   }
 
@@ -150,8 +102,8 @@ export class Scanner {
     try {
       // create arrays for valid tokens and encountered errors
       const tokens: Token[] = [];
-      const scanDiagnostics: Diagnostic[] = [];
-      const regions: Token[] = [];
+      const diagnostics: DiagnosticUri[] = [];
+      const directiveTokens: DirectiveTokens[] = [];
 
       const splits = this.uri.split('/');
       const file = splits[splits.length - 1];
@@ -172,10 +124,14 @@ export class Scanner {
             tokens.push(result.result);
             break;
           case ScanKind.Diagnostic:
-            scanDiagnostics.push(result.result);
+            diagnostics.push(result.result);
             break;
-          case ScanKind.Region:
-            regions.push(result.result);
+          case ScanKind.Directive:
+            diagnostics.push(...result.diagnostics);
+            directiveTokens.push({
+              directive: result.directive,
+              tokens: result.tokens,
+            });
             break;
           case ScanKind.Whitespace:
             break;
@@ -185,19 +141,19 @@ export class Scanner {
       this.logger.info(
         `Scanning finished for ${file} with ${tokens.length} tokens.`,
       );
-      if (scanDiagnostics.length > 0) {
-        this.logger.warn(`Scanning encounter ${scanDiagnostics.length} errors`);
+      if (diagnostics.length > 0) {
+        this.logger.warn(`Scanning encounter ${diagnostics.length} errors`);
       }
 
-      return { tokens, scanDiagnostics, regions };
+      return { tokens, diagnostics: diagnostics, directiveTokens: directiveTokens };
     } catch (err) {
       this.logger.error('Error occurred in scanner');
       logException(this.logger, this.tracer, err, LogLevel.error);
 
       return {
         tokens: [],
-        scanDiagnostics: [],
-        regions: [],
+        diagnostics: [],
+        directiveTokens: [],
       };
     }
   }
@@ -228,7 +184,6 @@ export class Scanner {
         return this.generateToken(TokenType.atSign);
       case '#':
         return this.generateToken(TokenType.arrayIndex);
-
       case '^':
         return this.generateToken(TokenType.power);
       case '+':
@@ -265,13 +220,13 @@ export class Scanner {
         this.incrementLine();
         return this.whiteSpaceResult;
       case '"':
-        return this.string();
+        return this.string(true);
       default:
         if (this.isDigit(c)) {
           return this.number();
         }
         if (this.isAlpha(c)) {
-          return this.identifier();
+          return this.identifier(true);
         }
         return this.generateError(
           `Unexpected symbol, encountered ${this.source.substr(
@@ -285,31 +240,112 @@ export class Scanner {
   /**
    * Extract a comment or a region
    */
-  private comment(): WhitespaceResult | RegionResult {
+  private comment(): ScanWhitespace | ScanDirective {
+    // check could contain a directive
     this.advanceWhitespace();
-    if (this.peek() !== '#') {
+    if (!(this.peek() === '#' && this.isAlpha(this.peekNext()))) {
       this.advanceEndOfLine();
       return this.whiteSpaceResult;
     }
 
-    this.increment();
-    const start = this.current;
-    while (this.isAlpha(this.peek())) this.increment();
+    // read in an identifier and see if it matches a directive
+    this.advance();
+    const directiveToken = this.identifier(false).result;
+    const directiveSubstr = directiveToken.lexeme.slice(
+      directiveToken.lexeme.indexOf('#'),
+    );
+    const directiveType = directives.get(directiveSubstr);
+    if (empty(directiveType)) {
+      this.advanceEndOfLine();
+      return this.whiteSpaceResult;
+    }
 
-    const text = this.source.substr(start, this.current - start).toLowerCase();
+    const tokens: Token[] = [];
+    const diagnostics: DiagnosticUri[] = [];
 
-    const region = regions.get(text);
+    // until end of line read in tokens
+    while (!this.isAtEnd() && this.peek() !== '\n') {
+      // update indexes
+      this.start = this.current;
+      this.startPosition.character = this.currentPosition.character;
+      this.startPosition.line = this.currentPosition.line;
 
-    this.advanceEndOfLine();
-    return empty(region)
-      ? this.whiteSpaceResult
-      : this.generateRegion(region.type);
+      const c = this.advance();
+      let result: ScanResult;
+
+      switch (c) {
+        case '"':
+          result = this.string(false);
+          break;
+        case ' ':
+        case '\r':
+        case '\t':
+          this.advanceWhitespace();
+          continue;
+        case '.':
+          if (this.isDigit(this.peek())) {
+            this.decrement();
+            result = this.number();
+          } else {
+            result = this.unknownCommentToken();
+          }
+          break;
+        default:
+          if (this.isAlpha(c)) {
+            result = this.identifier(false);
+          } else if (this.isDigit(c)) {
+            result = this.number();
+          } else {
+            result = this.unknownCommentToken();
+          }
+      }
+
+      switch (result.kind) {
+        case ScanKind.Diagnostic:
+          diagnostics.push(result.result);
+          break;
+        case ScanKind.Token:
+          tokens.push(result.result);
+          break;
+        default:
+          throw new Error('Unexpected scan kind');
+      }
+    }
+
+    return this.generateDirective(
+      new Token(
+        directiveType.type,
+        directiveToken.lexeme,
+        directiveType.literal,
+        directiveToken.start,
+        directiveToken.end,
+        directiveToken.uri,
+      ),
+      tokens,
+      diagnostics,
+    );
+  }
+
+  /**
+   * Extract an unknown comment token
+   */
+  private unknownCommentToken(): ScanResult {
+    while (!this.isAtEnd()) {
+      const c = this.advance();
+
+      if (c === '"' || this.isAlphaNumeric(c)) {
+        return this.generateToken(TokenType.unknown);
+      }
+    }
+
+    return this.generateToken(TokenType.unknown);
   }
 
   /**
    * extract any identifiers
+   * @param mapKeywords should we attempt to map keywords
    */
-  private identifier(): TokenResult {
+  private identifier(mapKeywords: boolean): ScanToken {
     while (this.isAlphaNumeric(this.peek())) this.increment();
 
     // if "." immediately followed by alpha numeric
@@ -320,8 +356,8 @@ export class Scanner {
     const text = this.source
       .substr(this.start, this.current - this.start)
       .toLowerCase();
-    const keyword = keywords.get(text);
-    if (!empty(keyword)) {
+    const keyword = mapKeywords && keywords.get(text);
+    if (keyword) {
       return this.generateToken(keyword.type, keyword.literal);
     }
     return this.generateToken(TokenType.identifier, undefined);
@@ -330,7 +366,7 @@ export class Scanner {
   /**
    * extract a file identifier
    */
-  private fileIdentifier(): TokenResult {
+  private fileIdentifier(): ScanToken {
     while (
       this.isAlphaNumeric(this.peek()) ||
       (this.peek() === '.' && this.isAlphaNumeric(this.peekNext()))
@@ -347,11 +383,18 @@ export class Scanner {
 
   /**
    * extract a string
+   * @param multiline should multiline strings be allowed
    */
-  private string(): ScanResult {
+  private string(multiline: boolean): ScanResult {
     // while closing " not found increment new lines
     while (this.peek() !== '"' && !this.isAtEnd()) {
-      if (this.peek() === '\n') this.incrementLine();
+      if (this.peek() === '\n') {
+        if (multiline) {
+          this.incrementLine();
+        } else {
+          return this.generateError('Expected closing " for string');
+        }
+      }
       this.increment();
     }
 
@@ -372,7 +415,7 @@ export class Scanner {
   /**
    * extract a number
    */
-  private number(): TokenResult | DiagnosticResult {
+  private number(): ScanToken | ScanDiagnostic {
     let isFloat = this.advanceNumber();
     const possibleNumber = this.generateNumber(isFloat);
 
@@ -445,10 +488,8 @@ export class Scanner {
    * advance through whitespace
    */
   private advanceWhitespace(): void {
-    // let current = this.peek();
     while (this.isWhitespace(this.peek())) {
       this.increment();
-      // current = this.peek();
     }
   }
 
@@ -465,7 +506,7 @@ export class Scanner {
    * remove underscores from number and generate token
    * @param isFloat is the token a float
    */
-  private generateNumber(isFloat: boolean): TokenResult {
+  private generateNumber(isFloat: boolean): ScanToken {
     const numberString = this.source
       .substr(this.start, this.current - this.start)
       .replace(/(\_)/g, '');
@@ -481,7 +522,7 @@ export class Scanner {
    * @param literal optional literal
    * @param toLower should the lexeme be lowered
    */
-  private generateToken(type: TokenType, literal?: any): TokenResult {
+  private generateToken(type: TokenType, literal?: any): ScanToken {
     const text = this.source.substr(this.start, this.current - this.start);
 
     const token = new Token(
@@ -493,47 +534,51 @@ export class Scanner {
       this.uri,
     );
 
-    this.tokenResult.result = token;
-    return this.tokenResult;
+    return {
+      result: token,
+      kind: ScanKind.Token,
+    };
   }
 
   /**
-   * generate a region from provided token type
+   * generate a directive
    * @param type token type
    */
-  private generateRegion(type: TokenType): RegionResult {
-    const text = this.source.substr(this.start, this.current - this.start);
-
-    const token = new Token(
-      type,
-      text,
-      undefined,
-      this.startPosition.toImmutable(),
-      this.currentPosition.toImmutable(),
-      this.uri,
-    );
-
-    this.regionResult.result = token;
-    return this.regionResult;
+  private generateDirective(
+    directive: Token,
+    tokens: Token[],
+    diagnostics: DiagnosticUri[],
+  ): ScanDirective {
+    return {
+      directive,
+      tokens,
+      diagnostics,
+      kind: ScanKind.Directive,
+    };
   }
 
   /**
    * generate error
    * @param message error message
    */
-  private generateError(message: string): DiagnosticResult {
-    const diagnostic = createDiagnostic(
+  private generateError(message: string): ScanDiagnostic {
+    const diagnostic = createDiagnosticUri(
       {
-        start: this.startPosition.toImmutable(),
-        end: this.currentPosition.toImmutable(),
+        uri: this.uri,
+        range: {
+          start: this.startPosition.toImmutable(),
+          end: this.currentPosition.toImmutable(),
+        }
       },
       message,
       DiagnosticSeverity.Error,
       DIAGNOSTICS.SCANNER_ERROR,
     );
 
-    this.diagnosticResult.result = diagnostic;
-    return this.diagnosticResult;
+    return {
+      result: diagnostic,
+      kind: ScanKind.Diagnostic,
+    };
   }
 
   /**
@@ -797,8 +842,9 @@ const keywords: ITokenMap = new Map([
   ['when', { type: TokenType.when }],
 ]);
 
-// region map
-const regions: ITokenMap = new Map([
-  ['region', { type: TokenType.region }],
-  ['endregion', { type: TokenType.endRegion }],
+// directive map
+const directives: ITokenMap = new Map([
+  ['#region', { type: TokenType.region }],
+  ['#endregion', { type: TokenType.endRegion }],
+  ['#include', { type: TokenType.include }],
 ]);

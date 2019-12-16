@@ -404,7 +404,7 @@ export class KLS {
       return undefined;
     }
 
-    const { tokens, scanDiagnostics: scanErrors } = scanner.scanTokens();
+    const { tokens, diagnostics: scanErrors } = scanner.scanTokens();
 
     // check if rename is valid
     if (
@@ -709,8 +709,11 @@ export class KLS {
       return undefined;
     }
 
-    const { script, regions } = documentInfo.lexicalInfo;
-    return this.foldableService.findRegions(script, regions);
+    const { script, directives } = documentInfo.lexicalInfo;
+    return this.foldableService.findRegions(script, [
+      ...directives.region,
+      ...directives.endRegion,
+    ]);
   }
 
   /**
