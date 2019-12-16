@@ -22,11 +22,12 @@ steps:
 # install node dependencies and compile with typescript
 - script: |
     npm install
-    npm run prod
+    npm run bundle
   displayName: 'npm install and compile'
 
 # run test
-- script: npx jest --ci --config server/jest.config.js
+- script: npx jest --ci --config jest.config.js
+  workingDirectory: server
   displayName: 'jest test runner'
 
 # publish test results
@@ -34,7 +35,7 @@ steps:
   condition: succeededOrFailed()
   inputs:
     testRunner: JUnit
-    testResultsFiles: '$(System.DefaultWorkingDirectory)/junit.xml'
+    testResultsFiles: '$(System.DefaultWorkingDirectory)/server/junit.xml'
 
 # publish coverage results
 - task: PublishCodeCoverageResults@1
