@@ -15,7 +15,7 @@
     // "tsBuildInfoFile": "./build/buildcache.json",
   },
   "include": [
-    "src", "test"
+    "src", "test", "benchmark"
   ],
   "exclude": [
     "node_modules",

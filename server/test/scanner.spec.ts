@@ -19,7 +19,7 @@ describe('Scan all files', () => {
       const kosFile = readFileSync(filePath, 'utf8');
 
       const scanner = new Scanner(kosFile);
-      const { tokens, scanDiagnostics: scanErrors } = scanner.scanTokens();
+      const { tokens, diagnostics: scanErrors } = scanner.scanTokens();
       const errorResult = scanErrors.map(error => ({ filePath, ...error }));
 
       expect(tokens.length > 0).toBe(true);
@@ -159,7 +159,7 @@ describe('Scan test file', () => {
     const kosFile = readFileSync(scannerPath, 'utf8');
 
     const scanner = new Scanner(kosFile);
-    const { tokens, scanDiagnostics: scanErrors } = scanner.scanTokens();
+    const { tokens, diagnostics: scanErrors } = scanner.scanTokens();
     expect(scanErrors.length === 0).toBe(true);
 
     for (const [type, token] of zip(sequence, tokens)) {
@@ -170,7 +170,7 @@ describe('Scan test file', () => {
 
 describe('When scanning numbers', () => {
   describe('when scanning integers', () => {
-    const { tokens, scanDiagnostics } = scan('10');
+    const { tokens, diagnostics: scanDiagnostics } = scan('10');
 
     expect(scanDiagnostics).toHaveLength(0);
     expect(tokens).toHaveLength(1);
@@ -179,7 +179,7 @@ describe('When scanning numbers', () => {
   });
 
   describe('when scanning doubles with leading numbers', () => {
-    const { tokens, scanDiagnostics } = scan('10.0');
+    const { tokens, diagnostics: scanDiagnostics } = scan('10.0');
 
     expect(scanDiagnostics).toHaveLength(0);
     expect(tokens).toHaveLength(1);
@@ -188,7 +188,7 @@ describe('When scanning numbers', () => {
   });
 
   describe('when scanning doubles with no leading number', () => {
-    const { tokens, scanDiagnostics } = scan('.0');
+    const { tokens, diagnostics: scanDiagnostics } = scan('.0');
 
     expect(scanDiagnostics).toHaveLength(0);
     expect(tokens).toHaveLength(1);
@@ -208,7 +208,7 @@ describe('when scanning directives', () => {
     test('it tokenizes the directive', () => {
       for (const [tokenType, lexeme] of directiveMap) {
         const whitespace = ' '.repeat(Math.floor(Math.random() * 5));
-        const { directives, scanDiagnostics, tokens } = scan(
+        const { directiveTokens: directives, diagnostics: scanDiagnostics, tokens } = scan(
           `//${whitespace}#${lexeme}`,
         );
 
@@ -264,7 +264,7 @@ describe('when scanning directives', () => {
         for (const [whitespace, token] of zip(tokenWhitespace, lexemes)) {
           final += `${whitespace}"${token}"`;
         }
-        const { directives, scanDiagnostics, tokens } = scan(final);
+        const { directiveTokens: directives, diagnostics: scanDiagnostics, tokens } = scan(final);
 
         expect(tokens).toHaveLength(0);
         expect(scanDiagnostics).toHaveLength(0);
@@ -301,7 +301,7 @@ describe('when scanning directives', () => {
         for (const [whitespace, token] of zip(tokenWhitespace, lexemes)) {
           final += `${whitespace}${token}`;
         }
-        const { directives, scanDiagnostics, tokens } = scan(final);
+        const { directiveTokens: directives, diagnostics: scanDiagnostics, tokens } = scan(final);
 
         expect(tokens).toHaveLength(0);
         expect(scanDiagnostics).toHaveLength(0);
@@ -340,7 +340,7 @@ describe('when scanning directives', () => {
           final += `${whitespace}${token}`;
         }
 
-        const { directives, scanDiagnostics, tokens } = scan(final);
+        const { directiveTokens: directives, diagnostics: scanDiagnostics, tokens } = scan(final);
 
         expect(tokens).toHaveLength(0);
         expect(scanDiagnostics).toHaveLength(0);

@@ -19,8 +19,8 @@ import { Parser } from '../parser/parser';
 import {
   TextDocument,
   Diagnostic,
-  Range,
   DiagnosticSeverity,
+  Location,
 } from 'vscode-languageserver';
 import { addDiagnosticsUri } from '../utilities/serverUtils';
 import { DocumentService } from './documentService';
@@ -35,13 +35,13 @@ import { runPath, normalizeExtensions } from '../utilities/pathUtils';
 import { ResolverService } from './resolverService';
 import { Graph } from '../models/graph';
 import { scc, dfs } from '../utilities/graphUtils';
-import { createDiagnostic, DIAGNOSTICS } from '../utilities/diagnosticsUtils';
+import { DIAGNOSTICS, createDiagnosticUri } from '../utilities/diagnosticsUtils';
 import { debounce } from '../utilities/debounce';
 import { union, disjoint, setEqual } from 'ts-set-utils';
 import { EventEmitter } from 'events';
 import { DEFAULT_BODIES } from '../utilities/constants';
-import { Directive } from '../scanner/types';
-import { TokenType } from '../models/tokentypes';
+import { directiveParser } from '../directives/directiveParser';
+import { Include } from '../directives/include';
 
 type ChangeHandler = (diagnostics: DiagnosticUri[]) => void;
 
@@ -79,17 +79,17 @@ export class AnalysisService extends EventEmitter {
   /**
    * A cache of lexical info for each document
    */
-  private readonly lexicalCache: Map<string, Maybe<LexicalInfo>>;
+  private readonly lexicalCache: Map<string, LexicalInfo>;
 
   /**
    * A cache of semantic info for each document
    */
-  private readonly semanticCache: Map<string, Maybe<SemanticInfo>>;
+  private readonly semanticCache: Map<string, SemanticInfo>;
 
   /**
    * A cache of other diagnostics for each document
    */
-  private readonly dependencyCache: Map<string, Maybe<DependencyInfo>>;
+  private readonly dependencyCache: Map<string, DependencyInfo>;
 
   /**
    * The set of files to eventually propagate changes to
@@ -309,6 +309,7 @@ export class AnalysisService extends EventEmitter {
     const dependencyInfo = await this.loadDependencies(
       uri,
       lexicalInfo.script,
+      lexicalInfo.directives.include,
       new Set(),
     );
 
@@ -470,7 +471,11 @@ export class AnalysisService extends EventEmitter {
 
     performance.mark('scanner-start');
     const scanner = new Scanner(text, uri, this.logger, this.tracer);
-    const { tokens, scanDiagnostics, directives } = scanner.scanTokens();
+    const {
+      tokens,
+      diagnostics: scanDiagnostics,
+      directiveTokens,
+    } = scanner.scanTokens();
     performance.mark('scanner-end');
 
     // if scanner found errors report those immediately
@@ -482,7 +487,13 @@ export class AnalysisService extends EventEmitter {
 
     performance.mark('parser-start');
     const parser = new Parser(uri, tokens, this.logger, this.tracer);
-    const { script, parseDiagnostics } = parser.parse();
+    const { script, diagnostics: parseDiagnostics } = parser.parse();
+    performance.mark('parser-end');
+
+    performance.mark('parser-start');
+    const { directives, diagnostics: directiveDiagnostics } = directiveParser(
+      directiveTokens,
+    );
     performance.mark('parser-end');
 
     // measure performance
@@ -492,18 +503,14 @@ export class AnalysisService extends EventEmitter {
 
     this.logger.verbose('--------------------------------------');
 
-    // generate lexical diagnostics
-    const scannerDiagnostics = scanDiagnostics.map(scanDiagnostic =>
-      addDiagnosticsUri(scanDiagnostic, uri),
-    );
-    const parserDiagnostics = parseDiagnostics.map(parseDiagnostic =>
-      addDiagnosticsUri(parseDiagnostic, uri),
-    );
-
     const lexicalInfo = {
       script,
       directives,
-      diagnostics: [...scannerDiagnostics, ...parserDiagnostics],
+      diagnostics: [
+        ...scanDiagnostics,
+        ...parseDiagnostics,
+        ...directiveDiagnostics,
+      ],
     };
 
     this.lexicalCache.set(uri, lexicalInfo);
@@ -698,10 +705,13 @@ export class AnalysisService extends EventEmitter {
    * Load dependencies either from cache or by perform analysis on them as well
    * @param uri uri to document
    * @param script Ast of the document
+   * @param includes include directives
+   * @param loaded already loaded uri's
    */
   private async loadDependencies(
     uri: string,
     script: IScript,
+    includes: Include[],
     loaded: Set<string>,
   ): Promise<DependencyInfo> {
     // pre-fill dependency tables with standard library
@@ -723,6 +733,7 @@ export class AnalysisService extends EventEmitter {
       const { documents, diagnostics } = await this.loadDocuments(
         uri,
         script.runStmts,
+        includes,
       );
 
       // add diagnostics related to the actual load
@@ -740,6 +751,7 @@ export class AnalysisService extends EventEmitter {
         const dependencyInfo = await this.loadDependencies(
           document.uri,
           lexicalInfo.script,
+          lexicalInfo.directives.include,
           loaded,
         );
         const semanticInfo = await this.getSemantics(document.uri, loaded);
@@ -774,7 +786,12 @@ export class AnalysisService extends EventEmitter {
       return undefined;
     }
 
-    return this.loadDependencies(uri, lexicalInfo.script, loaded);
+    return this.loadDependencies(
+      uri,
+      lexicalInfo.script,
+      lexicalInfo.directives.include,
+      loaded,
+    );
   }
 
   /**
@@ -786,39 +803,39 @@ export class AnalysisService extends EventEmitter {
   private async loadDocuments(
     uri: string,
     runStmts: RunStmtType[],
-    includes: Directive<TokenType.include>,
+    includes: Include[],
   ): Promise<LoadedDocuments> {
+    if (includes) {
+    }
+
     const documents: TextDocument[] = [];
     const diagnostics: Diagnostic[] = [];
 
+    // retrieve path from run statements
     for (const runStmt of runStmts) {
-      // retrieve path from run statement
       const path = runPath(runStmt);
       if (typeof path !== 'string') {
         diagnostics.push(path);
         continue;
       }
 
-      // resolve path to uri
-      const runUri = this.resolverService.resolve(
-        runStmt.toLocation(uri),
-        path,
-      );
+      const result = await this.loadDocument(runStmt.toLocation(uri), path);
 
-      if (empty(runUri)) {
-        diagnostics.push(this.loadError(runStmt, path));
-        continue;
-      }
-
-      // load document from uri
-      const document = await this.documentService.loadDocument(
-        runUri.toString(),
-      );
-
-      if (!empty(document)) {
-        documents.push(document);
+      if (TextDocument.is(result)) {
+        documents.push(result);
       } else {
-        diagnostics.push(this.loadError(runStmt, path));
+        diagnostics.push(result);
+      }
+    }
+
+    // retrieve path from include directives
+    for (const include of includes) {
+      const result = await this.loadDocument(include.directive, include.includePath());
+
+      if (TextDocument.is(result)) {
+        documents.push(result);
+      } else {
+        diagnostics.push(result);
       }
     }
 
@@ -827,6 +844,32 @@ export class AnalysisService extends EventEmitter {
       documents,
       diagnostics,
     };
+  }
+
+  /**
+   * Load a single document from a given call location resolve to a provided path
+   * @param location location of the include / run
+   * @param path path to the document to load
+   */
+  private async loadDocument(location: Location, path: string) {
+    // resolve path to uri
+    const runUri = this.resolverService.resolve(
+      location,
+      path,
+    );
+
+    if (empty(runUri)) {
+      return this.loadError(location, path);
+    }
+
+    // load document from uri
+    const document = await this.documentService.loadDocument(
+      runUri.toString(),
+    );
+
+    return empty(document)
+      ? this.loadError(location, path)
+      : document;
   }
 
   /**
@@ -884,9 +927,23 @@ export class AnalysisService extends EventEmitter {
     documentInfo: Partial<DocumentInfo>,
   ): void {
     // check cache for existing document info
-    this.lexicalCache.set(uri, documentInfo.lexicalInfo);
-    this.semanticCache.set(uri, documentInfo.semanticInfo);
-    this.dependencyCache.set(uri, documentInfo.dependencyInfo);
+    if (empty(documentInfo.lexicalInfo)) {
+      this.lexicalCache.delete(uri);
+    } else {
+      this.lexicalCache.set(uri, documentInfo.lexicalInfo);
+    }
+
+    if (empty(documentInfo.semanticInfo)) {
+      this.semanticCache.delete(uri);
+    } else {
+      this.semanticCache.set(uri, documentInfo.semanticInfo);
+    }
+
+    if (empty(documentInfo.dependencyInfo)) {
+      this.dependencyCache.delete(uri);
+    } else {
+      this.dependencyCache.set(uri, documentInfo.dependencyInfo);
+    }
   }
 
   /**
@@ -903,12 +960,12 @@ export class AnalysisService extends EventEmitter {
 
   /**
    * Generate a loading diagnostic if file cannot be loaded
-   * @param range range of the run statement
+   * @param location location of the load statement run or #include
    * @param path kos path of the file
    */
-  private loadError(range: Range, path: string) {
-    return createDiagnostic(
-      range,
+  private loadError(location: Location, path: string) {
+    return createDiagnosticUri(
+      location,
       `Unable to load script at ${path}`,
       DiagnosticSeverity.Information,
       DIAGNOSTICS.LOAD_ERROR,

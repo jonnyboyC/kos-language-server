@@ -14,9 +14,7 @@ import {
 import {
   ParseError,
   FailedConstructor,
-  failedUnknown,
-  failedExpr,
-  failedStmt,
+  constructorToFailed,
 } from './models/parserError';
 import * as Expr from './models/expr';
 import * as SuffixTerm from './models/suffixTerm';
@@ -29,8 +27,9 @@ import { Token } from '../models/token';
 import { mockLogger, mockTracer, logException } from '../models/logger';
 import { flatten } from '../utilities/arrayUtils';
 import { Marker } from '../scanner/models/marker';
-import { Diagnostic } from 'vscode-languageserver';
+// import { Diagnostic } from 'vscode-languageserver';
 import { parseToDiagnostics } from '../utilities/serverUtils';
+import { DiagnosticUri } from '../types';
 
 type NodeConstructor =
   | Constructor<Expr.Expr>
@@ -77,34 +76,27 @@ export class Parser {
       );
 
       const statements: Stmt.Stmt[] = [];
-      const parseDiagnostics: Diagnostic[] = [];
+      const diagnostics: DiagnosticUri[] = [];
 
       while (!this.isAtEnd()) {
         const { value, errors } = this.declaration();
-        const diagnostics =
-          errors.length === 0
-            ? []
-            : errors
-                .map(error => error.inner.concat(error))
-                .reduce((acc, current) => acc.concat(current))
-                .map(error => parseToDiagnostics(error));
 
         statements.push(value);
-        parseDiagnostics.push(...diagnostics);
+        for (const error of errors) {
+          diagnostics.push(...parseToDiagnostics(error));
+        }
       }
 
       this.logger.info(
         `Parsing finished for ${file} with ` +
           `${this.runStmts.length} run statements`,
       );
-      if (parseDiagnostics.length > 0) {
-        this.logger.warn(
-          `Parser encountered ${parseDiagnostics.length} errors`,
-        );
+      if (diagnostics.length > 0) {
+        this.logger.warn(`Parser encountered ${diagnostics.length} errors`);
       }
 
       return {
-        parseDiagnostics,
+        diagnostics: diagnostics,
         script: new Script(this.uri, statements, this.runStmts),
       };
     } catch (err) {
@@ -112,7 +104,7 @@ export class Parser {
       logException(this.logger, this.tracer, err, LogLevel.error);
 
       return {
-        parseDiagnostics: [],
+        diagnostics: [],
         script: new Script(this.uri, [], []),
       };
     }
@@ -317,7 +309,7 @@ export class Parser {
   // parse defaulted parameters
   private declaredDefaultedParameters(): INodeResult<Decl.DefaultParam[]> {
     const defaultParameters = [];
-    const errors: IParseError[][] = [];
+    const errors: ParseError[][] = [];
 
     // parse until no additional parameters exist
     do {
@@ -526,7 +518,7 @@ export class Parser {
     builder.open = this.previous();
     const declarations: Stmt.Stmt[] = [];
 
-    const parseErrors: IParseError[] = [];
+    const parseErrors: ParseError[] = [];
 
     // while not at end and until closing curly keep parsing statements
     while (!this.check(TokenType.curlyClose) && !this.isAtEnd()) {
@@ -901,7 +893,7 @@ export class Parser {
     const valueResult = !this.check(TokenType.period)
       ? this.expression()
       : undefined;
-    let errors: IParseError[] = [];
+    let errors: ParseError[] = [];
 
     this.terminal(Stmt.Return, builder);
 
@@ -1297,7 +1289,7 @@ export class Parser {
       args: undefined,
       close: undefined,
     };
-    const errors: IParseError[] = [];
+    const errors: ParseError[] = [];
 
     builder.open = this.consumeTokenThrow(
       'Expected "(" after keyword "runPathOnce".',
@@ -1306,6 +1298,7 @@ export class Parser {
     );
     const exprResult = this.expression();
     builder.path = exprResult.value;
+    errors.push(...exprResult.errors);
 
     const args = this.matchToken(TokenType.comma)
       ? this.arguments(Stmt.RunOncePath)
@@ -1325,7 +1318,7 @@ export class Parser {
 
     return this.addRunStmts(
       new Stmt.RunOncePath(builder),
-      flatten([exprResult.errors, errors]),
+      errors,
     );
   }
 
@@ -1342,7 +1335,7 @@ export class Parser {
 
     const targetResult = this.expression();
     builder.target = targetResult.value;
-    const errors: IParseError[] = targetResult.errors;
+    const errors: ParseError[] = targetResult.errors;
 
     if (this.matchToken(TokenType.to)) {
       builder.to = this.previous();
@@ -1662,7 +1655,7 @@ export class Parser {
   private suffix(): INodeResult<Expr.Suffix> {
     const suffixTerm = this.suffixTerm(false);
     const suffix = new Expr.Suffix(suffixTerm.value);
-    const errors: IParseError[] = suffixTerm.errors;
+    const errors: ParseError[] = suffixTerm.errors;
 
     // check to see if expr is really a suffix
     if (this.matchToken(TokenType.colon)) {
@@ -1699,7 +1692,7 @@ export class Parser {
     // parse atom
     const atom = this.atom(isTrailer);
     const trailers: SuffixTermTrailer[] = [];
-    const parseErrors: IParseError[] = atom.errors;
+    const parseErrors: ParseError[] = atom.errors;
 
     const isValid = !(atom.value instanceof SuffixTerm.Invalid);
     // parse any trailers that exist
@@ -1749,7 +1742,7 @@ export class Parser {
   // get an argument list
   private arguments(context: NodeConstructor): INodeResult<IExpr[]> {
     const args: IExpr[] = [];
-    const errors: IParseError[][] = [];
+    const errors: ParseError[] = [];
 
     if (!this.isAtEnd() && !this.check(TokenType.bracketClose)) {
       do {
@@ -1757,19 +1750,19 @@ export class Parser {
         // bracket we report an error and stop arguments
         if (this.check(TokenType.bracketClose)) {
           args.push(new Expr.Invalid(this.previous().end, [this.previous()]));
-          errors.push([
+          errors.push(
             this.error(this.previous(), context, 'Expected another argument.'),
-          ]);
+          );
           break;
         }
 
         const arg = this.expression();
         args.push(arg.value);
-        errors.push(arg.errors);
+        errors.push(...arg.errors);
       } while (this.matchToken(TokenType.comma));
     }
 
-    return nodeResult(args, flatten(errors));
+    return nodeResult(args, errors);
   }
 
   // generate array bracket expression
@@ -1860,7 +1853,7 @@ export class Parser {
 
   private addRunStmts<T extends RunStmtType>(
     stmt: T,
-    errors: IParseError[],
+    errors: ParseError[],
   ): INodeResult<T> {
     this.runStmts.push(stmt);
     return nodeResult(stmt, errors);
@@ -2046,39 +2039,10 @@ export class Parser {
     message: string,
     moreInfo?: string,
     partialNode?: PartialNode,
-  ): IParseError {
-    if (empty(failed)) {
-      return new ParseError(
-        token,
-        failedUnknown(),
-        message,
-        moreInfo,
-        partialNode,
-      );
-    }
-
-    if (failed.prototype instanceof Expr.Expr) {
-      return new ParseError(
-        token,
-        failedExpr(failed as { new (): Expr.Expr }),
-        message,
-        moreInfo,
-        partialNode,
-      );
-    }
-    if (failed.prototype instanceof Stmt.Stmt) {
-      return new ParseError(
-        token,
-        failedStmt(failed as { new (): Stmt.Stmt }),
-        message,
-        moreInfo,
-        partialNode,
-      );
-    }
-
+  ): ParseError {
     return new ParseError(
       token,
-      failedUnknown(),
+      constructorToFailed(failed),
       message,
       moreInfo,
       partialNode,

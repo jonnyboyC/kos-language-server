@@ -6,20 +6,17 @@
   "license": "MIT",
   "version": "0.13.0",
   "scripts": {
+    "bench": "cd server && npm run bench",
     "vscode:prepublish": "cd clients/vscode && npm run update-vscode && cd ../.. && node build/clean.js && npm run prod && npm run test",
-    "prod": "run-p prod:vscode prod:atom prod:server",
-    "dev": "run-p dev:vscode dev:atom dev:server",
-    "test": "jest --config server/jest.config.js --verbose",
-    "watch": "run-p watch:vscode watch:atom watch:server",
-    "prod:vscode": "webpack --config ./clients/vscode/webpack.config.js --mode production",
+    "bundle": "run-p prod:vscode prod:atom prod:server",
+    "build": "run-p dev:vscode dev:atom dev:server",
+    "test": "cd server && npm test",
+    "prod:vscode": "cd clients/vscode && npm run bundle",
     "prod:atom": "tsc -p ./clients/atom/tsconfig.json",
-    "prod:server": "webpack --config ./server/webpack.config.js --mode production",
-    "dev:vscode": "tsc -p ./clients/vscode/tsconfig.json",
+    "prod:server": "cd server && npm run bundle",
+    "dev:vscode": "cd clients/vscode && npm run build",
     "dev:atom": "tsc -p ./clients/atom/tsconfig.json",
-    "dev:server": "tsc -p ./server/tsconfig.json",
-    "watch:vscode": "tsc -w -p ./clients/vscode/tsconfig.json",
-    "watch:atom": "tsc -w -p ./clients/atom/tsconfig.json",
-    "watch:server": "tsc -w -p ./server/tsconfig.json",
+    "dev:server": "cd server && npm run build",
     "postinstall": "cd clients/vscode && npm install && cd ../atom && npm install && cd ../../server && npm install && cd .."
   },
   "galleryBanner": {
@@ -48,17 +45,7 @@
     "language-server"
   ],
   "devDependencies": {
-    "@types/jest": "^24.0.23",
-    "jest": "^24.9.0",
-    "jest-junit": "^9.0.0",
-    "npm-run-all": "^4.1.5",
-    "ts-jest": "^24.2.0",
-    "ts-loader": "^6.2.1",
-    "tslint": "^5.20.1",
-    "tslint-config-airbnb": "^5.11.2",
-    "typescript": "^3.7.2",
-    "webpack": "^4.41.2",
-    "webpack-cli": "^3.3.10"
+    "npm-run-all": "^4.1.5"
   },
   "engines": {
     "vscode": "^1.32.0"

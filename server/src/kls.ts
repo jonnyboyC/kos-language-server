@@ -67,7 +67,7 @@ import { isValidIdentifier } from './models/tokentypes';
 import { tokenTrackedType } from './typeChecker/utilities/typeUtilities';
 import { TypeKind } from './typeChecker/types';
 import { IoService } from './services/IoService';
-import { FoldableService, regionDirectives } from './services/foldableService';
+import { FoldableService } from './services/foldableService';
 import { AnalysisService } from './services/analysisService';
 import { IFindResult } from './parser/types';
 import { ResolverService } from './services/resolverService';
@@ -404,7 +404,7 @@ export class KLS {
       return undefined;
     }
 
-    const { tokens, scanDiagnostics: scanErrors } = scanner.scanTokens();
+    const { tokens, diagnostics: scanErrors } = scanner.scanTokens();
 
     // check if rename is valid
     if (
@@ -710,10 +710,10 @@ export class KLS {
     }
 
     const { script, directives } = documentInfo.lexicalInfo;
-    return this.foldableService.findRegions(
-      script,
-      directives.filter(regionDirectives),
-    );
+    return this.foldableService.findRegions(script, [
+      ...directives.region,
+      ...directives.endRegion,
+    ]);
   }
 
   /**

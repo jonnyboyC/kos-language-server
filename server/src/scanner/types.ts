@@ -1,13 +1,14 @@
 import { TokenType } from '../models/tokentypes';
-import { Diagnostic } from 'vscode-languageserver';
 import { Token } from '../models/token';
+import { DirectiveTokens } from '../directives/types';
+import { DiagnosticUri } from '../types';
 
 export type ITokenMap = Map<string, { type: TokenType; literal?: any }>;
 
 export interface Tokenized {
   tokens: Token[];
-  scanDiagnostics: Diagnostic[];
-  directives: Directive[];
+  diagnostics: DiagnosticUri[];
+  directiveTokens: DirectiveTokens[];
 }
 
 /**
@@ -43,35 +44,30 @@ export type Result<T, S extends ScanKind> = {
 /**
  * A token result
  */
-export type TokenResult = Result<Token, ScanKind.Token>;
+export type ScanToken = Result<Token, ScanKind.Token>;
 
 /**
  * A whitespace result
  */
-export type WhitespaceResult = Result<null, ScanKind.Whitespace>;
+export type ScanWhitespace = Result<null, ScanKind.Whitespace>;
 
 /**
  * A diagnostics result
  */
-export type DiagnosticResult = Result<Diagnostic, ScanKind.Diagnostic>;
+export type ScanDiagnostic = Result<DiagnosticUri, ScanKind.Diagnostic>;
 
 /**
  * A directive result
  */
-export type DirectiveResult<T extends TokenType = TokenType> = {
+export type ScanDirective<T extends TokenType = TokenType> = {
   directive: Token<T>;
   tokens: Token[];
-  diagnostics: Diagnostic[];
+  diagnostics: DiagnosticUri[];
   kind: ScanKind.Directive;
 };
 
-export interface Directive<T extends TokenType = TokenType> {
-  directive: Token<T>;
-  tokens: Token[];
-}
-
 export type ScanResult =
-  | TokenResult
-  | WhitespaceResult
-  | DiagnosticResult
-  | DirectiveResult;
+  | ScanToken
+  | ScanWhitespace
+  | ScanDiagnostic
+  | ScanDirective;

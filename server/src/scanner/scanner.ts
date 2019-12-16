@@ -3,19 +3,20 @@ import {
   ITokenMap,
   ScanResult,
   ScanKind,
-  TokenResult,
-  WhitespaceResult,
-  DirectiveResult,
-  DiagnosticResult,
+  ScanToken,
+  ScanWhitespace,
+  ScanDirective,
+  ScanDiagnostic,
   Tokenized,
-  Directive,
 } from './types';
 import { Token } from '../models/token';
 import { empty } from '../utilities/typeGuards';
 import { mockLogger, mockTracer, logException } from '../models/logger';
-import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
-import { createDiagnostic, DIAGNOSTICS } from '../utilities/diagnosticsUtils';
+import { DiagnosticSeverity } from 'vscode-languageserver';
+import { DIAGNOSTICS, createDiagnosticUri } from '../utilities/diagnosticsUtils';
 import { MutableMarker } from './models/marker';
+import { DirectiveTokens } from '../directives/types';
+import { DiagnosticUri } from '../types';
 
 /**
  * Class for scanning kerboscript files
@@ -64,7 +65,7 @@ export class Scanner {
   /**
    * results for whitespace
    */
-  private readonly whiteSpaceResult: WhitespaceResult;
+  private readonly whiteSpaceResult: ScanWhitespace;
 
   /**
    * Scanner constructor
@@ -101,8 +102,8 @@ export class Scanner {
     try {
       // create arrays for valid tokens and encountered errors
       const tokens: Token[] = [];
-      const diagnostics: Diagnostic[] = [];
-      const directives: Directive[] = [];
+      const diagnostics: DiagnosticUri[] = [];
+      const directiveTokens: DirectiveTokens[] = [];
 
       const splits = this.uri.split('/');
       const file = splits[splits.length - 1];
@@ -127,7 +128,7 @@ export class Scanner {
             break;
           case ScanKind.Directive:
             diagnostics.push(...result.diagnostics);
-            directives.push({
+            directiveTokens.push({
               directive: result.directive,
               tokens: result.tokens,
             });
@@ -144,15 +145,15 @@ export class Scanner {
         this.logger.warn(`Scanning encounter ${diagnostics.length} errors`);
       }
 
-      return { tokens, scanDiagnostics: diagnostics, directives };
+      return { tokens, diagnostics: diagnostics, directiveTokens: directiveTokens };
     } catch (err) {
       this.logger.error('Error occurred in scanner');
       logException(this.logger, this.tracer, err, LogLevel.error);
 
       return {
         tokens: [],
-        scanDiagnostics: [],
-        directives: [],
+        diagnostics: [],
+        directiveTokens: [],
       };
     }
   }
@@ -183,7 +184,6 @@ export class Scanner {
         return this.generateToken(TokenType.atSign);
       case '#':
         return this.generateToken(TokenType.arrayIndex);
-
       case '^':
         return this.generateToken(TokenType.power);
       case '+':
@@ -240,7 +240,7 @@ export class Scanner {
   /**
    * Extract a comment or a region
    */
-  private comment(): WhitespaceResult | DirectiveResult {
+  private comment(): ScanWhitespace | ScanDirective {
     // check could contain a directive
     this.advanceWhitespace();
     if (!(this.peek() === '#' && this.isAlpha(this.peekNext()))) {
@@ -261,7 +261,7 @@ export class Scanner {
     }
 
     const tokens: Token[] = [];
-    const diagnostics: Diagnostic[] = [];
+    const diagnostics: DiagnosticUri[] = [];
 
     // until end of line read in tokens
     while (!this.isAtEnd() && this.peek() !== '\n') {
@@ -345,7 +345,7 @@ export class Scanner {
    * extract any identifiers
    * @param mapKeywords should we attempt to map keywords
    */
-  private identifier(mapKeywords: boolean): TokenResult {
+  private identifier(mapKeywords: boolean): ScanToken {
     while (this.isAlphaNumeric(this.peek())) this.increment();
 
     // if "." immediately followed by alpha numeric
@@ -366,7 +366,7 @@ export class Scanner {
   /**
    * extract a file identifier
    */
-  private fileIdentifier(): TokenResult {
+  private fileIdentifier(): ScanToken {
     while (
       this.isAlphaNumeric(this.peek()) ||
       (this.peek() === '.' && this.isAlphaNumeric(this.peekNext()))
@@ -415,7 +415,7 @@ export class Scanner {
   /**
    * extract a number
    */
-  private number(): TokenResult | DiagnosticResult {
+  private number(): ScanToken | ScanDiagnostic {
     let isFloat = this.advanceNumber();
     const possibleNumber = this.generateNumber(isFloat);
 
@@ -506,7 +506,7 @@ export class Scanner {
    * remove underscores from number and generate token
    * @param isFloat is the token a float
    */
-  private generateNumber(isFloat: boolean): TokenResult {
+  private generateNumber(isFloat: boolean): ScanToken {
     const numberString = this.source
       .substr(this.start, this.current - this.start)
       .replace(/(\_)/g, '');
@@ -522,7 +522,7 @@ export class Scanner {
    * @param literal optional literal
    * @param toLower should the lexeme be lowered
    */
-  private generateToken(type: TokenType, literal?: any): TokenResult {
+  private generateToken(type: TokenType, literal?: any): ScanToken {
     const text = this.source.substr(this.start, this.current - this.start);
 
     const token = new Token(
@@ -547,8 +547,8 @@ export class Scanner {
   private generateDirective(
     directive: Token,
     tokens: Token[],
-    diagnostics: Diagnostic[],
-  ): DirectiveResult {
+    diagnostics: DiagnosticUri[],
+  ): ScanDirective {
     return {
       directive,
       tokens,
@@ -561,11 +561,14 @@ export class Scanner {
    * generate error
    * @param message error message
    */
-  private generateError(message: string): DiagnosticResult {
-    const diagnostic = createDiagnostic(
+  private generateError(message: string): ScanDiagnostic {
+    const diagnostic = createDiagnosticUri(
       {
-        start: this.startPosition.toImmutable(),
-        end: this.currentPosition.toImmutable(),
+        uri: this.uri,
+        range: {
+          start: this.startPosition.toImmutable(),
+          end: this.currentPosition.toImmutable(),
+        }
       },
       message,
       DiagnosticSeverity.Error,

@@ -1,8 +1,9 @@
-import { IParseError, INodeResult } from '../types';
+import { INodeResult } from '../types';
+import { ParseError } from '../models/parserError';
 
 export const nodeResult = <T>(
   stmt: T,
-  errors: IParseError[],
+  errors: ParseError[],
 ): INodeResult<T> => {
   return {
     errors,

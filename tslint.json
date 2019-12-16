@@ -3,6 +3,6 @@
   "rules": {
     "arrow-parens": false,
     "ter-arrow-parens": false,
-    "prefer-array-literal": false,
+    "prefer-array-literal": false
   }
 }

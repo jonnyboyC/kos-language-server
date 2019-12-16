@@ -1,7 +1,7 @@
 {
   "files.exclude": {
-    "server/out": true, // set this to true to hide the "out" folder with the compiled JS files
-    "server/dist": true
+    "server/out": false, // set this to true to hide the "out" folder with the compiled JS files
+    "server/dist": false,
   },
   "search.exclude": {
     "server/out": true, // set this to false to include "out" folder in search results

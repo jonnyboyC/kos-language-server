@@ -96,14 +96,14 @@ const checkSource = (
 };
 
 const noResolverErrors = (result: ITypeCheckResults): void => {
-  expect(result.scan.scanDiagnostics.map(e => e.message)).toEqual([]);
-  expect(result.parse.parseDiagnostics.map(e => e.message)).toEqual([]);
+  expect(result.scan.diagnostics.map(e => e.message)).toEqual([]);
+  expect(result.parse.diagnostics.map(e => e.message)).toEqual([]);
   expect(result.resolveDiagnostics.map(e => e.message)).toEqual([]);
 };
 
 const noErrors = (result: ITypeCheckResults): void => {
-  expect(result.scan.scanDiagnostics.map(e => e.message)).toEqual([]);
-  expect(result.parse.parseDiagnostics.map(e => e.message)).toEqual([]);
+  expect(result.scan.diagnostics.map(e => e.message)).toEqual([]);
+  expect(result.parse.diagnostics.map(e => e.message)).toEqual([]);
   expect(result.resolveDiagnostics.map(e => e.message)).toEqual([]);
   expect(result.typeCheckDiagnostics.map(e => e.message)).toEqual([]);
 };
