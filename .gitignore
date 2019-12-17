@@ -1,8 +1,7 @@
 node_modules
-build
 out
 dist
-src/**.js
+server/build/*
 .idea/*
 .vsix
 

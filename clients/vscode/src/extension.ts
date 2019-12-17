@@ -24,7 +24,6 @@ import {
 } from './commands/channelRouterProvider';
 import { telnetProvider } from './commands/telnetProvider';
 import { kspProvider } from './commands/kspProvider';
-import { parse } from 'semver';
 import { searchDocumentationProvider } from './commands/searchDocumentationProvider';
 
 let client: LanguageClient;
@@ -43,10 +42,6 @@ export function activate(context: ExtensionContext) {
     path.join('server', serverFolder, 'server.js'),
   );
 
-  // determine the major version of the bundled node process
-  const { version } = process;
-  const semver = parse(version);
-
   // The language server debug options
   // --nolazy eagerly compiles the js files so they can be debug
   // --inspect=6009 says to run the server in inspector mode on port 6009
@@ -56,16 +51,6 @@ export function activate(context: ExtensionContext) {
 
   // The language server production options
   const runOptions: ForkOptions = { execArgv: [] };
-
-  // async generators become default in node 10
-  if (semver != null && semver.major < 10) {
-    if (debugOptions.execArgv) {
-      debugOptions.execArgv.push('--harmony_async_iteration');
-    }
-    if (runOptions.execArgv) {
-      runOptions.execArgv.push('--harmony_async_iteration');
-    }
-  }
 
   // If the extension is launched in debug mode then the debug server options are used
   // Otherwise the run options are used

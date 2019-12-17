@@ -17,7 +17,7 @@ For additional client support such as sublime text, emacs, notepad++ or others p
 
 ## Features
 
-Currently the vscode client 0.12.0 implements the follow features
+Currently the vscode client 0.14.0 implements the follow features
 - syntax highlighting
 - brace detection
 - code snippets
@@ -36,8 +36,14 @@ Currently the vscode client 0.12.0 implements the follow features
 - identify symbols that may not exist at runtime
 - on hover type definitions (experimental)
 - full workspace loading and change propagation
-- foldable regions with `\\ #region` and `\\ #endregion`
 - documentation searching
+
+## Directives
+
+The language server includes several comment directives that can be included extra functionality 
+- `\\ #include <file path>`: Include a script file in the current files scope even if no run is present
+- `\\ #region`: Foldable region start
+- `\\ #endRegion`: Foldable region end
 
 ## Commands
 All commands can be launched with `ctrl+shift+p`
