@@ -12,7 +12,7 @@ import { typeInitializer } from './typeChecker/initialize';
 import { defaultWorkspaceConfiguration } from './config/models/workspaceConfiguration';
 import { defaultServerConfiguration } from './config/models/serverConfiguration';
 
-const version = '0.13.0';
+const version = '0.14.0';
 
 program
   .version(version, '-v --version')

@@ -1,3 +1,15 @@
+# [0.14.0] (2019-12-17)
+# Features
+- **#include directive** A new comment directive has been added that allows files to be treated as if run. Under certain scenarios kos-language-server cannot determine that a file has been run typically through dynamic run statements. This allows autocomplete of file that will or likely will be run in these situations. An example shows an `#include` working similar to a run statement
+
+```
+// #include "0://somepath.ks"
+runOncePath("0://somepath.ks"). // these two lines are functionally identical
+```
+
+# Bug Fixes
+Fixes a bug in the standalone `kls` global node tool where the server would not start.
+
 # [0.13.0] (2019-11-27)
 # Features
 - **Workspace configuration** The kos-language-server now recognizes a new workspace configuration file `ksconfig.json`. An example is shown below

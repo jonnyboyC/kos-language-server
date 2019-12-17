@@ -15,12 +15,12 @@
 			"stopOnEntry": false,
 			"sourceMaps": true,
 			"outFiles": ["${workspaceRoot}/clients/vscode/out/**/*.js"],
-			"preLaunchTask": "npm: dev"
+			"preLaunchTask": "npm: build"
 		},
 		{
 			"type": "extensionHost",
 			"request": "launch",
-			"name": "Launch VSCode Client Prod",
+			"name": "Launch VSCode Client Bundle",
 			"runtimeExecutable": "${execPath}",
 			"env": {
 				"NODE_ENV": "prod"
@@ -31,7 +31,7 @@
 			"stopOnEntry": false,
 			"sourceMaps": true,
 			"outFiles": ["${workspaceRoot}/clients/vscode/dist/**/*.js"],
-			"preLaunchTask": "npm: prod"
+			"preLaunchTask": "npm: bundle"
 		},
 		{
 			"type": "extensionHost",
@@ -58,7 +58,7 @@
 			],
 			"sourceMaps": true,
 			"outFiles": ["${workspaceRoot}/server/out/**/*.js"],
-			"preLaunchTask": "npm: dev:server"
+			"preLaunchTask": "npm: build:server"
 		},
 		{
 			"type": "node",
@@ -74,7 +74,7 @@
 		{
 			"type": "node",
 			"request": "attach",
-			"name": "Attach to Server Prod",
+			"name": "Attach to Server Bundle",
 			"address": "localhost",
 			"protocol": "inspector",
 			"timeout": 60000,
@@ -134,8 +134,8 @@
 	],
 	"compounds": [
 		{
-			"name": "VSCode + Server Prod",
-			"configurations": ["Launch VSCode Client Prod", "Attach to Server Prod"]
+			"name": "VSCode + Server Bundle",
+			"configurations": ["Launch VSCode Client Bundle", "Attach to Server Bundle"]
 		},
 		{
 			"name": "VSCode + Server",
