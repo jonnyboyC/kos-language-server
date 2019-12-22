@@ -103,9 +103,11 @@ export const DIAGNOSTICS = {
   TYPE_LIST_INVALID: 'type-list-invalid',
   TYPE_NO_INDEXER: 'type-no-indexer',
   TYPE_NOT_FUNCTION: 'type-not-function',
+  TYPE_MISSING: 'type-missing',
   TYPE_MISSING_SUFFIX: 'type-missing-suffix',
   TYPE_MISSING_OPERATOR: 'type-missing-operator',
   TYPE_NO_SETTER: 'type-no-setter',
+  TYPE_NO_GETTER: 'type-no-getter',
 
   // directives:
   DIRECTIVE_INVALID_INCLUDE: 'directive-invalid-include',

@@ -28,6 +28,7 @@ export const delegateCreation = (type: IType) => {
 };
 
 export const indexerError = createIndexer(structureType, structureType);
+export const callableError = createSuffixType('Unknown callable', structureType);
 export const suffixError = createSuffixType('Unknown suffix', structureType);
 
 export const functionError = createFunctionType(

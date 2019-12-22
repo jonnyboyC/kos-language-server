@@ -122,9 +122,10 @@ export class UnionType implements IType {
    * What is the assignment type of this type
    */
   public assignmentType(): IType {
-    const assignmentTypes = new Set(
+    const assignmentTypes = new Set<IType>(
       this.types.map(type => type.assignmentType()),
     );
+
     if (assignmentTypes.size > 1) {
       return new UnionType(false, ...assignmentTypes);
     }
