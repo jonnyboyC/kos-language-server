@@ -27,37 +27,6 @@ const unitTestPath = join(
   '../../../kerboscripts/parser_valid/unitTests',
 );
 
-// const resolveSource = (
-//   source: string,
-//   standardLib = false,
-// ): IResolveResults => {
-//   const result = parseSource(source);
-
-//   const symbolTableBuilder = new SymbolTableBuilder(fakeUri);
-
-//   if (standardLib) {
-//     symbolTableBuilder.linkDependency(
-//       standardLibraryBuilder(CaseKind.lowerCase),
-//     );
-//   }
-
-//   const functionResolver = new PreResolver(
-//     result.parse.script,
-//     symbolTableBuilder,
-//   );
-//   const resolver = new Resolver(result.parse.script, symbolTableBuilder);
-
-//   const preResolverError = functionResolver.resolve();
-//   const resolverErrors = resolver.resolve();
-//   const unusedErrors = symbolTableBuilder.findUnused();
-
-//   return {
-//     ...result,
-//     resolveDiagnostics: preResolverError.concat(resolverErrors, unusedErrors),
-//     table: symbolTableBuilder.build(),
-//   };
-// };
-
 const makeRange = (
   sLine: number,
   sChar: number,
@@ -75,12 +44,6 @@ const makeRange = (
     },
   };
 };
-
-// const noErrors = (result: IResolveResults): void => {
-//   expect(result.scan.scanDiagnostics.map(e => e.message)).toEqual([]);
-//   expect(result.parse.parseDiagnostics.map(e => e.message)).toEqual([]);
-//   expect(result.resolveDiagnostics.map(e => e.message)).toEqual([]);
-// };
 
 const setSource = `
 set x to 10.

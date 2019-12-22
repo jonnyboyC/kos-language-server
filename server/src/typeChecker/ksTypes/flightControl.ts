@@ -3,6 +3,7 @@ import {
   createSuffixType,
   createSetSuffixType,
   noMap,
+  createSetOnlySuffixType,
 } from '../utilities/typeCreators';
 import { structureType } from './primitives/structure';
 import { vectorType } from './collections/vector';
@@ -20,6 +21,7 @@ flightControlType.addSuffixes(
   noMap(createSetSuffixType('pitch', scalarType)),
   noMap(createSetSuffixType('pitchTrim', scalarType)),
   noMap(createSetSuffixType('rotation', vectorType)),
+  noMap(createSetOnlySuffixType('killRotation', booleanType)),
   noMap(createSetSuffixType('fore', scalarType)),
   noMap(createSetSuffixType('starboard', scalarType)),
   noMap(createSetSuffixType('top', scalarType)),
@@ -30,7 +32,9 @@ flightControlType.addSuffixes(
   noMap(createSetSuffixType('wheelThrottle', scalarType)),
   noMap(createSetSuffixType('wheelThrottleTrim', scalarType)),
   noMap(createSetSuffixType('bound', booleanType)),
+  noMap(createSetOnlySuffixType('resetTrim', booleanType)),
   noMap(createSuffixType('neutral', booleanType)),
+  noMap(createSetOnlySuffixType('neutralize', booleanType)),
   noMap(createSuffixType('pilotyaw', scalarType)),
   noMap(createSuffixType('pilotYawTrim', scalarType)),
   noMap(createSuffixType('pilotRoll', scalarType)),

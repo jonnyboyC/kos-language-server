@@ -277,6 +277,21 @@ export const createSetSuffixType = (name: string, returns: IType): Type => {
 };
 
 /**
+ * Generates a new set only suffix type
+ * @param name name of the suffix
+ * @param returns return type of suffix
+ */
+export const createSetOnlySuffixType = (name: string, returns: IType): Type => {
+  return new Type(
+    name.toLowerCase(),
+    { get: false, set: true },
+    new Map(),
+    TypeKind.suffix,
+    new CallSignature([], returns),
+  );
+};
+
+/**
  * Generate a new callable variadic suffix type
  * @param name name of the suffix type
  * @param returns return type of suffix call
