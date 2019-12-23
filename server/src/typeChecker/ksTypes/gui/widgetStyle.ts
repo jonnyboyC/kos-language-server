@@ -10,15 +10,16 @@ import { widgetStyleStateType } from './widgetStyleState';
 import { scalarType, integerType } from '../primitives/scalar';
 import { booleanType } from '../primitives/boolean';
 import { stringType } from '../primitives/string';
+import { widgetStyleRectOffsetType } from './widgetStyleRectOffset';
 
 export const widgetStyleType = createType('widgetStyle');
 widgetStyleType.addSuper(noMap(structureType));
 
 widgetStyleType.addSuffixes(
-  noMap(createSuffixType('margin', widgetStyleStateType)),
-  noMap(createSuffixType('padding', widgetStyleStateType)),
-  noMap(createSuffixType('border', widgetStyleStateType)),
-  noMap(createSuffixType('overflow', widgetStyleStateType)),
+  noMap(createSuffixType('margin', widgetStyleRectOffsetType)),
+  noMap(createSuffixType('padding', widgetStyleRectOffsetType)),
+  noMap(createSuffixType('border', widgetStyleRectOffsetType)),
+  noMap(createSuffixType('overflow', widgetStyleRectOffsetType)),
   noMap(createSetSuffixType('width', scalarType)),
   noMap(createSetSuffixType('height', scalarType)),
   noMap(createSetSuffixType('hStretch', booleanType)),

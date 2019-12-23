@@ -18,6 +18,6 @@
     "runParallel": 1,
     "pattern": "./**/*.benchmark.js",
     "path": "./out/",
-    "exporter": ["./out/benchmark/exporter.js"]
+    "exporter": ["hierarchy", "console"]
   }
 }
