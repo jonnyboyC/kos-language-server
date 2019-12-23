@@ -146,6 +146,22 @@ export class DelegateType implements IType {
   }
 
   /**
+   * Does this type have the requested suffix
+   * @param name name of the suffix
+   */
+  public hasSuffix(name: string): boolean {
+    return delegateType.hasSuffix(name);
+  }
+
+  /**
+   * Attempt to access a suffix from this type
+   * @param name name of the suffix
+   */
+  public getSuffix(name: string): Maybe<IType> {
+    return delegateType.getSuffix(name);
+  }
+
+  /**
    * Get an operator for the other type
    * @param kind The operator kind
    * @param rhs the type of the other type

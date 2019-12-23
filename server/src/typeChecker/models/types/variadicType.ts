@@ -58,6 +58,12 @@ export class VariadicType implements IType {
   public suffixes(): Map<string, IType> {
     return new Map();
   }
+  public hasSuffix(_: string): boolean {
+    return false;
+  }
+  public getSuffix(_: string): Maybe<IType> {
+    return undefined;
+  }
   public getOperator(
     _: OperatorKind,
     __?: Maybe<IType>,

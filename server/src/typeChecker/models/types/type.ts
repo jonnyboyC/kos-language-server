@@ -389,6 +389,39 @@ export class Type implements IType {
   }
 
   /**
+   * Does this type has the requested suffix
+   * @param name name of suffix
+   */
+  public hasSuffix(name: string): boolean {
+    if (this.suffixMap.has(name)) {
+      return true;
+    }
+
+    if (!empty(this.superType)) {
+      return this.superType.hasSuffix(name);
+    }
+
+    return false;
+  }
+
+  /**
+   * Attempt to retrieve a suffix from this type
+   * @param name name of the suffix
+   */
+  public getSuffix(name: string): Maybe<IType> {
+    const result = this.suffixMap.get(name);
+    if (!empty(result)) {
+      return result;
+    }
+
+    if (!empty(this.superType)) {
+      return this.superType.getSuffix(name);
+    }
+
+    return undefined;
+  }
+
+  /**
    * Get the appropriate operator for this kind if it exists
    * @param kind the operator kind
    * @param other the other type if binary

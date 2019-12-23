@@ -15,7 +15,7 @@
     "samplingInterval": 5000
   },
   "manager": {
-    "runParallel": 1,
+    "runParallel": 2,
     "pattern": "./**/*.benchmark.js",
     "path": "./out/",
     "exporter": ["hierarchy", "console"]

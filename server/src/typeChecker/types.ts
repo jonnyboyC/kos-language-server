@@ -287,6 +287,18 @@ export interface IType extends IParametricType {
   suffixes(): Map<string, IType>;
 
   /**
+   * Does this type have the requested suffix
+   * @param name name of the suffix
+   */
+  hasSuffix(name: string): boolean;
+
+  /**
+   * Attempt to retrieve a suffix from this type
+   * @param name name of the suffix
+   */
+  getSuffix(name: string): Maybe<IType>;
+
+  /**
    * Get an operator of a specific kind for another type
    * @param kind operator kind
    * @param other other type if binary expression

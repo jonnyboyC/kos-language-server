@@ -552,7 +552,7 @@ export class TypeChecker
 
     const iterable = this.checkGetter(stmt.collection, errors, result.type);
 
-    if (!iterable.suffixes().has(iterator)) {
+    if (!iterable.hasSuffix(iterator)) {
       errors.push(
         createDiagnostic(
           stmt.collection,
@@ -566,10 +566,10 @@ export class TypeChecker
     const { tracker } = stmt.element;
 
     if (this.isBasicTracker(tracker)) {
-      const enumerator = iterable.suffixes().get(iterator)?.assignmentType();
+      const enumerator = iterable.getSuffix(iterator)?.assignmentType();
 
       if (!empty(enumerator)) {
-        const value = enumerator.suffixes().get('value');
+        const value = enumerator.getSuffix('value');
 
         const setType = value?.assignmentType() ?? structureType;
         tracker.declareType(setType);
@@ -1418,7 +1418,7 @@ export class TypeChecker
     // if we're a trailer check for suffixes
     if (builder.isTrailer()) {
       const type = builder.current();
-      const suffix = type.suffixes().get(suffixTerm.token.lookup);
+      const suffix = type.getSuffix(suffixTerm.token.lookup);
 
       // may need to pass something in about if we're in get set context
       if (empty(suffix)) {
