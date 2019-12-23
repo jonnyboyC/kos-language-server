@@ -420,7 +420,7 @@ export class KLS {
       return undefined;
     }
 
-    const locations = await this.getUsageLocations(position, textDocument.uri);
+    const locations = await this.getSymbolLocations(position, textDocument.uri);
     if (empty(locations)) {
       return undefined;
     }
@@ -543,7 +543,7 @@ export class KLS {
       return undefined;
     }
 
-    const locations = await this.getUsageLocations(position, uri);
+    const locations = await this.getSymbolLocations(position, uri);
     return locations && locations.map(loc => cleanLocation(loc));
   }
 
@@ -944,7 +944,7 @@ export class KLS {
    * @param pos position in document
    * @param uri uri of document
    */
-  public async getUsageLocations(
+  public async getSymbolLocations(
     pos: Position,
     uri: string,
   ): Promise<Maybe<Location[]>> {
@@ -976,10 +976,9 @@ export class KLS {
       return undefined;
     }
 
-    return tracker.usages
-      .map(usage => usage as Location)
-      .concat(tracker.declared.symbol.name)
-      .filter(location => location.uri !== builtIn);
+    return [tracker.declared, ...tracker.usages, ...tracker.sets].filter(
+      location => location.uri !== builtIn,
+    );
   }
 
   /**
@@ -991,7 +990,7 @@ export class KLS {
     pos: Position,
     uri: string,
   ): Promise<Maybe<Range[]>> {
-    const locations = await this.getUsageLocations(pos, uri);
+    const locations = await this.getSymbolLocations(pos, uri);
     if (empty(locations)) {
       return locations;
     }
