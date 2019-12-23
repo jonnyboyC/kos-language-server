@@ -962,6 +962,15 @@ export class Resolver
     const errors = this.useExprLocalsBind(stmt.expr);
     errors.push(...this.resolveExpr(stmt.expr));
 
+    if (!empty(stmt.x) && !empty(stmt.y)) {
+      errors.push(...this.useExprLocals(stmt.x));
+      errors.push(...this.useExprLocals(stmt.y));
+
+      errors.push(...this.resolveExpr(stmt.x));
+      errors.push(...this.resolveExpr(stmt.y));
+
+    }
+
     return errors;
   }
 
