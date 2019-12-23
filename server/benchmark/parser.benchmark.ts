@@ -1,9 +1,9 @@
 import { suite, benchmark, setup } from '@dynatrace/zakzak';
-import { Scanner } from '../src/scanner/scanner';
 import { join } from 'path';
 import { readFileSync } from 'fs';
 import { Parser } from '../src/parser/parser';
 import { Tokenized } from '../src/scanner/types';
+import { scanSource } from '../test/utilities/setup';
 
 const testDir = join(__dirname, '../../../kerboscripts/parser_valid/');
 const fakeUri = 'file:///fake/base';
@@ -14,18 +14,11 @@ suite('praser', () => {
   let allLanguage: Tokenized;
 
   setup(() => {
-    ap = new Scanner(
-      readFileSync(join(testDir, 'ap.ks'), 'utf8'),
-      fakeUri,
-    ).scanTokens();
-    boostback = new Scanner(
-      readFileSync(join(testDir, 'boostback.ks'), 'utf8'),
-      fakeUri,
-    ).scanTokens();
-    allLanguage = new Scanner(
+    ap = scanSource(readFileSync(join(testDir, 'ap.ks'), 'utf8'));
+    boostback = scanSource(readFileSync(join(testDir, 'boostback.ks'), 'utf8'));
+    allLanguage = scanSource(
       readFileSync(join(testDir, 'unitTests', 'allLanguage.ks'), 'utf8'),
-      fakeUri,
-    ).scanTokens();
+    );
   });
 
   benchmark('construct', () => {

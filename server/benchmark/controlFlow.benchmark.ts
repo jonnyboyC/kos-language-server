@@ -7,7 +7,7 @@ import { ControlFlow } from '../src/controlFlow/controlFlow';
 
 const testDir = join(__dirname, '../../../kerboscripts/parser_valid/');
 
-suite('praser', () => {
+suite('control flow', () => {
   let ap: ReturnType<typeof parseSource>;
   let boostback: ReturnType<typeof parseSource>;
   let allLanguage: ReturnType<typeof parseSource>;
