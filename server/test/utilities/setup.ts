@@ -5,7 +5,7 @@ import { Diagnostic } from 'vscode-languageserver';
 import { Scanner } from '../../src/scanner/scanner';
 import { Parser } from '../../src/parser/parser';
 import { SymbolTableBuilder } from '../../src/analysis/models/symbolTableBuilder';
-import { standardLibraryBuilder } from '../../src/analysis/standardLibrary';
+import { standardLibraryBuilder, bodyLibraryBuilder } from '../../src/analysis/standardLibrary';
 import { PreResolver } from '../../src/analysis/preResolver';
 import { Resolver } from '../../src/analysis/resolver';
 import {
@@ -60,6 +60,9 @@ export const resolveSource = (
   if (standardLib) {
     symbolTableBuilder.linkDependency(
       standardLibraryBuilder(CaseKind.lowerCase),
+    );
+    symbolTableBuilder.linkDependency(
+      bodyLibraryBuilder(CaseKind.lowerCase),
     );
   }
 

@@ -234,6 +234,31 @@ export class UnionType implements IType {
   }
 
   /**
+   * Does this type have the requested suffix TODO this may be an issue where
+   * a union has two suffixes of the same name but not the same type
+   * @param name name of the suffix
+   */
+  public hasSuffix(name: string): boolean {
+    return this.types.every(type => type.hasSuffix(name));
+  }
+
+  /**
+   * Attempt to retrieve a suffix from this type TODO this may be an issue where
+   * a union has two suffixes of the same name but not the same type
+   * @param name name of the suffix
+   */
+  public getSuffix(name: string): Maybe<IType> {
+    const suffix = this.types[0].getSuffix(name);
+    if (empty(suffix)) {
+      return suffix;
+    }
+
+    return this.types.slice(1).every(type => type.getSuffix(name) === suffix)
+      ? suffix
+      : undefined;
+  }
+
+  /**
    * Get an operator for the other type
    * @param _ The operator kind
    * @param __ the type of the other type
