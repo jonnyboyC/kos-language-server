@@ -38,6 +38,11 @@ export class ParametricType implements IParametricType {
   public readonly anyType: boolean;
 
   /**
+   * Is this the none type
+   */
+  public readonly noneType: boolean;
+
+  /**
    * What is the call signature of this type
    */
   protected typeCallSignature?: TypeMap<IParametricCallSignature>;
@@ -89,6 +94,7 @@ export class ParametricType implements IParametricType {
     this.access = access;
     this.kind = kind;
     this.anyType = false;
+    this.noneType = false;
     this.binder = new TypeBinder(typeParameters);
 
     this.superType = undefined;

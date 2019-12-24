@@ -124,6 +124,20 @@ export class GenericCallSignature implements IParametricCallSignature {
   }
 
   /**
+   * The required number of parameters
+   */
+  public requiredParams(): number {
+    let count = 0;
+    for (const param of this.paramMaps?.values() ?? []) {
+      if (!param.type.noneType) {
+        count += 1;
+      }
+    }
+
+    return count;
+  }
+
+  /**
    * Call signature return
    */
   public returns() {

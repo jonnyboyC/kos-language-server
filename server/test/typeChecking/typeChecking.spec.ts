@@ -226,6 +226,13 @@ const declaredTests = (
   }
 };
 
+const toSymbolMap = (table: SymbolTable) => {
+  const symbols = table.allSymbols();
+  return new Map(
+    symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
+  );
+};
+
 const unarySource = `
 function f { }
 local x is 10.
@@ -422,6 +429,14 @@ set parts[0] to 10.
 print(parts).
 `;
 
+const tooManyArgsSource = 'ceiling(10, 10, 10).';
+
+const tooFewArgsSource = 'ceiling().';
+
+const tooFewOptionalArgsSource = 'heading(10).';
+
+const wrongTypeArgsSource = 'ceiling("10").';
+
 describe('typeChecker', () => {
   describe('inference', () => {
     describe('basic inference', () => {
@@ -470,7 +485,6 @@ describe('typeChecker', () => {
       });
 
       test('infers collection', () => {
-        debugger;
         const results = checkSource(collectionSource, true);
         noErrors(results);
 
@@ -494,7 +508,6 @@ describe('typeChecker', () => {
         declaredTests(names, 'i2', KsSymbolKind.variable, structureType);
 
         declaredTests(names, 'p', KsSymbolKind.variable, pathType);
-        debugger;
         declaredTests(
           names,
           'segments',
@@ -808,11 +821,7 @@ describe('typeChecker', () => {
         const results = checkSource(unaryInvalidSource, true);
         noResolverErrors(results);
 
-        const { table } = results;
-        const symbols = table.allSymbols();
-        const names = new Map(
-          symbols.map((s): [string, KsBaseSymbol] => [s.name.lexeme, s]),
-        );
+        const names = toSymbolMap(results.table);
 
         declaredTests(names, 'b1', KsSymbolKind.variable, booleanType);
         declaredTests(names, 'n1', KsSymbolKind.variable, structureType);
@@ -826,6 +835,70 @@ describe('typeChecker', () => {
           expect(location.start).toEqual(error.range.start);
           expect(location.end).toEqual(error.range.end);
         }
+      });
+    });
+
+    describe('call signature', () => {
+      describe('when too many arguments', () => {
+        test('it produces a TYPE_WRONG_ARITY diagnostics', () => {
+          const results = checkSource(tooManyArgsSource, true);
+          noResolverErrors(results);
+
+          expect(results.typeCheckDiagnostics).toHaveLength(1);
+          const error = results.typeCheckDiagnostics[0];
+
+          expect(error.severity).toBe(DiagnosticSeverity.Hint);
+          expect(error.range.start).toEqual({ line: 0, character: 16 });
+          expect(error.range.end).toEqual({ line: 0, character: 18 });
+          expect(error.code).toBe(DIAGNOSTICS.TYPE_WRONG_ARITY);
+        });
+      });
+
+      describe('when too few arguments', () => {
+        describe('when no optional parameters', () => {
+          test('it produces a TYPE_WRONG_ARITY diagnostics', () => {
+            const results = checkSource(tooFewArgsSource, true);
+            noResolverErrors(results);
+
+            expect(results.typeCheckDiagnostics).toHaveLength(1);
+            const error = results.typeCheckDiagnostics[0];
+
+            expect(error.severity).toBe(DiagnosticSeverity.Hint);
+            expect(error.range.start).toEqual({ line: 0, character: 8 });
+            expect(error.range.end).toEqual({ line: 0, character: 9 });
+            expect(error.code).toBe(DIAGNOSTICS.TYPE_WRONG_ARITY);
+          });
+        });
+
+        describe('when optional parameters', () => {
+          test('it produces a TYPE_WRONG_ARITY diagnostics', () => {
+            const results = checkSource(tooFewOptionalArgsSource, true);
+            noResolverErrors(results);
+
+            expect(results.typeCheckDiagnostics).toHaveLength(1);
+            const error = results.typeCheckDiagnostics[0];
+
+            expect(error.severity).toBe(DiagnosticSeverity.Hint);
+            expect(error.range.start).toEqual({ line: 0, character: 10 });
+            expect(error.range.end).toEqual({ line: 0, character: 11 });
+            expect(error.code).toBe(DIAGNOSTICS.TYPE_WRONG_ARITY);
+          });
+        });
+      });
+
+      describe('when arguments are the wrong type', () => {
+        test('it produces a TYPE_WRONG diagnostics', () => {
+          const results = checkSource(wrongTypeArgsSource, true);
+          noResolverErrors(results);
+
+          expect(results.typeCheckDiagnostics).toHaveLength(1);
+          const error = results.typeCheckDiagnostics[0];
+
+          expect(error.severity).toBe(DiagnosticSeverity.Hint);
+          expect(error.range.start).toEqual({ line: 0, character: 8 });
+          expect(error.range.end).toEqual({ line: 0, character: 12 });
+          expect(error.code).toEqual(DIAGNOSTICS.TYPE_WRONG);
+        });
       });
     });
 

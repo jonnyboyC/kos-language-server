@@ -12,7 +12,13 @@ import * as SuffixTerm from '../parser/models/suffixTerm';
 import * as Expr from '../parser/models/expr';
 import * as Stmt from '../parser/models/stmt';
 import * as Decl from '../parser/models/declare';
-import { ITypeResultExpr, TypeKind, OperatorKind, IType } from './types';
+import {
+  ITypeResultExpr,
+  TypeKind,
+  OperatorKind,
+  IType,
+  ICallSignature,
+} from './types';
 import { mockLogger, mockTracer, logException } from '../models/logger';
 import { Script } from '../models/script';
 import { empty, notEmpty } from '../utilities/typeGuards';
@@ -21,7 +27,7 @@ import { iterator } from '../utilities/constants';
 import { TokenType } from '../models/tokentypes';
 import { nodeType } from './ksTypes/node';
 import { createFunctionType, createUnion } from './utilities/typeCreators';
-import { zip, zipLong } from '../utilities/arrayUtils';
+import { zip } from '../utilities/arrayUtils';
 import {
   binaryOperatorMap,
   unaryOperatorMap,
@@ -848,7 +854,8 @@ export class TypeChecker
             expr,
             errors,
             this.checkGetter(expr.left, errors, leftResult.type),
-            this.checkGetter(expr.right, errors, rightResult.type));
+            this.checkGetter(expr.right, errors, rightResult.type),
+          );
         default:
           return this.checkBinary(
             expr,
@@ -896,7 +903,8 @@ export class TypeChecker
             expr,
             errors,
             this.checkGetter(expr.factor, errors, result.type),
-            operatorKind);
+            operatorKind,
+          );
         }
     }
 
@@ -912,7 +920,10 @@ export class TypeChecker
   public visitFactor(expr: Expr.Factor): ITypeResultExpr<IType> {
     const suffixResult = this.checkExpr(expr.suffix);
     const exponentResult = this.checkExpr(expr.exponent);
-    const errors: Diagnostics = [...suffixResult.errors, ...exponentResult.errors];
+    const errors: Diagnostics = [
+      ...suffixResult.errors,
+      ...exponentResult.errors,
+    ];
 
     if (expr.power.type !== TokenType.power) {
       throw new Error('Factor does not contain power operator');
@@ -1033,7 +1044,10 @@ export class TypeChecker
       return false;
     }
 
-    if (callSignature.params.length === 0 && !(trailer instanceof SuffixTerm.Call)) {
+    if (
+      callSignature.params.length === 0 &&
+      !(trailer instanceof SuffixTerm.Call)
+    ) {
       builder.nodes.push(currentType.assignmentType());
       return true;
     }
@@ -1083,11 +1097,11 @@ export class TypeChecker
 
     // handle variadic
     if (params.length === 1 && params[0].kind === TypeKind.variadic) {
-      return this.visitVariadicCall(params[0], call);
+      return this.visitVariadicCall(callSignature, call);
     }
 
     // handle normal functions
-    return this.visitNormalCall(params, call);
+    return this.visitNormalCall(callSignature, call);
   }
 
   /**
@@ -1095,9 +1109,14 @@ export class TypeChecker
    * @param params parameter types
    * @param call current call expression
    */
-  private visitVariadicCall(params: IType, call: SuffixTerm.Call): Diagnostics {
+  private visitVariadicCall(
+    callSignature: ICallSignature,
+    call: SuffixTerm.Call,
+  ): Diagnostics {
     const errors: Diagnostics = [];
-    if (!(params instanceof VariadicType)) {
+    const [param] = callSignature.params();
+
+    if (!(param instanceof VariadicType)) {
       throw new Error('Expected variadic type.');
     }
 
@@ -1107,11 +1126,11 @@ export class TypeChecker
       errors.push(...result.errors);
 
       // add diagnostic if argument cannot be matched to parameter type
-      if (!params.base.canCoerceFrom(result.type.assignmentType())) {
+      if (!param.base.canCoerceFrom(result.type.assignmentType())) {
         errors.push(
           createDiagnostic(
             arg,
-            `Function argument could not be coerced into ${params.toString()}`,
+            `Function argument could not be coerced into ${param.toString()}`,
             DiagnosticSeverity.Hint,
             DIAGNOSTICS.TYPE_WRONG,
           ),
@@ -1127,14 +1146,22 @@ export class TypeChecker
    * @param params the parameter types
    * @param call the call expression
    */
-  private visitNormalCall(params: IType[], call: SuffixTerm.Call): Diagnostics {
+  private visitNormalCall(
+    callSignature: ICallSignature,
+    call: SuffixTerm.Call,
+  ): Diagnostics {
     const errors: Diagnostics = [];
+    const params = callSignature.params();
+    const requiredCount = callSignature.requiredParams();
 
     // check if we have provided too many arguments
     if (call.args.length > params.length) {
       errors.push(
         createDiagnostic(
-          call.close,
+          {
+            start: call.args[params.length].start,
+            end: call.args[call.args.length - 1].end,
+          },
           `Call expected ${params.length} parameters but was called with ${call.args.length} arguments`,
           DiagnosticSeverity.Hint,
           DIAGNOSTICS.TYPE_WRONG_ARITY,
@@ -1142,54 +1169,25 @@ export class TypeChecker
       );
     }
 
-    let checkShort = false;
-
-    if (call.args.length >= params.length) {
-      // if we have the same or more arguments check they can coerce
-      for (const [arg, param] of zip(call.args, params)) {
-        // determine type of each argument
-        const result = this.checkExpr(arg);
-        errors.push(...result.errors);
-
-        this.checkGetter(arg, errors, result.type, param);
-      }
-    } else {
-      for (const [arg, param] of zipLong(call.args, params)) {
-        // determine type of each argument fill in none for those not found
-        let argType: IType;
-        if (!empty(arg)) {
-          const result = this.checkExpr(arg);
-          errors.push(...result.errors);
-          argType = result.type;
-        } else {
-          argType = noneType;
-        }
-
-        // add diagnostic if argument cannot be matched to parameter type
-        if (
-          this.checkGetter(
-            empty(arg) ? call.close : arg,
-            errors,
-            argType,
-            param!,
-          )
-        ) {
-          // if we have a type mismatch check short
-          checkShort = true;
-        }
-      }
-    }
-
     // check argument less than parameters
-    if (checkShort && call.args.length <= params.length) {
+    if (call.args.length < requiredCount) {
       errors.push(
         createDiagnostic(
           call.close,
-          `Function expected ${params.length} parameters but was called with ${call.args.length} arguments`,
+          `Call expected ${params.length} required parameters but was called with ${call.args.length} arguments`,
           DiagnosticSeverity.Hint,
           DIAGNOSTICS.TYPE_WRONG_ARITY,
         ),
       );
+    }
+
+    // if we have the same or more arguments check they can coerce
+    for (const [arg, param] of zip(call.args, params)) {
+      // determine type of each argument
+      const result = this.checkExpr(arg);
+      errors.push(...result.errors);
+
+      this.checkGetter(arg, errors, result.type, param);
     }
 
     return errors;
@@ -1606,7 +1604,6 @@ export class TypeChecker
     leftType: IType,
     rightType: IType,
   ): ITypeResultExpr<IType> {
-
     // check if left can be converted to a boolean
     if (this.checkGetter(expr.left, errors, leftType, booleanType)) {
       return { errors, type: booleanType };

@@ -9,4 +9,5 @@ export const noneType = new Type(
   undefined,
   undefined,
   false,
+  true,
 );
