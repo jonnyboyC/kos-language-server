@@ -171,6 +171,11 @@ export interface IParametricType extends ITypeMappable<IType> {
   readonly anyType: boolean;
 
   /**
+   * Is this type the void type. i.e does it represent nothing
+   */
+  readonly noneType: boolean;
+
+  /**
    * What is the kind of this type
    */
   readonly kind: TypeKind;
@@ -352,6 +357,11 @@ export interface IParametricCallSignature
    * The types of the parameters
    */
   params(): IParametricType[];
+
+  /**
+   * The required number of parameters
+   */
+  requiredParams(): number;
 
   /**
    * The type of the return

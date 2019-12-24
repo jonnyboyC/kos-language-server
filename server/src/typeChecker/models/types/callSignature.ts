@@ -38,6 +38,17 @@ export class CallSignature implements ICallSignature {
     return this.paramTypes;
   }
 
+  public requiredParams(): number {
+    let count = 0;
+    for (const param of this.paramTypes) {
+      if (!param.noneType) {
+        count += 1;
+      }
+    }
+
+    return count;
+  }
+
   /**
    * Get the return of this call signature
    */

@@ -34,6 +34,11 @@ export class UnionType implements IType {
   public readonly anyType: boolean;
 
   /**
+   * Is this union the none type
+   */
+  public readonly noneType: boolean;
+
+  /**
    * What is the type of this union
    */
   public readonly kind: TypeKind;
@@ -82,7 +87,8 @@ export class UnionType implements IType {
     this.param = isParameter;
     this.types = sortedTypes;
     this.name = 'Union';
-    this.anyType = sortedTypes.every(type => type.anyType);
+    this.anyType = sortedTypes.some(type => type.anyType);
+    this.noneType = sortedTypes.some(type => type.noneType);
     this.access = {
       get: sortedTypes.every(type => type.access.get),
       set: sortedTypes.every(type => type.access.set),
