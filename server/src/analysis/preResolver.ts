@@ -181,6 +181,7 @@ export class PreResolver
     const declareErrors = this.tableBuilder.declareFunction(
       scopeType,
       decl.identifier,
+      decl,
       result.requiredParameters,
       result.optionalParameters,
       result.return,

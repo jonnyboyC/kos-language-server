@@ -31,7 +31,6 @@ import {
 import { ClientConfiguration, DiagnosticUri } from './types';
 import { Scanner } from './scanner/scanner';
 import {
-  KsSymbol,
   KsSymbolKind,
   SymbolTracker,
   KsBaseSymbol,
@@ -1034,7 +1033,7 @@ export class KLS {
    * Get all symbols in a provided file
    * @param uri document uri
    */
-  public async getAllFileSymbols(uri: string): Promise<KsSymbol[]> {
+  public async getAllFileSymbols(uri: string): Promise<KsBaseSymbol[]> {
     const documentInfo = await this.analysisService.getInfo(uri);
 
     if (empty(documentInfo)) {

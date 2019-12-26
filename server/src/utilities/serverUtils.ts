@@ -16,7 +16,7 @@ import {
   Position,
 } from 'vscode-languageserver';
 import { empty } from './typeGuards';
-import { KsSymbolKind, KsSymbol, KsBaseSymbol } from '../analysis/types';
+import { KsSymbolKind, KsBaseSymbol } from '../analysis/types';
 import { cleanLocation, cleanToken, cleanCompletion } from './clean';
 import { CommanderStatic } from 'commander';
 import { DiagnosticUri } from '../types';
@@ -299,22 +299,18 @@ const findContainingSuffixTermTrailer = (
  * @param documentSymbol document identifier
  */
 export const toDocumentSymbols = (
-  entities: KsSymbol[],
+  entities: KsBaseSymbol[],
   uri: string,
 ): Maybe<SymbolInformation[]> => {
   return entities.map(entity => {
     const kind: Maybe<SymbolKind> = symbolSymbolMapper(entity.tag);
-
-    if (typeof entity.name === 'string') {
-      throw new Error('Expected symbol tracker not type tracker');
-    }
 
     return {
       kind,
       name: entity.name.lexeme,
       location: cleanLocation({
         uri: entity.name.uri || uri,
-        range: entity.name,
+        range: entity.range,
       }),
       containerName: 'example',
     } as SymbolInformation;
@@ -326,13 +322,18 @@ export const toDocumentSymbols = (
  * @param error parser error
  * @param uri uri string
  */
-export const parseToDiagnostics = (error: ParseError, diagnostics: DiagnosticUri[] = []): DiagnosticUri[] => {
-  diagnostics.push(createDiagnosticUri(
-    error.token,
-    error.message,
-    DiagnosticSeverity.Error,
-    DIAGNOSTICS.PARSER_ERROR,
-  ));
+export const parseToDiagnostics = (
+  error: ParseError,
+  diagnostics: DiagnosticUri[] = [],
+): DiagnosticUri[] => {
+  diagnostics.push(
+    createDiagnosticUri(
+      error.token,
+      error.message,
+      DiagnosticSeverity.Error,
+      DIAGNOSTICS.PARSER_ERROR,
+    ),
+  );
 
   for (const inner of error.inner) {
     parseToDiagnostics(inner, diagnostics);
