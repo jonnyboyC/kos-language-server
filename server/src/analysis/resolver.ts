@@ -21,7 +21,7 @@ import { Script } from '../models/script';
 import { mockLogger, mockTracer, logException } from '../models/logger';
 import { SymbolTableBuilder } from './models/symbolTableBuilder';
 import { IDeferred } from './types';
-import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
+import { Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver';
 import { createDiagnostic, DIAGNOSTICS } from '../utilities/diagnosticsUtils';
 // tslint:disable-next-line: import-name
 import Denque from 'denque';
@@ -287,6 +287,7 @@ export class Resolver
     const declareError = this.tableBuilder.declareVariable(
       scopeType,
       decl.identifier,
+      decl,
     );
     const errors = this.useExprLocals(decl.value);
     errors.push(...this.resolveExpr(decl.value));
@@ -318,6 +319,7 @@ export class Resolver
       const declareError = this.tableBuilder.declareLock(
         scopeType,
         decl.identifier,
+        decl,
       );
 
       if (!empty(declareError)) {
@@ -369,7 +371,7 @@ export class Resolver
       const error = this.tableBuilder.declareParameter(
         scopeType,
         parameter.identifier,
-        false,
+        parameter,
       );
 
       if (!empty(error)) {
@@ -382,7 +384,7 @@ export class Resolver
       const error = this.tableBuilder.declareParameter(
         scopeType,
         parameter.identifier,
-        false,
+        parameter,
       );
 
       if (!empty(error)) {
@@ -542,7 +544,7 @@ export class Resolver
       ];
     }
 
-    const errors = this.setBinding(set);
+    const errors = this.setBinding(set, stmt);
     errors.push(
       ...this.useExprLocals(stmt.value),
       ...this.useTokens(used),
@@ -716,6 +718,10 @@ export class Resolver
       const declareError = this.tableBuilder.declareVariable(
         ScopeKind.local,
         stmt.element,
+        {
+          start: stmt.element.start,
+          end: stmt.collection.end,
+        },
       );
 
       const errors: Diagnostics = this.useExprLocalsBind(stmt.collection);
@@ -943,7 +949,7 @@ export class Resolver
       return [];
     }
 
-    return this.setBinding(stmt.target);
+    return this.setBinding(stmt.target, stmt);
   }
 
   /**
@@ -968,7 +974,6 @@ export class Resolver
 
       errors.push(...this.resolveExpr(stmt.x));
       errors.push(...this.resolveExpr(stmt.y));
-
     }
 
     return errors;
@@ -977,8 +982,9 @@ export class Resolver
   /**
    * Logic for settings a variable. used by set stmt and list command
    * @param set token to set
+   * @param range range of the est
    */
-  private setBinding(set: Token): Diagnostics {
+  private setBinding(set: Token, range: Range): Diagnostics {
     // if variable isn't defined either report error or define
     const errors: Diagnostics = [];
     const result = this.tableBuilder.lookupBindingTracker(
@@ -1015,6 +1021,7 @@ export class Resolver
       const defineError = this.tableBuilder.declareVariable(
         ScopeKind.global,
         set,
+        range,
       );
 
       if (!empty(defineError)) {

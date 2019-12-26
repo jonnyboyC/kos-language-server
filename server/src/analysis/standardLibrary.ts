@@ -78,6 +78,7 @@ import { empty } from '../utilities/typeGuards';
 import { partType } from '../typeChecker/ksTypes/parts/part';
 import { kosProcessorFieldsType } from '../typeChecker/ksTypes/kosProcessorFields';
 import { orbitableVelocityType } from '../typeChecker/ksTypes/orbitalVelocity';
+import { Range } from 'vscode-languageserver';
 
 const functionTypes: [string[], IType][] = [
   [['abs'], createFunctionType('abs', scalarType, scalarType)],
@@ -768,7 +769,7 @@ const variables: [string[], IType][] = [
   [['terminal'], terminalStructType],
   [['time'], timeSpanType],
   [['up'], directionType],
-  [['velocity'], orbitableType],
+  [['velocity'], orbitableVelocityType],
   [['version'], versionInfoType],
   [['vertical', 'speed'], scalarType],
   [['volume:name'], stringType],
@@ -798,6 +799,7 @@ export const standardLibraryBuilder = (caseKind: CaseKind): SymbolTable => {
         new Marker(0, 0),
         builtIn,
       ),
+      Range.create(new Marker(0, 0), new Marker(0, 0)),
       parameterCount,
       0,
       false,
@@ -816,6 +818,7 @@ export const standardLibraryBuilder = (caseKind: CaseKind): SymbolTable => {
         new Marker(0, 0),
         builtIn,
       ),
+      Range.create(new Marker(0, 0), new Marker(0, 0)),
       type,
     );
   }
@@ -831,6 +834,7 @@ export const standardLibraryBuilder = (caseKind: CaseKind): SymbolTable => {
         new Marker(0, 0),
         builtIn,
       ),
+      Range.create(new Marker(0, 0), new Marker(0, 0)),
       type,
     );
   }
@@ -855,6 +859,7 @@ export const bodyLibraryBuilder = (
         new Marker(0, 0),
         builtIn,
       ),
+      Range.create(new Marker(0, 0), new Marker(0, 0)),
       bodyTargetType,
     );
   }

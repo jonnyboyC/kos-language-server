@@ -1,6 +1,7 @@
 import { ScopeKind } from '../parser/types';
 import { KsSymbolKind } from '../analysis/types';
 import { Token } from './token';
+import { Range } from 'vscode-languageserver';
 
 /**
  * A class containing the information of a variable
@@ -10,10 +11,12 @@ export class KsVariable {
    * A kerboscript variable constructor
    * @param scope the scope of this variable
    * @param name the name of this variable
+   * @param range the range of this variable
    */
   constructor(
     public readonly scope: ScopeKind,
     public readonly name: Token,
+    public readonly range: Range,
   )
   { }
 
