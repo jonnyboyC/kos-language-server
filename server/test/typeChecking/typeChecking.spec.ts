@@ -267,7 +267,7 @@ print(n4).
 print(n5).
 `;
 
-const unaryInvalidSource = `
+const unaryDiagnosticSource = `
 function f {}.
 
 local b1 is not f.
@@ -275,6 +275,15 @@ local n1 is -"test".
 
 print(b1).
 print(n1).
+`;
+
+const structureDiagnosticSource = `
+function example {
+  parameter a, b.
+
+  local c is a / b.
+  return c.
+}
 `;
 
 const binaryMultiplicationSource = `
@@ -436,6 +445,13 @@ const tooFewArgsSource = 'ceiling().';
 const tooFewOptionalArgsSource = 'heading(10).';
 
 const wrongTypeArgsSource = 'ceiling("10").';
+
+const structureCallSource = `
+function example {
+  parameter a.
+  a().
+}
+`;
 
 describe('typeChecker', () => {
   describe('inference', () => {
@@ -817,24 +833,39 @@ describe('typeChecker', () => {
         { start: new Marker(4, 13), end: new Marker(4, 19) },
       ];
 
-      test('unary operators', () => {
-        const results = checkSource(unaryInvalidSource, true);
-        noResolverErrors(results);
+      describe('unary operator', () => {
+        test('reports unary operator diagnostics', () => {
+          const results = checkSource(unaryDiagnosticSource, true);
+          noResolverErrors(results);
+  
+          const names = toSymbolMap(results.table);
+  
+          declaredTests(names, 'b1', KsSymbolKind.variable, booleanType);
+          declaredTests(names, 'n1', KsSymbolKind.variable, structureType);
+  
+          const sortedErrors = results.typeCheckDiagnostics.sort(
+            (a, b) => a.range.start.line - b.range.start.line,
+          );
+  
+          for (const [error, location] of zip(sortedErrors, unaryLocations)) {
+            expect(error.severity).toBe(DiagnosticSeverity.Hint);
+            expect(location.start).toEqual(error.range.start);
+            expect(location.end).toEqual(error.range.end);
+          }
+        });
+      });
 
-        const names = toSymbolMap(results.table);
-
-        declaredTests(names, 'b1', KsSymbolKind.variable, booleanType);
-        declaredTests(names, 'n1', KsSymbolKind.variable, structureType);
-
-        const sortedErrors = results.typeCheckDiagnostics.sort(
-          (a, b) => a.range.start.line - b.range.start.line,
-        );
-
-        for (const [error, location] of zip(sortedErrors, unaryLocations)) {
-          expect(error.severity).toBe(DiagnosticSeverity.Hint);
-          expect(location.start).toEqual(error.range.start);
-          expect(location.end).toEqual(error.range.end);
-        }
+      describe('when binary between structures', () => {
+        test('does not report error', () => {
+          const results = checkSource(structureDiagnosticSource, true);
+          noErrors(results);
+  
+          const names = toSymbolMap(results.table);
+          declaredTests(names, 'example', KsSymbolKind.function);
+          declaredTests(names, 'a', KsSymbolKind.parameter, structureType);
+          declaredTests(names, 'b', KsSymbolKind.parameter, structureType);
+          declaredTests(names, 'c', KsSymbolKind.variable, structureType);
+        });
       });
     });
 
@@ -898,6 +929,17 @@ describe('typeChecker', () => {
           expect(error.range.start).toEqual({ line: 0, character: 8 });
           expect(error.range.end).toEqual({ line: 0, character: 12 });
           expect(error.code).toEqual(DIAGNOSTICS.TYPE_WRONG);
+        });
+      });
+
+      describe('when structure', () => {
+        test('does not report error', () => {
+          const results = checkSource(structureCallSource, true);
+          noErrors(results);
+
+          const names = toSymbolMap(results.table);
+          declaredTests(names, 'example', KsSymbolKind.function);
+          declaredTests(names, 'a', KsSymbolKind.parameter);
         });
       });
     });
