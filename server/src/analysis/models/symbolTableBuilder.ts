@@ -569,10 +569,7 @@ export class SymbolTableBuilder {
     }
 
     const scopeNode = this.selectScopeNode(scopeKind);
-    const tracker = new BasicTracker(
-      new KsParameter(token, range),
-      this.uri,
-    );
+    const tracker = new BasicTracker(new KsParameter(token, range), this.uri);
 
     token.tracker = tracker;
     scopeNode.environment.set(token.lookup, KsSymbolKind.parameter, tracker);
@@ -624,7 +621,9 @@ export class SymbolTableBuilder {
     ) {
       return createDiagnostic(
         token,
-        `${symbolType} ${token.lexeme} may not exist at script runtime.`,
+        `${toCase(CaseKind.pascalCase, KsSymbolKind[symbolType])} ${
+          token.lexeme
+        } may not exist at script runtime.`,
         DiagnosticSeverity.Hint,
         DIAGNOSTICS.SYMBOL_MAY_NOT_RUNTIME_EXIST,
         [
