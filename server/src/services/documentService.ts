@@ -1,7 +1,6 @@
 import {
   IConnection,
   TextDocument,
-  TextEdit,
   DidChangeTextDocumentParams,
   DidOpenTextDocumentParams,
   DidCloseTextDocumentParams,
@@ -284,8 +283,9 @@ export class DocumentService extends EventEmitter {
       return false;
     }
 
-    // find all edits that have defined range
-    const edits: Required<TextEdit>[] = [];
+    // apply edits one at a time
+    let updatedDoc: TextDocument = document;
+
     for (const change of params.contentChanges) {
       // TODO can't find instance where range is undefined
       if (empty(change.range)) {
@@ -296,19 +296,22 @@ export class DocumentService extends EventEmitter {
         continue;
       }
 
-      edits.push({ range: change.range, newText: change.text });
+      // apply edits
+      const text = TextDocument.applyEdits(document, [
+        {
+          range: change.range,
+          newText: change.text,
+        },
+      ]);
+
+      // create new document
+      updatedDoc = TextDocument.create(
+        document.uri,
+        document.languageId,
+        document.version,
+        text,
+      );
     }
-
-    // apply edits
-    const text = TextDocument.applyEdits(document, edits);
-
-    // create new document
-    const updatedDoc = TextDocument.create(
-      document.uri,
-      document.languageId,
-      document.version,
-      text,
-    );
 
     // set document cache
     return this.setCache(params, updatedDoc);
