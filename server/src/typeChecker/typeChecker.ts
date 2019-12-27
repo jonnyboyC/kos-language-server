@@ -773,7 +773,7 @@ export class TypeChecker
     const finalType = listTypeMap.get(collection.lookup) ?? structureType;
     const errors: Diagnostics = [];
 
-    if (finalType === structureType) {
+    if (finalType.anyType) {
       errors.push(
         createDiagnostic(
           collection,
@@ -1077,14 +1077,16 @@ export class TypeChecker
       call.open.tracker = callableError.tracker();
       call.close.tracker = callableError.tracker();
 
-      errors.push(
-        createDiagnostic(
-          call,
-          `${type.name} has no call signature`,
-          DiagnosticSeverity.Hint,
-          DIAGNOSTICS.TYPE_NO_CALL,
-        ),
-      );
+      if (!type.anyType) {
+        errors.push(
+          createDiagnostic(
+            call,
+            `${type.name} has no call signature`,
+            DiagnosticSeverity.Hint,
+            DIAGNOSTICS.TYPE_NO_CALL,
+          ),
+        );
+      }
 
       return errors;
     }
@@ -1214,7 +1216,7 @@ export class TypeChecker
 
     // TODO confirm indexable types
     // Only lists are indexable with '#'
-    if (!listType.canCoerceFrom(type)) {
+    if (!listType.canCoerceFrom(type) && !type.anyType) {
       errors.push(
         createDiagnostic(
           suffixTerm,
@@ -1294,14 +1296,16 @@ export class TypeChecker
     if (empty(indexer)) {
       builder.nodes.push(indexerError);
 
-      errors.push(
-        createDiagnostic(
-          suffixTerm,
-          `${type.toString()} may not have indexer`,
-          DiagnosticSeverity.Hint,
-          DIAGNOSTICS.TYPE_NO_INDEXER,
-        ),
-      );
+      if (!type.anyType) {
+        errors.push(
+          createDiagnostic(
+            suffixTerm,
+            `${type.toString()} may not have indexer`,
+            DiagnosticSeverity.Hint,
+            DIAGNOSTICS.TYPE_NO_INDEXER,
+          ),
+        );
+      }
 
       suffixTerm.open.tracker = indexerError.tracker();
       suffixTerm.close.tracker = indexerError.tracker();
@@ -1672,6 +1676,12 @@ export class TypeChecker
 
     // no operator found return error
     if (empty(leftOps) && empty(rightOps)) {
+
+      // recover if both structure
+      if (leftType.anyType && rightType.anyType) {
+        return { errors, type: structureType };
+      }
+
       errors.push(this.operatorError(operator, expr, leftType, rightType));
 
       return {
