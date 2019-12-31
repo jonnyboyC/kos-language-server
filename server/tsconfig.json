@@ -11,6 +11,7 @@
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "noEmit": false,
+    "resolveJsonModule": true,
     "incremental": false
     // "tsBuildInfoFile": "./build/buildcache.json",
   },
