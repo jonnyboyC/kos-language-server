@@ -1,3 +1,7 @@
+# [1.0.1] (2020-1-3)
+# Bug Fixes
+The the version command `kls --version` or `kls -v` should now always determine the correct version to report. The server will now read it's own package json to it is reporting the correct semver.
+
 # [1.0.0] (2019-12-27)
 # Features
 - **Symbol Hierarchy** In Vscode symbols are now displayed in a proper hierarchy. This change has the language server reporting the whole declaration as the symbol instead of just the identifier.
