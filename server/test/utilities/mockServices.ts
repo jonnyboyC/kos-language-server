@@ -6,7 +6,7 @@ import {
   TextDocument,
   DidChangeConfigurationParams,
 } from 'vscode-languageserver';
-import { IoService, Document } from '../../src/services/IoService';
+import { IoService, Document } from '../../src/services/ioService';
 import { empty } from '../../src/utilities/typeGuards';
 import { DocumentService } from '../../src/services/documentService';
 import { URI } from 'vscode-uri';

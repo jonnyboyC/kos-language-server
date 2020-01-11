@@ -226,9 +226,9 @@ export class AnalysisService extends EventEmitter {
   /**
    * Get a document info if it exists
    */
-  public async getInfo(uri: string): Promise<Maybe<DocumentInfo>> {
+  public async loadInfo(uri: string): Promise<Maybe<DocumentInfo>> {
     // check if document has already been analyzed
-    const documentInfo = this.getDocumentInfo(uri);
+    const documentInfo = this.getInfo(uri);
     if (!empty(documentInfo)) {
       return documentInfo;
     }
@@ -251,6 +251,26 @@ export class AnalysisService extends EventEmitter {
   }
 
   /**
+   * Get the full document in from the individual caches
+   * @param uri document uri to check against
+   */
+  public getInfo(uri: string): Maybe<DocumentInfo> {
+    const lexicalInfo = this.lexicalCache.get(uri);
+    const semanticInfo = this.semanticCache.get(uri);
+    const otherDiagnostics = this.dependencyCache.get(uri);
+
+    if (
+      !empty(lexicalInfo) &&
+      !empty(semanticInfo) &&
+      !empty(otherDiagnostics)
+    ) {
+      return { lexicalInfo, semanticInfo, dependencyInfo: otherDiagnostics };
+    }
+
+    return undefined;
+  }
+
+  /**
    * Load full directory with initial set of diagnostics
    */
   public async loadDirectory(): Promise<DiagnosticUri[]> {
@@ -263,7 +283,7 @@ export class AnalysisService extends EventEmitter {
     const loaded = new Set<string>();
 
     // move bottom up
-    for (let i = sccResult.components.length - 1; i >= 0; i--) {
+    for (let i = sccResult.components.length - 1; i >= 0; i -= 1) {
       for (const lexicalInfo of sccResult.components[i]) {
         // load dependencies
         const dependencyInfo = await this.getDependencies(
@@ -895,26 +915,6 @@ export class AnalysisService extends EventEmitter {
     }
 
     return diagnostics;
-  }
-
-  /**
-   * Get the full document in from the individual caches
-   * @param uri document uri to check against
-   */
-  private getDocumentInfo(uri: string): Maybe<DocumentInfo> {
-    const lexicalInfo = this.lexicalCache.get(uri);
-    const semanticInfo = this.semanticCache.get(uri);
-    const otherDiagnostics = this.dependencyCache.get(uri);
-
-    if (
-      !empty(lexicalInfo) &&
-      !empty(semanticInfo) &&
-      !empty(otherDiagnostics)
-    ) {
-      return { lexicalInfo, semanticInfo, dependencyInfo: otherDiagnostics };
-    }
-
-    return undefined;
   }
 
   /**

@@ -20,8 +20,6 @@ import {
   ParameterInformation,
   SignatureInformation,
   SignatureHelp,
-  DocumentSymbolParams,
-  SymbolInformation,
   FoldingRangeParams,
   FoldingRange,
   CancellationToken,
@@ -30,11 +28,7 @@ import {
 } from 'vscode-languageserver';
 import { ClientConfiguration, DiagnosticUri } from './types';
 import { Scanner } from './scanner/scanner';
-import {
-  KsSymbolKind,
-  SymbolTracker,
-  KsBaseSymbol,
-} from './analysis/types';
+import { KsSymbolKind, SymbolTracker, KsBaseSymbol } from './analysis/types';
 import { mockLogger, mockTracer, logException } from './models/logger';
 import { empty } from './utilities/typeGuards';
 import { ScriptFind, AstContext } from './parser/scriptFind';
@@ -54,7 +48,6 @@ import {
   logMapper,
   suffixCompletionItems,
   symbolCompletionItems,
-  toDocumentSymbols as toLangServerSymbols,
 } from './utilities/serverUtils';
 import {
   cleanDiagnostic,
@@ -65,7 +58,7 @@ import {
 import { isValidIdentifier } from './models/tokentypes';
 import { tokenTrackedType } from './typeChecker/utilities/typeUtilities';
 import { TypeKind } from './typeChecker/types';
-import { IoService } from './services/IoService';
+import { IoService } from './services/ioService';
 import { FoldableService } from './services/foldableService';
 import { AnalysisService } from './services/analysisService';
 import { IFindResult } from './parser/types';
@@ -84,6 +77,7 @@ import {
 import { URI } from 'vscode-uri';
 import { debounce } from './utilities/debounce';
 import { CONFIG_DIAGNOSTICS } from './utilities/diagnosticsUtils';
+import { SymbolService } from './services/symbolService';
 
 export class KLS {
   /**
@@ -140,6 +134,11 @@ export class KLS {
   private readonly analysisService: AnalysisService;
 
   /**
+   * A service for providing symbols when requested by the client
+   */
+  private readonly symbolService: SymbolService;
+
+  /**
    * A service to resolve path in kos
    */
   private readonly resolverService: ResolverService;
@@ -187,6 +186,12 @@ export class KLS {
       this.documentService,
       this.resolverService,
     );
+    this.symbolService = new SymbolService(
+      // this.logger,
+      // this.tracer,
+      this.documentService,
+      this.analysisService,
+    );
     this.debouncedCacheDocuments = debounce(
       4000,
       this.cacheDocuments.bind(this),
@@ -206,7 +211,12 @@ export class KLS {
     this.connection.onHover(this.onHover.bind(this));
     this.connection.onReferences(this.onReference.bind(this));
     this.connection.onSignatureHelp(this.onSignatureHelp.bind(this));
-    this.connection.onDocumentSymbol(this.onDocumentSymbol.bind(this));
+    this.connection.onDocumentSymbol(
+      this.symbolService.onDocumentSymbol.bind(this.symbolService),
+    );
+    this.connection.onWorkspaceSymbol(
+      this.symbolService.onWorkspaceSymbol.bind(this.symbolService),
+    );
     this.connection.onDefinition(this.onDefinition.bind(this));
     this.connection.onFoldingRanges(this.onFoldingRange.bind(this));
 
@@ -279,6 +289,7 @@ export class KLS {
         hoverProvider: true,
         referencesProvider: true,
         documentSymbolProvider: true,
+        workspaceSymbolProvider: true,
         definitionProvider: true,
         foldingRangeProvider: true,
       },
@@ -643,27 +654,6 @@ export class KLS {
   }
 
   /**
-   * This handler provides document symbol capabilities. This provides a list of all
-   * symbols that are located within a given document
-   * @param documentSymbol the document to provide symbols for
-   * @param cancellation request cancellation token
-   */
-  private async onDocumentSymbol(
-    documentSymbol: DocumentSymbolParams,
-    cancellation: CancellationToken,
-  ): Promise<Maybe<SymbolInformation[]>> {
-    const { uri } = documentSymbol.textDocument;
-
-    // exit if cancel requested
-    if (cancellation.isCancellationRequested) {
-      return undefined;
-    }
-
-    const entities = await this.getAllFileSymbols(uri);
-    return toLangServerSymbols(entities, uri);
-  }
-
-  /**
    * This handler provides go to definition capabilities. When a client requests a symbol
    * go to definition this provides the location if it exists
    * @param positionParams the position of the definition request
@@ -701,7 +691,7 @@ export class KLS {
       return undefined;
     }
 
-    const documentInfo = await this.analysisService.getInfo(uri);
+    const documentInfo = await this.analysisService.loadInfo(uri);
 
     // exit if cancel requested or no document found
     if (cancellation.isCancellationRequested || empty(documentInfo)) {
@@ -848,7 +838,7 @@ export class KLS {
     uri: string,
     ...contexts: AstContext[]
   ): Promise<Maybe<IFindResult>> {
-    const documentInfo = await this.analysisService.getInfo(uri);
+    const documentInfo = await this.analysisService.loadInfo(uri);
     if (empty(documentInfo)) {
       return undefined;
     }
@@ -868,7 +858,7 @@ export class KLS {
     pos: Position,
     uri: string,
   ): Promise<Maybe<Location>> {
-    const documentInfo = await this.analysisService.getInfo(uri);
+    const documentInfo = await this.analysisService.loadInfo(uri);
     if (empty(documentInfo)) {
       return undefined;
     }
@@ -947,7 +937,7 @@ export class KLS {
     pos: Position,
     uri: string,
   ): Promise<Maybe<Location[]>> {
-    const documentInfo = await this.analysisService.getInfo(uri);
+    const documentInfo = await this.analysisService.loadInfo(uri);
     if (
       empty(documentInfo) ||
       empty(documentInfo.semanticInfo.symbolTable) ||
@@ -1006,7 +996,7 @@ export class KLS {
     pos: Position,
     uri: string,
   ): Promise<KsBaseSymbol[]> {
-    const documentInfo = await this.analysisService.getInfo(uri);
+    const documentInfo = await this.analysisService.loadInfo(uri);
 
     if (empty(documentInfo)) {
       return [];
@@ -1020,7 +1010,7 @@ export class KLS {
    * @param uri document uri
    */
   public async getImportedSymbols(uri: string): Promise<KsBaseSymbol[]> {
-    const documentInfo = await this.analysisService.getInfo(uri);
+    const documentInfo = await this.analysisService.loadInfo(uri);
 
     if (empty(documentInfo)) {
       return [];
@@ -1034,7 +1024,7 @@ export class KLS {
    * @param uri document uri
    */
   public async getAllFileSymbols(uri: string): Promise<KsBaseSymbol[]> {
-    const documentInfo = await this.analysisService.getInfo(uri);
+    const documentInfo = await this.analysisService.loadInfo(uri);
 
     if (empty(documentInfo)) {
       return [];
@@ -1053,7 +1043,7 @@ export class KLS {
     uri: string,
   ): Promise<Maybe<{ tracker: SymbolTracker; index: number }>> {
     // we need the document info to lookup a signature
-    const documentInfo = await this.analysisService.getInfo(uri);
+    const documentInfo = await this.analysisService.loadInfo(uri);
     if (empty(documentInfo)) return undefined;
 
     const { script } = documentInfo.lexicalInfo;

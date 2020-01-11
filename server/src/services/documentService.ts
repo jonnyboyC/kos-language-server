@@ -8,7 +8,7 @@ import {
 } from 'vscode-languageserver';
 import { empty } from '../utilities/typeGuards';
 import { URI } from 'vscode-uri';
-import { IoService } from './IoService';
+import { IoService } from './ioService';
 import { logException, mockTracer } from '../models/logger';
 import { normalizeExtensions } from '../utilities/pathUtils';
 import { EventEmitter } from 'events';

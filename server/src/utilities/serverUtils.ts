@@ -27,7 +27,7 @@ import * as SuffixTerm from '../parser/models/suffixTerm';
 import { IType } from '../typeChecker/types';
 import { tokenTrackedType } from '../typeChecker/utilities/typeUtilities';
 import { structureType } from '../typeChecker/ksTypes/primitives/structure';
-import { IoKind } from '../services/IoService';
+import { IoKind } from '../services/ioService';
 import { DIAGNOSTICS, createDiagnosticUri } from './diagnosticsUtils';
 import { ParseError } from '../parser/models/parserError';
 
@@ -298,9 +298,8 @@ const findContainingSuffixTermTrailer = (
  * @param analyzer analyzer instance
  * @param documentSymbol document identifier
  */
-export const toDocumentSymbols = (
+export const toLangServerSymbols = (
   entities: KsBaseSymbol[],
-  uri: string,
 ): Maybe<SymbolInformation[]> => {
   return entities.map(entity => {
     const kind: Maybe<SymbolKind> = symbolSymbolMapper(entity.tag);
@@ -309,10 +308,9 @@ export const toDocumentSymbols = (
       kind,
       name: entity.name.lexeme,
       location: cleanLocation({
-        uri: entity.name.uri || uri,
+        uri: entity.name.uri,
         range: entity.range,
       }),
-      containerName: 'example',
     } as SymbolInformation;
   });
 };

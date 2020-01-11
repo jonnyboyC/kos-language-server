@@ -19,7 +19,7 @@ import { empty } from '../../src/utilities/typeGuards';
 import { zip } from '../../src/utilities/arrayUtils';
 import { ResolverService } from '../../src/services/resolverService';
 import { basename, join } from 'path';
-import { IoService } from '../../src/services/IoService';
+import { IoService } from '../../src/services/ioService';
 
 const testDir = join(__dirname, '../../../kerboscripts/parser_valid/');
 const loadDir = join(testDir, 'unitTests/loadFiles');
