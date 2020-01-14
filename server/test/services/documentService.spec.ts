@@ -1,19 +1,22 @@
 import {
-  createMockDocConnection,
-  createMockUriResponse,
+  createMockIoService,
+  createMockConnection,
 } from '../utilities/mockServices';
 import { URI } from 'vscode-uri';
 import { DocumentService } from '../../src/services/documentService';
 import { mockLogger, mockTracer } from '../../src/models/logger';
 import {
-  TextDocumentItem,
   TextDocument,
-  VersionedTextDocumentIdentifier,
   Range,
   Position,
-  TextDocumentIdentifier,
   Location,
   TextDocumentContentChangeEvent,
+  DidChangeTextDocumentNotification,
+  DidOpenTextDocumentNotification,
+  DidCloseTextDocumentNotification,
+  DidOpenTextDocumentParams,
+  DidChangeTextDocumentParams,
+  DidCloseTextDocumentParams,
 } from 'vscode-languageserver';
 import { empty } from '../../src/utilities/typeGuards';
 import { zip } from '../../src/utilities/arrayUtils';
@@ -21,23 +24,50 @@ import { ResolverService } from '../../src/services/resolverService';
 import { basename, join } from 'path';
 import { IoService } from '../../src/services/ioService';
 
+const TEST_LANGUAGE_ID = 'kos';
 const testDir = join(__dirname, '../../../kerboscripts/parser_valid/');
 const loadDir = join(testDir, 'unitTests/loadFiles');
 
+function mockOpenDocNotification(config: {
+  uri: string;
+  text: string;
+}): DidOpenTextDocumentParams {
+  return {
+    textDocument: {
+      ...config,
+      languageId: TEST_LANGUAGE_ID,
+      version: 0,
+    },
+  };
+}
+
+function mockChangeDocNotification(config: {
+  uri: string;
+  contentChanges: TextDocumentContentChangeEvent[];
+}): DidChangeTextDocumentParams {
+  const { uri, contentChanges } = config;
+  return { contentChanges, textDocument: { uri, version: 0 } };
+}
+
+function mockCloseDocNotification(uri: string): DidCloseTextDocumentParams {
+  return { textDocument: { uri } };
+}
+
 describe('document service', () => {
   test('ready work', async () => {
-    const mockConnection = createMockDocConnection();
+    const { server } = createMockConnection();
     const files = new Map();
-    const mockIoService = createMockUriResponse(files);
+    const mockIoService = createMockIoService(files);
 
     const baseUri = URI.file('/example/folder');
 
     const docService = new DocumentService(
-      mockConnection,
+      server,
       mockIoService,
       mockLogger,
       mockTracer,
     );
+    docService.listen();
 
     expect(docService.ready()).toBe(false);
     docService.workspaceUri = baseUri;
@@ -45,19 +75,20 @@ describe('document service', () => {
   });
 
   test('getDocument work', () => {
-    const mockConnection = createMockDocConnection();
+    const { server } = createMockConnection();
     const files = new Map();
-    const mockIoService = createMockUriResponse(files);
+    const mockIoService = createMockIoService(files);
 
     const baseUri = URI.file('/example/folder');
 
     const docService = new DocumentService(
-      mockConnection,
+      server,
       mockIoService,
       mockLogger,
       mockTracer,
       baseUri,
     );
+    docService.listen();
 
     const clientUri = URI.file('/example/folder/client.ks');
     const serverUri = URI.file('/example/folder/server.ks');
@@ -110,19 +141,20 @@ describe('document service', () => {
   });
 
   test('getAllDocuments work', () => {
-    const mockConnection = createMockDocConnection();
+    const { server } = createMockConnection();
     const files = new Map();
-    const mockIoService = createMockUriResponse(files);
+    const mockIoService = createMockIoService(files);
 
     const baseUri = URI.file('/example/folder');
 
     const docService = new DocumentService(
-      mockConnection,
+      server,
       mockIoService,
       mockLogger,
       mockTracer,
       baseUri,
     );
+    docService.listen();
 
     const clientUri = URI.file('/example/folder/client.ks');
     const serverUri = URI.file('/example/folder/server.ks');
@@ -149,21 +181,20 @@ describe('document service', () => {
   });
 
   test('load from client', () => {
-    const mockConnection = createMockDocConnection();
+    const { client, server } = createMockConnection();
     const files = new Map();
-    const mockIoService = createMockUriResponse(files);
+    const mockIoService = createMockIoService(files);
 
     const docService = new DocumentService(
-      mockConnection,
+      server,
       mockIoService,
       mockLogger,
       mockTracer,
     );
+    docService.listen();
 
     const serverDocs = docService['serverDocs'];
     const clientDocs = docService['clientDocs'];
-
-    let i = 0;
 
     const uris = [
       URI.file('/example/doc1.ks'),
@@ -173,24 +204,13 @@ describe('document service', () => {
     ];
 
     const docs = ['example 1', 'example 2', 'example 3', 'example 4'];
+    let i = 0;
 
     docService.on('change', document => {
-      expect(document.uri).toBe(uris[i].toString());
-      expect(document.getText()).toBe(docs[i]);
-    });
-
-    for (i = 0; i < uris.length; i += 1) {
-      mockConnection.callOpen({
-        textDocument: TextDocumentItem.create(
-          uris[i].toString(),
-          'kos',
-          1,
-          docs[i],
-        ),
-      });
-
       expect(serverDocs.size).toBe(0);
       expect(clientDocs.size).toBe(i + 1);
+      expect(document.uri).toBe(uris[i].toString());
+      expect(document.getText()).toBe(docs[i]);
 
       for (let j = 0; j <= i; j += 1) {
         const doc = docService.getDocument(uris[j].toString());
@@ -202,6 +222,17 @@ describe('document service', () => {
 
         expect(clientDocs.has(uris[j].toString())).toBe(true);
       }
+      i += 1;
+    });
+
+    for (let i = 0; i < uris.length; i += 1) {
+      client.sendNotification(
+        DidOpenTextDocumentNotification.type,
+        mockOpenDocNotification({
+          uri: uris[i].toString(),
+          text: docs[i],
+        }),
+      );
     }
 
     const documents = docService.getAllDocuments();
@@ -218,19 +249,20 @@ describe('document service', () => {
   });
 
   test('loadDocument works', async () => {
-    const mockConnection = createMockDocConnection();
+    const { server } = createMockConnection();
     const files = new Map();
-    const mockIoResponse = createMockUriResponse(files);
+    const mockIoResponse = createMockIoService(files);
 
     const baseUri = URI.file('/example/folder').toString();
 
     const docService = new DocumentService(
-      mockConnection,
+      server,
       mockIoResponse,
       mockLogger,
       mockTracer,
       URI.parse(baseUri),
     );
+    docService.listen();
 
     const serverDocs = docService['serverDocs'];
     const clientDocs = docService['clientDocs'];
@@ -288,19 +320,20 @@ describe('document service', () => {
   });
 
   test('on change event', async () => {
-    const mockConnection = createMockDocConnection();
+    const { client, server } = createMockConnection();
     const files = new Map();
-    const mockIoService = createMockUriResponse(files);
+    const mockIoService = createMockIoService(files);
 
     const baseUri = URI.file('/example/folder').toString();
 
     const docService = new DocumentService(
-      mockConnection,
+      server,
       mockIoService,
       mockLogger,
       mockTracer,
       URI.parse(baseUri),
     );
+    docService.listen();
 
     const serverDocs = docService['serverDocs'];
     const clientDocs = docService['clientDocs'];
@@ -315,80 +348,93 @@ describe('document service', () => {
       if (first) {
         expect(document.uri).toBe(uri.toString());
         expect(document.getText()).toBe(content);
+
+        expect(serverDocs.size).toBe(0);
+        expect(clientDocs.size).toBe(1);
+
+        const clientDoc = docService.getDocument(uri.toString());
+        expect(clientDoc).toBeDefined();
+        if (!empty(clientDoc)) {
+          expect(clientDoc.getText()).toBe(content);
+        }
+
         first = false;
       } else {
         expect(document.uri).toBe(uri.toString());
         expect(document.getText()).toBe(afterEdit);
+
+        expect(serverDocs.size).toBe(0);
+        expect(clientDocs.size).toBe(1);
+
+        const clientDoc = docService.getDocument(uri.toString());
+        expect(clientDoc).toBeDefined();
+        if (!empty(clientDoc)) {
+          expect(clientDoc.getText()).toBe(afterEdit);
+        }
       }
     });
 
     docService.on('close', closeUri => {
       expect(closeUri).toBe(uri.toString());
+
+      expect(serverDocs.size).toBe(1);
+      expect(clientDocs.size).toBe(0);
+
+      const clientDoc = docService.getDocument(uri.toString());
+      expect(clientDoc).toBeDefined();
+      if (!empty(clientDoc)) {
+        expect(clientDoc.getText()).toBe(afterEdit);
+      }
     });
 
-    mockConnection.callOpen({
-      textDocument: TextDocumentItem.create(uri.toString(), 'kos', 1, content),
-    });
+    debugger;
+    client.sendNotification(
+      DidOpenTextDocumentNotification.type,
+      mockOpenDocNotification({
+        uri: uri.toString(),
+        text: content,
+      }),
+    );
 
-    expect(serverDocs.size).toBe(0);
-    expect(clientDocs.size).toBe(1);
+    client.sendNotification(
+      DidChangeTextDocumentNotification.type,
+      mockChangeDocNotification({
+        uri: uri.toString(),
+        contentChanges: [
+          {
+            range: Range.create(Position.create(0, 7), Position.create(0, 7)),
+            rangeLength: 0,
+            text: ' edited',
+          },
+        ],
+      }),
+    );
 
-    let clientDoc = docService.getDocument(uri.toString());
-    expect(clientDoc).toBeDefined();
-    if (!empty(clientDoc)) {
-      expect(clientDoc.getText()).toBe(content);
-    }
+    client.sendNotification(
+      DidCloseTextDocumentNotification.type,
+      mockCloseDocNotification(uri.toString()),
+    );
 
-    mockConnection.callChange({
-      textDocument: VersionedTextDocumentIdentifier.create(uri.toString(), 1),
-      contentChanges: [
-        {
-          range: Range.create(Position.create(0, 7), Position.create(0, 7)),
-          rangeLength: 0,
-          text: ' edited',
-        },
-      ],
-    });
-
-    expect(serverDocs.size).toBe(0);
-    expect(clientDocs.size).toBe(1);
-
-    clientDoc = docService.getDocument(uri.toString());
-    expect(clientDoc).toBeDefined();
-    if (!empty(clientDoc)) {
-      expect(clientDoc.getText()).toBe(afterEdit);
-    }
-
-    mockConnection.callClose({
-      textDocument: TextDocumentIdentifier.create(uri.toString()),
-    });
-
-    expect(serverDocs.size).toBe(1);
-    expect(clientDocs.size).toBe(0);
-
-    clientDoc = docService.getDocument(uri.toString());
-    expect(clientDoc).toBeDefined();
-    if (!empty(clientDoc)) {
-      expect(clientDoc.getText()).toBe(afterEdit);
-    }
+    debugger;
   });
 
   test('load extension', async () => {
-    const mockConnection = createMockDocConnection();
+    const { server } = createMockConnection();
     const files = new Map();
-    const mockUriResponse = createMockUriResponse(files);
+    const mockUriResponse = createMockIoService(files);
 
     const baseUri = URI.file('/example/folder').toString();
     const callingUri = URI.file('/example/folder/example.ks').toString();
     const resolverService = new ResolverService(baseUri);
 
     const docService = new DocumentService(
-      mockConnection,
+      server,
       mockUriResponse,
       mockLogger,
       mockTracer,
       URI.parse(baseUri),
     );
+    docService.listen();
 
     const serverDocs = docService['serverDocs'];
     const clientDocs = docService['clientDocs'];
@@ -440,19 +486,20 @@ describe('document service', () => {
 
   describe('configChange Event', () => {
     test('when config is opened', () => {
-      const mockConnection = createMockDocConnection();
+      const { client, server } = createMockConnection();
       const files = new Map();
-      const mockIoService = createMockUriResponse(files);
+      const mockIoService = createMockIoService(files);
 
       const baseUri = URI.file('/example/folder');
 
       const docService = new DocumentService(
-        mockConnection,
+        server,
         mockIoService,
         mockLogger,
         mockTracer,
         baseUri,
       );
+      docService.listen();
 
       const configContents = '{ "example": "example" }';
       const configUri = URI.file('/example/folder/ksconfig.json');
@@ -461,30 +508,30 @@ describe('document service', () => {
         expect(text.getText()).toBe(configContents);
       });
 
-      mockConnection.callOpen({
-        textDocument: TextDocumentItem.create(
-          configUri.toString(),
-          'kos',
-          1,
-          configContents,
-        ),
-      });
+      client.sendNotification(
+        DidOpenTextDocumentNotification.type,
+        mockOpenDocNotification({
+          uri: configUri.toString(),
+          text: configContents,
+        }),
+      );
     });
 
     test('when config is changed', () => {
-      const mockConnection = createMockDocConnection();
+      const { client, server } = createMockConnection();
       const files = new Map();
-      const mockIoService = createMockUriResponse(files);
+      const mockIoService = createMockIoService(files);
 
       const baseUri = URI.file('/example/folder');
 
       const docService = new DocumentService(
-        mockConnection,
+        server,
         mockIoService,
         mockLogger,
         mockTracer,
         baseUri,
       );
+      docService.listen();
 
       const configContents = '{ "example": "example" }';
       const configUri = URI.file('/example/folder/ksconfig.json');
@@ -512,29 +559,30 @@ describe('document service', () => {
         );
       });
 
-      mockConnection.callChange({
-        textDocument: VersionedTextDocumentIdentifier.create(
-          configUri.toString(),
-          0,
-        ),
-        contentChanges: edits,
-      });
+      client.sendNotification(
+        DidChangeTextDocumentNotification.type,
+        mockChangeDocNotification({
+          uri: configUri.toString(),
+          contentChanges: edits,
+        }),
+      );
     });
   });
 
   test('cacheDocument works', async () => {
-    const mockConnection = createMockDocConnection();
+    const { server } = createMockConnection();
     const mockUriResponse = new IoService();
 
     const baseUri = URI.file(loadDir);
 
     const docService = new DocumentService(
-      mockConnection,
+      server,
       mockUriResponse,
       mockLogger,
       mockTracer,
       URI.parse(baseUri.toString()),
     );
+    docService.listen();
 
     await docService.cacheDocuments();
 

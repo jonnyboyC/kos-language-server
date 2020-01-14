@@ -1,8 +1,7 @@
 import { URI } from 'vscode-uri';
 import { TextDocument } from 'vscode-languageserver';
 import {
-  createMockDocumentService,
-  createMockDocConnection,
+  createMockDocumentService, createMockConnection,
 } from '../utilities/mockServices';
 import { ResolverService } from '../../src/services/resolverService';
 import { AnalysisService } from '../../src/services/analysisService';
@@ -354,10 +353,10 @@ describe('analysis service', () => {
   });
 
   test('load directory', async () => {
-    const connection = createMockDocConnection();
+    const { server } = createMockConnection();
     const ioService = new IoService();
     const docService = new DocumentService(
-      connection,
+      server,
       ioService,
       mockLogger,
       mockTracer,
