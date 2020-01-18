@@ -1,3 +1,13 @@
+# [1.1.0] (2020-1-18)
+# Features
+- **Workspace Symbol Search** Symbols can now be searched in the whole workspace. On VsCode int the command palette using `#SymbolToSearch` will return a list of possible match.
+
+# Bug Fixes
+- **Symbol References** Previously the language server did not correctly respect the include declaration parameter. This now works as intended.
+
+## Other
+- **New Symbol Service** Symbol related request have been moved to their own service. Primarily this just facilitates easier testing separation of concerns.
+
 # [1.0.1] (2020-1-3)
 # Bug Fixes
 The the version command `kls --version` or `kls -v` should now always determine the correct version to report. The server will now read it's own package json to it is reporting the correct semver.

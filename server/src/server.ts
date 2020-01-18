@@ -48,6 +48,7 @@ const kls = new KLS(
   logger,
   connection.tracer,
   connection,
+  version,
   defaultServerConfiguration,
   defaultWorkspaceConfiguration,
 );

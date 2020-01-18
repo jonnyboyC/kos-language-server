@@ -1,12 +1,12 @@
 import {
   IConnection,
-  TextDocument,
   DidChangeTextDocumentParams,
   DidOpenTextDocumentParams,
   DidCloseTextDocumentParams,
   TextDocumentItem,
   TextDocumentContentChangeEvent,
 } from 'vscode-languageserver';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 import { empty } from '../utilities/typeGuards';
 import { URI } from 'vscode-uri';
 import { IoService } from './ioService';
@@ -289,55 +289,11 @@ export class DocumentService extends EventEmitter {
       return false;
     }
 
-    const validChanges: Required<TextDocumentContentChangeEvent>[] = [];
-    for (const change of params.contentChanges) {
-      // TODO can't find instance where range is undefined
-      if (empty(change.range)) {
-        this.logger.error(
-          'Document context change had undefined range for this change',
-        );
-        this.logger.error(JSON.stringify(change));
-        continue;
-      } else {
-        validChanges.push(change as any);
-      }
-    }
-
     // generate a new updated doc, falling back if overlapping edits
-    let updatedDoc: TextDocument = document;
-    try {
-      updatedDoc = this.applyChanges(document, validChanges);
-    } catch (err) {
-      updatedDoc = this.applyChangesFallback(document, validChanges);
-      this.logger.warn(err.toString());
-    }
+    const updatedDoc = this.applyChanges(document, params.contentChanges);
 
     // set document cache
     return this.setCache(params, updatedDoc);
-  }
-
-  /**
-   * Apply all text document changes
-   * @param document original document
-   * @param changes changes to apply
-   */
-  private applyChanges(
-    document: TextDocument,
-    changes: Required<TextDocumentContentChangeEvent>[],
-  ): TextDocument {
-    // apply all edits
-    return TextDocument.create(
-      document.uri,
-      document.languageId,
-      document.version,
-      TextDocument.applyEdits(
-        document,
-        changes.map(({ range, text }) => ({
-          range,
-          newText: text,
-        })),
-      ),
-    );
   }
 
   /**
@@ -345,28 +301,33 @@ export class DocumentService extends EventEmitter {
    * @param document original document
    * @param changes changes to apply
    */
-  private applyChangesFallback(
+  private applyChanges(
     document: TextDocument,
-    changes: Required<TextDocumentContentChangeEvent>[],
+    changes: TextDocumentContentChangeEvent[],
   ): TextDocument {
     let updatedDoc = document;
 
-    for (const { range, text } of changes) {
-      // apply edits sequentially
+    // apply edits sequentially
+    for (const change of changes) {
+      const content =
+        'range' in change
+          ? TextDocument.applyEdits(updatedDoc, [
+              {
+                range: change.range,
+                newText: change.text,
+              },
+            ])
+          : change.text;
+
       updatedDoc = TextDocument.create(
         document.uri,
         document.languageId,
         document.version,
-        TextDocument.applyEdits(updatedDoc, [
-          {
-            range,
-            newText: text,
-          },
-        ]),
+        content,
       );
     }
 
-    return updatedDoc
+    return updatedDoc;
   }
 
   /**

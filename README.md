@@ -22,7 +22,7 @@ Currently the vscode client 0.14.0 implements the follow features
 - brace detection
 - code snippets
 - diagnostics on parsing errors
-- go to definition and symbols and run statements
+- go to definition for symbols and run statements
 - symbol auto complete
 - suffix auto complete
 - manual completion triggering
@@ -30,6 +30,7 @@ Currently the vscode client 0.14.0 implements the follow features
 - unreachable code detection
 - function signature help
 - file symbol lookup
+- workspace symbol lookup
 - identify symbols that don't exist
 - identify unused symbols
 - identify symbols that shadow (hide) an existing variable
