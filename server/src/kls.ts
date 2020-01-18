@@ -19,6 +19,7 @@ import {
   FoldingRange,
   CancellationToken,
   TextDocument,
+  WorkDoneProgressCreateRequest,
 } from 'vscode-languageserver';
 import { ClientConfiguration, DiagnosticUri } from './types';
 import { KsSymbolKind, SymbolTracker, KsBaseSymbol } from './analysis/types';
@@ -33,6 +34,7 @@ import {
   serverName,
   keywordCompletions,
   DEFAULT_BODIES,
+  languageServer,
 } from './utilities/constants';
 import { binarySearchIndex, rangeContains } from './utilities/positionUtils';
 import { DocumentService } from './services/documentService';
@@ -80,6 +82,11 @@ export class KLS {
    * Connection to the client
    */
   private readonly connection: Connection;
+
+  /**
+   * Server version
+   */
+  private readonly version: string;
 
   /**
    * The current set of lint rules
@@ -139,11 +146,13 @@ export class KLS {
     logger: ILogger = mockLogger,
     tracer: ITracer = mockTracer,
     connection: Connection,
+    version: string,
     defaultServerConfiguration: ServerConfiguration,
     defaultWorkspaceConfiguration: WorkspaceConfiguration,
   ) {
     this.logger = logger;
     this.tracer = tracer;
+    this.version = version;
     this.lintManager = LintManager.fromRules(
       [...defaultWorkspaceConfiguration.lintRules!.values()],
       new Set(Object.values(CONFIG_DIAGNOSTICS)),
@@ -248,6 +257,13 @@ export class KLS {
     this.onConfigChange(this.configurationService);
 
     return {
+      serverInfo: {
+        // The name of the server as defined by the server.
+        name: languageServer,
+
+        // The servers's version as defined by the server.
+        version: this.version,
+      },
       capabilities: {
         textDocumentSync: TextDocumentSyncKind.Incremental,
 
@@ -565,6 +581,7 @@ export class KLS {
   ) {
     this.resolverService.rootVolume = rootVolumeUri;
     this.documentService.workspaceUri = workspaceUri;
+
     const diagnostics = await this.analysisService.loadDirectory();
     this.sendDiagnostics(diagnostics);
   }

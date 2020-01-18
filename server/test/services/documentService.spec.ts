@@ -554,7 +554,7 @@ describe('document service', () => {
       docService.on('configChange', document => {
         expect(document.getText()).toBe(
           TextDocument.applyEdits(configDoc, [
-            { range: edits[0].range!, newText: edits[0].text },
+            { range: (edits[0] as any).range, newText: edits[0].text },
           ]),
         );
       });
