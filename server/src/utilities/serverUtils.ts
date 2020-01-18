@@ -14,10 +14,16 @@ import {
   Diagnostic,
   DiagnosticSeverity,
   Position,
+  DocumentSymbol,
 } from 'vscode-languageserver';
 import { empty } from './typeGuards';
 import { KsSymbolKind, KsBaseSymbol } from '../analysis/types';
-import { cleanLocation, cleanToken, cleanCompletion } from './clean';
+import {
+  cleanLocation,
+  cleanToken,
+  cleanCompletion,
+  cleanRange,
+} from './clean';
 import { CommanderStatic } from 'commander';
 import { DiagnosticUri } from '../types';
 import { mapper } from './mapper';
@@ -27,7 +33,7 @@ import * as SuffixTerm from '../parser/models/suffixTerm';
 import { IType } from '../typeChecker/types';
 import { tokenTrackedType } from '../typeChecker/utilities/typeUtilities';
 import { structureType } from '../typeChecker/ksTypes/primitives/structure';
-import { IoKind } from '../services/IoService';
+import { IoKind } from '../services/ioService';
 import { DIAGNOSTICS, createDiagnosticUri } from './diagnosticsUtils';
 import { ParseError } from '../parser/models/parserError';
 
@@ -298,24 +304,41 @@ const findContainingSuffixTermTrailer = (
  * @param analyzer analyzer instance
  * @param documentSymbol document identifier
  */
-export const toDocumentSymbols = (
+export function toSymbolInformation(
   entities: KsBaseSymbol[],
-  uri: string,
-): Maybe<SymbolInformation[]> => {
+): Maybe<SymbolInformation[]> {
   return entities.map(entity => {
     const kind: Maybe<SymbolKind> = symbolSymbolMapper(entity.tag);
 
-    return {
+    const symbol: SymbolInformation = {
       kind,
       name: entity.name.lexeme,
       location: cleanLocation({
-        uri: entity.name.uri || uri,
+        uri: entity.name.uri,
         range: entity.range,
       }),
-      containerName: 'example',
-    } as SymbolInformation;
+    };
+
+    return symbol;
   });
-};
+}
+
+export function toDocumentSymbol(
+  entities: KsBaseSymbol[],
+): Maybe<DocumentSymbol[]> {
+  return entities.map(entity => {
+    const kind: Maybe<SymbolKind> = symbolSymbolMapper(entity.tag);
+
+    const symbol: DocumentSymbol = {
+      kind,
+      name: entity.name.lexeme,
+      range: cleanRange(entity.range),
+      selectionRange: cleanRange(entity.name),
+    };
+
+    return symbol;
+  });
+}
 
 /**
  * Convert parser error to diagnostic

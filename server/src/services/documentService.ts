@@ -5,10 +5,11 @@ import {
   DidOpenTextDocumentParams,
   DidCloseTextDocumentParams,
   TextDocumentItem,
+  TextDocumentContentChangeEvent,
 } from 'vscode-languageserver';
 import { empty } from '../utilities/typeGuards';
 import { URI } from 'vscode-uri';
-import { IoService } from './IoService';
+import { IoService } from './ioService';
 import { logException, mockTracer } from '../models/logger';
 import { normalizeExtensions } from '../utilities/pathUtils';
 import { EventEmitter } from 'events';
@@ -107,7 +108,12 @@ export class DocumentService extends EventEmitter {
     this.logger = logger;
     this.tracer = tracer;
     this.workspaceUri = workspaceUri;
+  }
 
+  /**
+   * Attach to listener to connection events
+   */
+  public listen(): void {
     this.conn.onDidChangeTextDocument(this.onChangeHandler.bind(this));
     this.conn.onDidOpenTextDocument(this.onOpenHandler.bind(this));
     this.conn.onDidCloseTextDocument(this.onCloseHandler.bind(this));
@@ -283,9 +289,7 @@ export class DocumentService extends EventEmitter {
       return false;
     }
 
-    // apply edits one at a time
-    let updatedDoc: TextDocument = document;
-
+    const validChanges: Required<TextDocumentContentChangeEvent>[] = [];
     for (const change of params.contentChanges) {
       // TODO can't find instance where range is undefined
       if (empty(change.range)) {
@@ -294,27 +298,75 @@ export class DocumentService extends EventEmitter {
         );
         this.logger.error(JSON.stringify(change));
         continue;
+      } else {
+        validChanges.push(change as any);
       }
+    }
 
-      // apply edits
-      const text = TextDocument.applyEdits(document, [
-        {
-          range: change.range,
-          newText: change.text,
-        },
-      ]);
-
-      // create new document
-      updatedDoc = TextDocument.create(
-        document.uri,
-        document.languageId,
-        document.version,
-        text,
-      );
+    // generate a new updated doc, falling back if overlapping edits
+    let updatedDoc: TextDocument = document;
+    try {
+      updatedDoc = this.applyChanges(document, validChanges);
+    } catch (err) {
+      updatedDoc = this.applyChangesFallback(document, validChanges);
+      this.logger.warn(err.toString());
     }
 
     // set document cache
     return this.setCache(params, updatedDoc);
+  }
+
+  /**
+   * Apply all text document changes
+   * @param document original document
+   * @param changes changes to apply
+   */
+  private applyChanges(
+    document: TextDocument,
+    changes: Required<TextDocumentContentChangeEvent>[],
+  ): TextDocument {
+    // apply all edits
+    return TextDocument.create(
+      document.uri,
+      document.languageId,
+      document.version,
+      TextDocument.applyEdits(
+        document,
+        changes.map(({ range, text }) => ({
+          range,
+          newText: text,
+        })),
+      ),
+    );
+  }
+
+  /**
+   * Apply all text sequentially
+   * @param document original document
+   * @param changes changes to apply
+   */
+  private applyChangesFallback(
+    document: TextDocument,
+    changes: Required<TextDocumentContentChangeEvent>[],
+  ): TextDocument {
+    let updatedDoc = document;
+
+    for (const { range, text } of changes) {
+      // apply edits sequentially
+      updatedDoc = TextDocument.create(
+        document.uri,
+        document.languageId,
+        document.version,
+        TextDocument.applyEdits(updatedDoc, [
+          {
+            range,
+            newText: text,
+          },
+        ]),
+      );
+    }
+
+    return updatedDoc
   }
 
   /**

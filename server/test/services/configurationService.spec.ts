@@ -5,15 +5,22 @@ import {
 } from '../../src/config/models/serverConfiguration';
 import { defaultWorkspaceConfiguration } from '../../src/config/models/workspaceConfiguration';
 import {
-  createMockConfigConnection,
   createMockDocumentService,
+  createMockConnection,
 } from '../utilities/mockServices';
 import { serverName } from '../../src/utilities/constants';
-import { TextDocument } from 'vscode-languageserver';
+import {
+  TextDocument,
+  IConnection,
+  DidChangeConfigurationNotification,
+  DidChangeConfigurationParams,
+} from 'vscode-languageserver';
 import { URI } from 'vscode-uri';
 import { parseWorkspaceConfiguration } from '../../src/config/workspaceConfigParser';
+import { ClientConfiguration } from '../../src/types';
 
-let mockConnection: ReturnType<typeof createMockConfigConnection>;
+let client: IConnection;
+let server: IConnection;
 let mockDocumentService: ReturnType<typeof createMockDocumentService>;
 let configurationService: ConfigurationService;
 const capableServerConfiguration = defaultServerConfiguration.merge({
@@ -23,14 +30,26 @@ const capableServerConfiguration = defaultServerConfiguration.merge({
   },
 });
 
+function mockChangeConfigNotification(
+  clientConfig: ClientConfiguration,
+): DidChangeConfigurationParams {
+  return {
+    settings: {
+      [serverName]: clientConfig,
+    },
+  };
+}
+
 beforeEach(() => {
-  mockConnection = createMockConfigConnection();
+  const connections = createMockConnection();
+  client = connections.client;
+  server = connections.server;
   mockDocumentService = createMockDocumentService(new Map());
 
   configurationService = new ConfigurationService(
     capableServerConfiguration,
     defaultWorkspaceConfiguration,
-    mockConnection,
+    server,
     mockDocumentService,
   );
 });
@@ -74,11 +93,10 @@ describe('configurationService', () => {
         },
       );
 
-      mockConnection.callConfig({
-        settings: {
-          [serverName]: clientConfig,
-        },
-      });
+      client.sendNotification(
+        DidChangeConfigurationNotification.type,
+        mockChangeConfigNotification(clientConfig),
+      );
     });
   });
 
