@@ -29,6 +29,7 @@ Currently the kos-language-server 1.0.0 implements the follow features
     - suffixes where the type can be resolved
     - can be manually triggered
 - Document Symbols for quick navigation to properties in the document.
+- Workspace Symbols 
 - Diagnostics (Validation) are pushed for all documents
   - syntax errors
   - semantic errors such as:

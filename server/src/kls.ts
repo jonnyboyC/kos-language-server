@@ -19,7 +19,6 @@ import {
   FoldingRange,
   CancellationToken,
   TextDocument,
-  WorkDoneProgressCreateRequest,
 } from 'vscode-languageserver';
 import { ClientConfiguration, DiagnosticUri } from './types';
 import { KsSymbolKind, SymbolTracker, KsBaseSymbol } from './analysis/types';
