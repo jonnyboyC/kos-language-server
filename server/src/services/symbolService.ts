@@ -17,10 +17,17 @@ import {
   IConnection,
   Hover,
   DocumentHighlight,
+  DocumentHighlightKind,
 } from 'vscode-languageserver';
-import { KsBaseSymbol, KsSymbolKind } from '../analysis/types';
+import {
+  KsBaseSymbol,
+  KsSymbolKind,
+  KsSet,
+  IKsDeclared,
+  KsSymbol,
+} from '../analysis/types';
 import { SymbolTable } from '../analysis/models/symbolTable';
-import { toLangServerSymbols } from '../utilities/serverUtils';
+import { toSymbolInformation } from '../utilities/serverUtils';
 import { notEmpty, empty } from '../utilities/typeGuards';
 import { flatten } from '../utilities/arrayUtils';
 import { levenshteinDistance } from '../utilities/levenshtein';
@@ -35,6 +42,7 @@ import { Scanner } from '../scanner/scanner';
 import { isValidIdentifier } from '../models/tokentypes';
 import { tokenTrackedType } from '../typeChecker/utilities/typeUtilities';
 import { IFindResult } from '../parser/types';
+import { IType } from '../typeChecker/types';
 
 export type SymbolConnection = Pick<
   IConnection,
@@ -46,6 +54,12 @@ export type SymbolConnection = Pick<
   | 'onHover'
   | 'onDocumentHighlight'
 >;
+
+interface SymbolLocations {
+  declaration: IKsDeclared<KsSymbol, IType>;
+  usages: Location[];
+  sets: KsSet[];
+}
 
 export class SymbolService extends EventEmitter {
   /**
@@ -127,7 +141,7 @@ export class SymbolService extends EventEmitter {
     }
 
     const entities = await this.loadAllTableSymbols(uri);
-    return toLangServerSymbols(entities);
+    return toSymbolInformation(entities);
   }
 
   /**
@@ -178,7 +192,7 @@ export class SymbolService extends EventEmitter {
 
     // get includes then top levenshtein distance symbols
     const langSymbols =
-      toLangServerSymbols([...new Set([...includeSymbols, ...topSymbols])]) ??
+      toSymbolInformation([...new Set([...includeSymbols, ...topSymbols])]) ??
       [];
 
     return langSymbols.filter(symbol => symbol.name.length > query.length - 1);
@@ -216,7 +230,7 @@ export class SymbolService extends EventEmitter {
     reference: ReferenceParams,
     cancellation: CancellationToken,
   ): Promise<Maybe<Location[]>> {
-    const { position } = reference;
+    const { position, context } = reference;
     const { uri } = reference.textDocument;
 
     // exit if cancel requested
@@ -225,7 +239,16 @@ export class SymbolService extends EventEmitter {
     }
 
     const locations = await this.getSymbolLocations(position, uri);
-    return locations && locations.map(loc => cleanLocation(loc));
+    if (empty(locations)) {
+      return undefined;
+    }
+
+    const { declaration, sets, usages } = locations;
+    const refLocations = context.includeDeclaration
+      ? [declaration, ...sets, ...usages]
+      : [...sets, ...usages];
+
+    return refLocations.map(loc => cleanLocation(loc));
   }
 
   /**
@@ -238,6 +261,7 @@ export class SymbolService extends EventEmitter {
     rename: RenameParams,
     cancellation: CancellationToken,
   ): Promise<Maybe<WorkspaceEdit>> {
+    debugger;
     const { newName, position, textDocument } = rename;
     const scanner = new Scanner(newName);
 
@@ -273,7 +297,13 @@ export class SymbolService extends EventEmitter {
       return undefined;
     }
 
-    for (const location of locations) {
+    const editLocations: Location[] = [
+      locations.declaration,
+      ...locations.usages,
+      ...locations.sets,
+    ];
+
+    for (const location of editLocations) {
       if (!changes.hasOwnProperty(location.uri)) {
         changes[location.uri] = [];
       }
@@ -331,7 +361,7 @@ export class SymbolService extends EventEmitter {
           // Note doesn't does do much other than format it as code
           // may look into adding type def syntax highlighting
           language: 'kos',
-          value: `(${symbolKind}) ${label}: ${type.toString()} `,
+          value: `(${symbolKind}) ${label}: ${type.toString()}`,
         },
         range: {
           start: cleanPosition(token.start),
@@ -350,28 +380,66 @@ export class SymbolService extends EventEmitter {
   public async onDocumentHighlight(
     positionParams: TextDocumentPositionParams,
     cancellation: CancellationToken,
-  ): Promise<DocumentHighlight[]> {
+  ): Promise<Maybe<DocumentHighlight[]>> {
     const { position } = positionParams;
     const { uri } = positionParams.textDocument;
 
     // exit if cancel requested
     if (cancellation.isCancellationRequested) {
-      return [];
+      return undefined;
     }
 
     const locations = await this.getSymbolLocations(position, uri);
-    return locations?.map(({ range }) => ({ range: cleanRange(range) })) ?? [];
+    if (empty(locations)) {
+      return undefined;
+    }
+
+    const { declaration, sets, usages } = locations;
+    const highlights: DocumentHighlight[] = [];
+    if (declaration.uri === uri) {
+      highlights.push(
+        this.toHighlight(declaration, DocumentHighlightKind.Write),
+      );
+    }
+
+    highlights.push(
+      ...sets
+        .filter(set => set.uri === uri)
+        .map(set => this.toHighlight(set, DocumentHighlightKind.Write)),
+    );
+    highlights.push(
+      ...usages
+        .filter(usage => usage.uri === uri)
+        .map(usage => this.toHighlight(usage, DocumentHighlightKind.Read)),
+    );
+    return highlights;
+  }
+
+  /**
+   * Take a location and turn it into a document highlight
+   * @param location location of symbol
+   * @param kind highlight kind
+   */
+  private toHighlight(
+    location: Pick<DocumentHighlight, 'range'>,
+    kind: DocumentHighlightKind,
+  ): DocumentHighlight {
+    return {
+      kind,
+      range: cleanRange(location.range),
+    };
   }
 
   /**
    * Get all usage locations in all files
    * @param pos position in document
    * @param uri uri of document
+   * @param includeDeclaration Should this include the declaration
    */
   private async getSymbolLocations(
     pos: Position,
     uri: string,
-  ): Promise<Maybe<Location[]>> {
+  ): Promise<Maybe<SymbolLocations>> {
     const result = await this.findToken(pos, uri);
     const table = await this.loadSymbolTable(uri);
 
@@ -386,9 +454,11 @@ export class SymbolService extends EventEmitter {
       return undefined;
     }
 
-    return [tracker.declared, ...tracker.usages, ...tracker.sets].filter(
-      location => location.uri !== builtIn,
-    );
+    return {
+      declaration: tracker.declared,
+      usages: tracker.usages,
+      sets: tracker.sets,
+    };
   }
 
   /**

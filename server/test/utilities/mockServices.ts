@@ -74,6 +74,7 @@ export const createMockDocumentService = (
     getAllDocuments(): TextDocument[] {
       return [...documents.values()];
     },
+    async cacheDocuments() {},
     async loadDocument(uri: string): Promise<Maybe<TextDocument>> {
       return Promise.resolve(documents.get(uri));
     },
