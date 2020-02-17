@@ -182,10 +182,10 @@ describe('WorkspaceConfigParser', () => {
           test('It parses', () => {
             const multiple = makeDocument(
               `{
-                "linting": { 
+                "linting": {
                   "symbol-may-not-exist": "off"
                   "symbol-may-not-exist-closure": "error"
-                } 
+                }
               }`,
             );
 
