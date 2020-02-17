@@ -227,7 +227,7 @@ describe('symbol service', () => {
     describe('when not pointing to a symbol', () => {
       test('returns null', async () => {
         const { client, analysisService } = dependencies;
-        analysisService.loadDirectory();
+        await analysisService.loadDirectory();
         symbolService.listen();
 
         const response = await client.sendRequest(
@@ -247,7 +247,7 @@ describe('symbol service', () => {
       describe('when including declaration', () => {
         test('it find the reference', async () => {
           const { client, analysisService } = dependencies;
-          analysisService.loadDirectory();
+          await analysisService.loadDirectory();
           symbolService.listen();
 
           const response = await client.sendRequest(
@@ -281,7 +281,7 @@ describe('symbol service', () => {
       describe('when excluding declaration', () => {
         test('it find the reference', async () => {
           const { client, analysisService } = dependencies;
-          analysisService.loadDirectory();
+          await analysisService.loadDirectory();
           symbolService.listen();
 
           const response = await client.sendRequest(
@@ -313,7 +313,7 @@ describe('symbol service', () => {
       describe('when including declaration', () => {
         test('it find the reference', async () => {
           const { client, analysisService } = dependencies;
-          analysisService.loadDirectory();
+          await analysisService.loadDirectory();
           symbolService.listen();
 
           const response = await client.sendRequest(
@@ -350,7 +350,7 @@ describe('symbol service', () => {
       describe('when excluding declaration', () => {
         test('it find the reference', async () => {
           const { client, analysisService } = dependencies;
-          analysisService.loadDirectory();
+          await analysisService.loadDirectory();
           symbolService.listen();
 
           const response = await client.sendRequest(
@@ -382,7 +382,7 @@ describe('symbol service', () => {
   describe('when requesting document symbols', () => {
     test('it returns the files symbols', async () => {
       const { client, analysisService } = dependencies;
-      analysisService.loadDirectory();
+      await analysisService.loadDirectory();
       symbolService.listen();
 
       const response = await client.sendRequest(
@@ -418,7 +418,7 @@ describe('symbol service', () => {
     describe('when not pointing to a symbol', () => {
       test('return null', async () => {
         const { client, analysisService } = dependencies;
-        analysisService.loadDirectory();
+        await analysisService.loadDirectory();
         symbolService.listen();
 
         const response = await client.sendRequest(
@@ -436,7 +436,7 @@ describe('symbol service', () => {
     describe('when pointing to a run statement', () => {
       test('return resolved path', async () => {
         const { client, analysisService } = dependencies;
-        analysisService.loadDirectory();
+        await analysisService.loadDirectory();
         symbolService.listen();
 
         const response = await client.sendRequest(
@@ -457,7 +457,7 @@ describe('symbol service', () => {
     describe('when the symbol is defined in this file', () => {
       test('it returns the symbol definition location', async () => {
         const { client, analysisService } = dependencies;
-        analysisService.loadDirectory();
+        await analysisService.loadDirectory();
         symbolService.listen();
 
         const response = await client.sendRequest(
@@ -478,7 +478,7 @@ describe('symbol service', () => {
     describe('when the symbol is defined in another file', () => {
       test('it returns the symbol definition location', async () => {
         const { client, analysisService } = dependencies;
-        analysisService.loadDirectory();
+        await analysisService.loadDirectory();
         symbolService.listen();
 
         const response = await client.sendRequest(
@@ -498,10 +498,10 @@ describe('symbol service', () => {
   });
 
   describe('when requesting workspace symbol definition', () => {
-    describe('when a bad query', async () => {
+    describe('when a bad query', () => {
       test('returns null', async () => {
         const { client, analysisService } = dependencies;
-        analysisService.loadDirectory();
+        await analysisService.loadDirectory();
         symbolService.listen();
 
         const response = await client.sendRequest(
@@ -513,10 +513,10 @@ describe('symbol service', () => {
       });
     });
 
-    describe('when a good query', async () => {
+    describe('when a good query', () => {
       test('returns relevant symbols', async () => {
         const { client, analysisService } = dependencies;
-        analysisService.loadDirectory();
+        await analysisService.loadDirectory();
         symbolService.listen();
 
         const response = await client.sendRequest(
@@ -545,7 +545,7 @@ describe('symbol service', () => {
     describe('when not pointing to a symbol', () => {
       test('return resolved path', async () => {
         const { client, analysisService } = dependencies;
-        analysisService.loadDirectory();
+        await analysisService.loadDirectory();
         symbolService.listen();
 
         const response = await client.sendRequest(
@@ -563,7 +563,7 @@ describe('symbol service', () => {
     describe('when hovering over a symbol', () => {
       test('it returns a hover type definition', async () => {
         const { client, analysisService } = dependencies;
-        analysisService.loadDirectory();
+        await analysisService.loadDirectory();
         symbolService.listen();
 
         const response = await client.sendRequest(
@@ -587,7 +587,7 @@ describe('symbol service', () => {
     describe('when hovering over a literal', () => {
       test('it returns the literal definition location', async () => {
         const { client, analysisService } = dependencies;
-        analysisService.loadDirectory();
+        await analysisService.loadDirectory();
         symbolService.listen();
 
         const response = await client.sendRequest(
@@ -613,7 +613,7 @@ describe('symbol service', () => {
     describe('when not pointing to a symbol', () => {
       test('returns null', async () => {
         const { client, analysisService } = dependencies;
-        analysisService.loadDirectory();
+        await analysisService.loadDirectory();
         symbolService.listen();
 
         const response = await client.sendRequest(
@@ -631,7 +631,7 @@ describe('symbol service', () => {
     describe('when in the same file', () => {
       test('it returns the locations of the symbol', async () => {
         const { client, analysisService } = dependencies;
-        analysisService.loadDirectory();
+        await analysisService.loadDirectory();
         symbolService.listen();
 
         const response = await client.sendRequest(
@@ -661,7 +661,7 @@ describe('symbol service', () => {
     describe('when in difference files', () => {
       test('it returns the location of the symbol', async () => {
         const { client, analysisService } = dependencies;
-        analysisService.loadDirectory();
+        await analysisService.loadDirectory();
         symbolService.listen();
 
         const response = await client.sendRequest(
@@ -690,7 +690,7 @@ describe('symbol service', () => {
     describe('when not pointing to a symbol', () => {
       test('returns null', async () => {
         const { client, analysisService } = dependencies;
-        analysisService.loadDirectory();
+        await analysisService.loadDirectory();
         symbolService.listen();
 
         const response = await client.sendRequest(
@@ -709,7 +709,7 @@ describe('symbol service', () => {
     describe('when pointing to a symbol', () => {
       test('returns text edits', async () => {
         const { client, analysisService } = dependencies;
-        analysisService.loadDirectory();
+        await analysisService.loadDirectory();
         symbolService.listen();
 
         const response = await client.sendRequest(
