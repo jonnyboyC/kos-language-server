@@ -11,8 +11,10 @@ import program from 'commander';
 import { typeInitializer } from './typeChecker/initialize';
 import { defaultWorkspaceConfiguration } from './config/models/workspaceConfiguration';
 import { defaultServerConfiguration } from './config/models/serverConfiguration';
+import packageJson from '../package.json';
 
-const version = '0.13.0';
+const defaultVersion = '1.0.0';
+const version = packageJson?.version ?? defaultVersion;
 
 program
   .version(version, '-v --version')
@@ -46,6 +48,7 @@ const kls = new KLS(
   logger,
   connection.tracer,
   connection,
+  version,
   defaultServerConfiguration,
   defaultWorkspaceConfiguration,
 );

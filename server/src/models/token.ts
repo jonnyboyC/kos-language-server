@@ -6,8 +6,8 @@ import { SymbolTracker } from '../analysis/types';
 /**
  * Represents  an atomic unit of the kerboscript language
  */
-export class Token implements TokenBase {
-  public readonly type: TokenType;
+export class Token<T extends TokenType = TokenType> implements TokenBase<T> {
+  public readonly type: T;
   public readonly lexeme: string;
   public readonly literal: any;
   public readonly start: Position;
@@ -20,12 +20,13 @@ export class Token implements TokenBase {
   public tracker: Maybe<SymbolTracker>;
 
   constructor(
-    type: TokenType,
+    type: T,
     lexeme: string,
     literal: any,
     start: Position,
     end: Position,
-    uri: string) {
+    uri: string,
+  ) {
     this.type = type;
     this.lexeme = lexeme;
     this.literal = literal;
@@ -36,7 +37,7 @@ export class Token implements TokenBase {
   }
 
   /**
-   * A lowercase version of the lexeme for case insenstive comparisions
+   * A lowercase version of the lexeme for case insensitive comparisons
    */
   public get lookup(): string {
     return this.lexeme.toLowerCase();

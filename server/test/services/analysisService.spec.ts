@@ -1,14 +1,13 @@
 import { URI } from 'vscode-uri';
 import { TextDocument } from 'vscode-languageserver';
 import {
-  createMockDocumentService,
-  createMockDocConnection,
+  createMockDocumentService, createMockConnection,
 } from '../utilities/mockServices';
 import { ResolverService } from '../../src/services/resolverService';
 import { AnalysisService } from '../../src/services/analysisService';
 import { mockLogger, mockTracer } from '../../src/models/logger';
 import { empty } from '../../src/utilities/typeGuards';
-import { IoService } from '../../src/services/IoService';
+import { IoService } from '../../src/services/ioService';
 import { DocumentService } from '../../src/services/documentService';
 import { join } from 'path';
 import { DocumentInfo, DiagnosticUri } from '../../src/types';
@@ -50,7 +49,7 @@ describe('analysis service', () => {
       uri,
       (documents.get(uri) as TextDocument).getText(),
     );
-    const documentInfo = await analysisService.getInfo(uri);
+    const documentInfo = await analysisService.loadInfo(uri);
 
     expect(diagnostics).toHaveLength(0);
     expect(documentInfo).toBeDefined();
@@ -84,7 +83,7 @@ describe('analysis service', () => {
       resolverService,
     );
 
-    const documentInfo = await analysisService.getInfo(uri);
+    const documentInfo = await analysisService.loadInfo(uri);
 
     expect(documentInfo).toBeDefined();
 
@@ -193,8 +192,8 @@ describe('analysis service', () => {
       uri1,
       (documents.get(uri1) as TextDocument).getText(),
     );
-    const documentInfo1 = await analysisService.getInfo(uri1);
-    const documentInfo2 = await analysisService.getInfo(uri2);
+    const documentInfo1 = await analysisService.loadInfo(uri1);
+    const documentInfo2 = await analysisService.loadInfo(uri2);
 
     expect(diagnostics).toHaveLength(0);
     expect(documentInfo1).toBeDefined();
@@ -262,28 +261,28 @@ describe('analysis service', () => {
       uri1,
       (documents.get(uri1) as TextDocument).getText(),
     );
-    const documentInfo11 = await analysisService.getInfo(uri1);
+    const documentInfo11 = await analysisService.loadInfo(uri1);
 
     // load from client example2.ks
     const diagnostics21 = await analysisService.analyzeDocument(
       uri2,
       (documents.get(uri2) as TextDocument).getText(),
     );
-    const documentInfo21 = await analysisService.getInfo(uri2);
+    const documentInfo21 = await analysisService.loadInfo(uri2);
 
     // update load of example1.ks
     const diagnostics12 = await analysisService.analyzeDocument(
       uri1,
       (documents.get(uri1) as TextDocument).getText(),
     );
-    const documentInfo12 = await analysisService.getInfo(uri1);
+    const documentInfo12 = await analysisService.loadInfo(uri1);
 
     // update load of example2.ks
     const diagnostics22 = await analysisService.analyzeDocument(
       uri2,
       (documents.get(uri2) as TextDocument).getText(),
     );
-    const documentInfo22 = await analysisService.getInfo(uri2);
+    const documentInfo22 = await analysisService.loadInfo(uri2);
 
     expect(diagnostics11).toHaveLength(0);
     expect(diagnostics12).toHaveLength(0);
@@ -322,10 +321,10 @@ describe('analysis service', () => {
         diagnostics22,
       );
 
-      expect(analysisService['getDocumentInfo'](uri1)).not.toStrictEqual(
+      expect(analysisService['getInfo'](uri1)).not.toStrictEqual(
         documentInfo11,
       );
-      expect(analysisService['getDocumentInfo'](uri2)).not.toStrictEqual(
+      expect(analysisService['getInfo'](uri2)).not.toStrictEqual(
         documentInfo21,
       );
     }
@@ -344,20 +343,20 @@ describe('analysis service', () => {
         1,
       );
 
-      expect(analysisService['getDocumentInfo'](uri1)).toStrictEqual(
+      expect(analysisService['getInfo'](uri1)).toStrictEqual(
         documentInfo12,
       );
-      expect(analysisService['getDocumentInfo'](uri2)).toStrictEqual(
+      expect(analysisService['getInfo'](uri2)).toStrictEqual(
         documentInfo22,
       );
     }
   });
 
   test('load directory', async () => {
-    const connection = createMockDocConnection();
+    const { server } = createMockConnection();
     const ioService = new IoService();
     const docService = new DocumentService(
-      connection,
+      server,
       ioService,
       mockLogger,
       mockTracer,

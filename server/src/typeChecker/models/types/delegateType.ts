@@ -33,6 +33,11 @@ export class DelegateType implements IType {
   public readonly anyType: boolean;
 
   /**
+   * Is this delegate the none type
+   */
+  public readonly noneType: boolean;
+
+  /**
    * What is the type of this delegate
    */
   public readonly kind: TypeKind;
@@ -59,6 +64,7 @@ export class DelegateType implements IType {
     this.function = type;
     this.access = { get: true, set: true };
     this.anyType = false;
+    this.noneType = false;
     this.name = 'delegate';
     this.typeTracker = new TypeTracker(new KsSuffix(this.name), this);
     this.kind = TypeKind.delegate;
@@ -143,6 +149,22 @@ export class DelegateType implements IType {
    */
   public suffixes(): Map<string, IType> {
     return delegateType.suffixes();
+  }
+
+  /**
+   * Does this type have the requested suffix
+   * @param name name of the suffix
+   */
+  public hasSuffix(name: string): boolean {
+    return delegateType.hasSuffix(name);
+  }
+
+  /**
+   * Attempt to access a suffix from this type
+   * @param name name of the suffix
+   */
+  public getSuffix(name: string): Maybe<IType> {
+    return delegateType.getSuffix(name);
   }
 
   /**

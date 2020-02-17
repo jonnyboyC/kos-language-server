@@ -3,9 +3,10 @@ import { Position } from 'vscode-languageserver';
 import { Expr } from './expr';
 import { Stmt } from './stmt';
 import { Token } from '../../models/token';
+import { empty } from '../../utilities/typeGuards';
 
 export class ParseError implements IParseError {
-  public readonly inner: IParseError[];
+  public readonly inner: ParseError[];
 
   public readonly token: Token;
   public readonly failed: FailedConstructor;
@@ -48,6 +49,27 @@ export class FailedConstructor {
     public stmt: Maybe<Constructor<Stmt>>,
     public expr: Maybe<Constructor<Expr>>,
   ) {}
+}
+
+export type NodeConstructor =
+  | Constructor<Expr>
+  | Constructor<Stmt>
+  | Constructor;
+
+export const constructorToFailed = (constructor?: NodeConstructor) => {
+  if (empty(constructor)) {
+    return failedUnknown();
+  }
+
+  if (constructor.prototype instanceof Expr) {
+    return failedExpr(constructor as any);
+  }
+
+  if (constructor.prototype instanceof Stmt) {
+    return failedStmt(constructor as any);
+  }
+
+  return failedUnknown();
 }
 
 export const failedExpr = (

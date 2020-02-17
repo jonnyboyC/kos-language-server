@@ -280,6 +280,12 @@ const lintTemplates: LintRule = {
           owned: [],
         },
         {
+          rule: 'type-missing',
+          level: 'hint',
+          diagnostics: [DIAGNOSTICS.TYPE_MISSING],
+          owned: [],
+        },
+        {
           rule: 'type-not-function',
           level: 'hint',
           diagnostics: [DIAGNOSTICS.TYPE_NOT_FUNCTION],
@@ -298,9 +304,28 @@ const lintTemplates: LintRule = {
           owned: [],
         },
         {
-          rule: 'type-not-setter',
-          level: 'warning',
+          rule: 'type-no-setter',
+          level: 'hint',
           diagnostics: [DIAGNOSTICS.TYPE_NO_SETTER],
+          owned: [],
+        },
+        {
+          rule: 'type-no-getter',
+          level: 'hint',
+          diagnostics: [DIAGNOSTICS.TYPE_NO_GETTER],
+          owned: [],
+        },
+      ],
+    },
+    {
+      rule: 'directives',
+      level: 'info',
+      diagnostics: [],
+      owned: [
+        {
+          rule: 'directive-invalid-include',
+          level: 'info',
+          diagnostics: [DIAGNOSTICS.DIRECTIVE_INVALID_INCLUDE],
           owned: [],
         },
       ],

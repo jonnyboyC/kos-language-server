@@ -1,1 +1,5 @@
-{}
+{
+  "linting": {
+    "type-checking": "info"
+  }
+}

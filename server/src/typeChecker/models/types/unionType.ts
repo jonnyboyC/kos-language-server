@@ -34,6 +34,11 @@ export class UnionType implements IType {
   public readonly anyType: boolean;
 
   /**
+   * Is this union the none type
+   */
+  public readonly noneType: boolean;
+
+  /**
    * What is the type of this union
    */
   public readonly kind: TypeKind;
@@ -82,7 +87,8 @@ export class UnionType implements IType {
     this.param = isParameter;
     this.types = sortedTypes;
     this.name = 'Union';
-    this.anyType = sortedTypes.every(type => type.anyType);
+    this.anyType = sortedTypes.some(type => type.anyType);
+    this.noneType = sortedTypes.some(type => type.noneType);
     this.access = {
       get: sortedTypes.every(type => type.access.get),
       set: sortedTypes.every(type => type.access.set),
@@ -231,6 +237,31 @@ export class UnionType implements IType {
     }
 
     return suffixes;
+  }
+
+  /**
+   * Does this type have the requested suffix TODO this may be an issue where
+   * a union has two suffixes of the same name but not the same type
+   * @param name name of the suffix
+   */
+  public hasSuffix(name: string): boolean {
+    return this.types.every(type => type.hasSuffix(name));
+  }
+
+  /**
+   * Attempt to retrieve a suffix from this type TODO this may be an issue where
+   * a union has two suffixes of the same name but not the same type
+   * @param name name of the suffix
+   */
+  public getSuffix(name: string): Maybe<IType> {
+    const suffix = this.types[0].getSuffix(name);
+    if (empty(suffix)) {
+      return suffix;
+    }
+
+    return this.types.slice(1).every(type => type.getSuffix(name) === suffix)
+      ? suffix
+      : undefined;
   }
 
   /**

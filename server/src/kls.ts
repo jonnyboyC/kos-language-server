@@ -12,30 +12,16 @@ import {
   CompletionParams,
   CompletionItem,
   TextDocumentPositionParams,
-  RenameParams,
-  WorkspaceEdit,
-  TextEdit,
-  DocumentHighlight,
-  ReferenceParams,
   ParameterInformation,
   SignatureInformation,
   SignatureHelp,
-  DocumentSymbolParams,
-  SymbolInformation,
   FoldingRangeParams,
   FoldingRange,
   CancellationToken,
-  Hover,
   TextDocument,
 } from 'vscode-languageserver';
 import { ClientConfiguration, DiagnosticUri } from './types';
-import { Scanner } from './scanner/scanner';
-import {
-  KsSymbol,
-  KsSymbolKind,
-  SymbolTracker,
-  KsBaseSymbol,
-} from './analysis/types';
+import { KsSymbolKind, SymbolTracker, KsBaseSymbol } from './analysis/types';
 import { mockLogger, mockTracer, logException } from './models/logger';
 import { empty } from './utilities/typeGuards';
 import { ScriptFind, AstContext } from './parser/scriptFind';
@@ -47,6 +33,7 @@ import {
   serverName,
   keywordCompletions,
   DEFAULT_BODIES,
+  languageServer,
 } from './utilities/constants';
 import { binarySearchIndex, rangeContains } from './utilities/positionUtils';
 import { DocumentService } from './services/documentService';
@@ -55,18 +42,9 @@ import {
   logMapper,
   suffixCompletionItems,
   symbolCompletionItems,
-  toDocumentSymbols as toLangServerSymbols,
 } from './utilities/serverUtils';
-import {
-  cleanDiagnostic,
-  cleanRange,
-  cleanPosition,
-  cleanLocation,
-} from './utilities/clean';
-import { isValidIdentifier } from './models/tokentypes';
-import { tokenTrackedType } from './typeChecker/utilities/typeUtilities';
+import { cleanDiagnostic } from './utilities/clean';
 import { TypeKind } from './typeChecker/types';
-import { IoService } from './services/IoService';
 import { FoldableService } from './services/foldableService';
 import { AnalysisService } from './services/analysisService';
 import { IFindResult } from './parser/types';
@@ -85,6 +63,8 @@ import {
 import { URI } from 'vscode-uri';
 import { debounce } from './utilities/debounce';
 import { CONFIG_DIAGNOSTICS } from './utilities/diagnosticsUtils';
+import { SymbolService } from './services/symbolService';
+import { IoService } from './services/ioService';
 
 export class KLS {
   /**
@@ -101,6 +81,11 @@ export class KLS {
    * Connection to the client
    */
   private readonly connection: Connection;
+
+  /**
+   * Server version
+   */
+  private readonly version: string;
 
   /**
    * The current set of lint rules
@@ -141,6 +126,11 @@ export class KLS {
   private readonly analysisService: AnalysisService;
 
   /**
+   * A service for providing symbols when requested by the client
+   */
+  private readonly symbolService: SymbolService;
+
+  /**
    * A service to resolve path in kos
    */
   private readonly resolverService: ResolverService;
@@ -155,11 +145,13 @@ export class KLS {
     logger: ILogger = mockLogger,
     tracer: ITracer = mockTracer,
     connection: Connection,
+    version: string,
     defaultServerConfiguration: ServerConfiguration,
     defaultWorkspaceConfiguration: WorkspaceConfiguration,
   ) {
     this.logger = logger;
     this.tracer = tracer;
+    this.version = version;
     this.lintManager = LintManager.fromRules(
       [...defaultWorkspaceConfiguration.lintRules!.values()],
       new Set(Object.values(CONFIG_DIAGNOSTICS)),
@@ -188,6 +180,13 @@ export class KLS {
       this.documentService,
       this.resolverService,
     );
+    this.symbolService = new SymbolService(
+      connection,
+      this.resolverService,
+      this.ioService,
+      this.documentService,
+      this.analysisService,
+    );
     this.debouncedCacheDocuments = debounce(
       4000,
       this.cacheDocuments.bind(this),
@@ -202,14 +201,11 @@ export class KLS {
     this.connection.onInitialized(this.onInitialized.bind(this));
     this.connection.onCompletion(this.onCompletion.bind(this));
     this.connection.onCompletionResolve(this.onCompletionResolve.bind(this));
-    this.connection.onRenameRequest(this.onRenameRequest.bind(this));
-    this.connection.onDocumentHighlight(this.onDocumentHighlight.bind(this));
-    this.connection.onHover(this.onHover.bind(this));
-    this.connection.onReferences(this.onReference.bind(this));
     this.connection.onSignatureHelp(this.onSignatureHelp.bind(this));
-    this.connection.onDocumentSymbol(this.onDocumentSymbol.bind(this));
-    this.connection.onDefinition(this.onDefinition.bind(this));
     this.connection.onFoldingRanges(this.onFoldingRange.bind(this));
+
+    this.documentService.listen();
+    this.symbolService.listen();
 
     this.documentService.on('change', this.onChange.bind(this));
     this.analysisService.on('propagate', this.sendDiagnostics.bind(this));
@@ -260,6 +256,13 @@ export class KLS {
     this.onConfigChange(this.configurationService);
 
     return {
+      serverInfo: {
+        // The name of the server as defined by the server.
+        name: languageServer,
+
+        // The servers's version as defined by the server.
+        version: this.version,
+      },
       capabilities: {
         textDocumentSync: TextDocumentSyncKind.Incremental,
 
@@ -280,6 +283,7 @@ export class KLS {
         hoverProvider: true,
         referencesProvider: true,
         documentSymbolProvider: true,
+        workspaceSymbolProvider: true,
         definitionProvider: true,
         foldingRangeProvider: true,
       },
@@ -387,167 +391,6 @@ export class KLS {
   }
 
   /**
-   * This handler provider rename capabilities. This allows a client to highlight
-   * as symbol and provide a new name that will change for all known symbols
-   * @param rename information describing what and where a rename should occur
-   * @param cancellation request cancellation token
-   */
-  private async onRenameRequest(
-    rename: RenameParams,
-    cancellation: CancellationToken,
-  ): Promise<Maybe<WorkspaceEdit>> {
-    const { newName, position, textDocument } = rename;
-    const scanner = new Scanner(newName);
-
-    // exit if cancel requested
-    if (cancellation.isCancellationRequested) {
-      return undefined;
-    }
-
-    const { tokens, scanDiagnostics: scanErrors } = scanner.scanTokens();
-
-    // check if rename is valid
-    if (
-      scanErrors.length > 0 ||
-      tokens.length !== 1 ||
-      !isValidIdentifier(tokens[0].type)
-    ) {
-      return undefined;
-    }
-
-    // exit if cancel requested
-    if (cancellation.isCancellationRequested) {
-      return undefined;
-    }
-
-    const locations = await this.getUsageLocations(position, textDocument.uri);
-    if (empty(locations)) {
-      return undefined;
-    }
-    const changes: PropType<WorkspaceEdit, 'changes'> = {};
-
-    // exit if cancel requested
-    if (cancellation.isCancellationRequested) {
-      return undefined;
-    }
-
-    for (const location of locations) {
-      if (!changes.hasOwnProperty(location.uri)) {
-        changes[location.uri] = [];
-      }
-
-      changes[location.uri].push(TextEdit.replace(location.range, newName));
-    }
-
-    return { changes };
-  }
-
-  /**
-   * This handler provides highlight within a requested document. This allows the client
-   * to highlight and symbol and other instances of that symbol to also highlight.
-   * @param positionParams the position of the highlight request
-   * @param cancellation request cancellation token
-   */
-  private async onDocumentHighlight(
-    positionParams: TextDocumentPositionParams,
-    cancellation: CancellationToken,
-  ): Promise<DocumentHighlight[]> {
-    const { position } = positionParams;
-    const { uri } = positionParams.textDocument;
-
-    // exit if cancel requested
-    if (cancellation.isCancellationRequested) {
-      return [];
-    }
-
-    const locations = await this.getFileUsageRanges(position, uri);
-    return empty(locations)
-      ? []
-      : locations.map(range => ({ range: cleanRange(range) }));
-  }
-
-  /**
-   * This handler provides on hover capability for symbols in a document. This allows additional
-   * information to be displayed to the user about symbols throughout the document
-   * @param positionParams the position of the hover request
-   * @param cancellation request cancellation token
-   */
-  private async onHover(
-    positionParams: TextDocumentPositionParams,
-    cancellation: CancellationToken,
-  ): Promise<Maybe<Hover>> {
-    const { position } = positionParams;
-    const { uri } = positionParams.textDocument;
-
-    // exit if cancel requested
-    if (cancellation.isCancellationRequested) {
-      return undefined;
-    }
-
-    const result = await this.findToken(position, uri);
-
-    if (empty(result)) {
-      return undefined;
-    }
-
-    const { token } = result;
-    const type = tokenTrackedType(token);
-
-    const { tracker } = token;
-    let label: string;
-    let symbolKind: string;
-
-    if (!empty(tracker)) {
-      symbolKind = KsSymbolKind[tracker.declared.symbol.tag];
-
-      const { name } = tracker.declared.symbol;
-      label = typeof name === 'string' ? name : name.lexeme;
-    } else {
-      symbolKind = 'literal';
-      label = token.lexeme;
-    }
-
-    if (empty(type)) {
-      return undefined;
-    }
-
-    return {
-      contents: {
-        // Note doesn't does do much other than format it as code
-        // may look into adding type def syntax highlighting
-        language: 'kos',
-        value: `(${symbolKind}) ${label}: ${type.toString()} `,
-      },
-      range: {
-        start: cleanPosition(token.start),
-        end: cleanPosition(token.end),
-      },
-    };
-  }
-
-  /**
-   * This handler provides reference capabilities to symbols in a document. This allows a client
-   * to identify all positions that a symbol is used in the document or attached documents
-   * @param reference parameters describing the reference request
-   * @param cancellation request cancellation token
-   */
-  private async onReference(
-    reference: ReferenceParams,
-    cancellation: CancellationToken,
-  ): Promise<Maybe<Location[]>> {
-    const { position } = reference;
-    const { uri } = reference.textDocument;
-
-    // exit if cancel requested
-    if (cancellation.isCancellationRequested) {
-      return undefined;
-    }
-
-    const locations = await this.getUsageLocations(position, uri);
-    return locations && locations.map(loc => cleanLocation(loc));
-  }
-
-  /**
    * This handler provides signature help suffixes and function within the document. This
    * provides extra context to the client such as the current parameter
    * @param positionParams the position of the signature request
@@ -644,49 +487,6 @@ export class KLS {
   }
 
   /**
-   * This handler provides document symbol capabilities. This provides a list of all
-   * symbols that are located within a given document
-   * @param documentSymbol the document to provide symbols for
-   * @param cancellation request cancellation token
-   */
-  private async onDocumentSymbol(
-    documentSymbol: DocumentSymbolParams,
-    cancellation: CancellationToken,
-  ): Promise<Maybe<SymbolInformation[]>> {
-    const { uri } = documentSymbol.textDocument;
-
-    // exit if cancel requested
-    if (cancellation.isCancellationRequested) {
-      return undefined;
-    }
-
-    const entities = await this.getAllFileSymbols(uri);
-    return toLangServerSymbols(entities, uri);
-  }
-
-  /**
-   * This handler provides go to definition capabilities. When a client requests a symbol
-   * go to definition this provides the location if it exists
-   * @param positionParams the position of the definition request
-   * @param cancellation request cancellation token
-   */
-  private async onDefinition(
-    positionParams: TextDocumentPositionParams,
-    cancellation: CancellationToken,
-  ): Promise<Maybe<Location>> {
-    const { position } = positionParams;
-    const { uri } = positionParams.textDocument;
-
-    // exit if cancel requested
-    if (cancellation.isCancellationRequested) {
-      return undefined;
-    }
-
-    const location = await this.getDeclarationLocation(position, uri);
-    return location && cleanLocation(location);
-  }
-
-  /**
    * This handler provide folding region capabilities. The client will ask for available folding
    * region in which this will respond with the ranges defined by #region and #endregion
    * @param foldingParams the document to preform folding analysis on
@@ -702,15 +502,18 @@ export class KLS {
       return undefined;
     }
 
-    const documentInfo = await this.analysisService.getInfo(uri);
+    const documentInfo = await this.analysisService.loadInfo(uri);
 
     // exit if cancel requested or no document found
     if (cancellation.isCancellationRequested || empty(documentInfo)) {
       return undefined;
     }
 
-    const { script, regions } = documentInfo.lexicalInfo;
-    return this.foldableService.findRegions(script, regions);
+    const { script, directives } = documentInfo.lexicalInfo;
+    return this.foldableService.findRegions(script, [
+      ...directives.region,
+      ...directives.endRegion,
+    ]);
   }
 
   /**
@@ -777,6 +580,7 @@ export class KLS {
   ) {
     this.resolverService.rootVolume = rootVolumeUri;
     this.documentService.workspaceUri = workspaceUri;
+
     const diagnostics = await this.analysisService.loadDirectory();
     this.sendDiagnostics(diagnostics);
   }
@@ -846,7 +650,7 @@ export class KLS {
     uri: string,
     ...contexts: AstContext[]
   ): Promise<Maybe<IFindResult>> {
-    const documentInfo = await this.analysisService.getInfo(uri);
+    const documentInfo = await this.analysisService.loadInfo(uri);
     if (empty(documentInfo)) {
       return undefined;
     }
@@ -866,7 +670,7 @@ export class KLS {
     pos: Position,
     uri: string,
   ): Promise<Maybe<Location>> {
-    const documentInfo = await this.analysisService.getInfo(uri);
+    const documentInfo = await this.analysisService.loadInfo(uri);
     if (empty(documentInfo)) {
       return undefined;
     }
@@ -941,11 +745,11 @@ export class KLS {
    * @param pos position in document
    * @param uri uri of document
    */
-  public async getUsageLocations(
+  public async getSymbolLocations(
     pos: Position,
     uri: string,
   ): Promise<Maybe<Location[]>> {
-    const documentInfo = await this.analysisService.getInfo(uri);
+    const documentInfo = await this.analysisService.loadInfo(uri);
     if (
       empty(documentInfo) ||
       empty(documentInfo.semanticInfo.symbolTable) ||
@@ -973,27 +777,9 @@ export class KLS {
       return undefined;
     }
 
-    return tracker.usages
-      .map(usage => usage as Location)
-      .concat(tracker.declared.symbol.name)
-      .filter(location => location.uri !== builtIn);
-  }
-
-  /**
-   * Get all usage ranges in a provide file
-   * @param pos position in document
-   * @param uri uri of document
-   */
-  public async getFileUsageRanges(
-    pos: Position,
-    uri: string,
-  ): Promise<Maybe<Range[]>> {
-    const locations = await this.getUsageLocations(pos, uri);
-    if (empty(locations)) {
-      return locations;
-    }
-
-    return locations.filter(loc => loc.uri === uri).map(loc => loc.range);
+    return [tracker.declared, ...tracker.usages, ...tracker.sets].filter(
+      location => location.uri !== builtIn,
+    );
   }
 
   /**
@@ -1005,7 +791,7 @@ export class KLS {
     pos: Position,
     uri: string,
   ): Promise<KsBaseSymbol[]> {
-    const documentInfo = await this.analysisService.getInfo(uri);
+    const documentInfo = await this.analysisService.loadInfo(uri);
 
     if (empty(documentInfo)) {
       return [];
@@ -1019,7 +805,7 @@ export class KLS {
    * @param uri document uri
    */
   public async getImportedSymbols(uri: string): Promise<KsBaseSymbol[]> {
-    const documentInfo = await this.analysisService.getInfo(uri);
+    const documentInfo = await this.analysisService.loadInfo(uri);
 
     if (empty(documentInfo)) {
       return [];
@@ -1032,8 +818,8 @@ export class KLS {
    * Get all symbols in a provided file
    * @param uri document uri
    */
-  public async getAllFileSymbols(uri: string): Promise<KsSymbol[]> {
-    const documentInfo = await this.analysisService.getInfo(uri);
+  public async getAllFileSymbols(uri: string): Promise<KsBaseSymbol[]> {
+    const documentInfo = await this.analysisService.loadInfo(uri);
 
     if (empty(documentInfo)) {
       return [];
@@ -1052,7 +838,7 @@ export class KLS {
     uri: string,
   ): Promise<Maybe<{ tracker: SymbolTracker; index: number }>> {
     // we need the document info to lookup a signature
-    const documentInfo = await this.analysisService.getInfo(uri);
+    const documentInfo = await this.analysisService.loadInfo(uri);
     if (empty(documentInfo)) return undefined;
 
     const { script } = documentInfo.lexicalInfo;

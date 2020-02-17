@@ -12,6 +12,7 @@ import { TypeTracker } from '../../../analysis/models/typeTracker';
 
 export class VariadicType implements IType {
   public readonly anyType: boolean;
+  public readonly noneType: boolean;
   public readonly name: string;
   public readonly access: Access;
   public readonly kind: TypeKind;
@@ -23,6 +24,7 @@ export class VariadicType implements IType {
     this.access = { get: false, set: false };
     this.kind = TypeKind.variadic;
     this.anyType = false;
+    this.noneType = false;
   }
 
   public isSubtypeOf(type: IType): boolean {
@@ -57,6 +59,12 @@ export class VariadicType implements IType {
   }
   public suffixes(): Map<string, IType> {
     return new Map();
+  }
+  public hasSuffix(_: string): boolean {
+    return false;
+  }
+  public getSuffix(_: string): Maybe<IType> {
+    return undefined;
   }
   public getOperator(
     _: OperatorKind,

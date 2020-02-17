@@ -327,18 +327,19 @@ export class SymbolTableBuilder {
 
   /**
    * Add a new variable symbol to the table
-   * @param scopeType the requested scope type
+   * @param scopeKind the requested scope type
    * @param token token for the requested variable
    * @param type type to declare variable as
    */
   public declareVariable(
-    scopeType: ScopeKind,
+    scopeKind: ScopeKind,
     token: Token,
+    range: Range,
     type?: IType,
   ): Maybe<Diagnostic> {
     const conflictTracker = this.lookupKind(
       token.lookup,
-      scopeType,
+      scopeKind,
       KsSymbolKind.variable,
     );
 
@@ -350,7 +351,7 @@ export class SymbolTableBuilder {
     let diagnostic: Maybe<Diagnostic>;
 
     // if global we can't shadow
-    if (scopeType === ScopeKind.global) {
+    if (scopeKind === ScopeKind.global) {
       diagnostic = undefined;
 
       // if local check for shadowing hints
@@ -369,9 +370,9 @@ export class SymbolTableBuilder {
           );
     }
 
-    const scopeNode = this.selectScopeNode(scopeType);
+    const scopeNode = this.selectScopeNode(scopeKind);
     const tracker = new BasicTracker(
-      new KsVariable(scopeType, token),
+      new KsVariable(scopeKind, token, range),
       this.uri,
       type,
     );
@@ -388,7 +389,7 @@ export class SymbolTableBuilder {
 
   /**
    * Add a new function symbol to the table
-   * @param scopeType the requested scope type
+   * @param scopeKind the requested scope type
    * @param token token for the requested function
    * @param requiredParameters required parameters for the function
    * @param optionalParameters optional parameters for the function
@@ -396,8 +397,9 @@ export class SymbolTableBuilder {
    * @param type type to declare function as
    */
   public declareFunction(
-    scopeType: ScopeKind,
+    scopeKind: ScopeKind,
     token: Token,
+    range: Range,
     requiredParameters: number,
     optionalParameters: number,
     returnValue: boolean,
@@ -405,7 +407,7 @@ export class SymbolTableBuilder {
   ): Maybe<Diagnostic> {
     const conflictTracker = this.lookupKind(
       token.lookup,
-      scopeType,
+      scopeKind,
       KsSymbolKind.function,
     );
 
@@ -417,7 +419,7 @@ export class SymbolTableBuilder {
     let diagnostic: Maybe<Diagnostic>;
 
     // if global we can't shadow
-    if (scopeType === ScopeKind.global) {
+    if (scopeKind === ScopeKind.global) {
       diagnostic = undefined;
 
       // if local check for shadowing hints
@@ -436,11 +438,12 @@ export class SymbolTableBuilder {
           );
     }
 
-    const scopeNode = this.selectScopeNode(scopeType);
+    const scopeNode = this.selectScopeNode(scopeKind);
     const tracker = new BasicTracker(
       new KsFunction(
-        scopeType,
+        scopeKind,
         token,
+        range,
         requiredParameters,
         optionalParameters,
         returnValue,
@@ -461,18 +464,19 @@ export class SymbolTableBuilder {
 
   /**
    * Add a new lock symbol to the table
-   * @param scopeType the requested scope type
+   * @param scopeKind the requested scope type
    * @param token token for the requested lock
    * @param type type to declare lock as
    */
   public declareLock(
-    scopeType: ScopeKind,
+    scopeKind: ScopeKind,
     token: Token,
+    range: Range,
     type?: IType,
   ): Maybe<Diagnostic> {
     const conflictTracker = this.lookupKind(
       token.lookup,
-      scopeType,
+      scopeKind,
       KsSymbolKind.lock,
     );
 
@@ -484,7 +488,7 @@ export class SymbolTableBuilder {
     let diagnostic: Maybe<Diagnostic>;
 
     // if global we can't shadow
-    if (scopeType === ScopeKind.global) {
+    if (scopeKind === ScopeKind.global) {
       diagnostic = undefined;
 
       // if local check for shadowing hints
@@ -503,9 +507,9 @@ export class SymbolTableBuilder {
           );
     }
 
-    const scopeNode = this.selectScopeNode(scopeType);
+    const scopeNode = this.selectScopeNode(scopeKind);
     const tracker = new BasicTracker(
-      new KsLock(scopeType, token),
+      new KsLock(scopeKind, token, range),
       this.uri,
       type,
     );
@@ -522,18 +526,18 @@ export class SymbolTableBuilder {
 
   /**
    * Add a new parameter symbol to the table
-   * @param scopeType the requested scope type
+   * @param scopeKind the requested scope type
    * @param token token for the requested parameter
    * @param defaulted is the parameter defaulted
    */
   public declareParameter(
-    scopeType: ScopeKind,
+    scopeKind: ScopeKind,
     token: Token,
-    defaulted: boolean,
+    range: Range,
   ): Maybe<Diagnostic> {
     const conflictTracker = this.lookupKind(
       token.lookup,
-      scopeType,
+      scopeKind,
       KsSymbolKind.parameter,
     );
 
@@ -545,7 +549,7 @@ export class SymbolTableBuilder {
     let diagnostic: Maybe<Diagnostic>;
 
     // if global we can't shadow
-    if (scopeType === ScopeKind.global) {
+    if (scopeKind === ScopeKind.global) {
       diagnostic = undefined;
 
       // if local check for shadowing hints
@@ -564,11 +568,8 @@ export class SymbolTableBuilder {
           );
     }
 
-    const scopeNode = this.selectScopeNode(scopeType);
-    const tracker = new BasicTracker(
-      new KsParameter(token, defaulted),
-      this.uri,
-    );
+    const scopeNode = this.selectScopeNode(scopeKind);
+    const tracker = new BasicTracker(new KsParameter(token, range), this.uri);
 
     token.tracker = tracker;
     scopeNode.environment.set(token.lookup, KsSymbolKind.parameter, tracker);
@@ -620,7 +621,9 @@ export class SymbolTableBuilder {
     ) {
       return createDiagnostic(
         token,
-        `${symbolType} ${token.lexeme} may not exist at script runtime.`,
+        `${toCase(CaseKind.pascalCase, KsSymbolKind[symbolType])} ${
+          token.lexeme
+        } may not exist at script runtime.`,
         DiagnosticSeverity.Hint,
         DIAGNOSTICS.SYMBOL_MAY_NOT_RUNTIME_EXIST,
         [

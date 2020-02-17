@@ -1,5 +1,5 @@
 import { URI } from 'vscode-uri';
-import { IoService, Document, IoKind } from '../../src/services/IoService';
+import { IoService, Document, IoKind } from '../../src/services/ioService';
 import { join, basename } from 'path';
 
 const testDir = join(__dirname, '../../../kerboscripts/parser_valid/');

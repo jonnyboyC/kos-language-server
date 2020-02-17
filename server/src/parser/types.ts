@@ -2,10 +2,12 @@ import * as Expr from './models/expr';
 import * as Stmt from './models/stmt';
 import * as SuffixTerm from './models/suffixTerm';
 import { Var, Lock, Func, Param } from './models/declare';
-import { Range, Location, Diagnostic } from 'vscode-languageserver';
+import { Range, Location } from 'vscode-languageserver';
 import { TokenType } from '../models/tokentypes';
 import { NodeBase } from './models/base';
 import { Token } from '../models/token';
+import { ParseError } from './models/parserError';
+import { DiagnosticUri } from '../types';
 
 export interface RangeSequence extends Range {
   ranges: Range[];
@@ -152,7 +154,7 @@ export interface IParseError extends Range {
 
 export interface Ast {
   script: IScript;
-  parseDiagnostics: Diagnostic[];
+  diagnostics: DiagnosticUri[];
 }
 
 export interface IFindResult {
@@ -161,7 +163,7 @@ export interface IFindResult {
 }
 
 export interface INodeResult<T> {
-  errors: IParseError[];
+  errors: ParseError[];
   value: T;
 }
 

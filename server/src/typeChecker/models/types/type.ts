@@ -44,6 +44,11 @@ export class Type implements IType {
   public readonly anyType: boolean;
 
   /**
+   * Is this type the none type
+   */
+  public readonly noneType: boolean;
+
+  /**
    * The type arguments for this type if any
    */
   private readonly typeArguments: Map<IParametricType, IType>;
@@ -92,6 +97,7 @@ export class Type implements IType {
    * @param callSignature what is the call signature of this type
    * @param typeTemplate what is the type template of this type
    * @param anyType is this the any type
+   * @param noneType is this the none type
    */
   constructor(
     name: string,
@@ -101,6 +107,7 @@ export class Type implements IType {
     callSignature?: ICallSignature,
     typeTemplate?: IParametricType,
     anyType = false,
+    noneType = false,
   ) {
     if (kind === TypeKind.variadic) {
       throw new Error('Cannot construct variadic type.');
@@ -113,6 +120,7 @@ export class Type implements IType {
     this.typeCallSignature = callSignature;
     this.typeTemplate = typeTemplate;
     this.anyType = anyType;
+    this.noneType = noneType;
 
     // TODO will need to actually be robust about this
     this.typeTracker =
@@ -386,6 +394,39 @@ export class Type implements IType {
     }
 
     return suffixes;
+  }
+
+  /**
+   * Does this type has the requested suffix
+   * @param name name of suffix
+   */
+  public hasSuffix(name: string): boolean {
+    if (this.suffixMap.has(name)) {
+      return true;
+    }
+
+    if (!empty(this.superType)) {
+      return this.superType.hasSuffix(name);
+    }
+
+    return false;
+  }
+
+  /**
+   * Attempt to retrieve a suffix from this type
+   * @param name name of the suffix
+   */
+  public getSuffix(name: string): Maybe<IType> {
+    const result = this.suffixMap.get(name);
+    if (!empty(result)) {
+      return result;
+    }
+
+    if (!empty(this.superType)) {
+      return this.superType.getSuffix(name);
+    }
+
+    return undefined;
   }
 
   /**

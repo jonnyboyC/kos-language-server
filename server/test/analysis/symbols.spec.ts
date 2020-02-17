@@ -61,11 +61,11 @@ describe('Symbol Table', () => {
       resolverService,
     );
 
-    const grandInfo = await analysisService.getInfo(grandUri);
-    const greatUncleInfo = await analysisService.getInfo(greatUncleUri);
-    const parentInfo = await analysisService.getInfo(parentUri);
-    const uncleInfo = await analysisService.getInfo(uncleUri);
-    const childInfo = await analysisService.getInfo(childUri);
+    const grandInfo = await analysisService.loadInfo(grandUri);
+    const greatUncleInfo = await analysisService.loadInfo(greatUncleUri);
+    const parentInfo = await analysisService.loadInfo(parentUri);
+    const uncleInfo = await analysisService.loadInfo(uncleUri);
+    const childInfo = await analysisService.loadInfo(childUri);
 
     expect(grandInfo).toBeDefined();
     expect(greatUncleInfo).toBeDefined();

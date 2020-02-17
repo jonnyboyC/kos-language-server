@@ -31,14 +31,14 @@ const scan = (source: string): Tokenized => {
 const parseExpression = (
   source: string,
 ): [INodeResult<IExpr>, Diagnostic[]] => {
-  const { tokens, scanDiagnostics: scanErrors } = scan(source);
+  const { tokens, diagnostics: scanErrors } = scan(source);
   const parser = new Parser('', tokens);
   return [parser.parseExpression(), scanErrors];
 };
 
 // parse source expression
 const parse = (source: string): Ast => {
-  const { tokens, scanDiagnostics: scanErrors } = scan(source);
+  const { tokens, diagnostics: scanErrors } = scan(source);
   expect(scanErrors).toHaveLength(0);
 
   const parser = new Parser('', tokens);
@@ -59,11 +59,11 @@ describe('Parse all test files', () => {
       const kosFile = readFileSync(filePath, 'utf8');
 
       const scanner = new Scanner(kosFile, filePath);
-      const { tokens, scanDiagnostics: scanErrors } = scanner.scanTokens();
+      const { tokens, diagnostics: scanErrors } = scanner.scanTokens();
 
       expect(scanErrors.length === 0).toBe(true);
       const parser = new Parser('', tokens);
-      const { parseDiagnostics } = parser.parse();
+      const { diagnostics: parseDiagnostics } = parser.parse();
 
       expect(parseDiagnostics.length === 0).toBe(true);
     });
@@ -80,20 +80,20 @@ describe('Parse all test files', () => {
       const scanner1 = new Scanner(kosFile, filePath);
       const scanResults1 = scanner1.scanTokens();
 
-      expect(scanResults1.scanDiagnostics).toHaveLength(0);
+      expect(scanResults1.diagnostics).toHaveLength(0);
       const parser1 = new Parser('', scanResults1.tokens);
       const parseResults1 = parser1.parse();
-      expect(parseResults1.parseDiagnostics).toHaveLength(0);
+      expect(parseResults1.diagnostics).toHaveLength(0);
 
       const prettyKosFile = parseResults1.script.toString();
       const scanner2 = new Scanner(prettyKosFile, filePath);
       const scanResults2 = scanner2.scanTokens();
 
-      expect(scanResults1.scanDiagnostics).toHaveLength(0);
+      expect(scanResults1.diagnostics).toHaveLength(0);
       const parser2 = new Parser('', scanResults2.tokens);
       const parseResults2 = parser2.parse();
 
-      expect(parseResults2.parseDiagnostics).toHaveLength(0);
+      expect(parseResults2.diagnostics).toHaveLength(0);
 
       const tokens1 = tokenCheck.orderedTokens(parseResults1.script);
       const tokens2 = tokenCheck.orderedTokens(parseResults2.script);
@@ -677,7 +677,7 @@ describe('Parse statement', () => {
     ];
 
     for (const declaration of validDeclarations) {
-      const { script, parseDiagnostics } = parse(declaration.source);
+      const { script, diagnostics: parseDiagnostics } = parse(declaration.source);
 
       expect(parseDiagnostics).toHaveLength(0);
       expect(script.stmts).toHaveLength(1);
@@ -713,7 +713,7 @@ describe('Parse statement', () => {
     ];
 
     for (const declaration of validDeclarations) {
-      const { script, parseDiagnostics } = parse(declaration.source);
+      const { script, diagnostics: parseDiagnostics } = parse(declaration.source);
 
       expect(parseDiagnostics).toHaveLength(0);
       expect(script.stmts).toHaveLength(1);

@@ -5,23 +5,34 @@ import {
   IExpr,
   ISuffixTerm,
   ISuffixTermVisitor,
-  Atom,
+  SuffixTermTrailer,
+  // Atom,
 } from '../parser/types';
 import * as SuffixTerm from '../parser/models/suffixTerm';
 import * as Expr from '../parser/models/expr';
 import * as Stmt from '../parser/models/stmt';
 import * as Decl from '../parser/models/declare';
-import { ITypeResultExpr, TypeKind, OperatorKind, IType } from './types';
+import {
+  ITypeResultExpr,
+  TypeKind,
+  OperatorKind,
+  IType,
+  ICallSignature,
+} from './types';
 import { mockLogger, mockTracer, logException } from '../models/logger';
 import { Script } from '../models/script';
-import { empty } from '../utilities/typeGuards';
+import { empty, notEmpty } from '../utilities/typeGuards';
 import { structureType } from './ksTypes/primitives/structure';
 import { iterator } from '../utilities/constants';
 import { TokenType } from '../models/tokentypes';
 import { nodeType } from './ksTypes/node';
 import { createFunctionType, createUnion } from './utilities/typeCreators';
-import { zip, zipLong } from '../utilities/arrayUtils';
-import { binaryOperatorMap, unaryOperatorMap } from './utilities/typeUtilities';
+import { zip } from '../utilities/arrayUtils';
+import {
+  binaryOperatorMap,
+  unaryOperatorMap,
+  listTypeMap,
+} from './utilities/typeUtilities';
 import { noneType } from './ksTypes/primitives/none';
 import { booleanType } from './ksTypes/primitives/boolean';
 import { stringType } from './ksTypes/primitives/string';
@@ -31,35 +42,21 @@ import {
   doubleType,
 } from './ksTypes/primitives/scalar';
 import {
-  suffixError,
+  callableError,
   delegateCreation,
   arrayIndexer,
-  functionError,
+  // functionError,
   indexerError,
+  suffixError,
 } from './utilities/typeHelpers';
 import { delegateType } from './ksTypes/primitives/delegate';
-import { TypeNode } from './models/typeNode';
 import { KsSymbolKind, TrackerKind, SymbolTracker } from '../analysis/types';
 import { listType } from './ksTypes/collections/list';
-import { bodyTargetType } from './ksTypes/orbital/bodyTarget';
-import { vesselTargetType } from './ksTypes/orbital/vesselTarget';
-import { volumeType } from './ksTypes/io/volume';
-import { volumeItemType } from './ksTypes/io/volumeItem';
-import { partType } from './ksTypes/parts/part';
 import { pathType } from './ksTypes/io/path';
-import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver';
-import {
-  createDiagnostic,
-  DIAGNOSTICS,
-} from '../utilities/diagnosticsUtils';
+import { Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver';
+import { createDiagnostic, DIAGNOSTICS } from '../utilities/diagnosticsUtils';
 import { BasicTracker } from '../analysis/models/tracker';
 import { SuffixTypeBuilder } from './models/suffixTypeNode';
-import { engineType } from './ksTypes/parts/engine';
-import { dockingPortType } from './ksTypes/parts/dockingPort';
-import { vesselSensorsType } from './ksTypes/vessel/vesselSensors';
-import { kosProcessorFieldsType } from './ksTypes/kosProcessorFields';
-import { elementType } from './ksTypes/parts/element';
-import { aggregateResourceType } from './ksTypes/parts/aggregateResource';
 import { Operator } from './models/types/operator';
 import { VariadicType } from './models/types/variadicType';
 import { Type } from './models/types/type';
@@ -171,7 +168,7 @@ export class TypeChecker
     return suffixTerm.accept(this, [builder]);
   }
 
-  // ----------------------------- Declaration -----------------------------------------
+  // #region --------------------- Declaration -----------------------------------------
 
   /**
    * Visit a variable declaration
@@ -179,10 +176,11 @@ export class TypeChecker
    */
   visitDeclVariable(decl: Decl.Var): Diagnostics {
     const result = this.checkExpr(decl.value);
+    const errors = result.errors;
     const { tracker } = decl.identifier;
 
     if (this.isBasicTracker(tracker)) {
-      tracker.declareType(result.type.assignmentType());
+      tracker.declareType(this.checkGetter(decl.value, errors, result.type));
     }
 
     return result.errors;
@@ -197,7 +195,7 @@ export class TypeChecker
     const { tracker } = decl.identifier;
 
     if (this.isBasicTracker(tracker)) {
-      tracker.declareType(result.type.assignmentType());
+      tracker.declareType(result.type);
     }
 
     return result.errors;
@@ -261,7 +259,7 @@ export class TypeChecker
       const { tracker } = optional.identifier;
 
       if (this.isBasicTracker(tracker)) {
-        tracker.declareType(valueResult.type);
+        tracker.declareType(valueResult.type.assignmentType());
       }
 
       errors = errors.concat(valueResult.errors);
@@ -270,7 +268,9 @@ export class TypeChecker
     return errors;
   }
 
-  // ----------------------------- Statements -----------------------------------------
+  // #endregion
+
+  // #region --------------------- Statements ------------------------------------------
 
   /**
    * Visit an invalid statement
@@ -323,17 +323,7 @@ export class TypeChecker
     const result = this.checkExpr(stmt.suffix);
     const errors = result.errors;
 
-    if (!booleanType.canCoerceFrom(result.type.assignmentType())) {
-      errors.push(
-        createDiagnostic(
-          stmt.suffix,
-          'Suffix could not be boolean',
-          DiagnosticSeverity.Hint,
-          DIAGNOSTICS.TYPE_WRONG,
-        ),
-      );
-    }
-
+    this.checkGetter(stmt.suffix, errors, result.type, booleanType);
     return result.errors;
   }
 
@@ -354,37 +344,15 @@ export class TypeChecker
     const errors: Diagnostics = result.errors;
 
     switch (stmt.command.type) {
-      // commands for adding and removing nodes
       case TokenType.add:
       case TokenType.remove:
+        // commands for adding and removing nodes
         // expression must be a node type for node commands
-        if (!nodeType.canCoerceFrom(result.type.assignmentType())) {
-          const command =
-            stmt.command.type === TokenType.add ? 'add' : 'remove';
-
-          errors.push(
-            createDiagnostic(
-              stmt.expr,
-              `${command} expected a node.` +
-                ' Node may not able to be  be coerced into node type',
-              DiagnosticSeverity.Hint,
-              DIAGNOSTICS.TYPE_WRONG,
-            ),
-          );
-        }
+        this.checkGetter(stmt.expr, errors, result.type, nodeType);
         break;
-      // command to edit a file
       case TokenType.edit:
-        if (!nodeType.canCoerceFrom(result.type.assignmentType())) {
-          errors.push(
-            createDiagnostic(
-              stmt.expr,
-              'Path may not be coerced into string type',
-              DiagnosticSeverity.Hint,
-              DIAGNOSTICS.TYPE_WRONG,
-            ),
-          );
-        }
+        // command to edit a file
+        this.checkGetter(stmt.expr, errors, result.type, stringType);
         break;
       default:
         throw new Error('Unexpected token type found in command expression');
@@ -506,16 +474,7 @@ export class TypeChecker
     const conditionResult = this.checkExpr(stmt.condition);
     const errors: Diagnostics = conditionResult.errors;
 
-    if (!booleanType.canCoerceFrom(conditionResult.type.assignmentType())) {
-      errors.push(
-        createDiagnostic(
-          stmt.condition,
-          'Condition may not able to be  be coerced into boolean type',
-          DiagnosticSeverity.Hint,
-          DIAGNOSTICS.TYPE_WRONG,
-        ),
-      );
-    }
+    this.checkGetter(stmt.condition, errors, conditionResult.type, booleanType);
 
     return empty(stmt.elseStmt)
       ? errors.concat(this.checkStmt(stmt.body))
@@ -532,16 +491,7 @@ export class TypeChecker
     const conditionResult = this.checkExpr(stmt.condition);
     const errors = conditionResult.errors;
 
-    if (!booleanType.canCoerceFrom(conditionResult.type.assignmentType())) {
-      errors.push(
-        createDiagnostic(
-          stmt.condition,
-          'Condition may not able to be coerced into boolean type',
-          DiagnosticSeverity.Hint,
-          DIAGNOSTICS.TYPE_WRONG,
-        ),
-      );
-    }
+    this.checkGetter(stmt.condition, errors, conditionResult.type, booleanType);
 
     return errors.concat(this.checkStmt(stmt.body));
   }
@@ -552,20 +502,14 @@ export class TypeChecker
     const conditionResult = this.checkExpr(stmt.condition);
     errors = errors.concat(conditionResult.errors);
 
-    if (!booleanType.canCoerceFrom(conditionResult.type.assignmentType())) {
-      errors.push(
-        createDiagnostic(
-          stmt.condition,
-          'Condition may not able to be coerced into boolean type',
-          DiagnosticSeverity.Hint,
-          DIAGNOSTICS.TYPE_WRONG,
-        ),
-      );
-    }
-    return errors.concat(
-      this.checkStmt(stmt.increment),
-      this.checkStmt(stmt.body),
+    this.checkGetter(stmt.condition, errors, conditionResult.type, booleanType);
+
+    errors.push(
+      ...this.checkStmt(stmt.increment),
+      ...this.checkStmt(stmt.body),
     );
+
+    return errors;
   }
 
   // visit when statement
@@ -573,18 +517,10 @@ export class TypeChecker
     const conditionResult = this.checkExpr(stmt.condition);
     const errors = conditionResult.errors;
 
-    if (!booleanType.canCoerceFrom(conditionResult.type.assignmentType())) {
-      errors.push(
-        createDiagnostic(
-          stmt.condition,
-          'Condition may not able to be coerced into boolean type',
-          DiagnosticSeverity.Hint,
-          DIAGNOSTICS.TYPE_WRONG,
-        ),
-      );
-    }
+    this.checkGetter(stmt.condition, errors, conditionResult.type, booleanType);
 
-    return errors.concat(this.checkStmt(stmt.body));
+    errors.push(...this.checkStmt(stmt.body));
+    return errors;
   }
 
   // visit return
@@ -605,18 +541,9 @@ export class TypeChecker
   // visit switch
   public visitSwitch(stmt: Stmt.Switch): Diagnostics {
     const result = this.checkExpr(stmt.target);
-    let errors = result.errors;
+    const errors = result.errors;
 
-    if (!stringType.canCoerceFrom(result.type.assignmentType())) {
-      errors = errors.concat(
-        createDiagnostic(
-          stmt.target,
-          'May not be a string identifer for volume',
-          DiagnosticSeverity.Hint,
-          DIAGNOSTICS.TYPE_WRONG,
-        ),
-      );
-    }
+    this.checkGetter(stmt.target, errors, result.type, booleanType);
 
     return errors;
   }
@@ -627,12 +554,12 @@ export class TypeChecker
    */
   public visitFor(stmt: Stmt.For): Diagnostics {
     const result = this.checkExpr(stmt.collection);
-    let errors: Diagnostics = [];
+    const errors: Diagnostics = [];
 
-    const iterable = result.type.assignmentType();
+    const iterable = this.checkGetter(stmt.collection, errors, result.type);
 
-    if (!iterable.suffixes().has(iterator)) {
-      errors = errors.concat(
+    if (!iterable.hasSuffix(iterator)) {
+      errors.push(
         createDiagnostic(
           stmt.collection,
           'May not be a valid enumerable type',
@@ -645,13 +572,12 @@ export class TypeChecker
     const { tracker } = stmt.element;
 
     if (this.isBasicTracker(tracker)) {
-      const collectionIterator = iterable.suffixes().get(iterator);
+      const enumerator = iterable.getSuffix(iterator)?.assignmentType();
 
-      if (!empty(collectionIterator)) {
-        const enumerator = collectionIterator.assignmentType();
-        const value = enumerator.suffixes().get('value');
+      if (!empty(enumerator)) {
+        const value = enumerator.getSuffix('value');
 
-        const setType = (value && value.assignmentType()) || structureType;
+        const setType = value?.assignmentType() ?? structureType;
         tracker.declareType(setType);
       } else {
         tracker.declareType(structureType);
@@ -668,18 +594,10 @@ export class TypeChecker
     const result = this.checkExpr(stmt.suffix);
     const errors: Diagnostics = [];
 
-    if (!booleanType.canCoerceFrom(result.type.assignmentType())) {
-      errors.push(
-        createDiagnostic(
-          stmt.suffix,
-          'Condition may not able to be coerced into boolean type',
-          DiagnosticSeverity.Hint,
-          DIAGNOSTICS.TYPE_WRONG,
-        ),
-      );
-    }
+    this.checkGetter(stmt.suffix, errors, result.type, booleanType);
 
-    return errors.concat(this.checkStmt(stmt.body));
+    errors.push(...this.checkStmt(stmt.body));
+    return errors;
   }
 
   /**
@@ -690,20 +608,9 @@ export class TypeChecker
     const result = this.checkExpr(stmt.suffix);
     const errors: Diagnostics = result.errors;
 
-    if (!booleanType.canCoerceFrom(result.type.assignmentType())) {
-      // can only toggle boolean values
-      errors.push(
-        createDiagnostic(
-          stmt.suffix,
-          'Toggle requires a boolean type. ' +
-            'This may not able to be coerced into boolean type',
-          DiagnosticSeverity.Hint,
-          DIAGNOSTICS.TYPE_WRONG,
-        ),
-      );
-    }
+    this.checkGetter(stmt.suffix, errors, result.type, booleanType);
 
-    return result.errors;
+    return errors;
   }
 
   /**
@@ -714,33 +621,13 @@ export class TypeChecker
     const result = this.checkExpr(stmt.expr);
     const errors: Diagnostics = result.errors;
 
-    if (empty(stmt.until)) {
-      // no until wait a set amount of time
-      if (!scalarType.canCoerceFrom(result.type.assignmentType())) {
-        errors.push(
-          createDiagnostic(
-            stmt.expr,
-            'Wait requires a scalar type. ' +
-              'This may not able to be coerced into scalar type',
-            DiagnosticSeverity.Hint,
-            DIAGNOSTICS.TYPE_WRONG,
-          ),
-        );
-      }
-    } else {
-      // wait until condition
-      if (!booleanType.canCoerceFrom(result.type.assignmentType())) {
-        errors.push(
-          createDiagnostic(
-            stmt.expr,
-            'Wait requires a boolean type. ' +
-              'This may not able to be coerced into boolean type',
-            DiagnosticSeverity.Hint,
-            DIAGNOSTICS.TYPE_WRONG,
-          ),
-        );
-      }
-    }
+    // check boolean if until is present otherwise scalar
+    this.checkGetter(
+      stmt.expr,
+      errors,
+      result.type,
+      empty(stmt.until) ? scalarType : booleanType,
+    );
 
     return errors;
   }
@@ -754,61 +641,29 @@ export class TypeChecker
     const logResult = this.checkExpr(stmt.target);
     const errors: Diagnostics = exprResult.errors.concat(logResult.errors);
 
-    if (!stringType.canCoerceFrom(exprResult.type.assignmentType())) {
-      errors.push(
-        createDiagnostic(
-          stmt.expr,
-          'Can only log a string type. ' +
-            'This may not able to be coerced into string type',
-          DiagnosticSeverity.Hint,
-          DIAGNOSTICS.TYPE_WRONG,
-        ),
-      );
-    }
+    this.checkGetter(stmt.expr, errors, exprResult.type, stringType);
 
-    if (!stringType.canCoerceFrom(exprResult.type.assignmentType())) {
-      errors.push(
-        createDiagnostic(
-          stmt.expr,
-          'Can only log to a path. ',
-          DiagnosticSeverity.Hint,
-          DIAGNOSTICS.TYPE_WRONG,
-        ),
-      );
-    }
+    this.checkGetter(stmt.target, errors, logResult.type, stringType);
 
     return errors;
   }
 
   // visit copy
   public visitCopy(stmt: Stmt.Copy): Diagnostics {
-    const sourceResult = this.checkExpr(stmt.target);
-    const targetResult = this.checkExpr(stmt.destination);
-    const errors: Diagnostics = sourceResult.errors.concat(targetResult.errors);
+    const targetResult = this.checkExpr(stmt.target);
+    const destinationResult = this.checkExpr(stmt.destination);
+    const errors: Diagnostics = targetResult.errors.concat(
+      destinationResult.errors,
+    );
 
-    if (!stringType.canCoerceFrom(sourceResult.type.assignmentType())) {
-      errors.push(
-        createDiagnostic(
-          stmt.target,
-          'Can only copy from a string or bare path. ' +
-            'This may not able to be coerced into string type',
-          DiagnosticSeverity.Hint,
-          DIAGNOSTICS.TYPE_WRONG,
-        ),
-      );
-    }
+    this.checkGetter(stmt.target, errors, targetResult.type, stringType);
 
-    if (!stringType.canCoerceFrom(sourceResult.type.assignmentType())) {
-      errors.push(
-        createDiagnostic(
-          stmt.destination,
-          'Can only copy to a string or bare path. ' +
-            'This may not able to be coerced into string type',
-          DiagnosticSeverity.Hint,
-          DIAGNOSTICS.TYPE_WRONG,
-        ),
-      );
-    }
+    this.checkGetter(
+      stmt.destination,
+      errors,
+      destinationResult.type,
+      stringType,
+    );
 
     return errors;
   }
@@ -821,29 +676,14 @@ export class TypeChecker
       alternativeResult.errors,
     );
 
-    if (!stringType.canCoerceFrom(targetResult.type.assignmentType())) {
-      errors.push(
-        createDiagnostic(
-          stmt.target,
-          'Can only rename from a string or bare path. ' +
-            'This may not able to be coerced into string type',
-          DiagnosticSeverity.Hint,
-          DIAGNOSTICS.TYPE_WRONG,
-        ),
-      );
-    }
+    this.checkGetter(stmt.target, errors, targetResult.type, stringType);
 
-    if (!stringType.canCoerceFrom(targetResult.type.assignmentType())) {
-      errors.push(
-        createDiagnostic(
-          stmt.alternative,
-          'Can only rename to a string or bare path. ' +
-            'This may not able to be coerced into string type',
-          DiagnosticSeverity.Hint,
-          DIAGNOSTICS.TYPE_WRONG,
-        ),
-      );
-    }
+    this.checkGetter(
+      stmt.alternative,
+      errors,
+      alternativeResult.type,
+      stringType,
+    );
 
     return errors;
   }
@@ -851,83 +691,72 @@ export class TypeChecker
     const targetResult = this.checkExpr(stmt.target);
     const errors: Diagnostics = targetResult.errors;
 
-    if (!stringType.canCoerceFrom(targetResult.type.assignmentType())) {
-      errors.push(
-        createDiagnostic(
-          stmt.target,
-          'Can only delete from a string or bare path. ' +
-            'This may not able to be coerced into string type',
-          DiagnosticSeverity.Hint,
-          DIAGNOSTICS.TYPE_WRONG,
-        ),
-      );
-    }
+    this.checkGetter(stmt.target, errors, targetResult.type, stringType);
 
     if (empty(stmt.volume)) {
       return errors;
     }
 
     const volumeResult = this.checkExpr(stmt.volume);
-    if (
-      !stringType.canCoerceFrom(volumeResult.type.assignmentType()) &&
-      !pathType.canCoerceFrom(volumeResult.type.assignmentType())
-    ) {
-      errors.push(
-        createDiagnostic(
-          stmt.volume,
-          'Can only rename to a string or bare path. ' +
-            'This may not able to be coerced into string type',
-          DiagnosticSeverity.Hint,
-          DIAGNOSTICS.TYPE_WRONG,
-        ),
-      );
-    }
+    this.checkGetter(
+      stmt.volume,
+      errors,
+      volumeResult.type,
+      createUnion(false, stringType, pathType),
+    );
 
-    return errors.concat(volumeResult.errors);
+    errors.push(...volumeResult.errors);
+    return errors;
   }
   public visitRun(_: Stmt.Run): Diagnostics {
     return [];
   }
-  public visitRunPath(_: Stmt.RunPath): Diagnostics {
-    return [];
+  public visitRunPath(stmt: Stmt.RunPath): Diagnostics {
+    const pathResult = this.checkExpr(stmt.path);
+    const errors: Diagnostics = pathResult.errors;
+
+    this.checkGetter(
+      stmt.path,
+      errors,
+      pathResult.type,
+      createUnion(false, stringType, pathType),
+    );
+
+    return errors;
   }
-  public visitRunPathOnce(_: Stmt.RunOncePath): Diagnostics {
-    return [];
+  public visitRunPathOnce(stmt: Stmt.RunOncePath): Diagnostics {
+    const pathResult = this.checkExpr(stmt.path);
+    const errors: Diagnostics = pathResult.errors;
+
+    this.checkGetter(
+      stmt.path,
+      errors,
+      pathResult.type,
+      createUnion(false, stringType, pathType),
+    );
+
+    return errors;
   }
   public visitCompile(stmt: Stmt.Compile): Diagnostics {
     const targetResult = this.checkExpr(stmt.target);
     const errors: Diagnostics = targetResult.errors;
 
-    if (!stringType.canCoerceFrom(targetResult.type.assignmentType())) {
-      errors.push(
-        createDiagnostic(
-          stmt.target,
-          'Can only compile from a string or bare path. ' +
-            'This may not able to be coerced into string type',
-          DiagnosticSeverity.Hint,
-          DIAGNOSTICS.TYPE_WRONG,
-        ),
-      );
-    }
+    this.checkGetter(stmt.target, errors, targetResult.type, stringType);
 
     if (empty(stmt.destination)) {
       return errors;
     }
 
     const destinationResult = this.checkExpr(stmt.destination);
-    if (!stringType.canCoerceFrom(destinationResult.type.assignmentType())) {
-      errors.push(
-        createDiagnostic(
-          stmt.destination,
-          'Can only compile to a string or bare path. ' +
-            'This may not able to be coerced into string type',
-          DiagnosticSeverity.Hint,
-          DIAGNOSTICS.TYPE_WRONG,
-        ),
-      );
-    }
+    this.checkGetter(
+      stmt.destination,
+      errors,
+      destinationResult.type,
+      stringType,
+    );
 
-    return errors.concat(destinationResult.errors);
+    errors.push(...destinationResult.errors);
+    return errors;
   }
 
   /**
@@ -940,57 +769,19 @@ export class TypeChecker
       return [];
     }
 
-    let finalType: IType;
+    // determine the type that list returns
+    const finalType = listTypeMap.get(collection.lookup) ?? structureType;
     const errors: Diagnostics = [];
 
-    // determine the type that list returns
-    switch (collection.lookup) {
-      case 'bodies':
-        finalType = bodyTargetType;
-        break;
-      case 'targets':
-        finalType = vesselTargetType;
-        break;
-      case 'elements':
-        finalType = elementType;
-        break;
-      case 'resources':
-        finalType = listType.apply(aggregateResourceType);
-        break;
-      case 'parts':
-        finalType = partType;
-        break;
-      case 'sensors':
-        finalType = vesselSensorsType;
-        break;
-      case 'dockingports':
-        finalType = dockingPortType;
-        break;
-      case 'engines':
-        finalType = engineType;
-        break;
-      case 'files':
-        finalType = volumeItemType;
-        break;
-      case 'fonts':
-        finalType = stringType;
-        break;
-      case 'volumes':
-        finalType = volumeType;
-        break;
-      case 'processors':
-        finalType = kosProcessorFieldsType;
-        break;
-      default:
-        finalType = structureType;
-        errors.push(
-          createDiagnostic(
-            collection,
-            'Not a valid list identifier',
-            DiagnosticSeverity.Hint,
-            DIAGNOSTICS.TYPE_LIST_INVALID,
-          ),
-        );
+    if (finalType.anyType) {
+      errors.push(
+        createDiagnostic(
+          collection,
+          'Not a valid list identifier',
+          DiagnosticSeverity.Hint,
+          DIAGNOSTICS.TYPE_LIST_INVALID,
+        ),
+      );
     }
 
     const { tracker } = target;
@@ -1006,21 +797,12 @@ export class TypeChecker
     return [];
   }
 
-  // vist print statement
+  // visit print statement
   public visitPrint(stmt: Stmt.Print): Diagnostics {
     const result = this.checkExpr(stmt.expr);
     const errors = result.errors;
 
-    if (!structureType.canCoerceFrom(result.type.assignmentType())) {
-      errors.push(
-        createDiagnostic(
-          stmt.expr,
-          'Cannot print a function, can only print structures',
-          DiagnosticSeverity.Hint,
-          DIAGNOSTICS.TYPE_WRONG,
-        ),
-      );
-    }
+    this.checkGetter(stmt.expr, errors, result.type, structureType);
 
     return errors;
   }
@@ -1030,7 +812,9 @@ export class TypeChecker
     return { type: structureType, errors: [] };
   }
 
-  // ----------------------------- Expressions -----------------------------------------
+  // #endregion
+
+  // #region --------------------- Expressions -----------------------------------------
 
   /**
    * Check the ternary expression TODO need union type
@@ -1044,25 +828,11 @@ export class TypeChecker
     const errors: Diagnostics = conditionResult.errors;
 
     errors.push(...trueResult.errors, ...falseResult.errors);
-
-    if (!booleanType.canCoerceFrom(conditionResult.type.assignmentType())) {
-      errors.push(
-        createDiagnostic(
-          expr.condition,
-          'condition must be able to be coerced into boolean',
-          DiagnosticSeverity.Hint,
-          DIAGNOSTICS.TYPE_WRONG,
-        ),
-      );
-    }
+    this.checkGetter(expr.condition, errors, conditionResult.type, booleanType);
 
     return {
       errors,
-      type: createUnion(
-        false,
-        trueResult.type.assignmentType(),
-        falseResult.type.assignmentType(),
-      ),
+      type: createUnion(false, trueResult.type, falseResult.type),
     };
   }
 
@@ -1073,15 +843,27 @@ export class TypeChecker
   public visitBinary(expr: Expr.Binary): ITypeResultExpr<IType> {
     const rightResult = this.checkExpr(expr.right);
     const leftResult = this.checkExpr(expr.left);
+    const errors: Diagnostics = [...rightResult.errors, ...leftResult.errors];
 
     const operatorKind = binaryOperatorMap.get(expr.operator.type);
     if (!empty(operatorKind)) {
       switch (operatorKind) {
         case OperatorKind.and:
         case OperatorKind.or:
-          return this.checkLogical(expr, leftResult, rightResult);
+          return this.checkLogical(
+            expr,
+            errors,
+            this.checkGetter(expr.left, errors, leftResult.type),
+            this.checkGetter(expr.right, errors, rightResult.type),
+          );
         default:
-          return this.checkBinary(expr, leftResult, rightResult, operatorKind);
+          return this.checkBinary(
+            expr,
+            errors,
+            this.checkGetter(expr.left, errors, leftResult.type),
+            this.checkGetter(expr.right, errors, rightResult.type),
+            operatorKind,
+          );
       }
     }
 
@@ -1106,16 +888,7 @@ export class TypeChecker
         };
 
       case TokenType.not:
-        if (!booleanType.canCoerceFrom(result.type.assignmentType())) {
-          errors.push(
-            createDiagnostic(
-              expr.factor,
-              'Can only apply not operator to booleans',
-              DiagnosticSeverity.Hint,
-              DIAGNOSTICS.TYPE_WRONG,
-            ),
-          );
-        }
+        this.checkGetter(expr.factor, errors, result.type, booleanType);
 
         return {
           errors,
@@ -1126,7 +899,12 @@ export class TypeChecker
       case TokenType.plus:
         const operatorKind = unaryOperatorMap.get(expr.operator.type);
         if (!empty(operatorKind)) {
-          return this.checkUnary(expr, result, operatorKind);
+          return this.checkUnary(
+            expr,
+            errors,
+            this.checkGetter(expr.factor, errors, result.type),
+            operatorKind,
+          );
         }
     }
 
@@ -1142,6 +920,10 @@ export class TypeChecker
   public visitFactor(expr: Expr.Factor): ITypeResultExpr<IType> {
     const suffixResult = this.checkExpr(expr.suffix);
     const exponentResult = this.checkExpr(expr.exponent);
+    const errors: Diagnostics = [
+      ...suffixResult.errors,
+      ...exponentResult.errors,
+    ];
 
     if (expr.power.type !== TokenType.power) {
       throw new Error('Factor does not contain power operator');
@@ -1149,8 +931,9 @@ export class TypeChecker
 
     return this.checkBinary(
       expr,
-      suffixResult,
-      exponentResult,
+      errors,
+      this.checkGetter(expr.suffix, errors, suffixResult.type),
+      this.checkGetter(expr.exponent, errors, exponentResult.type),
       OperatorKind.power,
     );
   }
@@ -1161,28 +944,16 @@ export class TypeChecker
    */
   public visitSuffix(expr: Expr.Suffix): ITypeResultExpr<IType> {
     const { suffixTerm, trailer } = expr;
-    const [firstTrailer, ...remainingTrailers] = suffixTerm.trailers;
 
     const builder = new SuffixTypeBuilder();
     const errors = this.checkSuffixTerm(suffixTerm.atom, builder);
 
-    if (!empty(firstTrailer)) {
-      // handle case were suffix is actually a function call
-      if (firstTrailer instanceof SuffixTerm.Call) {
-        const tracker = this.atomTracker(suffixTerm.atom);
-        errors.push(...this.visitFunctionCall(firstTrailer, tracker, builder));
-      } else {
-        errors.push(...this.checkSuffixTerm(firstTrailer, builder));
-      }
-
-      // handle remaining suffix term trailers
-      for (const trailer of remainingTrailers) {
-        errors.push(...this.checkSuffixTerm(trailer, builder));
-      }
-    }
+    // handle remaining suffix term trailers
+    this.checkSuffixTermTrailers(suffixTerm.trailers, builder, errors);
 
     // if we have a trailer check that as well
     if (!empty(trailer)) {
+      this.checkCall(builder);
       errors.push(...this.checkSuffixTerm(trailer, builder));
     }
 
@@ -1199,7 +970,9 @@ export class TypeChecker
     return this.resultExpr(delegateType, errors);
   }
 
-  // ----------------------------- Suffix -----------------------------------------
+  // #endregion
+
+  // #region --------------------- Suffix ----------------------------------------------
 
   public visitSuffixTrailer(
     suffixTerm: SuffixTerm.SuffixTrailer,
@@ -1210,6 +983,7 @@ export class TypeChecker
 
     // if no trailer exist attempt to return
     if (!empty(suffixTerm.trailer)) {
+      this.checkCall(builder);
       errors.push(...this.checkSuffixTerm(suffixTerm.trailer, builder));
     }
 
@@ -1217,10 +991,10 @@ export class TypeChecker
   }
 
   public visitSuffixTermInvalid(
-    suffixTerm: SuffixTerm.Invalid,
+    _: SuffixTerm.Invalid,
     [builder]: [SuffixTypeBuilder],
   ): Diagnostics {
-    builder.nodes.push(new TypeNode(suffixError, suffixTerm));
+    builder.nodes.push(suffixError);
 
     return [];
   }
@@ -1232,12 +1006,53 @@ export class TypeChecker
     // check the atom
     const errors = this.checkSuffixTerm(suffixTerm.atom, builder);
 
-    // add any errors from trailers
-    for (const trailer of suffixTerm.trailers) {
-      errors.push(...this.checkSuffixTerm(trailer, builder));
-    }
+    this.checkSuffixTermTrailers(suffixTerm.trailers, builder, errors);
 
     return errors;
+  }
+
+  /**
+   * Handle the weird edge cases around suffix methods with zero parameters
+   * @param trailers suffix term trailers
+   * @param builder the suffix type builder
+   * @param errors current collection of errors encountered
+   */
+  private checkSuffixTermTrailers(
+    trailers: SuffixTermTrailer[],
+    builder: SuffixTypeBuilder,
+    errors: Diagnostics,
+  ) {
+    // add any errors from trailers
+    for (let i = 0; i < trailers.length; i += 1) {
+      this.checkCall(builder, trailers[i]);
+      errors.push(...this.checkSuffixTerm(trailers[i], builder));
+    }
+  }
+
+  /**
+   * Check if this is an implicit call scenario and get add it's return type if necessary
+   * @param builder the suffix type builder
+   * @param trailer the suffix trailer if it exists
+   */
+  private checkCall(
+    builder: SuffixTypeBuilder,
+    trailer?: SuffixTermTrailer,
+  ): boolean {
+    const currentType = builder.current();
+    const callSignature = currentType.callSignature();
+    if (empty(callSignature)) {
+      return false;
+    }
+
+    if (
+      callSignature.params.length === 0 &&
+      !(trailer instanceof SuffixTerm.Call)
+    ) {
+      builder.nodes.push(currentType.assignmentType());
+      return true;
+    }
+
+    return false;
   }
 
   /**
@@ -1258,23 +1073,25 @@ export class TypeChecker
     const callSignature = type.callSignature();
 
     if (empty(callSignature)) {
-      builder.nodes.push(new TypeNode(suffixError, call));
-      call.open.tracker = suffixError.tracker();
-      call.close.tracker = suffixError.tracker();
+      builder.nodes.push(callableError);
+      call.open.tracker = callableError.tracker();
+      call.close.tracker = callableError.tracker();
 
-      errors.push(
-        createDiagnostic(
-          call,
-          `${type.name} has no call signature`,
-          DiagnosticSeverity.Hint,
-          DIAGNOSTICS.TYPE_NO_CALL,
-        ),
-      );
+      if (!type.anyType) {
+        errors.push(
+          createDiagnostic(
+            call,
+            `${type.name} has no call signature`,
+            DiagnosticSeverity.Hint,
+            DIAGNOSTICS.TYPE_NO_CALL,
+          ),
+        );
+      }
 
       return errors;
     }
 
-    builder.nodes.push(new TypeNode(type, call));
+    builder.nodes.push(type.assignmentType());
     call.open.tracker = type.tracker();
     call.close.tracker = type.tracker();
 
@@ -1282,61 +1099,11 @@ export class TypeChecker
 
     // handle variadic
     if (params.length === 1 && params[0].kind === TypeKind.variadic) {
-      return this.visitVariadicCall(params[0], call);
+      return this.visitVariadicCall(callSignature, call);
     }
 
     // handle normal functions
-    return this.visitNormalCall(params, call);
-  }
-
-  /**
-   * Visit a function call site
-   * @param call call suffix term expression
-   * @param builder suffix type builder
-   */
-  private visitFunctionCall(
-    call: SuffixTerm.Call,
-    tracker: Maybe<SymbolTracker>,
-    builder: SuffixTypeBuilder,
-  ): Diagnostics {
-    const type = builder.current();
-    const errors: Diagnostics = [];
-
-    const callSignature = type.callSignature();
-
-    // check if previous identifier resolves to a function
-    // TODO figure out function trackers
-    if (empty(callSignature)) {
-      builder.nodes.push(new TypeNode(functionError, call));
-      call.open.tracker = functionError.tracker();
-      call.close.tracker = functionError.tracker();
-
-      errors.push(
-        createDiagnostic(
-          call,
-          `Type ${type.name} may not have a call signature`,
-          DiagnosticSeverity.Hint,
-          DIAGNOSTICS.TYPE_NO_CALL,
-        ),
-      );
-
-      return errors;
-    }
-
-    builder.nodes.push(new TypeNode(type, call));
-    call.open.tracker = tracker;
-    call.close.tracker = tracker;
-
-    const params = callSignature.params();
-
-    // handle normal or variadic calls
-    if (params.length === 1 && params[0].kind === TypeKind.variadic) {
-      errors.push(...this.visitVariadicCall(params[0], call));
-    } else {
-      errors.push(...this.visitNormalCall(params, call));
-    }
-
-    return errors;
+    return this.visitNormalCall(callSignature, call);
   }
 
   /**
@@ -1344,9 +1111,14 @@ export class TypeChecker
    * @param params parameter types
    * @param call current call expression
    */
-  private visitVariadicCall(params: IType, call: SuffixTerm.Call): Diagnostics {
+  private visitVariadicCall(
+    callSignature: ICallSignature,
+    call: SuffixTerm.Call,
+  ): Diagnostics {
     const errors: Diagnostics = [];
-    if (!(params instanceof VariadicType)) {
+    const [param] = callSignature.params();
+
+    if (!(param instanceof VariadicType)) {
       throw new Error('Expected variadic type.');
     }
 
@@ -1356,11 +1128,11 @@ export class TypeChecker
       errors.push(...result.errors);
 
       // add diagnostic if argument cannot be matched to parameter type
-      if (!params.base.canCoerceFrom(result.type.assignmentType())) {
+      if (!param.base.canCoerceFrom(result.type.assignmentType())) {
         errors.push(
           createDiagnostic(
             arg,
-            `Function argument could not be coerced into ${params.toString()}`,
+            `Function argument could not be coerced into ${param.toString()}`,
             DiagnosticSeverity.Hint,
             DIAGNOSTICS.TYPE_WRONG,
           ),
@@ -1376,14 +1148,22 @@ export class TypeChecker
    * @param params the parameter types
    * @param call the call expression
    */
-  private visitNormalCall(params: IType[], call: SuffixTerm.Call): Diagnostics {
+  private visitNormalCall(
+    callSignature: ICallSignature,
+    call: SuffixTerm.Call,
+  ): Diagnostics {
     const errors: Diagnostics = [];
+    const params = callSignature.params();
+    const requiredCount = callSignature.requiredParams();
 
     // check if we have provided too many arguments
     if (call.args.length > params.length) {
       errors.push(
         createDiagnostic(
-          call.close,
+          {
+            start: call.args[params.length].start,
+            end: call.args[call.args.length - 1].end,
+          },
           `Call expected ${params.length} parameters but was called with ${call.args.length} arguments`,
           DiagnosticSeverity.Hint,
           DIAGNOSTICS.TYPE_WRONG_ARITY,
@@ -1391,66 +1171,25 @@ export class TypeChecker
       );
     }
 
-    let checkShort = false;
-
-    if (call.args.length >= params.length) {
-      // if we have the same or more arguments check they can coerce
-      for (const [arg, param] of zip(call.args, params)) {
-        // determine type of each argument
-        const result = this.checkExpr(arg);
-        errors.push(...result.errors);
-
-        // add diagnostic if argument cannot be coerced to parameter type
-        if (!param.canCoerceFrom(result.type.assignmentType())) {
-          errors.push(
-            createDiagnostic(
-              arg,
-              `Argument could not be coerced into ${param.toString()}`,
-              DiagnosticSeverity.Hint,
-              DIAGNOSTICS.TYPE_WRONG,
-            ),
-          );
-        }
-      }
-    } else {
-      for (const [arg, param] of zipLong(call.args, params)) {
-        // determine type of each argument fill in none for those not found
-        let argType: IType;
-        if (!empty(arg)) {
-          const result = this.checkExpr(arg);
-          errors.push(...result.errors);
-          argType = result.type;
-        } else {
-          argType = noneType;
-        }
-
-        // add diagnostic if argument cannot be matched to parameter type
-        if (!param!.canCoerceFrom(argType.assignmentType())) {
-          errors.push(
-            createDiagnostic(
-              empty(arg) ? call.close : arg,
-              `Function argument could not be coerced into ${param!.toString()}`,
-              DiagnosticSeverity.Hint,
-              DIAGNOSTICS.TYPE_WRONG,
-            ),
-          );
-
-          // if we have a type mismatch check short
-          checkShort = true;
-        }
-      }
-    }
-
     // check argument less than parameters
-    if (checkShort && call.args.length <= params.length) {
+    if (call.args.length < requiredCount) {
       errors.push(
         createDiagnostic(
           call.close,
-          `Function expected ${params.length} parameters but was called with ${call.args.length} arguments`,
+          `Call expected ${params.length} required parameters but was called with ${call.args.length} arguments`,
           DiagnosticSeverity.Hint,
           DIAGNOSTICS.TYPE_WRONG_ARITY,
         ),
       );
+    }
+
+    // if we have the same or more arguments check they can coerce
+    for (const [arg, param] of zip(call.args, params)) {
+      // determine type of each argument
+      const result = this.checkExpr(arg);
+      errors.push(...result.errors);
+
+      this.checkGetter(arg, errors, result.type, param);
     }
 
     return errors;
@@ -1472,11 +1211,12 @@ export class TypeChecker
     const type = builder.current();
     const errors: Diagnostics = [];
 
-    builder.nodes.push(new TypeNode(arrayIndexer, suffixTerm));
+    suffixTerm.indexer.tracker = type.tracker();
+    builder.nodes.push(arrayIndexer);
 
     // TODO confirm indexable types
     // Only lists are indexable with '#'
-    if (!listType.canCoerceFrom(type)) {
+    if (!listType.canCoerceFrom(type) && !type.anyType) {
       errors.push(
         createDiagnostic(
           suffixTerm,
@@ -1548,22 +1288,24 @@ export class TypeChecker
 
     const indexResult = this.checkExpr(suffixTerm.index);
     const errors = indexResult.errors;
-    const type = builder.current().assignmentType();
+    const type = builder.current();
 
     const indexer = type.indexer();
 
     // we either need to have an indexer or be the any type
     if (empty(indexer)) {
-      builder.nodes.push(new TypeNode(indexerError, suffixTerm));
+      builder.nodes.push(indexerError);
 
-      errors.push(
-        createDiagnostic(
-          suffixTerm,
-          `${type.toString()} may not have indexer`,
-          DiagnosticSeverity.Hint,
-          DIAGNOSTICS.TYPE_NO_INDEXER,
-        ),
-      );
+      if (!type.anyType) {
+        errors.push(
+          createDiagnostic(
+            suffixTerm,
+            `${type.toString()} may not have indexer`,
+            DiagnosticSeverity.Hint,
+            DIAGNOSTICS.TYPE_NO_INDEXER,
+          ),
+        );
+      }
 
       suffixTerm.open.tracker = indexerError.tracker();
       suffixTerm.close.tracker = indexerError.tracker();
@@ -1575,7 +1317,7 @@ export class TypeChecker
       throw new Error('Indexer should have filled call signature');
     }
 
-    builder.nodes.push(new TypeNode(indexer, suffixTerm));
+    builder.nodes.push(indexer.assignmentType());
 
     // check that index can be coerced into requested type
     if (!callSignature.params()[0].canCoerceFrom(indexResult.type)) {
@@ -1599,8 +1341,8 @@ export class TypeChecker
   }
 
   /**
-   * visit the suffix term for delgates. This will return a new delgate type
-   * @param suffixTerm the current delgate node
+   * visit the suffix term for delegates. This will return a new delegate type
+   * @param suffixTerm the current delegate node
    * @param builder the suffix type builder
    */
   public visitDelegate(
@@ -1626,7 +1368,7 @@ export class TypeChecker
     }
 
     const creation = delegateCreation(type);
-    builder.nodes.push(new TypeNode(creation, suffixTerm));
+    builder.nodes.push(creation.assignmentType());
     suffixTerm.atSign.tracker = creation.tracker();
 
     return errors;
@@ -1649,17 +1391,17 @@ export class TypeChecker
     switch (suffixTerm.token.type) {
       case TokenType.true:
       case TokenType.false:
-        builder.nodes.push(new TypeNode(booleanType, suffixTerm));
+        builder.nodes.push(booleanType);
         return [];
       case TokenType.integer:
-        builder.nodes.push(new TypeNode(integerType, suffixTerm));
+        builder.nodes.push(integerType);
         return [];
       case TokenType.double:
-        builder.nodes.push(new TypeNode(doubleType, suffixTerm));
+        builder.nodes.push(doubleType);
         return [];
       case TokenType.string:
       case TokenType.fileIdentifier:
-        builder.nodes.push(new TypeNode(stringType, suffixTerm));
+        builder.nodes.push(stringType);
         return [];
       default:
         throw new Error('TODO invalid literal token found visitLiteral');
@@ -1678,68 +1420,65 @@ export class TypeChecker
     // if we're a trailer check for suffixes
     if (builder.isTrailer()) {
       const type = builder.current();
-      const suffix = type
-        .assignmentType()
-        .suffixes()
-        .get(suffixTerm.token.lookup);
+      const suffix = type.getSuffix(suffixTerm.token.lookup);
 
       // may need to pass something in about if we're in get set context
-      if (!empty(suffix)) {
-        // assign type tracker
-        suffixTerm.token.tracker = suffix.tracker();
+      if (empty(suffix)) {
+        // assign error suffix type
+        suffixTerm.token.tracker = suffixError.tracker();
 
-        // push new node onto builder
-        builder.nodes.push(new TypeNode(suffix, suffixTerm));
-        return [];
+        // add suffix error to builder
+        builder.nodes.push(suffixError.assignmentType());
+
+        // indicate suffix not found
+        return [
+          createDiagnostic(
+            suffixTerm,
+            `Unable to find suffix ${
+              suffixTerm.token.lookup
+            } on type ${type.toString()}`,
+            DiagnosticSeverity.Hint,
+            DIAGNOSTICS.TYPE_MISSING_SUFFIX,
+          ),
+        ];
       }
 
-      // assign error suffix type
-      suffixTerm.token.tracker = suffixError.tracker();
+      // assign type tracker
+      suffixTerm.token.tracker = suffix.tracker();
 
-      // add suffix error to builder
-      builder.nodes.push(new TypeNode(suffixError, suffixTerm));
-
-      // indicate suffix not found
-      return [
-        createDiagnostic(
-          suffixTerm,
-          `Unable to find suffix ${
-            suffixTerm.token.lookup
-          } on type ${type.toString()}`,
-          DiagnosticSeverity.Hint,
-          DIAGNOSTICS.TYPE_MISSING_SUFFIX,
-        ),
-      ];
+      // push new node onto builder
+      builder.nodes.push(suffix);
+      return [];
     }
 
     const { tracker } = suffixTerm.token;
 
     // make sure we have a basic tracker
-    if (this.isBasicTracker(tracker)) {
-      const type = tracker.getType(suffixTerm.toLocation(this.script.uri));
+    if (empty(tracker) || tracker.kind !== TrackerKind.basic) {
+      // in theory we should never get here
+      builder.nodes.push(structureType);
 
-      // if type is found at this location add it to builder
-      if (!empty(type)) {
-        builder.nodes.push(new TypeNode(type, suffixTerm));
-        return [];
-      }
+      // no error as this is likely a resolver error
+      return [];
+    }
 
+    const type = tracker.getType(suffixTerm.toLocation(this.script.uri));
+
+    // if type is found at this location add it to builder
+    if (empty(type)) {
       // if we can't find the type here default to structure
-      builder.nodes.push(new TypeNode(structureType, suffixTerm));
+      builder.nodes.push(structureType);
       return [
         createDiagnostic(
           suffixTerm,
           `Cannot determine type for ${suffixTerm.token.lexeme}.`,
           DiagnosticSeverity.Hint,
-          DIAGNOSTICS.TYPE_MISSING_SUFFIX,
+          DIAGNOSTICS.TYPE_MISSING,
         ),
       ];
     }
 
-    // in theory we should never get here
-    builder.nodes.push(new TypeNode(structureType, suffixTerm));
-
-    // no error as this is likely a resolver error
+    builder.nodes.push(type);
     return [];
   }
 
@@ -1763,29 +1502,63 @@ export class TypeChecker
       { get: true, set: false },
       new Map(),
       TypeKind.grouping,
-      new CallSignature([], type.assignmentType()),
+      new CallSignature([], type),
     );
 
     suffixTerm.open.tracker = groupingType.tracker();
     suffixTerm.close.tracker = groupingType.tracker();
 
     // push result of grouping onto builder
-    builder.nodes.push(new TypeNode(type, suffixTerm));
+    builder.nodes.push(type.assignmentType());
     return errors;
   }
 
-  // ----------------------------- Helpers -----------------------------------------
+  // #endregion
+
+  // #region --------------------- Helpers -----------------------------------------
 
   /**
-   * Get the tracker from an atom
-   * @param atom atom
+   * Check if the type is valid in this get context
+   * @param range token for the source type
+   * @param errors accumulated errors
+   * @param source source type
+   * @param target target type
+   * @returns was an error encountered
    */
-  private atomTracker(atom: Atom): Maybe<SymbolTracker> {
-    if (atom instanceof SuffixTerm.Identifier) {
-      return atom.token.tracker;
+  private checkGetter(
+    range: Range,
+    errors: Diagnostics,
+    source: IType,
+    target?: IType,
+  ): IType {
+    if (notEmpty(source.callSignature) && !source.access.get) {
+      errors.push(
+        createDiagnostic(
+          range,
+          'Does not have a getter',
+          DiagnosticSeverity.Hint,
+          DIAGNOSTICS.TYPE_NO_GETTER,
+        ),
+      );
+
+      return structureType;
     }
 
-    return undefined;
+    const assignmentType = source.assignmentType();
+
+    // check if left can be converted to a boolean
+    if (target && !target.canCoerceFrom(assignmentType)) {
+      errors.push(
+        createDiagnostic(
+          range,
+          `${source.name} cannot be converted to a boolean`,
+          DiagnosticSeverity.Hint,
+          DIAGNOSTICS.TYPE_WRONG,
+        ),
+      );
+    }
+
+    return assignmentType;
   }
 
   /**
@@ -1806,18 +1579,17 @@ export class TypeChecker
    */
   private checkUnary(
     expr: Expr.Unary,
-    subExpression: ITypeResultExpr<IType>,
+    errors: Diagnostics,
+    baseType: IType,
     operatorKind: OperatorKind,
   ): ITypeResultExpr<IType> {
-    const subType = subExpression.type.assignmentType();
-    const subOp = subType.getOperator(operatorKind);
-    const errors = subExpression.errors;
+    const subOp = baseType.getOperator(operatorKind);
 
     if (!empty(subOp) && subOp.isUnary()) {
       return { errors, type: subOp.returnType };
     }
 
-    errors.push(this.operatorError(operatorKind, expr.factor, subType));
+    errors.push(this.operatorError(operatorKind, expr.factor, baseType));
     return {
       errors,
       type: structureType,
@@ -1832,36 +1604,17 @@ export class TypeChecker
    */
   private checkLogical(
     expr: Expr.Binary,
-    leftResult: ITypeResultExpr<IType>,
-    rightResult: ITypeResultExpr<IType>,
+    errors: Diagnostics,
+    leftType: IType,
+    rightType: IType,
   ): ITypeResultExpr<IType> {
-    const leftType = leftResult.type.assignmentType();
-    const rightType = rightResult.type.assignmentType();
-    const errors = leftResult.errors.concat(rightResult.errors);
-
     // check if left can be converted to a boolean
-    if (!booleanType.canCoerceFrom(leftType)) {
-      errors.push(
-        createDiagnostic(
-          expr.left,
-          `${leftType.name} cannot be converted to a boolean`,
-          DiagnosticSeverity.Hint,
-          DIAGNOSTICS.TYPE_WRONG,
-        ),
-      );
+    if (this.checkGetter(expr.left, errors, leftType, booleanType)) {
       return { errors, type: booleanType };
     }
 
     // check if right can be converted to a boolean
-    if (!booleanType.canCoerceFrom(rightType)) {
-      errors.push(
-        createDiagnostic(
-          expr.right,
-          `${rightType.name} cannot be converted to a boolean`,
-          DiagnosticSeverity.Hint,
-          DIAGNOSTICS.TYPE_WRONG,
-        ),
-      );
+    if (this.checkGetter(expr.left, errors, rightType, booleanType)) {
       return { errors, type: booleanType };
     }
 
@@ -1871,19 +1624,18 @@ export class TypeChecker
   /**
    * Check if the current operator is valid and it's resulting type
    * @param expr the operator expression
-   * @param leftResult the left type
-   * @param rightResult the right type
+   * @param errors the accumulated errors so far
+   * @param leftType the left type
+   * @param rightType the right type
    * @param operator the operator to consider
    */
   private checkBinary(
     expr: Expr.Binary | Expr.Factor,
-    leftResult: ITypeResultExpr<IType>,
-    rightResult: ITypeResultExpr<IType>,
+    errors: Diagnostics,
+    leftType: IType,
+    rightType: IType,
     operator: OperatorKind,
   ): ITypeResultExpr<IType> {
-    const leftType = leftResult.type.assignmentType();
-    const rightType = rightResult.type.assignmentType();
-    const errors = leftResult.errors.concat(rightResult.errors);
     let calcType: Maybe<IType> = undefined;
 
     // determine the type to perform the operation on
@@ -1924,6 +1676,12 @@ export class TypeChecker
 
     // no operator found return error
     if (empty(leftOps) && empty(rightOps)) {
+
+      // recover if both structure
+      if (leftType.anyType && rightType.anyType) {
+        return { errors, type: structureType };
+      }
+
       errors.push(this.operatorError(operator, expr, leftType, rightType));
 
       return {
@@ -2014,6 +1772,8 @@ export class TypeChecker
       errors: ([] as Diagnostic[]).concat(...errors),
     };
   }
+
+  // #endregion
 }
 
 const accumulateErrors = <T>(

@@ -1,80 +1,40 @@
-import { NotificationHandler } from 'vscode-jsonrpc';
 import {
-  DidChangeTextDocumentParams,
-  DidOpenTextDocumentParams,
-  DidCloseTextDocumentParams,
   TextDocument,
-  DidChangeConfigurationParams,
+  createConnection,
 } from 'vscode-languageserver';
-import { IoService, Document } from '../../src/services/IoService';
+import { IoService, Document } from '../../src/services/ioService';
 import { empty } from '../../src/utilities/typeGuards';
 import { DocumentService } from '../../src/services/documentService';
 import { URI } from 'vscode-uri';
 import { EventEmitter } from 'events';
+import { AnalysisService } from '../../src/services/analysisService';
+import { DocumentInfo, DiagnosticUri } from '../../src/types';
+import { PassThrough } from 'stream';
 
-export const createMockDocConnection = () => ({
-  changeDoc: undefined as Maybe<
-    NotificationHandler<DidChangeTextDocumentParams>
-  >,
-  openDoc: undefined as Maybe<NotificationHandler<DidOpenTextDocumentParams>>,
-  closeDoc: undefined as Maybe<NotificationHandler<DidCloseTextDocumentParams>>,
+/**
+ * Create a mock client and server connection
+ */
+export const createMockConnection = () => {
+  const up = new PassThrough();
+  const down = new PassThrough();
 
-  onDidChangeTextDocument(
-    handler: NotificationHandler<DidChangeTextDocumentParams>,
-  ) {
-    this.changeDoc = handler;
-  },
-  onDidCloseTextDocument(
-    handler: NotificationHandler<DidCloseTextDocumentParams>,
-  ) {
-    this.closeDoc = handler;
-  },
-  onDidOpenTextDocument(
-    handler: NotificationHandler<DidOpenTextDocumentParams>,
-  ) {
-    this.openDoc = handler;
-  },
+  const server = createConnection(up, down);
+  const client = createConnection(down, up);
 
-  callChange(params: DidChangeTextDocumentParams) {
-    if (this.changeDoc) {
-      this.changeDoc(params);
-    }
-  },
+  server.listen();
+  client.listen();
 
-  callOpen(params: DidOpenTextDocumentParams) {
-    if (this.openDoc) {
-      this.openDoc(params);
-    }
-  },
+  return {
+    server,
+    client,
+  };
+};
 
-  callClose(params: DidCloseTextDocumentParams) {
-    if (this.closeDoc) {
-      this.closeDoc(params);
-    }
-  },
-});
-
-export const createMockConfigConnection = () => ({
-  changeConfig: undefined as Maybe<
-    NotificationHandler<DidChangeConfigurationParams>
-  >,
-
-  onDidChangeConfiguration(
-    handler: NotificationHandler<DidChangeConfigurationParams>,
-  ) {
-    this.changeConfig = handler;
-  },
-
-  callConfig(params: DidChangeConfigurationParams) {
-    if (this.changeConfig) {
-      this.changeConfig(params);
-    }
-  },
-});
-
-export const createMockUriResponse = (
-  files: Map<string, string>,
-): IoService => {
+/**
+ * Create a mock io service for testing
+ * @param files files this io service will response with
+ */
+export const createMockIoService = (files: Map<string, string>): IoService => {
   return {
     load(path: string): Promise<string> {
       const document = files.get(path);
@@ -95,6 +55,10 @@ export const createMockUriResponse = (
   };
 };
 
+/**
+ * Create a mock document service for testing.
+ * @param documents Documents this service will respond to
+ */
 export const createMockDocumentService = (
   documents: Map<string, TextDocument>,
 ): DocumentService => {
@@ -110,8 +74,33 @@ export const createMockDocumentService = (
     getAllDocuments(): TextDocument[] {
       return [...documents.values()];
     },
+    async cacheDocuments() {},
     async loadDocument(uri: string): Promise<Maybe<TextDocument>> {
       return Promise.resolve(documents.get(uri));
     },
   }) as DocumentService;
+};
+
+export const createMockAnalysisService = (
+  docInfo: Map<string, DocumentInfo>,
+): AnalysisService => {
+  const emitter = new EventEmitter();
+
+  return Object.assign(emitter, {
+    setCase(_: CaseKind) {
+      return this;
+    },
+    setBodies(_: string[]) {
+      return this;
+    },
+    analyzeDocument(_: string, __: string): Promise<DiagnosticUri[]> {
+      return Promise.resolve([]);
+    },
+    loadInfo(uri: string): Promise<Maybe<DocumentInfo>> {
+      return Promise.resolve(docInfo.get(uri));
+    },
+    getInfo(uri: string): Maybe<DocumentInfo> {
+      return docInfo.get(uri);
+    },
+  }) as AnalysisService;
 };

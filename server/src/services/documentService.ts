@@ -1,15 +1,15 @@
 import {
   IConnection,
-  TextDocument,
-  TextEdit,
   DidChangeTextDocumentParams,
   DidOpenTextDocumentParams,
   DidCloseTextDocumentParams,
   TextDocumentItem,
+  TextDocumentContentChangeEvent,
 } from 'vscode-languageserver';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 import { empty } from '../utilities/typeGuards';
 import { URI } from 'vscode-uri';
-import { IoService } from './IoService';
+import { IoService } from './ioService';
 import { logException, mockTracer } from '../models/logger';
 import { normalizeExtensions } from '../utilities/pathUtils';
 import { EventEmitter } from 'events';
@@ -108,7 +108,12 @@ export class DocumentService extends EventEmitter {
     this.logger = logger;
     this.tracer = tracer;
     this.workspaceUri = workspaceUri;
+  }
 
+  /**
+   * Attach to listener to connection events
+   */
+  public listen(): void {
     this.conn.onDidChangeTextDocument(this.onChangeHandler.bind(this));
     this.conn.onDidOpenTextDocument(this.onOpenHandler.bind(this));
     this.conn.onDidCloseTextDocument(this.onCloseHandler.bind(this));
@@ -284,34 +289,45 @@ export class DocumentService extends EventEmitter {
       return false;
     }
 
-    // find all edits that have defined range
-    const edits: Required<TextEdit>[] = [];
-    for (const change of params.contentChanges) {
-      // TODO can't find instance where range is undefined
-      if (empty(change.range)) {
-        this.logger.error(
-          'Document context change had undefined range for this change',
-        );
-        this.logger.error(JSON.stringify(change));
-        continue;
-      }
-
-      edits.push({ range: change.range, newText: change.text });
-    }
-
-    // apply edits
-    const text = TextDocument.applyEdits(document, edits);
-
-    // create new document
-    const updatedDoc = TextDocument.create(
-      document.uri,
-      document.languageId,
-      document.version,
-      text,
-    );
+    // generate a new updated doc, falling back if overlapping edits
+    const updatedDoc = this.applyChanges(document, params.contentChanges);
 
     // set document cache
     return this.setCache(params, updatedDoc);
+  }
+
+  /**
+   * Apply all text sequentially
+   * @param document original document
+   * @param changes changes to apply
+   */
+  private applyChanges(
+    document: TextDocument,
+    changes: TextDocumentContentChangeEvent[],
+  ): TextDocument {
+    let updatedDoc = document;
+
+    // apply edits sequentially
+    for (const change of changes) {
+      const content =
+        'range' in change
+          ? TextDocument.applyEdits(updatedDoc, [
+              {
+                range: change.range,
+                newText: change.text,
+              },
+            ])
+          : change.text;
+
+      updatedDoc = TextDocument.create(
+        document.uri,
+        document.languageId,
+        document.version,
+        content,
+      );
+    }
+
+    return updatedDoc;
   }
 
   /**

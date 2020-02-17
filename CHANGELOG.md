@@ -1,16 +1,68 @@
-# [0.13.0] (2019-11-27)
+# [1.1.0] (2020-1-18)
 # Features
+- **Workspace Symbol Search** Symbols can now be searched in the whole workspace. On VsCode int the command palette using `#SymbolToSearch` will return a list of possible match.
+
+# Bug Fixes
+- **Symbol References** Previously the language server did not correctly respect the include declaration parameter. This now works as intended.
+
+## Other
+- **New Symbol Service** Symbol related request have been moved to their own service. Primarily this just facilitates easier testing separation of concerns.
+
+# [1.0.1] (2020-1-3)
+# Bug Fixes
+The the version command `kls --version` or `kls -v` should now always determine the correct version to report. The server will now read it's own package json to it is reporting the correct semver.
+
+# [1.0.0] (2019-12-27)
+# Features
+- **Symbol Hierarchy** In Vscode symbols are now displayed in a proper hierarchy. This change has the language server reporting the whole declaration as the symbol instead of just the identifier.
+
+# Bug Fixes
+- **Fix Output Window** Previously, under conditions where edits would occur in rapid succession sometime the output window would be focused. This typically occurred when undo was held down trigger many successive edits. This in some cases caused problems where edits would overlap. A more conservative approach now address this with potential minor performance regressions.
+- **Less False Positives in Type Checker** The type checker would previous indicate many warning relating to the `structure` type. This is the base type typically encountered as parameters as they are currently untyped. Previously the language server would indicate bugs that `structure` did not have a call signature or an indexer, which while possible was not certain. The server now takes a more conservative approach and does not report these as bugs for the `structure` type
+- **Function arity diagnostics** The type checker now correctly handles optionally parameters. The below example illustrates what is now correctly accepted
+
+    ```
+    function example {
+        parameter a, b is 10. // one required and optional parameter
+        // ...
+    }
+
+    example().         // error
+    example(5).        // ok
+    example(5, 20).    // ok
+    example(5, 20, 4). // error
+    ```
+- **Rename and Find All References** Previously, the server did not count locations where symbols were set in rename or find all references. They are now correctly included.
+
+## Other
+- **Improved Typechecking Performance** This will only matter in very large files but type checking has seen a 20-30% improvement in performance
+- **Benchmarking** New benchmark framework `zakzak` uses as a benchmark suite.
+
+# [0.14.0] (2019-12-17)
+## Features
+- **#include directive** A new comment directive has been added that allows files to be treated as if run. Under certain scenarios kos-language-server cannot determine that a file has been run typically through dynamic run statements. This allows autocomplete of file that will or likely will be run in these situations. An example shows an `#include` working similar to a run statement
+
+    ```
+    // #include "0://somepath.ks"
+    runOncePath("0://somepath.ks"). // these two lines are functionally identical
+    ```
+
+## Bug Fixes
+- **Npm Package**: Fixes a bug in the standalone `kls` global node tool where the server would not start.
+
+# [0.13.0] (2019-11-27)
+## Features
 - **Workspace configuration** The kos-language-server now recognizes a new workspace configuration file `ksconfig.json`. An example is shown below
 
-```json
-{
-    "archive": "src",
-    "bodies": ["earth", "moon"],
-    "linting": {
-        "unreachable-code": "off" 
+    ```json
+    {
+        "archive": "src",
+        "bodies": ["earth", "moon"],
+        "linting": {
+            "unreachable-code": "off" 
+        }
     }
-}
-```
+    ```
 
 This configuration sets `0:/` to correspond to the `/src` folder for the language server. The bodies considered valid are now the earth and moon. Finally the unreachable code diagnostics are turned off. See more details and documentation [here](https://github.com/jonnyboyC/kos-language-server/tree/master/server/ksconfig.md).
 
@@ -38,6 +90,7 @@ This configuration sets `0:/` to correspond to the `/src` folder for the languag
 ## Features
 - **Control Flow Analysis** The language server can now find cases of unreachable code. Two simples examples are below.
 
+    ```
     for i in range(3) {
         break.
         print(i) // <- now indicates this is unreachable
@@ -53,6 +106,7 @@ This configuration sets `0:/` to correspond to the `/src` folder for the languag
 
         return false
     }
+    ```
 
 
 # [0.10.1] (2019-8-30)
@@ -64,6 +118,7 @@ This configuration sets `0:/` to correspond to the `/src` folder for the languag
 - **Search Documentation** Documentation can more directly be searched in the vscode extension. Using the command palette with `cntr + shift + p` search `kOS Search Documentation` and type in the search term. This will open your default web browser to the kos documentation with your search in place. Search can also be used via the right click context menu.
 - **Improved Type System** The type system can no handle some cases of type coercion where one type is converted to another. Some typical examples are converting structures to strings, or converting vectors into directions. Additional the type check better understands collections. As an example
 
+    ```
     local p is path("example/file.ks").
 
     // instead of structure first segment is now a string
@@ -73,7 +128,7 @@ This configuration sets `0:/` to correspond to the `/src` folder for the languag
         // is also aware segment is a string
         print(segment)
     }
-
+    ```
 
 # [0.9.1] (2019-7-24)
 
@@ -118,10 +173,12 @@ This configuration sets `0:/` to correspond to the `/src` folder for the languag
 
 - **Folding Region** The language server now supports folding regions. The server will now recognize the following a a foldable region.
       
-      // #region
-      print("this region").
-      print("can fold").
-      // #endregion
+    ```
+    // #region
+    print("this region").
+    print("can fold").
+    // #endregion
+    ```
 
 ## Bug Fixes
 - **Trigger Return** Previously it returns were reported as error when they appeared inside of a trigger body. The return statement can be used as a more dynamic form of preserve when inside a trigger. It determines when trigger should remain active after its current execution.
@@ -160,8 +217,10 @@ This configuration sets `0:/` to correspond to the `/src` folder for the languag
 - **Suffix Type Names** Previously some suffixes would be completed as `example<anotherExample>`. This was an error in the internal type system. This should not longer occur
 - **Identifer Led Statements** Previously auto complete for suffixes would not trigger some anything like the following. This has now be fixed.
 
-      local l is list().
-      l: // <- previously this wouldn't trigger for list suffixes
+    ```
+    local l is list().
+    l: // <- previously this wouldn't trigger for list suffixes
+    ```
 
 
 # [0.6.0] (2019-5-30)
@@ -182,9 +241,11 @@ This configuration sets `0:/` to correspond to the `/src` folder for the languag
 - **Code snippets** Many code snippets have been added for control flow, and declarations. Feel free to suggest more on the github issue tracker.
 - **Minor List Hover improvement** In some limited cases we can identify the element of a list more specifically than structure. for example will identify that i is an int.
 
-      for i in range(10) {
-          print(i).
-      }
+    ```
+    for i in range(10) {
+        print(i).
+    }
+    ```
 
 ## Bug Fixes
 - **Return In Anonymous Functions** Previously, Anonymous functions were not correctly counted as a valid scope for returns and would mark as an error. This has been fixed and will no longer provide a false positive
@@ -222,12 +283,14 @@ This configuration sets `0:/` to correspond to the `/src` folder for the languag
 ## Bug Fixes
 - **Symbol may not exist in triggers / functions**: previously the follow would report a "symbol may not exist error".
 
-      function example {
-        print(b).
-      }
+    ```
+    function example {
+    print(b).
+    }
 
-      set b to 10.
-      example().
+    set b to 10.
+    example().
+    ```
 
   this now indicates via a hint that `b` may not be defined during the script run. Usages and go to definition should both now work in this situation.
 - **true / false syntax**: previously the syntax highlighting would only highlight `true` or `false` if all lowercase. Now highlighting works for any casing of `TRUE` or `FALSE`. 

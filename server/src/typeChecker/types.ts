@@ -171,6 +171,11 @@ export interface IParametricType extends ITypeMappable<IType> {
   readonly anyType: boolean;
 
   /**
+   * Is this type the void type. i.e does it represent nothing
+   */
+  readonly noneType: boolean;
+
+  /**
    * What is the kind of this type
    */
   readonly kind: TypeKind;
@@ -287,6 +292,18 @@ export interface IType extends IParametricType {
   suffixes(): Map<string, IType>;
 
   /**
+   * Does this type have the requested suffix
+   * @param name name of the suffix
+   */
+  hasSuffix(name: string): boolean;
+
+  /**
+   * Attempt to retrieve a suffix from this type
+   * @param name name of the suffix
+   */
+  getSuffix(name: string): Maybe<IType>;
+
+  /**
    * Get an operator of a specific kind for another type
    * @param kind operator kind
    * @param other other type if binary expression
@@ -340,6 +357,11 @@ export interface IParametricCallSignature
    * The types of the parameters
    */
   params(): IParametricType[];
+
+  /**
+   * The required number of parameters
+   */
+  requiredParams(): number;
 
   /**
    * The type of the return

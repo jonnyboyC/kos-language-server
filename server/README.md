@@ -22,13 +22,14 @@ the server can then be started by
 
 
 ## Features
-Currently the kos-language-server 0.11.0 implements the follow features
+Currently the kos-language-server 1.0.0 implements the follow features
 - Code completion
     - Built in symbols and keywords
     - local in scope symbols
     - suffixes where the type can be resolved
     - can be manually triggered
 - Document Symbols for quick navigation to properties in the document.
+- Workspace Symbols 
 - Diagnostics (Validation) are pushed for all documents
   - syntax errors
   - semantic errors such as:
@@ -44,12 +45,14 @@ Currently the kos-language-server 0.11.0 implements the follow features
 - Refactoring
   - Rename symbol
 - Type Checking
-  - prototype type checker
+  - type checker for identifying wrong types
   - can in certain scenarios correctly identify the types of symbols and expressions
 - On hover symbol information with type info
 - Signature help for functions that can be correctly resolved
 - Caching of all documents in the workspace
-- Foldable regions using `\\#region` and `\\#endregion`
+- Directives
+  - Foldable regions using `// #region` and `// #endregion`
+  - Include symbols using `// #include <file-path>`
 - Linting configuration with `ksconfig.json`
 
 ## Configuration

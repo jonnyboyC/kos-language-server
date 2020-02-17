@@ -14,22 +14,28 @@ import {
   Diagnostic,
   DiagnosticSeverity,
   Position,
+  DocumentSymbol,
 } from 'vscode-languageserver';
 import { empty } from './typeGuards';
-import { KsSymbolKind, KsSymbol, KsBaseSymbol } from '../analysis/types';
-import { cleanLocation, cleanToken, cleanCompletion } from './clean';
+import { KsSymbolKind, KsBaseSymbol } from '../analysis/types';
+import {
+  cleanLocation,
+  cleanToken,
+  cleanCompletion,
+  cleanRange,
+} from './clean';
 import { CommanderStatic } from 'commander';
 import { DiagnosticUri } from '../types';
 import { mapper } from './mapper';
-import { IParseError } from '../parser/types';
 import * as Expr from '../parser/models/expr';
 import { rangeContainsPos, rangeAfter } from './positionUtils';
 import * as SuffixTerm from '../parser/models/suffixTerm';
 import { IType } from '../typeChecker/types';
 import { tokenTrackedType } from '../typeChecker/utilities/typeUtilities';
 import { structureType } from '../typeChecker/ksTypes/primitives/structure';
-import { IoKind } from '../services/IoService';
-import { createDiagnostic, DIAGNOSTICS } from './diagnosticsUtils';
+import { IoKind } from '../services/ioService';
+import { DIAGNOSTICS, createDiagnosticUri } from './diagnosticsUtils';
+import { ParseError } from '../parser/models/parserError';
 
 /**
  * Get the connection primitives based on the request connection type
@@ -298,41 +304,65 @@ const findContainingSuffixTermTrailer = (
  * @param analyzer analyzer instance
  * @param documentSymbol document identifier
  */
-export const toDocumentSymbols = (
-  entities: KsSymbol[],
-  uri: string,
-): Maybe<SymbolInformation[]> => {
+export function toSymbolInformation(
+  entities: KsBaseSymbol[],
+): Maybe<SymbolInformation[]> {
   return entities.map(entity => {
     const kind: Maybe<SymbolKind> = symbolSymbolMapper(entity.tag);
 
-    if (typeof entity.name === 'string') {
-      throw new Error('Expected symbol tracker not type tracker');
-    }
-
-    return {
+    const symbol: SymbolInformation = {
       kind,
       name: entity.name.lexeme,
       location: cleanLocation({
-        uri: entity.name.uri || uri,
-        range: entity.name,
+        uri: entity.name.uri,
+        range: entity.range,
       }),
-      containerName: 'example',
-    } as SymbolInformation;
+    };
+
+    return symbol;
   });
-};
+}
+
+export function toDocumentSymbol(
+  entities: KsBaseSymbol[],
+): Maybe<DocumentSymbol[]> {
+  return entities.map(entity => {
+    const kind: Maybe<SymbolKind> = symbolSymbolMapper(entity.tag);
+
+    const symbol: DocumentSymbol = {
+      kind,
+      name: entity.name.lexeme,
+      range: cleanRange(entity.range),
+      selectionRange: cleanRange(entity.name),
+    };
+
+    return symbol;
+  });
+}
 
 /**
  * Convert parser error to diagnostic
  * @param error parser error
  * @param uri uri string
  */
-export const parseToDiagnostics = (error: IParseError): Diagnostic => {
-  return createDiagnostic(
-    { start: error.start, end: error.end },
-    error.message,
-    DiagnosticSeverity.Error,
-    DIAGNOSTICS.PARSER_ERROR,
+export const parseToDiagnostics = (
+  error: ParseError,
+  diagnostics: DiagnosticUri[] = [],
+): DiagnosticUri[] => {
+  diagnostics.push(
+    createDiagnosticUri(
+      error.token,
+      error.message,
+      DiagnosticSeverity.Error,
+      DIAGNOSTICS.PARSER_ERROR,
+    ),
   );
+
+  for (const inner of error.inner) {
+    parseToDiagnostics(inner, diagnostics);
+  }
+
+  return diagnostics;
 };
 
 /**

@@ -4,8 +4,9 @@ import { TokenType } from './tokentypes';
 /**
  * Represents the core of an atomic unit of the kerboscript language
  */
-export interface TokenBase extends Range, Location {
-
+export interface TokenBase<T extends TokenType = TokenType>
+  extends Range,
+    Location {
   /**
    * descriminated union tag
    */
@@ -14,7 +15,7 @@ export interface TokenBase extends Range, Location {
   /**
    * Token type, i.e. what character of the kerboscript alphabet is represented
    */
-  readonly type: TokenType;
+  readonly type: T;
 
   /**
    * What is the actual text represented by this token
