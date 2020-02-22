@@ -1,6 +1,7 @@
 import { empty } from '../utilities/typeGuards';
 import { IStack } from '../analysis/types';
 import * as Stmt from '../parser/models/stmt';
+import * as SuffixTerm from '../parser/models/suffixTerm';
 import { FoldingRange, FoldingRangeKind } from 'vscode-languageserver';
 import { TokenType } from '../models/tokentypes';
 import { TreeTraverse } from '../utilities/treeTraverse';
@@ -48,7 +49,7 @@ export class FoldableService extends TreeTraverse {
   }
 
   /**
-   * Visit block statements to identify when folding regions are present
+   * Visit block statements to add to list of foldable regions
    * @param stmt block statement
    */
   public visitBlock(stmt: Stmt.Block): void {
@@ -62,6 +63,24 @@ export class FoldableService extends TreeTraverse {
 
     for (const childStmt of stmt.stmts) {
       this.stmtAction(childStmt);
+    }
+  }
+
+  /**
+   * Visit call suffix terms to add to list of foldable regions
+   * @param call call site
+   */
+  public visitCall(call: SuffixTerm.Call) {
+    this.result.push({
+      startCharacter: call.open.start.character,
+      startLine: call.open.start.line,
+      endCharacter: call.close.end.character,
+      endLine: call.close.end.line,
+      kind: FoldingRangeKind.Region,
+    });
+
+    for (const arg of call.args) {
+      this.exprAction(arg);
     }
   }
 
