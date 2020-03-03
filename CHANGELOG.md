@@ -1,3 +1,30 @@
+# [1.1.2] (2020-3-3)
+
+# Bug Fixes
+- **Folding Region on Parenthesis** Previously the language server did not consider `(` `)` as a foldable region. after observing declarations with `list` and `lex` as followings.
+
+```
+local l1 is list(
+    1,
+    2,
+    3,
+)
+
+local l2 is lex(
+    "1", 1,
+    "2", 2,
+    "3", 3,
+)
+```
+
+- **Print statement error issue** Because kos has a `print` statement as well as a `print` function there was special logic to go the call route if a `(` was encountered. This caused issues when really the statement was of the form.
+
+```
+print (1 + 2) + "cat".
+```
+
+Here this is actually a print statement with a grouping and a binary plus. previously it would consider this the function. Instead this special case is now removed and all print tokens are given the `print` functions type signature.
+
 # [1.1.0] (2020-1-18)
 # Features
 - **Workspace Symbol Search** Symbols can now be searched in the whole workspace. On VsCode int the command palette using `#SymbolToSearch` will return a list of possible match.
