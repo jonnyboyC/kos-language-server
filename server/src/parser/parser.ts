@@ -1387,12 +1387,6 @@ export class Parser {
       close: undefined,
     };
     builder.print = this.previous();
-    // // if we find function variant of print use that instead
-    // if (this.check(TokenType.bracketOpen)) {
-    //   // Note this back only exists because of identifier led statement quarks
-    //   this.backup();
-    //   return this.identifierLedStatement();
-    // }
 
     const expr = this.expression();
     builder.expr = expr.value;
