@@ -965,6 +965,8 @@ export class Resolver
    * @param stmt the syntax node
    */
   public visitPrint(stmt: Stmt.Print): Diagnostics {
+    this.tableBuilder.setBinding(stmt.print);
+
     const errors = this.useExprLocalsBind(stmt.expr);
     errors.push(...this.resolveExpr(stmt.expr));
 
