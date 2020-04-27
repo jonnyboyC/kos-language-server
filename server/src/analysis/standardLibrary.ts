@@ -89,8 +89,8 @@ const functionTypes: [string[], IType][] = [
       'addalarm',
       kacAlarmType,
       stringType,
-      stringType,
       scalarType,
+      stringType,
       stringType,
     ),
   ],
@@ -100,7 +100,7 @@ const functionTypes: [string[], IType][] = [
   ],
   [
     ['angle', 'axis'],
-    createFunctionType('angleaxis', directionType, vectorType, scalarType),
+    createFunctionType('angleaxis', directionType, scalarType, vectorType),
   ],
   [
     ['angle', 'diff'],
@@ -339,12 +339,7 @@ const functionTypes: [string[], IType][] = [
   [['mod'], createFunctionType('mod', scalarType, scalarType, scalarType)],
   [
     ['move', 'path'],
-    createFunctionType(
-      'movepath',
-      noneType,
-      createUnion(true, integerType, noneType),
-      createUnion(true, integerType, noneType),
-    ),
+    createFunctionType('movepath',noneType, stringType, stringType),
   ],
   [
     ['node'],
@@ -362,7 +357,7 @@ const functionTypes: [string[], IType][] = [
     createFunctionType(
       'note',
       noteType,
-      scalarType,
+      createUnion(true, scalarType, stringType),
       scalarType,
       createUnion(true, scalarType, noneType),
       createUnion(true, scalarType, noneType),
