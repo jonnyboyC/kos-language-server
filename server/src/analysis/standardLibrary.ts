@@ -339,7 +339,7 @@ const functionTypes: [string[], IType][] = [
   [['mod'], createFunctionType('mod', scalarType, scalarType, scalarType)],
   [
     ['move', 'path'],
-    createFunctionType('movepath',noneType, stringType, stringType),
+    createFunctionType('movepath', noneType, stringType, stringType),
   ],
   [
     ['node'],
