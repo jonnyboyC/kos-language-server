@@ -30,7 +30,7 @@
   "devDependencies": {
     "@types/jest": "^25.2.1",
     "@types/node": "^13.11.1",
-    "@types/semver": "^7.1.0",
+    "@types/semver": "^7.2.0",
     "@types/ws": "^7.2.3",
     "jest": "^25.3.0",
     "jest-junit": "^10.0.0",
@@ -40,7 +40,7 @@
     "tslint": "^6.1.1",
     "tslint-config-airbnb": "^5.11.2",
     "typescript": "^3.8.3",
-    "vscode": "^1.1.36",
+    "vscode": "^1.1.37",
     "webpack": "^4.42.1",
     "webpack-cli": "^3.3.11"
   }
