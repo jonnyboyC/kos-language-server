@@ -20,7 +20,7 @@ program
   .version(version, '-v --version')
   .option('--node-ipc', 'Connect with node inter process communication')
   .option('--stdio', 'Connect with standard io')
-  .option('--clientProcessId', 'Id of the attached client process')
+  .option('--clientProcessId <id>', 'Id of the attached client process')
   .option(
     '--harmony_async_iteration',
     'Must be enabled if using node.js pre 10.0',
