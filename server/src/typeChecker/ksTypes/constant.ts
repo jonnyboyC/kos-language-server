@@ -13,6 +13,15 @@ export const gType = new ConstantType(
 );
 gType.addSuper(noMap(doubleType));
 
+export const g0Type = new ConstantType(
+  'g0',
+  9.80655,
+  { get: true, set: false },
+  new Map(),
+  TypeKind.basic,
+);
+g0Type.addSuper(noMap(doubleType));
+
 export const eType = new ConstantType(
   'e',
   Math.E,
@@ -108,6 +117,7 @@ constantType.addSuper(noMap(structureType));
 
 constantType.addSuffixes(
   noMap(createSuffixType(gType.name, gType)),
+  noMap(createSuffixType(g0Type.name, g0Type)),
   noMap(createSuffixType(eType.name, eType)),
   noMap(createSuffixType(piType.name, piType)),
   noMap(createSuffixType(cType.name, cType)),

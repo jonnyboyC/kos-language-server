@@ -171,7 +171,7 @@ export class Parser {
           TokenType.parameter,
           TokenType.function,
           TokenType.lock,
-        ].some(t => this.check(t))
+        ].some((t) => this.check(t))
       ) {
         return this.define();
       }
