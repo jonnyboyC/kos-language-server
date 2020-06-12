@@ -664,8 +664,6 @@ const locks: [string[], IType][] = [
   [['steering'], directionType],
   [['wheel', 'throttle'], scalarType],
   [['wheel', 'steering'], directionType],
-  [['sas', 'mode'], stringType],
-  [['nav', 'mode'], stringType],
 ];
 
 const variables: [string[], IType][] = [
@@ -733,6 +731,7 @@ const variables: [string[], IType][] = [
   [['mass'], scalarType],
   [['max', 'thrust'], scalarType],
   [['mission', 'time'], scalarType],
+  [['nav', 'mode'], stringType],
   [['next', 'node'], nodeType],
   [['north'], directionType],
   [['obt'], orbitInfoType],
@@ -746,6 +745,7 @@ const variables: [string[], IType][] = [
   [['red'], rgbaType],
   [['retrograde'], directionType],
   [['sas'], booleanType],
+  [['sas', 'mode'], stringType],
   [['sensor'], vesselSensorsType],
   [['session', 'time'], doubleType],
   [['ship'], vesselTargetType],
