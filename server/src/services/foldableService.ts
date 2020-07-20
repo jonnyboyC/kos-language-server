@@ -8,6 +8,7 @@ import { TreeTraverse } from '../utilities/treeTraverse';
 import { IScript } from '../parser/types';
 import { Token } from '../models/token';
 import { BasicDirective } from '../directives/basicDirectives';
+import { rangeOrder } from '../utilities/positionUtils';
 
 type RegionDirectives = BasicDirective<TokenType.region | TokenType.endRegion>;
 type RegionTokens = Token<TokenType.region | TokenType.endRegion>;
@@ -89,9 +90,12 @@ export class FoldableService extends TreeTraverse {
    * @param regions regions tokens
    */
   private foldableRegions(regions: RegionDirectives[]) {
+    const sortedRegions = regions.sort((a, b) =>
+      rangeOrder(a.directive, b.directive),
+    );
     const regionStack: IStack<RegionTokens> = [];
 
-    for (const region of regions) {
+    for (const region of sortedRegions) {
       if (region.directive.type === TokenType.region) {
         regionStack.push(region.directive);
       } else {
