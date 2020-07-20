@@ -9,6 +9,20 @@ const regionFold = `
 // #endregion
 `;
 
+const regionMultiFold = `
+// #region sequential 1
+
+// #endregion sequential 1
+
+// #region sequential 2
+
+// #region nested
+
+// #endregion nested
+
+// #endregion sequential 2
+`;
+
 const blockFold = `
 if true {
 
@@ -47,7 +61,6 @@ function example {
 describe('foldableService', () => {
   describe('when a set of regions tags are present', () => {
     test('identifies a fold region', () => {
-      debugger;
       const result = parseSource(regionFold);
       noParseErrors(result);
       const { region, endRegion } = result.directives.directives;
@@ -58,13 +71,55 @@ describe('foldableService', () => {
         ...endRegion,
       ]);
 
-      expect(foldable).toEqual([{
-        startCharacter: 0,
-        startLine: 1,
-        endCharacter: 13,
-        endLine: 3,
-        kind: 'region',
-      }]);
+      expect(foldable).toHaveLength(1);
+      expect(foldable).toEqual([
+        {
+          startCharacter: 0,
+          startLine: 1,
+          endCharacter: 13,
+          endLine: 3,
+          kind: 'region',
+        },
+      ]);
+    });
+  });
+
+  describe('when multiple fold regions tags are present', () => {
+    test('identifies a fold region', () => {
+      const result = parseSource(regionMultiFold);
+      noParseErrors(result);
+      const { region, endRegion } = result.directives.directives;
+
+      const service = new FoldableService();
+      const foldable = service.findRegions(result.parse.script, [
+        ...region,
+        ...endRegion,
+      ]);
+
+      expect(foldable).toHaveLength(3);
+      expect(foldable).toEqual([
+        {
+          startCharacter: 0,
+          startLine: 1,
+          endCharacter: 13,
+          endLine: 3,
+          kind: 'region',
+        },
+        {
+          startCharacter: 0,
+          startLine: 7,
+          endCharacter: 13,
+          endLine: 9,
+          kind: 'region',
+        },
+        {
+          startCharacter: 0,
+          startLine: 5,
+          endCharacter: 13,
+          endLine: 11,
+          kind: 'region',
+        },
+      ]);
     });
   });
 
@@ -83,13 +138,15 @@ describe('foldableService', () => {
 
       expect(foldable).toHaveLength(1);
 
-      expect(foldable).toEqual([{
-        startCharacter: 15,
-        startLine: 1,
-        endCharacter: 1,
-        endLine: 5,
-        kind: 'region',
-      }]);
+      expect(foldable).toEqual([
+        {
+          startCharacter: 15,
+          startLine: 1,
+          endCharacter: 1,
+          endLine: 5,
+          kind: 'region',
+        },
+      ]);
     });
   });
 
