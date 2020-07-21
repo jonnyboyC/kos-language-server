@@ -1211,7 +1211,7 @@ export class TypeChecker
     const type = builder.current();
     const errors: Diagnostics = [];
 
-    suffixTerm.indexer.tracker = type.tracker();
+    suffixTerm.index.tracker = type.tracker();
     builder.nodes.push(arrayIndexer);
 
     // TODO confirm indexable types
@@ -1676,7 +1676,6 @@ export class TypeChecker
 
     // no operator found return error
     if (empty(leftOps) && empty(rightOps)) {
-
       // recover if both structure
       if (leftType.anyType && rightType.anyType) {
         return { errors, type: structureType };

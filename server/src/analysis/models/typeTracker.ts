@@ -23,6 +23,7 @@ export class TypeTracker<T extends KsSymbol = KsSymbol>
   public getType(_: Location): IType {
     return this.declared.type;
   }
+
   /**
    * What kind of tracker is this type
    */
