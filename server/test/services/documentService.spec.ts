@@ -387,7 +387,6 @@ describe('document service', () => {
       }
     });
 
-    debugger;
     client.sendNotification(
       DidOpenTextDocumentNotification.type,
       mockOpenDocNotification({
@@ -414,8 +413,6 @@ describe('document service', () => {
       DidCloseTextDocumentNotification.type,
       mockCloseDocNotification(uri.toString()),
     );
-
-    debugger;
   });
 
   test('load extension', async () => {
