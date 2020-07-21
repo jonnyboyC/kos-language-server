@@ -261,7 +261,6 @@ export class SymbolService extends EventEmitter {
     rename: RenameParams,
     cancellation: CancellationToken,
   ): Promise<Maybe<WorkspaceEdit>> {
-    debugger;
     const { newName, position, textDocument } = rename;
     const scanner = new Scanner(newName);
 

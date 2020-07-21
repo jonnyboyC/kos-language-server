@@ -672,7 +672,6 @@ describe('symbol service', () => {
           }),
         );
 
-        debugger;
         const expected: DocumentHighlight[] = [
           {
             kind: DocumentHighlightKind.Read,
