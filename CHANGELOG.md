@@ -1,3 +1,24 @@
+# [1.1.5] (2020-8-5)
+
+# Bug Fixes
+- **include directive fix** Previously, the `// #include` directive only worked if there was at least one `run` statement or function call. Now the directive works in isolation.
+
+# [1.1.4] (2020-7-21)
+
+# Bug Fixes
+- **region directive fix** Previously, there the `//#region` and `//#endregion` directives did not work if there were more than one. This has now been fixed so any number of regions works as expected
+- **list()#num type checking fix** Previously the type checker would assign the type to the wrong token. This style of index doesn't seem to be in much use but it was style incorrect
+
+
+# [1.1.3] (2020-5-31)
+
+# Bug Fixes
+- **Incorrect Type Definitions** Previously we had a few type definitions that were out of sync with KOS
+
+1. Add `g0` constant that was missing equal to 9.80655
+1. Fix timewarp suffixes `rate` `mode` and `warp` to be settable suffixes
+
+
 # [1.1.2] (2020-3-3)
 
 # Bug Fixes

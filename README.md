@@ -17,7 +17,7 @@ For additional client support such as sublime text, emacs, notepad++ or others p
 
 ## Features
 
-Currently the vscode client 1.1.2 implements the follow features
+Currently the vscode client 1.1.5 implements the follow features
 - syntax highlighting
 - brace detection
 - code snippets
