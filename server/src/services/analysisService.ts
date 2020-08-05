@@ -35,7 +35,10 @@ import { runPath, normalizeExtensions } from '../utilities/pathUtils';
 import { ResolverService } from './resolverService';
 import { Graph } from '../models/graph';
 import { scc, dfs } from '../utilities/graphUtils';
-import { DIAGNOSTICS, createDiagnosticUri } from '../utilities/diagnosticsUtils';
+import {
+  DIAGNOSTICS,
+  createDiagnosticUri,
+} from '../utilities/diagnosticsUtils';
 import { debounce } from '../utilities/debounce';
 import { union, disjoint, setEqual } from 'ts-set-utils';
 import { EventEmitter } from 'events';
@@ -161,7 +164,7 @@ export class AnalysisService extends EventEmitter {
     this.standardLibrary = standardLibraryBuilder(caseKind);
     this.bodyLibrary = bodyLibraryBuilder(caseKind, DEFAULT_BODIES);
 
-    this.observer = new PerformanceObserver(list => {
+    this.observer = new PerformanceObserver((list) => {
       this.logger.info('');
       this.logger.info('-------- Performance ---------');
       for (const entry of list.getEntries()) {
@@ -362,7 +365,7 @@ export class AnalysisService extends EventEmitter {
     const documentComponentGraph = scc(documentGraph).componentGraph();
 
     const directlyAffected = new Set(
-      [...this.changes].map(c => lexicon.get(c)).filter(notEmpty),
+      [...this.changes].map((c) => lexicon.get(c)).filter(notEmpty),
     );
 
     const affectedSets: Set<LexicalInfo>[] = [];
@@ -377,7 +380,7 @@ export class AnalysisService extends EventEmitter {
     }
     const affected = union(...affectedSets);
     const affectedGraph = this.documentGraph(
-      new Map([...affected].map(affected => [affected.script.uri, affected])),
+      new Map([...affected].map((affected) => [affected.script.uri, affected])),
     );
 
     const affectedScc = scc(affectedGraph);
@@ -605,21 +608,21 @@ export class AnalysisService extends EventEmitter {
     performance.mark('pre-resolver-start');
     const resolverDiagnostics = preResolver
       .resolve()
-      .map(error => addDiagnosticsUri(error, uri));
+      .map((error) => addDiagnosticsUri(error, uri));
 
     performance.mark('pre-resolver-end');
 
     // traverse the ast again to resolve the remaining symbols
     performance.mark('resolver-start');
     resolverDiagnostics.push(
-      ...resolver.resolve().map(error => addDiagnosticsUri(error, uri)),
+      ...resolver.resolve().map((error) => addDiagnosticsUri(error, uri)),
     );
 
     // find scopes were symbols were never used
     resolverDiagnostics.push(
       ...symbolTableBuilder
         .findUnused()
-        .map(error => addDiagnosticsUri(error, uri)),
+        .map((error) => addDiagnosticsUri(error, uri)),
     );
 
     performance.mark('resolver-end');
@@ -643,7 +646,7 @@ export class AnalysisService extends EventEmitter {
       ? []
       : flowGraph
           .reachable()
-          .map(diagnostic => addDiagnosticsUri(diagnostic, uri));
+          .map((diagnostic) => addDiagnosticsUri(diagnostic, uri));
 
     performance.mark('control-flow-end');
 
@@ -654,7 +657,7 @@ export class AnalysisService extends EventEmitter {
 
     const typeDiagnostics = typeChecker
       .check()
-      .map(error => addDiagnosticsUri(error, uri));
+      .map((error) => addDiagnosticsUri(error, uri));
 
     performance.mark('type-checking-end');
 
@@ -749,7 +752,10 @@ export class AnalysisService extends EventEmitter {
     loaded.add(uri);
 
     // if any run statement exist get uri then load
-    if (script.runStmts.length > 0 && this.documentService.ready) {
+    if (
+      (script.runStmts.length > 0 || includes.length > 0) &&
+      this.documentService.ready
+    ) {
       const { documents, diagnostics } = await this.loadDocuments(
         uri,
         script.runStmts,
@@ -758,7 +764,7 @@ export class AnalysisService extends EventEmitter {
 
       // add diagnostics related to the actual load
       result.diagnostics.push(
-        ...diagnostics.map(error => addDiagnosticsUri(error, uri)),
+        ...diagnostics.map((error) => addDiagnosticsUri(error, uri)),
       );
 
       // for each document run validate and yield any results
@@ -825,9 +831,6 @@ export class AnalysisService extends EventEmitter {
     runStmts: RunStmtType[],
     includes: Include[],
   ): Promise<LoadedDocuments> {
-    if (includes) {
-    }
-
     const documents: TextDocument[] = [];
     const diagnostics: Diagnostic[] = [];
 
@@ -850,7 +853,10 @@ export class AnalysisService extends EventEmitter {
 
     // retrieve path from include directives
     for (const include of includes) {
-      const result = await this.loadDocument(include.directive, include.includePath());
+      const result = await this.loadDocument(
+        include.directive,
+        include.includePath(),
+      );
 
       if (TextDocument.is(result)) {
         documents.push(result);
@@ -873,23 +879,16 @@ export class AnalysisService extends EventEmitter {
    */
   private async loadDocument(location: Location, path: string) {
     // resolve path to uri
-    const runUri = this.resolverService.resolve(
-      location,
-      path,
-    );
+    const runUri = this.resolverService.resolve(location, path);
 
     if (empty(runUri)) {
       return this.loadError(location, path);
     }
 
     // load document from uri
-    const document = await this.documentService.loadDocument(
-      runUri.toString(),
-    );
+    const document = await this.documentService.loadDocument(runUri.toString());
 
-    return empty(document)
-      ? this.loadError(location, path)
-      : document;
+    return empty(document) ? this.loadError(location, path) : document;
   }
 
   /**

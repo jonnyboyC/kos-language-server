@@ -1,7 +1,8 @@
 import { URI } from 'vscode-uri';
 import { TextDocument } from 'vscode-languageserver';
 import {
-  createMockDocumentService, createMockConnection,
+  createMockDocumentService,
+  createMockConnection,
 } from '../utilities/mockServices';
 import { ResolverService } from '../../src/services/resolverService';
 import { AnalysisService } from '../../src/services/analysisService';
@@ -157,72 +158,160 @@ describe('analysis service', () => {
     }
   });
 
-  test('validate multiple documents', async () => {
-    const uri1 = URI.file('/example/folder/example1.ks').toString();
-    const uri2 = URI.file('/example/folder/example2.ks').toString();
-    const baseUri = URI.file('/example/folder').toString();
+  describe('when there are multiple documents', () => {
+    describe('when import via run statement', () => {
+      test('validate multiple documents', async () => {
+        const uri1 = URI.file('/example/folder/example1.ks').toString();
+        const uri2 = URI.file('/example/folder/example2.ks').toString();
+        const baseUri = URI.file('/example/folder').toString();
 
-    const documents = new Map([
-      [
-        uri1,
-        TextDocument.create(
+        const documents = new Map([
+          [
+            uri1,
+            TextDocument.create(
+              uri1,
+              'kos',
+              1.0,
+              'runOncePath("example2.ks"). hi().',
+            ),
+          ],
+          [
+            uri2,
+            TextDocument.create(
+              uri2,
+              'kos',
+              1.0,
+              'function hi { print("hi"). }',
+            ),
+          ],
+        ]);
+        const docService = createMockDocumentService(documents);
+        const resolverService = new ResolverService(baseUri);
+
+        const analysisService = new AnalysisService(
+          CaseKind.camelCase,
+          mockLogger,
+          mockTracer,
+          docService,
+          resolverService,
+        );
+
+        const diagnostics = await analysisService.analyzeDocument(
           uri1,
-          'kos',
-          1.0,
-          'runOncePath("example2.ks"). hi().',
-        ),
-      ],
-      [
-        uri2,
-        TextDocument.create(uri2, 'kos', 1.0, 'function hi { print("hi"). }'),
-      ],
-    ]);
-    const docService = createMockDocumentService(documents);
-    const resolverService = new ResolverService(baseUri);
+          (documents.get(uri1) as TextDocument).getText(),
+        );
+        const documentInfo1 = await analysisService.loadInfo(uri1);
+        const documentInfo2 = await analysisService.loadInfo(uri2);
 
-    const analysisService = new AnalysisService(
-      CaseKind.camelCase,
-      mockLogger,
-      mockTracer,
-      docService,
-      resolverService,
-    );
+        expect(diagnostics).toHaveLength(0);
+        expect(documentInfo1).toBeDefined();
+        expect(documentInfo2).toBeDefined();
 
-    const diagnostics = await analysisService.analyzeDocument(
-      uri1,
-      (documents.get(uri1) as TextDocument).getText(),
-    );
-    const documentInfo1 = await analysisService.loadInfo(uri1);
-    const documentInfo2 = await analysisService.loadInfo(uri2);
+        if (!empty(documentInfo1) && !empty(documentInfo2)) {
+          expect(
+            documentInfo1.semanticInfo.symbolTable.dependencyTables.size,
+          ).toBe(3);
+          expect(
+            documentInfo2.semanticInfo.symbolTable.dependencyTables.size,
+          ).toBe(2);
+          expect(
+            documentInfo1.semanticInfo.symbolTable.dependencyTables,
+          ).toContain(documentInfo2.semanticInfo.symbolTable);
 
-    expect(diagnostics).toHaveLength(0);
-    expect(documentInfo1).toBeDefined();
-    expect(documentInfo2).toBeDefined();
+          expect(documentInfoDiagnostics(documentInfo1)).toStrictEqual(
+            diagnostics,
+          );
+          expect(documentInfo1.lexicalInfo.script.stmts).toHaveLength(2);
+          expect(documentInfo2.lexicalInfo.script.stmts).toHaveLength(1);
+          expect(
+            documentInfo1.semanticInfo.symbolTable.rootScope.environment.symbols()
+              .length,
+          ).toBe(0);
 
-    if (!empty(documentInfo1) && !empty(documentInfo2)) {
-      expect(documentInfo1.semanticInfo.symbolTable.dependencyTables.size).toBe(
-        3,
-      );
-      expect(documentInfo2.semanticInfo.symbolTable.dependencyTables.size).toBe(
-        2,
-      );
-      expect(documentInfo1.semanticInfo.symbolTable.dependencyTables).toContain(
-        documentInfo2.semanticInfo.symbolTable,
-      );
+          expect(
+            documentInfo2.semanticInfo.symbolTable.rootScope.environment.symbols()
+              .length,
+          ).toBe(1);
+        }
+      });
+    });
 
-      expect(documentInfoDiagnostics(documentInfo1)).toStrictEqual(diagnostics);
-      expect(documentInfo1.lexicalInfo.script.stmts).toHaveLength(2);
-      expect(documentInfo2.lexicalInfo.script.stmts).toHaveLength(1);
-      expect(
-        documentInfo1.semanticInfo.symbolTable.rootScope.environment.symbols()
-          .length,
-      ).toBe(0);
+    describe('when import via import directive', () => {
+      test('validate multiple documents', async () => {
+        const uri1 = URI.file('/example/folder/example1.ks').toString();
+        const uri2 = URI.file('/example/folder/example2.ks').toString();
+        const baseUri = URI.file('/example/folder').toString();
 
-      expect(
-        documentInfo2.semanticInfo.symbolTable.rootScope.environment.symbols()
-          .length,
-      ).toBe(1);
-    }
+        const documents = new Map([
+          [
+            uri1,
+            TextDocument.create(
+              uri1,
+              'kos',
+              1.0,
+              '// #include "example2.ks"\nhi().',
+            ),
+          ],
+          [
+            uri2,
+            TextDocument.create(
+              uri2,
+              'kos',
+              1.0,
+              'function hi { print("hi"). }',
+            ),
+          ],
+        ]);
+        const docService = createMockDocumentService(documents);
+        const resolverService = new ResolverService(baseUri);
+
+        const analysisService = new AnalysisService(
+          CaseKind.camelCase,
+          mockLogger,
+          mockTracer,
+          docService,
+          resolverService,
+        );
+
+        const diagnostics = await analysisService.analyzeDocument(
+          uri1,
+          (documents.get(uri1) as TextDocument).getText(),
+        );
+        const documentInfo1 = await analysisService.loadInfo(uri1);
+        const documentInfo2 = await analysisService.loadInfo(uri2);
+
+        expect(diagnostics).toHaveLength(0);
+        expect(documentInfo1).toBeDefined();
+        expect(documentInfo2).toBeDefined();
+
+        if (!empty(documentInfo1) && !empty(documentInfo2)) {
+          expect(
+            documentInfo1.semanticInfo.symbolTable.dependencyTables.size,
+          ).toBe(3);
+          expect(
+            documentInfo2.semanticInfo.symbolTable.dependencyTables.size,
+          ).toBe(2);
+          expect(
+            documentInfo1.semanticInfo.symbolTable.dependencyTables,
+          ).toContain(documentInfo2.semanticInfo.symbolTable);
+
+          expect(documentInfoDiagnostics(documentInfo1)).toStrictEqual(
+            diagnostics,
+          );
+          expect(documentInfo1.lexicalInfo.script.stmts).toHaveLength(1);
+          expect(documentInfo2.lexicalInfo.script.stmts).toHaveLength(1);
+          expect(
+            documentInfo1.semanticInfo.symbolTable.rootScope.environment.symbols()
+              .length,
+          ).toBe(0);
+
+          expect(
+            documentInfo2.semanticInfo.symbolTable.rootScope.environment.symbols()
+              .length,
+          ).toBe(1);
+        }
+      });
+    });
   });
 
   test('validate multiple with updates documents', async () => {
@@ -343,12 +432,8 @@ describe('analysis service', () => {
         1,
       );
 
-      expect(analysisService['getInfo'](uri1)).toStrictEqual(
-        documentInfo12,
-      );
-      expect(analysisService['getInfo'](uri2)).toStrictEqual(
-        documentInfo22,
-      );
+      expect(analysisService['getInfo'](uri1)).toStrictEqual(documentInfo12);
+      expect(analysisService['getInfo'](uri2)).toStrictEqual(documentInfo22);
     }
   });
 

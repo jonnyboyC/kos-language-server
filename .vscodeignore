@@ -9,6 +9,7 @@
 **/junit.xml
 kerboscripts
 node_modules
+build
 clients/vscode/src/**
 clients/vscode/node_modules/**
 clients/atom/**
