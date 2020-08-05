@@ -3,7 +3,7 @@
   "description": "Vscode client for the KOS-language-server",
   "author": "John Chabot",
   "license": "MIT",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "publisher": "JohnChabot",
   "repository": {
     "type": "git",
