@@ -18,7 +18,7 @@ const config = {
       ancestorSeparator: ' > ',
       usePathForSuiteName: true,
       output: path.join(__dirname, 'TEST.xml'),
-      tsConfig: path.join(__dirname, 'tsconfig.json'),
+      tsconfig: path.join(__dirname, 'tsconfig.json'),
     },
   },
   collectCoverage: true,

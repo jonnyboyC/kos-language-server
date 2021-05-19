@@ -8,7 +8,7 @@ import { join } from 'path';
  */
 export const readFileAsync = (
   path: string,
-  encoding: string,
+  encoding: BufferEncoding,
 ): Promise<string> => {
   return new Promise((resolve, reject) => {
     readFile(path, { encoding }, (err, data) => {
