@@ -53,7 +53,7 @@ export const partInitializer = () => {
     noMap(createSuffixType('ship', vesselTargetType)),
     noMap(createArgSuffixType('hasModule', booleanType, stringType)),
     noMap(createArgSuffixType('getModule', partModuleType, stringType)),
-    noMap(createArgSuffixType('getModulesByIndex', partModuleType, scalarType)),
+    noMap(createArgSuffixType('getModuleByIndex', partModuleType, scalarType)),
     noMap(createSuffixType('modules', listType.apply(stringType))),
     noMap(createSuffixType('allModules', listType.apply(stringType))),
     noMap(createSuffixType('parent', createUnion(false, partType, stringType))),
