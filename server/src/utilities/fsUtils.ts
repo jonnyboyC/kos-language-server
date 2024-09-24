@@ -1,4 +1,5 @@
-import { readFile, readdirSync, statSync } from 'fs';
+import { readdirSync, statSync } from 'fs';
+import { readFile } from 'fs/promises';
 import { join } from 'path';
 
 /**
@@ -8,17 +9,9 @@ import { join } from 'path';
  */
 export const readFileAsync = (
   path: string,
-  encoding: string,
+  encoding: BufferEncoding,
 ): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    readFile(path, { encoding }, (err, data) => {
-      if (err) {
-        reject(err);
-      }
-
-      resolve(data);
-    });
-  });
+  return readFile(path, encoding);
 };
 
 /**

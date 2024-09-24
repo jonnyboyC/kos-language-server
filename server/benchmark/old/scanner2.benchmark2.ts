@@ -45,7 +45,6 @@ benchmark('temp', () => {
 
   results = results.sort((x, y) => y.rate - x.rate);
   for (const result of results) {
-    // tslint:disable-next-line:max-line-length
     console.log(
       `file path: ${result.filePath} size: ${result.size.toFixed(
         1,
@@ -61,6 +60,5 @@ benchmark('temp', () => {
     size += result.size;
   }
 
-  // tslint:disable-next-line:max-line-length
   console.log(`Overall rate ${size / (time / 1000)} KB/s`);
 });

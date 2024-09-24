@@ -14,10 +14,10 @@ import {
   RenameParams,
   WorkspaceEdit,
   TextEdit,
-  IConnection,
   Hover,
   DocumentHighlight,
   DocumentHighlightKind,
+  Connection,
 } from 'vscode-languageserver';
 import {
   KsBaseSymbol,
@@ -45,7 +45,7 @@ import { IFindResult } from '../parser/types';
 import { IType } from '../typeChecker/types';
 
 export type SymbolConnection = Pick<
-  IConnection,
+  Connection,
   | 'onRenameRequest'
   | 'onReferences'
   | 'onDocumentSymbol'

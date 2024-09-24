@@ -1,24 +1,24 @@
+import { EventEmitter } from 'events';
 import {
-  IConnection,
+  Connection,
   DidChangeTextDocumentParams,
-  DidOpenTextDocumentParams,
   DidCloseTextDocumentParams,
-  TextDocumentItem,
+  DidOpenTextDocumentParams,
   TextDocumentContentChangeEvent,
+  TextDocumentItem,
 } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { empty } from '../utilities/typeGuards';
 import { URI } from 'vscode-uri';
-import { IoService } from './ioService';
 import { logException, mockTracer } from '../models/logger';
 import { normalizeExtensions } from '../utilities/pathUtils';
-import { EventEmitter } from 'events';
+import { empty } from '../utilities/typeGuards';
+import { IoService } from './ioService';
 
 type DocumentChangeHandler = (document: TextDocument) => void;
 type DocumentClosedHandler = (uri: string) => void;
 
 type DocumentConnection = Pick<
-  IConnection,
+Connection,
   'onDidChangeTextDocument' | 'onDidCloseTextDocument' | 'onDidOpenTextDocument'
 >;
 

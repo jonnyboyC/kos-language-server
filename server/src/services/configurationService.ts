@@ -1,15 +1,15 @@
 import { EventEmitter } from 'events';
 import { WorkspaceConfiguration } from '../config/models/workspaceConfiguration';
 import {
-  IConnection,
+  Connection,
   DidChangeConfigurationParams,
-  TextDocument,
 } from 'vscode-languageserver';
 import { DocumentService } from './documentService';
 import { serverName } from '../utilities/constants';
 import { ServerConfiguration } from '../config/models/serverConfiguration';
 import { parseWorkspaceConfiguration } from '../config/workspaceConfigParser';
 import { DiagnosticUri } from '../types';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 
 export interface ChangeConfiguration {
   serverConfiguration: ServerConfiguration;
@@ -26,7 +26,7 @@ export declare interface ConfigurationService {
   emit(event: 'error', ...args: Parameters<ErrorHandler>): boolean;
 }
 
-type ConfigurationConnection = Pick<IConnection, 'onDidChangeConfiguration'>;
+type ConfigurationConnection = Pick<Connection, 'onDidChangeConfiguration'>;
 
 /**
  * A service responsible for collection and organizing user

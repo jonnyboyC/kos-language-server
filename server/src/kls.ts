@@ -197,6 +197,7 @@ export class KLS {
    * Start the language server listening to requests from the client
    */
   public listen(): void {
+
     this.connection.onInitialize(this.onInitialize.bind(this));
     this.connection.onInitialized(this.onInitialized.bind(this));
     this.connection.onCompletion(this.onCompletion.bind(this));
@@ -479,7 +480,7 @@ export class KLS {
             SignatureInformation.create(label, undefined, ...paramInfos),
           ],
           activeParameter: index,
-          activeSignature: null,
+          activeSignature: undefined,
         };
       default:
         return undefined;

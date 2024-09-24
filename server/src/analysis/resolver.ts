@@ -23,7 +23,6 @@ import { SymbolTableBuilder } from './models/symbolTableBuilder';
 import { IDeferred } from './types';
 import { Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver';
 import { createDiagnostic, DIAGNOSTICS } from '../utilities/diagnosticsUtils';
-// tslint:disable-next-line: import-name
 import Denque from 'denque';
 import { Token } from '../models/token';
 

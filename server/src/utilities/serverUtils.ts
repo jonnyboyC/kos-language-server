@@ -1,53 +1,55 @@
-import { KLS } from '../kls';
+import { OptionValues } from 'commander';
 import {
-  TextDocumentPositionParams,
-  CompletionItemKind,
   CompletionItem,
+  CompletionItemKind,
+  Diagnostic,
+  DiagnosticSeverity,
+  DocumentSymbol,
+  MessageReader,
+  MessageWriter,
+  Position,
   SymbolInformation,
   SymbolKind,
+  TextDocumentPositionParams,
+} from 'vscode-languageserver';
+import {
   IPCMessageReader,
   IPCMessageWriter,
   StreamMessageReader,
   StreamMessageWriter,
-  MessageReader,
-  MessageWriter,
-  Diagnostic,
-  DiagnosticSeverity,
-  Position,
-  DocumentSymbol,
-} from 'vscode-languageserver';
-import { empty } from './typeGuards';
-import { KsSymbolKind, KsBaseSymbol } from '../analysis/types';
-import {
-  cleanLocation,
-  cleanToken,
-  cleanCompletion,
-  cleanRange,
-} from './clean';
-import { CommanderStatic } from 'commander';
-import { DiagnosticUri } from '../types';
-import { mapper } from './mapper';
+} from 'vscode-languageserver/node';
+import { KsBaseSymbol, KsSymbolKind } from '../analysis/types';
+import { KLS } from '../kls';
 import * as Expr from '../parser/models/expr';
-import { rangeContainsPos, rangeAfter } from './positionUtils';
+import { ParseError } from '../parser/models/parserError';
 import * as SuffixTerm from '../parser/models/suffixTerm';
+import { IoKind } from '../services/ioService';
+import { structureType } from '../typeChecker/ksTypes/primitives/structure';
 import { IType } from '../typeChecker/types';
 import { tokenTrackedType } from '../typeChecker/utilities/typeUtilities';
-import { structureType } from '../typeChecker/ksTypes/primitives/structure';
-import { IoKind } from '../services/ioService';
+import { DiagnosticUri } from '../types';
+import {
+  cleanCompletion,
+  cleanLocation,
+  cleanRange,
+  cleanToken,
+} from './clean';
 import { DIAGNOSTICS, createDiagnosticUri } from './diagnosticsUtils';
-import { ParseError } from '../parser/models/parserError';
+import { mapper } from './mapper';
+import { rangeAfter, rangeContainsPos } from './positionUtils';
+import { empty } from './typeGuards';
 
 /**
  * Get the connection primitives based on the request connection type
  * @param connectionType connection type
  */
 export const getConnectionPrimitives = (
-  program: CommanderStatic,
+  options: OptionValues,
 ): { writer: MessageWriter; reader: MessageReader } => {
   let reader: MessageReader;
   let writer: MessageWriter;
 
-  if (program.nodeIpc) {
+  if (options.nodeIpc) {
     reader = new IPCMessageReader(process);
     writer = new IPCMessageWriter(process);
   } else {
@@ -61,7 +63,7 @@ export const getConnectionPrimitives = (
     console.log(code);
   });
 
-  reader.onError(error => {
+  reader.onError((error) => {
     console.log(error);
   });
 
@@ -186,7 +188,7 @@ export const symbolCompletionItems = async (
     .map(localCompletions)
     .concat(importedSymbols.map(importedCompletions))
     .concat(keywordCompletions)
-    .map(completion => cleanCompletion(completion));
+    .map((completion) => cleanCompletion(completion));
 };
 
 /**
@@ -221,15 +223,10 @@ export const suffixCompletionItems = async (
   }
 
   // get all suffixes on the predicted type
-  const suffixes = [
-    ...type
-      .assignmentType()
-      .suffixes()
-      .values(),
-  ];
+  const suffixes = [...type.assignmentType().suffixes().values()];
 
   // generate completions
-  return suffixes.map(suffix => ({
+  return suffixes.map((suffix) => ({
     kind: empty(suffix.callSignature())
       ? CompletionItemKind.Property
       : CompletionItemKind.Method,
@@ -307,7 +304,7 @@ const findContainingSuffixTermTrailer = (
 export function toSymbolInformation(
   entities: KsBaseSymbol[],
 ): Maybe<SymbolInformation[]> {
-  return entities.map(entity => {
+  return entities.map((entity) => {
     const kind: Maybe<SymbolKind> = symbolSymbolMapper(entity.tag);
 
     const symbol: SymbolInformation = {
@@ -326,7 +323,7 @@ export function toSymbolInformation(
 export function toDocumentSymbol(
   entities: KsBaseSymbol[],
 ): Maybe<DocumentSymbol[]> {
-  return entities.map(entity => {
+  return entities.map((entity) => {
     const kind: Maybe<SymbolKind> = symbolSymbolMapper(entity.tag);
 
     const symbol: DocumentSymbol = {
