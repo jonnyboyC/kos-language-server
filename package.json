@@ -4,20 +4,18 @@
   "description": "Syntax highlighting, auto-complete, and language diagnostics for KerboScript in Kerbal Operating System.",
   "author": "John Chabot",
   "license": "MIT",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "scripts": {
     "bench": "cd server && npm run bench",
     "vscode:prepublish": "cd clients/vscode && npm run update-vscode && cd ../.. && node build/clean.js && npm run bundle && npm run test",
-    "bundle": "run-p bundle:vscode bundle:atom bundle:server",
-    "build": "run-p build:vscode build:atom build:server",
+    "bundle": "run-p bundle:vscode bundle:server",
+    "build": "run-p build:vscode build:server",
     "test": "cd server && npm test",
     "bundle:vscode": "cd clients/vscode && npm run bundle",
-    "bundle:atom": "tsc -p ./clients/atom/tsconfig.json",
     "bundle:server": "cd server && npm run bundle",
     "build:vscode": "cd clients/vscode && npm run build",
-    "build:atom": "tsc -p ./clients/atom/tsconfig.json",
     "build:server": "cd server && npm run build",
-    "postinstall": "cd clients/vscode && npm install && cd ../atom && npm install && cd ../../server && npm install && cd .."
+    "postinstall": "cd clients/vscode && npm install && npm install && cd ../../server && npm install && cd .."
   },
   "galleryBanner": {
     "color": "#a3a3a3",
@@ -48,14 +46,11 @@
     "npm-run-all": "^4.1.5"
   },
   "engines": {
-    "vscode": "^1.32.0"
+    "vscode": "^1.93.0"
   },
   "activationEvents": [
-    "onLanguage:kos",
     "workspaceContains:**/ksconfig.json",
-    "onCommand:kos.lspPort",
-    "onCommand:kos.startTelnet",
-    "onCommand:kos.startksp"
+    "onCommand:kos.lspPort"
   ],
   "main": "./clients/vscode/out/extension.js",
   "contributes": {
