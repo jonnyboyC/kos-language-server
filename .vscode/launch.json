@@ -12,9 +12,12 @@
 			"args": [
 				"--extensionDevelopmentPath=${workspaceRoot}",
 			],
-			"stopOnEntry": false,
 			"sourceMaps": true,
-			"outFiles": ["${workspaceRoot}/clients/vscode/out/**/*.js"],
+			"outFiles": [
+				"${workspaceRoot}/clients/vscode/out/**/*.js",
+				"${workspaceRoot}/server/out/**/*.js"
+			],
+			"autoAttachChildProcesses": true,
 			"preLaunchTask": "npm: build"
 		},
 		{
@@ -28,7 +31,6 @@
 			"args": [
 				"--extensionDevelopmentPath=${workspaceRoot}",
 			],
-			"stopOnEntry": false,
 			"sourceMaps": true,
 			"outFiles": ["${workspaceRoot}/clients/vscode/dist/**/*.js"],
 			"preLaunchTask": "npm: bundle"
@@ -44,7 +46,6 @@
 			"args": [
 				"--extensionDevelopmentPath=${workspaceRoot}",
 			],
-			"stopOnEntry": false,
 			"sourceMaps": true,
 			"outFiles": ["${workspaceRoot}/clients/vscode/out/**/*.js"],
 		},
@@ -65,7 +66,6 @@
 			"request": "attach",
 			"name": "Attach to Server",
 			"address": "localhost",
-			"protocol": "inspector",
 			"timeout": 60000,
 			"port": 6009,
 			"sourceMaps": true,
@@ -76,7 +76,6 @@
 			"request": "attach",
 			"name": "Attach to Server Bundle",
 			"address": "localhost",
-			"protocol": "inspector",
 			"timeout": 60000,
 			"port": 6009,
 			"sourceMaps": true,
@@ -97,7 +96,6 @@
 			],
 			"console": "integratedTerminal",
 			"internalConsoleOptions": "neverOpen",
-			"disableOptimisticBPs": true,
 			"sourceMaps": true,
 			"outFiles": [
 				"${workspaceRoot}/server/out/**/*.js"
@@ -122,7 +120,6 @@
 			],
 			"console": "integratedTerminal",
 			"internalConsoleOptions": "neverOpen",
-			"disableOptimisticBPs": true,
 			"sourceMaps": true,
 			"outFiles": [
 				"${workspaceRoot}/server/out/**/*.js"
