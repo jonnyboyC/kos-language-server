@@ -5,6 +5,7 @@ import { stringType } from './primitives/string';
 import { scalarType } from './primitives/scalar';
 import { booleanType } from './primitives/boolean';
 import { bodyTargetType } from './orbital/bodyTarget';
+import { orbitEtaType } from './orbitEta';
 
 export const orbitInfoType = createType('orbitInfo');
 orbitInfoType.addSuper(noMap(structureType));
@@ -29,6 +30,7 @@ orbitInfoType.addSuffixes(
   noMap(createSuffixType('position', vectorType)),
   noMap(createSuffixType('nextPatch', orbitInfoType)),
   noMap(createSuffixType('hasNextPatch', booleanType)),
+  noMap(createSuffixType('eta', orbitEtaType)),
   noMap(createSuffixType('nextPatchEta', scalarType)),
   noMap(createSuffixType('vStateVector', vectorType)),
   noMap(createSuffixType('rStateVector', vectorType)),

@@ -219,6 +219,10 @@ export const orbitalInitializer = () => {
     noMap(createSuffixType('crewCapacity', scalarType)),
     noMap(createSuffixType('connection', vesselConnectionType)),
     noMap(createSuffixType('messages', messageQueueType)),
+    noMap(createSuffixType('deltaV', scalarType)),
+    noMap(createSuffixType('deltaVAsl', scalarType)),
+    noMap(createSuffixType('deltaVVacuum', scalarType)),
+    noMap(createSuffixType('burnTime', scalarType)),
     noMap(createArgSuffixType('startTracking', noneType)),
     noMap(
       createArgSuffixType(
