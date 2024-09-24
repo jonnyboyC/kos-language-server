@@ -1546,12 +1546,11 @@ export class TypeChecker
 
     const assignmentType = source.assignmentType();
 
-    // check if left can be converted to a boolean
     if (target && !target.canCoerceFrom(assignmentType)) {
       errors.push(
         createDiagnostic(
           range,
-          `${source.name} cannot be converted to a boolean`,
+          `${source.name} cannot be converted to a ${target.name}`,
           DiagnosticSeverity.Hint,
           DIAGNOSTICS.TYPE_WRONG,
         ),
