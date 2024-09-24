@@ -1,6 +1,5 @@
 import { IKosCommand } from './types';
 import { workspace, OutputChannel, window } from 'vscode';
-// tslint:disable-next-line: import-name
 import WebSocket from 'ws';
 
 /**
@@ -19,7 +18,7 @@ const enum OutputChannelKind {
 }
 
 /**
- * Class to handle routing the output channel to the appropciate location
+ * Class to handle routing the output channel to the appropriate location
  */
 class KosOutputChannel implements OutputChannel {
   public readonly name: string;
@@ -91,6 +90,10 @@ class KosOutputChannel implements OutputChannel {
         this.defaultChannel.appendLine(value);
     }
     this.log = '';
+  }
+
+  replace(value: string): void {
+    this.defaultChannel.replace(value)
   }
 
   clear(): void {
