@@ -17,6 +17,7 @@ import { engineType } from '../ksTypes/parts/engine';
 import { volumeItemType } from '../ksTypes/io/volumeItem';
 import { volumeType } from '../ksTypes/io/volume';
 import { kosProcessorFieldsType } from '../ksTypes/kosProcessorFields';
+import { rcsType } from '../ksTypes/parts/rcs';
 
 /**
  * This map token types to binary operator kinds
@@ -58,6 +59,7 @@ export const listTypeMap: Map<string, IType> = new Map([
   ['parts', partType],
   ['sensors', vesselSensorsType],
   ['dockingports', dockingPortType],
+  ['rcs', rcsType],
   ['engines', engineType],
   ['files', volumeItemType],
   ['fonts', stringType],
