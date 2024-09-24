@@ -2,7 +2,3 @@
 	path = clients/vscode/kos-grammar
 	url = https://github.com/jonnyboyC/kos-grammar.git
 	branch = master
-[submodule "clients/atom"]
-	path = clients/atom
-	url = https://github.com/jonnyboyC/kos-ide.git
-	branch = master
