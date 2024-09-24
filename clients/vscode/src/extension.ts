@@ -8,23 +8,27 @@ import * as path from 'path';
 import { ExtensionContext, commands } from 'vscode';
 
 import {
-  LanguageClient,
-  LanguageClientOptions,
-  ServerOptions,
-  TransportKind,
-  ForkOptions,
-  Message,
-  ErrorAction,
   CloseAction,
+  CloseHandlerResult,
+  ErrorAction,
+  ErrorHandlerResult,
+  LanguageClientOptions,
+  Message,
 } from 'vscode-languageclient';
 import {
-  inspectorChannelProvider,
+  ForkOptions,
+  LanguageClient,
+  ServerOptions,
+  TransportKind,
+} from 'vscode-languageclient/node';
+import {
   channelRouter,
+  inspectorChannelProvider,
   vscodeChannelProvider,
 } from './commands/channelRouterProvider';
-import { telnetProvider } from './commands/telnetProvider';
 import { kspProvider } from './commands/kspProvider';
 import { searchDocumentationProvider } from './commands/searchDocumentationProvider';
+import { telnetProvider } from './commands/telnetProvider';
 
 let client: LanguageClient;
 
@@ -76,15 +80,19 @@ export function activate(context: ExtensionContext) {
     ],
 
     errorHandler: {
-      error(error: Error, message: Message, count: number): ErrorAction {
+      error(error: Error, message: Message, count: number): ErrorHandlerResult {
         console.log(error);
         console.log(message);
         console.log(count);
 
-        return ErrorAction.Continue;
+        return {
+          action: ErrorAction.Continue,
+        };
       },
-      closed(): CloseAction {
-        return CloseAction.Restart;
+      closed(): CloseHandlerResult {
+        return {
+          action: CloseAction.Restart,
+        };
       },
     },
 
