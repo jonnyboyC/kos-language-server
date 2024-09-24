@@ -41,7 +41,9 @@ export class Generator implements IExprClassVisitor<string> {
       return this.genExpr(exprClass);
     } catch (err) {
       this.logger.error(`Error occured in resolver ${err}`);
-      this.tracer.log(err);
+      if (typeof err === 'string') {
+        this.tracer.log(err);
+      }
 
       return '';
     }

@@ -18,7 +18,6 @@ benchmark('temp', () => {
   const logger = createWriteStream('bench.txt', { flags: 'a' });
   const log = (line: string): void => {
     console.log(line);
-    // tslint:disable-next-line: prefer-template
     logger.write(line + '\n');
   };
 
@@ -153,7 +152,6 @@ benchmark('temp', () => {
   typeCheckerResults = typeCheckerResults.sort((x, y) => y.rate - x.rate);
 
   for (const result of scanResults) {
-    // tslint:disable-next-line:max-line-length
     log(
       `file: ${relative(testDir, result.filePath)} size: ${result.size.toFixed(
         1,
@@ -166,7 +164,6 @@ benchmark('temp', () => {
   log('');
 
   for (const result of parseResults) {
-    // tslint:disable-next-line:max-line-length
     log(
       `file: ${relative(testDir, result.filePath)} size: ${result.size.toFixed(
         1,
@@ -179,7 +176,6 @@ benchmark('temp', () => {
   log('');
 
   for (const result of resolverResults) {
-    // tslint:disable-next-line:max-line-length
     console.log(
       `file: ${relative(testDir, result.filePath)} size: ${result.size.toFixed(
         1,
@@ -192,7 +188,6 @@ benchmark('temp', () => {
   log('');
 
   for (const result of flowResults) {
-    // tslint:disable-next-line:max-line-length
     log(
       `file: ${relative(testDir, result.filePath)} size: ${result.size.toFixed(
         1,
@@ -205,7 +200,6 @@ benchmark('temp', () => {
   log('');
 
   for (const result of typeCheckerResults) {
-    // tslint:disable-next-line:max-line-length
     log(
       `file: ${relative(testDir, result.filePath)} size: ${result.size.toFixed(
         1,

@@ -754,7 +754,7 @@ export class AnalysisService extends EventEmitter {
     // if any run statement exist get uri then load
     if (
       (script.runStmts.length > 0 || includes.length > 0) &&
-      this.documentService.ready
+      this.documentService.ready()
     ) {
       const { documents, diagnostics } = await this.loadDocuments(
         uri,

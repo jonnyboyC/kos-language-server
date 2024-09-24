@@ -1,7 +1,6 @@
 import {
-  TextDocument,
   createConnection,
-} from 'vscode-languageserver';
+} from 'vscode-languageserver/node';
 import { IoService, Document } from '../../src/services/ioService';
 import { empty } from '../../src/utilities/typeGuards';
 import { DocumentService } from '../../src/services/documentService';
@@ -10,6 +9,7 @@ import { EventEmitter } from 'events';
 import { AnalysisService } from '../../src/services/analysisService';
 import { DocumentInfo, DiagnosticUri } from '../../src/types';
 import { PassThrough } from 'stream';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 
 /**
  * Create a mock client and server connection

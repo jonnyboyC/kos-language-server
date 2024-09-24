@@ -7,7 +7,6 @@ benchmark('temp', () => {
 
   const catStart = performance.now();
 
-  // tslint:disable-next-line: no-increment-decrement
   for (let i = 0; i < 10000; i++) {
     c = c.concat(a, a, a);
   }
@@ -15,7 +14,6 @@ benchmark('temp', () => {
 
   const pushStart = performance.now();
 
-  // tslint:disable-next-line: no-increment-decrement
   for (let i = 0; i < 10000; i++) {
     c.push(...a, ...a, ...a);
   }

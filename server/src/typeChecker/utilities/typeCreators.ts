@@ -202,7 +202,7 @@ export const createParametricArgSuffixType = (
  * @param typeParameters the type parameters
  * @param type the type to map
  */
-const mapTypeWithParameters = <T>(
+const mapTypeWithParameters = <T extends {}>(
   parentType: ITypeMappable<T>,
   typeParameters: IParametricType[],
   type: IParametricType | string,

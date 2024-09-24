@@ -10,17 +10,17 @@ import {
 } from '../utilities/mockServices';
 import { serverName } from '../../src/utilities/constants';
 import {
-  TextDocument,
-  IConnection,
+  Connection,
   DidChangeConfigurationNotification,
   DidChangeConfigurationParams,
 } from 'vscode-languageserver';
 import { URI } from 'vscode-uri';
 import { parseWorkspaceConfiguration } from '../../src/config/workspaceConfigParser';
 import { ClientConfiguration } from '../../src/types';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 
-let client: IConnection;
-let server: IConnection;
+let client: Connection;
+let server: Connection;
 let mockDocumentService: ReturnType<typeof createMockDocumentService>;
 let configurationService: ConfigurationService;
 const capableServerConfiguration = defaultServerConfiguration.merge({
