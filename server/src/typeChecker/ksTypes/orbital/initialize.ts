@@ -35,6 +35,8 @@ import { vesselSensorsType } from '../vessel/vesselSensors';
 import { OperatorKind } from '../../types';
 import { boundsType } from '../parts/bounds';
 import { Operator } from '../../models/types/operator';
+import { engineType } from '../parts/engine';
+import { rcsType } from '../parts/rcs';
 
 let set = false;
 
@@ -177,8 +179,6 @@ export const orbitalInitializer = () => {
     noMap(createArgSuffixType('allTaggedParts', listType.apply(partType))),
     noMap(createArgSuffixType('parts', listType.apply(partType))),
     noMap(createArgSuffixType('dockingPorts', listType.apply(dockingPortType))),
-    noMap(createArgSuffixType('decouplers', listType.apply(decouplerType))),
-    noMap(createArgSuffixType('separators', listType.apply(decouplerType))),
     noMap(createArgSuffixType('elements', userListType)),
     noMap(createSuffixType('control', flightControlType)),
     noMap(createSuffixType('bearing', scalarType)),
@@ -212,9 +212,6 @@ export const orbitalInitializer = () => {
     noMap(createSuffixType('loadDistance', loadDistanceType)),
     noMap(createArgSuffixType('isDead', booleanType)),
     noMap(createSuffixType('status', stringType)),
-    noMap(createSuffixType('latitude', scalarType)),
-    noMap(createSuffixType('longitude', scalarType)),
-    noMap(createSuffixType('altitude', scalarType)),
     noMap(createSuffixType('crew', listType.apply(crewType))),
     noMap(createSuffixType('crewCapacity', scalarType)),
     noMap(createSuffixType('connection', vesselConnectionType)),
@@ -224,12 +221,15 @@ export const orbitalInitializer = () => {
     noMap(createSuffixType('deltaVVacuum', scalarType)),
     noMap(createSuffixType('burnTime', scalarType)),
     noMap(createArgSuffixType('startTracking', noneType)),
-    noMap(
-      createArgSuffixType(
-        'soiChangeWatchers',
-        uniqueSetType.apply(userDelegateType),
-      ),
-    ),
+    noMap(createSuffixType('deltaV', vectorType)),
+    noMap(createSuffixType('engines', listType.apply(engineType))),
+    noMap(createSuffixType('patches', listType.apply(orbitInfoType))),
+    noMap(createSuffixType('rcs', listType.apply(rcsType))),
+    noMap(createSuffixType('sizeClass', stringType)),
+    noMap(createArgSuffixType('stageDeltaV', vectorType, scalarType)),
+    noMap(createSuffixType('stageNum', scalarType)),
+    noMap(createArgSuffixType('stopTracking', noneType)),
+    noMap(createSuffixType('thrust', scalarType)),
   );
 
   vesselTargetType.addOperators(
