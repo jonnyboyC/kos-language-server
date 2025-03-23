@@ -4,24 +4,27 @@ const { cpus } = require('os');
 
 const config = {
   testEnvironment: 'node',
-  preset: 'ts-jest',
   reporters: ['default', 'jest-junit'],
   coverageReporters: ['html', 'cobertura'],
-  maxWorkers: cpus().length * 2,
+  maxWorkers: cpus().length,
   roots: ['src', 'test'],
   coverageDirectory: 'coverage',
-  globals: {
-    'ts-jest': {
-      suiteName: 'jest tests',
-      classNameTemplate: '{classname} - {title}',
-      titleTemplate: '{classname} - {title}',
-      ancestorSeparator: ' > ',
-      usePathForSuiteName: true,
-      output: path.join(__dirname, 'TEST.xml'),
-      tsConfig: path.join(__dirname, 'tsconfig.json'),
-    },
-  },
   collectCoverage: true,
+  transform: {
+    '^.+.tsx?$': [
+      'ts-jest',
+      {
+        tsconfig:
+          '/Users/john.chabot/code/kos-language-server/server/tsconfig.json',
+        suiteName: 'jest tests',
+        classNameTemplate: '{classname} - {title}',
+        titleTemplate: '{classname} - {title}',
+        ancestorSeparator: ' > ',
+        usePathForSuiteName: true,
+        output: '/Users/john.chabot/code/kos-language-server/server/TEST.xml',
+      },
+    ],
+  },
 };
 
 module.exports = config;
