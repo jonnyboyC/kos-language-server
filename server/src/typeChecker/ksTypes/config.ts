@@ -19,4 +19,5 @@ configType.addSuffixes(
   noMap(createSetSuffixType('blizzy', booleanType)),
   noMap(createSetSuffixType('brightness', scalarType)),
   noMap(createSetSuffixType('defaultFontSize', scalarType)),
+  noMap(createSetSuffixType('suppressAutopilot', booleanType)),
 );

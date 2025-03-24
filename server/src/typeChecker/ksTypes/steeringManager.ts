@@ -43,4 +43,7 @@ steeringManagerType.addSuffixes(
   noMap(createSetSuffixType('rollTorqueFactor', scalarType)),
   noMap(createSuffixType('averageDurction', scalarType)),
   noMap(createSetSuffixType('rollControlAngleRange', scalarType)),
+  noMap(createSetSuffixType('torqueEpsilonMin', scalarType)),
+  noMap(createSetSuffixType('torqueEpsilonMax', scalarType)),
+
 );

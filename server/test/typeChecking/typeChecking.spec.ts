@@ -1,7 +1,11 @@
 import { Tokenized } from '../../src/scanner/types';
 import { Ast } from '../../src/parser/types';
 import { SymbolTable } from '../../src/analysis/models/symbolTable';
-import { Diagnostic, Range, DiagnosticSeverity } from 'vscode-languageserver';
+import {
+  Diagnostic,
+  Range,
+  DiagnosticSeverity
+} from 'vscode-languageserver';
 import { Scanner } from '../../src/scanner/scanner';
 import { Parser } from '../../src/parser/parser';
 import { SymbolTableBuilder } from '../../src/analysis/models/symbolTableBuilder';
@@ -24,7 +28,6 @@ import { vectorType } from '../../src/typeChecker/ksTypes/collections/vector';
 import { directionType } from '../../src/typeChecker/ksTypes/collections/direction';
 import { Marker } from '../../src/scanner/models/marker';
 import { zip } from '../../src/utilities/arrayUtils';
-import { timeSpanType } from '../../src/typeChecker/ksTypes/timespan';
 import { typeInitializer } from '../../src/typeChecker/initialize';
 import { bodyAtmosphereType } from '../../src/typeChecker/ksTypes/bodyatmosphere';
 import { listType } from '../../src/typeChecker/ksTypes/collections/list';
@@ -35,6 +38,7 @@ import { KsFunction } from '../../src/models/function';
 import { createUnion } from '../../src/typeChecker/utilities/typeCreators';
 import { noneType } from '../../src/typeChecker/ksTypes/primitives/none';
 import { DIAGNOSTICS } from '../../src/utilities/diagnosticsUtils';
+import { timeStampType } from '../../src/typeChecker/ksTypes/time/timestamp';
 
 const fakeUri = 'C:\\fake.ks';
 
@@ -85,6 +89,7 @@ const checkSource = (
   const resolverErrors = resolver.resolve();
   const unusedErrors = symbolTableBuilder.findUnused();
 
+  debugger;
   const checker = new TypeChecker(result.parse.script);
   const typeCheckError = checker.check();
 
@@ -611,7 +616,7 @@ describe('typeChecker', () => {
         declaredTests(names, 'd1', KsSymbolKind.variable, vectorType);
         declaredTests(names, 'd2', KsSymbolKind.variable, directionType);
 
-        declaredTests(names, 't1', KsSymbolKind.variable, timeSpanType);
+        declaredTests(names, 't1', KsSymbolKind.variable, timeStampType);
       });
 
       test('infers binary plus operators', () => {
@@ -633,8 +638,8 @@ describe('typeChecker', () => {
         declaredTests(names, 'd1', KsSymbolKind.variable, vectorType);
         declaredTests(names, 'd2', KsSymbolKind.variable, directionType);
 
-        declaredTests(names, 't1', KsSymbolKind.variable, timeSpanType);
-        declaredTests(names, 't2', KsSymbolKind.variable, timeSpanType);
+        declaredTests(names, 't1', KsSymbolKind.variable, timeStampType);
+        declaredTests(names, 't2', KsSymbolKind.variable, timeStampType);
       });
 
       test('infers logical and operators', () => {
@@ -837,16 +842,16 @@ describe('typeChecker', () => {
         test('reports unary operator diagnostics', () => {
           const results = checkSource(unaryDiagnosticSource, true);
           noResolverErrors(results);
-  
+
           const names = toSymbolMap(results.table);
-  
+
           declaredTests(names, 'b1', KsSymbolKind.variable, booleanType);
           declaredTests(names, 'n1', KsSymbolKind.variable, structureType);
-  
+
           const sortedErrors = results.typeCheckDiagnostics.sort(
             (a, b) => a.range.start.line - b.range.start.line,
           );
-  
+
           for (const [error, location] of zip(sortedErrors, unaryLocations)) {
             expect(error.severity).toBe(DiagnosticSeverity.Hint);
             expect(location.start).toEqual(error.range.start);
@@ -859,7 +864,7 @@ describe('typeChecker', () => {
         test('does not report error', () => {
           const results = checkSource(structureDiagnosticSource, true);
           noErrors(results);
-  
+
           const names = toSymbolMap(results.table);
           declaredTests(names, 'example', KsSymbolKind.function);
           declaredTests(names, 'a', KsSymbolKind.parameter, structureType);
