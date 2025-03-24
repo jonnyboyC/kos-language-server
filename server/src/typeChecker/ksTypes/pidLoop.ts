@@ -30,4 +30,6 @@ pidLoopType.addSuffixes(
   noMap(createSuffixType('changeRate', scalarType)),
   noMap(createArgSuffixType('reset', noneType)),
   noMap(createArgSuffixType('update', scalarType, scalarType, scalarType)),
+  noMap(createSetSuffixType('ignoreError', scalarType)),
+  noMap(createSetSuffixType('epsilon', scalarType)),
 );

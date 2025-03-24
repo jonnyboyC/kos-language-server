@@ -35,6 +35,8 @@ import { vesselSensorsType } from '../vessel/vesselSensors';
 import { OperatorKind } from '../../types';
 import { boundsType } from '../parts/bounds';
 import { Operator } from '../../models/types/operator';
+import { separatorType } from '../parts/separator';
+import { deltaVType } from '../deltaV';
 
 let set = false;
 
@@ -178,11 +180,14 @@ export const orbitalInitializer = () => {
     noMap(createArgSuffixType('parts', listType.apply(partType))),
     noMap(createArgSuffixType('dockingPorts', listType.apply(dockingPortType))),
     noMap(createArgSuffixType('decouplers', listType.apply(decouplerType))),
-    noMap(createArgSuffixType('separators', listType.apply(decouplerType))),
+    noMap(createArgSuffixType('separators', listType.apply(separatorType))),
+    noMap(createArgSuffixType('engines', listType.apply(partType))),
+    noMap(createArgSuffixType('rcs', listType.apply(partType))),
     noMap(createArgSuffixType('elements', userListType)),
     noMap(createSuffixType('control', flightControlType)),
     noMap(createSuffixType('bearing', scalarType)),
     noMap(createSuffixType('heading', scalarType)),
+    noMap(createSuffixType('thrust', scalarType)),
     noMap(createSuffixType('availableThrust', scalarType)),
     noMap(createArgSuffixType('availableThrustAt', scalarType, scalarType)),
     noMap(createSuffixType('maxThrust', scalarType)),
@@ -219,11 +224,16 @@ export const orbitalInitializer = () => {
     noMap(createSuffixType('crewCapacity', scalarType)),
     noMap(createSuffixType('connection', vesselConnectionType)),
     noMap(createSuffixType('messages', messageQueueType)),
-    noMap(createSuffixType('deltaV', scalarType)),
+    noMap(createSuffixType('deltaV', deltaVType)),
+    noMap(createArgSuffixType('stageDeltaV', deltaVType, scalarType)),
+    noMap(createSuffixType('stageNum', scalarType)),
     noMap(createSuffixType('deltaVAsl', scalarType)),
     noMap(createSuffixType('deltaVVacuum', scalarType)),
     noMap(createSuffixType('burnTime', scalarType)),
     noMap(createArgSuffixType('startTracking', noneType)),
+    noMap(createArgSuffixType('stopTracking', noneType)),
+    noMap(createArgSuffixType('sizeClass', stringType)),
+    noMap(createSuffixType('positionError', vectorType)),
     noMap(
       createArgSuffixType(
         'soiChangeWatchers',

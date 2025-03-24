@@ -34,4 +34,5 @@ rcsType.addSuffixes(
   noMap(createArgSuffixType('maxThrustAt', scalarType, scalarType)),
   noMap(createSuffixType('thrustVectors', listType.apply(vectorType))),
   noMap(createSuffixType('consumeResources', lexiconType)),
+  noMap(createSetSuffixType('deadBand', scalarType)),
 );

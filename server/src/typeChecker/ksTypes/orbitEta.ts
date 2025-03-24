@@ -13,4 +13,5 @@ orbitEtaType.addSuffixes(
   noMap(createArgSuffixType('apoapsis', scalarType)),
   noMap(createArgSuffixType('periapsis', scalarType)),
   noMap(createArgSuffixType('transition', scalarType)),
+  noMap(createArgSuffixType('nextNode', scalarType)),
 );

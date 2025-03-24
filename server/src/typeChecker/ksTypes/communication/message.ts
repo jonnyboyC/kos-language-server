@@ -1,7 +1,7 @@
 import { createType, createSuffixType, noMap } from '../../utilities/typeCreators';
 import { structureType } from '../primitives/structure';
 import { serializableType } from '../primitives/serializeableStructure';
-import { timeSpanType } from '../timespan';
+import { timeSpanType } from '../time/timespan';
 
 export const messageType = createType('message');
 messageType.addSuper(noMap(serializableType));

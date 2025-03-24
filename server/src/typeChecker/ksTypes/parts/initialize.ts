@@ -46,6 +46,7 @@ export const partInitializer = () => {
     noMap(createSuffixType('rotation', directionType)),
     noMap(createSuffixType('position', vectorType)),
     noMap(createSetSuffixType('tag', stringType)),
+    noMap(createSetSuffixType('com', vectorType)),
     noMap(createSuffixType('facing', directionType)),
     noMap(createSuffixType('bounds', boundsType)),
     noMap(createSuffixType('resources', listType.apply(resourceType))),
@@ -71,6 +72,20 @@ export const partInitializer = () => {
     noMap(createSuffixType('mass', scalarType)),
     noMap(createSuffixType('wetMass', scalarType)),
     noMap(createSuffixType('hasPhysics', booleanType)),
+    noMap(createSuffixType('symmetryCount', scalarType)),
+    noMap(createSuffixType('symmetryType', scalarType)),
+    noMap(createArgSuffixType('removeSymmetry', noneType)),
+    noMap(createArgSuffixType('symmetryPartner', partType, scalarType)),
+    noMap(createArgSuffixType('partsNamed', listType.apply(partType), stringType)),
+    noMap(createArgSuffixType('partsNamedPattern', listType.apply(partType), stringType)),
+    noMap(createArgSuffixType('partsTitle', listType.apply(partType), stringType)),
+    noMap(createArgSuffixType('partsTitlePattern', listType.apply(partType), stringType)),
+    noMap(createArgSuffixType('partsDubbed', listType.apply(partType), stringType)),
+    noMap(createArgSuffixType('partsDubbedPattern', listType.apply(partType), stringType)),
+    noMap(createArgSuffixType('moduleNamed', listType.apply(partType), stringType)),
+    noMap(createArgSuffixType('partsTagged', listType.apply(partType), stringType)),
+    noMap(createArgSuffixType('partsTaggedPattern', listType.apply(partType), stringType)),
+    noMap(createArgSuffixType('allTaggedParts', listType.apply(partType))),
   );
 
   partType.addOperators(

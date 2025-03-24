@@ -22,7 +22,6 @@ import { hsvaType } from '../typeChecker/ksTypes/hsva';
 import { vectorRendererType } from '../typeChecker/ksTypes/vectorRenderer';
 import { guiWidgetType } from '../typeChecker/ksTypes/gui/guiWidget';
 import { orbitableType } from '../typeChecker/ksTypes/orbital/orbitable';
-import { timeSpanType } from '../typeChecker/ksTypes/timespan';
 import { highlightType } from '../typeChecker/ksTypes/highlight';
 import { orbitInfoType } from '../typeChecker/ksTypes/orbitInfo';
 import { careerType } from '../typeChecker/ksTypes/career';
@@ -73,12 +72,16 @@ import { SymbolTable } from './models/symbolTable';
 import { toCase } from '../utilities/stringUtils';
 import { Marker } from '../scanner/models/marker';
 import { boundsType } from '../typeChecker/ksTypes/parts/bounds';
-import { IType } from '../typeChecker/types';
+import { IType, TypeKind } from '../typeChecker/types';
 import { empty } from '../utilities/typeGuards';
 import { partType } from '../typeChecker/ksTypes/parts/part';
 import { kosProcessorFieldsType } from '../typeChecker/ksTypes/kosProcessorFields';
 import { orbitableVelocityType } from '../typeChecker/ksTypes/orbitalVelocity';
 import { Range } from 'vscode-languageserver';
+import { Type } from '../typeChecker/models/types/type';
+import { CallSignature } from '../typeChecker/models/types/callSignature';
+import { timeSpanType } from '../typeChecker/ksTypes/time/timespan';
+import { timeStampType } from '../typeChecker/ksTypes/time/timestamp';
 
 const functionTypes: [string[], IType][] = [
   [['abs'], createFunctionType('abs', scalarType, scalarType)],
@@ -260,12 +263,15 @@ const functionTypes: [string[], IType][] = [
   ],
   [
     ['heading'],
-    createFunctionType(
+    new Type(
       'heading',
-      directionType,
-      scalarType,
-      scalarType,
-      createUnion(true, scalarType, noneType),
+      { get: true, set: false },
+      new Map(),
+      TypeKind.function,
+      new CallSignature(
+        [scalarType, scalarType, createUnion(true, scalarType, noneType)],
+        directionType,
+      ),
     ),
   ],
   [
@@ -436,7 +442,18 @@ const functionTypes: [string[], IType][] = [
     ['r'],
     createFunctionType('r', directionType, scalarType, scalarType, scalarType),
   ],
-  [['random'], createFunctionType('random', scalarType)],
+  [
+    ['random'],
+    createFunctionType(
+      'random',
+      scalarType,
+      createUnion(true, stringType, noneType),
+    ),
+  ],
+  [
+    ['randomSeed'],
+    createFunctionType('randomSeed', noneType, stringType, integerType),
+  ],
   [
     ['range'],
     createFunctionType(
@@ -513,7 +530,19 @@ const functionTypes: [string[], IType][] = [
       createVarType(structureType),
     ),
   ],
-  [['stage'], createFunctionType('stage', noneType)],
+  // We've got to cheat here because
+  // the stage function returns a none
+  // but the bound variable returns a stage
+  [
+    ['stage'],
+    new Type(
+      'stage',
+      { get: true, set: false },
+      new Map(),
+      TypeKind.function,
+      new CallSignature([], stageType),
+    ),
+  ],
   [['stop', 'all', 'voices'], createFunctionType('stopallvoices', noneType)],
   [
     ['switch'],
@@ -524,6 +553,49 @@ const functionTypes: [string[], IType][] = [
     ),
   ],
   [['tan'], createFunctionType('tan', scalarType, scalarType)],
+  [
+    ['time'],
+    new Type(
+      'time',
+      { get: true, set: false },
+      new Map(),
+      TypeKind.function,
+      new CallSignature(
+        [
+          createUnion(true, doubleType, noneType),
+          createUnion(true, doubleType, noneType),
+          createUnion(true, doubleType, noneType),
+          createUnion(true, doubleType, noneType),
+          createUnion(true, doubleType, noneType),
+        ],
+        timeStampType,
+      ),
+    ),
+  ],
+  [
+    ['timestamp'],
+    createFunctionType(
+      'timestamp',
+      timeStampType,
+      createUnion(true, doubleType, noneType),
+      createUnion(true, doubleType, noneType),
+      createUnion(true, doubleType, noneType),
+      createUnion(true, doubleType, noneType),
+      createUnion(true, doubleType, noneType),
+    ),
+  ],
+  [
+    ['timespan'],
+    createFunctionType(
+      'timestamp',
+      timeSpanType,
+      createUnion(true, doubleType, noneType),
+      createUnion(true, doubleType, noneType),
+      createUnion(true, doubleType, noneType),
+      createUnion(true, doubleType, noneType),
+      createUnion(true, doubleType, noneType),
+    ),
+  ],
   [
     ['toggle', 'fly', 'by', 'wire'],
     createFunctionType('toggleflybywire', noneType, stringType, booleanType),
@@ -716,7 +788,6 @@ const variables: [string[], IType][] = [
   [['grey'], rgbaType],
   [['has', 'node'], booleanType],
   [['has', 'target'], booleanType],
-  [['heading'], scalarType],
   [['home', 'connection'], homeConnectionType],
   [['intakes'], booleanType],
   [['isru'], booleanType],
@@ -753,13 +824,11 @@ const variables: [string[], IType][] = [
   [['solar', 'prime', 'vector'], vectorType],
   [['srf', 'prograde'], directionType],
   [['srf', 'retrograde'], directionType],
-  [['stage'], stageType],
   [['status'], stringType],
   [['steering', 'manager'], steeringManagerType],
   [['surface', 'speed'], scalarType],
   [['target'], createUnion(false, bodyTargetType, vesselTargetType, partType)],
   [['terminal'], terminalStructType],
-  [['time'], timeSpanType],
   [['up'], directionType],
   [['velocity'], orbitableVelocityType],
   [['version'], versionInfoType],

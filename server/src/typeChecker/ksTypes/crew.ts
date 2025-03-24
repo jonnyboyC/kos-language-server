@@ -5,7 +5,7 @@ import { stringType } from './primitives/string';
 import { booleanType } from './primitives/boolean';
 import { partType } from './parts/part';
 
-export const crewType = createType('crew');
+export const crewType = createType('crewMember');
 crewType.addSuper(noMap(structureType));
 
 crewType.addSuffixes(
@@ -15,4 +15,7 @@ crewType.addSuffixes(
   noMap(createSuffixType('trait', stringType)),
   noMap(createSuffixType('experience', scalarType)),
   noMap(createSuffixType('part', partType)),
+  noMap(createSuffixType('status', stringType)),
+  noMap(createSuffixType('experienceValue', scalarType)),
+  noMap(createSuffixType('kerbalType', stringType)),
 );

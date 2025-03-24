@@ -55,6 +55,14 @@ kUniverseType.addSuffixes(
       stringType,
     ),
   ),
+  noMap(
+    createArgSuffixType(
+      'launchCraftWithCrewFrom',
+      noneType,
+      craftTemplateType,
+      stringType,
+    ),
+  ),
   noMap(createSuffixType('craftList', listType.apply(craftTemplateType))),
   noMap(
     createArgSuffixType(
