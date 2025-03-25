@@ -14,14 +14,13 @@ const config = {
     '^.+.tsx?$': [
       'ts-jest',
       {
-        tsconfig:
-          '/Users/john.chabot/code/kos-language-server/server/tsconfig.json',
+        tsconfig: './tsconfig.json',
         suiteName: 'jest tests',
         classNameTemplate: '{classname} - {title}',
         titleTemplate: '{classname} - {title}',
         ancestorSeparator: ' > ',
         usePathForSuiteName: true,
-        output: '/Users/john.chabot/code/kos-language-server/server/TEST.xml',
+        output: './TEST.xml',
       },
     ],
   },
