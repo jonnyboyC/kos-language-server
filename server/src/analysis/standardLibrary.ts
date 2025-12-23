@@ -693,7 +693,7 @@ const functionTypes: [string[], IType][] = [
   ],
   [
     ['vector', 'dot', 'product'],
-    createFunctionType('vectordotproduct', vectorType, vectorType, vectorType),
+    createFunctionType('vectordotproduct', scalarType, vectorType, vectorType),
   ],
   [
     ['vector', 'exclude'],
