@@ -808,6 +808,7 @@ const variables: [string[], IType][] = [
   [['next', 'node'], nodeType],
   [['north'], directionType],
   [['obt'], orbitInfoType],
+  [['op','codes','left'], integerType],
   [['orbit'], orbitInfoType],
   [['panels'], booleanType],
   [['periapsis'], scalarType],
