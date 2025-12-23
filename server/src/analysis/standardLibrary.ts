@@ -693,7 +693,7 @@ const functionTypes: [string[], IType][] = [
   ],
   [
     ['vector', 'dot', 'product'],
-    createFunctionType('vectordotproduct', vectorType, vectorType, vectorType),
+    createFunctionType('vectordotproduct', scalarType, vectorType, vectorType),
   ],
   [
     ['vector', 'exclude'],
@@ -786,8 +786,10 @@ const variables: [string[], IType][] = [
   [['gray'], rgbaType],
   [['green'], rgbaType],
   [['grey'], rgbaType],
+  [['ground', 'speed'], scalarType],
   [['has', 'node'], booleanType],
   [['has', 'target'], booleanType],
+  [['heading'], scalarType],
   [['home', 'connection'], homeConnectionType],
   [['intakes'], booleanType],
   [['isru'], booleanType],
@@ -806,6 +808,7 @@ const variables: [string[], IType][] = [
   [['next', 'node'], nodeType],
   [['north'], directionType],
   [['obt'], orbitInfoType],
+  [['op','codes','left'], integerType],
   [['orbit'], orbitInfoType],
   [['panels'], booleanType],
   [['periapsis'], scalarType],
